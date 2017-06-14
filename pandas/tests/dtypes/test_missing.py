@@ -45,16 +45,16 @@ def test_notnull():
             assert (isinstance(isnull(s), Series))
 
 
-class TestIsNull(tm.TestCase):
+class TestIsNull(object):
 
     def test_0d_array(self):
-        self.assertTrue(isnull(np.array(np.nan)))
-        self.assertFalse(isnull(np.array(0.0)))
-        self.assertFalse(isnull(np.array(0)))
+        assert isnull(np.array(np.nan))
+        assert not isnull(np.array(0.0))
+        assert not isnull(np.array(0))
         # test object dtype
-        self.assertTrue(isnull(np.array(np.nan, dtype=object)))
-        self.assertFalse(isnull(np.array(0.0, dtype=object)))
-        self.assertFalse(isnull(np.array(0, dtype=object)))
+        assert isnull(np.array(np.nan, dtype=object))
+        assert not isnull(np.array(0.0, dtype=object))
+        assert not isnull(np.array(0, dtype=object))
 
     def test_empty_object(self):
 
@@ -65,12 +65,12 @@ class TestIsNull(tm.TestCase):
             tm.assert_numpy_array_equal(result, expected)
 
     def test_isnull(self):
-        self.assertFalse(isnull(1.))
-        self.assertTrue(isnull(None))
-        self.assertTrue(isnull(np.NaN))
-        self.assertTrue(float('nan'))
-        self.assertFalse(isnull(np.inf))
-        self.assertFalse(isnull(-np.inf))
+        assert not isnull(1.)
+        assert isnull(None)
+        assert isnull(np.NaN)
+        assert float('nan')
+        assert not isnull(np.inf)
+        assert not isnull(-np.inf)
 
         # series
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -135,8 +135,8 @@ class TestIsNull(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isnull_datetime(self):
-        self.assertFalse(isnull(datetime.now()))
-        self.assertTrue(notnull(datetime.now()))
+        assert not isnull(datetime.now())
+        assert notnull(datetime.now())
 
         idx = date_range('1/1/1990', periods=20)
         exp = np.ones(len(idx), dtype=bool)
@@ -146,14 +146,14 @@ class TestIsNull(tm.TestCase):
         idx[0] = iNaT
         idx = DatetimeIndex(idx)
         mask = isnull(idx)
-        self.assertTrue(mask[0])
+        assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
         # GH 9129
         pidx = idx.to_period(freq='M')
         mask = isnull(pidx)
-        self.assertTrue(mask[0])
+        assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 

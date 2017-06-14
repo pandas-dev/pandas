@@ -143,12 +143,6 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                              'DatetimeIndex')
         method = 'values'
 
-    def _interp_limit(invalid, fw_limit, bw_limit):
-        "Get idx of values that won't be filled b/c they exceed the limits."
-        for x in np.where(invalid)[0]:
-            if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-                yield x
-
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
@@ -160,35 +154,49 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     start_nans = set(range(ys.first_valid_index()))
     end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
 
-    # This is a list of the indexes in the series whose yvalue is currently
-    # NaN, but whose interpolated yvalue will be overwritten with NaN after
-    # computing the interpolation. For each index in this list, one of these
-    # conditions is true of the corresponding NaN in the yvalues:
+    # violate_limit is a list of the indexes in the series whose yvalue is
+    # currently NaN, and should still be NaN after the interpolation.
+    # Specifically:
     #
-    # a) It is one of a chain of NaNs at the beginning of the series, and
-    #    either limit is not specified or limit_direction is 'forward'.
-    # b) It is one of a chain of NaNs at the end of the series, and limit is
-    #    specified and limit_direction is 'backward' or 'both'.
-    # c) Limit is nonzero and it is further than limit from the nearest non-NaN
-    #    value (with respect to the limit_direction setting).
+    # If limit_direction='forward' or None then the list will contain NaNs at
+    # the beginning of the series, and NaNs that are more than 'limit' away
+    # from the prior non-NaN.
     #
-    # The default behavior is to fill forward with no limit, ignoring NaNs at
-    # the beginning (see issues #9218 and #10420)
-    violate_limit = sorted(start_nans)
+    # If limit_direction='backward' then the list will contain NaNs at
+    # the end of the series, and NaNs that are more than 'limit' away
+    # from the subsequent non-NaN.
+    #
+    # If limit_direction='both' then the list will contain NaNs that
+    # are more than 'limit' away from any non-NaN.
+    #
+    # If limit=None, then use default behavior of filling an unlimited number
+    # of NaNs in the direction specified by limit_direction
 
-    if limit is not None:
-        if not is_integer(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        if limit_direction == 'forward':
-            violate_limit = sorted(start_nans | set(_interp_limit(invalid,
-                                                                  limit, 0)))
-        if limit_direction == 'backward':
-            violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0,
-                                                                limit)))
-        if limit_direction == 'both':
-            violate_limit = sorted(_interp_limit(invalid, limit, limit))
+    # default limit is unlimited GH #16282
+    if limit is None:
+        # limit = len(xvalues)
+        pass
+    elif not is_integer(limit):
+        raise ValueError('Limit must be an integer')
+    elif limit < 1:
+        raise ValueError('Limit must be greater than 0')
+
+    # each possible limit_direction
+    # TODO: do we need sorted?
+    if limit_direction == 'forward' and limit is not None:
+        violate_limit = sorted(start_nans |
+                               set(_interp_limit(invalid, limit, 0)))
+    elif limit_direction == 'forward':
+        violate_limit = sorted(start_nans)
+    elif limit_direction == 'backward' and limit is not None:
+        violate_limit = sorted(end_nans |
+                               set(_interp_limit(invalid, 0, limit)))
+    elif limit_direction == 'backward':
+        violate_limit = sorted(end_nans)
+    elif limit_direction == 'both' and limit is not None:
+        violate_limit = sorted(_interp_limit(invalid, limit, limit))
+    else:
+        violate_limit = []
 
     xvalues = getattr(xvalues, 'values', xvalues)
     yvalues = getattr(yvalues, 'values', yvalues)
@@ -624,3 +632,58 @@ def fill_zeros(result, x, y, name, fill):
             result = result.reshape(shape)
 
     return result
+
+
+def _interp_limit(invalid, fw_limit, bw_limit):
+    """Get idx of values that won't be filled b/c they exceed the limits.
+
+    This is equivalent to the more readable, but slower
+
+    .. code-block:: python
+
+       for x in np.where(invalid)[0]:
+           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+               yield x
+    """
+    # handle forward first; the backward direction is the same except
+    # 1. operate on the reversed array
+    # 2. subtract the returned indicies from N - 1
+    N = len(invalid)
+
+    def inner(invalid, limit):
+        limit = min(limit, N)
+        windowed = _rolling_window(invalid, limit + 1).all(1)
+        idx = (set(np.where(windowed)[0] + limit) |
+               set(np.where((~invalid[:limit + 1]).cumsum() == 0)[0]))
+        return idx
+
+    if fw_limit == 0:
+        f_idx = set(np.where(invalid)[0])
+    else:
+        f_idx = inner(invalid, fw_limit)
+
+    if bw_limit == 0:
+        # then we don't even need to care about backwards, just use forwards
+        return f_idx
+    else:
+        b_idx = set(N - 1 - np.asarray(list(inner(invalid[::-1], bw_limit))))
+        if fw_limit == 0:
+            return b_idx
+    return f_idx & b_idx
+
+
+def _rolling_window(a, window):
+    """
+    [True, True, False, True, False], 2 ->
+
+    [
+        [True,  True],
+        [True, False],
+        [False, True],
+        [True, False],
+    ]
+    """
+    # https://stackoverflow.com/a/6811241
+    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)

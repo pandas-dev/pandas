@@ -10,7 +10,6 @@ import pandas as pd
 from pandas import compat, DataFrame
 
 from pandas.compat import range
-import pandas.util.testing as tm
 
 pandas_gbq = pytest.importorskip('pandas_gbq')
 
@@ -93,11 +92,12 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
+@pytest.mark.xfail(reason="gbq having issues")
 @pytest.mark.single
-class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
+class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
@@ -111,7 +111,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
                                 ).create(DATASET_ID + "1")
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *AFTER*
         # executing all tests.
@@ -133,4 +133,4 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
                              .format(destination_table),
                              project_id=_get_project_id(),
                              private_key=_get_private_key_path())
-        self.assertEqual(result['num_rows'][0], test_size)
+        assert result['num_rows'][0] == test_size

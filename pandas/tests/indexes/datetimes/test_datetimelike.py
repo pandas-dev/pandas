@@ -8,10 +8,10 @@ from pandas import Series, Index, DatetimeIndex, date_range
 from ..datetimelike import DatetimeLike
 
 
-class TestDatetimeIndex(DatetimeLike, tm.TestCase):
+class TestDatetimeIndex(DatetimeLike):
     _holder = DatetimeIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=tm.makeDateIndex(10))
         self.setup_indices()
 
@@ -49,13 +49,13 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         first = self.index
         second = self.index[5:]
         intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
+        assert tm.equalContents(intersect, second)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
+            assert tm.equalContents(result, second)
 
         third = Index(['a', 'b', 'c'])
         result = first.intersection(third)
@@ -67,10 +67,10 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         second = self.index[5:]
         everything = self.index
         union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
+        assert tm.equalContents(union, everything)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
+            assert tm.equalContents(result, everything)

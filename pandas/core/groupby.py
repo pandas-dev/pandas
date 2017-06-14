@@ -5,6 +5,7 @@ import datetime
 import collections
 import warnings
 import copy
+from textwrap import dedent
 
 from pandas.compat import (
     zip, range, lzip,
@@ -46,17 +47,17 @@ from pandas.core.index import (Index, MultiIndex,
                                CategoricalIndex, _ensure_index)
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
-from pandas.util.decorators import (cache_readonly, Substitution,
-                                    Appender, make_signature)
+from pandas.util._decorators import (cache_readonly, Substitution,
+                                     Appender, make_signature)
 from pandas.io.formats.printing import pprint_thing
-from pandas.util.validators import validate_kwargs
+from pandas.util._validators import validate_kwargs
 
 import pandas.core.algorithms as algorithms
 import pandas.core.common as com
@@ -149,7 +150,7 @@ _common_apply_whitelist = frozenset([
     'last', 'first',
     'head', 'tail', 'median',
     'mean', 'sum', 'min', 'max',
-    'cumcount',
+    'cumcount', 'ngroup',
     'resample',
     'rank', 'quantile',
     'fillna',
@@ -1438,6 +1439,75 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def ngroup(self, ascending=True):
+        """
+        Number each group from 0 to the number of groups - 1.
+
+        This is the enumerative complement of cumcount.  Note that the
+        numbers given to the groups match the order in which the groups
+        would be seen when iterating over the groupby object, not the
+        order they are first observed.
+
+        .. versionadded:: 0.20.2
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            If False, number in reverse, from number of group - 1 to 0.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({"A": list("aaabba")})
+        >>> df
+           A
+        0  a
+        1  a
+        2  a
+        3  b
+        4  b
+        5  a
+        >>> df.groupby('A').ngroup()
+        0    0
+        1    0
+        2    0
+        3    1
+        4    1
+        5    0
+        dtype: int64
+        >>> df.groupby('A').ngroup(ascending=False)
+        0    1
+        1    1
+        2    1
+        3    0
+        4    0
+        5    1
+        dtype: int64
+        >>> df.groupby(["A", [1,1,2,3,2,1]]).ngroup()
+        0    0
+        1    0
+        2    1
+        3    3
+        4    2
+        5    0
+        dtype: int64
+
+        See also
+        --------
+        .cumcount : Number the rows in each group.
+
+        """
+
+        self._set_group_selection()
+
+        index = self._selected_obj.index
+        result = Series(self.grouper.group_info[0], index)
+        if not ascending:
+            result = self.ngroups - 1 - result
+        return result
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def cumcount(self, ascending=True):
         """
         Number each item in each group from 0 to the length of that group - 1.
@@ -1480,6 +1550,10 @@ class GroupBy(_GroupBy):
         4    0
         5    0
         dtype: int64
+
+        See also
+        --------
+        .ngroup : Number the groups themselves.
         """
 
         self._set_group_selection()
@@ -2749,57 +2823,47 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> s = Series([1, 2, 3, 4])
+
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).min()
+    1    1
+    2    3
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).agg('min')
+    1    1
+    2    3
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).agg(['min', 'max'])
+       min  max
+    1    1    2
+    2    3    4
+
+    See also
+    --------
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        klass='Series',
+        versionadded=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
-        """
-        Apply aggregation function or functions to groups, yielding most likely
-        Series but in some cases DataFrame depending on the output of the
-        aggregation function
-
-        Parameters
-        ----------
-        func_or_funcs : function or list / dict of functions
-            List/dict of functions will produce DataFrame with column names
-            determined by the function names themselves (list) or the keys in
-            the dict
-
-        Notes
-        -----
-        agg is an alias for aggregate. Use it.
-
-        Examples
-        --------
-        >>> series
-        bar    1.0
-        baz    2.0
-        qot    3.0
-        qux    4.0
-
-        >>> mapper = lambda x: x[0] # first letter
-        >>> grouped = series.groupby(mapper)
-
-        >>> grouped.aggregate(np.sum)
-        b    3.0
-        q    7.0
-
-        >>> grouped.aggregate([np.sum, np.mean, np.std])
-           mean  std  sum
-        b  1.5   0.5  3
-        q  3.5   0.5  7
-
-        >>> grouped.agg({'result' : lambda x: x.mean() / x.std(),
-        ...              'total' : np.sum})
-           result  total
-        b  2.121   3
-        q  4.95    7
-
-        See also
-        --------
-        apply, transform
-
-        Returns
-        -------
-        Series or DataFrame
-        """
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
@@ -3346,13 +3410,15 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                result = result._data.blocks[0]
+                newb = result._data.blocks[0]
 
-            # see if we can cast the block back to the original dtype
-            result = block._try_coerce_and_cast_result(result)
+            finally:
+
+                # see if we can cast the block back to the original dtype
+                result = block._try_coerce_and_cast_result(result)
+                newb = block.make_block(result)
 
             new_items.append(locs)
-            newb = block.make_block_same_class(result)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
@@ -3905,9 +3971,67 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    @Substitution(name='groupby')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
+    ...                    'B': [1, 2, 3, 4],
+    ...                    'C': np.random.randn(4)})
+
+    >>> df
+       A  B         C
+    0  1  1  0.362838
+    1  1  2  0.227877
+    2  2  3  1.267767
+    3  2  4 -0.562860
+
+    The aggregation is for each column.
+
+    >>> df.groupby('A').agg('min')
+       B         C
+    A
+    1  1  0.227877
+    2  3 -0.562860
+
+    Multiple aggregations
+
+    >>> df.groupby('A').agg(['min', 'max'])
+        B             C
+      min max       min       max
+    A
+    1   1   2  0.227877  0.362838
+    2   3   4 -0.562860  1.267767
+
+    Select a column for aggregation
+
+    >>> df.groupby('A').B.agg(['min', 'max'])
+       min  max
+    A
+    1    1    2
+    2    3    4
+
+    Different aggregations per column
+
+    >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
+        B             C
+      min max       sum
+    A
+    1   1   2  0.590716
+    2   3   4  0.704907
+
+    See also
+    --------
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
+    pandas.DataFrame.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        klass='DataFrame',
+        versionadded=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -4166,9 +4290,6 @@ DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
 class PanelGroupBy(NDFrameGroupBy):
 
-    @Substitution(name='groupby')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(PanelGroupBy, self).aggregate(arg, *args, **kwargs)
 

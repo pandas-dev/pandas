@@ -832,6 +832,9 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
                 } else if (IS_CARRIAGE(c)) {
                     self->state = EAT_CRNL;
                     break;
+                } else if (IS_COMMENT_CHAR(c)) {
+                    self->state = EAT_COMMENT;
+                    break;
                 } else if (!IS_WHITESPACE(c)) {
                     self->state = START_FIELD;
                     // fall through to subsequent state

@@ -22,12 +22,13 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
+tm._skip_if_no_mpl()
 
-@tm.mplskip
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
@@ -81,7 +82,8 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_plot_figsize_and_title(self):
         # figsize and title
-        ax = self.series.plot(title='Test', figsize=(16, 8))
+        _, ax = self.plt.subplots()
+        ax = self.series.plot(title='Test', figsize=(16, 8), ax=ax)
         self._check_text_labels(ax.title, 'Test')
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
@@ -92,74 +94,85 @@ class TestSeriesPlots(TestPlotBase):
         else:
             key = 'axes.color_cycle'
         colors = self.plt.rcParams[key]
-        Series([1, 2, 3]).plot()
-        self.assertEqual(colors, self.plt.rcParams[key])
+        _, ax = self.plt.subplots()
+        Series([1, 2, 3]).plot(ax=ax)
+        assert colors == self.plt.rcParams[key]
 
     def test_ts_line_lim(self):
-        ax = self.ts.plot()
+        fig, ax = self.plt.subplots()
+        ax = self.ts.plot(ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
-        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        assert xmin == lines[0].get_data(orig=False)[0][0]
+        assert xmax == lines[0].get_data(orig=False)[0][-1]
         tm.close()
 
-        ax = self.ts.plot(secondary_y=True)
+        ax = self.ts.plot(secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
-        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        assert xmin == lines[0].get_data(orig=False)[0][0]
+        assert xmax == lines[0].get_data(orig=False)[0][-1]
 
     def test_ts_area_lim(self):
-        ax = self.ts.plot.area(stacked=False)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.area(stacked=False, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
         # GH 7471
-        ax = self.ts.plot.area(stacked=False, x_compat=True)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
         tz_ts = self.ts.copy()
         tz_ts.index = tz_ts.tz_localize('GMT').tz_convert('CET')
-        ax = tz_ts.plot.area(stacked=False, x_compat=True)
+        _, ax = self.plt.subplots()
+        ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
-        ax = tz_ts.plot.area(stacked=False, secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
 
     def test_label(self):
         s = Series([1, 2])
-        ax = s.plot(label='LABEL', legend=True)
+        _, ax = self.plt.subplots()
+        ax = s.plot(label='LABEL', legend=True, ax=ax)
         self._check_legend_labels(ax, labels=['LABEL'])
         self.plt.close()
-        ax = s.plot(legend=True)
+        _, ax = self.plt.subplots()
+        ax = s.plot(legend=True, ax=ax)
         self._check_legend_labels(ax, labels=['None'])
         self.plt.close()
         # get name from index
         s.name = 'NAME'
-        ax = s.plot(legend=True)
+        _, ax = self.plt.subplots()
+        ax = s.plot(legend=True, ax=ax)
         self._check_legend_labels(ax, labels=['NAME'])
         self.plt.close()
         # override the default
-        ax = s.plot(legend=True, label='LABEL')
+        _, ax = self.plt.subplots()
+        ax = s.plot(legend=True, label='LABEL', ax=ax)
         self._check_legend_labels(ax, labels=['LABEL'])
         self.plt.close()
         # Add lebel info, but don't draw
-        ax = s.plot(legend=False, label='LABEL')
-        self.assertEqual(ax.get_legend(), None)  # Hasn't been drawn
+        _, ax = self.plt.subplots()
+        ax = s.plot(legend=False, label='LABEL', ax=ax)
+        assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         self._check_legend_labels(ax, labels=['LABEL'])
 
@@ -188,12 +201,14 @@ class TestSeriesPlots(TestPlotBase):
     def test_line_use_index_false(self):
         s = Series([1, 2, 3], index=['a', 'b', 'c'])
         s.index.name = 'The Index'
-        ax = s.plot(use_index=False)
+        _, ax = self.plt.subplots()
+        ax = s.plot(use_index=False, ax=ax)
         label = ax.get_xlabel()
-        self.assertEqual(label, '')
-        ax2 = s.plot.bar(use_index=False)
+        assert label == ''
+        _, ax = self.plt.subplots()
+        ax2 = s.plot.bar(use_index=False, ax=ax)
         label2 = ax2.get_xlabel()
-        self.assertEqual(label2, '')
+        assert label2 == ''
 
     @slow
     def test_bar_log(self):
@@ -202,11 +217,13 @@ class TestSeriesPlots(TestPlotBase):
         if not self.mpl_le_1_2_1:
             expected = np.hstack((.1, expected, 1e4))
 
-        ax = Series([200, 500]).plot.bar(log=True)
+        _, ax = self.plt.subplots()
+        ax = Series([200, 500]).plot.bar(log=True, ax=ax)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
-        ax = Series([200, 500]).plot.barh(log=True)
+        _, ax = self.plt.subplots()
+        ax = Series([200, 500]).plot.barh(log=True, ax=ax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
         tm.close()
 
@@ -218,44 +235,50 @@ class TestSeriesPlots(TestPlotBase):
         if self.mpl_ge_2_0_0:
             expected = np.hstack((1.0e-05, expected))
 
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
+        _, ax = self.plt.subplots()
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar', ax=ax)
         ymin = 0.0007943282347242822 if self.mpl_ge_2_0_0 else 0.001
         ymax = 0.12589254117941673 if self.mpl_ge_2_0_0 else .10000000000000001
         res = ax.get_ylim()
-        self.assertAlmostEqual(res[0], ymin)
-        self.assertAlmostEqual(res[1], ymax)
+        tm.assert_almost_equal(res[0], ymin)
+        tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
+        _, ax = self.plt.subplots()
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh', ax=ax)
         res = ax.get_xlim()
-        self.assertAlmostEqual(res[0], ymin)
-        self.assertAlmostEqual(res[1], ymax)
+        tm.assert_almost_equal(res[0], ymin)
+        tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
-        ax = df.plot.bar(use_index=False)
+        _, ax = self.plt.subplots()
+        ax = df.plot.bar(use_index=False, ax=ax)
         self._check_text_labels(ax.get_xticklabels(), ['0', '1', '2', '3'])
 
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
         # Default rot 0
-        axes = df.plot()
+        _, ax = self.plt.subplots()
+        axes = df.plot(ax=ax)
         self._check_ticks_props(axes, xrot=0)
 
-        axes = df.plot(rot=30)
+        _, ax = self.plt.subplots()
+        axes = df.plot(rot=30, ax=ax)
         self._check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
         rng = date_range('1/1/2000', '3/1/2000')
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
         ser = Series(randn(len(rng)), rng)
-        ax = ser.plot()
+        _, ax = self.plt.subplots()
+        ax = ser.plot(ax=ax)
         xp = datetime(1999, 1, 1).toordinal()
         ax.set_xlim('1/1/1999', '1/1/2001')
-        self.assertEqual(xp, ax.get_xlim()[0])
+        assert xp == ax.get_xlim()[0]
 
     @slow
     def test_pie_series(self):
@@ -265,7 +288,7 @@ class TestSeriesPlots(TestPlotBase):
                         index=['a', 'b', 'c', 'd', 'e'], name='YLABEL')
         ax = _check_plot_works(series.plot.pie)
         self._check_text_labels(ax.texts, series.index)
-        self.assertEqual(ax.get_ylabel(), 'YLABEL')
+        assert ax.get_ylabel() == 'YLABEL'
 
         # without wedge labels
         ax = _check_plot_works(series.plot.pie, labels=None)
@@ -295,7 +318,7 @@ class TestSeriesPlots(TestPlotBase):
         expected_texts = list(next(it) for it in itertools.cycle(iters))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
-            self.assertEqual(t.get_fontsize(), 7)
+            assert t.get_fontsize() == 7
 
         # includes negative value
         with pytest.raises(ValueError):
@@ -310,16 +333,18 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_pie_nan(self):
         s = Series([1, np.nan, 1, 1])
-        ax = s.plot.pie(legend=True)
+        _, ax = self.plt.subplots()
+        ax = s.plot.pie(legend=True, ax=ax)
         expected = ['0', '', '2', '3']
         result = [x.get_text() for x in ax.texts]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @slow
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
-        ax = df.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 10)
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 10
 
     @slow
     def test_hist_df_with_nonnumerics(self):
@@ -328,11 +353,13 @@ class TestSeriesPlots(TestPlotBase):
             df = DataFrame(
                 np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
         df['E'] = ['x', 'y'] * 5
-        ax = df.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 20)
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 20
 
-        ax = df.plot.hist()  # bins=10
-        self.assertEqual(len(ax.patches), 40)
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(ax=ax)  # bins=10
+        assert len(ax.patches) == 40
 
     @slow
     def test_hist_legacy(self):
@@ -364,7 +391,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
-        self.assertEqual(len(ax.patches), 2)
+        assert len(ax.patches) == 2
 
     @slow
     def test_hist_layout(self):
@@ -430,7 +457,7 @@ class TestSeriesPlots(TestPlotBase):
         y.hist()
         fig = gcf()
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
-        self.assertEqual(len(axes), 2)
+        assert len(axes) == 2
 
     @slow
     def test_hist_secondary_legend(self):
@@ -438,35 +465,38 @@ class TestSeriesPlots(TestPlotBase):
         df = DataFrame(np.random.randn(30, 4), columns=list('abcd'))
 
         # primary -> secondary
-        ax = df['a'].plot.hist(legend=True)
+        _, ax = self.plt.subplots()
+        ax = df['a'].plot.hist(legend=True, ax=ax)
         df['b'].plot.hist(ax=ax, legend=True, secondary_y=True)
         # both legends are dran on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=['a', 'b (right)'])
-        self.assertTrue(ax.get_yaxis().get_visible())
-        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> secondary
-        ax = df['a'].plot.hist(legend=True, secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = df['a'].plot.hist(legend=True, secondary_y=True, ax=ax)
         df['b'].plot.hist(ax=ax, legend=True, secondary_y=True)
         # both legends are draw on left ax
         # left axis must be invisible, right axis must be visible
         self._check_legend_labels(ax.left_ax,
                                   labels=['a (right)', 'b (right)'])
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
-        self.assertTrue(ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> primary
-        ax = df['a'].plot.hist(legend=True, secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = df['a'].plot.hist(legend=True, secondary_y=True, ax=ax)
         # right axes is returned
         df['b'].plot.hist(ax=ax, legend=True)
         # both legends are draw on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax.left_ax, labels=['a (right)', 'b'])
-        self.assertTrue(ax.left_ax.get_yaxis().get_visible())
-        self.assertTrue(ax.get_yaxis().get_visible())
+        assert ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
         tm.close()
 
     @slow
@@ -476,67 +506,74 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(np.random.randn(30), name='x')
 
         # primary -> secondary (without passing ax)
-        ax = df.plot()
-        s.plot(legend=True, secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = df.plot(ax=ax)
+        s.plot(legend=True, secondary_y=True, ax=ax)
         # both legends are dran on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
-        self.assertTrue(ax.get_yaxis().get_visible())
-        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
         # primary -> secondary (with passing ax)
-        ax = df.plot()
+        _, ax = self.plt.subplots()
+        ax = df.plot(ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
         # both legends are dran on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=['a', 'b', 'c', 'x (right)'])
-        self.assertTrue(ax.get_yaxis().get_visible())
-        self.assertTrue(ax.right_ax.get_yaxis().get_visible())
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
         # seconcary -> secondary (without passing ax)
-        ax = df.plot(secondary_y=True)
-        s.plot(legend=True, secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = df.plot(secondary_y=True, ax=ax)
+        s.plot(legend=True, secondary_y=True, ax=ax)
         # both legends are dran on left ax
         # left axis must be invisible and right axis must be visible
         expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
         self._check_legend_labels(ax.left_ax, labels=expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
-        self.assertTrue(ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> secondary (with passing ax)
-        ax = df.plot(secondary_y=True)
+        _, ax = self.plt.subplots()
+        ax = df.plot(secondary_y=True, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
         # both legends are dran on left ax
         # left axis must be invisible and right axis must be visible
         expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
         self._check_legend_labels(ax.left_ax, expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
-        self.assertTrue(ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> secondary (with passing ax)
-        ax = df.plot(secondary_y=True, mark_right=False)
+        _, ax = self.plt.subplots()
+        ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
         # both legends are dran on left ax
         # left axis must be invisible and right axis must be visible
         expected = ['a', 'b', 'c', 'x (right)']
         self._check_legend_labels(ax.left_ax, expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
-        self.assertTrue(ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
         tm.close()
 
     @slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
-            x.plot(style='k--', color='k')
+            _, ax = self.plt.subplots()
+            x.plot(style='k--', color='k', ax=ax)
 
     @slow
     def test_hist_kde(self):
-        ax = self.ts.plot.hist(logy=True)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         xlabels = ax.get_xticklabels()
         # ticks are values, thus ticklabels are blank
@@ -548,7 +585,8 @@ class TestSeriesPlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
-        ax = self.ts.plot.kde(logy=True)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.kde(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         xlabels = ax.get_xticklabels()
         self._check_text_labels(xlabels, [''] * len(xlabels))
@@ -564,8 +602,9 @@ class TestSeriesPlots(TestPlotBase):
                           ind=linspace(-100, 100, 20))
         _check_plot_works(self.ts.plot.density, bw_method=.5,
                           ind=linspace(-100, 100, 20))
+        _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, bw_method=.5,
-                              ind=linspace(-100, 100, 20))
+                              ind=linspace(-100, 100, 20), ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
@@ -576,44 +615,49 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
-        # check if the values have any missing values
-        # GH14821
-        self.assertTrue(any(~np.isnan(axes.lines[0].get_xdata())),
-                        msg='Missing Values not dropped')
+
+        # gh-14821: check if the values have any missing values
+        assert any(~np.isnan(axes.lines[0].get_xdata()))
 
     @slow
     def test_hist_kwargs(self):
-        ax = self.ts.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 5)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 5
         self._check_text_labels(ax.yaxis.get_label(), 'Frequency')
         tm.close()
 
         if self.mpl_ge_1_3_1:
-            ax = self.ts.plot.hist(orientation='horizontal')
+            _, ax = self.plt.subplots()
+            ax = self.ts.plot.hist(orientation='horizontal', ax=ax)
             self._check_text_labels(ax.xaxis.get_label(), 'Frequency')
             tm.close()
 
-            ax = self.ts.plot.hist(align='left', stacked=True)
+            _, ax = self.plt.subplots()
+            ax = self.ts.plot.hist(align='left', stacked=True, ax=ax)
             tm.close()
 
     @slow
     def test_hist_kde_color(self):
-        ax = self.ts.plot.hist(logy=True, bins=10, color='b')
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(logy=True, bins=10, color='b', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
-        self.assertEqual(len(ax.patches), 10)
+        assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
-        ax = self.ts.plot.kde(logy=True, color='r')
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.kde(logy=True, color='r', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         lines = ax.get_lines()
-        self.assertEqual(len(lines), 1)
+        assert len(lines) == 1
         self._check_colors(lines, ['r'])
 
     @slow
     def test_boxplot_series(self):
-        ax = self.ts.plot.box(logy=True)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.box(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         xlabels = ax.get_xticklabels()
         self._check_text_labels(xlabels, [self.ts.name])
@@ -625,20 +669,22 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(range(3))
         kinds = (plotting._core._common_kinds +
                  plotting._core._series_kinds)
+        _, ax = self.plt.subplots()
         for kind in kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            s.plot(kind=kind)
+            s.plot(kind=kind, ax=ax)
             getattr(s.plot, kind)()
 
     @slow
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
+        _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with pytest.raises(TypeError):
-                s.plot(kind=kind)
+                s.plot(kind=kind, ax=ax)
 
     @slow
     def test_valid_object_plot(self):
@@ -650,11 +696,12 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
+        _, ax = self.plt.subplots()
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with pytest.raises(TypeError):
-                s.plot(kind=kind)
+                s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
         s = Series([1, 2])
@@ -730,16 +777,16 @@ class TestSeriesPlots(TestPlotBase):
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
     @slow
     def test_standard_colors_all(self):
@@ -749,40 +796,42 @@ class TestSeriesPlots(TestPlotBase):
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
             result = _get_standard_colors(num_colors=1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(num_colors=3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
         # single letter colors like k
         for c in colors.ColorConverter.colors:
             result = _get_standard_colors(num_colors=1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(num_colors=3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
     def test_series_plot_color_kwargs(self):
         # GH1890
-        ax = Series(np.arange(12) + 1).plot(color='green')
+        _, ax = self.plt.subplots()
+        ax = Series(np.arange(12) + 1).plot(color='green', ax=ax)
         self._check_colors(ax.get_lines(), linecolors=['green'])
 
     def test_time_series_plot_color_kwargs(self):
         # #1890
+        _, ax = self.plt.subplots()
         ax = Series(np.arange(12) + 1, index=date_range(
-            '1/1/2000', periods=12)).plot(color='green')
+            '1/1/2000', periods=12)).plot(color='green', ax=ax)
         self._check_colors(ax.get_lines(), linecolors=['green'])
 
     def test_time_series_plot_color_with_empty_kwargs(self):
@@ -797,14 +846,16 @@ class TestSeriesPlots(TestPlotBase):
 
         ncolors = 3
 
+        _, ax = self.plt.subplots()
         for i in range(ncolors):
-            ax = s.plot()
+            ax = s.plot(ax=ax)
         self._check_colors(ax.get_lines(), linecolors=def_colors[:ncolors])
 
     def test_xticklabels(self):
         # GH11529
         s = Series(np.arange(10), index=['P%02d' % i for i in range(10)])
-        ax = s.plot(xticks=[0, 3, 5, 9])
+        _, ax = self.plt.subplots()
+        ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
         exp = ['P%02d' % i for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
 

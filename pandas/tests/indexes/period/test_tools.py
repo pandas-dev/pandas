@@ -11,7 +11,7 @@ from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 
 
-class TestPeriodRepresentation(tm.TestCase):
+class TestPeriodRepresentation(object):
     """
     Wish to match NumPy units
     """
@@ -65,7 +65,7 @@ class TestPeriodRepresentation(tm.TestCase):
         for freq in freqs:
             period = Period(ordinal=-1, freq=freq)
             repr(period)
-            self.assertEqual(period.year, 1969)
+            assert period.year == 1969
 
         period = Period(ordinal=-1, freq='B')
         repr(period)
@@ -73,104 +73,86 @@ class TestPeriodRepresentation(tm.TestCase):
         repr(period)
 
 
-class TestTslib(tm.TestCase):
+class TestTslib(object):
     def test_intraday_conversion_factors(self):
-        self.assertEqual(period_asfreq(
-            1, get_freq('D'), get_freq('H'), False), 24)
-        self.assertEqual(period_asfreq(
-            1, get_freq('D'), get_freq('T'), False), 1440)
-        self.assertEqual(period_asfreq(
-            1, get_freq('D'), get_freq('S'), False), 86400)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'D'), get_freq('L'), False), 86400000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'D'), get_freq('U'), False), 86400000000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'D'), get_freq('N'), False), 86400000000000)
+        assert period_asfreq(1, get_freq('D'), get_freq('H'), False) == 24
+        assert period_asfreq(1, get_freq('D'), get_freq('T'), False) == 1440
+        assert period_asfreq(1, get_freq('D'), get_freq('S'), False) == 86400
+        assert period_asfreq(1, get_freq('D'),
+                             get_freq('L'), False) == 86400000
+        assert period_asfreq(1, get_freq('D'),
+                             get_freq('U'), False) == 86400000000
+        assert period_asfreq(1, get_freq('D'),
+                             get_freq('N'), False) == 86400000000000
 
-        self.assertEqual(period_asfreq(
-            1, get_freq('H'), get_freq('T'), False), 60)
-        self.assertEqual(period_asfreq(
-            1, get_freq('H'), get_freq('S'), False), 3600)
-        self.assertEqual(period_asfreq(1, get_freq('H'),
-                                       get_freq('L'), False), 3600000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'H'), get_freq('U'), False), 3600000000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'H'), get_freq('N'), False), 3600000000000)
+        assert period_asfreq(1, get_freq('H'), get_freq('T'), False) == 60
+        assert period_asfreq(1, get_freq('H'), get_freq('S'), False) == 3600
+        assert period_asfreq(1, get_freq('H'),
+                             get_freq('L'), False) == 3600000
+        assert period_asfreq(1, get_freq('H'),
+                             get_freq('U'), False) == 3600000000
+        assert period_asfreq(1, get_freq('H'),
+                             get_freq('N'), False) == 3600000000000
 
-        self.assertEqual(period_asfreq(
-            1, get_freq('T'), get_freq('S'), False), 60)
-        self.assertEqual(period_asfreq(
-            1, get_freq('T'), get_freq('L'), False), 60000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'T'), get_freq('U'), False), 60000000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'T'), get_freq('N'), False), 60000000000)
+        assert period_asfreq(1, get_freq('T'), get_freq('S'), False) == 60
+        assert period_asfreq(1, get_freq('T'), get_freq('L'), False) == 60000
+        assert period_asfreq(1, get_freq('T'),
+                             get_freq('U'), False) == 60000000
+        assert period_asfreq(1, get_freq('T'),
+                             get_freq('N'), False) == 60000000000
 
-        self.assertEqual(period_asfreq(
-            1, get_freq('S'), get_freq('L'), False), 1000)
-        self.assertEqual(period_asfreq(1, get_freq('S'),
-                                       get_freq('U'), False), 1000000)
-        self.assertEqual(period_asfreq(1, get_freq(
-            'S'), get_freq('N'), False), 1000000000)
+        assert period_asfreq(1, get_freq('S'), get_freq('L'), False) == 1000
+        assert period_asfreq(1, get_freq('S'),
+                             get_freq('U'), False) == 1000000
+        assert period_asfreq(1, get_freq('S'),
+                             get_freq('N'), False) == 1000000000
 
-        self.assertEqual(period_asfreq(
-            1, get_freq('L'), get_freq('U'), False), 1000)
-        self.assertEqual(period_asfreq(1, get_freq('L'),
-                                       get_freq('N'), False), 1000000)
+        assert period_asfreq(1, get_freq('L'), get_freq('U'), False) == 1000
+        assert period_asfreq(1, get_freq('L'),
+                             get_freq('N'), False) == 1000000
 
-        self.assertEqual(period_asfreq(
-            1, get_freq('U'), get_freq('N'), False), 1000)
+        assert period_asfreq(1, get_freq('U'), get_freq('N'), False) == 1000
 
     def test_period_ordinal_start_values(self):
         # information for 1.1.1970
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
-                                           get_freq('A')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
-                                           get_freq('M')))
-        self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
-                                           get_freq('W')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
-                                           get_freq('D')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
-                                           get_freq('B')))
+        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('A')) == 0
+        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('M')) == 0
+        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('W')) == 1
+        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('D')) == 0
+        assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('B')) == 0
 
     def test_period_ordinal_week(self):
-        self.assertEqual(1, period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0,
-                                           get_freq('W')))
-        self.assertEqual(2, period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0,
-                                           get_freq('W')))
-
-        self.assertEqual(2284, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
-                                              get_freq('W')))
-        self.assertEqual(2285, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
-                                              get_freq('W')))
+        assert period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0, get_freq('W')) == 1
+        assert period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0, get_freq('W')) == 2
+        assert period_ordinal(2013, 10, 6, 0,
+                              0, 0, 0, 0, get_freq('W')) == 2284
+        assert period_ordinal(2013, 10, 7, 0,
+                              0, 0, 0, 0, get_freq('W')) == 2285
 
     def test_period_ordinal_business_day(self):
         # Thursday
-        self.assertEqual(11415, period_ordinal(2013, 10, 3, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 3, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11415
         # Friday
-        self.assertEqual(11416, period_ordinal(2013, 10, 4, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 4, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11416
         # Saturday
-        self.assertEqual(11417, period_ordinal(2013, 10, 5, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 5, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11417
         # Sunday
-        self.assertEqual(11417, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 6, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11417
         # Monday
-        self.assertEqual(11417, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 7, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11417
         # Tuesday
-        self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0,
-                                               get_freq('B')))
+        assert period_ordinal(2013, 10, 8, 0,
+                              0, 0, 0, 0, get_freq('B')) == 11418
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_tolist(self):
@@ -189,7 +171,7 @@ class TestPeriodIndex(tm.TestCase):
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = series.to_timestamp(how='end')
         tm.assert_index_equal(result.index, exp_index)
-        self.assertEqual(result.name, 'foo')
+        assert result.name == 'foo'
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = series.to_timestamp(how='start')
@@ -221,7 +203,7 @@ class TestPeriodIndex(tm.TestCase):
                                freq='H')
         result = series.to_timestamp(how='end')
         tm.assert_index_equal(result.index, exp_index)
-        self.assertEqual(result.name, 'foo')
+        assert result.name == 'foo'
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -236,10 +218,10 @@ class TestPeriodIndex(tm.TestCase):
     def test_to_timestamp_preserve_name(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009',
                             name='foo')
-        self.assertEqual(index.name, 'foo')
+        assert index.name == 'foo'
 
         conv = index.to_timestamp('D')
-        self.assertEqual(conv.name, 'foo')
+        assert conv.name == 'foo'
 
     def test_to_timestamp_repr_is_code(self):
         zs = [Timestamp('99-04-17 00:00:00', tz='UTC'),
@@ -247,7 +229,7 @@ class TestPeriodIndex(tm.TestCase):
               Timestamp('2001-04-17 00:00:00', tz='America/Los_Angeles'),
               Timestamp('2001-04-17 00:00:00', tz=None)]
         for z in zs:
-            self.assertEqual(eval(repr(z)), z)
+            assert eval(repr(z)) == z
 
     def test_to_timestamp_pi_nat(self):
         # GH 7228
@@ -258,20 +240,20 @@ class TestPeriodIndex(tm.TestCase):
         expected = DatetimeIndex([pd.NaT, datetime(2011, 1, 1),
                                   datetime(2011, 2, 1)], name='idx')
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, 'idx')
+        assert result.name == 'idx'
 
         result2 = result.to_period(freq='M')
         tm.assert_index_equal(result2, index)
-        self.assertEqual(result2.name, 'idx')
+        assert result2.name == 'idx'
 
         result3 = result.to_period(freq='3M')
         exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
         tm.assert_index_equal(result3, exp)
-        self.assertEqual(result3.freqstr, '3M')
+        assert result3.freqstr == '3M'
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -2A')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             result.to_period(freq='-2A')
 
     def test_to_timestamp_pi_mult(self):
@@ -317,13 +299,13 @@ class TestPeriodIndex(tm.TestCase):
         pi2 = dti.to_period(freq='D')
         pi3 = dti.to_period(freq='3D')
 
-        self.assertEqual(pi1[0], Period('Jan 2005', freq='M'))
-        self.assertEqual(pi2[0], Period('1/31/2005', freq='D'))
-        self.assertEqual(pi3[0], Period('1/31/2005', freq='3D'))
+        assert pi1[0] == Period('Jan 2005', freq='M')
+        assert pi2[0] == Period('1/31/2005', freq='D')
+        assert pi3[0] == Period('1/31/2005', freq='3D')
 
-        self.assertEqual(pi1[-1], Period('Nov 2005', freq='M'))
-        self.assertEqual(pi2[-1], Period('11/30/2005', freq='D'))
-        self.assertEqual(pi3[-1], Period('11/30/2005', freq='3D'))
+        assert pi1[-1] == Period('Nov 2005', freq='M')
+        assert pi2[-1] == Period('11/30/2005', freq='D')
+        assert pi3[-1], Period('11/30/2005', freq='3D')
 
         tm.assert_index_equal(pi1, period_range('1/1/2005', '11/1/2005',
                                                 freq='M'))
@@ -365,28 +347,28 @@ class TestPeriodIndex(tm.TestCase):
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'Q-DEC')
+            assert prng.freq == 'Q-DEC'
 
     def test_to_period_annualish(self):
         offsets = ['BA', 'AS', 'BAS']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'A-DEC')
+            assert prng.freq == 'A-DEC'
 
     def test_to_period_monthish(self):
         offsets = ['MS', 'BM']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
-            self.assertEqual(prng.freq, 'M')
+            assert prng.freq == 'M'
 
         rng = date_range('01-Jan-2012', periods=8, freq='M')
         prng = rng.to_period()
-        self.assertEqual(prng.freq, 'M')
+        assert prng.freq == 'M'
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -402,7 +384,7 @@ class TestPeriodIndex(tm.TestCase):
         index = period_range('1/1/2012', periods=4, freq='D')
 
         result = index.to_timestamp()
-        self.assertEqual(result[0], Timestamp('1/1/2012'))
+        assert result[0] == Timestamp('1/1/2012')
 
     def test_to_datetime_depr(self):
         index = period_range('1/1/2012', periods=4, freq='D')
@@ -410,7 +392,7 @@ class TestPeriodIndex(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result = index.to_datetime()
-            self.assertEqual(result[0], Timestamp('1/1/2012'))
+            assert result[0] == Timestamp('1/1/2012')
 
     def test_combine_first(self):
         # GH 3367
@@ -433,17 +415,19 @@ class TestPeriodIndex(tm.TestCase):
                                    '2014-01-04', '2014-01-05'], freq=freq)
 
             p1 = pd.Period('2014-01-01', freq=freq)
-            self.assertEqual(pidx.searchsorted(p1), 0)
+            assert pidx.searchsorted(p1) == 0
 
             p2 = pd.Period('2014-01-04', freq=freq)
-            self.assertEqual(pidx.searchsorted(p2), 3)
+            assert pidx.searchsorted(p2) == 3
 
             msg = "Input has different freq=H from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
             msg = "Input has different freq=5D from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
             with tm.assert_produces_warning(FutureWarning):

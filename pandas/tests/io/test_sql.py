@@ -20,7 +20,6 @@ The SQL tests are broken down in different classes:
 from __future__ import print_function
 from warnings import catch_warnings
 import pytest
-import unittest
 import sqlite3
 import csv
 import os
@@ -179,7 +178,7 @@ SQL_STRINGS = {
 
 class MixInBase(object):
 
-    def tearDown(self):
+    def teardown_method(self, method):
         for tbl in self._get_all_tables():
             self.drop_table(tbl)
         self._close_conn()
@@ -272,8 +271,7 @@ class PandasSQLTest(object):
         pytype = iris_frame.dtypes[0].type
         row = iris_frame.iloc[0]
 
-        self.assertTrue(
-            issubclass(pytype, np.floating), 'Loaded frame has incorrect type')
+        assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def _load_test1_data(self):
@@ -372,8 +370,7 @@ class PandasSQLTest(object):
         self.drop_table('test_frame1')
 
         self.pandasSQL.to_sql(self.test_frame1, 'test_frame1')
-        self.assertTrue(self.pandasSQL.has_table(
-            'test_frame1'), 'Table not written to DB')
+        assert self.pandasSQL.has_table('test_frame1')
 
         # Nuke table
         self.drop_table('test_frame1')
@@ -387,8 +384,7 @@ class PandasSQLTest(object):
 
         self.pandasSQL.to_sql(
             self.test_frame1, 'test_frame1', if_exists='fail')
-        self.assertTrue(self.pandasSQL.has_table(
-            'test_frame1'), 'Table not written to DB')
+        assert self.pandasSQL.has_table('test_frame1')
 
         pytest.raises(ValueError, self.pandasSQL.to_sql,
                       self.test_frame1, 'test_frame1', if_exists='fail')
@@ -403,15 +399,12 @@ class PandasSQLTest(object):
         # Add to table again
         self.pandasSQL.to_sql(
             self.test_frame1, 'test_frame1', if_exists='replace')
-        self.assertTrue(self.pandasSQL.has_table(
-            'test_frame1'), 'Table not written to DB')
+        assert self.pandasSQL.has_table('test_frame1')
 
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows('test_frame1')
 
-        self.assertEqual(
-            num_rows, num_entries, "not the same number of rows as entries")
-
+        assert num_rows == num_entries
         self.drop_table('test_frame1')
 
     def _to_sql_append(self):
@@ -424,15 +417,12 @@ class PandasSQLTest(object):
         # Add to table again
         self.pandasSQL.to_sql(
             self.test_frame1, 'test_frame1', if_exists='append')
-        self.assertTrue(self.pandasSQL.has_table(
-            'test_frame1'), 'Table not written to DB')
+        assert self.pandasSQL.has_table('test_frame1')
 
         num_entries = 2 * len(self.test_frame1)
         num_rows = self._count_rows('test_frame1')
 
-        self.assertEqual(
-            num_rows, num_entries, "not the same number of rows as entries")
-
+        assert num_rows == num_entries
         self.drop_table('test_frame1')
 
     def _roundtrip(self):
@@ -459,7 +449,7 @@ class PandasSQLTest(object):
                                     columns=['A', 'B', 'C'], index=['A'])
         self.pandasSQL.to_sql(df, 'test_to_sql_saves_index')
         ix_cols = self._get_index_columns('test_to_sql_saves_index')
-        self.assertEqual(ix_cols, [['A', ], ])
+        assert ix_cols == [['A', ], ]
 
     def _transaction_test(self):
         self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
@@ -475,13 +465,13 @@ class PandasSQLTest(object):
             # ignore raised exception
             pass
         res = self.pandasSQL.read_query('SELECT * FROM test_trans')
-        self.assertEqual(len(res), 0)
+        assert len(res) == 0
 
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
         res2 = self.pandasSQL.read_query('SELECT * FROM test_trans')
-        self.assertEqual(len(res2), 1)
+        assert len(res2) == 1
 
 
 # -----------------------------------------------------------------------------
@@ -507,7 +497,7 @@ class _TestSQLApi(PandasSQLTest):
     flavor = 'sqlite'
     mode = None
 
-    def setUp(self):
+    def setup_method(self, method):
         self.conn = self.connect()
         self._load_iris_data()
         self._load_iris_view()
@@ -528,16 +518,12 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, 'test_frame1', self.conn)
-        self.assertTrue(
-            sql.has_table('test_frame1', self.conn),
-            'Table not written to DB')
+        assert sql.has_table('test_frame1', self.conn)
 
     def test_to_sql_fail(self):
         sql.to_sql(self.test_frame1, 'test_frame2',
                    self.conn, if_exists='fail')
-        self.assertTrue(
-            sql.has_table('test_frame2', self.conn),
-            'Table not written to DB')
+        assert sql.has_table('test_frame2', self.conn)
 
         pytest.raises(ValueError, sql.to_sql, self.test_frame1,
                       'test_frame2', self.conn, if_exists='fail')
@@ -548,15 +534,12 @@ class _TestSQLApi(PandasSQLTest):
         # Add to table again
         sql.to_sql(self.test_frame1, 'test_frame3',
                    self.conn, if_exists='replace')
-        self.assertTrue(
-            sql.has_table('test_frame3', self.conn),
-            'Table not written to DB')
+        assert sql.has_table('test_frame3', self.conn)
 
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows('test_frame3')
 
-        self.assertEqual(
-            num_rows, num_entries, "not the same number of rows as entries")
+        assert num_rows == num_entries
 
     def test_to_sql_append(self):
         sql.to_sql(self.test_frame1, 'test_frame4',
@@ -565,15 +548,12 @@ class _TestSQLApi(PandasSQLTest):
         # Add to table again
         sql.to_sql(self.test_frame1, 'test_frame4',
                    self.conn, if_exists='append')
-        self.assertTrue(
-            sql.has_table('test_frame4', self.conn),
-            'Table not written to DB')
+        assert sql.has_table('test_frame4', self.conn)
 
         num_entries = 2 * len(self.test_frame1)
         num_rows = self._count_rows('test_frame4')
 
-        self.assertEqual(
-            num_rows, num_entries, "not the same number of rows as entries")
+        assert num_rows == num_entries
 
     def test_to_sql_type_mapping(self):
         sql.to_sql(self.test_frame3, 'test_frame5', self.conn, index=False)
@@ -625,33 +605,25 @@ class _TestSQLApi(PandasSQLTest):
         # Test date parsing in read_sq
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
-        self.assertFalse(
-            issubclass(df.DateCol.dtype.type, np.datetime64),
-            "DateCol loaded with incorrect type")
+        assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64),
-            "DateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        self.assertTrue(
-            issubclass(df.DateCol.dtype.type, np.datetime64),
-            "DateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['IntDateCol'])
 
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'IntDateCol': 's'})
 
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
@@ -660,11 +632,8 @@ class _TestSQLApi(PandasSQLTest):
                                 index_col='DateCol',
                                 parse_dates=['DateCol', 'IntDateCol'])
 
-        self.assertTrue(issubclass(df.index.dtype.type, np.datetime64),
-                        "DateCol loaded with incorrect type")
-
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.index.dtype.type, np.datetime64)
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_timedelta(self):
 
@@ -687,44 +656,39 @@ class _TestSQLApi(PandasSQLTest):
         # no index name, defaults to 'index'
         sql.to_sql(temp_frame, 'test_index_label', self.conn)
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'index')
+        assert frame.columns[0] == 'index'
 
         # specifying index_label
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace', index_label='other_label')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'other_label',
-                         "Specified index_label not written to database")
+        assert frame.columns[0] == "other_label"
 
         # using the index name
         temp_frame.index.name = 'index_name'
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'index_name',
-                         "Index name not written to database")
+        assert frame.columns[0] == "index_name"
 
         # has index name, but specifying index_label
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace', index_label='other_label')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'other_label',
-                         "Specified index_label not written to database")
+        assert frame.columns[0] == "other_label"
 
         # index name is integer
         temp_frame.index.name = 0
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], '0',
-                         "Integer index label not written to database")
+        assert frame.columns[0] == "0"
 
         temp_frame.index.name = None
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace', index_label=0)
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], '0',
-                         "Integer index label not written to database")
+        assert frame.columns[0] == "0"
 
     def test_to_sql_index_label_multiindex(self):
         temp_frame = DataFrame({'col1': range(4)},
@@ -734,30 +698,27 @@ class _TestSQLApi(PandasSQLTest):
         # no index name, defaults to 'level_0' and 'level_1'
         sql.to_sql(temp_frame, 'test_index_label', self.conn)
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[0], 'level_0')
-        self.assertEqual(frame.columns[1], 'level_1')
+        assert frame.columns[0] == 'level_0'
+        assert frame.columns[1] == 'level_1'
 
         # specifying index_label
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace', index_label=['A', 'B'])
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[:2].tolist(), ['A', 'B'],
-                         "Specified index_labels not written to database")
+        assert frame.columns[:2].tolist() == ['A', 'B']
 
         # using the index name
         temp_frame.index.names = ['A', 'B']
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace')
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[:2].tolist(), ['A', 'B'],
-                         "Index names not written to database")
+        assert frame.columns[:2].tolist() == ['A', 'B']
 
         # has index name, but specifying index_label
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
                    if_exists='replace', index_label=['C', 'D'])
         frame = sql.read_sql_query('SELECT * FROM test_index_label', self.conn)
-        self.assertEqual(frame.columns[:2].tolist(), ['C', 'D'],
-                         "Specified index_labels not written to database")
+        assert frame.columns[:2].tolist() == ['C', 'D']
 
         # wrong length of index_label
         pytest.raises(ValueError, sql.to_sql, temp_frame,
@@ -780,27 +741,27 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_get_schema(self):
         create_sql = sql.get_schema(self.test_frame1, 'test', con=self.conn)
-        self.assertTrue('CREATE' in create_sql)
+        assert 'CREATE' in create_sql
 
     def test_get_schema_dtypes(self):
         float_frame = DataFrame({'a': [1.1, 1.2], 'b': [2.1, 2.2]})
         dtype = sqlalchemy.Integer if self.mode == 'sqlalchemy' else 'INTEGER'
         create_sql = sql.get_schema(float_frame, 'test',
                                     con=self.conn, dtype={'b': dtype})
-        self.assertTrue('CREATE' in create_sql)
-        self.assertTrue('INTEGER' in create_sql)
+        assert 'CREATE' in create_sql
+        assert 'INTEGER' in create_sql
 
     def test_get_schema_keys(self):
         frame = DataFrame({'Col1': [1.1, 1.2], 'Col2': [2.1, 2.2]})
         create_sql = sql.get_schema(frame, 'test', con=self.conn, keys='Col1')
         constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("Col1")'
-        self.assertTrue(constraint_sentence in create_sql)
+        assert constraint_sentence in create_sql
 
         # multiple columns as key (GH10385)
         create_sql = sql.get_schema(self.test_frame1, 'test',
                                     con=self.conn, keys=['A', 'B'])
         constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
-        self.assertTrue(constraint_sentence in create_sql)
+        assert constraint_sentence in create_sql
 
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list('abcde'))
@@ -817,7 +778,7 @@ class _TestSQLApi(PandasSQLTest):
         for chunk in sql.read_sql_query("select * from test_chunksize",
                                         self.conn, chunksize=5):
             res2 = concat([res2, chunk], ignore_index=True)
-            self.assertEqual(len(chunk), sizes[i])
+            assert len(chunk) == sizes[i]
             i += 1
 
         tm.assert_frame_equal(res1, res2)
@@ -831,7 +792,7 @@ class _TestSQLApi(PandasSQLTest):
             for chunk in sql.read_sql_table("test_chunksize", self.conn,
                                             chunksize=5):
                 res3 = concat([res3, chunk], ignore_index=True)
-                self.assertEqual(len(chunk), sizes[i])
+                assert len(chunk) == sizes[i]
                 i += 1
 
             tm.assert_frame_equal(res1, res3)
@@ -855,9 +816,19 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
+    def test_escaped_table_name(self):
+        # GH 13206
+        df = DataFrame({'A': [0, 1, 2], 'B': [0.2, np.nan, 5.6]})
+        df.to_sql('d1187b08-4943-4c8d-a7f6', self.conn, index=False)
+
+        res = sql.read_sql_query('SELECT * FROM `d1187b08-4943-4c8d-a7f6`',
+                                 self.conn)
+
+        tm.assert_frame_equal(res, df)
+
 
 @pytest.mark.single
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     """
     Test the public API as it would be used directly
 
@@ -880,29 +851,24 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
 
         cols = ['A', 'B']
         result = sql.read_sql_table('test_frame', self.conn, columns=cols)
-        self.assertEqual(result.columns.tolist(), cols,
-                         "Columns not correctly selected")
+        assert result.columns.tolist() == cols
 
     def test_read_table_index_col(self):
         # test columns argument in read_table
         sql.to_sql(self.test_frame1, 'test_frame', self.conn)
 
         result = sql.read_sql_table('test_frame', self.conn, index_col="index")
-        self.assertEqual(result.index.names, ["index"],
-                         "index_col not correctly set")
+        assert result.index.names == ["index"]
 
         result = sql.read_sql_table(
             'test_frame', self.conn, index_col=["A", "B"])
-        self.assertEqual(result.index.names, ["A", "B"],
-                         "index_col not correctly set")
+        assert result.index.names == ["A", "B"]
 
         result = sql.read_sql_table('test_frame', self.conn,
                                     index_col=["A", "B"],
                                     columns=["C", "D"])
-        self.assertEqual(result.index.names, ["A", "B"],
-                         "index_col not correctly set")
-        self.assertEqual(result.columns.tolist(), ["C", "D"],
-                         "columns not set correctly whith index_col")
+        assert result.index.names == ["A", "B"]
+        assert result.columns.tolist() == ["C", "D"]
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query(
@@ -929,10 +895,11 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
             sql.read_sql_table('other_table', self.conn)
             sql.read_sql_query('SELECT * FROM other_table', self.conn)
             # Verify some things
-            self.assertEqual(len(w), 0, "Warning triggered for other table")
+            assert len(w) == 0
 
     def test_warning_case_insensitive_table_name(self):
-        # see GH7815.
+        # see gh-7815
+        #
         # We can't test that this warning is triggered, a the database
         # configuration would have to be altered. But here we test that
         # the warning is certainly NOT triggered in a normal case.
@@ -942,8 +909,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
             # This should not trigger a Warning
             self.test_frame1.to_sql('CaseSensitive', self.conn)
             # Verify some things
-            self.assertEqual(
-                len(w), 0, "Warning triggered for writing a table")
+            assert len(w) == 0
 
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
@@ -959,8 +925,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
                                             utc=True)})
         db = sql.SQLDatabase(self.conn)
         table = sql.SQLTable("test_type", db, frame=df)
-        self.assertTrue(isinstance(
-            table.table.c['time'].type, sqltypes.DateTime))
+        assert isinstance(table.table.c['time'].type, sqltypes.DateTime)
 
     def test_database_uri_string(self):
 
@@ -983,8 +948,15 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
 
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
+        try:
+            # the rest of this test depends on pg8000's being absent
+            import pg8000  # noqa
+            pytest.skip("pg8000 is installed")
+        except ImportError:
+            pass
+
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
-        with tm.assertRaisesRegexp(ImportError, "pg8000"):
+        with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)
 
     def _make_iris_table_metadata(self):
@@ -1006,7 +978,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
         iris_df = sql.read_sql(name_text, self.conn, params={
                                'name': 'Iris-versicolor'})
         all_names = set(iris_df['Name'])
-        self.assertEqual(all_names, set(['Iris-versicolor']))
+        assert all_names == set(['Iris-versicolor'])
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
@@ -1017,7 +989,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
         iris_df = sql.read_sql(name_select, self.conn,
                                params={'name': 'Iris-setosa'})
         all_names = set(iris_df['Name'])
-        self.assertEqual(all_names, set(['Iris-setosa']))
+        assert all_names == set(['Iris-setosa'])
 
 
 class _EngineToConnMixin(object):
@@ -1025,8 +997,8 @@ class _EngineToConnMixin(object):
     A mixin that causes setup_connect to create a conn rather than an engine.
     """
 
-    def setUp(self):
-        super(_EngineToConnMixin, self).setUp()
+    def setup_method(self, method):
+        super(_EngineToConnMixin, self).setup_method(method)
         engine = self.conn
         conn = engine.connect()
         self.__tx = conn.begin()
@@ -1034,21 +1006,21 @@ class _EngineToConnMixin(object):
         self.__engine = engine
         self.conn = conn
 
-    def tearDown(self):
+    def teardown_method(self, method):
         self.__tx.rollback()
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        super(_EngineToConnMixin, self).tearDown()
+        super(_EngineToConnMixin, self).teardown_method(method)
 
 
 @pytest.mark.single
-class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, unittest.TestCase):
+class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     """
     Test the public sqlite connection fallback API
 
@@ -1102,7 +1074,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
     def test_get_schema2(self):
         # without providing a connection object (available for backwards comp)
         create_sql = sql.get_schema(self.test_frame1, 'test')
-        self.assertTrue('CREATE' in create_sql)
+        assert 'CREATE' in create_sql
 
     def _get_sqlite_column_type(self, schema, column):
 
@@ -1119,8 +1091,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
         db = sql.SQLiteDatabase(self.conn)
         table = sql.SQLiteTable("test_type", db, frame=df)
         schema = table.sql_schema()
-        self.assertEqual(self._get_sqlite_column_type(schema, 'time'),
-                         "TIMESTAMP")
+        assert self._get_sqlite_column_type(schema, 'time') == "TIMESTAMP"
 
 
 # -----------------------------------------------------------------------------
@@ -1138,7 +1109,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     flavor = None
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
 
@@ -1150,7 +1121,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
             pytest.skip(msg)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.setup_connect()
 
         self._load_iris_data()
@@ -1213,8 +1184,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, 'temp_frame')
 
-        self.assertTrue(
-            temp_conn.has_table('temp_frame'), 'Table not written to DB')
+        assert temp_conn.has_table('temp_frame')
 
     def test_drop_table(self):
         temp_conn = self.connect()
@@ -1225,13 +1195,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pandasSQL = sql.SQLDatabase(temp_conn)
         pandasSQL.to_sql(temp_frame, 'temp_frame')
 
-        self.assertTrue(
-            temp_conn.has_table('temp_frame'), 'Table not written to DB')
+        assert temp_conn.has_table('temp_frame')
 
         pandasSQL.drop_table('temp_frame')
 
-        self.assertFalse(
-            temp_conn.has_table('temp_frame'), 'Table not deleted from DB')
+        assert not temp_conn.has_table('temp_frame')
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1256,19 +1224,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
 
-        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
-                        "FloatCol loaded with incorrect type")
-        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
-                        "IntCol loaded with incorrect type")
-        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.bool_),
-                        "BoolCol loaded with incorrect type")
+        assert issubclass(df.FloatCol.dtype.type, np.floating)
+        assert issubclass(df.IntCol.dtype.type, np.integer)
+        assert issubclass(df.BoolCol.dtype.type, np.bool_)
 
         # Int column with NA values stays as float
-        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
-                        "IntColWithNull loaded with incorrect type")
+        assert issubclass(df.IntColWithNull.dtype.type, np.floating)
         # Bool column with NA values becomes object
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.object),
-                        "BoolColWithNull loaded with incorrect type")
+        assert issubclass(df.BoolColWithNull.dtype.type, np.object)
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
@@ -1283,8 +1246,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
-        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
-                        "DateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
     def test_datetime_with_timezone(self):
         # edge case that converts postgresql datetime with time zone types
@@ -1298,24 +1260,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
-                self.assertEqual(col[0], Timestamp('2000-01-01 08:00:00'))
+                assert col[0] == Timestamp('2000-01-01 08:00:00')
 
                 # "2000-06-01 00:00:00-07:00" should convert to
                 # "2000-06-01 07:00:00"
-                self.assertEqual(col[1], Timestamp('2000-06-01 07:00:00'))
+                assert col[1] == Timestamp('2000-06-01 07:00:00')
 
             elif is_datetime64tz_dtype(col.dtype):
-                self.assertTrue(str(col.dt.tz) == 'UTC')
+                assert str(col.dt.tz) == 'UTC'
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
-                self.assertEqual(col[0], Timestamp(
-                    '2000-01-01 08:00:00', tz='UTC'))
+                assert col[0] == Timestamp('2000-01-01 08:00:00', tz='UTC')
 
                 # "2000-06-01 00:00:00-07:00" should convert to
                 # "2000-06-01 07:00:00"
-                self.assertEqual(col[1], Timestamp(
-                    '2000-06-01 07:00:00', tz='UTC'))
+                assert col[1] == Timestamp('2000-06-01 07:00:00', tz='UTC')
 
             else:
                 raise AssertionError("DateCol loaded with incorrect type "
@@ -1330,11 +1290,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgrsql server version difference
         col = df.DateColWithTz
-        self.assertTrue(is_object_dtype(col.dtype) or
-                        is_datetime64_dtype(col.dtype) or
-                        is_datetime64tz_dtype(col.dtype),
-                        "DateCol loaded with incorrect type -> {0}"
-                        .format(col.dtype))
+        assert (is_object_dtype(col.dtype) or
+                is_datetime64_dtype(col.dtype) or
+                is_datetime64tz_dtype(col.dtype))
 
         df = pd.read_sql_query("select * from types_test_data",
                                self.conn, parse_dates=['DateColWithTz'])
@@ -1346,10 +1304,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                                               self.conn, chunksize=1)),
                        ignore_index=True)
         col = df.DateColWithTz
-        self.assertTrue(is_datetime64tz_dtype(col.dtype),
-                        "DateCol loaded with incorrect type -> {0}"
-                        .format(col.dtype))
-        self.assertTrue(str(col.dt.tz) == 'UTC')
+        assert is_datetime64tz_dtype(col.dtype)
+        assert str(col.dt.tz) == 'UTC'
         expected = sql.read_sql_table("types_test_data", self.conn)
         tm.assert_series_equal(df.DateColWithTz,
                                expected.DateColWithTz
@@ -1366,33 +1322,27 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
-                        "DateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
-                        "DateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table("types_test_data", self.conn, parse_dates={
             'DateCol': {'format': '%Y-%m-%d %H:%M:%S'}})
-        self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
             "types_test_data", self.conn, parse_dates=['IntDateCol'])
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
             "types_test_data", self.conn, parse_dates={'IntDateCol': 's'})
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates={'IntDateCol': {'unit': 's'}})
-        self.assertTrue(issubclass(df.IntDateCol.dtype.type, np.datetime64),
-                        "IntDateCol loaded with incorrect type")
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_datetime(self):
         df = DataFrame({'A': date_range('2013-01-01 09:00:00', periods=3),
@@ -1408,7 +1358,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         result = result.drop('index', axis=1)
         if self.flavor == 'sqlite':
-            self.assertTrue(isinstance(result.loc[0, 'A'], string_types))
+            assert isinstance(result.loc[0, 'A'], string_types)
             result['A'] = to_datetime(result['A'])
             tm.assert_frame_equal(result, df)
         else:
@@ -1427,7 +1377,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         if self.flavor == 'sqlite':
-            self.assertTrue(isinstance(result.loc[0, 'A'], string_types))
+            assert isinstance(result.loc[0, 'A'], string_types)
             result['A'] = to_datetime(result['A'], errors='coerce')
             tm.assert_frame_equal(result, df)
         else:
@@ -1560,7 +1510,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
         meta.reflect()
         sqltype = meta.tables['dtype_test2'].columns['B'].type
-        self.assertTrue(isinstance(sqltype, sqlalchemy.TEXT))
+        assert isinstance(sqltype, sqlalchemy.TEXT)
         pytest.raises(ValueError, df.to_sql,
                       'error', self.conn, dtype={'B': str})
 
@@ -1568,8 +1518,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df.to_sql('dtype_test3', self.conn, dtype={'B': sqlalchemy.String(10)})
         meta.reflect()
         sqltype = meta.tables['dtype_test3'].columns['B'].type
-        self.assertTrue(isinstance(sqltype, sqlalchemy.String))
-        self.assertEqual(sqltype.length, 10)
+        assert isinstance(sqltype, sqlalchemy.String)
+        assert sqltype.length == 10
 
         # single dtype
         df.to_sql('single_dtype_test', self.conn, dtype=sqlalchemy.TEXT)
@@ -1577,8 +1527,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         meta.reflect()
         sqltypea = meta.tables['single_dtype_test'].columns['A'].type
         sqltypeb = meta.tables['single_dtype_test'].columns['B'].type
-        self.assertTrue(isinstance(sqltypea, sqlalchemy.TEXT))
-        self.assertTrue(isinstance(sqltypeb, sqlalchemy.TEXT))
+        assert isinstance(sqltypea, sqlalchemy.TEXT)
+        assert isinstance(sqltypeb, sqlalchemy.TEXT)
 
     def test_notnull_dtype(self):
         cols = {'Bool': Series([True, None]),
@@ -1600,10 +1550,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         col_dict = meta.tables[tbl].columns
 
-        self.assertTrue(isinstance(col_dict['Bool'].type, my_type))
-        self.assertTrue(isinstance(col_dict['Date'].type, sqltypes.DateTime))
-        self.assertTrue(isinstance(col_dict['Int'].type, sqltypes.Integer))
-        self.assertTrue(isinstance(col_dict['Float'].type, sqltypes.Float))
+        assert isinstance(col_dict['Bool'].type, my_type)
+        assert isinstance(col_dict['Date'].type, sqltypes.DateTime)
+        assert isinstance(col_dict['Int'].type, sqltypes.Integer)
+        assert isinstance(col_dict['Float'].type, sqltypes.Float)
 
     def test_double_precision(self):
         V = 1.23456789101112131415
@@ -1620,19 +1570,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         res = sql.read_sql_table('test_dtypes', self.conn)
 
         # check precision of float64
-        self.assertEqual(np.round(df['f64'].iloc[0], 14),
-                         np.round(res['f64'].iloc[0], 14))
+        assert (np.round(df['f64'].iloc[0], 14) ==
+                np.round(res['f64'].iloc[0], 14))
 
         # check sql types
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
         meta.reflect()
         col_dict = meta.tables['test_dtypes'].columns
-        self.assertEqual(str(col_dict['f32'].type),
-                         str(col_dict['f64_as_f32'].type))
-        self.assertTrue(isinstance(col_dict['f32'].type, sqltypes.Float))
-        self.assertTrue(isinstance(col_dict['f64'].type, sqltypes.Float))
-        self.assertTrue(isinstance(col_dict['i32'].type, sqltypes.Integer))
-        self.assertTrue(isinstance(col_dict['i64'].type, sqltypes.BigInteger))
+        assert str(col_dict['f32'].type) == str(col_dict['f64_as_f32'].type)
+        assert isinstance(col_dict['f32'].type, sqltypes.Float)
+        assert isinstance(col_dict['f64'].type, sqltypes.Float)
+        assert isinstance(col_dict['i32'].type, sqltypes.Integer)
+        assert isinstance(col_dict['i64'].type, sqltypes.BigInteger)
 
     def test_connectable_issue_example(self):
         # This tests the example raised in issue
@@ -1708,27 +1657,23 @@ class _TestSQLiteAlchemy(object):
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
 
-        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
-                        "FloatCol loaded with incorrect type")
-        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
-                        "IntCol loaded with incorrect type")
+        assert issubclass(df.FloatCol.dtype.type, np.floating)
+        assert issubclass(df.IntCol.dtype.type, np.integer)
+
         # sqlite has no boolean type, so integer type is returned
-        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
-                        "BoolCol loaded with incorrect type")
+        assert issubclass(df.BoolCol.dtype.type, np.integer)
 
         # Int column with NA values stays as float
-        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
-                        "IntColWithNull loaded with incorrect type")
+        assert issubclass(df.IntColWithNull.dtype.type, np.floating)
+
         # Non-native Bool column with NA values stays as float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
-                        "BoolColWithNull loaded with incorrect type")
+        assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
     def test_default_date_load(self):
         df = sql.read_sql_table("types_test_data", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64),
-                         "DateCol loaded with incorrect type")
+        assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
     def test_bigint_warning(self):
         # test no warning for BIGINT (to support int64) is raised (GH7433)
@@ -1738,7 +1683,7 @@ class _TestSQLiteAlchemy(object):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             sql.read_sql_table('test_bigintwarning', self.conn)
-            self.assertEqual(len(w), 0, "Warning triggered for other table")
+            assert len(w) == 0
 
 
 class _TestMySQLAlchemy(object):
@@ -1764,20 +1709,17 @@ class _TestMySQLAlchemy(object):
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
 
-        self.assertTrue(issubclass(df.FloatCol.dtype.type, np.floating),
-                        "FloatCol loaded with incorrect type")
-        self.assertTrue(issubclass(df.IntCol.dtype.type, np.integer),
-                        "IntCol loaded with incorrect type")
+        assert issubclass(df.FloatCol.dtype.type, np.floating)
+        assert issubclass(df.IntCol.dtype.type, np.integer)
+
         # MySQL has no real BOOL type (it's an alias for TINYINT)
-        self.assertTrue(issubclass(df.BoolCol.dtype.type, np.integer),
-                        "BoolCol loaded with incorrect type")
+        assert issubclass(df.BoolCol.dtype.type, np.integer)
 
         # Int column with NA values stays as float
-        self.assertTrue(issubclass(df.IntColWithNull.dtype.type, np.floating),
-                        "IntColWithNull loaded with incorrect type")
+        assert issubclass(df.IntColWithNull.dtype.type, np.floating)
+
         # Bool column with NA = int column with NA values => becomes float
-        self.assertTrue(issubclass(df.BoolColWithNull.dtype.type, np.floating),
-                        "BoolColWithNull loaded with incorrect type")
+        assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
     def test_read_procedure(self):
         # see GH7324. Although it is more an api test, it is added to the
@@ -1896,37 +1838,32 @@ class _TestPostgreSQLAlchemy(object):
 
 
 @pytest.mark.single
-class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, unittest.TestCase):
+class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn,
-                           unittest.TestCase):
+class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
-class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy,
-                            unittest.TestCase):
+class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn,
-                                unittest.TestCase):
+class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy,
-                        unittest.TestCase):
+class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
-                            unittest.TestCase):
+class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
 
 
@@ -1934,7 +1871,7 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
 # -- Test Sqlite / MySQL fallback
 
 @pytest.mark.single
-class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
+class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
     Test the fallback mode against an in-memory sqlite database.
 
@@ -1945,7 +1882,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
     def connect(cls):
         return sqlite3.connect(':memory:')
 
-    def setUp(self):
+    def setup_method(self, method):
         self.conn = self.connect()
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
@@ -1983,13 +1920,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
         self.pandasSQL.to_sql(temp_frame, 'drop_test_frame')
 
-        self.assertTrue(self.pandasSQL.has_table('drop_test_frame'),
-                        'Table not written to DB')
+        assert self.pandasSQL.has_table('drop_test_frame')
 
         self.pandasSQL.drop_table('drop_test_frame')
 
-        self.assertFalse(self.pandasSQL.has_table('drop_test_frame'),
-                         'Table not deleted from DB')
+        assert not self.pandasSQL.has_table('drop_test_frame')
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -2055,20 +1990,20 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
         df.to_sql('dtype_test2', self.conn, dtype={'B': 'STRING'})
 
         # sqlite stores Boolean values as INTEGER
-        self.assertEqual(self._get_sqlite_column_type(
-            'dtype_test', 'B'), 'INTEGER')
+        assert self._get_sqlite_column_type(
+            'dtype_test', 'B') == 'INTEGER'
 
-        self.assertEqual(self._get_sqlite_column_type(
-            'dtype_test2', 'B'), 'STRING')
+        assert self._get_sqlite_column_type(
+            'dtype_test2', 'B') == 'STRING'
         pytest.raises(ValueError, df.to_sql,
                       'error', self.conn, dtype={'B': bool})
 
         # single dtype
         df.to_sql('single_dtype_test', self.conn, dtype='STRING')
-        self.assertEqual(
-            self._get_sqlite_column_type('single_dtype_test', 'A'), 'STRING')
-        self.assertEqual(
-            self._get_sqlite_column_type('single_dtype_test', 'B'), 'STRING')
+        assert self._get_sqlite_column_type(
+            'single_dtype_test', 'A') == 'STRING'
+        assert self._get_sqlite_column_type(
+            'single_dtype_test', 'B') == 'STRING'
 
     def test_notnull_dtype(self):
         if self.flavor == 'mysql':
@@ -2084,11 +2019,10 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
         tbl = 'notnull_dtype_test'
         df.to_sql(tbl, self.conn)
 
-        self.assertEqual(self._get_sqlite_column_type(tbl, 'Bool'), 'INTEGER')
-        self.assertEqual(self._get_sqlite_column_type(
-            tbl, 'Date'), 'TIMESTAMP')
-        self.assertEqual(self._get_sqlite_column_type(tbl, 'Int'), 'INTEGER')
-        self.assertEqual(self._get_sqlite_column_type(tbl, 'Float'), 'REAL')
+        assert self._get_sqlite_column_type(tbl, 'Bool') == 'INTEGER'
+        assert self._get_sqlite_column_type(tbl, 'Date') == 'TIMESTAMP'
+        assert self._get_sqlite_column_type(tbl, 'Int') == 'INTEGER'
+        assert self._get_sqlite_column_type(tbl, 'Float') == 'REAL'
 
     def test_illegal_names(self):
         # For sqlite, these should work fine
@@ -2161,9 +2095,10 @@ def _skip_if_no_pymysql():
 
 
 @pytest.mark.single
-class TestXSQLite(SQLiteMixIn, tm.TestCase):
+class TestXSQLite(SQLiteMixIn):
 
-    def setUp(self):
+    def setup_method(self, method):
+        self.method = method
         self.conn = sqlite3.connect(':memory:')
 
     def test_basic(self):
@@ -2213,12 +2148,12 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         for l in lines:
             tokens = l.split(' ')
             if len(tokens) == 2 and tokens[0] == 'A':
-                self.assertTrue(tokens[1] == 'DATETIME')
+                assert tokens[1] == 'DATETIME'
 
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, 'test', keys=['A', 'B'])
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY ("A", "B")' in create_sql)
+        assert 'PRIMARY KEY ("A", "B")' in create_sql
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
@@ -2263,7 +2198,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
-        self.setUp()
+        self.setup_method(self.method)
 
     def test_na_roundtrip(self):
         pass
@@ -2304,7 +2239,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         the_sum = sum([my_c0[0]
                        for my_c0 in con_x.execute("select * from mono_df")])
         # it should not fail, and gives 3 ( Issue #3628 )
-        self.assertEqual(the_sum, 3)
+        assert the_sum == 3
 
         result = sql.read_sql("select * from mono_df", con_x)
         tm.assert_frame_equal(result, mono_df)
@@ -2345,28 +2280,26 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B')])
+        assert tquery(sql_select, con=self.conn) == [(1, 'A'), (2, 'B')]
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(3, 'C'), (4, 'D'), (5, 'E')])
+        assert (tquery(sql_select, con=self.conn) ==
+                [(3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
         # test if_exists='append'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='fail', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B')])
+        assert tquery(sql_select, con=self.conn) == [(1, 'A'), (2, 'B')]
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='append', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
+        assert (tquery(sql_select, con=self.conn) ==
+                [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
 
 @pytest.mark.single
-class TestSQLFlavorDeprecation(tm.TestCase):
+class TestSQLFlavorDeprecation(object):
     """
     gh-13611: test that the 'flavor' parameter
     is appropriately deprecated by checking the
@@ -2380,8 +2313,8 @@ class TestSQLFlavorDeprecation(tm.TestCase):
         msg = 'is not supported'
 
         for func in self.funcs:
-            tm.assertRaisesRegexp(ValueError, msg, getattr(sql, func),
-                                  self.con, flavor='mysql')
+            tm.assert_raises_regex(ValueError, msg, getattr(sql, func),
+                                   self.con, flavor='mysql')
 
     def test_deprecated_flavor(self):
         for func in self.funcs:
@@ -2393,10 +2326,10 @@ class TestSQLFlavorDeprecation(tm.TestCase):
 @pytest.mark.single
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
-class TestXMySQL(MySQLMixIn, tm.TestCase):
+class TestXMySQL(MySQLMixIn):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_pymysql()
 
         # test connection
@@ -2424,7 +2357,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
-    def setUp(self):
+    def setup_method(self, method):
         _skip_if_no_pymysql()
         import pymysql
         try:
@@ -2449,6 +2382,8 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+
+        self.method = method
 
     def test_basic(self):
         _skip_if_no_pymysql()
@@ -2519,13 +2454,13 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         for l in lines:
             tokens = l.split(' ')
             if len(tokens) == 2 and tokens[0] == 'A':
-                self.assertTrue(tokens[1] == 'DATETIME')
+                assert tokens[1] == 'DATETIME'
 
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', keys=['A', 'B'])
         lines = create_sql.splitlines()
-        self.assertTrue('PRIMARY KEY (`A`, `B`)' in create_sql)
+        assert 'PRIMARY KEY (`A`, `B`)' in create_sql
         cur = self.conn.cursor()
         cur.execute(drop_sql)
         cur.execute(create_sql)
@@ -2577,7 +2512,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
-        self.setUp()
+        self.setup_method(self.method)
 
     def test_na_roundtrip(self):
         _skip_if_no_pymysql()
@@ -2663,21 +2598,19 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B')])
+        assert tquery(sql_select, con=self.conn) == [(1, 'A'), (2, 'B')]
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='replace', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(3, 'C'), (4, 'D'), (5, 'E')])
+        assert (tquery(sql_select, con=self.conn) ==
+                [(3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
 
         # test if_exists='append'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='fail', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B')])
+        assert tquery(sql_select, con=self.conn) == [(1, 'A'), (2, 'B')]
         sql.to_sql(frame=df_if_exists_2, con=self.conn, name=table_name,
                    if_exists='append', index=False)
-        self.assertEqual(tquery(sql_select, con=self.conn),
-                         [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
+        assert (tquery(sql_select, con=self.conn) ==
+                [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)

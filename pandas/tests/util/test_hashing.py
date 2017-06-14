@@ -1,17 +1,19 @@
 import pytest
+import datetime
 
 from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.util.hashing import hash_array, hash_tuples, hash_pandas_object
+from pandas.util import hash_array, hash_pandas_object
+from pandas.core.util.hashing import hash_tuples, hash_tuple, _hash_scalar
 import pandas.util.testing as tm
 
 
-class TestHashing(tm.TestCase):
+class TestHashing(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'i32': np.array([1, 2, 3] * 3, dtype='int32'),
              'f32': np.array([None, 2.5, 3.5] * 3, dtype='float32'),
@@ -67,7 +69,7 @@ class TestHashing(tm.TestCase):
             a = hash_pandas_object(obj, index=True)
             b = hash_pandas_object(obj, index=False)
             if len(obj):
-                self.assertFalse((a == b).all())
+                assert not (a == b).all()
 
     def test_hash_tuples(self):
         tups = [(1, 'one'), (1, 'two'), (2, 'one')]
@@ -76,7 +78,28 @@ class TestHashing(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
         result = hash_tuples(tups[0])
-        self.assertEqual(result, expected[0])
+        assert result == expected[0]
+
+    def test_hash_tuple(self):
+        # test equivalence between hash_tuples and hash_tuple
+        for tup in [(1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A'),
+                    ('A', pd.Timestamp("2012-01-01"))]:
+            result = hash_tuple(tup)
+            expected = hash_tuples([tup])[0]
+            assert result == expected
+
+    def test_hash_scalar(self):
+        for val in [1, 1.4, 'A', b'A', u'A', pd.Timestamp("2012-01-01"),
+                    pd.Timestamp("2012-01-01", tz='Europe/Brussels'),
+                    datetime.datetime(2012, 1, 1),
+                    pd.Timestamp("2012-01-01", tz='EST').to_pydatetime(),
+                    pd.Timedelta('1 days'), datetime.timedelta(1),
+                    pd.Period('2012-01-01', freq='D'), pd.Interval(0, 1),
+                    np.nan, pd.NaT, None]:
+            result = _hash_scalar(val)
+            expected = hash_array(np.array([val], dtype=object),
+                                  categorize=True)
+            assert result[0] == expected[0]
 
     def test_hash_tuples_err(self):
 
@@ -86,9 +109,9 @@ class TestHashing(tm.TestCase):
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
                                      (51, 204), (102, 51)])
-        self.assertTrue(mi.is_unique)
+        assert mi.is_unique
         result = hash_pandas_object(mi)
-        self.assertTrue(result.is_unique)
+        assert result.is_unique
 
     def test_multiindex_objects(self):
         mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
@@ -215,7 +238,7 @@ class TestHashing(tm.TestCase):
         obj = Series(list('abc'))
         a = hash_pandas_object(obj, hash_key='9876543210123456')
         b = hash_pandas_object(obj, hash_key='9876543210123465')
-        self.assertTrue((a != b).all())
+        assert (a != b).all()
 
     def test_invalid_key(self):
         # this only matters for object dtypes
@@ -240,13 +263,13 @@ class TestHashing(tm.TestCase):
             length = 2**(l + 8) + 1
             s = tm.rands_array(length, 2)
             result = hash_array(s, 'utf8')
-            self.assertFalse(result[0] == result[1])
+            assert not result[0] == result[1]
 
         for l in range(8):
             length = 2**(l + 8)
             s = tm.rands_array(length, 2)
             result = hash_array(s, 'utf8')
-            self.assertFalse(result[0] == result[1])
+            assert not result[0] == result[1]
 
     def test_hash_collisions(self):
 
@@ -267,3 +290,18 @@ class TestHashing(tm.TestCase):
         result = hash_array(np.asarray(L, dtype=object), 'utf8')
         tm.assert_numpy_array_equal(
             result, np.concatenate([expected1, expected2], axis=0))
+
+
+def test_deprecation():
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        from pandas.tools.hashing import hash_pandas_object
+        obj = Series(list('abc'))
+        hash_pandas_object(obj, hash_key='9876543210123456')
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        from pandas.tools.hashing import hash_array
+        obj = np.array([1, 2, 3])
+        hash_array(obj, hash_key='9876543210123456')

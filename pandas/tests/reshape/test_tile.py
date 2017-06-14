@@ -14,7 +14,7 @@ from pandas.core.algorithms import quantile
 import pandas.core.reshape.tile as tmod
 
 
-class TestCut(tm.TestCase):
+class TestCut(object):
 
     def test_simple(self):
         data = np.ones(5, dtype='int64')
@@ -122,7 +122,7 @@ class TestCut(tm.TestCase):
         s = Series(np.random.randn(100), name='foo')
 
         factor = cut(s, 4)
-        self.assertEqual(factor.name, 'foo')
+        assert factor.name == 'foo'
 
     def test_label_precision(self):
         arr = np.arange(0, 0.73, 0.01)
@@ -158,22 +158,22 @@ class TestCut(tm.TestCase):
 
         ex_uniques = IntervalIndex.from_breaks(bins)
         tm.assert_index_equal(result.categories, ex_uniques)
-        self.assertEqual(result[5], Interval(4, np.inf))
-        self.assertEqual(result[0], Interval(-np.inf, 2))
-        self.assertEqual(result_ser[5], Interval(4, np.inf))
-        self.assertEqual(result_ser[0], Interval(-np.inf, 2))
+        assert result[5] == Interval(4, np.inf)
+        assert result[0] == Interval(-np.inf, 2)
+        assert result_ser[5] == Interval(4, np.inf)
+        assert result_ser[0] == Interval(-np.inf, 2)
 
     def test_qcut(self):
         arr = np.random.randn(1000)
 
-        # we store the bins as Index that have been rounded
-        # to comparisions are a bit tricky
+        # We store the bins as Index that have been rounded
+        # to comparisons are a bit tricky.
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
         result = labels.categories.left.values
-        self.assertTrue(np.allclose(result, ex_bins[:-1], atol=1e-2))
+        assert np.allclose(result, ex_bins[:-1], atol=1e-2)
         result = labels.categories.right.values
-        self.assertTrue(np.allclose(result, ex_bins[1:], atol=1e-2))
+        assert np.allclose(result, ex_bins[1:], atol=1e-2)
 
         ex_levels = cut(arr, ex_bins, include_lowest=True)
         tm.assert_categorical_equal(labels, ex_levels)
@@ -182,7 +182,7 @@ class TestCut(tm.TestCase):
         arr = np.random.randn(1000)
 
         factor = qcut(arr, 10, labels=False)
-        self.assertEqual(len(np.unique(factor)), 10)
+        assert len(np.unique(factor)) == 10
 
     def test_qcut_specify_quantiles(self):
         arr = np.random.randn(100)
@@ -192,8 +192,8 @@ class TestCut(tm.TestCase):
         tm.assert_categorical_equal(factor, expected)
 
     def test_qcut_all_bins_same(self):
-        tm.assertRaisesRegexp(ValueError, "edges.*unique", qcut,
-                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
+        tm.assert_raises_regex(ValueError, "edges.*unique", qcut,
+                               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)
@@ -211,12 +211,20 @@ class TestCut(tm.TestCase):
 
         result = cut(arr, bins, labels=labels)
         exp = Categorical(['Medium'] + 4 * ['Small'] + ['Medium', 'Large'],
+                          categories=labels,
                           ordered=True)
         tm.assert_categorical_equal(result, exp)
 
         result = cut(arr, bins, labels=Categorical.from_codes([0, 1, 2],
                                                               labels))
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
+        tm.assert_categorical_equal(result, exp)
+
+        # issue 16459
+        labels = ['Good', 'Medium', 'Bad']
+        result = cut(arr, 3, labels=labels)
+        exp = cut(arr, 3, labels=Categorical(labels, categories=labels,
+                                             ordered=True))
         tm.assert_categorical_equal(result, exp)
 
     def test_qcut_include_lowest(self):
@@ -236,7 +244,7 @@ class TestCut(tm.TestCase):
         arr[:20] = np.nan
 
         result = qcut(arr, 4)
-        self.assertTrue(isnull(result[:20]).all())
+        assert isnull(result[:20]).all()
 
     def test_qcut_index(self):
         result = qcut([0, 2], 2)
@@ -253,14 +261,14 @@ class TestCut(tm.TestCase):
         # #1979, negative numbers
 
         result = tmod._round_frac(-117.9998, precision=3)
-        self.assertEqual(result, -118)
+        assert result == -118
         result = tmod._round_frac(117.9998, precision=3)
-        self.assertEqual(result, 118)
+        assert result == 118
 
         result = tmod._round_frac(117.9998, precision=2)
-        self.assertEqual(result, 118)
+        assert result == 118
         result = tmod._round_frac(0.000123456, precision=2)
-        self.assertEqual(result, 0.00012)
+        assert result == 0.00012
 
     def test_qcut_binning_issues(self):
         # #1978, 1979
@@ -274,16 +282,16 @@ class TestCut(tm.TestCase):
         for lev in np.unique(result):
             s = lev.left
             e = lev.right
-            self.assertTrue(s != e)
+            assert s != e
 
             starts.append(float(s))
             ends.append(float(e))
 
         for (sp, sn), (ep, en) in zip(zip(starts[:-1], starts[1:]),
                                       zip(ends[:-1], ends[1:])):
-            self.assertTrue(sp < sn)
-            self.assertTrue(ep < en)
-            self.assertTrue(ep <= sn)
+            assert sp < sn
+            assert ep < en
+            assert ep <= sn
 
     def test_cut_return_intervals(self):
         s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])

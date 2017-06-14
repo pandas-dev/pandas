@@ -15,9 +15,9 @@ def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
 
 
-class TestDateTimeConverter(tm.TestCase):
+class TestDateTimeConverter(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dtc = converter.DatetimeConverter()
         self.tc = converter.TimeFormatter(None)
 
@@ -29,35 +29,35 @@ class TestDateTimeConverter(tm.TestCase):
     def test_conversion(self):
         rs = self.dtc.convert(['2012-1-1'], None, None)[0]
         xp = datetime(2012, 1, 1).toordinal()
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert('2012-1-1', None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert('2012-1-1', None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(Timestamp('2012-1-1'), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         # also testing datetime64 dtype (GH8614)
         rs = self.dtc.convert(np_datetime64_compat('2012-01-01'), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(np_datetime64_compat(
             '2012-01-01 00:00:00+0000'), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(np.array([
             np_datetime64_compat('2012-01-01 00:00:00+0000'),
             np_datetime64_compat('2012-01-02 00:00:00+0000')]), None, None)
-        self.assertEqual(rs[0], xp)
+        assert rs[0] == xp
 
         # we have a tz-aware date (constructed to that when we turn to utc it
         # is the same as our sample)
@@ -66,17 +66,17 @@ class TestDateTimeConverter(tm.TestCase):
               .tz_convert('US/Eastern')
               )
         rs = self.dtc.convert(ts, None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(ts.to_pydatetime(), None, None)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.dtc.convert(Index([ts - Day(1), ts]), None, None)
-        self.assertEqual(rs[1], xp)
+        assert rs[1] == xp
 
         rs = self.dtc.convert(Index([ts - Day(1), ts]).to_pydatetime(),
                               None, None)
-        self.assertEqual(rs[1], xp)
+        assert rs[1] == xp
 
     def test_conversion_float(self):
         decimals = 9
@@ -101,7 +101,7 @@ class TestDateTimeConverter(tm.TestCase):
         tm.assert_numpy_array_equal(rs, xp)
         rs = self.dtc.convert(values[0], None, None)
         xp = converter.dates.date2num(values[0])
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         rs = self.dtc.convert(values, None, None)
@@ -109,7 +109,7 @@ class TestDateTimeConverter(tm.TestCase):
         tm.assert_numpy_array_equal(rs, xp)
         rs = self.dtc.convert(values[0], None, None)
         xp = converter.dates.date2num(values[0])
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
     def test_time_formatter(self):
         self.tc(90000)
@@ -146,9 +146,9 @@ class TestDateTimeConverter(tm.TestCase):
         assert result == expected
 
 
-class TestPeriodConverter(tm.TestCase):
+class TestPeriodConverter(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.pc = converter.PeriodConverter()
 
         class Axis(object):
@@ -165,44 +165,44 @@ class TestPeriodConverter(tm.TestCase):
     def test_conversion(self):
         rs = self.pc.convert(['2012-1-1'], None, self.axis)[0]
         xp = Period('2012-1-1').ordinal
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.pc.convert('2012-1-1', None, self.axis)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.pc.convert([date(2012, 1, 1)], None, self.axis)[0]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.pc.convert(date(2012, 1, 1), None, self.axis)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.pc.convert([Timestamp('2012-1-1')], None, self.axis)[0]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         rs = self.pc.convert(Timestamp('2012-1-1'), None, self.axis)
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         # FIXME
         # rs = self.pc.convert(
         #        np_datetime64_compat('2012-01-01'), None, self.axis)
-        # self.assertEqual(rs, xp)
+        # assert rs == xp
         #
         # rs = self.pc.convert(
         #        np_datetime64_compat('2012-01-01 00:00:00+0000'),
         #                      None, self.axis)
-        # self.assertEqual(rs, xp)
+        # assert rs == xp
         #
         # rs = self.pc.convert(np.array([
         #     np_datetime64_compat('2012-01-01 00:00:00+0000'),
         #     np_datetime64_compat('2012-01-02 00:00:00+0000')]),
         #                          None, self.axis)
-        # self.assertEqual(rs[0], xp)
+        # assert rs[0] == xp
 
     def test_integer_passthrough(self):
         # GH9012
         rs = self.pc.convert([0, 1], None, self.axis)
         xp = [0, 1]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
     def test_convert_nested(self):
         data = ['2012-1-1', '2012-1-2']

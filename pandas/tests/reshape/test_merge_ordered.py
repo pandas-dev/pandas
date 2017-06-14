@@ -6,9 +6,9 @@ from pandas.util.testing import assert_frame_equal
 from numpy import nan
 
 
-class TestOrderedMerge(tm.TestCase):
+class TestOrderedMerge(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],
                                'lvalue': [1, 2., 3]})
 
@@ -57,7 +57,7 @@ class TestOrderedMerge(tm.TestCase):
         assert_frame_equal(result, result2.loc[:, result.columns])
 
         result = merge_ordered(left, self.right, on='key', left_by='group')
-        self.assertTrue(result['group'].notnull().all())
+        assert result['group'].notnull().all()
 
     def test_merge_type(self):
         class NotADataFrame(DataFrame):
@@ -83,7 +83,7 @@ class TestOrderedMerge(tm.TestCase):
             ([None, None], none_pat)
         ]
         for df_seq, pattern in test_cases:
-            tm.assertRaisesRegexp(ValueError, pattern, pd.concat, df_seq)
+            tm.assert_raises_regex(ValueError, pattern, pd.concat, df_seq)
 
         pd.concat([pd.DataFrame()])
         pd.concat([None, pd.DataFrame()])

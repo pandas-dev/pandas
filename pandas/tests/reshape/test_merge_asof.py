@@ -11,7 +11,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestAsOfMerge(tm.TestCase):
+class TestAsOfMerge(object):
 
     def read_data(self, name, dedupe=False):
         path = os.path.join(tm.get_data_path(), name)
@@ -23,7 +23,7 @@ class TestAsOfMerge(tm.TestCase):
         x.time = to_datetime(x.time)
         return x
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.trades = self.read_data('trades.csv')
         self.quotes = self.read_data('quotes.csv', dedupe=True)
@@ -531,24 +531,24 @@ class TestAsOfMerge(tm.TestCase):
         quotes = self.quotes.sort_values('time', ascending=False)
 
         # we require that we are already sorted on time & quotes
-        self.assertFalse(trades.time.is_monotonic)
-        self.assertFalse(quotes.time.is_monotonic)
+        assert not trades.time.is_monotonic
+        assert not quotes.time.is_monotonic
         with pytest.raises(ValueError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker')
 
         trades = self.trades.sort_values('time')
-        self.assertTrue(trades.time.is_monotonic)
-        self.assertFalse(quotes.time.is_monotonic)
+        assert trades.time.is_monotonic
+        assert not quotes.time.is_monotonic
         with pytest.raises(ValueError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker')
 
         quotes = self.quotes.sort_values('time')
-        self.assertTrue(trades.time.is_monotonic)
-        self.assertTrue(quotes.time.is_monotonic)
+        assert trades.time.is_monotonic
+        assert quotes.time.is_monotonic
 
         # ok, though has dupes
         merge_asof(trades, self.quotes,

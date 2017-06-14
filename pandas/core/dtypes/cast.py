@@ -19,7 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
-                     _coerce_to_dtype,
+                     pandas_dtype,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
@@ -576,7 +576,7 @@ def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
-        dtype = _coerce_to_dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
@@ -668,7 +668,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
 
         if convert_timedeltas == 'coerce':
             from pandas.core.tools.timedeltas import to_timedelta
-            new_values = to_timedelta(values, coerce=True)
+            new_values = to_timedelta(values, errors='coerce')
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
@@ -837,7 +837,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         try:
             return to_timedelta(v)._values.reshape(shape)
         except:
-            return v
+            return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 

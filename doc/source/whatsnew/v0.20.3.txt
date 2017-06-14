@@ -1,0 +1,91 @@
+.. _whatsnew_0203:
+
+v0.20.3 (June ??, 2017)
+-----------------------
+
+This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.20.3
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0203.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+
+
+
+
+
+.. _whatsnew_0203.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+
+.. _whatsnew_0203.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+- Fixed issue with dataframe scatter plot for categorical data that reports incorrect column key not found when categorical data is used for plotting (:issue:`16199`)
+
+
+
+
+Conversion
+^^^^^^^^^^
+
+- Bug in pickle compat prior to the v0.20.x series, when ``UTC`` is a timezone in a Series/DataFrame/Index (:issue:`16608`)
+- Bug in Series construction when passing a Series with ``dtype='category'`` (:issue:`16524`).
+
+Indexing
+^^^^^^^^
+
+- Bug in ``Float64Index`` causing an empty array instead of None to be returned from ``.get(np.nan)`` on a Series whose index did not contain any NaNs (:issue:`8569`)
+
+I/O
+^^^
+
+-- Bug in ``pd.read_csv()`` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue`16675`)
+
+Plotting
+^^^^^^^^
+
+
+
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+Sparse
+^^^^^^
+
+
+
+
+Reshaping
+^^^^^^^^^
+
+
+
+Numeric
+^^^^^^^
+
+
+Categorical
+^^^^^^^^^^^
+
+
+Other
+^^^^^

@@ -10,7 +10,7 @@ from pandas import (compat, DataFrame, option_context,
 from pandas.util import testing as tm
 
 
-class TestCaching(tm.TestCase):
+class TestCaching(object):
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
@@ -32,7 +32,7 @@ class TestCaching(tm.TestCase):
             # Assignment to wrong series
             df['bb'].iloc[0] = 0.17
             df._clear_item_cache()
-            self.assertAlmostEqual(df['bb'][0], 0.17)
+            tm.assert_almost_equal(df['bb'][0], 0.17)
 
     def test_setitem_cache_updating(self):
         # GH 5424
@@ -50,8 +50,8 @@ class TestCaching(tm.TestCase):
             # set it
             df.loc[7, 'c'] = 1
 
-            self.assertEqual(df.loc[0, 'c'], 0.0)
-            self.assertEqual(df.loc[7, 'c'], 1.0)
+            assert df.loc[0, 'c'] == 0.0
+            assert df.loc[7, 'c'] == 1.0
 
         # GH 7084
         # not updating cache on series setting with slices
@@ -90,7 +90,7 @@ class TestCaching(tm.TestCase):
         tm.assert_series_equal(out['A'], expected['A'])
 
 
-class TestChaining(tm.TestCase):
+class TestChaining(object):
 
     def test_setitem_chained_setfault(self):
 
@@ -395,12 +395,12 @@ class TestChaining(tm.TestCase):
         # but actually works, since everything is a view
         df.loc[0]['z'].iloc[0] = 1.
         result = df.loc[(0, 0), 'z']
-        self.assertEqual(result, 1)
+        assert result == 1
 
         # correct setting
         df.loc[(0, 0), 'z'] = 2
         result = df.loc[(0, 0), 'z']
-        self.assertEqual(result, 2)
+        assert result == 2
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

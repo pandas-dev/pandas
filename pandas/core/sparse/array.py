@@ -29,13 +29,13 @@ from pandas.core.dtypes.cast import (
     astype_nansafe, find_common_type)
 from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
 
-from pandas.core.sparse import libsparse as splib
-from pandas.core.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+import pandas._libs.sparse as splib
+from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
 
@@ -125,7 +125,7 @@ def _sparse_array_op(left, right, op, name, series=False):
             name = name[1:]
 
         if name in ('and', 'or') and dtype == 'bool':
-            opname = 'sparse_{name}_uint8'.format(name=name, dtype=dtype)
+            opname = 'sparse_{name}_uint8'.format(name=name)
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)

@@ -16,9 +16,10 @@ cache:
 
 env:
   global:
-
-  # pandas-docs-travis GH
-  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
+    # create a github personal access token
+    # cd pandas-dev/pandas
+    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
+    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
     # for cloning
@@ -73,7 +74,11 @@ matrix:
     # In allow_failures
     - os: linux
       env:
-        - JOB="3.5_DOC" DOC=true
+        - JOB="3.6_DOC" DOC=true
+      addons:
+        apt:
+          packages:
+          - xsel
     allow_failures:
       - os: linux
         env:
@@ -86,7 +91,7 @@ matrix:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       - os: linux
         env:
-          - JOB="3.5_DOC" DOC=true
+          - JOB="3.6_DOC" DOC=true
 
 before_install:
   - echo "before_install"
@@ -123,7 +128,7 @@ after_success:
 
 after_script:
   - echo "after_script start"
-  - source activate pandas && python -c "import pandas; pandas.show_versions();"
+  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - if [ -e /tmp/single.xml ]; then
     ci/print_skipped.py /tmp/single.xml;
     fi

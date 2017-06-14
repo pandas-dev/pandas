@@ -27,10 +27,11 @@ import datetime
 from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
+from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
+                              _stringify_path)
 from pandas._libs.lib import max_len_string_array, infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
 
@@ -976,6 +977,7 @@ class StataReader(StataParser, BaseIterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
+        path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _ = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
@@ -1930,7 +1932,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = fname
+        self._fname = _stringify_path(fname)
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):

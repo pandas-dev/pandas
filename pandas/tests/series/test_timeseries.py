@@ -33,7 +33,7 @@ def assert_range_equal(left, right):
     assert (left.tz == right.tz)
 
 
-class TestTimeSeries(TestData, tm.TestCase):
+class TestTimeSeries(TestData):
 
     def test_shift(self):
         shifted = self.ts.shift(1)
@@ -131,25 +131,25 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         res = s.shift(0)
         tm.assert_series_equal(res, s)
-        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+        assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(1)
         exp_vals = [NaT] + dates.asobject.values.tolist()[:9]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+        assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(-2)
         exp_vals = dates.asobject.values.tolist()[2:] + [NaT, NaT]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+        assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         for ex in [10, -10, 20, -20]:
             res = s.shift(ex)
             exp = Series([NaT] * 10, dtype='datetime64[ns, US/Eastern]')
             tm.assert_series_equal(res, exp)
-            self.assertEqual(res.dtype, 'datetime64[ns, US/Eastern]')
+            assert res.dtype == 'datetime64[ns, US/Eastern]'
 
     def test_tshift(self):
         # PeriodIndex
@@ -280,7 +280,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         s = Series([a, b])
 
         rs = s.diff()
-        self.assertEqual(rs[1], 1)
+        assert rs[1] == 1
 
         # neg n
         rs = self.ts.diff(-1)
@@ -343,10 +343,10 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
-            self.assertTrue(np.isnan(corr1))
-            self.assertTrue(np.isnan(corr2))
+            assert np.isnan(corr1)
+            assert np.isnan(corr2)
         else:
-            self.assertEqual(corr1, corr2)
+            assert corr1 == corr2
 
         # Choose a random lag between 1 and length of Series - 2
         # and compare the result with the Series corr() function
@@ -356,21 +356,21 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
-            self.assertTrue(np.isnan(corr1))
-            self.assertTrue(np.isnan(corr2))
+            assert np.isnan(corr1)
+            assert np.isnan(corr2)
         else:
-            self.assertEqual(corr1, corr2)
+            assert corr1 == corr2
 
     def test_first_last_valid(self):
         ts = self.ts.copy()
         ts[:5] = np.NaN
 
         index = ts.first_valid_index()
-        self.assertEqual(index, ts.index[5])
+        assert index == ts.index[5]
 
         ts[-5:] = np.NaN
         index = ts.last_valid_index()
-        self.assertEqual(index, ts.index[-6])
+        assert index == ts.index[-6]
 
         ts[:] = np.nan
         assert ts.last_valid_index() is None
@@ -393,7 +393,7 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        self.assertTrue(ser.index.is_all_dates)
+        assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
 
     def test_empty_series_ops(self):
@@ -487,7 +487,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         dates = np.asarray(rng)
 
         series = Series(dates)
-        self.assertTrue(np.issubdtype(series.dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(series.dtype, np.dtype('M8[ns]'))
 
     def test_series_repr_nat(self):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
@@ -498,7 +498,7 @@ class TestTimeSeries(TestData, tm.TestCase):
                     '2   1970-01-01 00:00:00.000002\n'
                     '3                          NaT\n'
                     'dtype: datetime64[ns]')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_asfreq_keep_index_name(self):
         # GH #9854
@@ -506,8 +506,8 @@ class TestTimeSeries(TestData, tm.TestCase):
         index = pd.date_range('20130101', periods=20, name=index_name)
         df = pd.DataFrame([x for x in range(20)], columns=['foo'], index=index)
 
-        self.assertEqual(index_name, df.index.name)
-        self.assertEqual(index_name, df.asfreq('10D').index.name)
+        assert index_name == df.index.name
+        assert index_name == df.asfreq('10D').index.name
 
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
@@ -555,11 +555,11 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_first_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.first('10d')
-        self.assertEqual(len(result), 20)
+        assert len(result) == 20
 
         ts = _simple_ts('1/1/2000', '1/1/2010')
         result = ts.first('10d')
-        self.assertEqual(len(result), 10)
+        assert len(result) == 10
 
         result = ts.first('3M')
         expected = ts[:'3/31/2000']
@@ -575,11 +575,11 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_last_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.last('10d')
-        self.assertEqual(len(result), 20)
+        assert len(result) == 20
 
         ts = _simple_ts('1/1/2000', '1/1/2010')
         result = ts.last('10d')
-        self.assertEqual(len(result), 10)
+        assert len(result) == 10
 
         result = ts.last('21D')
         expected = ts['12/12/2009':]
@@ -602,9 +602,9 @@ class TestTimeSeries(TestData, tm.TestCase):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
         rs = ts.at_time(rng[1])
-        self.assertTrue((rs.index.hour == rng[1].hour).all())
-        self.assertTrue((rs.index.minute == rng[1].minute).all())
-        self.assertTrue((rs.index.second == rng[1].second).all())
+        assert (rs.index.hour == rng[1].hour).all()
+        assert (rs.index.minute == rng[1].minute).all()
+        assert (rs.index.second == rng[1].second).all()
 
         result = ts.at_time('9:30')
         expected = ts.at_time(time(9, 30))
@@ -638,7 +638,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         rng = date_range('1/1/2012', freq='23Min', periods=384)
         ts = Series(np.random.randn(len(rng)), rng)
         rs = ts.at_time('16:00')
-        self.assertEqual(len(rs), 0)
+        assert len(rs) == 0
 
     def test_between(self):
         series = Series(date_range('1/1/2000', periods=10))
@@ -663,18 +663,18 @@ class TestTimeSeries(TestData, tm.TestCase):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue(t >= stime)
+                    assert t >= stime
                 else:
-                    self.assertTrue(t > stime)
+                    assert t > stime
 
                 if inc_end:
-                    self.assertTrue(t <= etime)
+                    assert t <= etime
                 else:
-                    self.assertTrue(t < etime)
+                    assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -695,18 +695,18 @@ class TestTimeSeries(TestData, tm.TestCase):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue((t >= stime) or (t <= etime))
+                    assert (t >= stime) or (t <= etime)
                 else:
-                    self.assertTrue((t > stime) or (t <= etime))
+                    assert (t > stime) or (t <= etime)
 
                 if inc_end:
-                    self.assertTrue((t <= etime) or (t >= stime))
+                    assert (t <= etime) or (t >= stime)
                 else:
-                    self.assertTrue((t < etime) or (t >= stime))
+                    assert (t < etime) or (t >= stime)
 
     def test_between_time_types(self):
         # GH11818
@@ -736,9 +736,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         expected_length = 28
 
         for time_string in strings:
-            self.assertEqual(len(ts.between_time(*time_string)),
-                             expected_length,
-                             "%s - %s" % time_string)
+            assert len(ts.between_time(*time_string)) == expected_length
 
     def test_to_period(self):
         from pandas.core.indexes.period import period_range
@@ -817,26 +815,26 @@ class TestTimeSeries(TestData, tm.TestCase):
         df = df.set_index(pd.to_datetime(df.date))
 
         # testing the settings before calling .asfreq() and .resample()
-        self.assertEqual(df.index.freq, None)
-        self.assertEqual(df.index.inferred_freq, 'D')
+        assert df.index.freq is None
+        assert df.index.inferred_freq == 'D'
 
         # does .asfreq() set .freq correctly?
-        self.assertEqual(df.asfreq('D').index.freq, 'D')
+        assert df.asfreq('D').index.freq == 'D'
 
         # does .resample() set .freq correctly?
-        self.assertEqual(df.resample('D').asfreq().index.freq, 'D')
+        assert df.resample('D').asfreq().index.freq == 'D'
 
     def test_pickle(self):
 
         # GH4606
         p = tm.round_trip_pickle(NaT)
-        self.assertTrue(p is NaT)
+        assert p is NaT
 
         idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
         idx_p = tm.round_trip_pickle(idx)
-        self.assertTrue(idx_p[0] == idx[0])
-        self.assertTrue(idx_p[1] is NaT)
-        self.assertTrue(idx_p[2] == idx[2])
+        assert idx_p[0] == idx[0]
+        assert idx_p[1] is NaT
+        assert idx_p[2] == idx[2]
 
         # GH11002
         # don't infer freq
@@ -849,35 +847,35 @@ class TestTimeSeries(TestData, tm.TestCase):
             rng = date_range('1/1/2000', '1/1/2002', name='idx', tz=tz)
 
             result = rng[:50].union(rng[50:100])
-            self.assertEqual(result.name, rng.name)
-            self.assertEqual(result.freq, rng.freq)
-            self.assertEqual(result.tz, rng.tz)
+            assert result.name == rng.name
+            assert result.freq == rng.freq
+            assert result.tz == rng.tz
 
             result = rng[:50].union(rng[30:100])
-            self.assertEqual(result.name, rng.name)
-            self.assertEqual(result.freq, rng.freq)
-            self.assertEqual(result.tz, rng.tz)
+            assert result.name == rng.name
+            assert result.freq == rng.freq
+            assert result.tz == rng.tz
 
             result = rng[:50].union(rng[60:100])
-            self.assertEqual(result.name, rng.name)
+            assert result.name == rng.name
             assert result.freq is None
-            self.assertEqual(result.tz, rng.tz)
+            assert result.tz == rng.tz
 
             result = rng[:50].intersection(rng[25:75])
-            self.assertEqual(result.name, rng.name)
-            self.assertEqual(result.freqstr, 'D')
-            self.assertEqual(result.tz, rng.tz)
+            assert result.name == rng.name
+            assert result.freqstr == 'D'
+            assert result.tz == rng.tz
 
             nofreq = DatetimeIndex(list(rng[25:75]), name='other')
             result = rng[:50].union(nofreq)
             assert result.name is None
-            self.assertEqual(result.freq, rng.freq)
-            self.assertEqual(result.tz, rng.tz)
+            assert result.freq == rng.freq
+            assert result.tz == rng.tz
 
             result = rng[:50].intersection(nofreq)
             assert result.name is None
-            self.assertEqual(result.freq, rng.freq)
-            self.assertEqual(result.tz, rng.tz)
+            assert result.freq == rng.freq
+            assert result.tz == rng.tz
 
     def test_min_max(self):
         rng = date_range('1/1/2000', '12/31/2000')
@@ -887,11 +885,11 @@ class TestTimeSeries(TestData, tm.TestCase):
         the_max = rng2.max()
         assert isinstance(the_min, Timestamp)
         assert isinstance(the_max, Timestamp)
-        self.assertEqual(the_min, rng[0])
-        self.assertEqual(the_max, rng[-1])
+        assert the_min == rng[0]
+        assert the_max == rng[-1]
 
-        self.assertEqual(rng.min(), rng[0])
-        self.assertEqual(rng.max(), rng[-1])
+        assert rng.min() == rng[0]
+        assert rng.max() == rng[-1]
 
     def test_min_max_series(self):
         rng = date_range('1/1/2000', periods=10, freq='4h')
@@ -900,13 +898,13 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         result = df.TS.max()
         exp = Timestamp(df.TS.iat[-1])
-        self.assertTrue(isinstance(result, Timestamp))
-        self.assertEqual(result, exp)
+        assert isinstance(result, Timestamp)
+        assert result == exp
 
         result = df.TS.min()
         exp = Timestamp(df.TS.iat[0])
-        self.assertTrue(isinstance(result, Timestamp))
-        self.assertEqual(result, exp)
+        assert isinstance(result, Timestamp)
+        assert result == exp
 
     def test_from_M8_structured(self):
         dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
@@ -914,15 +912,15 @@ class TestTimeSeries(TestData, tm.TestCase):
                        dtype=[('Date', 'M8[us]'), ('Forecasting', 'M8[us]')])
         df = DataFrame(arr)
 
-        self.assertEqual(df['Date'][0], dates[0][0])
-        self.assertEqual(df['Forecasting'][0], dates[0][1])
+        assert df['Date'][0] == dates[0][0]
+        assert df['Forecasting'][0] == dates[0][1]
 
         s = Series(arr['Date'])
-        self.assertTrue(s[0], Timestamp)
-        self.assertEqual(s[0], dates[0][0])
+        assert isinstance(s[0], Timestamp)
+        assert s[0] == dates[0][0]
 
         s = Series.from_array(arr['Date'], Index([0]))
-        self.assertEqual(s[0], dates[0][0])
+        assert s[0] == dates[0][0]
 
     def test_get_level_values_box(self):
         from pandas import MultiIndex
@@ -933,4 +931,4 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         index = MultiIndex(levels=levels, labels=labels)
 
-        self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
+        assert isinstance(index.get_level_values(0)[0], Timestamp)

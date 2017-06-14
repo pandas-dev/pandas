@@ -13,7 +13,7 @@ from pandas import compat
 from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.indexes.base as ibase
 
 from pandas.core.indexes.numeric import Int64Index
@@ -442,6 +442,63 @@ class RangeIndex(Int64Index):
 
         return super(RangeIndex, self).join(other, how, level, return_indexers,
                                             sort)
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : RangeIndex if all indexes are consecutive RangeIndexes,
+                   otherwise Int64Index or Index
+        """
+
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        if not all([isinstance(i, RangeIndex) for i in to_concat]):
+            return super(RangeIndex, self).append(other)
+
+        start = step = next = None
+
+        for obj in to_concat:
+            if not len(obj):
+                continue
+
+            if start is None:
+                # This is set by the first non-empty index
+                start = obj._start
+                if step is None and len(obj) > 1:
+                    step = obj._step
+            elif step is None:
+                # First non-empty index had only one element
+                if obj._start == start:
+                    return super(RangeIndex, self).append(other)
+                step = obj._start - start
+
+            non_consecutive = ((step != obj._step and len(obj) > 1) or
+                               (next is not None and obj._start != next))
+            if non_consecutive:
+                return super(RangeIndex, self).append(other)
+
+            if step is not None:
+                next = obj[-1] + step
+
+        if start is None:
+            start = obj._start
+            step = obj._step
+        stop = obj._stop if next is None else next
+        names = set([obj.name for obj in to_concat])
+        name = None if len(names) > 1 else self.name
+        return RangeIndex(start, stop, step, name=name)
 
     def __len__(self):
         """

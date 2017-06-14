@@ -5,16 +5,15 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
 jinja2 = pytest.importorskip('jinja2')
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
 
 
-class TestStyler(TestCase):
+class TestStyler(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         np.random.seed(24)
         self.s = DataFrame({'A': np.random.permutation(range(6))})
         self.df = DataFrame({'A': [0, 1], 'B': np.random.randn(2)})
@@ -39,7 +38,7 @@ class TestStyler(TestCase):
 
     def test_init_series(self):
         result = Styler(pd.Series([1, 2]))
-        self.assertEqual(result.data.ndim, 2)
+        assert result.data.ndim == 2
 
     def test_repr_html_ok(self):
         self.styler._repr_html_()
@@ -48,7 +47,7 @@ class TestStyler(TestCase):
         self.styler._update_ctx(self.attrs)
         expected = {(0, 0): ['color: red'],
                     (1, 0): ['color: blue']}
-        self.assertEqual(self.styler.ctx, expected)
+        assert self.styler.ctx == expected
 
     def test_update_ctx_flatten_multi(self):
         attrs = DataFrame({"A": ['color: red; foo: bar',
@@ -56,7 +55,7 @@ class TestStyler(TestCase):
         self.styler._update_ctx(attrs)
         expected = {(0, 0): ['color: red', ' foo: bar'],
                     (1, 0): ['color: blue', ' foo: baz']}
-        self.assertEqual(self.styler.ctx, expected)
+        assert self.styler.ctx == expected
 
     def test_update_ctx_flatten_multi_traliing_semi(self):
         attrs = DataFrame({"A": ['color: red; foo: bar;',
@@ -64,38 +63,38 @@ class TestStyler(TestCase):
         self.styler._update_ctx(attrs)
         expected = {(0, 0): ['color: red', ' foo: bar'],
                     (1, 0): ['color: blue', ' foo: baz']}
-        self.assertEqual(self.styler.ctx, expected)
+        assert self.styler.ctx == expected
 
     def test_copy(self):
         s2 = copy.copy(self.styler)
-        self.assertTrue(self.styler is not s2)
-        self.assertTrue(self.styler.ctx is s2.ctx)  # shallow
-        self.assertTrue(self.styler._todo is s2._todo)
+        assert self.styler is not s2
+        assert self.styler.ctx is s2.ctx  # shallow
+        assert self.styler._todo is s2._todo
 
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
-        self.assertEqual(self.styler.ctx, s2.ctx)
-        self.assertEqual(self.styler._todo, s2._todo)
+        assert self.styler.ctx == s2.ctx
+        assert self.styler._todo == s2._todo
 
     def test_deepcopy(self):
         s2 = copy.deepcopy(self.styler)
-        self.assertTrue(self.styler is not s2)
-        self.assertTrue(self.styler.ctx is not s2.ctx)
-        self.assertTrue(self.styler._todo is not s2._todo)
+        assert self.styler is not s2
+        assert self.styler.ctx is not s2.ctx
+        assert self.styler._todo is not s2._todo
 
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
-        self.assertNotEqual(self.styler.ctx, s2.ctx)
-        self.assertEqual(s2._todo, [])
-        self.assertNotEqual(self.styler._todo, s2._todo)
+        assert self.styler.ctx != s2.ctx
+        assert s2._todo == []
+        assert self.styler._todo != s2._todo
 
     def test_clear(self):
         s = self.df.style.highlight_max()._compute()
-        self.assertTrue(len(s.ctx) > 0)
-        self.assertTrue(len(s._todo) > 0)
+        assert len(s.ctx) > 0
+        assert len(s._todo) > 0
         s.clear()
-        self.assertTrue(len(s.ctx) == 0)
-        self.assertTrue(len(s._todo) == 0)
+        assert len(s.ctx) == 0
+        assert len(s._todo) == 0
 
     def test_render(self):
         df = pd.DataFrame({"A": [0, 1]})
@@ -103,6 +102,16 @@ class TestStyler(TestCase):
         s = Styler(df, uuid='AB').apply(style)
         s.render()
         # it worked?
+
+    def test_render_empty_dfs(self):
+        empty_df = DataFrame()
+        es = Styler(empty_df)
+        es.render()
+        # An index but no columns
+        DataFrame(columns=['a']).style.render()
+        # A column but no index
+        DataFrame(index=['a']).style.render()
+        # No IndexError raised?
 
     def test_render_double(self):
         df = pd.DataFrame({"A": [0, 1]})
@@ -119,16 +128,16 @@ class TestStyler(TestCase):
         # order is deterministic
         v = ["color: white", "size: 10px"]
         expected = {(0, 0): v, (1, 0): v}
-        self.assertEqual(result.keys(), expected.keys())
+        assert result.keys() == expected.keys()
         for v1, v2 in zip(result.values(), expected.values()):
-            self.assertEqual(sorted(v1), sorted(v2))
+            assert sorted(v1) == sorted(v2)
 
     def test_set_properties_subset(self):
         df = pd.DataFrame({'A': [0, 1]})
         result = df.style.set_properties(subset=pd.IndexSlice[0, 'A'],
                                          color='white')._compute().ctx
         expected = {(0, 0): ['color: white']}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_empty_index_name_doesnt_display(self):
         # https://github.com/pandas-dev/pandas/pull/12090#issuecomment-180695902
@@ -156,7 +165,7 @@ class TestStyler(TestCase):
                       'is_visible': True,
                       }]]
 
-        self.assertEqual(result['head'], expected)
+        assert result['head'] == expected
 
     def test_index_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
@@ -174,7 +183,7 @@ class TestStyler(TestCase):
                      {'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'blank', 'type': 'th', 'value': ''}]]
 
-        self.assertEqual(result['head'], expected)
+        assert result['head'] == expected
 
     def test_multiindex_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
@@ -194,7 +203,7 @@ class TestStyler(TestCase):
               'value': 'B'},
              {'class': 'blank', 'type': 'th', 'value': ''}]]
 
-        self.assertEqual(result['head'], expected)
+        assert result['head'] == expected
 
     def test_numeric_columns(self):
         # https://github.com/pandas-dev/pandas/issues/12125
@@ -206,21 +215,21 @@ class TestStyler(TestCase):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
         f = lambda x: ['val: %s' % x.max() for v in x]
         result = df.style.apply(f, axis=1)
-        self.assertEqual(len(result._todo), 1)
-        self.assertEqual(len(result.ctx), 0)
+        assert len(result._todo) == 1
+        assert len(result.ctx) == 0
         result._compute()
         expected = {(0, 0): ['val: 1'], (0, 1): ['val: 1'],
                     (1, 0): ['val: 1'], (1, 1): ['val: 1']}
-        self.assertEqual(result.ctx, expected)
+        assert result.ctx == expected
 
         result = df.style.apply(f, axis=0)
         expected = {(0, 0): ['val: 0'], (0, 1): ['val: 1'],
                     (1, 0): ['val: 0'], (1, 1): ['val: 1']}
         result._compute()
-        self.assertEqual(result.ctx, expected)
+        assert result.ctx == expected
         result = df.style.apply(f)  # default
         result._compute()
-        self.assertEqual(result.ctx, expected)
+        assert result.ctx == expected
 
     def test_apply_subset(self):
         axes = [0, 1]
@@ -236,7 +245,7 @@ class TestStyler(TestCase):
                                 for c, col in enumerate(self.df.columns)
                                 if row in self.df.loc[slice_].index and
                                 col in self.df.loc[slice_].columns)
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def test_applymap_subset(self):
         def f(x):
@@ -253,7 +262,7 @@ class TestStyler(TestCase):
                             for c, col in enumerate(self.df.columns)
                             if row in self.df.loc[slice_].index and
                             col in self.df.loc[slice_].columns)
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_empty(self):
         df = pd.DataFrame({'A': [1, 0]})
@@ -264,9 +273,9 @@ class TestStyler(TestCase):
         result = s._translate()['cellstyle']
         expected = [{'props': [['color', ' red']], 'selector': 'row0_col0'},
                     {'props': [['', '']], 'selector': 'row1_col0'}]
-        self.assertEqual(result, expected)
+        assert result == expected
 
-    def test_bar(self):
+    def test_bar_align_left(self):
         df = pd.DataFrame({'A': [0, 1, 2]})
         result = df.style.bar()._compute().ctx
         expected = {
@@ -278,7 +287,7 @@ class TestStyler(TestCase):
                      'background: linear-gradient('
                      '90deg,#d65f5f 100.0%, transparent 0%)']
         }
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.style.bar(color='red', width=50)._compute().ctx
         expected = {
@@ -290,16 +299,16 @@ class TestStyler(TestCase):
                      'background: linear-gradient('
                      '90deg,red 50.0%, transparent 0%)']
         }
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df['C'] = ['a'] * len(df)
         result = df.style.bar(color='red', width=50)._compute().ctx
-        self.assertEqual(result, expected)
+        assert result == expected
         df['C'] = df['C'].astype('category')
         result = df.style.bar(color='red', width=50)._compute().ctx
-        self.assertEqual(result, expected)
+        assert result == expected
 
-    def test_bar_0points(self):
+    def test_bar_align_left_0points(self):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         result = df.style.bar()._compute().ctx
         expected = {(0, 0): ['width: 10em', ' height: 80%'],
@@ -323,7 +332,7 @@ class TestStyler(TestCase):
                     (2, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
                              ', transparent 0%)']}
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.style.bar(axis=1)._compute().ctx
         expected = {(0, 0): ['width: 10em', ' height: 80%'],
@@ -347,14 +356,126 @@ class TestStyler(TestCase):
                     (2, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
                              ', transparent 0%)']}
-        self.assertEqual(result, expected)
+        assert result == expected
+
+    def test_bar_align_mid_pos_and_neg(self):
+        df = pd.DataFrame({'A': [-10, 0, 20, 90]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #d65f5f 0.0%, '
+                             '#d65f5f 10.0%, transparent 10.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, '
+                             '#d65f5f 10.0%, #d65f5f 10.0%, '
+                             'transparent 10.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, #5fba7d 10.0%'
+                             ', #5fba7d 30.0%, transparent 30.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, '
+                             '#5fba7d 10.0%, #5fba7d 100.0%, '
+                             'transparent 100.0%)']}
+
+        assert result == expected
+
+    def test_bar_align_mid_all_pos(self):
+        df = pd.DataFrame({'A': [10, 20, 50, 100]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 10.0%, transparent 10.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 20.0%, transparent 20.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 50.0%, transparent 50.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 100.0%, transparent 100.0%)']}
+
+        assert result == expected
+
+    def test_bar_align_mid_all_neg(self):
+        df = pd.DataFrame({'A': [-100, -60, -30, -20]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, '
+                             '#d65f5f 0.0%, #d65f5f 100.0%, '
+                             'transparent 100.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 40.0%, '
+                             '#d65f5f 40.0%, #d65f5f 100.0%, '
+                             'transparent 100.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 70.0%, '
+                             '#d65f5f 70.0%, #d65f5f 100.0%, '
+                             'transparent 100.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 80.0%, '
+                             '#d65f5f 80.0%, #d65f5f 100.0%, '
+                             'transparent 100.0%)']}
+        assert result == expected
+
+    def test_bar_align_zero_pos_and_neg(self):
+        # See https://github.com/pandas-dev/pandas/pull/14757
+        df = pd.DataFrame({'A': [-10, 0, 20, 90]})
+
+        result = df.style.bar(align='zero', color=[
+                              '#d65f5f', '#5fba7d'], width=90)._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 45.0%, '
+                             '#d65f5f 45.0%, #d65f5f 50%, '
+                             'transparent 50%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, '
+                             '#5fba7d 50%, #5fba7d 50.0%, '
+                             'transparent 50.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, #5fba7d 50%, '
+                             '#5fba7d 60.0%, transparent 60.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, #5fba7d 50%, '
+                             '#5fba7d 95.0%, transparent 95.0%)']}
+        assert result == expected
+
+    def test_bar_bad_align_raises(self):
+        df = pd.DataFrame({'A': [-100, -60, -30, -20]})
+        with pytest.raises(ValueError):
+            df.style.bar(align='poorly', color=['#d65f5f', '#5fba7d'])
 
     def test_highlight_null(self, null_color='red'):
         df = pd.DataFrame({'A': [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
         expected = {(0, 0): [''],
                     (1, 0): ['background-color: red']}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_nonunique_raises(self):
         df = pd.DataFrame([[1, 2]], columns=['A', 'A'])
@@ -367,53 +488,53 @@ class TestStyler(TestCase):
     def test_caption(self):
         styler = Styler(self.df, caption='foo')
         result = styler.render()
-        self.assertTrue(all(['caption' in result, 'foo' in result]))
+        assert all(['caption' in result, 'foo' in result])
 
         styler = self.df.style
         result = styler.set_caption('baz')
-        self.assertTrue(styler is result)
-        self.assertEqual(styler.caption, 'baz')
+        assert styler is result
+        assert styler.caption == 'baz'
 
     def test_uuid(self):
         styler = Styler(self.df, uuid='abc123')
         result = styler.render()
-        self.assertTrue('abc123' in result)
+        assert 'abc123' in result
 
         styler = self.df.style
         result = styler.set_uuid('aaa')
-        self.assertTrue(result is styler)
-        self.assertEqual(result.uuid, 'aaa')
+        assert result is styler
+        assert result.uuid == 'aaa'
 
     def test_table_styles(self):
         style = [{'selector': 'th', 'props': [('foo', 'bar')]}]
         styler = Styler(self.df, table_styles=style)
         result = ' '.join(styler.render().split())
-        self.assertTrue('th { foo: bar; }' in result)
+        assert 'th { foo: bar; }' in result
 
         styler = self.df.style
         result = styler.set_table_styles(style)
-        self.assertTrue(styler is result)
-        self.assertEqual(styler.table_styles, style)
+        assert styler is result
+        assert styler.table_styles == style
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
         styler = Styler(self.df, table_attributes=attributes)
         result = styler.render()
-        self.assertTrue('class="foo" data-bar' in result)
+        assert 'class="foo" data-bar' in result
 
         result = self.df.style.set_table_attributes(attributes).render()
-        self.assertTrue('class="foo" data-bar' in result)
+        assert 'class="foo" data-bar' in result
 
     def test_precision(self):
         with pd.option_context('display.precision', 10):
             s = Styler(self.df)
-        self.assertEqual(s.precision, 10)
+        assert s.precision == 10
         s = Styler(self.df, precision=2)
-        self.assertEqual(s.precision, 2)
+        assert s.precision == 2
 
         s2 = s.set_precision(4)
-        self.assertTrue(s is s2)
-        self.assertEqual(s.precision, 4)
+        assert s is s2
+        assert s.precision == 4
 
     def test_apply_none(self):
         def f(x):
@@ -421,14 +542,14 @@ class TestStyler(TestCase):
                                 index=x.index, columns=x.columns)
         result = (pd.DataFrame([[1, 2], [3, 4]])
                   .style.apply(f, axis=None)._compute().ctx)
-        self.assertEqual(result[(1, 1)], ['color: red'])
+        assert result[(1, 1)] == ['color: red']
 
     def test_trim(self):
         result = self.df.style.render()  # trim=True
-        self.assertEqual(result.count('#'), 0)
+        assert result.count('#') == 0
 
         result = self.df.style.highlight_max().render()
-        self.assertEqual(result.count('#'), len(self.df.columns))
+        assert result.count('#') == len(self.df.columns)
 
     def test_highlight_max(self):
         df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
@@ -440,25 +561,25 @@ class TestStyler(TestCase):
                 df = -df
                 attr = 'highlight_min'
             result = getattr(df.style, attr)()._compute().ctx
-            self.assertEqual(result[(1, 1)], ['background-color: yellow'])
+            assert result[(1, 1)] == ['background-color: yellow']
 
             result = getattr(df.style, attr)(color='green')._compute().ctx
-            self.assertEqual(result[(1, 1)], ['background-color: green'])
+            assert result[(1, 1)] == ['background-color: green']
 
             result = getattr(df.style, attr)(subset='A')._compute().ctx
-            self.assertEqual(result[(1, 0)], ['background-color: yellow'])
+            assert result[(1, 0)] == ['background-color: yellow']
 
             result = getattr(df.style, attr)(axis=0)._compute().ctx
             expected = {(1, 0): ['background-color: yellow'],
                         (1, 1): ['background-color: yellow'],
                         (0, 1): [''], (0, 0): ['']}
-            self.assertEqual(result, expected)
+            assert result == expected
 
             result = getattr(df.style, attr)(axis=1)._compute().ctx
             expected = {(0, 1): ['background-color: yellow'],
                         (1, 1): ['background-color: yellow'],
                         (0, 0): [''], (1, 0): ['']}
-            self.assertEqual(result, expected)
+            assert result == expected
 
         # separate since we cant negate the strs
         df['C'] = ['a', 'b']
@@ -478,19 +599,17 @@ class TestStyler(TestCase):
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
-        self.assertEqual(style1._todo, style2._todo)
+        assert style1._todo == style2._todo
         style2.render()
 
     def test_display_format(self):
         df = pd.DataFrame(np.random.random(size=(2, 2)))
         ctx = df.style.format("{:0.1f}")._translate()
 
-        self.assertTrue(all(['display_value' in c for c in row]
-                            for row in ctx['body']))
-        self.assertTrue(all([len(c['display_value']) <= 3 for c in row[1:]]
-                            for row in ctx['body']))
-        self.assertTrue(
-            len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3)
+        assert all(['display_value' in c for c in row] for row in ctx['body'])
+        assert (all([len(c['display_value']) <= 3 for c in row[1:]]
+                    for row in ctx['body']))
+        assert len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3
 
     def test_display_format_raises(self):
         df = pd.DataFrame(np.random.randn(2, 2))
@@ -505,48 +624,48 @@ class TestStyler(TestCase):
         ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"},
                               subset=pd.IndexSlice[0, :])._translate()
         expected = '0.1'
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], '1.1234')
-        self.assertEqual(ctx['body'][0][2]['display_value'], '12.34%')
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][1][1]['display_value'] == '1.1234'
+        assert ctx['body'][0][2]['display_value'] == '12.34%'
 
         raw_11 = '1.1234'
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, :])._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][1][1]['display_value'] == raw_11
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, :])._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][1][1]['display_value'] == raw_11
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice['a'])._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][0][2]['display_value'] == '0.1234'
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, 'a'])._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][1][1]['display_value'] == raw_11
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[[0, 1], ['a']])._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], '1.1')
-        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
-        self.assertEqual(ctx['body'][1][2]['display_value'], '1.1234')
+        assert ctx['body'][0][1]['display_value'] == expected
+        assert ctx['body'][1][1]['display_value'] == '1.1'
+        assert ctx['body'][0][2]['display_value'] == '0.1234'
+        assert ctx['body'][1][2]['display_value'] == '1.1234'
 
     def test_display_dict(self):
         df = pd.DataFrame([[.1234, .1234], [1.1234, 1.1234]],
                           columns=['a', 'b'])
         ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], '0.1')
-        self.assertEqual(ctx['body'][0][2]['display_value'], '12.34%')
+        assert ctx['body'][0][1]['display_value'] == '0.1'
+        assert ctx['body'][0][2]['display_value'] == '12.34%'
         df['c'] = ['aaa', 'bbb']
         ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
-        self.assertEqual(ctx['body'][0][1]['display_value'], '0.1')
-        self.assertEqual(ctx['body'][0][3]['display_value'], 'AAA')
+        assert ctx['body'][0][1]['display_value'] == '0.1'
+        assert ctx['body'][0][3]['display_value'] == 'AAA'
 
     def test_bad_apply_shape(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
@@ -631,7 +750,7 @@ class TestStyler(TestCase):
              'is_visible': True, 'display_value': ''},
             {'type': 'th', 'class': 'col_heading level0 col0', 'value': 'A',
              'is_visible': True, 'display_value': 'A'}]
-        self.assertEqual(head, expected)
+        assert head == expected
 
     def test_mi_sparse_disabled(self):
         with pd.option_context('display.multi_sparse', False):
@@ -657,7 +776,7 @@ class TestStyler(TestCase):
              'type': 'th'},
             {'class': 'blank', 'value': '', 'type': 'th'}]
 
-        self.assertEqual(head, expected)
+        assert head == expected
 
     def test_mi_sparse_column_names(self):
         df = pd.DataFrame(
@@ -700,24 +819,24 @@ class TestStyler(TestCase):
              'type': 'th',
              'value': 0},
         ]
-        self.assertEqual(head, expected)
+        assert head == expected
 
 
-@tm.mplskip
-class TestStylerMatplotlibDep(TestCase):
+class TestStylerMatplotlibDep(object):
 
     def test_background_gradient(self):
+        tm._skip_if_no_mpl()
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
-        for axis in [0, 1, 'index', 'columns']:
-            for cmap in [None, 'YlOrRd']:
-                result = df.style.background_gradient(cmap=cmap)._compute().ctx
-                self.assertTrue(all("#" in x[0] for x in result.values()))
-                self.assertEqual(result[(0, 0)], result[(0, 1)])
-                self.assertEqual(result[(1, 0)], result[(1, 1)])
 
-        result = (df.style.background_gradient(subset=pd.IndexSlice[1, 'A'])
-                    ._compute().ctx)
-        self.assertEqual(result[(1, 0)], ['background-color: #fff7fb'])
+        for c_map in [None, 'YlOrRd']:
+            result = df.style.background_gradient(cmap=c_map)._compute().ctx
+            assert all("#" in x[0] for x in result.values())
+            assert result[(0, 0)] == result[(0, 1)]
+            assert result[(1, 0)] == result[(1, 1)]
+
+        result = df.style.background_gradient(
+            subset=pd.IndexSlice[1, 'A'])._compute().ctx
+        assert result[(1, 0)] == ['background-color: #fff7fb']
 
 
 def test_block_names():

@@ -11,7 +11,7 @@ from pandas import compat
 from pandas.core import algorithms
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.indexes.base as ibase
 
 
@@ -369,6 +369,8 @@ class Float64Index(NumericIndex):
                 except (ValueError, IndexError):
                     # should only need to catch ValueError here but on numpy
                     # 1.7 .item() can raise IndexError when NaNs are present
+                    if not len(nan_idxs):
+                        raise KeyError(key)
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass

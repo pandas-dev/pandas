@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSubclassing(tm.TestCase, TestData):
+class TestDataFrameSubclassing(TestData):
 
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -50,45 +50,45 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         cdf = CustomDataFrame(data)
 
         # Did we get back our own DF class?
-        self.assertTrue(isinstance(cdf, CustomDataFrame))
+        assert isinstance(cdf, CustomDataFrame)
 
         # Do we get back our own Series class after selecting a column?
         cdf_series = cdf.col1
-        self.assertTrue(isinstance(cdf_series, CustomSeries))
-        self.assertEqual(cdf_series.custom_series_function(), 'OK')
+        assert isinstance(cdf_series, CustomSeries)
+        assert cdf_series.custom_series_function() == 'OK'
 
         # Do we get back our own DF class after slicing row-wise?
         cdf_rows = cdf[1:5]
-        self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
-        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')
+        assert isinstance(cdf_rows, CustomDataFrame)
+        assert cdf_rows.custom_frame_function() == 'OK'
 
         # Make sure sliced part of multi-index frame is custom class
         mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
         cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi['A'], CustomDataFrame))
+        assert isinstance(cdf_multi['A'], CustomDataFrame)
 
         mcol = pd.MultiIndex.from_tuples([('A', ''), ('B', '')])
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
+        assert isinstance(cdf_multi2['A'], CustomSeries)
 
     def test_dataframe_metadata(self):
         df = tm.SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
                                     index=['a', 'b', 'c'])
         df.testattr = 'XXX'
 
-        self.assertEqual(df.testattr, 'XXX')
-        self.assertEqual(df[['X']].testattr, 'XXX')
-        self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
-        self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+        assert df.testattr == 'XXX'
+        assert df[['X']].testattr == 'XXX'
+        assert df.loc[['a', 'b'], :].testattr == 'XXX'
+        assert df.iloc[[0, 1], :].testattr == 'XXX'
 
-        # GH9776
-        self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+        # see gh-9776
+        assert df.iloc[0:1, :].testattr == 'XXX'
 
-        # GH10553
+        # see gh-10553
         unpickled = tm.round_trip_pickle(df)
         tm.assert_frame_equal(df, unpickled)
-        self.assertEqual(df._metadata, unpickled._metadata)
-        self.assertEqual(df.testattr, unpickled.testattr)
+        assert df._metadata == unpickled._metadata
+        assert df.testattr == unpickled.testattr
 
     def test_indexing_sliced(self):
         # GH 11559
@@ -142,7 +142,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
             df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
             result = df.to_panel()
-            self.assertTrue(isinstance(result, SubclassedPanel))
+            assert isinstance(result, SubclassedPanel)
             expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
                                        items=['X', 'Y'], major_axis=[0],
                                        minor_axis=[0, 1, 2],
@@ -156,7 +156,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assertRaisesRegexp(AttributeError, '.*i_dont_exist.*'):
+        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):

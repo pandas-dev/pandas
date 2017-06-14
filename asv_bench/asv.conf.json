@@ -46,12 +46,14 @@
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
-        "libpython": [null, ""],
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
         "pytest": [],
+        // If using Windows with python 2.7 and want to build using the
+        // mingw toolchain (rather than MSVC), uncomment the following line.
+        // "libpython": [],
     },
 
     // Combinations of libraries/python versions can be excluded/included
@@ -80,10 +82,6 @@
         {"environment_type": "conda", "pytables": null},
         {"environment_type": "(?!conda).*", "tables": null},
         {"environment_type": "(?!conda).*", "pytables": ""},
-        // On conda&win32, install libpython
-        {"sys_platform": "(?!win32).*", "libpython": ""},
-        {"environment_type": "conda", "sys_platform": "win32", "libpython": null},
-        {"environment_type": "(?!conda).*", "libpython": ""}
     ],
     "include": [],
 

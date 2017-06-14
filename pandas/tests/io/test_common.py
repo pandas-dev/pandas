@@ -6,6 +6,7 @@ import pytest
 import os
 from os.path import isabs
 
+import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.io import common
@@ -24,7 +25,19 @@ except ImportError:
     pass
 
 
-class TestCommonIOCapabilities(tm.TestCase):
+class CustomFSPath(object):
+    """For testing fspath on unknown objects"""
+    def __init__(self, path):
+        self.path = path
+
+    def __fspath__(self):
+        return self.path
+
+
+HERE = os.path.dirname(__file__)
+
+
+class TestCommonIOCapabilities(object):
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -38,24 +51,24 @@ bar2,12,13,14,15
         filename = '~/sometest'
         expanded_name = common._expand_user(filename)
 
-        self.assertNotEqual(expanded_name, filename)
-        self.assertTrue(isabs(expanded_name))
-        self.assertEqual(os.path.expanduser(filename), expanded_name)
+        assert expanded_name != filename
+        assert isabs(expanded_name)
+        assert os.path.expanduser(filename) == expanded_name
 
     def test_expand_user_normal_path(self):
         filename = '/somefolder/sometest'
         expanded_name = common._expand_user(filename)
 
-        self.assertEqual(expanded_name, filename)
-        self.assertEqual(os.path.expanduser(filename), expanded_name)
+        assert expanded_name == filename
+        assert os.path.expanduser(filename) == expanded_name
 
     def test_stringify_path_pathlib(self):
         tm._skip_if_no_pathlib()
 
         rel_path = common._stringify_path(Path('.'))
-        self.assertEqual(rel_path, '.')
+        assert rel_path == '.'
         redundant_path = common._stringify_path(Path('foo//bar'))
-        self.assertEqual(redundant_path, os.path.join('foo', 'bar'))
+        assert redundant_path == os.path.join('foo', 'bar')
 
     def test_stringify_path_localpath(self):
         tm._skip_if_no_localpath()
@@ -63,19 +76,24 @@ bar2,12,13,14,15
         path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
-        self.assertEqual(common._stringify_path(lpath), abs_path)
+        assert common._stringify_path(lpath) == abs_path
+
+    def test_stringify_path_fspath(self):
+        p = CustomFSPath('foo/bar.csv')
+        result = common._stringify_path(p)
+        assert result == 'foo/bar.csv'
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
-        self.assertNotEqual(filepath_or_buffer, filename)
-        self.assertTrue(isabs(filepath_or_buffer))
-        self.assertEqual(os.path.expanduser(filename), filepath_or_buffer)
+        assert filepath_or_buffer != filename
+        assert isabs(filepath_or_buffer)
+        assert os.path.expanduser(filename) == filepath_or_buffer
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
-        self.assertEqual(filepath_or_buffer, input_buffer)
+        assert filepath_or_buffer == input_buffer
 
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), chunksize=1)
@@ -89,10 +107,93 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
+    @pytest.mark.parametrize('reader, module, path', [
+        (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
+        (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
+        (pd.read_fwf, 'os', os.path.join(HERE, 'data',
+                                         'fixed_width_format.txt')),
+        (pd.read_excel, 'xlrd', os.path.join(HERE, 'data', 'test1.xlsx')),
+        (pd.read_feather, 'feather', os.path.join(HERE, 'data',
+                                                  'feather-0_3_1.feather')),
+        (pd.read_hdf, 'tables', os.path.join(HERE, 'data', 'legacy_hdf',
+                                             'datetimetz_object.h5')),
+        (pd.read_stata, 'os', os.path.join(HERE, 'data', 'stata10_115.dta')),
+        (pd.read_sas, 'os', os.path.join(HERE, 'sas', 'data',
+                                         'test1.sas7bdat')),
+        (pd.read_json, 'os', os.path.join(HERE, 'json', 'data',
+                                          'tsframe_v012.json')),
+        (pd.read_msgpack, 'os', os.path.join(HERE, 'msgpack', 'data',
+                                             'frame.mp')),
+        (pd.read_pickle, 'os', os.path.join(HERE, 'data',
+                                            'categorical_0_14_1.pickle')),
+    ])
+    def test_read_fspath_all(self, reader, module, path):
+        pytest.importorskip(module)
 
-class TestMMapWrapper(tm.TestCase):
+        mypath = CustomFSPath(path)
+        result = reader(mypath)
+        expected = reader(path)
+        if path.endswith('.pickle'):
+            # categorical
+            tm.assert_categorical_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)
 
-    def setUp(self):
+    @pytest.mark.parametrize('writer_name, writer_kwargs, module', [
+        ('to_csv', {}, 'os'),
+        ('to_excel', {'engine': 'xlwt'}, 'xlwt'),
+        ('to_feather', {}, 'feather'),
+        ('to_html', {}, 'os'),
+        ('to_json', {}, 'os'),
+        ('to_latex', {}, 'os'),
+        ('to_msgpack', {}, 'os'),
+        ('to_pickle', {}, 'os'),
+        ('to_stata', {}, 'os'),
+    ])
+    def test_write_fspath_all(self, writer_name, writer_kwargs, module):
+        p1 = tm.ensure_clean('string')
+        p2 = tm.ensure_clean('fspath')
+        df = pd.DataFrame({"A": [1, 2]})
+
+        with p1 as string, p2 as fspath:
+            pytest.importorskip(module)
+            mypath = CustomFSPath(fspath)
+            writer = getattr(df, writer_name)
+
+            writer(string, **writer_kwargs)
+            with open(string, 'rb') as f:
+                expected = f.read()
+
+            writer(mypath, **writer_kwargs)
+            with open(fspath, 'rb') as f:
+                result = f.read()
+
+            assert result == expected
+
+    def test_write_fspath_hdf5(self):
+        # Same test as write_fspath_all, except HDF5 files aren't
+        # necessarily byte-for-byte identical for a given dataframe, so we'll
+        # have to read and compare equality
+        pytest.importorskip('tables')
+
+        df = pd.DataFrame({"A": [1, 2]})
+        p1 = tm.ensure_clean('string')
+        p2 = tm.ensure_clean('fspath')
+
+        with p1 as string, p2 as fspath:
+            mypath = CustomFSPath(fspath)
+            df.to_hdf(mypath, key='bar')
+            df.to_hdf(string, key='bar')
+
+            result = pd.read_hdf(fspath, key='bar')
+            expected = pd.read_hdf(string, key='bar')
+
+        tm.assert_frame_equal(result, expected)
+
+
+class TestMMapWrapper(object):
+
+    def setup_method(self, method):
         self.mmap_file = os.path.join(tm.get_data_path(),
                                       'test_mmap.csv')
 
@@ -108,13 +209,14 @@ class TestMMapWrapper(tm.TestCase):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
+        tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
 
         target = open(self.mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
+        tm.assert_raises_regex(
+            ValueError, msg, common.MMapWrapper, target)
 
     def test_get_attr(self):
         with open(self.mmap_file, 'r') as target:
@@ -126,9 +228,9 @@ class TestMMapWrapper(tm.TestCase):
         attrs.append('__next__')
 
         for attr in attrs:
-            self.assertTrue(hasattr(wrapper, attr))
+            assert hasattr(wrapper, attr)
 
-        self.assertFalse(hasattr(wrapper, 'foo'))
+        assert not hasattr(wrapper, 'foo')
 
     def test_next(self):
         with open(self.mmap_file, 'r') as target:
@@ -137,6 +239,13 @@ class TestMMapWrapper(tm.TestCase):
 
         for line in lines:
             next_line = next(wrapper)
-            self.assertEqual(next_line.strip(), line.strip())
+            assert next_line.strip() == line.strip()
 
         pytest.raises(StopIteration, next, wrapper)
+
+    def test_unknown_engine(self):
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path)
+            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+                read_csv(path, engine='pyt')

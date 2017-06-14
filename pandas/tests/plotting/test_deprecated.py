@@ -18,8 +18,9 @@ Test cases for plot functions imported from deprecated
 pandas.tools.plotting
 """
 
+tm._skip_if_no_mpl()
 
-@tm.mplskip
+
 class TestDeprecatedNameSpace(TestPlotBase):
 
     @slow

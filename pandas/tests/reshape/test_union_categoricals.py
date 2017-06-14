@@ -7,7 +7,7 @@ from pandas.core.dtypes.concat import union_categoricals
 from pandas.util import testing as tm
 
 
-class TestUnionCategoricals(tm.TestCase):
+class TestUnionCategoricals(object):
 
     def test_union_categorical(self):
         # GH 13361
@@ -58,11 +58,11 @@ class TestUnionCategoricals(tm.TestCase):
         s = Categorical([0, 1.2, 2])
         s2 = Categorical([2, 3, 4])
         msg = 'dtype of categories must be the same'
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([s, s2])
 
         msg = 'No Categoricals to union'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             union_categoricals([])
 
     def test_union_categoricals_nan(self):
@@ -139,7 +139,7 @@ class TestUnionCategoricals(tm.TestCase):
         c2 = Categorical([1, 2, 3], ordered=False)
 
         msg = 'Categorical.ordered must be the same'
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([c1, c2])
 
         res = union_categoricals([c1, c1])
@@ -157,7 +157,7 @@ class TestUnionCategoricals(tm.TestCase):
         c2 = Categorical([1, 2, 3], categories=[3, 2, 1], ordered=True)
 
         msg = "to union ordered Categoricals, all categories must be the same"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([c1, c2])
 
     def test_union_categoricals_ignore_order(self):
@@ -170,7 +170,7 @@ class TestUnionCategoricals(tm.TestCase):
         tm.assert_categorical_equal(res, exp)
 
         msg = 'Categorical.ordered must be the same'
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([c1, c2], ignore_order=False)
 
         res = union_categoricals([c1, c1], ignore_order=True)
@@ -208,10 +208,10 @@ class TestUnionCategoricals(tm.TestCase):
         tm.assert_categorical_equal(result, expected)
 
         msg = "to union ordered Categoricals, all categories must be the same"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([c1, c2], ignore_order=False)
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             union_categoricals([c1, c2])
 
     def test_union_categoricals_sort(self):

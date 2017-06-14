@@ -33,9 +33,9 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
-class TestMerge(tm.TestCase):
+class TestMerge(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
                              'key2': get_test_data(),
@@ -127,7 +127,7 @@ class TestMerge(tm.TestCase):
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
-        self.assertEqual(len(merged), exp_len)
+        assert len(merged) == exp_len
         assert 'v1_x' in merged
         assert 'v1_y' in merged
 
@@ -162,10 +162,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=True)
 
         merged['a'] = 6
-        self.assertTrue((left['a'] == 0).all())
+        assert (left['a'] == 0).all()
 
         merged['d'] = 'peekaboo'
-        self.assertTrue((right['d'] == 'bar').all())
+        assert (right['d'] == 'bar').all()
 
     def test_merge_nocopy(self):
         left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
@@ -175,10 +175,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=False)
 
         merged['a'] = 6
-        self.assertTrue((left['a'] == 6).all())
+        assert (left['a'] == 6).all()
 
         merged['d'] = 'peekaboo'
-        self.assertTrue((right['d'] == 'peekaboo').all())
+        assert (right['d'] == 'peekaboo').all()
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -202,7 +202,7 @@ class TestMerge(tm.TestCase):
         df1 = DataFrame({'key': [1], 'v1': [10]})
         df2 = DataFrame({'key': [2], 'v1': [20]})
         df = merge(df1, df2, how='outer')
-        self.assertEqual(df['key'].dtype, 'int64')
+        assert df['key'].dtype == 'int64'
 
         df1 = DataFrame({'key': [True], 'v1': [1]})
         df2 = DataFrame({'key': [False], 'v1': [0]})
@@ -210,14 +210,14 @@ class TestMerge(tm.TestCase):
 
         # GH13169
         # this really should be bool
-        self.assertEqual(df['key'].dtype, 'object')
+        assert df['key'].dtype == 'object'
 
         df1 = DataFrame({'val': [1]})
         df2 = DataFrame({'val': [2]})
         lkey = np.array([1])
         rkey = np.array([2])
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how='outer')
-        self.assertEqual(df['key_0'].dtype, 'int64')
+        assert df['key_0'].dtype == 'int64'
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
@@ -229,8 +229,8 @@ class TestMerge(tm.TestCase):
         merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
 
         assert_series_equal(merged['key'], merged2['key'])
-        self.assertTrue(merged['key'].notnull().all())
-        self.assertTrue(merged2['key'].notnull().all())
+        assert merged['key'].notnull().all()
+        assert merged2['key'].notnull().all()
 
         left = DataFrame({'value': lrange(5)}, columns=['value'])
         right = DataFrame({'rvalue': lrange(6)})
@@ -425,7 +425,7 @@ class TestMerge(tm.TestCase):
         exp = merge(df, new, on='var3', sort=False)
         assert_frame_equal(result, exp)
 
-        self.assertTrue((df.var3.unique() == result.var3.unique()).all())
+        assert (df.var3.unique() == result.var3.unique()).all()
 
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
@@ -499,7 +499,7 @@ class TestMerge(tm.TestCase):
 
             df2 = s.astype(dtype).to_frame('days')
             # coerces to datetime64[ns], thus sholuld not be affected
-            self.assertEqual(df2['days'].dtype, 'datetime64[ns]')
+            assert df2['days'].dtype == 'datetime64[ns]'
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
 
@@ -519,7 +519,7 @@ class TestMerge(tm.TestCase):
                       'timedelta64[ns]']:
 
             df2 = s.astype(dtype).to_frame('days')
-            self.assertEqual(df2['days'].dtype, dtype)
+            assert df2['days'].dtype == dtype
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
 
@@ -582,8 +582,8 @@ class TestMerge(tm.TestCase):
             'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        self.assertEqual(result['value_x'].dtype, 'datetime64[ns, US/Eastern]')
-        self.assertEqual(result['value_y'].dtype, 'datetime64[ns, US/Eastern]')
+        assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
+        assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
     def test_merge_on_periods(self):
         left = pd.DataFrame({'key': pd.period_range('20151010', periods=2,
@@ -614,8 +614,8 @@ class TestMerge(tm.TestCase):
                               'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        self.assertEqual(result['value_x'].dtype, 'object')
-        self.assertEqual(result['value_y'].dtype, 'object')
+        assert result['value_x'].dtype == 'object'
+        assert result['value_y'].dtype == 'object'
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
@@ -671,19 +671,19 @@ class TestMerge(tm.TestCase):
         # Check result integrity
 
         test2 = merge(df1, df2, on='col1', how='left', indicator=True)
-        self.assertTrue((test2._merge != 'right_only').all())
+        assert (test2._merge != 'right_only').all()
         test2 = df1.merge(df2, on='col1', how='left', indicator=True)
-        self.assertTrue((test2._merge != 'right_only').all())
+        assert (test2._merge != 'right_only').all()
 
         test3 = merge(df1, df2, on='col1', how='right', indicator=True)
-        self.assertTrue((test3._merge != 'left_only').all())
+        assert (test3._merge != 'left_only').all()
         test3 = df1.merge(df2, on='col1', how='right', indicator=True)
-        self.assertTrue((test3._merge != 'left_only').all())
+        assert (test3._merge != 'left_only').all()
 
         test4 = merge(df1, df2, on='col1', how='inner', indicator=True)
-        self.assertTrue((test4._merge == 'both').all())
+        assert (test4._merge == 'both').all()
         test4 = df1.merge(df2, on='col1', how='inner', indicator=True)
-        self.assertTrue((test4._merge == 'both').all())
+        assert (test4._merge == 'both').all()
 
         # Check if working name in df
         for i in ['_right_indicator', '_left_indicator', '_merge']:
@@ -724,6 +724,130 @@ class TestMerge(tm.TestCase):
                           how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
 
+    def test_validation(self):
+        left = DataFrame({'a': ['a', 'b', 'c', 'd'],
+                          'b': ['cat', 'dog', 'weasel', 'horse']},
+                         index=range(4))
+
+        right = DataFrame({'a': ['a', 'b', 'c', 'd', 'e'],
+                           'c': ['meow', 'bark', 'um... weasel noise?',
+                                 'nay', 'chirp']},
+                          index=range(5))
+
+        # Make sure no side effects.
+        left_copy = left.copy()
+        right_copy = right.copy()
+
+        result = merge(left, right, left_index=True, right_index=True,
+                       validate='1:1')
+        assert_frame_equal(left, left_copy)
+        assert_frame_equal(right, right_copy)
+
+        # make sure merge still correct
+        expected = DataFrame({'a_x': ['a', 'b', 'c', 'd'],
+                              'b': ['cat', 'dog', 'weasel', 'horse'],
+                              'a_y': ['a', 'b', 'c', 'd'],
+                              'c': ['meow', 'bark', 'um... weasel noise?',
+                                    'nay']},
+                             index=range(4),
+                             columns=['a_x', 'b', 'a_y', 'c'])
+
+        result = merge(left, right, left_index=True, right_index=True,
+                       validate='one_to_one')
+        assert_frame_equal(result, expected)
+
+        expected_2 = DataFrame({'a': ['a', 'b', 'c', 'd'],
+                                'b': ['cat', 'dog', 'weasel', 'horse'],
+                                'c': ['meow', 'bark', 'um... weasel noise?',
+                                      'nay']},
+                               index=range(4))
+
+        result = merge(left, right, on='a', validate='1:1')
+        assert_frame_equal(left, left_copy)
+        assert_frame_equal(right, right_copy)
+        assert_frame_equal(result, expected_2)
+
+        result = merge(left, right, on='a', validate='one_to_one')
+        assert_frame_equal(result, expected_2)
+
+        # One index, one column
+        expected_3 = DataFrame({'b': ['cat', 'dog', 'weasel', 'horse'],
+                                'a': ['a', 'b', 'c', 'd'],
+                                'c': ['meow', 'bark', 'um... weasel noise?',
+                                      'nay']},
+                               columns=['b', 'a', 'c'],
+                               index=range(4))
+
+        left_index_reset = left.set_index('a')
+        result = merge(left_index_reset, right, left_index=True,
+                       right_on='a', validate='one_to_one')
+        assert_frame_equal(result, expected_3)
+
+        # Dups on right
+        right_w_dups = right.append(pd.DataFrame({'a': ['e'], 'c': ['moo']},
+                                    index=[4]))
+        merge(left, right_w_dups, left_index=True, right_index=True,
+              validate='one_to_many')
+
+        with pytest.raises(MergeError):
+            merge(left, right_w_dups, left_index=True, right_index=True,
+                  validate='one_to_one')
+
+        with pytest.raises(MergeError):
+            merge(left, right_w_dups, on='a', validate='one_to_one')
+
+        # Dups on left
+        left_w_dups = left.append(pd.DataFrame({'a': ['a'], 'c': ['cow']},
+                                               index=[3]))
+        merge(left_w_dups, right, left_index=True, right_index=True,
+              validate='many_to_one')
+
+        with pytest.raises(MergeError):
+            merge(left_w_dups, right, left_index=True, right_index=True,
+                  validate='one_to_one')
+
+        with pytest.raises(MergeError):
+            merge(left_w_dups, right, on='a', validate='one_to_one')
+
+        # Dups on both
+        merge(left_w_dups, right_w_dups, on='a', validate='many_to_many')
+
+        with pytest.raises(MergeError):
+            merge(left_w_dups, right_w_dups, left_index=True,
+                  right_index=True, validate='many_to_one')
+
+        with pytest.raises(MergeError):
+            merge(left_w_dups, right_w_dups, on='a',
+                  validate='one_to_many')
+
+        # Check invalid arguments
+        with pytest.raises(ValueError):
+            merge(left, right, on='a', validate='jibberish')
+
+        # Two column merge, dups in both, but jointly no dups.
+        left = DataFrame({'a': ['a', 'a', 'b', 'b'],
+                          'b': [0, 1, 0, 1],
+                          'c': ['cat', 'dog', 'weasel', 'horse']},
+                         index=range(4))
+
+        right = DataFrame({'a': ['a', 'a', 'b'],
+                           'b': [0, 1, 0],
+                           'd': ['meow', 'bark', 'um... weasel noise?']},
+                          index=range(3))
+
+        expected_multi = DataFrame({'a': ['a', 'a', 'b'],
+                                    'b': [0, 1, 0],
+                                    'c': ['cat', 'dog', 'weasel'],
+                                    'd': ['meow', 'bark',
+                                          'um... weasel noise?']},
+                                   index=range(3))
+
+        with pytest.raises(MergeError):
+            merge(left, right, on='a', validate='1:1')
+
+        result = merge(left, right, on=['a', 'b'], validate='1:1')
+        assert_frame_equal(result, expected_multi)
+
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
@@ -737,9 +861,9 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)
 
 
-class TestMergeMulti(tm.TestCase):
+class TestMergeMulti(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                         ['one', 'two', 'three']],
                                 labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -789,15 +913,15 @@ class TestMergeMulti(tm.TestCase):
             for sort in [False, True]:
                 res = left.join(right, on=icols, how='left', sort=sort)
 
-                self.assertTrue(len(left) < len(res) + 1)
-                self.assertFalse(res['4th'].isnull().any())
-                self.assertFalse(res['5th'].isnull().any())
+                assert len(left) < len(res) + 1
+                assert not res['4th'].isnull().any()
+                assert not res['5th'].isnull().any()
 
                 tm.assert_series_equal(
                     res['4th'], - res['5th'], check_names=False)
                 result = bind_cols(res.iloc[:, :-2])
                 tm.assert_series_equal(res['4th'], result, check_names=False)
-                self.assertTrue(result.name is None)
+                assert result.name is None
 
                 if sort:
                     tm.assert_frame_equal(

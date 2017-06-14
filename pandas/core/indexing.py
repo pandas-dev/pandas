@@ -1288,7 +1288,7 @@ class _IXIndexer(_NDFrameIndexer):
 .iloc for positional indexing
 
 See the documentation here:
-http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix"""
+http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated"""  # noqa
 
         warnings.warn(_ix_deprecation_warning,
                       DeprecationWarning, stacklevel=3)

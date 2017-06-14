@@ -30,7 +30,7 @@ def assert_equal(left, right):
         tm.assert_frame_equal(left, right)
 
 
-class Base(tm.TestCase):
+class Base(object):
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -48,7 +48,7 @@ class Base(tm.TestCase):
 
 class TestApi(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_getitem(self):
@@ -57,7 +57,7 @@ class TestApi(Base):
         tm.assert_index_equal(r._selected_obj.columns, self.frame.columns)
 
         r = self.frame.rolling(window=5)[1]
-        self.assertEqual(r._selected_obj.name, self.frame.columns[1])
+        assert r._selected_obj.name == self.frame.columns[1]
 
         # technically this is allowed
         r = self.frame.rolling(window=5)[1, 3]
@@ -74,7 +74,7 @@ class TestApi(Base):
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
+        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -281,8 +281,8 @@ class TestApi(Base):
 
         s2 = s.rolling(30).sum()
         s3 = s.rolling(20).sum()
-        self.assertEqual(s2.name, 'foo')
-        self.assertEqual(s3.name, 'foo')
+        assert s2.name == 'foo'
+        assert s3.name == 'foo'
 
     def test_how_compat(self):
         # in prior versions, we would allow how to be used in the resample
@@ -315,7 +315,7 @@ class TestApi(Base):
 
 class TestWindow(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_constructor(self):
@@ -352,15 +352,15 @@ class TestWindow(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('sum', 'mean'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(w, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(w, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(w, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(w, func), dtype=np.float64)
 
 
 class TestRolling(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -430,10 +430,10 @@ class TestRolling(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func), dtype=np.float64)
 
     def test_closed(self):
         df = DataFrame({'A': [0, 1, 2, 3, 4]})
@@ -441,10 +441,24 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize('roller', ['1s', 1])
+    def tests_empty_df_rolling(self, roller):
+        # GH 15819 Verifies that datetime and integer rolling windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer rolling windows can be applied to
+        # empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -478,15 +492,33 @@ class TestExpanding(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), dtype=np.float64)
+
+    @pytest.mark.parametrize(
+        'expander',
+        [1, pytest.mark.xfail(
+            reason='GH 16425 expanding with offset not supported')('1s')])
+    def tests_empty_df_expanding(self, expander):
+        # GH 15819 Verifies that datetime and integer expanding windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer expanding windows can be applied
+        # to empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(
+            index=pd.DatetimeIndex([])).expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -540,16 +572,16 @@ class TestEWM(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), dtype=np.float64)
 
 
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_deprecations(self):
@@ -559,11 +591,11 @@ class TestDeprecations(Base):
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
 
-# GH #12373 : rolling functions error on float32 data
+# gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
 #
-# NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from unittest.TestCase
+# NOTE that these are yielded tests and so _create_data
+# is explicitly called.
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
@@ -775,7 +807,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
 
 class TestMoments(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_centered_axis_validation(self):
@@ -853,20 +885,20 @@ class TestMoments(Base):
         vals.fill(np.nan)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-            self.assertTrue(np.isnan(rs).all())
+            assert np.isnan(rs).all()
 
         # empty
         vals = np.array([])
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-            self.assertEqual(len(rs), 0)
+            assert len(rs) == 0
 
         # shorter than window
         vals = np.random.randn(5)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
-            self.assertTrue(np.isnan(rs).all())
-            self.assertEqual(len(rs), 5)
+            assert np.isnan(rs).all()
+            assert len(rs) == 5
 
     def test_cmov_window_frame(self):
         # Gh 8238
@@ -1144,7 +1176,7 @@ class TestMoments(Base):
         # it works!
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
-        self.assertTrue(isnull(result).all())
+        assert isnull(result).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
@@ -1172,7 +1204,7 @@ class TestMoments(Base):
         with catch_warnings(record=True):
             result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                      3, min_periods=2)
-        self.assertTrue(np.isnan(result[2]))
+        assert np.isnan(result[2])
 
     def test_rolling_std_neg_sqrt(self):
         # unit test from Bottleneck
@@ -1184,11 +1216,11 @@ class TestMoments(Base):
                       0.00028718669878572767])
         with catch_warnings(record=True):
             b = mom.rolling_std(a, window=3)
-        self.assertTrue(np.isfinite(b[2:]).all())
+        assert np.isfinite(b[2:]).all()
 
         with catch_warnings(record=True):
             b = mom.ewmstd(a, span=3)
-        self.assertTrue(np.isfinite(b[2:]).all())
+        assert np.isfinite(b[2:]).all()
 
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var, lambda x: np.var(x, ddof=1),
@@ -1226,25 +1258,25 @@ class TestMoments(Base):
 
         with catch_warnings(record=True):
             result = mom.rolling_sum(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_var(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         # #2527, ugh
         arr = np.array([0.00012456, 0.0003, 0])
         with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 1)
-        self.assertTrue(result[-1] >= 0)
+        assert result[-1] >= 0
 
         with catch_warnings(record=True):
             result = mom.rolling_mean(-arr, 1)
-        self.assertTrue(result[-1] <= 0)
+        assert result[-1] <= 0
 
     def _check_moment_func(self, f, static_comp, name=None, window=50,
                            has_min_periods=True, has_center=True,
@@ -1297,16 +1329,16 @@ class TestMoments(Base):
 
             # min_periods is working correctly
             result = get_result(arr, 20, min_periods=15)
-            self.assertTrue(np.isnan(result[23]))
-            self.assertFalse(np.isnan(result[24]))
+            assert np.isnan(result[23])
+            assert not np.isnan(result[24])
 
-            self.assertFalse(np.isnan(result[-6]))
-            self.assertTrue(np.isnan(result[-5]))
+            assert not np.isnan(result[-6])
+            assert np.isnan(result[-5])
 
             arr2 = randn(20)
             result = get_result(arr2, 10, min_periods=5)
-            self.assertTrue(isnull(result[3]))
-            self.assertTrue(notnull(result[4]))
+            assert isnull(result[3])
+            assert notnull(result[4])
 
             # min_periods=0
             result0 = get_result(arr, 20, min_periods=0)
@@ -1344,8 +1376,8 @@ class TestMoments(Base):
                     expected = get_result(self.arr, len(self.arr),
                                           min_periods=minp)
                     nan_mask = np.isnan(result)
-                    self.assertTrue(np.array_equal(nan_mask, np.isnan(
-                        expected)))
+                    tm.assert_numpy_array_equal(nan_mask, np.isnan(expected))
+
                     nan_mask = ~nan_mask
                     tm.assert_almost_equal(result[nan_mask],
                                            expected[nan_mask])
@@ -1353,7 +1385,8 @@ class TestMoments(Base):
                 result = get_result(self.arr, len(self.arr) + 1)
                 expected = get_result(self.arr, len(self.arr))
                 nan_mask = np.isnan(result)
-                self.assertTrue(np.array_equal(nan_mask, np.isnan(expected)))
+                tm.assert_numpy_array_equal(nan_mask, np.isnan(expected))
+
                 nan_mask = ~nan_mask
                 tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
 
@@ -1381,7 +1414,7 @@ class TestMoments(Base):
         frame_result = get_result(self.frame, window=50)
 
         assert isinstance(series_result, Series)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
         # check time_rule works
         if has_time_rule:
@@ -1405,7 +1438,7 @@ class TestMoments(Base):
             trunc_series = self.series[::2].truncate(prev_date, last_date)
             trunc_frame = self.frame[::2].truncate(prev_date, last_date)
 
-            self.assertAlmostEqual(series_result[-1],
+            tm.assert_almost_equal(series_result[-1],
                                    static_comp(trunc_series))
 
             tm.assert_series_equal(frame_result.xs(last_date),
@@ -1459,7 +1492,7 @@ class TestMoments(Base):
         arr[5] = 1
         with catch_warnings(record=True):
             result = mom.ewma(arr, span=100, adjust=False).sum()
-        self.assertTrue(np.abs(result - 1) < 1e-2)
+        assert np.abs(result - 1) < 1e-2
 
         s = Series([1.0, 2.0, 4.0, 8.0])
 
@@ -1659,19 +1692,19 @@ class TestMoments(Base):
         # check min_periods
         # GH 7898
         result = func(s, 50, min_periods=2)
-        self.assertTrue(np.isnan(result.values[:11]).all())
-        self.assertFalse(np.isnan(result.values[11:]).any())
+        assert np.isnan(result.values[:11]).all()
+        assert not np.isnan(result.values[11:]).any()
 
         for min_periods in (0, 1):
             result = func(s, 50, min_periods=min_periods)
             if func == mom.ewma:
-                self.assertTrue(np.isnan(result.values[:10]).all())
-                self.assertFalse(np.isnan(result.values[10:]).any())
+                assert np.isnan(result.values[:10]).all()
+                assert not np.isnan(result.values[10:]).any()
             else:
                 # ewmstd, ewmvol, ewmvar (with bias=False) require at least two
                 # values
-                self.assertTrue(np.isnan(result.values[:11]).all())
-                self.assertFalse(np.isnan(result.values[11:]).any())
+                assert np.isnan(result.values[:11]).all()
+                assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
             result = func(Series([]), 50, min_periods=min_periods)
@@ -1688,14 +1721,14 @@ class TestMoments(Base):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assertEqual(result2.dtype, np.float_)
+        assert result2.dtype == np.float_
 
     def _check_ew_structures(self, func, name):
         series_result = getattr(self.series.ewm(com=10), name)()
         assert isinstance(series_result, Series)
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
 
 class TestPairwise(object):
@@ -1825,10 +1858,10 @@ class TestPairwise(object):
                 tm.assert_index_equal(result.index, expected_index)
                 tm.assert_index_equal(result.columns, expected_columns)
             else:
-                tm.assertRaisesRegexp(
+                tm.assert_raises_regex(
                     ValueError, "'arg1' columns are not unique", f, df,
                     self.df2)
-                tm.assertRaisesRegexp(
+                tm.assert_raises_regex(
                     ValueError, "'arg2' columns are not unique", f,
                     self.df2, df)
 
@@ -1957,7 +1990,7 @@ class TestMomentsConsistency(Base):
         super(TestMomentsConsistency, self)._create_data()
         self.data = _consistency_data
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def _test_moments_consistency(self, min_periods, count, mean, mock_mean,
@@ -1980,7 +2013,8 @@ class TestMomentsConsistency(Base):
 
             # check that correlation of a series with itself is either 1 or NaN
             corr_x_x = corr(x, x)
-            # self.assertTrue(_non_null_values(corr_x_x).issubset(set([1.]))) #
+
+            # assert _non_null_values(corr_x_x).issubset(set([1.]))
             # restore once rolling_cov(x, x) is identically equal to var(x)
 
             if is_constant:
@@ -2010,11 +2044,11 @@ class TestMomentsConsistency(Base):
                 # check that var(x), std(x), and cov(x) are all >= 0
                 var_x = var(x)
                 std_x = std(x)
-                self.assertFalse((var_x < 0).any().any())
-                self.assertFalse((std_x < 0).any().any())
+                assert not (var_x < 0).any().any()
+                assert not (std_x < 0).any().any()
                 if cov:
                     cov_x_x = cov(x, x)
-                    self.assertFalse((cov_x_x < 0).any().any())
+                    assert not (cov_x_x < 0).any().any()
 
                     # check that var(x) == cov(x, x)
                     assert_equal(var_x, cov_x_x)
@@ -2029,7 +2063,7 @@ class TestMomentsConsistency(Base):
 
                 if is_constant:
                     # check that variance of constant series is identically 0
-                    self.assertFalse((var_x > 0).any().any())
+                    assert not (var_x > 0).any().any()
                     expected = x * np.nan
                     expected[count_x >= max(min_periods, 1)] = 0.
                     if var is var_unbiased:
@@ -2406,16 +2440,15 @@ class TestMomentsConsistency(Base):
              [0.84780328, 0.33394331], [0.78369152, 0.63919667]]))
 
         res = df[0].rolling(5, center=True).corr(df[1])
-        self.assertTrue(all([np.abs(np.nan_to_num(x)) <= 1 for x in res]))
+        assert all([np.abs(np.nan_to_num(x)) <= 1 for x in res])
 
         # and some fuzzing
-        for i in range(10):
+        for _ in range(10):
             df = DataFrame(np.random.rand(30, 2))
             res = df[0].rolling(5, center=True).corr(df[1])
             try:
-                self.assertTrue(all([np.abs(np.nan_to_num(x)) <= 1 for x in res
-                                     ]))
-            except:
+                assert all([np.abs(np.nan_to_num(x)) <= 1 for x in res])
+            except AssertionError:
                 print(res)
 
     def test_flex_binary_frame(self):
@@ -2465,16 +2498,16 @@ class TestMomentsConsistency(Base):
         B[-10:] = np.NaN
 
         result = func(A, B, 20, min_periods=5)
-        self.assertTrue(np.isnan(result.values[:14]).all())
-        self.assertFalse(np.isnan(result.values[14:]).any())
+        assert np.isnan(result.values[:14]).all()
+        assert not np.isnan(result.values[14:]).any()
 
         # GH 7898
         for min_periods in (0, 1, 2):
             result = func(A, B, 20, min_periods=min_periods)
             # binary functions (ewmcov, ewmcorr) with bias=False require at
             # least two values
-            self.assertTrue(np.isnan(result.values[:11]).all())
-            self.assertFalse(np.isnan(result.values[11:]).any())
+            assert np.isnan(result.values[:11]).all()
+            assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
             result = func(Series([]), Series([]), 50, min_periods=min_periods)
@@ -2890,13 +2923,13 @@ class TestMomentsConsistency(Base):
 
             # min_periods is working correctly
             result = func(arr, min_periods=15)
-            self.assertTrue(np.isnan(result[13]))
-            self.assertFalse(np.isnan(result[14]))
+            assert np.isnan(result[13])
+            assert not np.isnan(result[14])
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
-            self.assertTrue(isnull(result[3]))
-            self.assertTrue(notnull(result[4]))
+            assert isnull(result[3])
+            assert notnull(result[4])
 
             # min_periods=0
             result0 = func(arr, min_periods=0)
@@ -2910,7 +2943,7 @@ class TestMomentsConsistency(Base):
         series_result = func(self.series)
         assert isinstance(series_result, Series)
         frame_result = func(self.frame)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
     def _check_expanding(self, func, static_comp, has_min_periods=True,
                          has_time_rule=True, preserve_nan=True):
@@ -3030,15 +3063,15 @@ class TestMomentsConsistency(Base):
             # correctness
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).max())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).min())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(tm.TestCase):
+class TestGrouperGrouping(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(np.arange(10))
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)})
@@ -3050,9 +3083,9 @@ class TestGrouperGrouping(tm.TestCase):
         pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
-        self.assertFalse(g.mutated)
+        assert not g.mutated
         g = self.frame.groupby('A', mutated=True)
-        self.assertTrue(g.mutated)
+        assert g.mutated
 
     def test_getitem(self):
         g = self.frame.groupby('A')
@@ -3181,12 +3214,12 @@ class TestGrouperGrouping(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(tm.TestCase):
+class TestRollingTS(object):
 
     # rolling time-series friendly
     # xref GH13327
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.regular = DataFrame({'A': pd.date_range('20130101',
                                                      periods=5,
@@ -3268,16 +3301,16 @@ class TestRollingTS(tm.TestCase):
                                            freq='s'),
                         'B': range(5)})
 
-        self.assertTrue(df.A.is_monotonic)
+        assert df.A.is_monotonic
         df.rolling('2s', on='A').sum()
 
         df = df.set_index('A')
-        self.assertTrue(df.index.is_monotonic)
+        assert df.index.is_monotonic
         df.rolling('2s').sum()
 
         # non-monotonic
         df.index = reversed(df.index.tolist())
-        self.assertFalse(df.index.is_monotonic)
+        assert not df.index.is_monotonic
 
         with pytest.raises(ValueError):
             df.rolling('2s').sum()
@@ -3666,11 +3699,11 @@ class TestRollingTS(tm.TestCase):
                                             freq='s'))
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling('2s').min()
-        self.assertTrue(((result - expected) < 0.01).all().bool())
+        assert ((result - expected) < 0.01).all().bool()
 
         expected = dfp.rolling(200, min_periods=1).min()
         result = dfp.rolling('200s').min()
-        self.assertTrue(((result - expected) < 0.01).all().bool())
+        assert ((result - expected) < 0.01).all().bool()
 
     def test_ragged_max(self):
 
@@ -3800,3 +3833,26 @@ class TestRollingTS(tm.TestCase):
         df2 = df.sort_values('B')
         result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_cov_offset(self):
+        # GH16058
+
+        idx = pd.date_range('2017-01-01', periods=24, freq='1h')
+        ss = pd.Series(np.arange(len(idx)), index=idx)
+
+        result = ss.rolling('2h').cov()
+        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(2, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
+
+        result = ss.rolling('3h').cov()
+        expected = pd.Series([np.nan, 0.5] +
+                             [1.0 for _ in range(len(idx) - 2)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(3, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)

@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 from .common import MixIn
 
 
-class TestGroupByCategorical(MixIn, tm.TestCase):
+class TestGroupByCategorical(MixIn):
 
     def test_level_groupby_get_group(self):
         # GH15155
@@ -48,7 +48,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                     'mean': group.mean()}
 
         result = self.df.groupby(cats).D.apply(get_stats)
-        self.assertEqual(result.index.names[0], 'C')
+        assert result.index.names[0] == 'C'
 
     def test_apply_categorical_data(self):
         # GH 10138

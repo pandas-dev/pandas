@@ -19,20 +19,26 @@ export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 429496
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
 if [ "$BUILD_TEST" ]; then
-    echo "build-test"
+    echo "[build-test]"
+
+    echo "[env]"
+    pip list --format columns |grep pandas
+
+    echo "[running]"
     cd /tmp
-    pwd
-    conda list pandas
-    echo "running"
-    python -c "import pandas; pandas.test(['-n 2'])"
+    unset PYTHONPATH
+    python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
+
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
+
 elif [ "$COVERAGE" ]; then
     echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
     pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+
 else
-    echo pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
 fi
 
 RET="$?"

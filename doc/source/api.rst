@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.append
    HDFStore.get
    HDFStore.select
+   HDFStore.info
 
 Feather
 ~~~~~~~
@@ -128,15 +129,11 @@ SQL
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
-.. currentmodule:: pandas.io.gbq
 
 .. autosummary::
    :toctree: generated/
 
    read_gbq
-
-
-.. currentmodule:: pandas
 
 
 STATA
@@ -618,7 +615,6 @@ strings and apply several methods to it. These can be accessed like
        Series.cat
        Series.dt
        Index.str
-       CategoricalIndex.str
        MultiIndex.str
        DatetimeIndex.str
        TimedeltaIndex.str
@@ -729,6 +725,7 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+   Series.to_latex
 
 Sparse
 ~~~~~~
@@ -1404,6 +1401,7 @@ CategoricalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    CategoricalIndex
 
@@ -1432,6 +1430,7 @@ IntervalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    IntervalIndex
 
@@ -1707,6 +1706,7 @@ Computations / Descriptive Stats
    GroupBy.mean
    GroupBy.median
    GroupBy.min
+   GroupBy.ngroup
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
@@ -1741,6 +1741,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
+   DataFrameGroupBy.filter
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
@@ -1939,3 +1940,60 @@ Data types related functionality
    api.types.union_categoricals
    api.types.infer_dtype
    api.types.pandas_dtype
+
+Dtype introspection
+
+.. autosummary::
+   :toctree: generated/
+
+    api.types.is_bool_dtype
+    api.types.is_categorical_dtype
+    api.types.is_complex_dtype
+    api.types.is_datetime64_any_dtype
+    api.types.is_datetime64_dtype
+    api.types.is_datetime64_ns_dtype
+    api.types.is_datetime64tz_dtype
+    api.types.is_extension_type
+    api.types.is_float_dtype
+    api.types.is_int64_dtype
+    api.types.is_integer_dtype
+    api.types.is_interval_dtype
+    api.types.is_numeric_dtype
+    api.types.is_object_dtype
+    api.types.is_period_dtype
+    api.types.is_signed_integer_dtype
+    api.types.is_string_dtype
+    api.types.is_timedelta64_dtype
+    api.types.is_timedelta64_ns_dtype
+    api.types.is_unsigned_integer_dtype
+    api.types.is_sparse
+
+Iterable introspection
+
+.. autosummary::
+   :toctree: generated/
+
+    api.types.is_dict_like
+    api.types.is_file_like
+    api.types.is_list_like
+    api.types.is_named_tuple
+    api.types.is_iterator
+
+Scalar introspection
+
+.. autosummary::
+   :toctree: generated/
+
+    api.types.is_bool
+    api.types.is_categorical
+    api.types.is_complex
+    api.types.is_datetimetz
+    api.types.is_float
+    api.types.is_hashable
+    api.types.is_integer
+    api.types.is_interval
+    api.types.is_number
+    api.types.is_period
+    api.types.is_re
+    api.types.is_re_compilable
+    api.types.is_scalar

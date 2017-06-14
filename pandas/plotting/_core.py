@@ -9,8 +9,9 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+from pandas.core.dtypes.missing import notnull
 from pandas.core.dtypes.common import (
     is_list_like,
     is_integer,
@@ -25,7 +26,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0)
@@ -48,9 +49,10 @@ def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
 
-def _gca():
+def _gca(rc=None):
     import matplotlib.pyplot as plt
-    return plt.gca()
+    with plt.rc_context(rc):
+        return plt.gca()
 
 
 def _gcf():
@@ -180,7 +182,8 @@ class MPLPlot(object):
             colors = self.kwds.pop('colors')
             self.kwds['color'] = colors
 
-        if ('color' in self.kwds and self.nseries == 1):
+        if ('color' in self.kwds and self.nseries == 1 and
+                not is_list_like(self.kwds['color'])):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
 
@@ -537,6 +540,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
+                self.data = self.data[notnull(self.data.index)]
                 self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
             else:
@@ -774,6 +778,11 @@ class PlanePlot(MPLPlot):
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
+        if len(self.data[x]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + ' requires x column to be numeric')
+        if len(self.data[y]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + ' requires y column to be numeric')
+
         self.x = x
         self.y = y
 
@@ -1868,12 +1877,6 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
                 **kwds):
 
     import matplotlib.pyplot as plt
-    """
-    If no axes is specified, check whether there are existing figures
-    If there is no existing figures, _gca() will
-    create a figure with the default figsize, causing the figsize=parameter to
-    be ignored.
-    """
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         ax = MPLPlot._get_ax_layer(ax)
@@ -2003,7 +2006,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                              "'by' is None")
 
         if ax is None:
-            ax = _gca()
+            rc = {'figure.figsize': figsize} if figsize is not None else {}
+            ax = _gca(rc)
         data = data._get_numeric_data()
         if columns is None:
             columns = data.columns
