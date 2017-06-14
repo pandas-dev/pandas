@@ -1362,66 +1362,80 @@ class TestCrosstab(object):
         b = np.array(['one', 'one', 'two', 'one', 'two', 'two'])
         c = np.array(['dull', 'shiny', 'dull', 'dull', 'dull', 'shiny'])
         d = np.array(['a', 'a', 'b', 'a', 'b', 'b'])
-        expected_col_colnorm = MultiIndex(levels=[['All', 'dull', 'shiny'],
-                                                  ['', 'a', 'b']],
-                                          labels=[[1, 1, 2, 2, 0],
-                                                  [1, 2, 1, 2, 0]],
-                                          names=['col_0', 'col_1'])
-        expected_index_colnorm = MultiIndex(levels=[['All', 'bar', 'foo'],
-                                                    ['', 'one', 'two']],
-                                            labels=[[1, 1, 2, 2],
-                                                    [1, 2, 1, 2]],
-                                            names=['row_0', 'row_1'])
-        expected_data_colnorm = np.array([[.5, 0., 1., 0., .333333],
-                                          [0., .5, 0., 0., .166667],
-                                          [.5, 0., 0., 0., .166667],
-                                          [0., .5, 0., 1., .333333]])
-        expected_colnorm = pd.DataFrame(expected_data_colnorm,
-                                        index=expected_index_colnorm,
-                                        columns=expected_col_colnorm)
-        expected_col_indexnorm = MultiIndex(levels=[['All', 'dull', 'shiny'],
-                                                    ['', 'a', 'b']],
-                                            labels=[[1, 1, 2, 2],
-                                                    [1, 2, 1, 2]],
-                                            names=['col_0', 'col_1'])
-        expected_index_indexnorm = MultiIndex(levels=[['All', 'bar', 'foo'],
-                                                      ['', 'one', 'two']],
-                                              labels=[[1, 1, 2, 2, 0],
-                                                      [1, 2, 1, 2, 0]],
-                                              names=['row_0', 'row_1'])
-        expected_data_indexnorm = np.array([[.5, 0., .5, 0.],
-                                            [0., 1., 0., 0.],
-                                            [1., 0., 0., 0.],
-                                            [0., .5, 0., .5],
-                                            [.33333333, .33333333,
-                                             .16666667, .16666667]])
-        expected_indexnorm = pd.DataFrame(expected_data_indexnorm,
-                                          index=expected_index_indexnorm,
-                                          columns=expected_col_indexnorm)
-        expected_data_allnorm = np.array([[0.16666667, 0., .16666667,
-                                           0., .33333333],
-                                          [0., .16666667, 0.,
-                                           0., .16666667],
-                                          [.16666667, 0., 0.,
-                                           0., .16666667],
-                                          [0., .16666667, 0.,
-                                           .16666667, .33333333],
-                                          [0.33333333, .33333333, .16666667,
-                                           .16666667, 1.]])
-        expected_allnorm = pd.DataFrame(expected_data_allnorm,
-                                        index=expected_index_indexnorm,
-                                        columns=expected_col_colnorm)
 
-        result_colnorm = pd.crosstab([a, b], [c, d], normalize='columns',
-                                     margins=True)
-        result_indexnorm = pd.crosstab([a, b], [c, d], normalize='index',
-                                       margins=True)
-        result_allnorm = pd.crosstab([a, b], [c, d], normalize='all',
-                                     margins=True)
+        # test for normalize == 'columns'
+        expected_columns = MultiIndex(levels=[['All', 'dull', 'shiny'],
+                                              ['', 'a', 'b']],
+                                      labels=[[1, 1, 2, 2, 0],
+                                              [1, 2, 1, 2, 0]],
+                                      names=['col_0', 'col_1'])
+        expected_index = MultiIndex(levels=[['All', 'bar', 'foo'],
+                                            ['', 'one', 'two']],
+                                    labels=[[1, 1, 2, 2],
+                                            [1, 2, 1, 2]],
+                                    names=['row_0', 'row_1'])
+        expected_data = np.array([[.5, 0., 1., 0., .333333],
+                                  [0., .5, 0., 0., .166667],
+                                  [.5, 0., 0., 0., .166667],
+                                  [0., .5, 0., 1., .333333]])
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        result = pd.crosstab([a, b], [c, d], normalize='columns',
+                             margins=True)
+        tm.assert_frame_equal(result, expected)
 
-        tm.assert_frame_equal(result_colnorm, expected_colnorm)
-        tm.assert_frame_equal(result_indexnorm, expected_indexnorm)
-        tm.assert_frame_equal(result_allnorm, expected_allnorm)
+        # test for normalize == 'index'
+        expected_columns = MultiIndex(levels=[['All', 'dull', 'shiny'],
+                                              ['', 'a', 'b']],
+                                      labels=[[1, 1, 2, 2],
+                                              [1, 2, 1, 2]],
+                                      names=['col_0', 'col_1'])
+        expected_index = MultiIndex(levels=[['All', 'bar', 'foo'],
+                                            ['', 'one', 'two']],
+                                    labels=[[1, 1, 2, 2, 0],
+                                            [1, 2, 1, 2, 0]],
+                                    names=['row_0', 'row_1'])
+        expected_data = np.array([[.5, 0., .5, 0.],
+                                  [0., 1., 0., 0.],
+                                  [1., 0., 0., 0.],
+                                  [0., .5, 0., .5],
+                                  [.33333333, .33333333,
+                                   .16666667, .16666667]])
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        result = pd.crosstab([a, b], [c, d], normalize='index',
+                             margins=True)
+        tm.assert_frame_equal(result, expected)
+
+        # test for normalize == 'all'
+        expected_columns = MultiIndex(levels=[['All', 'dull', 'shiny'],
+                                              ['', 'a', 'b']],
+                                      labels=[[1, 1, 2, 2, 0],
+                                              [1, 2, 1, 2, 0]],
+                                      names=['col_0', 'col_1'])
+        expected_index = MultiIndex(levels=[['All', 'bar', 'foo'],
+                                            ['', 'one', 'two']],
+                                    labels=[[1, 1, 2, 2, 0],
+                                            [1, 2, 1, 2, 0]],
+                                    names=['row_0', 'row_1'])
+        expected_data = np.array([[0.16666667, 0., .16666667,
+                                   0., .33333333],
+                                  [0., .16666667, 0.,
+                                   0., .16666667],
+                                  [.16666667, 0., 0.,
+                                   0., .16666667],
+                                  [0., .16666667, 0.,
+                                   .16666667, .33333333],
+                                  [0.33333333, .33333333, .16666667,
+                                   .16666667, 1.]])
+        expected = pd.DataFrame(expected_data,
+                                index=expected_index,
+                                columns=expected_columns)
+        result = pd.crosstab([a, b], [c, d], normalize='all',
+                             margins=True)
+        tm.assert_frame_equal(result, expected)
 
     def test_crosstab_with_empties(self):
         # Check handling of empties

@@ -311,6 +311,9 @@ Reshaping
 - Bug in merging with categorical dtypes with datetimelikes incorrectly raised a ``TypeError`` (:issue:`16900`)
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
+- Bug in ``pd.crosstab(normalize=True, margins=True)`` when at least one axis has a multi-index (:issue:`15150`)
+
+>>>>>>> added whatsnew and reformatted tests to be more readable
 
 Numeric
 ^^^^^^^

@@ -532,7 +532,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     if values is None and margins:
         table = table.fillna(0).astype(np.int64)
 
-
     if margins:
         _check_margins_name(margins_name, table)
 
