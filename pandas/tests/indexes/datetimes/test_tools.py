@@ -186,7 +186,7 @@ class TestToDatetime(object):
     @pytest.mark.parametrize("msg, s, _format", [
         ["ISO week directive '%V' must be used with the ISO year directive "
          "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 50",
-         "%V"],
+         "%Y %V"],
         ["ISO year directive '%G' must be used with the ISO week directive "
          "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 51",
          "%G %V"],
