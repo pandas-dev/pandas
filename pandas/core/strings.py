@@ -611,10 +611,11 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    .. versionadded:: 0.18.0
     expand : bool, default False
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
