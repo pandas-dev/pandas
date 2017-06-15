@@ -3479,8 +3479,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
         """
-        .. deprecated:: 0.18.0
-
         Attempt to infer better dtype for object columns
 
         Parameters

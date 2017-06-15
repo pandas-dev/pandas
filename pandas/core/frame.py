@@ -3477,8 +3477,7 @@ it is assumed to be aliases for the column names.')
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
                   sort_remaining=True):
         """
-        .. deprecated:: 0.20.0
-           Use :meth:`DataFrame.sort_index`
+        DEPRECATED: use :meth:`DataFrame.sort_index`
 
         Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other

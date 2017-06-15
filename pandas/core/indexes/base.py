@@ -1008,8 +1008,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def to_datetime(self, dayfirst=False):
         """
-        .. deprecated:: 0.19.0
-           Use :meth:`pandas.to_datetime` instead.
+        DEPRECATED: use :meth:`pandas.to_datetime` instead.
 
         For an Index containing strings or datetime.datetime objects, attempt
         conversion to DatetimeIndex
