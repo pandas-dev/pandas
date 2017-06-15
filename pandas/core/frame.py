@@ -785,11 +785,9 @@ class DataFrame(NDFrame):
         iteritems : Iterate over (column name, Series) pairs.
 
         """
-        columns = self.columns
-        klass = self._constructor_sliced
-        for k, v in zip(self.index, self.values):
-            s = klass(v, index=columns, name=k)
-            yield k, s
+        iloc = self.iloc
+        for i, k in enumerate(self.index):
+            yield k, iloc[i]
 
     def itertuples(self, index=True, name="Pandas"):
         """
@@ -2765,7 +2763,7 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _getitem_frame(self, key):
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not key.dtypes.map(is_bool_dtype).all():
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
@@ -3153,7 +3151,7 @@ class DataFrame(NDFrame):
                 )
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not key.dtypes.map(is_bool_dtype).all():
             raise TypeError(
                 'Must pass DataFrame or 2-d ndarray with boolean values only'
             )
