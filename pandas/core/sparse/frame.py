@@ -333,8 +333,8 @@ class SparseDataFrame(DataFrame):
             default_fill_value=self.default_fill_value,
             default_kind=self.default_kind).__finalize__(self)
 
-    def astype(self, dtype):
-        return self._apply_columns(lambda x: x.astype(dtype))
+    def astype(self, dtype, **kwargs):
+        return self._apply_columns(lambda x: x.astype(dtype, **kwargs))
 
     def copy(self, deep=True):
         """
@@ -464,44 +464,6 @@ class SparseDataFrame(DataFrame):
 
         return series._get_value(index, takeable=takeable)
     _get_value.__doc__ = get_value.__doc__
-
-    def set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index
-
-        .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
-
-        Parameters
-        ----------
-        index : row label
-        col : column label
-        value : scalar value
-        takeable : interpret the index/col as indexers, default False
-
-        Notes
-        -----
-        This method *always* returns a new object. It is currently not
-        particularly efficient (and potentially very expensive) but is provided
-        for API compatibility with DataFrame
-
-        Returns
-        -------
-        frame : DataFrame
-        """
-        warnings.warn("set_value is deprecated and will be removed "
-                      "in a future release. Please use "
-                      ".at[] or .iat[] accessors instead", FutureWarning,
-                      stacklevel=2)
-        return self._set_value(index, col, value, takeable=takeable)
-
-    def _set_value(self, index, col, value, takeable=False):
-        dense = self.to_dense()._set_value(
-            index, col, value, takeable=takeable)
-        return dense.to_sparse(kind=self._default_kind,
-                               fill_value=self._default_fill_value)
-    _set_value.__doc__ = set_value.__doc__
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:

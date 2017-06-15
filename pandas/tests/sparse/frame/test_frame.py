@@ -10,6 +10,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.errors import PerformanceWarning
 from pandas.tseries.offsets import BDay
 from pandas.util import testing as tm
 from pandas.compat import lrange
@@ -457,11 +458,11 @@ class TestSparseDataFrame(SharedWithSparse):
                               iframe.iloc[:, 0].sp_index)
 
     def test_set_value(self):
-
         # ok, as the index gets converted to object
         frame = self.frame.copy()
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             res = frame.set_value('foobar', 'B', 1.5)
         assert res.index.dtype == 'object'
 
@@ -469,22 +470,24 @@ class TestSparseDataFrame(SharedWithSparse):
         res.index = res.index.astype(object)
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             res = self.frame.set_value('foobar', 'B', 1.5)
-        assert res is not self.frame
         assert res.index[-1] == 'foobar'
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             assert res.get_value('foobar', 'B') == 1.5
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             res2 = res.set_value('foobar', 'qux', 1.5)
-        assert res2 is not res
         tm.assert_index_equal(res2.columns,
-                              pd.Index(list(self.frame.columns) + ['qux']))
+                              pd.Index(list(self.frame.columns)))
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
@@ -591,8 +594,9 @@ class TestSparseDataFrame(SharedWithSparse):
         # issuecomment-361696418
         # chained setitem used to cause consolidation
         sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
-        with pd.option_context('mode.chained_assignment', None):
-            sdf[0][1] = 2
+        with tm.assert_produces_warning(PerformanceWarning):
+            with pd.option_context('mode.chained_assignment', None):
+                sdf[0][1] = 2
         assert len(sdf._data.blocks) == 2
 
     def test_delitem(self):
@@ -1302,3 +1306,54 @@ class TestSparseDataFrameAnalytics(object):
 
         for column in res.columns:
             assert type(res[column]) is SparseSeries
+
+
+def _test_assignment(kind, indexer, key=None):
+    arr = np.array([[1, nan],
+                    [nan, 1]])
+    df = DataFrame(arr, copy=True)
+    sdf = SparseDataFrame(arr, default_kind=kind).to_sparse(kind=kind)
+
+    def get_indexer(df):
+        return getattr(df, indexer) if indexer else df
+
+    if key is None:
+        key = pd.isnull(sdf).to_sparse()
+
+    get_indexer(sdf)[key] = 2
+
+    get_indexer(df)[key] = 2
+    res = df.to_sparse(kind=kind)
+
+    tm.assert_sp_frame_equal(sdf, res)
+
+
+@pytest.fixture(params=['integer', 'block'])
+def spindex_kind(request):
+    return request.param
+
+
+@pytest.mark.parametrize('indexer', ['iat'])
+@pytest.mark.parametrize('key', [(0, 0)])
+def test_frame_assignment_at(spindex_kind, indexer, key):
+    _test_assignment(spindex_kind, indexer, key)
+
+
+@pytest.mark.parametrize('indexer', ['at', 'loc', 'iloc'])
+@pytest.mark.parametrize('key', [0,
+                                 [0, 1],
+                                 [True, False]])
+def test_frame_assignment_loc(spindex_kind, indexer, key):
+    _test_assignment(spindex_kind, indexer, key)
+
+
+@pytest.mark.parametrize('key', [None,
+                                 [True, False]])
+def test_frame_assignment_setitem(spindex_kind, key):
+    _test_assignment(spindex_kind, None, key)
+
+
+@pytest.mark.parametrize('indexer', ['loc', 'at'])
+@pytest.mark.parametrize('key', [3])
+def test_frame_assignment_extend_index(spindex_kind, indexer, key):
+    _test_assignment(spindex_kind, indexer, key)

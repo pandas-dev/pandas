@@ -921,6 +921,9 @@ class Block(PandasObject):
         if _is_empty_indexer(indexer):
             pass
 
+        elif is_sparse(values):
+            values = values.set_values(indexer, value)
+
         # setting a single element for each dim and with a rhs that could
         # be say a list
         # GH 6043
@@ -1494,6 +1497,11 @@ class Block(PandasObject):
             raise ValueError("where must have a condition that is ndarray "
                              "like")
 
+        # For SparseBlock, self.values is always 1D. If cond was a frame,
+        # it's 2D values would incorrectly broadcast later on.
+        if values.ndim == 1 and any(ax == 1 for ax in cond.shape):
+            cond = cond.ravel()
+
         # our where function
         def func(cond, values, other):
             if cond.ravel().all():
@@ -1843,6 +1851,11 @@ class NonConsolidatableMixIn(object):
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
         new_values, _, new, _ = self._try_coerce_args(new_values, new)
+
+        if is_sparse(new_values):
+            indexer = mask.to_dense().values.ravel().nonzero()[0]
+            block = self.setitem(indexer, new)
+            return [block]
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -3153,6 +3166,17 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         values = values.astype(dtype, copy=copy)
         return self.make_block_same_class(values=values,
                                           placement=self.mgr_locs)
+
+    def _can_hold_element(self, element):
+        return np.can_cast(np.asarray(element).dtype, self.sp_values.dtype)
+
+    def _try_coerce_result(self, result):
+        if (isinstance(result, np.ndarray) and
+                np.ndim(result) == 1 and
+                not is_sparse(result)):
+            result = SparseArray(result, kind=self.kind,
+                                 fill_value=self.fill_value)
+        return result
 
     def __len__(self):
         try:

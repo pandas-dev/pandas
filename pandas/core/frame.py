@@ -2548,9 +2548,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
-            If label pair is contained, will be reference to calling DataFrame,
-            otherwise a new object
+        self : DataFrame
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "

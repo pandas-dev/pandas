@@ -484,15 +484,16 @@ class TestSparseSeries(SharedWithSparse):
                 self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
-
         idx = self.btseries.index[7]
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             self.btseries.set_value(idx, 0)
         assert self.btseries[idx] == 0
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=False,
+                                        ignore_extra=True):
             self.iseries.set_value('foobar', 0)
         assert self.iseries.index[-1] == 'foobar'
         assert self.iseries['foobar'] == 0
@@ -1456,3 +1457,29 @@ def test_constructor_dict_datetime64_index(datetime_type):
     expected = SparseSeries(values, map(pd.Timestamp, dates))
 
     tm.assert_sp_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('kind', ['integer', 'block'])
+@pytest.mark.parametrize('indexer', [None, 'loc', 'iloc', 'at', 'iat'])
+@pytest.mark.parametrize('key', [0, [0, 1], 2, [2, 3],
+                                 np.r_[True, False, False, False],
+                                 np.r_[False, False, False, True]])
+def test_series_assignment(kind, indexer, key):
+    is_multikey = np.asarray(key).ndim > 0
+    skip_multikey = 'at' in (indexer or '')
+    if is_multikey and skip_multikey:
+        return
+
+    arr = np.array([0., 0., nan, nan])
+    ss = SparseSeries(arr, kind=kind)
+    assert len(ss.sp_index.to_int_index().indices) == 2
+
+    res = arr.copy()
+    res[key] = 1
+    res = SparseSeries(res, kind=kind)
+
+    ss_setitem = getattr(ss, indexer) if indexer else ss
+
+    ss_setitem[key] = 1
+
+    tm.assert_sp_series_equal(ss, res)

@@ -37,6 +37,7 @@ from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
+from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
@@ -369,6 +370,53 @@ class SparseArray(PandasObject, np.ndarray):
         """ return a dense representation """
         return self.to_dense(fill=fill)
 
+    def set_values(self, indexer, value):
+        """
+        Return new SparseArray with indexed values set to `value`.
+
+        Returns
+        -------
+        SparseArray
+            A new sparse array with indexer positions filled with value.
+        """
+        # If indexer is not a single int position, easiest to handle via dense
+        if not is_scalar(indexer):
+            warnings.warn(
+                'Setting SparseSeries/Array values is particularly '
+                'inefficient when indexing with multiple keys because the '
+                'whole series is made dense interim.',
+                PerformanceWarning, stacklevel=2)
+
+            values = self.to_dense()
+            values[indexer] = value
+            return SparseArray(values, kind=self.kind,
+                               fill_value=self.fill_value)
+
+        warnings.warn(
+            'Setting SparseSeries/Array values is inefficient '
+            '(a copy of data is made).', PerformanceWarning, stacklevel=2)
+
+        # If label already in sparse index, just switch the value on a copy
+        idx = self.sp_index.lookup(indexer)
+        if idx != -1:
+            obj = self.copy()
+            obj.sp_values[idx] = value
+            return obj
+
+        # Otherwise, construct a new array, and insert the new value in the
+        # correct position
+        indices = self.sp_index.to_int_index().indices
+        pos = np.searchsorted(indices, indexer)
+
+        indices = np.insert(indices, pos, indexer)
+        sp_values = np.insert(self.sp_values, pos, value)
+        # Length can be increased when adding a new value into index
+        length = max(self.sp_index.length, indexer + 1)
+        sp_index = _make_index(length, indices, self.kind)
+
+        return SparseArray(sp_values, sparse_index=sp_index,
+                           fill_value=self.fill_value)
+
     def to_dense(self, fill=None):
         """
         Convert SparseArray to a NumPy array.
@@ -543,6 +591,10 @@ class SparseArray(PandasObject, np.ndarray):
             raise ValueError(msg.format(fill=self.fill_value, dtype=dtype))
         return self._simple_new(sp_values, self.sp_index,
                                 fill_value=fill_value)
+
+    def tolist(self):
+        """Return *dense* self as list"""
+        return self.values.tolist()
 
     def copy(self, deep=True):
         """

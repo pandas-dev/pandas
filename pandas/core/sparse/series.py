@@ -18,7 +18,6 @@ from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
-import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
 
 from pandas.core.sparse.array import (
@@ -278,8 +277,13 @@ class SparseSeries(Series):
         else:
             fill_value = self.fill_value
 
+        # Assume: If result size matches, old sparse index is valid (ok???)
+        if np.size(result) == self.sp_index.npoints:
+            sp_index = self.sp_index
+        else:
+            sp_index = None
         return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
+                                 sparse_index=sp_index,
                                  fill_value=fill_value,
                                  copy=False).__finalize__(self)
 
@@ -480,7 +484,7 @@ class SparseSeries(Series):
 
         Returns
         -------
-        series : SparseSeries
+        self : SparseSeries
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -489,34 +493,15 @@ class SparseSeries(Series):
         return self._set_value(label, value, takeable=takeable)
 
     def _set_value(self, label, value, takeable=False):
-        values = self.to_dense()
-
-        # if the label doesn't exist, we will create a new object here
-        # and possibly change the index
-        new_values = values._set_value(label, value, takeable=takeable)
-        if new_values is not None:
-            values = new_values
-        new_index = values.index
-        values = SparseArray(values, fill_value=self.fill_value,
-                             kind=self.kind)
-        self._data = SingleBlockManager(values, new_index)
-        self._index = new_index
+        self._data = self._data.copy()
+        try:
+            idx = self.index.get_loc(label)
+        except KeyError:
+            idx = len(self)
+            self._data.axes[0] = self._data.index.append(Index([label]))
+        self._data = self._data.setitem(indexer=idx, value=value)
+        return self
     _set_value.__doc__ = set_value.__doc__
-
-    def _set_values(self, key, value):
-
-        # this might be inefficient as we have to recreate the sparse array
-        # rather than setting individual elements, but have to convert
-        # the passed slice/boolean that's in dense space into a sparse indexer
-        # not sure how to do that!
-        if isinstance(key, Series):
-            key = key.values
-
-        values = self.values.to_dense()
-        values[key] = libindex.convert_scalar(values, value)
-        values = SparseArray(values, fill_value=self.fill_value,
-                             kind=self.kind)
-        self._data = SingleBlockManager(values, self.index)
 
     def to_dense(self, sparse_only=False):
         """

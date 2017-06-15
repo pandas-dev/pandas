@@ -2493,7 +2493,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            ignore_extra=False):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2530,6 +2531,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    ignore_extra : bool, default False
+        If False, any extra, unexpected warnings are raised as errors.
 
     Examples
     --------
@@ -2596,6 +2599,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
+    if not ignore_extra:
         assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
                                     ).format(extra=extra_warnings)
 
