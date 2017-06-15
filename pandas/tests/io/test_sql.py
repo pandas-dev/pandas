@@ -816,6 +816,16 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
+    def test_escaped_table_name(self):
+        # GH 13206
+        df = DataFrame({'A': [0, 1, 2], 'B': [0.2, np.nan, 5.6]})
+        df.to_sql('d1187b08-4943-4c8d-a7f6', self.conn, index=False)
+
+        res = sql.read_sql_query('SELECT * FROM `d1187b08-4943-4c8d-a7f6`',
+                                 self.conn)
+
+        tm.assert_frame_equal(res, df)
+
 
 @pytest.mark.single
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
@@ -938,6 +948,13 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
+        try:
+            # the rest of this test depends on pg8000's being absent
+            import pg8000  # noqa
+            pytest.skip("pg8000 is installed")
+        except ImportError:
+            pass
+
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)

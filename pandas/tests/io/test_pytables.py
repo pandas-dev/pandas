@@ -16,7 +16,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     date_range, timedelta_range, Index, DatetimeIndex,
                     isnull)
 
-from pandas.compat import is_platform_windows, PY3, PY35, BytesIO
+from pandas.compat import is_platform_windows, PY3, PY35, BytesIO, text_type
 from pandas.io.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
@@ -387,6 +387,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             repr(store)
+            store.info()
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeStringSeries()
             store['c'] = tm.makeDataFrame()
@@ -418,8 +419,9 @@ class TestHDFStore(Base):
             # make a random group in hdf space
             store._handle.create_group(store._handle.root, 'bah')
 
-            repr(store)
-            str(store)
+            assert store.filename in repr(store)
+            assert store.filename in str(store)
+            store.info()
 
         # storers
         with ensure_clean_store(self.path) as store:
@@ -733,6 +735,59 @@ class TestHDFStore(Base):
 
             store.put('c', df, format='table', complib='blosc')
             tm.assert_frame_equal(store['c'], df)
+
+    def test_complibs_default_settings(self):
+        # GH15943
+        df = tm.makeDataFrame()
+
+        # Set complevel and check if complib is automatically set to
+        # default value
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df', complevel=9)
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 9
+                    assert node.filters.complib == 'zlib'
+
+        # Set complib and check to see if compression is disabled
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df', complib='zlib')
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+
+        # Check if not setting complib or complevel results in no compression
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df')
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+
+        # Check if file-defaults can be overridden on a per table basis
+        with ensure_clean_path(self.path) as tmpfile:
+            store = pd.HDFStore(tmpfile)
+            store.append('dfc', df, complevel=9, complib='blosc')
+            store.append('df', df)
+            store.close()
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+                for node in h5file.walk_nodes(where='/dfc', classname='Leaf'):
+                    assert node.filters.complevel == 9
+                    assert node.filters.complib == 'blosc'
 
     def test_complibs(self):
         # GH14478
@@ -2920,6 +2975,27 @@ class TestHDFStore(Base):
             recons = store['frame']
             tm.assert_frame_equal(recons, df)
 
+    @pytest.mark.parametrize('table_format', ['table', 'fixed'])
+    def test_store_index_name_numpy_str(self, table_format):
+        # GH #13492
+        idx = pd.Index(pd.to_datetime([datetime.date(2000, 1, 1),
+                                       datetime.date(2000, 1, 2)]),
+                       name=u('cols\u05d2'))
+        idx1 = pd.Index(pd.to_datetime([datetime.date(2010, 1, 1),
+                                        datetime.date(2010, 1, 2)]),
+                        name=u('rows\u05d0'))
+        df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
+
+        # This used to fail, returning numpy strings instead of python strings.
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format=table_format)
+            df2 = read_hdf(path, 'df')
+
+            assert_frame_equal(df, df2, check_names=True)
+
+            assert type(df2.index.name) == text_type
+            assert type(df2.columns.name) == text_type
+
     def test_store_series_name(self):
         df = tm.makeDataFrame()
         series = df['A']
@@ -4219,6 +4295,21 @@ class TestHDFStore(Base):
             expected = df.loc[30:40, ['A']]
             tm.assert_frame_equal(result, expected)
 
+    def test_start_stop_multiple(self):
+
+        # GH 16209
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
+
+            store.append_to_multiple({'selector': ['foo'], 'data': None}, df,
+                                     selector='selector')
+            result = store.select_as_multiple(['selector', 'data'],
+                                              selector='selector', start=0,
+                                              stop=1)
+            expected = df.loc[[0], ['foo', 'bar']]
+            tm.assert_frame_equal(result, expected)
+
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4371,11 +4462,11 @@ class TestHDFStore(Base):
 
             # single
             store = HDFStore(path)
-            assert 'CLOSED' not in str(store)
+            assert 'CLOSED' not in store.info()
             assert store.is_open
 
             store.close()
-            assert 'CLOSED' in str(store)
+            assert 'CLOSED' in store.info()
             assert not store.is_open
 
         with ensure_clean_path(self.path) as path:
@@ -4396,20 +4487,20 @@ class TestHDFStore(Base):
                 store1 = HDFStore(path)
                 store2 = HDFStore(path)
 
-                assert 'CLOSED' not in str(store1)
-                assert 'CLOSED' not in str(store2)
+                assert 'CLOSED' not in store1.info()
+                assert 'CLOSED' not in store2.info()
                 assert store1.is_open
                 assert store2.is_open
 
                 store1.close()
-                assert 'CLOSED' in str(store1)
+                assert 'CLOSED' in store1.info()
                 assert not store1.is_open
-                assert 'CLOSED' not in str(store2)
+                assert 'CLOSED' not in store2.info()
                 assert store2.is_open
 
                 store2.close()
-                assert 'CLOSED' in str(store1)
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store1.info()
+                assert 'CLOSED' in store2.info()
                 assert not store1.is_open
                 assert not store2.is_open
 
@@ -4420,11 +4511,11 @@ class TestHDFStore(Base):
                 store2 = HDFStore(path)
                 store2.append('df2', df)
                 store2.close()
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store2.info()
                 assert not store2.is_open
 
                 store.close()
-                assert 'CLOSED' in str(store)
+                assert 'CLOSED' in store.info()
                 assert not store.is_open
 
                 # double closing
@@ -4433,11 +4524,11 @@ class TestHDFStore(Base):
 
                 store2 = HDFStore(path)
                 store.close()
-                assert 'CLOSED' in str(store)
+                assert 'CLOSED' in store.info()
                 assert not store.is_open
 
                 store2.close()
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store2.info()
                 assert not store2.is_open
 
         # ops on a closed store
@@ -4784,9 +4875,10 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, df2)
 
             # Make sure the metadata is OK
-            assert '/df2   ' in str(store)
-            assert '/df2/meta/values_block_0/meta' in str(store)
-            assert '/df2/meta/values_block_1/meta' in str(store)
+            info = store.info()
+            assert '/df2   ' in info
+            assert '/df2/meta/values_block_0/meta' in info
+            assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[

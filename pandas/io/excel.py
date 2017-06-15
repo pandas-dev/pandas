@@ -8,6 +8,7 @@ from datetime import datetime, date, time, MINYEAR
 
 import os
 import abc
+import warnings
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -30,7 +31,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -76,7 +77,7 @@ sheetname : string, int, mixed list of strings/ints, or None, default 0
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
-    be combined into a ``MultiIndex``
+    be combined into a ``MultiIndex``. Use None if there is no header.
 skiprows : list-like
     Rows to skip at the beginning (0-indexed)
 skip_footer : int, default 0
@@ -84,7 +85,9 @@ skip_footer : int, default 0
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
-    those columns will be combined into a ``MultiIndex``
+    those columns will be combined into a ``MultiIndex``.  If a
+    subset of data is selected with ``parse_cols``, index_col
+    is based on the subset.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None
@@ -95,7 +98,7 @@ converters : dict, default None
     content.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 
@@ -115,8 +118,9 @@ parse_cols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
-    * If string then indicates comma separated list of column names and
-      column ranges (e.g. "A:E" or "A,C,E:F")
+    * If string then indicates comma separated list of Excel column letters and
+      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
+      both sides.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 na_values : scalar, str, list-like, or dict, default None
@@ -140,11 +144,6 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
-has_index_names : boolean, default None
-    .. deprecated:: 0.17.0
-       For version 0.17+ index names will be automatically
-       inferred based on index_col.  To read Excel output from 0.16.2 and
-       prior that had saved index names, use True.
 
 Returns
 -------
@@ -194,14 +193,22 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-@deprecate_kwarg('sheetname', 'sheet_name')
 @Appender(_read_excel_doc)
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
-               convert_float=True, has_index_names=None, converters=None,
-               dtype=None, true_values=None, false_values=None, engine=None,
+               convert_float=True, converters=None, dtype=None,
+               true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
+
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+    elif 'sheetname' in kwds:
+        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
+                        "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -210,10 +217,9 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, has_index_names=has_index_names,
-        skip_footer=skip_footer, converters=converters, dtype=dtype,
-        true_values=true_values, false_values=false_values, squeeze=squeeze,
-        **kwds)
+        convert_float=convert_float, skip_footer=skip_footer,
+        converters=converters, dtype=dtype, true_values=true_values,
+        false_values=false_values, squeeze=squeeze, **kwds)
 
 
 class ExcelFile(object):
@@ -275,9 +281,8 @@ class ExcelFile(object):
     def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
-              convert_float=True, has_index_names=None,
-              converters=None, true_values=None, false_values=None,
-              squeeze=False, **kwds):
+              convert_float=True, converters=None, true_values=None,
+              false_values=None, squeeze=False, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -288,7 +293,6 @@ class ExcelFile(object):
         return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
-                                 has_index_names=has_index_names,
                                  parse_cols=parse_cols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
@@ -335,23 +339,17 @@ class ExcelFile(object):
             return i in parse_cols
 
     def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, has_index_names=None,
-                     parse_cols=None, parse_dates=False, date_parser=None,
-                     na_values=None, thousands=None, convert_float=True,
-                     true_values=None, false_values=None, verbose=False,
-                     dtype=None, squeeze=False, **kwds):
+                     skip_footer=0, index_col=None, parse_cols=None,
+                     parse_dates=False, date_parser=None, na_values=None,
+                     thousands=None, convert_float=True, true_values=None,
+                     false_values=None, verbose=False, dtype=None,
+                     squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
 
         _validate_header_arg(header)
-        if has_index_names is not None:
-            warn("\nThe has_index_names argument is deprecated; index names "
-                 "will be automatically inferred based on index_col.\n"
-                 "This argmument is still necessary if reading Excel output "
-                 "from 0.16.2 or prior with index names.", FutureWarning,
-                 stacklevel=3)
 
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
@@ -503,8 +501,7 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            if is_list_like(header) and len(header) > 1:
-                has_index_names = True
+            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:

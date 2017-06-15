@@ -46,7 +46,7 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import format_percentiles
+from pandas.io.formats.format import format_percentiles, DataFrameFormatter
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -753,7 +753,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : type of caller
+        renamed : type of caller or None if inplace=True
 
         See Also
         --------
@@ -784,16 +784,16 @@ class NDFrame(PandasObject, SelectionMixin):
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                            is_dict_like(mapper))
         if non_mapper:
-            return self._set_axis_name(mapper, axis=axis)
+            return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
             axis = self._get_axis_name(axis)
             d = {'copy': copy, 'inplace': inplace}
             d[axis] = mapper
             return self.rename(**d)
 
-    def _set_axis_name(self, name, axis=0):
+    def _set_axis_name(self, name, axis=0, inplace=False):
         """
-        Alter the name or names of the axis, returning self.
+        Alter the name or names of the axis.
 
         Parameters
         ----------
@@ -801,10 +801,14 @@ class NDFrame(PandasObject, SelectionMixin):
             Name for the Index, or list of names for the MultiIndex
         axis : int or str
            0 or 'index' for the index; 1 or 'columns' for the columns
+        inplace : bool
+            whether to modify `self` directly or return a copy
+
+            .. versionadded: 0.21.0
 
         Returns
         -------
-        renamed : type of caller
+        renamed : type of caller or None if inplace=True
 
         See Also
         --------
@@ -831,9 +835,11 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
-        renamed = self.copy(deep=True)
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        renamed = self if inplace else self.copy()
         renamed.set_axis(axis, idx)
-        return renamed
+        if not inplace:
+            return renamed
 
     # ----------------------------------------------------------------------
     # Comparisons
@@ -1050,6 +1056,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # IO
+
+    def _repr_latex_(self):
+        """
+        Returns a LaTeX representation for a particular object.
+        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
+        """
+        if config.get_option('display.latex.repr'):
+            return self.to_latex()
+        else:
+            return None
 
     # ----------------------------------------------------------------------
     # I/O Methods
@@ -1268,10 +1284,10 @@ class NDFrame(PandasObject, SelectionMixin):
             <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
 
             Applicable only to format='table'.
-        complevel : int, 0-9, default 0
+        complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 disables compression.
-        complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
@@ -1491,7 +1507,17 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         See the `xarray docs <http://xarray.pydata.org/en/stable/>`__
         """
-        import xarray
+
+        try:
+            import xarray
+        except ImportError:
+            # Give a nice error message
+            raise ImportError("the xarray library is not installed\n"
+                              "you can install via conda\n"
+                              "conda install xarray\n"
+                              "or via pip\n"
+                              "pip install xarray\n")
+
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
         elif self.ndim == 2:
@@ -1502,6 +1528,100 @@ class NDFrame(PandasObject, SelectionMixin):
         return xarray.DataArray(self,
                                 coords=coords,
                                 )
+
+    _shared_docs['to_latex'] = """
+        Render an object to a tabular environment table. You can splice
+        this into a LaTeX document. Requires \\usepackage{booktabs}.
+
+        .. versionchanged:: 0.20.2
+           Added to Series
+
+        `to_latex`-specific options:
+
+        bold_rows : boolean, default True
+            Make the row labels bold in the output
+        column_format : str, default None
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3
+            columns
+        longtable : boolean, default will be read from the pandas config module
+            Default: False.
+            Use a longtable environment instead of tabular. Requires adding
+            a \\usepackage{longtable} to your LaTeX preamble.
+        escape : boolean, default will be read from the pandas config module
+            Default: True.
+            When set to False prevents from escaping latex special
+            characters in column names.
+        encoding : str, default None
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        decimal : string, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. versionadded:: 0.18.0
+
+        multicolumn : boolean, default True
+            Use \multicolumn to enhance MultiIndex columns.
+            The default will be read from the config module.
+
+            .. versionadded:: 0.20.0
+
+        multicolumn_format : str, default 'l'
+            The alignment for multicolumns, similar to `column_format`
+            The default will be read from the config module.
+
+            .. versionadded:: 0.20.0
+
+        multirow : boolean, default False
+            Use \multirow to enhance MultiIndex rows.
+            Requires adding a \\usepackage{multirow} to your LaTeX preamble.
+            Will print centered labels (instead of top-aligned)
+            across the contained rows, separating groups via clines.
+            The default will be read from the pandas config module.
+
+            .. versionadded:: 0.20.0
+            """
+
+    @Substitution(header='Write out column names. If a list of string is given, \
+it is assumed to be aliases for the column names.')
+    @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
+    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
+                 index=True, na_rep='NaN', formatters=None, float_format=None,
+                 sparsify=None, index_names=True, bold_rows=True,
+                 column_format=None, longtable=None, escape=None,
+                 encoding=None, decimal='.', multicolumn=None,
+                 multicolumn_format=None, multirow=None):
+        # Get defaults from the pandas config
+        if self.ndim == 1:
+            self = self.to_frame()
+        if longtable is None:
+            longtable = config.get_option("display.latex.longtable")
+        if escape is None:
+            escape = config.get_option("display.latex.escape")
+        if multicolumn is None:
+            multicolumn = config.get_option("display.latex.multicolumn")
+        if multicolumn_format is None:
+            multicolumn_format = config.get_option(
+                "display.latex.multicolumn_format")
+        if multirow is None:
+            multirow = config.get_option("display.latex.multirow")
+
+        formatter = DataFrameFormatter(self, buf=buf, columns=columns,
+                                       col_space=col_space, na_rep=na_rep,
+                                       header=header, index=index,
+                                       formatters=formatters,
+                                       float_format=float_format,
+                                       bold_rows=bold_rows,
+                                       sparsify=sparsify,
+                                       index_names=index_names,
+                                       escape=escape, decimal=decimal)
+        formatter.to_latex(column_format=column_format, longtable=longtable,
+                           encoding=encoding, multicolumn=multicolumn,
+                           multicolumn_format=multicolumn_format,
+                           multirow=multirow)
+
+        if buf is None:
+            return formatter.buf.getvalue()
 
     # ----------------------------------------------------------------------
     # Fancy Indexing
@@ -2262,9 +2382,14 @@ class NDFrame(PandasObject, SelectionMixin):
         1   A    1    1
         """
 
-    def sort_values(self, by, axis=0, ascending=True, inplace=False,
+    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
-        raise AbstractMethodError(self)
+        """
+        NOT IMPLEMENTED: do not call this method, as sorting values is not
+        supported for Panel objects and will raise an error.
+        """
+        raise NotImplementedError("sort_values has not been implemented "
+                                  "on Panel or Panel4D objects.")
 
     _shared_docs['sort_index'] = """
         Sort object by labels (along an axis)
@@ -4177,7 +4302,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 raise ValueError("subset is not valid for Series")
         elif self.ndim > 2:
             raise NotImplementedError("asof is not implemented "
-                                      "for {type}".format(type(self)))
+                                      "for {type}".format(type=type(self)))
         else:
             if subset is None:
                 subset = self.columns
@@ -4872,7 +4997,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         offset = to_offset(offset)
 
-        start_date = start = self.index[-1] - offset
+        start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
         return self.iloc[start:]
 
@@ -4937,7 +5062,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return ranker(data)
 
     _shared_docs['align'] = ("""
-        Align two object on their axes with the
+        Align two objects on their axes with the
         specified join method for each axis Index
 
         Parameters
@@ -5195,8 +5320,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # slice me out of the other
             else:
-                raise NotImplemented("cannot align with a higher dimensional "
-                                     "NDFrame")
+                raise NotImplementedError("cannot align with a higher "
+                                          "dimensional NDFrame")
 
         elif is_list_like(other):
 

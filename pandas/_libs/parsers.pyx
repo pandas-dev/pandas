@@ -50,6 +50,8 @@ from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index
 
+import pandas.io.common as com
+
 import time
 import os
 
@@ -272,13 +274,6 @@ cdef extern from "parser/io.h":
 
 
 DEFAULT_CHUNKSIZE = 256 * 1024
-
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = [b'-1.#IND', b'1.#QNAN', b'1.#IND', b'-1.#QNAN',
-              b'#N/A N/A', b'NA', b'#NA', b'NULL', b'NaN',
-              b'nan', b'']
 
 
 cdef class TextReader:
@@ -1378,6 +1373,12 @@ cdef asbytes(object o):
         return str(o).encode('utf-8')
     else:
         return str(o)
+
+
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = _ensure_encoded(list(com._NA_VALUES))
 
 
 def _is_file_like(obj):

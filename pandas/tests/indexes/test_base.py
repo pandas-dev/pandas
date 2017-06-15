@@ -188,7 +188,6 @@ class TestIndex(Base):
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike(object):
-
             def __init__(self, array):
                 self.array = array
 
@@ -246,7 +245,6 @@ class TestIndex(Base):
                      [np.timedelta64('nat'), np.nan],
                      [pd.NaT, np.timedelta64('nat')],
                      [np.timedelta64('nat'), pd.NaT]]:
-
             tm.assert_index_equal(Index(data), exp)
             tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
 
@@ -1330,8 +1328,10 @@ class TestIndex(Base):
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
-        assert not index.is_monotonic
+        assert not index.is_monotonic_increasing
         assert not index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -1800,6 +1800,25 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
                 assert coerce(idx) == expected
 
+    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
+    @pytest.mark.parametrize('delta', [1, 0, -1])
+    def test_addsub_arithmetic(self, dtype, delta):
+        # GH 8142
+        delta = dtype(delta)
+        idx = pd.Index([10, 11, 12], dtype=dtype)
+        result = idx + delta
+        expected = pd.Index(idx.values + delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        # this subtraction used to fail
+        result = idx - delta
+        expected = pd.Index(idx.values - delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(idx + idx, 2 * idx)
+        tm.assert_index_equal(idx - idx, 0 * idx)
+        assert not (idx - idx).empty
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2030,6 +2049,8 @@ class TestMixedIntIndex(Base):
         for index in examples:
             assert not index.is_monotonic_increasing
             assert not index.is_monotonic_decreasing
+            assert not index._is_strictly_monotonic_increasing
+            assert not index._is_strictly_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):

@@ -331,25 +331,35 @@ class TestRangeIndex(Numeric):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert self.index._is_strictly_monotonic_increasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
         assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 2)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(2, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),

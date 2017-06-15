@@ -125,15 +125,7 @@ def _new_PeriodIndex(cls, **d):
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc. A value of 1 is the
-    period containing the Gregorian proleptic datetime Jan 1, 0001 00:00:00.
-    This ordinal representation is from the scikits.timeseries project.
-
-    For instance,
-        # construct period for day 1/1/1 and get the first second
-        i = Period(year=1,month=1,day=1,freq='D').asfreq('S', 'S')
-        i.ordinal
-        ===> 1
+    time such as particular years, quarters, months, etc.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).

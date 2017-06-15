@@ -125,7 +125,7 @@ def _sparse_array_op(left, right, op, name, series=False):
             name = name[1:]
 
         if name in ('and', 'or') and dtype == 'bool':
-            opname = 'sparse_{name}_uint8'.format(name=name, dtype=dtype)
+            opname = 'sparse_{name}_uint8'.format(name=name)
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)

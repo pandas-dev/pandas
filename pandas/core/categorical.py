@@ -342,6 +342,13 @@ class Categorical(PandasObject):
         self._categories = categories
         self._codes = coerce_indexer_dtype(codes, categories)
 
+    def __dir__(self):
+        # Avoid IPython warnings for deprecated properties
+        # https://github.com/pandas-dev/pandas/issues/16409
+        rv = set(dir(type(self)))
+        rv.discard("labels")
+        return sorted(rv)
+
     @property
     def _constructor(self):
         return Categorical

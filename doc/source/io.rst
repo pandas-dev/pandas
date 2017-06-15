@@ -240,9 +240,9 @@ NA and Missing Data Handling
 
 na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
-  NA values. By default the following values are interpreted as NaN:
-  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
-  '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''``.
+  NA values. See :ref:`na values const <io.navaluesconst>` below
+  for a list of the values interpreted as NaN by default.
+
 keep_default_na : boolean, default ``True``
   If na_values are specified and keep_default_na is ``False`` the default NaN
   values are overridden, otherwise they're appended to.
@@ -727,6 +727,16 @@ index column inference and discard the last column, pass ``index_col=False``:
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
 
+If a subset of data is being parsed using the ``usecols`` option, the
+``index_col`` specification is based on that subset, not the original data.
+
+.. ipython:: python
+
+    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    print(data)
+    pd.read_csv(StringIO(data), usecols=['b', 'c'])
+    pd.read_csv(StringIO(data), usecols=['b', 'c'], index_col=0)
+
 .. _io.parse_dates:
 
 Date Handling
@@ -1035,10 +1045,11 @@ the corresponding equivalent values will also imply a missing value (in this cas
 ``[5.0,5]`` are recognized as ``NaN``.
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
-The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A','N/A', 'NA',
-'#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan']``. Although a 0-length string
-``''`` is not included in the default ``NaN`` values list, it is still treated
-as a missing value.
+
+.. _io.navaluesconst:
+
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
+'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
 
 .. code-block:: python
 
@@ -2754,11 +2765,6 @@ should be passed to ``index_col`` and ``header``
    import os
    os.remove('path_to_file.xlsx')
 
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
-
 
 Parsing Specific Columns
 ++++++++++++++++++++++++
@@ -4076,26 +4082,64 @@ Compression
 +++++++++++
 
 ``PyTables`` allows the stored data to be compressed. This applies to
-all kinds of stores, not just tables.
+all kinds of stores, not just tables. Two parameters are used to
+control compression: ``complevel`` and ``complib``.
 
-- Pass ``complevel=int`` for a compression level (1-9, with 0 being no
-  compression, and the default)
-- Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for
-  whichever compression library you prefer.
+``complevel`` specifies if and how hard data is to be compressed.
+              ``complevel=0`` and ``complevel=None`` disables
+              compression and ``0<complevel<10`` enables compression.
+              
+``complib`` specifies which compression library to use. If nothing is
+            specified the default library ``zlib`` is used. A
+            compression library usually optimizes for either good
+            compression rates or speed and the results will depend on
+            the type of data. Which type of
+            compression to choose depends on your specific needs and
+            data. The list of supported compression libraries:
 
-``HDFStore`` will use the file based compression scheme if no overriding
-``complib`` or ``complevel`` options are provided. ``blosc`` offers very
-fast compression, and is my most used. Note that ``lzo`` and ``bzip2``
-may not be installed (by Python) by default.
+             - `zlib <http://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
+             - `lzo <http://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
+             - `bzip2 <http://bzip.org/>`_: Good compression rates.
+             - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
-Compression for all objects within the file
+             .. versionadded:: 0.20.2
+                               
+                Support for alternative blosc compressors:
+                  
+                - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+                  default compressor for ``blosc``
+                - `blosc:lz4
+                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+                  A compact, very popular and fast compressor.
+                - `blosc:lz4hc
+                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+                  A tweaked version of LZ4, produces better
+                  compression ratios at the expense of speed.
+                - `blosc:snappy <https://google.github.io/snappy/>`_:
+                  A popular compressor used in many places.
+                - `blosc:zlib <http://zlib.net/>`_: A classic;
+                  somewhat slower than the previous ones, but
+                  achieving better compression ratios.
+                - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
+                  extremely well balanced codec; it provides the best
+                  compression ratios among the others above, and at
+                  reasonably fast speed.
+
+             If ``complib`` is defined as something other than the
+             listed libraries a ``ValueError`` exception is issued.
+
+.. note::
+
+   If the library specified with the ``complib`` option is missing on your platform,
+   compression defaults to ``zlib`` without further ado.
+
+Enable compression for all objects within the file:
 
 .. code-block:: python
 
-   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc')
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc:blosclz')
 
-Or on-the-fly compression (this only applies to tables). You can turn
-off file compression for a specific table by passing ``complevel=0``
+Or on-the-fly compression (this only applies to tables) in stores where compression is not enabled:
 
 .. code-block:: python
 

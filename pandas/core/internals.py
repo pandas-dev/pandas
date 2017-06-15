@@ -471,7 +471,7 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None, **kwargs):
+                klass=None, mgr=None, raise_on_error=False, **kwargs):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
@@ -4645,7 +4645,6 @@ def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
         pvalues = np.empty(panel_shape, dtype=dtype)
         pvalues.fill(fill_value)
 
-    values = values
     for i in range(len(placement)):
         pvalues[i].flat[mask] = values[:, i]
 
@@ -5153,8 +5152,6 @@ class JoinUnit(object):
         else:
             return _get_dtype(maybe_promote(self.block.dtype,
                                             self.block.fill_value)[0])
-
-        return self._dtype
 
     @cache_readonly
     def is_null(self):

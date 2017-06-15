@@ -1108,6 +1108,22 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame({1: s1, 0: arr}, columns=[0, 1])
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_Series_named_and_columns(self):
+        # GH 9232 validation
+
+        s0 = Series(range(5), name=0)
+        s1 = Series(range(5), name=1)
+
+        # matching name and column gives standard frame
+        tm.assert_frame_equal(pd.DataFrame(s0, columns=[0]),
+                              s0.to_frame())
+        tm.assert_frame_equal(pd.DataFrame(s1, columns=[1]),
+                              s1.to_frame())
+
+        # non-matching produces empty frame
+        assert pd.DataFrame(s0, columns=[1]).empty
+        assert pd.DataFrame(s1, columns=[0]).empty
+
     def test_constructor_Series_differently_indexed(self):
         # name
         s1 = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')

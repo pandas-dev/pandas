@@ -988,6 +988,10 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
+                # Slices should return views, but calling iloc/loc with a null
+                # slice returns a new object.
+                if is_null_slice(new_key):
+                    return section
                 # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
 
@@ -1250,7 +1254,7 @@ class _NDFrameIndexer(object):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
         indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
@@ -1288,7 +1292,7 @@ class _IXIndexer(_NDFrameIndexer):
 .iloc for positional indexing
 
 See the documentation here:
-http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix"""
+http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated"""  # noqa
 
         warnings.warn(_ix_deprecation_warning,
                       DeprecationWarning, stacklevel=3)
@@ -1349,7 +1353,7 @@ class _LocationIndexer(_NDFrameIndexer):
         """ this is pretty simple as we just have to deal with labels """
         obj = self.obj
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
@@ -1690,7 +1694,7 @@ class _iLocIndexer(_LocationIndexer):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
 
         slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
