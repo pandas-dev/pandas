@@ -59,7 +59,7 @@ I/O
 
 Plotting
 ^^^^^^^^
-- Allow series plots to accept RGB and RGBA tuples as color arguments (:issue:`16233`)
+- Fix regression in series plotting that prevented RGB and RGBA tuples from being used as color arguments (:issue:`16233`)
 
 
 
