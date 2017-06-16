@@ -287,12 +287,12 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
 
     N, K = (<object> mat).shape
 
-    if minp is None:
+    if minp is None or minp < 1:
         minpv = 1
     else:
         minpv = <int>minp
 
-    if ddof is None:
+    if ddof is None or ddof < 0:
         ddofv = 1
     else:
         ddofv = <int>ddof
@@ -312,7 +312,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
                         sumx += vx
                         sumy += vy
 
-                if nobs < minpv:
+                if nobs < minpv or (cov and nobs - ddofv <= 0):
                     result[xi, yi] = result[yi, xi] = NaN
                 else:
                     meanx = sumx / nobs

@@ -1457,10 +1457,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
         ddof : int, default 1
-            .. versionadded:: 0.21.0
-
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -1468,7 +1468,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Notes
         -----
-        The returned covariance is normalized by ``N-ddof`` -- for the default
+        The returned covariance is normalized by ``N-ddof``. For the default
         ``ddof`` value of 1, that results in N-1 (unbiased estimator).
         """
         this, other = self.align(other, join='inner', copy=False)

@@ -856,6 +856,14 @@ class TestSeriesAnalytics(TestData):
         assert isna(ts1.cov(ts2, min_periods=12, ddof=1))
         assert isna(ts1.cov(ts2, min_periods=12, ddof=0))
 
+        # N - ddof == 0
+        ts1 = self.ts[:1]
+        tm.assert_produces_warning(ts1.cov(ts1, ddof=1))
+        assert isna(ts1.cov(ts1, ddof=1))
+
+        # N - ddof == 1
+        assert ts1.cov(ts1, ddof=0) == 0
+
     def test_count(self):
         assert self.ts.count() == len(self.ts)
 

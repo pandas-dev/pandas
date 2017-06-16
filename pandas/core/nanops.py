@@ -752,6 +752,8 @@ def get_corr_func(method):
 def nancov(a, b, min_periods=None, ddof=1):
     if len(a) != len(b):
         raise AssertionError('Operands to nancov must have same size')
+    if ddof < 0:
+        raise ValueError('ddof ({}) must be >= 0'.format(ddof))
 
     if min_periods is None:
         min_periods = 1
@@ -762,6 +764,9 @@ def nancov(a, b, min_periods=None, ddof=1):
         b = b[valid]
 
     if len(a) < min_periods:
+        return np.nan
+    if len(a) - ddof <= 0:
+        warnings.warn("Series length - ddof <= 0 for input ddof.", UserWarning)
         return np.nan
 
     return np.cov(a, b, ddof=ddof)[0, 1]

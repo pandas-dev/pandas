@@ -188,6 +188,19 @@ class TestDataFrameAnalytics(TestData):
                              index=df.columns, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
+        # N - ddof == 0
+        df1 = self.frame.dropna()[:1]
+        tm.assert_produces_warning(df1.cov(ddof=1))
+        result = df1.cov(ddof=1)
+        assert isnull(result.values).all()
+
+        # N - ddof == 1
+        num_cols = df1.shape[1]
+        expected = np.zeros((num_cols, num_cols))
+        result = df1.cov(ddof=0).values
+        tm.assert_numpy_array_equal(expected, result)
+
+
     def test_corrwith(self):
         a = self.tsframe
         noise = Series(randn(len(a)), index=a.index)
