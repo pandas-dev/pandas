@@ -25,7 +25,8 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.dtypes.cast import (
-    maybe_upcast, infer_dtype_from_scalar,
+    maybe_upcast,
+    cast_scalar_to_array,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -386,8 +387,8 @@ class DataFrame(NDFrame):
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                values = _cast_scalar_to_array((len(index), len(columns)),
-                                               data, dtype=dtype)
+                values = cast_scalar_to_array((len(index), len(columns)),
+                                              data, dtype=dtype)
                 mgr = self._init_ndarray(values, index, columns,
                                          dtype=values.dtype, copy=False)
             else:
@@ -2685,8 +2686,8 @@ it is assumed to be aliases for the column names')
 
         else:
             # upcast the scalar
-            value = _cast_scalar_to_array(len(self.index), value)
-            value = _possibly_cast_to_datetime(value, value.dtype)
+            value = cast_scalar_to_array(len(self.index), value)
+            value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
         if is_extension_type(value):
@@ -3671,7 +3672,8 @@ it is assumed to be aliases for the column names')
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None,
+                       try_cast=True):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -3724,19 +3726,23 @@ it is assumed to be aliases for the column names')
                                  copy=False)
 
     def _combine_series(self, other, func, fill_value=None, axis=None,
-                        level=None):
+                        level=None, try_cast=True):
         if axis is not None:
             axis = self._get_axis_name(axis)
             if axis == 'index':
                 return self._combine_match_index(other, func, level=level,
-                                                 fill_value=fill_value)
+                                                 fill_value=fill_value,
+                                                 try_cast=try_cast)
             else:
                 return self._combine_match_columns(other, func, level=level,
-                                                   fill_value=fill_value)
+                                                   fill_value=fill_value,
+                                                   try_cast=try_cast)
         return self._combine_series_infer(other, func, level=level,
-                                          fill_value=fill_value)
+                                          fill_value=fill_value,
+                                          try_cast=try_cast)
 
-    def _combine_series_infer(self, other, func, level=None, fill_value=None):
+    def _combine_series_infer(self, other, func, level=None,
+                              fill_value=None, try_cast=True):
         if len(other) == 0:
             return self * NA
 
@@ -3746,9 +3752,11 @@ it is assumed to be aliases for the column names')
                                      columns=self.columns)
 
         return self._combine_match_columns(other, func, level=level,
-                                           fill_value=fill_value)
+                                           fill_value=fill_value,
+                                           try_cast=try_cast)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None):
+    def _combine_match_index(self, other, func, level=None,
+                             fill_value=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         if fill_value is not None:
@@ -3758,7 +3766,8 @@ it is assumed to be aliases for the column names')
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+    def _combine_match_columns(self, other, func, level=None,
+                               fill_value=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         if fill_value is not None:
@@ -3766,15 +3775,17 @@ it is assumed to be aliases for the column names')
                                       fill_value)
 
         new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index])
+                                   axes=[left.columns, self.index],
+                                   try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True):
+    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error)
+                                   raise_on_error=raise_on_error,
+                                   try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame_evaluate(self, other, func, str_rep):
+    def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
 
         # unique
         if self.columns.is_unique:
@@ -3798,16 +3809,18 @@ it is assumed to be aliases for the column names')
             result.columns = self.columns
             return result
 
-    def _compare_frame(self, other, func, str_rep):
+    def _compare_frame(self, other, func, str_rep, try_cast=True):
         if not self._indexed_same(other):
             raise ValueError('Can only compare identically-labeled '
                              'DataFrame objects')
-        return self._compare_frame_evaluate(other, func, str_rep)
+        return self._compare_frame_evaluate(other, func, str_rep,
+                                            try_cast=try_cast)
 
-    def _flex_compare_frame(self, other, func, str_rep, level):
+    def _flex_compare_frame(self, other, func, str_rep, level, try_cast=True):
         if not self._indexed_same(other):
             self, other = self.align(other, 'outer', level=level, copy=False)
-        return self._compare_frame_evaluate(other, func, str_rep)
+        return self._compare_frame_evaluate(other, func, str_rep,
+                                            try_cast=try_cast)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

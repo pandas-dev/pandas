@@ -1,5 +1,3 @@
-import pytest
-
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
@@ -56,10 +54,12 @@ class TestDatetimeIndex(object):
             'US/Pacific')
 
         # trying to set a single element on a part of a different timezone
-        def f():
-            df.loc[df.new_col == 'new', 'time'] = v
+        # this converts to object
+        df2 = df.copy()
+        df2.loc[df2.new_col == 'new', 'time'] = v
 
-        pytest.raises(ValueError, f)
+        expected = Series([v[0], df.loc[1, 'time']], name='time')
+        tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v

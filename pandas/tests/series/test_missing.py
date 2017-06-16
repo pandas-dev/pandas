@@ -145,6 +145,7 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
     def test_datetime64_tz_fillna(self):
+
         for tz in ['US/Eastern', 'Asia/Tokyo']:
             # DatetimeBlock
             s = Series([Timestamp('2011-01-01 10:00'), pd.NaT,
@@ -278,6 +279,40 @@ class TestSeriesMissingData(TestData):
         exp = pd.Series([pd.Timestamp('2012-11-11 00:00:00+01:00'),
                          pd.Timestamp('2012-11-11 00:00:00+01:00')])
         assert_series_equal(df.fillna(method='bfill'), exp)
+
+    def test_fillna_consistency(self):
+        # GH 16402
+        # fillna with a tz aware to a tz-naive, should result in object
+
+        s = Series([Timestamp('20130101'), pd.NaT])
+
+        result = s.fillna(Timestamp('20130101', tz='US/Eastern'))
+        expected = Series([Timestamp('20130101'),
+                           Timestamp('2013-01-01', tz='US/Eastern')],
+                          dtype='object')
+        assert_series_equal(result, expected)
+
+        # where (we ignore the raise_on_error)
+        result = s.where([True, False],
+                         Timestamp('20130101', tz='US/Eastern'),
+                         raise_on_error=False)
+        assert_series_equal(result, expected)
+
+        result = s.where([True, False],
+                         Timestamp('20130101', tz='US/Eastern'),
+                         raise_on_error=True)
+        assert_series_equal(result, expected)
+
+        # with a non-datetime
+        result = s.fillna('foo')
+        expected = Series([Timestamp('20130101'),
+                           'foo'])
+        assert_series_equal(result, expected)
+
+        # assignment
+        s2 = s.copy()
+        s2[1] = 'foo'
+        assert_series_equal(s2, expected)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872

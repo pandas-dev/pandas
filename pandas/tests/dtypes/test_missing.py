@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import pytest
 from warnings import catch_warnings
 import numpy as np
 from datetime import datetime
@@ -11,6 +12,7 @@ from pandas.compat import u
 from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     array_equivalent, isnull, notnull,
@@ -160,6 +162,23 @@ class TestIsNull(object):
         mask = isnull(pidx[1:])
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [(np.complex128(np.nan), True),
+         (np.float64(1), False),
+         (np.array([1, 1 + 0j, np.nan, 3]),
+          np.array([False, False, True, False])),
+         (np.array([1, 1 + 0j, np.nan, 3], dtype=object),
+          np.array([False, False, True, False])),
+         (np.array([1, 1 + 0j, np.nan, 3]).astype(object),
+          np.array([False, False, True, False]))])
+    def test_complex(self, value, expected):
+        result = isnull(value)
+        if is_scalar(result):
+            assert result is expected
+        else:
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_other_units(self):
         idx = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-02'])
