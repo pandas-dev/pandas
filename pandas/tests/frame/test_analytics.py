@@ -200,7 +200,6 @@ class TestDataFrameAnalytics(TestData):
         result = df1.cov(ddof=0).values
         tm.assert_numpy_array_equal(expected, result)
 
-
     def test_corrwith(self):
         a = self.tsframe
         noise = Series(randn(len(a)), index=a.index)

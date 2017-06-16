@@ -5330,7 +5330,7 @@ class DataFrame(NDFrame):
                 fill_nan = True
             if len(mat) - ddof <= 0:
                 fill_nan = True
-                warnings.warn("Number rows - ddof <= 0 for input ddof.", UserWarning)
+                warnings.warn("N - ddof <= 0 for input ddof.", UserWarning)
             if fill_nan:
                 baseCov = np.empty((mat.shape[1], mat.shape[1]))
                 baseCov.fill(np.nan)

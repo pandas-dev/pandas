@@ -766,7 +766,7 @@ def nancov(a, b, min_periods=None, ddof=1):
     if len(a) < min_periods:
         return np.nan
     if len(a) - ddof <= 0:
-        warnings.warn("Series length - ddof <= 0 for input ddof.", UserWarning)
+        warnings.warn("N - ddof <= 0 for input ddof.", UserWarning)
         return np.nan
 
     return np.cov(a, b, ddof=ddof)[0, 1]
