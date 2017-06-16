@@ -187,6 +187,11 @@ class MPLPlot(object):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
 
+        if ('color' in self.kwds and isinstance(self.kwds['color'], tuple) and
+                self.nseries == 1 and len(self.kwds['color']) in (3, 4)):
+            # support RGB and RGBA tuples in series plot
+            self.kwds['color'] = [self.kwds['color']]
+
         if ('color' in self.kwds or 'colors' in self.kwds) and \
                 self.colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
