@@ -10,7 +10,7 @@ from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
 import numpy as np
-
+import types
 
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 fill_value=None, margins=False, dropna=True,
@@ -211,7 +211,9 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     # could be passed a Series object with no 'columns'
     if hasattr(table, 'columns'):
-        for level in table.columns.names[1:]:
+        for i,level in enumerate(table.columns.names[1:]):
+            if level is None:
+                level = i
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(exception_msg)
 
@@ -243,10 +245,13 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     row_margin = row_margin.reindex(result.columns)
     # populate grand margin
     for k in margin_keys:
+        #import pdb;pdb.set_trace()
         if isinstance(k, compat.string_types):
             row_margin[k] = grand_margin[k]
-        else:
+        elif is_scalar(grand_margin.get(k[0])):
             row_margin[k] = grand_margin[k[0]]
+        else:
+            row_margin[k[0]] = grand_margin[k[0]]
 
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
@@ -270,15 +275,16 @@ def _compute_grand_margin(data, values, aggfunc,
         grand_margin = {}
         for k, v in data[values].iteritems():
             try:
-                if isinstance(aggfunc, compat.string_types):
-                    grand_margin[k] = getattr(v, aggfunc)()
-                elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], compat.string_types):
-                        grand_margin[k] = getattr(v, aggfunc[k])()
-                    else:
-                        grand_margin[k] = aggfunc[k](v)
-                else:
+                #import pdb; pdb.set_trace()
+                if isinstance(aggfunc, (types.FunctionType,types.BuiltinFunctionType)):
                     grand_margin[k] = aggfunc(v)
+                elif isinstance(aggfunc, dict):
+                    if isinstance(aggfunc[k], (types.FunctionType,types.BuiltinFunctionType)):
+                        grand_margin[k] = aggfunc[k](v)
+                    else:
+                        grand_margin[k] = v.apply(aggfunc[k])
+                else:
+                    grand_margin[k] = v.apply(aggfunc)
             except TypeError:
                 pass
         return grand_margin
