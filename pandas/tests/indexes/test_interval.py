@@ -376,6 +376,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='right'))
         pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='right'))
         pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='right'))
+        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='right'))
 
         pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='left'))
         pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='left'))
@@ -383,6 +384,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='left'))
         pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='left'))
         pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='left'))
 
         pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='both'))
         pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='both'))
@@ -390,6 +392,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='both'))
         pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='both'))
         pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_loc_value_closed_left_updated_behavior(self):
@@ -412,6 +415,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='right'))
         pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='right'))
         pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='right'))
 
         assert left.get_loc(Interval(0, 1, closed='left')) == 0
         pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='left'))
@@ -419,6 +423,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='left'))
         pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='left'))
         pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='left'))
+        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='left'))
 
         pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='both'))
         pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='both'))
@@ -426,6 +431,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='both'))
         pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='both'))
         pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_loc_value_closed_both_updated_behavior(self):
@@ -448,6 +454,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='right'))
         pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='right'))
         pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='right'))
 
         pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='left'))
         pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='left'))
@@ -455,6 +462,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='left'))
         pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='left'))
         pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='left'))
 
         assert both.get_loc(Interval(0, 1, closed='both')) == 0
         pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='both'))
@@ -462,7 +470,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='both'))
         pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='both'))
         pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='both'))
-
+        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='both'))
 
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
@@ -658,23 +666,23 @@ class TestIntervalIndex(Base):
         # class Interval:
         #     def covers(self, other: Interval) -> bool
 
-        assert     Interval(1, 3).covers(Interval(1.5, 2.5))
-        assert     Interval(1, 3).covers(Interval(1, 2))
-        assert     Interval(1, 3).covers(Interval(2, 3))
+        assert Interval(1, 3).covers(Interval(1.5, 2.5))
+        assert Interval(1, 3).covers(Interval(1, 2))
+        assert Interval(1, 3).covers(Interval(2, 3))
         assert not Interval(1, 3).covers(Interval(0.5, 2.5))
         assert not Interval(1, 3).covers(Interval(1.5, 3.5))
 
-        assert     Interval(1, 3, closed='right').covers(Interval(1, 3, closed='right'))
+        assert Interval(1, 3, closed='right').covers(Interval(1, 3, closed='right'))
         assert not Interval(1, 3, closed='right').covers(Interval(1, 3, closed='left'))
         assert not Interval(1, 3, closed='right').covers(Interval(1, 3, closed='both'))
 
         assert not Interval(1, 3, closed='left').covers(Interval(1, 3, closed='right'))
-        assert     Interval(1, 3, closed='left').covers(Interval(1, 3, closed='left'))
+        assert Interval(1, 3, closed='left').covers(Interval(1, 3, closed='left'))
         assert not Interval(1, 3, closed='left').covers(Interval(1, 3, closed='both'))
 
-        assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='right'))
-        assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='left'))
-        assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='both'))
+        assert Interval(1, 3, closed='both').covers(Interval(1, 3, closed='right'))
+        assert Interval(1, 3, closed='both').covers(Interval(1, 3, closed='left'))
+        assert Interval(1, 3, closed='both').covers(Interval(1, 3, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_interval_covers_intervalIndex_updated_behavior(self):
@@ -705,53 +713,53 @@ class TestIntervalIndex(Base):
         # class Interval:
         #     def overlaps(self, other: Interval) -> bool
 
-        assert     Interval(1, 3).overlaps(Interval(1.5, 2.5))
-        assert     Interval(1, 3).overlaps(Interval(1, 2))
-        assert     Interval(1, 3).overlaps(Interval(2, 3))
-        assert     Interval(1, 3).overlaps(Interval(0.5, 2.5))
-        assert     Interval(1, 3).overlaps(Interval(1.5, 3.5))
+        assert Interval(1, 3).overlaps(Interval(1.5, 2.5))
+        assert Interval(1, 3).overlaps(Interval(1, 2))
+        assert Interval(1, 3).overlaps(Interval(2, 3))
+        assert Interval(1, 3).overlaps(Interval(0.5, 2.5))
+        assert Interval(1, 3).overlaps(Interval(1.5, 3.5))
 
         assert not Interval(1, 3).overlaps(Interval(-1, 1))
         assert not Interval(1, 3).overlaps(Interval(3, 5))
 
         # right
-        assert     Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='right'))
-        assert     Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='left'))
-        assert     Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='both'))
+        assert Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='right'))
+        assert Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='left'))
+        assert Interval(1, 3, closed='right').overlaps(Interval(1, 3, closed='both'))
 
         assert not Interval(1, 3, closed='right').overlaps(Interval(-1, 1, closed='right'))
         assert not Interval(1, 3, closed='right').overlaps(Interval(-1, 1, closed='left'))
         assert not Interval(1, 3, closed='right').overlaps(Interval(-1, 1, closed='both'))
 
         assert not Interval(1, 3, closed='right').overlaps(Interval(3, 5, closed='right'))
-        assert     Interval(1, 3, closed='right').overlaps(Interval(3, 5, closed='left'))
-        assert     Interval(1, 3, closed='right').overlaps(Interval(3, 5, closed='both'))
+        assert Interval(1, 3, closed='right').overlaps(Interval(3, 5, closed='left'))
+        assert Interval(1, 3, closed='right').overlaps(Interval(3, 5, closed='both'))
 
         # left
-        assert     Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='right'))
-        assert     Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='left'))
-        assert     Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='both'))
+        assert Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='right'))
+        assert Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='left'))
+        assert Interval(1, 3, closed='left').overlaps(Interval(1, 3, closed='both'))
 
         assert not Interval(1, 3, closed='left').overlaps(Interval(-1, 1, closed='right'))
         assert not Interval(1, 3, closed='left').overlaps(Interval(-1, 1, closed='left'))
         assert not Interval(1, 3, closed='left').overlaps(Interval(-1, 1, closed='both'))
 
         assert not Interval(1, 3, closed='left').overlaps(Interval(3, 5, closed='right'))
-        assert     Interval(1, 3, closed='left').overlaps(Interval(3, 5, closed='left'))
-        assert     Interval(1, 3, closed='left').overlaps(Interval(3, 5, closed='both'))
+        assert Interval(1, 3, closed='left').overlaps(Interval(3, 5, closed='left'))
+        assert Interval(1, 3, closed='left').overlaps(Interval(3, 5, closed='both'))
 
         # both
-        assert     Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='right'))
-        assert     Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='left'))
-        assert     Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='both'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='right'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='left'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(1, 3, closed='both'))
 
-        assert     Interval(1, 3, closed='both').overlaps(Interval(-1, 1, closed='right'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(-1, 1, closed='right'))
         assert not Interval(1, 3, closed='both').overlaps(Interval(-1, 1, closed='left'))
-        assert     Interval(1, 3, closed='both').overlaps(Interval(-1, 1, closed='both'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(-1, 1, closed='both'))
 
         assert not Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='right'))
-        assert     Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='left'))
-        assert     Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='both'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='left'))
+        assert Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_interval_overlaps_intervalIndex_updated_behavior(self):

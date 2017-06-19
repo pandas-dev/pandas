@@ -299,47 +299,17 @@ class TestIntervalIndex(object):
         result = s.loc[Interval(1, 3)]
         tm.assert_series_equal(expected, result)
 
-        # non-unique index and slices not allowed
-        with pytest.raises(ValueError):
-            s.loc[Interval(1, 3):]
-        # this is confusing to me. I would have done:
-        # expected = s
-        # result = s.loc[Interval(1, 3):]
-        # tm.assert_series_equal(expected, result)
-
-        with pytest.raises(ValueError):
-            s[Interval(1, 3):]
-        # Same here:
-        # expected = s
-        # result = s[Interval(1, 3):]
-        # tm.assert_series_equal(expected, result)
-
-        # non-unique
-        with pytest.raises(ValueError):
-            s[[Interval(1, 3)]]
-        # not sure why the behavior for [[]] is different than []...
-
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_non_unique_moar_updated_behavior(self):
-
-        idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
-        s = Series(range(len(idx)), index=idx)
-
-        result = s.loc[Interval(1, 3)]
-        expected = s.iloc[[0, 1]]
+        expected = s
+        result = s.loc[Interval(1, 3):]
         tm.assert_series_equal(expected, result)
 
-        # non-unique index and slices not allowed
-        with pytest.raises(ValueError):
-            s.loc[Interval(1, 3):]
+        expected = s
+        result = s[Interval(1, 3):]
+        tm.assert_series_equal(expected, result)
 
-        with pytest.raises(ValueError):
-            s[Interval(1, 3):]
-
-        # non-unique
-        with pytest.raises(ValueError):
-            s[[Interval(1, 3)]]
-
+        expected = s.iloc[[0, 1]]
+        result = s[[Interval(1, 3)]]
+        tm.assert_series_equal(expected, result)
 
     def test_non_matching(self):
 
