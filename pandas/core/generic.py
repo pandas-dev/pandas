@@ -3507,7 +3507,7 @@ it is assumed to be aliases for the column names.')
         -------
         casted : type of caller
         """
-        if isinstance(dtype, collections.Mapping):
+        if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
                     raise KeyError('Only the Series name can be used for '
