@@ -3067,12 +3067,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c = Categorical(["a", "b", "b", "a"], ordered=False)
         cat = Series(c.copy())
 
-        # 'order' was deprecated in gh-10726
-        # 'sort' was deprecated in gh-12882
-        for func in ('order', 'sort'):
-            with tm.assert_produces_warning(FutureWarning):
-                getattr(c, func)()
-
         # sort in the categories order
         expected = Series(
             Categorical(["a", "a", "b", "b"],

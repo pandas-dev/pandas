@@ -75,6 +75,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - ``pd.read_excel()`` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
 
 
 .. _whatsnew_0210.performance:
