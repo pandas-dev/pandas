@@ -568,19 +568,14 @@ class TestIntervalIndex(Base):
         expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
-        # actual = self.index.get_indexer(index[:1])
-        # expected = np.array([0], dtype='intp')
-        # tm.assert_numpy_array_equal(actual, expected)
-
-        # actual = self.index.get_indexer(index)
-        # expected = np.array([-1, 1], dtype='intp')
-        # tm.assert_numpy_array_equal(actual, expected)   # these two cases need fixing.
+        # TODO: To be fleshed out:
+        #   IntervalIndex.get_indexer(Interval)
+        #   IntervalIndex.get_indexer(IntervalIndex)
 
     def test_get_indexer_subintervals(self):
 
         # TODO: is this right?
         # return indexers for wholly contained subintervals
-        # When does this method even get called?
         target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 1, 1], dtype='p')
@@ -603,26 +598,9 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_indexer_subintervals_updated_behavior(self):
 
-        # a good chance this whole method needs reworking.
+        # this whole method needs reworking.
+        pass
 
-        # target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
-        # actual = self.index.get_indexer(target)
-        # expected = np.array([0, 0, 1, 1], dtype='p')
-        # tm.assert_numpy_array_equal(actual, expected)
-
-        # target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
-        # actual = self.index.get_indexer(target)
-        # expected = np.array([0, 0, 1, 1], dtype='intp')
-        # tm.assert_numpy_array_equal(actual, expected)
-
-        # actual = self.index.get_indexer(target[[0, -1]])
-        # expected = np.array([0, 1], dtype='intp')
-        # tm.assert_numpy_array_equal(actual, expected)
-
-        # target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
-        # actual = self.index.get_indexer(target)
-        # expected = np.array([0, 0, 0], dtype='intp')
-        # tm.assert_numpy_array_equal(actual, expected)
 
     def test_contains(self):
         # Only endpoints are valid.
@@ -657,8 +635,39 @@ class TestIntervalIndex(Base):
         assert not i.contains(20)
         assert not i.contains(-20)
 
-        # Why are there two tests called test contains? this should be cleared up a little, no?
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_contains_updated_behavior(self):
 
+        # this method will replace both of the above
+
+        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
+
+        assert 0 not in index
+        assert 1 in index # not sure how we want to do this.
+        assert 2 in index # does this defer to "index.contains()" ?
+
+        assert Interval(0, 1, closed='right') in index
+        assert Interval(0, 2, closed='right') not in index
+        assert Interval(0, 0.5, closed='right') not in index
+        assert Interval(3, 5, closed='right') not in index
+        assert Interval(-1, 0, closed='left') not in index
+        assert Interval(0, 1, closed='left') not in index
+        assert Interval(0, 1, closed='both') not in index
+
+        assert not index.contains(0)
+        assert index.contains(0.1)
+        assert index.contains(0.5)
+        assert index.contains(1)
+
+        assert index.contains(Interval(0, 1), closed='right')
+        assert not index.contains(Interval(0, 1), closed='left')
+        assert not index.contains(Interval(0, 2), closed='right')
+
+        assert not index.contains(Interval(0, 3), closed='right')
+        assert not index.contains(Interval(1, 3), closed='right')
+
+        assert not index.contains(20)
+        assert not index.contains(-20)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_interval_covers_interval_updated_behavior(self):
