@@ -282,7 +282,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key=None, **kwargs):
+def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
     """ read from the store, close it if we opened it
 
         Retrieve pandas object stored in file, optionally based on where
@@ -290,13 +290,16 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         Parameters
         ----------
-        path_or_buf : path (string), buffer, or path object (pathlib.Path or
-            py._path.local.LocalPath) to read from
+        path_or_buf : path (string), buffer or path object (pathlib.Path or
+            py._path.local.LocalPath) designating the file to open, or an
+            already opened pd.HDFStore object
 
             .. versionadded:: 0.19.0 support for pathlib, py.path.
 
         key : group identifier in the store. Can be omitted if the HDF file
             contains a single pandas object.
+        mode : string, {'r', 'r+', 'a'}, default 'r'. Mode to use when opening
+            the file. Ignored if path_or_buf is a pd.HDFStore.
         where : list of Term (or convertable) objects, optional
         start : optional, integer (defaults to None), row number to start
             selection
@@ -313,10 +316,9 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         """
 
-    if kwargs.get('mode', 'a') not in ['r', 'r+', 'a']:
+    if mode not in ['r', 'r+', 'a']:
         raise ValueError('mode {0} is not allowed while performing a read. '
-                         'Allowed modes are r, r+ and a.'
-                         .format(kwargs.get('mode')))
+                         'Allowed modes are r, r+ and a.'.format(mode))
     # grab the scope
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
@@ -335,9 +337,9 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             raise compat.FileNotFoundError(
                 'File %s does not exist' % path_or_buf)
 
+        store = HDFStore(path_or_buf, mode=mode, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
-        store = HDFStore(path_or_buf, **kwargs)
         auto_close = True
 
     elif isinstance(path_or_buf, HDFStore):
