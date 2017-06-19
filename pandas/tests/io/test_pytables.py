@@ -5247,6 +5247,17 @@ class TestHDFStore(Base):
                         expected = df.loc[[], :]
                     tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.parametrize('format', ['fixed', 'table'])
+    def test_read_hdf_series_mode_r(self, format):
+        # GH 16583
+        # Tests that reading a Series saved to an HDF file
+        # still works if a mode='r' argument is supplied
+        series = tm.makeFloatSeries()
+        with ensure_clean_path(self.path) as path:
+            series.to_hdf(path, key='data', format=format)
+            result = pd.read_hdf(path, key='data', mode='r')
+        tm.assert_series_equal(result, series)
+
     @pytest.mark.skipif(sys.version_info < (3, 6), reason="Need python 3.6")
     def test_fspath(self):
         with tm.ensure_clean('foo.h5') as path:
