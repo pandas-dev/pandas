@@ -1000,6 +1000,20 @@ class XlrdTests(ReadingTestsBase):
                                'skiprows_list', skiprows=np.array([0, 2]))
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_nrows(self):
+        # GH 16645
+        num_rows_to_pull = 5
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        expected = expected[:num_rows_to_pull]
+        tm.assert_frame_equal(actual, expected)
+
+        with pytest.raises(ValueError):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          nrows='5')
+
     def test_read_excel_squeeze(self):
         # GH 12157
         f = os.path.join(self.dirpath, 'test_squeeze' + self.ext)
