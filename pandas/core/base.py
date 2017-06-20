@@ -7,7 +7,9 @@ from pandas.compat import builtins
 import numpy as np
 
 from pandas.core.dtypes.missing import isnull
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCIndexClass, ABCPandasObject,
+    ABCSelectionMixin, ABCIndexOpsMixin, ABCGroupbyMixin)
 from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
 from pandas.util._validators import validate_bool_kwarg
 
@@ -19,9 +21,26 @@ from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
 
-_shared_docs = dict()
-_indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
+try:
+    from pandas.types.hinting import (  # noqa
+        typing,
+        Any, Callable, Text, Optional, Union,
+        Tuple, Dict,
+        ArrayLike, Scalar, PythonScalar, Buffer,
+        SelectionKey, SelectionFunction
+    )
+except ImportError:
+    pass
+
+MYPY = False
+if MYPY:
+    from pandas import Series, Index  # noqa
+
+
+_shared_docs = dict()  # type: Dict[str, str]
+_indexops_doc_kwargs = dict(
+    klass='IndexOpsMixin', inplace='',
+    unique='IndexOpsMixin', duplicated='IndexOpsMixin')  # type: Dict[str, str]
 
 
 class StringMixin(object):
@@ -37,21 +56,23 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
+        # type: () -> Text
         raise AbstractMethodError(self)
 
     def __str__(self):
+        # type: () -> Text
         """
         Return a string representation for a particular Object
 
         Invoked by str(df) in both py2/py3.
         Yields Bytestring in Py2, Unicode String in py3.
         """
-
         if compat.PY3:
             return self.__unicode__()
         return self.__bytes__()
 
     def __bytes__(self):
+        # type: () -> bytes
         """
         Return a string representation for a particular object.
 
@@ -64,6 +85,7 @@ class StringMixin(object):
         return self.__unicode__().encode(encoding, 'replace')
 
     def __repr__(self):
+        # type: () -> str
         """
         Return a string representation for a particular object.
 
@@ -72,16 +94,18 @@ class StringMixin(object):
         return str(self)
 
 
-class PandasObject(StringMixin):
+class PandasObject(StringMixin, ABCPandasObject):
 
     """baseclass for various pandas objects"""
 
     @property
     def _constructor(self):
+        # type: () -> Any
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
     def __unicode__(self):
+        # type: () -> Text
         """
         Return a string representation for a particular object.
 
@@ -92,14 +116,17 @@ class PandasObject(StringMixin):
         return object.__repr__(self)
 
     def _dir_additions(self):
+        # type: () -> typing.Set[str]
         """ add addtional __dir__ for this object """
         return set()
 
     def _dir_deletions(self):
+        # type: () -> typing.Set[str]
         """ delete unwanted __dir__ for this object """
         return set()
 
     def __dir__(self):
+        # type: () -> typing.List[str]
         """
         Provide method name lookup and completion
         Only provide 'public' methods
@@ -109,6 +136,7 @@ class PandasObject(StringMixin):
         return sorted(rv)
 
     def _reset_cache(self, key=None):
+        # type: (Optional[str]) -> None
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -120,11 +148,13 @@ class PandasObject(StringMixin):
             self._cache.pop(key, None)
 
     def __sizeof__(self):
+        # type: () -> int
+        # might have to do these lower down...
         """
         Generates the total memory usage for a object that returns
         either a value or Series of values
         """
-        if hasattr(self, 'memory_usage'):
+        if getattr(self, 'memory_usage', None) is not None:
             mem = self.memory_usage(deep=True)
             if not is_scalar(mem):
                 mem = mem.sum()
@@ -147,11 +177,13 @@ class NoNewAttributesMixin(object):
     """
 
     def _freeze(self):
+        # type: () -> None
         """Prevents setting additional attributes"""
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
     def __setattr__(self, key, value):
+        # type: (Text, Any) -> None
         # _cache is used by a decorator
         # dict lookup instead of getattr as getattr is false for getter
         # which error
@@ -166,18 +198,22 @@ class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties """
 
     def _delegate_property_get(self, name, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
         raise TypeError("You cannot access the "
                         "property {name}".format(name=name))
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
+        # type: (str, Any, *Any, **Any) -> None
         raise TypeError("The property {name} cannot be set".format(name=name))
 
     def _delegate_method(self, name, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
     def _add_delegate_accessors(cls, delegate, accessors, typ,
                                 overwrite=False):
+        # type: (Any, Any, typing.List[str], str, bool) -> None
         """
         add accessors to cls from the delegate class
 
@@ -192,11 +228,15 @@ class PandasDelegate(PandasObject):
         """
 
         def _create_delegator_property(name):
+            # type: (str) -> Any
+            # See https://github.com/python/mypy/issues/220? for properties
 
             def _getter(self):
+                # type: () -> Any
                 return self._delegate_property_get(name)
 
             def _setter(self, new_values):
+                # type: (Any) -> Any
                 return self._delegate_property_set(name, new_values)
 
             _getter.__name__ = name
@@ -206,8 +246,10 @@ class PandasDelegate(PandasObject):
                             doc=getattr(delegate, name).__doc__)
 
         def _create_delegator_method(name):
+            # type: (str) -> Any
 
             def f(self, *args, **kwargs):
+                # type: (*Any, **Any) -> Any
                 return self._delegate_method(name, *args, **kwargs)
 
             f.__name__ = name
@@ -232,20 +274,24 @@ class AccessorProperty(object):
     """
 
     def __init__(self, accessor_cls, construct_accessor):
+        # type: (Any, Any) -> None
         self.accessor_cls = accessor_cls
         self.construct_accessor = construct_accessor
         self.__doc__ = accessor_cls.__doc__
 
     def __get__(self, instance, owner=None):
+        # type: (Any, Optional[Any]) -> Any
         if instance is None:
             # this ensures that Series.str.<method> is well defined
             return self.accessor_cls
         return self.construct_accessor(instance)
 
     def __set__(self, instance, value):
+        # type: (Any, Any) -> None
         raise AttributeError("can't set attribute")
 
     def __delete__(self, instance):
+        # type: (Any, Any) -> None
         raise AttributeError("can't delete attribute")
 
 
@@ -261,12 +307,11 @@ class SpecificationError(GroupByError):
     pass
 
 
-class SelectionMixin(object):
+class SelectionMixin(ABCSelectionMixin):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
-    _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
     _builtin_table = {
@@ -292,6 +337,8 @@ class SelectionMixin(object):
 
     @property
     def _selection_name(self):
+        # type: () -> str
+        # TODO: can this be a list?
         """
         return a name for myself; this would ideally be called
         the 'name' property, but we cannot conflict with the
@@ -304,6 +351,7 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
+        # type: () -> typing.List[str]
         if not isinstance(self._selection, (list, tuple, ABCSeries,
                                             ABCIndexClass, np.ndarray)):
             return [self._selection]
@@ -311,6 +359,8 @@ class SelectionMixin(object):
 
     @cache_readonly
     def _selected_obj(self):
+        # type: () -> PandasObject
+        # TODO: should this be NDFrame?
 
         if self._selection is None or isinstance(self.obj, ABCSeries):
             return self.obj
@@ -319,10 +369,12 @@ class SelectionMixin(object):
 
     @cache_readonly
     def ndim(self):
+        # type: () -> int
         return self._selected_obj.ndim
 
     @cache_readonly
     def _obj_with_exclusions(self):
+        # type: () -> PandasObject
         if self._selection is not None and isinstance(self.obj,
                                                       ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
@@ -333,6 +385,8 @@ class SelectionMixin(object):
             return self.obj
 
     def __getitem__(self, key):
+        # type: (SelectionKey) -> Any
+        # TODO: This could be a Groupby, _Window, anything else?
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
@@ -355,6 +409,8 @@ class SelectionMixin(object):
             return self._gotitem(key, ndim=1)
 
     def _gotitem(self, key, ndim, subset=None):
+        # type: (SelectionKey, int, Any) -> Any
+        # TODO: stricter subset
         """
         sub-classes to define
         return a sliced object
@@ -371,11 +427,13 @@ class SelectionMixin(object):
         raise AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
+        # type: (SelectionFunction, *Any, **Any) -> Any
         raise AbstractMethodError(self)
 
     agg = aggregate
 
     def _try_aggregate_string_function(self, arg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> Any
         """
         if arg is a string, then try to operate on it:
         - try to find a function (or attribute) on ourselves
@@ -404,6 +462,7 @@ class SelectionMixin(object):
         raise ValueError("{} is an unknown string function".format(arg))
 
     def _aggregate(self, arg, *args, **kwargs):
+        # type: (SelectionFunction, *Any, **Any) -> Tuple[Any, Optional[str]]
         """
         provide an implementation for the aggregators
 
@@ -443,6 +502,7 @@ class SelectionMixin(object):
             obj = self._selected_obj
 
             def nested_renaming_depr(level=4):
+                # type: (int) -> None
                 # deprecation of nested renaming
                 # GH 15931
                 warnings.warn(
@@ -497,6 +557,7 @@ class SelectionMixin(object):
             from pandas.core.reshape.concat import concat
 
             def _agg_1dim(name, how, subset=None):
+                # type: (str, str, Optional[Any]) -> Any
                 """
                 aggregate a 1-dim with how
                 """
@@ -507,6 +568,7 @@ class SelectionMixin(object):
                 return colg.aggregate(how, _level=(_level or 0) + 1)
 
             def _agg_2dim(name, how):
+                # type: (str, str) -> Any
                 """
                 aggregate a 2-dim with how
                 """
@@ -515,6 +577,7 @@ class SelectionMixin(object):
                 return colg.aggregate(how, _level=None)
 
             def _agg(arg, func):
+                # type: (Dict[str, str], Callable) -> compat.OrderedDict
                 """
                 run the aggregations over the arg with func
                 return an OrderedDict
@@ -580,11 +643,13 @@ class SelectionMixin(object):
             # combine results
 
             def is_any_series():
+                # type: () -> bool
                 # return a boolean if we have *any* nested series
                 return any([isinstance(r, ABCSeries)
                             for r in compat.itervalues(result)])
 
             def is_any_frame():
+                # type: () -> bool
                 # return a boolean if we have *any* nested series
                 return any([isinstance(r, ABCDataFrame)
                             for r in compat.itervalues(result)])
@@ -617,7 +682,7 @@ class SelectionMixin(object):
                 return result, True
 
             # fall thru
-            from pandas import DataFrame, Series
+            from pandas import DataFrame, Series  # noqa
             try:
                 result = DataFrame(result)
             except ValueError:
@@ -643,6 +708,8 @@ class SelectionMixin(object):
         return result, True
 
     def _aggregate_multiple_funcs(self, arg, _level, _axis):
+        # type: (Any, Any, Any) -> Any
+        # TODO: typecheck
         from pandas.core.reshape.concat import concat
 
         if _axis != 0:
@@ -698,7 +765,7 @@ class SelectionMixin(object):
             # e.g. a list of scalars
 
             from pandas.core.dtypes.cast import is_nested_object
-            from pandas import Series
+            from pandas import Series  # noqa
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
                 raise ValueError("cannot combine transform and "
@@ -706,6 +773,7 @@ class SelectionMixin(object):
             return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
+        # type: (PandasObject, Callable, **Any) -> PandasObject
         """ return a new object with the replacement attributes """
         if obj is None:
             obj = self._selected_obj.copy()
@@ -719,10 +787,12 @@ class SelectionMixin(object):
         return obj_type(obj, **kwargs)
 
     def _is_cython_func(self, arg):
+        # type: (Callable) -> str
         """ if we define an internal function for this argument, return it """
         return self._cython_table.get(arg)
 
     def _is_builtin_func(self, arg):
+        # type: (Callable) -> Callable
         """
         if we define an builtin function for this argument, return it,
         otherwise return the arg
@@ -730,15 +800,17 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class GroupByMixin(object):
+class GroupByMixin(ABCGroupbyMixin):
     """ provide the groupby facilities to the mixed object """
 
     @staticmethod
     def _dispatch(name, *args, **kwargs):
+        # type: (str, *Any, **Any) -> Callable
         """ dispatch to apply """
 
         def outer(self, *args, **kwargs):
-            def f(x):
+            # type: (*Any, **Any) -> Callable
+            def f(x):  # type: (PandasObject) -> Any
                 x = self._shallow_copy(x, groupby=self._groupby)
                 return getattr(x, name)(*args, **kwargs)
             return self._groupby.apply(f)
@@ -746,6 +818,7 @@ class GroupByMixin(object):
         return outer
 
     def _gotitem(self, key, ndim, subset=None):
+        # type: (Union[str, list], int, Any) -> GroupByMixin
         """
         sub-classes to define
         return a sliced object
@@ -778,7 +851,7 @@ class GroupByMixin(object):
         return self
 
 
-class IndexOpsMixin(object):
+class IndexOpsMixin(ABCIndexOpsMixin):
     """ common ops mixin to support a unified inteface / docs for Series /
     Index
     """
@@ -787,6 +860,7 @@ class IndexOpsMixin(object):
     __array_priority__ = 1000
 
     def transpose(self, *args, **kwargs):
+        # type: (*int, **int) -> IndexOpsMixin
         """ return the transpose, which is by definition self """
         nv.validate_transpose(args, kwargs)
         return self
@@ -796,17 +870,20 @@ class IndexOpsMixin(object):
 
     @property
     def shape(self):
+        # type: () -> Tuple
         """ return a tuple of the shape of the underlying data """
         return self._values.shape
 
     @property
     def ndim(self):
+        # type: () -> int
         """ return the number of dimensions of the underlying data,
         by definition 1
         """
         return 1
 
     def item(self):
+        # type: () -> PythonScalar
         """ return the first element of the underlying data as a python
         scalar
         """
@@ -819,36 +896,43 @@ class IndexOpsMixin(object):
 
     @property
     def data(self):
+        # type: () -> Buffer
         """ return the data pointer of the underlying data """
         return self.values.data
 
     @property
     def itemsize(self):
+        # type: () -> int
         """ return the size of the dtype of the item of the underlying data """
         return self._values.itemsize
 
     @property
     def nbytes(self):
+        # type: () -> int
         """ return the number of bytes in the underlying data """
         return self._values.nbytes
 
     @property
     def strides(self):
+        # type: () -> Tuple[int]
         """ return the strides of the underlying data """
         return self._values.strides
 
     @property
     def size(self):
+        # type: () -> int
         """ return the number of elements in the underlying data """
         return self._values.size
 
     @property
     def flags(self):
+        # type: () -> np.core.multiarray.flagsobj
         """ return the ndarray.flags for the underlying data """
         return self.values.flags
 
     @property
     def base(self):
+        # type: () -> Union[object, None]
         """ return the base object if the memory of the underlying data is
         shared
         """
@@ -856,18 +940,22 @@ class IndexOpsMixin(object):
 
     @property
     def _values(self):
+        # type: () -> np.ndarray
         """ the internal implementation """
         return self.values
 
     @property
     def empty(self):
+        # type: () -> bool
         return not self.size
 
     def max(self):
+        # type: () -> Scalar
         """ The maximum value of the object """
         return nanops.nanmax(self.values)
 
     def argmax(self, axis=None):
+        # type: (int) -> np.ndarray
         """
         return a ndarray of the maximum argument indexer
 
@@ -878,10 +966,12 @@ class IndexOpsMixin(object):
         return nanops.nanargmax(self.values)
 
     def min(self):
+        # type: () -> Scalar
         """ The minimum value of the object """
         return nanops.nanmin(self.values)
 
     def argmin(self, axis=None):
+        # type: (int) -> np.ndarray
         """
         return a ndarray of the minimum argument indexer
 
@@ -893,11 +983,19 @@ class IndexOpsMixin(object):
 
     @cache_readonly
     def hasnans(self):
+        # type: () -> bool
         """ return if I have any nans; enables various perf speedups """
         return isnull(self).any()
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self,
+                op,                 # type: Callable
+                name,               # type: str
+                axis=0,             # type: int
+                skipna=True,        # type: bool
+                numeric_only=None,  # type: Optional[bool]
+                filter_type=None,   # type: Optional[Any]
+                **kwds
+                ):                  # type: (...) -> Callable
         """ perform the reduction type operation if we can """
         func = getattr(self, name, None)
         if func is None:
@@ -905,8 +1003,13 @@ class IndexOpsMixin(object):
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
 
-    def value_counts(self, normalize=False, sort=True, ascending=False,
-                     bins=None, dropna=True):
+    def value_counts(self,
+                     normalize=False,   # type: bool
+                     sort=True,         # type: bool
+                     ascending=False,   # type: bool
+                     bins=None,         # type: Optional[int]
+                     dropna=True        # type: bool
+                     ):                 # type: (...) -> 'Series'
         """
         Returns object containing counts of unique values.
 
@@ -963,6 +1066,8 @@ class IndexOpsMixin(object):
 
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
     def unique(self):
+        # type: () -> np.ndarray
+
         values = self._values
 
         if hasattr(values, 'unique'):
@@ -974,6 +1079,7 @@ class IndexOpsMixin(object):
         return result
 
     def nunique(self, dropna=True):
+        # type: (bool) -> int
         """
         Return number of unique elements in the object.
 
@@ -996,6 +1102,7 @@ class IndexOpsMixin(object):
 
     @property
     def is_unique(self):
+        # type: () -> bool
         """
         Return boolean if values in the object are unique
 
@@ -1007,6 +1114,7 @@ class IndexOpsMixin(object):
 
     @property
     def is_monotonic(self):
+        # type: () -> bool
         """
         Return boolean if values in the object are
         monotonic_increasing
@@ -1017,13 +1125,14 @@ class IndexOpsMixin(object):
         -------
         is_monotonic : boolean
         """
-        from pandas import Index
+        from pandas import Index  # noqa
         return Index(self).is_monotonic
 
     is_monotonic_increasing = is_monotonic
 
     @property
     def is_monotonic_decreasing(self):
+        # type: () -> bool
         """
         Return boolean if values in the object are
         monotonic_decreasing
@@ -1034,10 +1143,11 @@ class IndexOpsMixin(object):
         -------
         is_monotonic_decreasing : boolean
         """
-        from pandas import Index
+        from pandas import Index  # noqa
         return Index(self).is_monotonic_decreasing
 
     def memory_usage(self, deep=False):
+        # type: (bool) -> int
         """
         Memory usage of my values
 
@@ -1070,6 +1180,7 @@ class IndexOpsMixin(object):
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):
+        # type: (bool, int) -> Tuple[np.ndarray, 'Index']
         """
         Encode the object as an enumerated type or categorical variable
 
@@ -1163,6 +1274,8 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['searchsorted'])
     @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
+        # type: (ArrayLike, str, Optional[ArrayLike]) -> np.ndarray
+
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
@@ -1185,6 +1298,8 @@ class IndexOpsMixin(object):
 
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        # type: (str, bool) -> IndexOpsMixin
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
@@ -1216,6 +1331,8 @@ class IndexOpsMixin(object):
 
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
+        # type: (str) -> Union[np.ndarray, IndexOpsMixin]
+
         from pandas.core.algorithms import duplicated
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
@@ -1229,4 +1346,5 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
+        # type: (Any, **Any) -> Any
         raise AbstractMethodError(self)

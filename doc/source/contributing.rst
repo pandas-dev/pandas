@@ -494,8 +494,8 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
-Python (PEP8)
-~~~~~~~~~~~~~
+Python (PEP8 and mypy)
+~~~~~~~~~~~~~~~~~~~~~~
 
 *pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
 There are several tools to ensure you abide by this standard. Here are *some* of
@@ -524,6 +524,16 @@ Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
    git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
+
+Pandas is gradually introducing static type annotations to the code base with
+`mypy <http://mypy.readthedocs.io/>`_. To run the checker, you'll need to install
+``mypy`` (``pip install mypy``) and run::
+
+   sh ci/typing.sh
+
+or on individual files with::
+
+   mypy path/to/module.py
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~

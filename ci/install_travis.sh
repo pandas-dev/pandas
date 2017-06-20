@@ -114,6 +114,10 @@ if [ "$LINT" ]; then
    pip install cpplint
 fi
 
+if [ "$TYPING" ]; then
+   pip install mypy-lang
+fi
+
 if [ "$COVERAGE" ]; then
     pip install coverage pytest-cov
 fi
