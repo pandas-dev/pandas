@@ -176,6 +176,11 @@ class TestSeriesDtypes(TestData):
         with pytest.raises(KeyError):
             s.astype(dt4)
 
+        # if dtypes provided is empty, it should error
+        dt5 = dtype_class({})
+        with pytest.raises(KeyError):
+            s.astype(dt5)
+
     def test_astype_generic_timestamp_deprecated(self):
         # see gh-15524
         data = [1]

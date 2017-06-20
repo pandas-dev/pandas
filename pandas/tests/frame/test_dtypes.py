@@ -494,6 +494,13 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)
 
+        # if dtypes provided is empty, the resulting DataFrame
+        # should be the same as the original DataFrame
+        dt7 = dtype_class({})
+        equiv = df.astype(dt7)
+        assert_frame_equal(df, equiv)
+        assert_frame_equal(df, original)
+
     def test_astype_duplicate_col(self):
         a1 = Series([1, 2, 3, 4, 5], name='a')
         b = Series([0.1, 0.2, 0.4, 0.6, 0.8], name='b')
