@@ -153,7 +153,7 @@ class TestSeriesDtypes(TestData):
             sys.setdefaultencoding(former_encoding)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
-    def run_astype_dict_like(self, dtype_class):
+    def test_astype_dict_like(self, dtype_class):
         # see gh-7271
         s = Series(range(0, 10, 2), name='abc')
 
