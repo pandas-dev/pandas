@@ -152,24 +152,29 @@ class TestSeriesDtypes(TestData):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
-    def test_astype_dict(self):
+    @pytest.mark.parametrize("dtype_class", [dict, Series])
+    def run_astype_dict_like(self, dtype_class):
         # see gh-7271
         s = Series(range(0, 10, 2), name='abc')
 
-        result = s.astype({'abc': str})
+        dt1 = dtype({'abc': str})
+        result = s.astype(dt1)
         expected = Series(['0', '2', '4', '6', '8'], name='abc')
         tm.assert_series_equal(result, expected)
 
-        result = s.astype({'abc': 'float64'})
+        dt2 = dtype({'abc': 'float64'})
+        result = s.astype(dt2)
         expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
                           name='abc')
         tm.assert_series_equal(result, expected)
 
+        dt3 = dtype({'abc': str, 'def': str})
         with pytest.raises(KeyError):
-            s.astype({'abc': str, 'def': str})
+            s.astype()
 
+        dt4 = dtype({0: str})
         with pytest.raises(KeyError):
-            s.astype({0: str})
+            s.astype(dt4)
 
     def test_astype_generic_timestamp_deprecated(self):
         # see gh-15524

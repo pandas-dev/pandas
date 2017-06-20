@@ -94,8 +94,8 @@ Bug Fixes
 
 Conversion
 ^^^^^^^^^^
-- Fix a bug when pd.astype() receive Series as `dtype` paramter, no action is taken. Now Series 
-`dtype` work the same as a `dict`.
+- Fix a bug that nothing happen when `Series` is passed to pd.astype() as `dtype`. Now `Series` 
+works the same as a `dict` when passed to `dtype`. (:issue:`16717`).
 
 
 
