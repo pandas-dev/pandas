@@ -170,7 +170,7 @@ class TestSeriesDtypes(TestData):
 
         dt3 = dtype_class({'abc': str, 'def': str})
         with pytest.raises(KeyError):
-            s.astype()
+            s.astype(dt3)
 
         dt4 = dtype_class({0: str})
         with pytest.raises(KeyError):
