@@ -3509,10 +3509,10 @@ it is assumed to be aliases for the column names.')
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
-                if len(dtype) > 1 or self.name not in dtype.keys():
+                if len(dtype) > 1 or self.name not in dtype:
                     raise KeyError('Only the Series name can be used for '
                                    'the key in Series dtype mappings.')
-                new_type = dtype.get(self.name)
+                new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors, **kwargs)
             elif self.ndim > 2:
                 raise NotImplementedError(

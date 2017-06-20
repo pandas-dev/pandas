@@ -176,6 +176,7 @@ class TestSeriesDtypes(TestData):
         with pytest.raises(KeyError):
             s.astype(dt4)
 
+        # GH16717
         # if dtypes provided is empty, it should error
         dt5 = dtype_class({})
         with pytest.raises(KeyError):

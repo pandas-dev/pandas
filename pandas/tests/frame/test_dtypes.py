@@ -494,10 +494,11 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)
 
+        # GH 16717
         # if dtypes provided is empty, the resulting DataFrame
         # should be the same as the original DataFrame
         dt7 = dtype_class({})
-        equiv = df.astype(dt7)
+        result = df.astype(dt7)
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)
 

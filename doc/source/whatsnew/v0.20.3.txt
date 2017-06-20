@@ -47,6 +47,7 @@ Conversion
 
 - Bug in pickle compat prior to the v0.20.x series, when ``UTC`` is a timezone in a Series/DataFrame/Index (:issue:`16608`)
 - Bug in Series construction when passing a Series with ``dtype='category'`` (:issue:`16524`).
+- Bug in pd.astype() when passing `Series` as `dtype`. (:issue:`16717`).
 
 Indexing
 ^^^^^^^^
