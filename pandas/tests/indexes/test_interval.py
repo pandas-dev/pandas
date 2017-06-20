@@ -334,6 +334,7 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_get_loc_value(self):
+        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
         pytest.raises(KeyError, self.index.get_loc, 0)
         assert self.index.get_loc(0.5) == 0
         assert self.index.get_loc(1) == 0
@@ -530,6 +531,7 @@ class TestIntervalIndex(Base):
             index.slice_locs(1, 2)
 
     def test_get_indexer(self):
+        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
@@ -573,6 +575,7 @@ class TestIntervalIndex(Base):
         #   IntervalIndex.get_indexer(IntervalIndex)
 
     def test_get_indexer_subintervals(self):
+        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         # TODO: is this right?
         # return indexers for wholly contained subintervals
@@ -603,6 +606,7 @@ class TestIntervalIndex(Base):
 
 
     def test_contains(self):
+        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
         # Only endpoints are valid.
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
 
@@ -618,7 +622,26 @@ class TestIntervalIndex(Base):
         assert Interval(3, 5) not in i
         assert Interval(-1, 0, closed='left') not in i
 
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_contains_updated_behavior(self):
+
+        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
+
+        # __contains__ requires perfect matches to intervals.
+        assert 0 not in i
+        assert 1 not in i
+        assert 2 not in i
+
+        assert Interval(0, 1, closed='right') in index
+        assert Interval(0, 2, closed='right') not in index
+        assert Interval(0, 0.5, closed='right') not in index
+        assert Interval(3, 5, closed='right') not in index
+        assert Interval(-1, 0, closed='left') not in index
+        assert Interval(0, 1, closed='left') not in index
+        assert Interval(0, 1, closed='both') not in index
+
     def testcontains(self):
+        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
 
@@ -636,23 +659,9 @@ class TestIntervalIndex(Base):
         assert not i.contains(-20)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_contains_updated_behavior(self):
-
-        # this method will replace both of the above
+    def testcontains_updated_behavior(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
-
-        assert 0 not in index
-        assert 1 in index # not sure how we want to do this.
-        assert 2 in index # does this defer to "index.contains()" ?
-
-        assert Interval(0, 1, closed='right') in index
-        assert Interval(0, 2, closed='right') not in index
-        assert Interval(0, 0.5, closed='right') not in index
-        assert Interval(3, 5, closed='right') not in index
-        assert Interval(-1, 0, closed='left') not in index
-        assert Interval(0, 1, closed='left') not in index
-        assert Interval(0, 1, closed='both') not in index
 
         assert not index.contains(0)
         assert index.contains(0.1)
@@ -661,6 +670,7 @@ class TestIntervalIndex(Base):
 
         assert index.contains(Interval(0, 1), closed='right')
         assert not index.contains(Interval(0, 1), closed='left')
+        assert not index.contains(Interval(0, 1), closed='both')
         assert not index.contains(Interval(0, 2), closed='right')
 
         assert not index.contains(Interval(0, 3), closed='right')
