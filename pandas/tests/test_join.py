@@ -192,3 +192,24 @@ def test_inner_join_indexer2():
 
     exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
     assert_almost_equal(ridx, exp_ridx)
+
+
+def test_merge_join_categorical_multiindex():
+    # From issue 16627
+    import pandas as pd
+    a = {'Cat1': pd.Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
+                                ['a', 'b', 'c']),
+         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = pd.DataFrame(a)
+
+    b = {'Cat': pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                               ['a', 'b', 'c']),
+         'Int': [0, 0, 0, 1, 1, 1],
+         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
+    b = pd.DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+
+    c = pd.merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
+                 right_on=['Cat', 'Int'], how='left')
+    d = a.join(b, on=['Cat1', 'Int1'])
+    c = c.drop(['Cat', 'Int'], axis=1)
+    assert_almost_equal(c, d)

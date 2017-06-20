@@ -102,6 +102,7 @@ Indexing
 
 - When called with a null slice (e.g. ``df.iloc[:]``), the ``.iloc`` and ``.loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
 - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
+- Fixed a bug that prevented joining on a categorical MultiIndex (:issue:`13873`).
 
 
 I/O
