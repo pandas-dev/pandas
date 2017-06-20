@@ -453,7 +453,7 @@ class TestDataFrameDataTypes(TestData):
         original = df.copy(deep=True)
 
         # change type of a subset of columns
-        dt1 = dtype({'b': 'str', 'd': 'float32'})
+        dt1 = dtype_class({'b': 'str', 'd': 'float32'})
         result = df.astype(dt1)
         expected = DataFrame({
             'a': a,
@@ -463,7 +463,7 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(result, expected)
         assert_frame_equal(df, original)
 
-        dt2 = dtype({'b': np.float32, 'c': 'float32', 'd': np.float64})
+        dt2 = dtype_class({'b': np.float32, 'c': 'float32', 'd': np.float64})
         result = df.astype(dt2)
         expected = DataFrame({
             'a': a,
@@ -474,22 +474,22 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(df, original)
 
         # change all columns
-        dt3 = dtype({'a': str, 'b': str, 'c': str, 'd': str})
+        dt3 = dtype_class({'a': str, 'b': str, 'c': str, 'd': str})
         assert_frame_equal(df.astype(dt3),
                            df.astype(str))
         assert_frame_equal(df, original)
 
         # error should be raised when using something other than column labels
         # in the keys of the dtype dict
-        dt4 = dtype({'b': str, 2: str})
-        dt5 = dtype({'e': str})
+        dt4 = dtype_class({'b': str, 2: str})
+        dt5 = dtype_class({'e': str})
         pytest.raises(KeyError, df.astype, dt4)
         pytest.raises(KeyError, df.astype, dt5)
         assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the
         # resulting DataFrame should be the same as the original DataFrame
-        dt6 = dtype({col: df[col].dtype for col in df.columns})
+        dt6 = dtype_class({col: df[col].dtype for col in df.columns})
         equiv = df.astype(dt6)
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)

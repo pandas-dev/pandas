@@ -157,22 +157,22 @@ class TestSeriesDtypes(TestData):
         # see gh-7271
         s = Series(range(0, 10, 2), name='abc')
 
-        dt1 = dtype({'abc': str})
+        dt1 = dtype_class({'abc': str})
         result = s.astype(dt1)
         expected = Series(['0', '2', '4', '6', '8'], name='abc')
         tm.assert_series_equal(result, expected)
 
-        dt2 = dtype({'abc': 'float64'})
+        dt2 = dtype_class({'abc': 'float64'})
         result = s.astype(dt2)
         expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
                           name='abc')
         tm.assert_series_equal(result, expected)
 
-        dt3 = dtype({'abc': str, 'def': str})
+        dt3 = dtype_class({'abc': str, 'def': str})
         with pytest.raises(KeyError):
             s.astype()
 
-        dt4 = dtype({0: str})
+        dt4 = dtype_class({0: str})
         with pytest.raises(KeyError):
             s.astype(dt4)
 
