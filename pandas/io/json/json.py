@@ -8,7 +8,7 @@ from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _stringify_path)
+                              _stringify_path, _infer_compression)
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
@@ -174,7 +174,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False):
+              lines=False, compression='infer'):
     """
     Convert a JSON string to pandas object
 
@@ -258,6 +258,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
+    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+    '.zip', or 'xz', respectively, and no decompression otherwise. If using
+    'zip', the ZIP file must contain only one data file to be read in.
+    Set to None for no decompression.
+
     encoding : str, default is 'utf-8'
         The encoding to use to decode py3 bytes.
 
@@ -319,9 +326,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
+    compression = _infer_compression(path_or_buf, compression)
+    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+        path_or_buf, encoding=encoding, compression=compression)
 
-    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
-                                                      encoding=encoding)
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)
@@ -333,7 +341,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         if exists:
             fh, handles = _get_handle(filepath_or_buffer, 'r',
-                                      encoding=encoding)
+                                      encoding=encoding,
+                                      compression=compression)
             json = fh.read()
             fh.close()
         else:
