@@ -11,7 +11,7 @@ from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
 from pandas import (Categorical, Series, DataFrame,
-                    Index, MultiIndex, Timedelta, CategoricalIndex)
+                    Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -1441,13 +1441,9 @@ def _factorize_keys(lk, rk, sort=True):
         rk = rk.values
 
     # if we exactly match in categories, allow us to use codes
-    if isinstance(lk, CategoricalIndex):
-        ldata = lk._data
-    else:
-        ldata = lk
     if (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
-            ldata.is_dtype_equal(rk)):
+            lk.is_dtype_equal(rk)):
         return lk.codes, rk.codes, len(lk.categories)
 
     if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):

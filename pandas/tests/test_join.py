@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from pandas import Index
+from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
 class TestIndexer(object):
@@ -196,20 +196,38 @@ def test_inner_join_indexer2():
 
 def test_merge_join_categorical_multiindex():
     # From issue 16627
-    import pandas as pd
-    a = {'Cat1': pd.Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
-                                ['a', 'b', 'c']),
+    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
+                             ['a', 'b', 'c']),
          'Int1': [0, 1, 0, 1, 0, 0]}
-    a = pd.DataFrame(a)
+    a = DataFrame(a)
 
-    b = {'Cat': pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
-                               ['a', 'b', 'c']),
+    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                            ['a', 'b', 'c']),
          'Int': [0, 0, 0, 1, 1, 1],
          'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
-    b = pd.DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
 
-    c = pd.merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
-                 right_on=['Cat', 'Int'], how='left')
+    c = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
+              right_on=['Cat', 'Int'], how='left')
     d = a.join(b, on=['Cat1', 'Int1'])
     c = c.drop(['Cat', 'Int'], axis=1)
-    assert_almost_equal(c, d)
+    assert_frame_equal(c, d)
+
+    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
+                             ['b', 'a', 'c'],
+                             ordered=True),
+         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = DataFrame(a)
+
+    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                            ['b', 'a', 'c'],
+                            ordered=True),
+         'Int': [0, 0, 0, 1, 1, 1],
+         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
+    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+
+    c = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
+              right_on=['Cat', 'Int'], how='left')
+    d = a.join(b, on=['Cat1', 'Int1'])
+    c = c.drop(['Cat', 'Int'], axis=1)
+    assert_frame_equal(c, d)
