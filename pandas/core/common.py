@@ -411,6 +411,13 @@ def is_null_slice(obj):
             obj.stop is None and obj.step is None)
 
 
+def is_true_slices(l):
+    """
+    Find non-trivial slices in "l": return a list of booleans with same length.
+    """
+    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+
+
 def is_full_slice(obj, l):
     """ we have a full length slice """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and

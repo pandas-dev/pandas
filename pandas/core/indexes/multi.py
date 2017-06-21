@@ -23,7 +23,8 @@ from pandas.core.dtypes.missing import isnull, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
-                                is_null_slice)
+                                is_null_slice,
+                                is_true_slices)
 
 import pandas.core.base as base
 from pandas.util._decorators import (Appender, cache_readonly,
@@ -1034,12 +1035,6 @@ class MultiIndex(Index):
         Return True if the labels are lexicographically sorted
         """
         return self.lexsort_depth == self.nlevels
-
-    def is_lexsorted_for_tuple(self, tup):
-        """
-        Return True if we are correctly lexsorted given the passed tuple
-        """
-        return len(tup) <= self.lexsort_depth
 
     @cache_readonly
     def lexsort_depth(self):
@@ -2262,12 +2257,12 @@ class MultiIndex(Index):
         """
 
         # must be lexsorted to at least as many levels
-        if not self.is_lexsorted_for_tuple(tup):
-            raise UnsortedIndexError('MultiIndex Slicing requires the index '
-                                     'to be fully lexsorted tuple len ({0}), '
-                                     'lexsort depth ({1})'
-                                     .format(len(tup), self.lexsort_depth))
-
+        true_slices = [i for (i, s) in enumerate(is_true_slices(tup)) if s]
+        if true_slices and true_slices[-1] >= self.lexsort_depth:
+            raise UnsortedIndexError('MultiIndex slicing requires the index '
+                                     'to be lexsorted: slicing on levels {0}, '
+                                     'lexsort depth {1}'
+                                     .format(true_slices, self.lexsort_depth))
         # indexer
         # this is the list of all values that we want to select
         n = len(self)

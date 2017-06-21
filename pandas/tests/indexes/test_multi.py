@@ -2826,8 +2826,13 @@ class TestMultiIndex(Base):
         df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
                           columns=['one', 'two'])
 
+        # GH 16734: not sorted, but no real slicing
+        result = df.loc(axis=0)['z', 'a']
+        expected = df.iloc[0]
+        tm.assert_series_equal(result, expected)
+
         with pytest.raises(UnsortedIndexError):
-            df.loc(axis=0)['z', :]
+            df.loc(axis=0)['z', slice('a')]
         df.sort_index(inplace=True)
         assert len(df.loc(axis=0)['z', :]) == 2
 
