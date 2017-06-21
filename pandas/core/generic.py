@@ -4430,7 +4430,10 @@ it is assumed to be aliases for the column names.')
 
         # GH #15390
         if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
-            threshold = np.asarray(threshold)
+            if isinstance(self, ABCSeries) or axis == 0:
+                threshold = pd.Series(threshold, index=self.index)
+            elif axis == 1:
+                threshold = pd.Series(threshold, index=self.columns)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False,

@@ -1893,17 +1893,19 @@ class TestDataFrameAnalytics(TestData):
             tm.assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
 
     @pytest.mark.parametrize("inplace", [True, False])
-    def test_clip_against_list(self, inplace):
+    @pytest.mark.parametrize("lower", [[2, 3, 4], np.asarray([2, 3, 4])])
+    @pytest.mark.parametrize("axis,res", [
+        (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
+        (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
+    ])
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
         # GH #15390
         original = self.simple.copy(deep=True)
 
-        result = original.clip(lower=[2, 3, 4], upper=[5, 6, 7],
-                               axis=1, inplace=inplace)
+        result = original.clip(lower=lower, upper=[5, 6, 7],
+                               axis=axis, inplace=inplace)
 
-        arr = np.array([[2., 3., 4.],
-                        [4., 5., 6.],
-                        [5., 6., 7.]])
-        expected = pd.DataFrame(arr,
+        expected = pd.DataFrame(res,
                                 columns=original.columns,
                                 index=original.index)
         if inplace:
