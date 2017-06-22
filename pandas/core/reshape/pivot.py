@@ -12,6 +12,7 @@ import pandas.core.common as com
 import numpy as np
 import types
 
+
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 fill_value=None, margins=False, dropna=True,
                 margins_name='All'):
@@ -211,7 +212,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     # could be passed a Series object with no 'columns'
     if hasattr(table, 'columns'):
-        for i,level in enumerate(table.columns.names[1:]):
+        for i, level in enumerate(table.columns.names[1:]):
             if level is None:
                 level = i
             if margins_name in table.columns.get_level_values(level):
@@ -245,7 +246,6 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     row_margin = row_margin.reindex(result.columns)
     # populate grand margin
     for k in margin_keys:
-        #import pdb;pdb.set_trace()
         if isinstance(k, compat.string_types):
             row_margin[k] = grand_margin[k]
         elif is_scalar(grand_margin.get(k[0])):
@@ -275,11 +275,12 @@ def _compute_grand_margin(data, values, aggfunc,
         grand_margin = {}
         for k, v in data[values].iteritems():
             try:
-                #import pdb; pdb.set_trace()
-                if isinstance(aggfunc, (types.FunctionType,types.BuiltinFunctionType)):
+                if isinstance(aggfunc, (types.FunctionType,
+                                        types.BuiltinFunctionType)):
                     grand_margin[k] = aggfunc(v)
                 elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], (types.FunctionType,types.BuiltinFunctionType)):
+                    if isinstance(aggfunc[k], (types.FunctionType,
+                                               types.BuiltinFunctionType)):
                         grand_margin[k] = aggfunc[k](v)
                     else:
                         grand_margin[k] = v.apply(aggfunc[k])

@@ -374,31 +374,47 @@ class TestPivotTable(object):
         for value_col in table.columns.levels[0]:
             _check_output(table[value_col], value_col)
 
-        commonargs = dict(values=['D','E'], index=['A', 'B'], margins=True, )
-        expectedmean = self.data.pivot_table(columns='C', aggfunc=np.mean, **commonargs).fillna(99999)
-        expectedsum = self.data.pivot_table(columns='C', aggfunc=np.sum, **commonargs).fillna(99999)
+        commonargs = dict(values=['D', 'E'], index=['A', 'B'], margins=True, )
+        expectedmean = self.data.pivot_table(columns='C',
+                                             aggfunc=np.mean,
+                                             **commonargs).fillna(99999)
+        expectedsum = self.data.pivot_table(columns='C',
+                                            aggfunc=np.sum,
+                                            **commonargs).fillna(99999)
 
-        result = self.data.pivot_table(columns='C', aggfunc=[np.mean,np.sum], **commonargs ).fillna(99999)
+        result = self.data.pivot_table(columns='C',
+                                       aggfunc=[np.mean, np.sum],
+                                       **commonargs).fillna(99999)
         assert all(result['mean'] == expectedmean)
         assert all(result['sum'] == expectedsum)
 
-        result = self.data.pivot_table(aggfunc={'D':np.mean,'E':np.sum}, **commonargs )
-        assert all(result['E'] == expectedsum[('E','All')])
-        assert all(result['D'] == expectedmean[('D','All')])
+        result = self.data.pivot_table(aggfunc={'D': np.mean, 'E': np.sum},
+                                       **commonargs)
+        assert all(result['E'] == expectedsum[('E', 'All')])
+        assert all(result['D'] == expectedmean[('D', 'All')])
 
-        result = self.data.pivot_table(columns='C', aggfunc={'D':np.mean,'E':np.sum}, **commonargs )
+        result = self.data.pivot_table(columns='C',
+                                       aggfunc={'D': np.mean, 'E': np.sum},
+                                       **commonargs)
         assert all(result['E'] == expectedsum['E'])
         assert all(result['D'] == expectedmean['D'])
 
-        result = self.data.pivot_table(aggfunc={'D':[np.mean,np.sum],'E':np.mean}, **commonargs )
-        assert ( expectedmean[[('D','All'),('E','All')]].values == result[ [('D','mean'),('E','mean')] ].values ).all()
+        result = self.data.pivot_table(aggfunc={'D': [np.mean, np.sum],
+                                                'E': np.mean},
+                                       **commonargs)
+        assert (expectedmean[[('D', 'All'), ('E', 'All')]].values ==
+                result[[('D', 'mean'), ('E', 'mean')]].values).all()
 
-        result2 = self.data.pivot_table(aggfunc={'D':[np.mean,np.sum],'E':np.mean}, **commonargs )
-        assert all( result == result2 )
+        result2 = self.data.pivot_table(aggfunc={'D': [np.mean, np.sum],
+                                                 'E': np.mean},
+                                        **commonargs)
+        assert all(result == result2)
 
         # this fails - can't mix columns + dict aggfunc with list of funcs
-        #result = self.data.pivot_table(columns='C', aggfunc={'D':[np.mean,np.sum],'E':[np.mean]}, **commonargs )
-
+        # result = self.data.pivot_table(columns='C',
+        #                                aggfunc={'D':[np.mean, np.sum],
+        #                                         'E':[np.mean]},
+        #                                **commonargs )
 
         # no col
 
@@ -420,7 +436,7 @@ class TestPivotTable(object):
         for item in ['DD', 'EE', 'FF']:
             totals = table.loc[('All', ''), item]
             assert totals == self.data[item].mean()
- 
+
         # issue number #8349: pivot_table with margins and dictionary aggfunc
         data = [
             {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2013,
