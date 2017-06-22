@@ -37,7 +37,7 @@ Other Enhancements
 - :func:`to_pickle` has gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
-- :func:`DataFrame.clip()` and :func: `Series.clip()` have gained an inplace argument. (:issue:`15388`)
+- :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 
 .. _whatsnew_0210.api_breaking:
@@ -66,7 +66,7 @@ Other API Changes
 
 Deprecations
 ~~~~~~~~~~~~
-- :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with to_excel() (:issue:`10559`).
+- :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 
 
 .. _whatsnew_0210.prior_deprecations:
@@ -74,7 +74,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- ``pd.read_excel()`` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
 
 
