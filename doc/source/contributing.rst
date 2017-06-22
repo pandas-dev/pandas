@@ -525,6 +525,11 @@ run this slightly modified command::
 
    git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
 
+Note that on Windows, `grep`, `xargs`, and other tools are likely unavailable.
+However, this has been shown to work on smaller commits::
+
+    git diff master -u -- "*.py" | flake8 --diff
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
