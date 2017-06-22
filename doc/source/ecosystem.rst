@@ -248,5 +248,5 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight way to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
 and check that they're *actually* true.
