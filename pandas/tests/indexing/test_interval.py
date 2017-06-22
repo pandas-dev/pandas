@@ -67,7 +67,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
 
-    def test_with_interval(self):
+    def test_loc_and_getitem_with_interval(self):
         ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         s = self.s
@@ -106,7 +106,7 @@ class TestIntervalIndex(object):
 
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_with_interval_updated_behavior(self):
+    def test_loc_and_getitem_with_interval_updated_behavior(self):
 
         s = self.s
         expected = 0
