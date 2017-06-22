@@ -135,6 +135,7 @@ Reshaping
 
 Numeric
 ^^^^^^^
+- Bug in ``.clip()`` When list-like is passed; previously this raised ``ValueError`` (:issue:`15390`)
 
 
 Categorical
@@ -143,5 +144,3 @@ Categorical
 
 Other
 ^^^^^
-
-- Bug in ``.clip()`` now takes list or numpy-array; previously this raised ``ValueError`` (:issue:`15390`)
