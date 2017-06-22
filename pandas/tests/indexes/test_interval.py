@@ -887,6 +887,9 @@ class TestIntervalIndex(Base):
         # expected = np.array([], dtype='intp')   ??
         tm.assert_numpy_array_equal(result, expected)
 
+        # we may also want to test get_indexer if the intervals are non-overlapping,
+        # decreasing, non-monotonic, etc..
+
     def test_contains(self):
         ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
         # Only endpoints are valid.
