@@ -1912,12 +1912,13 @@ class TestDataFrameAnalytics(TestData):
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
-    def test_clip_against_frame(self):
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
         lb = DataFrame(np.random.randn(1000, 2))
         ub = lb + 1
 
-        clipped_df = df.clip(lb, ub)
+        clipped_df = df.clip(lb, ub, axis=axis)
 
         lb_mask = df <= lb
         ub_mask = df >= ub

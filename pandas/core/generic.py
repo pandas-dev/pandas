@@ -52,6 +52,7 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name, cPickle as pkl)
+from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg
@@ -4416,6 +4417,8 @@ it is assumed to be aliases for the column names.')
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
+        if axis is not None:
+            axis = self._get_axis_number(axis)
 
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
@@ -4429,11 +4432,14 @@ it is assumed to be aliases for the column names.')
         subset = method(threshold, axis=axis) | isnull(self)
 
         # GH #15390
+        # In order for where method to work, the threshold must
+        # be transformed to NDFrame from other array like structure.
         if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
-            if isinstance(self, ABCSeries) or axis == 0:
+            if isinstance(self, ABCSeries):
                 threshold = pd.Series(threshold, index=self.index)
-            elif axis == 1:
-                threshold = pd.Series(threshold, index=self.columns)
+            else:
+                threshold = _align_method_FRAME(self, np.asarray(threshold),
+                                                axis)
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False,
