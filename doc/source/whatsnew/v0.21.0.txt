@@ -90,6 +90,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Fixes regression in 0.20, `aggregate` allows dictionaries as return values again (:issue:`16741`)
+
 Conversion
 ^^^^^^^^^^
 

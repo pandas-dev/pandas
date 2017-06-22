@@ -612,9 +612,9 @@ class TestGroupByAggregate(object):
         df.groupby(level=0, axis='columns').mean()
 
     def test_cython_agg_return_dict(self):
-        ts = self.df.groupby('A')['B'].agg(lambda x: x.value_counts().to_dict())
+        ts = self.df.groupby('A')['B'].agg(
+            lambda x: x.value_counts().to_dict())
         assert isinstance(ts.loc['foo'], dict)
-
 
     def test_cython_fail_agg(self):
         dr = bdate_range('1/1/2000', periods=50)
