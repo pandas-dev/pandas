@@ -882,3 +882,7 @@ class TestGroupByAggregate(object):
         expected.index.name = 0
         result = df.groupby(0).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_agg_ret_dict(self):
+        ts = self.df.groupby('A')['B'].agg(lambda x: x.value_counts().to_dict())
+        assert isinstance(ts.loc['foo'], dict)

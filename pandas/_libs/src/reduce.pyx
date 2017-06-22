@@ -395,7 +395,6 @@ cdef class SeriesGrouper:
                         result = _get_result_array(res,
                                                    self.ngroups,
                                                    len(self.dummy_arr))
-
                     util.assign_value_1d(result, lab, res)
                     counts[lab] = group_size
                     islider.advance(group_size)
@@ -419,7 +418,7 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values'):
+    if hasattr(res, 'values') and isinstance(res.values, np.ndarray):
         res = res.values
     if not np.isscalar(res):
         if isinstance(res, np.ndarray):
