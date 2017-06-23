@@ -75,6 +75,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
 
 
