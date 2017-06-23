@@ -395,6 +395,7 @@ cdef class SeriesGrouper:
                         result = _get_result_array(res,
                                                    self.ngroups,
                                                    len(self.dummy_arr))
+
                     util.assign_value_1d(result, lab, res)
                     counts[lab] = group_size
                     islider.advance(group_size)
