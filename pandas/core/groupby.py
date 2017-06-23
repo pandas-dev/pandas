@@ -1212,8 +1212,6 @@ class GroupBy(_GroupBy):
             lambda x: x._cython_agg_general('ohlc'))
 
     @Appender(DataFrame.describe.__doc__)
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
     def describe(self, **kwargs):
         self._set_group_selection()
         result = self.apply(lambda x: x.describe(**kwargs))
