@@ -409,3 +409,13 @@ class TestSeriesDatetimeValues(TestData):
                            date(2015, 11, 22)])
         assert_series_equal(s.dt.date, expected)
         assert_series_equal(s.apply(lambda x: x.date()), expected)
+
+    def test_datetime_understood(self):
+        # Ensures it doesn't fail to create the right series
+        # reported in issue#16726
+        series = pd.Series(pd.date_range("2012-01-01", periods=3))
+        offset = pd.offsets.DateOffset(days=6)
+        result = series - offset
+        expected = pd.Series(pd.to_datetime([
+            '2011-12-26', '2011-12-27', '2011-12-28']))
+        tm.assert_series_equal(result, expected)
