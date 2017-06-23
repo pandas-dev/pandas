@@ -40,12 +40,7 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _get_xlim, _set_ticks_props,
                                     format_date_labels)
 
-
-if _mpl_ge_1_5_0():
-    # Compat with mp 1.5, which uses cycler.
-    import cycler
-    colors = mpl_stylesheet.pop('axes.color_cycle')
-    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
+_registered = False
 
 
 def _get_standard_kind(kind):
@@ -95,6 +90,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        self._setup()
         self.data = data
         self.by = by
 
@@ -177,6 +173,20 @@ class MPLPlot(object):
         self.kwds = kwds
 
         self._validate_color_args()
+
+    def _setup(self):
+        global _registered
+        if not _registered:
+            from pandas.plotting import _converter
+            _converter.register()
+
+            if _mpl_ge_1_5_0():
+                # Compat with mp 1.5, which uses cycler.
+                import cycler
+                colors = mpl_stylesheet.pop('axes.color_cycle')
+                mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
+
+            _registered = True
 
     def _validate_color_args(self):
         if 'color' not in self.kwds and 'colors' in self.kwds:
