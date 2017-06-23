@@ -1200,14 +1200,14 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
-.. _groupby.multicolumn_factorization
+.. _groupby.multicolumn_factorization:
 
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By using ``.ngroup()``, we can extract information about the groups in
 a way similar to :func:`factorize` (as described further in the
-:ref:`reshaping API <reshaping.factorization>`) but which applies
+:ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different
 sources. This can be useful as an intermediate categorical-like step
 in processing, when the relationships between the group rows are more
