@@ -434,7 +434,7 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
     flavor : 'sqlite', default None
         .. deprecated:: 0.19.0
            'sqlite' is the only supported option if SQLAlchemy is not
-           installed.
+           used.
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).

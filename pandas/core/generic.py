@@ -1340,7 +1340,7 @@ class NDFrame(PandasObject, SelectionMixin):
         flavor : 'sqlite', default None
             .. deprecated:: 0.19.0
                'sqlite' is the only supported option if SQLAlchemy is not
-               installed.
+               used.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -3287,8 +3287,7 @@ it is assumed to be aliases for the column names.')
 
     def consolidate(self, inplace=False):
         """
-        .. deprecated:: 0.20.0
-           Consolidate will be an internal implementation only.
+        DEPRECATED: consolidate will be an internal implementation only.
         """
         # 15483
         warnings.warn("consolidate is deprecated and will be removed in a "
@@ -3604,6 +3603,7 @@ it is assumed to be aliases for the column names.')
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
         """
+        Deprecated.
         Attempt to infer better dtype for object columns
 
         Parameters
