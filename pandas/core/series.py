@@ -1848,7 +1848,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 dtype='int64').__finalize__(self)
 
     def nlargest(self, n=5, keep='first'):
-        """Return the largest `n` elements.
+        """
+        Return the largest `n` elements.
 
         Parameters
         ----------
@@ -1894,7 +1895,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
-        """Return the smallest `n` elements.
+        """
+        Return the smallest `n` elements.
 
         Parameters
         ----------

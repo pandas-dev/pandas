@@ -50,16 +50,17 @@ Conversion
 Indexing
 ^^^^^^^^
 
-- Bug in ``Float64Index`` causing an empty array instead of None to be returned from ``.get(np.nan)`` on a Series whose index did not contain any NaNs (:issue:`8569`)
+- Bug in ``Float64Index`` causing an empty array instead of ``None`` to be returned from ``.get(np.nan)`` on a Series whose index did not contain any ``NaN`` s (:issue:`8569`)
 
 I/O
 ^^^
 
--- Bug in ``pd.read_csv()`` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue`16675`)
+- Bug in :func:`read_csv`` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue:`16675`)
+- Bug in :func:`read_hdf`` in which reading a ``Series`` saved to an HDF file in 'fixed' format fails when an explicit ``mode='r'`` argument is supplied (:issue:`16583`)
 
 Plotting
 ^^^^^^^^
-
+- Fix regression in series plotting that prevented RGB and RGBA tuples from being used as color arguments (:issue:`16233`)
 
 
 

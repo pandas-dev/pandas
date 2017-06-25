@@ -1292,7 +1292,7 @@ class NDFrame(PandasObject, SelectionMixin):
             As of v0.20.2 these additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-             'blosc:zlib', 'blosc:zstd'}.
+            'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
         fletcher32 : bool, default False
