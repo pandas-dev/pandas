@@ -817,9 +817,13 @@ class TestMultiIndexSlicers(object):
         assert df.index.lexsort_depth == 0
         with tm.assert_raises_regex(
                 UnsortedIndexError,
-                'MultiIndex Slicing requires the index to be fully '
-                r'lexsorted tuple len \(2\), lexsort depth \(0\)'):
-            df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
+                'MultiIndex slicing requires the index to be '
+                r'lexsorted: slicing on levels \[1\], lexsort depth 0'):
+            df.loc[(slice(None), slice('bar')), :]
+
+        # GH 16734: not sorted, but no real slicing
+        result = df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
+        tm.assert_frame_equal(result, df.iloc[[1, 3], :])
 
     def test_multiindex_slicers_non_unique(self):
 
@@ -1001,9 +1005,14 @@ class TestMultiIndexSlicers(object):
 
         # not sorted
         def f():
-            df.loc['A1', (slice(None), 'foo')]
+            df.loc['A1', ('a', slice('foo'))]
 
         pytest.raises(UnsortedIndexError, f)
+
+        # GH 16734: not sorted, but no real slicing
+        tm.assert_frame_equal(df.loc['A1', (slice(None), 'foo')],
+                              df.loc['A1'].iloc[:, [0, 2]])
+
         df = df.sort_index(axis=1)
 
         # slicing
