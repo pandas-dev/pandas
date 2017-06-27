@@ -9,8 +9,6 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import warnings
-
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
@@ -313,33 +311,6 @@ pc_latex_multirow = """
 style_backup = dict()
 
 
-def mpl_style_cb(key):
-    warnings.warn(pc_mpl_style_deprecation_warning, FutureWarning,
-                  stacklevel=5)
-
-    import sys
-    from pandas.plotting._style import mpl_stylesheet
-    global style_backup
-
-    val = cf.get_option(key)
-
-    if 'matplotlib' not in sys.modules.keys():
-        if not val:  # starting up, we get reset to None
-            return val
-        raise Exception("matplotlib has not been imported. aborting")
-
-    import matplotlib.pyplot as plt
-
-    if val == 'default':
-        style_backup = dict([(k, plt.rcParams[k]) for k in mpl_stylesheet])
-        plt.rcParams.update(mpl_stylesheet)
-    elif not val:
-        if style_backup:
-            plt.rcParams.update(style_backup)
-
-    return val
-
-
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
     _enable_data_resource_formatter(cf.get_option(key))
@@ -382,9 +353,6 @@ with cf.config_prefix('display'):
                        validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
-    cf.register_option('mpl_style', None, pc_mpl_style_doc,
-                       validator=is_one_of_factory([None, False, 'default']),
-                       cb=mpl_style_cb)
     cf.register_option('height', 60, pc_height_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('width', 80, pc_width_doc,
