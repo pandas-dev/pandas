@@ -1338,9 +1338,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. If a DBAPI2 object, only sqlite3 is supported.
         flavor : 'sqlite', default None
-            DEPRECATED: this parameter will be removed in a future version,
-            as 'sqlite' is the only supported option if SQLAlchemy is not
-            installed.
+            .. deprecated:: 0.19.0
+               'sqlite' is the only supported option if SQLAlchemy is not
+               used.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -3498,7 +3498,9 @@ it is assumed to be aliases for the column names.')
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : DEPRECATED use ``errors`` instead
+        raise_on_error : raise on invalid input
+            .. deprecated:: 0.20.0
+               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -3602,7 +3604,6 @@ it is assumed to be aliases for the column names.')
                         convert_timedeltas=True, copy=True):
         """
         Deprecated.
-
         Attempt to infer better dtype for object columns
 
         Parameters
@@ -5809,8 +5810,9 @@ it is assumed to be aliases for the column names.')
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False (DEPRECATED)
-            Attempt to infer fall dst-transition hours based on order
+        infer_dst : boolean, default False
+            .. deprecated:: 0.15.0
+               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------

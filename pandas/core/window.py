@@ -342,21 +342,23 @@ class _Window(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    how : string, default None (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default None
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     _shared_docs['mean'] = dedent("""
     %(name)s mean
 
     Parameters
     ----------
-    how : string, default None (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default None
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
 
 class Window(_Window):
     """
-    Provides rolling window calculcations.
+    Provides rolling window calculations.
 
     .. versionadded:: 0.18.0
 
@@ -374,9 +376,10 @@ class Window(_Window):
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
         this will default to 1.
-    freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic.
-        Specified as a frequency string or DateOffset object.
+    freq : string or DateOffset object, optional (default None)
+        .. deprecated:: 0.18.0
+           Frequency to conform the data to before computing the statistic.
+           Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -571,8 +574,9 @@ class Window(_Window):
         ----------
         mean : boolean, default True
             If True computes weighted mean, else weighted sum
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
@@ -736,8 +740,9 @@ class _Rolling(_Window):
         window : int/array, default to _get_window()
         center : boolean, default to self.center
         check_minp : function, default to _use_window
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
@@ -864,8 +869,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'max' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'max'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def max(self, how=None, *args, **kwargs):
         nv.validate_window_func('max', args, kwargs)
@@ -878,8 +884,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'min' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'min'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def min(self, how=None, *args, **kwargs):
         nv.validate_window_func('min', args, kwargs)
@@ -896,8 +903,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'median' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'median'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def median(self, how=None, **kwargs):
         if self.freq is not None and how is None:
@@ -1329,9 +1337,10 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic.
-        Specified as a frequency string or DateOffset object.
+    freq : string or DateOffset object, optional (default None)
+        .. deprecated:: 0.18.0
+           Frequency to conform the data to before computing the statistic.
+           Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     axis : int or string, default 0
@@ -1593,8 +1602,9 @@ class EWM(_Rolling):
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : None or string alias / date offset object, default=None (DEPRECATED)
-        Frequency to conform to before computing statistic
+    freq : None or string alias / date offset object, default=None
+        .. deprecated:: 0.18.0
+           Frequency to conform to before computing statistic
     adjust : boolean, default True
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average)
@@ -1727,8 +1737,9 @@ class EWM(_Rolling):
         Parameters
         ----------
         func : string/callable to apply
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
