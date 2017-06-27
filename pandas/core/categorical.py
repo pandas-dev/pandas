@@ -398,8 +398,8 @@ class Categorical(PandasObject):
 
     def reshape(self, new_shape, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error in a future release.
 
         An ndarray-compatible method that returns `self` because
         `Categorical` instances cannot actually be reshaped.
@@ -430,7 +430,8 @@ class Categorical(PandasObject):
     @classmethod
     def from_array(cls, data, **kwargs):
         """
-        DEPRECATED: Use ``Categorical`` instead.
+        .. deprecated:: 0.19.0
+           Use ``Categorical`` instead.
 
         Make a Categorical type from a single array-like object.
 
