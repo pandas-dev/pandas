@@ -656,11 +656,7 @@ class Base(object):
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
                 with tm.assert_raises_regex(TypeError, msg):
-                    result = first.symmetric_difference([1, 2, 3])
-
-        # 12591 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            first.sym_diff(second)
+                    first.symmetric_difference([1, 2, 3])
 
     def test_insert_base(self):
 

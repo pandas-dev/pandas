@@ -41,8 +41,8 @@ from pandas.core.common import (is_bool_indexer,
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
-from pandas.util._decorators import (Appender, Substitution, cache_readonly,
-                                     deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, Substitution,
+                                     cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
@@ -2375,8 +2375,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if 'freq' in attribs:
             attribs['freq'] = None
         return self._shallow_copy_with_infer(the_diff, **attribs)
-
-    sym_diff = deprecate('sym_diff', symmetric_difference)
 
     def _get_unique_index(self, dropna=False):
         """
