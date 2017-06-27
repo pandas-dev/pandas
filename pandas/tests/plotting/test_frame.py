@@ -17,8 +17,6 @@ from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 from pandas.util.testing import slow
 
-from pandas.core.config import set_option
-
 import numpy as np
 from numpy.random import rand, randn
 
@@ -2681,20 +2679,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_grid_settings(
             DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4]}),
             plotting._core._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
-
-    def test_option_mpl_style(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            set_option('display.mpl_style', 'default')
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            set_option('display.mpl_style', None)
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            set_option('display.mpl_style', False)
-
-        with pytest.raises(ValueError):
-            set_option('display.mpl_style', 'default2')
 
     def test_invalid_colormap(self):
         df = DataFrame(randn(3, 2), columns=['A', 'B'])
