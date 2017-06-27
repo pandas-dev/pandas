@@ -55,6 +55,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``Float64Index`` causing an empty array instead of ``None`` to be returned from ``.get(np.nan)`` on a Series whose index did not contain any ``NaN`` s (:issue:`8569`)
+- Bug in ``MultiIndex`` causing an error when passing an empty iterable to `.isin`. (:issue:`16777`)
 
 I/O
 ^^^
