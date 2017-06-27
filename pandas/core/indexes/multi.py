@@ -89,6 +89,9 @@ class MultiIndex(Index):
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
             raise ValueError('Length of levels and labels must be the same.')
+        if names is not None and len(names) > 0 and len(levels) == 0:
+            levels = [[] for _ in names]
+            labels = [[] for _ in names]
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
         if len(levels) == 1:
@@ -1128,8 +1131,7 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(tuples) == 0:
-            # I think this is right? Not quite sure...
+        if len(tuples) == 0 and names is None:
             raise TypeError('Cannot infer number of levels from empty list')
 
         if isinstance(tuples, (np.ndarray, Index)):
@@ -2621,8 +2623,9 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return algos.isin(self.values,
-                              MultiIndex.from_tuples(values).values)
+            values = MultiIndex.from_tuples(values,
+                                            names=self._levels).values
+            return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]
