@@ -478,7 +478,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : DEPRECATED
+    as_indexer : DEPRECATED - Keyword is ignored.
 
     Returns
     -------
