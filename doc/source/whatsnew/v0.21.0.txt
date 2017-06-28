@@ -90,7 +90,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixes regression in 0.20, `aggregate` allows dictionaries as return values again (:issue:`16741`)
+- Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 Conversion
 ^^^^^^^^^^
