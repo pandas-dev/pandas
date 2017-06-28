@@ -4425,34 +4425,6 @@ Performance
   `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
   for more information and some solutions.
 
-Experimental
-''''''''''''
-
-HDFStore supports ``Panel4D`` storage.
-
-.. ipython:: python
-   :okwarning:
-
-   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
-   p4d = pd.Panel4D({ 'l1' : wp })
-   p4d
-   store.append('p4d', p4d)
-   store
-
-These, by default, index the three axes ``items, major_axis,
-minor_axis``. On an ``AppendableTable`` it is possible to setup with the
-first append a different indexing scheme, depending on how you want to
-store your data. Pass the ``axes`` keyword with a list of dimensions
-(currently must by exactly 1 less than the total dimensions of the
-object). This cannot be changed after table creation.
-
-.. ipython:: python
-   :okwarning:
-
-   store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:
