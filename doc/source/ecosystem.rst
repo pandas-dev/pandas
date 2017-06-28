@@ -239,3 +239,14 @@ pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
 PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
+
+.. _ecosystem.data_validation:
+
+Data validation
+---------------
+
+`Engarde <http://engarde.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+and check that they're *actually* true.
