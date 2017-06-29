@@ -619,9 +619,9 @@ class TestIntervalIndex(Base):
         # increasing
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 1)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 1, 2)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 1)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
         assert index.slice_locs(end=Interval(0, 2)) == ()
         assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
 
@@ -629,37 +629,37 @@ class TestIntervalIndex(Base):
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
         assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == ()
-        assert index.slice_locs(start=Interval(0, 2)) == (2)
+        assert index.slice_locs(start=Interval(0, 2)) == (2, 3)
         assert index.slice_locs(end=Interval(2, 4)) == ()
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 1)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 1)
+        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 2)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == # ?
-        assert index.slice_locs(start=Interval(0, 2)) == # ?
-        assert index.slice_locs(end=Interval(2, 4)) == # ?
-        assert index.slice_locs(end=Interval(0, 2)) == # ?
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == # ?
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(end=Interval(0, 2)) == ()  # questionable
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == # ?
-        assert index.slice_locs(start=Interval(0, 2)) == # ?
-        assert index.slice_locs(end=Interval(2, 4)) == # ?
-        assert index.slice_locs(end=Interval(0, 2)) == # ?
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == # ?
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == # This should raise?
+        assert index.slice_locs(start=Interval(0, 2)) == #  This should raise?
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(end=Interval(0, 2)) == #  This should raise?
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == # This should raise?
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == # ?
-        assert index.slice_locs(start=Interval(0, 2)) == # ?
-        assert index.slice_locs(end=Interval(2, 4)) == # ?
-        assert index.slice_locs(end=Interval(0, 2)) == # ?
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == # ?
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(start=Interval(0, 2)) == (0, 4)
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=Interval(0, 2)) == ()
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
 
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
@@ -887,7 +887,8 @@ class TestIntervalIndex(Base):
         # expected = np.array([], dtype='intp')   ??
         tm.assert_numpy_array_equal(result, expected)
 
-        # we may also want to test get_indexer if the intervals are non-overlapping,
+        # we may also want to test get_indexer for the case when
+        # the intervals are non-overlapping, duplicated,
         # decreasing, non-monotonic, etc..
 
     def test_contains(self):
