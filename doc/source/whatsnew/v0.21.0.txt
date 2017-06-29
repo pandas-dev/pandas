@@ -92,6 +92,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- fix issue when rendering dataframe to html where element id's were not unique (:issue:`16780`)
+
 Conversion
 ^^^^^^^^^^
 
