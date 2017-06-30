@@ -38,6 +38,7 @@ Bug Fixes
 ~~~~~~~~~
 - Fixed issue with dataframe scatter plot for categorical data that reports incorrect column key not found when categorical data is used for plotting (:issue:`16199`)
 - Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
+- Fixed compat with loading a ``DataFrame`` with a ``PeriodIndex``, from a ``format='fixed'`` HDFStore, in Python 3, that was written in Python 2 (:issue:`16781`)
 
 
 
