@@ -34,57 +34,57 @@ matrix:
       language: generic
       env:
         - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network"
-    - os: linux
+    - dist: trusty
       env:
         - JOB="2.7_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8"
       addons:
         apt:
           packages:
           - language-pack-zh-hans
-    - os: linux
+    - dist: trusty
       env:
         - JOB="2.7" TEST_ARGS="--skip-slow" LINT=true
       addons:
         apt:
           packages:
           - python-gtk2
-    - os: linux
+    - dist: trusty
       env:
         - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
       addons:
         apt:
           packages:
           - xsel
-    - os: linux
+    - dist: trusty
       env:
         - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
     # In allow_failures
-    - os: linux
+    - dist: trusty
       env:
         - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
     # In allow_failures
-    - os: linux
+    - dist: trusty
       env:
         - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
     # In allow_failures
-    - os: linux
+    - dist: trusty
       env:
         - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
     # In allow_failures
-    - os: linux
+    - dist: trusty
       env:
         - JOB="3.5_DOC" DOC=true
     allow_failures:
-      - os: linux
+      - dist: trusty
         env:
           - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
-      - os: linux
+      - dist: trusty
         env:
           - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
-      - os: linux
+      - dist: trusty
         env:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-      - os: linux
+      - dist: trusty
         env:
           - JOB="3.5_DOC" DOC=true
 
