@@ -2584,8 +2584,8 @@ class GenericFixed(Fixed):
         if 'name' in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
 
-        index_class = self._alias_to_class(getattr(node._v_attrs,
-                                                   'index_class', ''))
+        index_class = self._alias_to_class(_ensure_decoded(
+            getattr(node._v_attrs, 'index_class', '')))
         factory = self._get_index_factory(index_class)
 
         kwargs = {}
