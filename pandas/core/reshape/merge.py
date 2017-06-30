@@ -1384,13 +1384,14 @@ def _factorize_keys(lk, rk, sort=True):
         lk = lk.values
         rk = rk.values
 
-    # if we exactly match in categories, allow us to use codes
+    # if we exactly match in categories, allow us to factorize on codes
     if (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
-        return lk.codes, rk.codes, len(lk.categories)
-
-    if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
+        klass = libhashtable.Int64Factorizer
+        lk = _ensure_int64(lk.codes)
+        rk = _ensure_int64(rk.codes)
+    elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))
         rk = _ensure_int64(com._values_from_object(rk))
