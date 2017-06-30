@@ -37,9 +37,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Fixed issue with dataframe scatter plot for categorical data that reports incorrect column key not found when categorical data is used for plotting (:issue:`16199`)
-
-
-
+- fix issue when rendering dataframe to html where element id's were not unique (:issue:`16780`)
 
 Conversion
 ^^^^^^^^^^
