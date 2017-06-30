@@ -842,6 +842,7 @@ class LatexFormatter(TableFormatter):
                  multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
@@ -940,6 +941,11 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if self.bold_rows and self.fmt.index:
+                # bold row labels
+                crow = ['\\textbf{%s}' % x
+                        if j < ilevels and x.strip() not in ['', '{}'] else x
+                        for j, x in enumerate(crow)]
             if i < clevels and self.fmt.header and self.multicolumn:
                 # sum up columns to multicolumns
                 crow = self._format_multicolumn(crow, ilevels)

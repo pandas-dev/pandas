@@ -40,7 +40,6 @@ Bug Fixes
 - Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
 
 
-
 Conversion
 ^^^^^^^^^^
 
@@ -57,6 +56,7 @@ I/O
 
 - Bug in :func:`read_csv` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue:`16675`)
 - Bug in :func:`read_hdf` in which reading a ``Series`` saved to an HDF file in 'fixed' format fails when an explicit ``mode='r'`` argument is supplied (:issue:`16583`)
+- Bug in :func:`DataFrame.to_latex` where ``bold_rows`` was wrongly specified to be ``True`` by default, whereas in reality row labels remained non-bold whatever parameter provided. (:issue:`16707`)
 
 Plotting
 ^^^^^^^^
