@@ -560,6 +560,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                            na_value=-1)
         return self._create_from_codes(taken)
 
+    def is_dtype_equal(self, other):
+        return self._data.is_dtype_equal(other)
+
     take_nd = take
 
     def map(self, mapper):
