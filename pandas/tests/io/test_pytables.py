@@ -5207,6 +5207,26 @@ class TestHDFStore(Base):
             with pd.HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
+    def test_read_py2_hdf_file_in_py3(self):
+        # GH 16781
+
+        # tests reading a PeriodIndex DataFrame written in Python2 in Python3
+
+        # the file was generated in Python 2.7 like so:
+        #
+        # df = pd.DataFrame([1.,2,3], index=pd.PeriodIndex(
+        #              ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
+        # df.to_hdf('periodindex_0.20.1_x86_64_darwin_2.7.13.h5', 'p')
+
+        expected = pd.DataFrame([1., 2, 3], index=pd.PeriodIndex(
+            ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
+
+        with ensure_clean_store(
+                tm.get_data_path('periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+                mode='r') as store:
+            result = store['p']
+            assert_frame_equal(result, expected)
+
 
 class TestHDFComplexValues(Base):
     # GH10447
