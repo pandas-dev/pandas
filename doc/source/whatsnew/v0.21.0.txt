@@ -135,7 +135,7 @@ Reshaping
 
 Numeric
 ^^^^^^^
-- Bug in ``.clip()`` When list-like is passed; previously this raised ``ValueError`` (:issue:`15390`)
+- Bug in ``.clip()`` with ``axis=1`` and a list-like for ``threshold`` is passed; previously this raised ``ValueError`` (:issue:`15390`)
 
 
 Categorical
