@@ -1892,12 +1892,33 @@ class TestDataFrameAnalytics(TestData):
 
             tm.assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
 
-    def test_clip_against_frame(self):
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("lower", [[2, 3, 4], np.asarray([2, 3, 4])])
+    @pytest.mark.parametrize("axis,res", [
+        (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
+        (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
+    ])
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
+        # GH #15390
+        original = self.simple.copy(deep=True)
+
+        result = original.clip(lower=lower, upper=[5, 6, 7],
+                               axis=axis, inplace=inplace)
+
+        expected = pd.DataFrame(res,
+                                columns=original.columns,
+                                index=original.index)
+        if inplace:
+            result = original
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
         lb = DataFrame(np.random.randn(1000, 2))
         ub = lb + 1
 
-        clipped_df = df.clip(lb, ub)
+        clipped_df = df.clip(lb, ub, axis=axis)
 
         lb_mask = df <= lb
         ub_mask = df >= ub
