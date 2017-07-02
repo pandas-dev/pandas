@@ -61,6 +61,15 @@ class TestMultiIndex(Base):
 
         tm.assert_raises_regex(ValueError, 'The truth value of a', f)
 
+    def test_multi_index_names(self):
+        cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']], names=['1', '2'])
+        df = pd.DataFrame(np.ones((10, 6)), columns=cols)
+        rolling_result = df.rolling(3).cov()
+        assert rolling_result.index.names == [None, '1', '2']
+        assert (rolling_result.index.levels[0] == list(range(10))).all()
+        assert (rolling_result.index.levels[1] == ['A', 'B']).all()
+        assert (rolling_result.index.levels[2] == ['C', 'D', 'E']).all()
+
     def test_labels_dtypes(self):
 
         # GH 8456

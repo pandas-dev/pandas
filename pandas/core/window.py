@@ -1948,7 +1948,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 result.columns = Index(result.columns).set_names(
                     arg2.columns.name)
                 result.index = result.index.set_names(
-                    [arg1.index.name, arg1.columns.name])
+                    arg1.index.names + arg1.columns.names)
 
                 return result
 
