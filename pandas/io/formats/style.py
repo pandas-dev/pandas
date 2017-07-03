@@ -281,13 +281,14 @@ class Styler(object):
         for r, idx in enumerate(self.data.index):
             row_es = []
             for c, value in enumerate(rlabels[r]):
+                rid = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
                 es = {
                     "type": "th",
                     "is_visible": _is_visible(r, c, idx_lengths),
                     "value": value,
                     "display_value": value,
-                    "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
-                                       "row%s" % r]),
+                    "id": "_".join(rid[1:]),
+                    "class": " ".join(rid)
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
