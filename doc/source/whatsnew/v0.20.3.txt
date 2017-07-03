@@ -40,7 +40,7 @@ Bug Fixes
 - Fixed issue with :meth:`DataFrame.style` where element id's were not unique (:issue:`16780`)
 - Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
 - Fixed compat with loading a ``DataFrame`` with a ``PeriodIndex``, from a ``format='fixed'`` HDFStore, in Python 3, that was written in Python 2 (:issue:`16781`)
-
+- Fixed bug where computing the rolling covariance of a MultiIndexed ``DataFrame`` improperly raised a ``ValueError`` (:issue:`16789`)
 
 Conversion
 ^^^^^^^^^^
