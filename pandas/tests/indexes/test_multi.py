@@ -62,14 +62,10 @@ class TestMultiIndex(Base):
         tm.assert_raises_regex(ValueError, 'The truth value of a', f)
 
     def test_multi_index_names(self):
-<<<<<<< HEAD
 
         # GH 16789
-        cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']], names=['1', '2'])
-=======
         cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']],
                                           names=['1', '2'])
->>>>>>> 6c9079a49276f2d2bc32bce430218a94a868f4cb
         df = pd.DataFrame(np.ones((10, 6)), columns=cols)
         rolling_result = df.rolling(3).cov()
         assert rolling_result.index.names == [None, '1', '2']
