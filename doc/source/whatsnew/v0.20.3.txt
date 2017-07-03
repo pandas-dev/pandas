@@ -37,7 +37,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Fixed issue with dataframe scatter plot for categorical data that reports incorrect column key not found when categorical data is used for plotting (:issue:`16199`)
-
+- Handle reindexing an empty categorical index rather than throwing (:issue:`16770`)
 
 
 

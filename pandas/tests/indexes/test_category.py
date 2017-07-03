@@ -420,6 +420,14 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([0, 3, 2], dtype=np.int64))
 
+    def test_reindex_empty_index(self):
+        # See GH16770
+        c = CategoricalIndex([])
+        res, indexer = c.reindex(['a', 'b'])
+        tm.assert_index_equal(res, Index(['a', 'b']), exact=True)
+        tm.assert_numpy_array_equal(indexer,
+                                    np.array([-1, -1], dtype=np.int64))
+
     def test_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
