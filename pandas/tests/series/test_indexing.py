@@ -786,13 +786,14 @@ class TestSeriesIndexing(TestData):
         s[0] = np.nan
         assert_series_equal(s, expected)
 
+        # bool & float -> object
         s = Series([False])
         s.loc[0] = np.nan
-        assert_series_equal(s, Series([np.nan]))
+        assert_series_equal(s, Series([np.nan], dtype=object))
 
         s = Series([False, True])
         s.loc[0] = np.nan
-        assert_series_equal(s, Series([np.nan, 1.0]))
+        assert_series_equal(s, Series([np.nan, True]))
 
     def test_set_value(self):
         idx = self.ts.index[10]
@@ -1375,14 +1376,16 @@ class TestSeriesIndexing(TestData):
         expected = Series([5, 11, 2, 5, 11, 2], index=[0, 1, 2, 0, 1, 2])
         assert_series_equal(comb, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime_coerce(self):
+
         s = Series(date_range('20130102', periods=2))
-        expected = Series([10, 10], dtype='datetime64[ns]')
+        expected = Series([10, 10], dtype='object')
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
         assert_series_equal(rs, expected)
 
+        # convert to object as we are passing non-datetime64
         rs = s.where(mask, 10)
         assert_series_equal(rs, expected)
 
@@ -1393,7 +1396,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='datetime64[ns]')
+        expected = Series([10, None], dtype=object)
         assert_series_equal(rs, expected)
 
         # GH 15701
@@ -1404,9 +1407,9 @@ class TestSeriesIndexing(TestData):
         expected = Series([pd.NaT, s[1]])
         assert_series_equal(rs, expected)
 
-    def test_where_timedelta(self):
+    def test_where_timedelta_coerce(self):
         s = Series([1, 2], dtype='timedelta64[ns]')
-        expected = Series([10, 10], dtype='timedelta64[ns]')
+        expected = Series([10, 10], dtype=object)
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
@@ -1422,8 +1425,37 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='timedelta64[ns]')
+        expected = Series([10, None], dtype=object)
         assert_series_equal(rs, expected)
+
+    def test_where_consistency(self):
+
+        # 16402
+        # where should be consisten across various functions
+        s = Series([Timestamp('20130101'), pd.NaT])
+
+        # this is currently wrong :<, should be object
+        result = s.fillna(Timestamp('20130101', tz='US/Eastern'))
+        expected = Series([Timestamp('2012-12-31 19:00:00'),
+                           Timestamp('2013-01-01 00:00:00')]
+                          ).dt.tz_localize('US/Eastern')
+        assert_series_equal(result, expected)
+
+        result = s.fillna('foo')
+        expected = Series([Timestamp('20130101'), 'foo'])
+        assert_series_equal(result, expected)
+
+        s2 = s.copy()
+        s2[1] = 'bar'
+        expected = Series([Timestamp('20130101'), 'bar'])
+        assert_series_equal(s2, expected)
+
+        # see 16406 for constrution bug
+        result = s.where([True, False], Timestamp('20130101', tz='US/Eastern'))
+        expected = Series([Timestamp('20130101'),
+                           Timestamp('20130101', tz='US/Eastern')],
+                          dtype=object)
+        assert_series_equal(result, expected)
 
     def test_mask(self):
         # compare with tested results in test_where
@@ -1604,7 +1636,7 @@ class TestSeriesIndexing(TestData):
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
-        assert_series_equal(s, expected)
+        assert_series_equal(s, Series([np.nan, True, np.nan, False]))
 
         expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8,
                            9])

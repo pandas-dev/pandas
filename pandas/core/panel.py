@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
+    cast_scalar_to_array,
     maybe_cast_item)
 from pandas.core.dtypes.common import (
     is_integer, is_list_like,
@@ -178,11 +179,9 @@ class Panel(NDFrame):
             copy = False
             dtype = None
         elif is_scalar(data) and all(x is not None for x in passed_axes):
-            if dtype is None:
-                dtype, data = infer_dtype_from_scalar(data)
-            values = np.empty([len(x) for x in passed_axes], dtype=dtype)
-            values.fill(data)
-            mgr = self._init_matrix(values, passed_axes, dtype=dtype,
+            values = cast_scalar_to_array([len(x) for x in passed_axes],
+                                          data, dtype=dtype)
+            mgr = self._init_matrix(values, passed_axes, dtype=values.dtype,
                                     copy=False)
             copy = False
         else:  # pragma: no cover
@@ -582,9 +581,7 @@ class Panel(NDFrame):
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif is_scalar(value):
-            dtype, value = infer_dtype_from_scalar(value)
-            mat = np.empty(shape[1:], dtype=dtype)
-            mat.fill(value)
+            mat = cast_scalar_to_array(shape[1:], value)
         else:
             raise TypeError('Cannot set item of type: %s' % str(type(value)))
 

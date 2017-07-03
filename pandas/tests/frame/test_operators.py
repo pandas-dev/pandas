@@ -188,6 +188,7 @@ class TestDataFrameOperators(TestData):
         df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
         ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
                'ne': 'ne'}
+
         for left, right in ops.items():
             left_f = getattr(operator, left)
             right_f = getattr(operator, right)

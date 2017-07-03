@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_integer,
     is_float,
+    is_bool,
     is_dtype_equal,
     is_object_dtype,
     is_categorical_dtype,
@@ -608,11 +609,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
+
         if other is None:
             other = self._na_value
-        values = np.where(cond, self.values, other)
 
         dtype = self.dtype
+        values = self.values
+
+        if is_bool(other) or is_bool_dtype(other):
+
+            # bools force casting
+            values = values.astype(object)
+            dtype = None
+
+        values = np.where(cond, values, other)
+
         if self._is_numeric_dtype and np.any(isnull(values)):
             # We can't coerce to the numeric dtype of "self" (unless
             # it's float) if there are NaN values in our output.
@@ -1040,6 +1051,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
+
         return value
 
     def _assert_can_do_op(self, value):
@@ -3663,6 +3675,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 # no need to care metadata other than name
                 # because it can't have freq if
                 return Index(result, name=self.name)
+
         return self._shallow_copy()
 
     _index_shared_docs['dropna'] = """

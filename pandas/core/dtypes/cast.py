@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 from pandas._libs import tslib, lib
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslib import iNaT, Timestamp
 from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -272,7 +272,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         else:
             if issubclass(dtype.type, np.datetime64):
                 try:
-                    fill_value = lib.Timestamp(fill_value).value
+                    fill_value = Timestamp(fill_value).value
                 except:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
@@ -333,6 +333,23 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
+def infer_dtype_from(val, pandas_dtype=False):
+    """
+    interpret the dtype from a scalar or array. This is a convenience
+    routines to infer dtype from a scalar or an array
+
+    Parameters
+    ----------
+    pandas_dtype : bool, default False
+        whether to infer dtype including pandas extension types.
+        If False, scalar/array belongs to pandas extension types is inferred as
+        object
+    """
+    if is_scalar(val):
+        return infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
+    return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
+
+
 def infer_dtype_from_scalar(val, pandas_dtype=False):
     """
     interpret the dtype from a scalar
@@ -349,9 +366,9 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
+        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
         if val.ndim != 0:
-            raise ValueError(
-                "invalid ndarray passed to _infer_dtype_from_scalar")
+            raise ValueError(msg)
 
         dtype = val.dtype
         val = val.item()
@@ -408,23 +425,31 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
     return dtype, val
 
 
-def infer_dtype_from_array(arr):
+def infer_dtype_from_array(arr, pandas_dtype=False):
     """
     infer the dtype from a scalar or array
 
     Parameters
     ----------
     arr : scalar or array
+    pandas_dtype : bool, default False
+        whether to infer dtype including pandas extension types.
+        If False, array belongs to pandas extension types
+        is inferred as object
 
     Returns
     -------
-    tuple (numpy-compat dtype, array)
+    tuple (numpy-compat/pandas-compat dtype, array)
 
     Notes
     -----
-    These infer to numpy dtypes exactly
-    with the exception that mixed / object dtypes
+
+    if pandas_dtype=False. these infer to numpy dtypes
+    exactly with the exception that mixed / object dtypes
     are not coerced by stringifying or conversion
+
+    if pandas_dtype=True. datetime64tz-aware/categorical
+    types will retain there character.
 
     Examples
     --------
@@ -441,6 +466,10 @@ def infer_dtype_from_array(arr):
 
     if not is_list_like(arr):
         arr = [arr]
+
+    if pandas_dtype and (is_categorical_dtype(arr) or
+                         is_datetime64tz_dtype(arr)):
+        return arr.dtype, arr
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr)
@@ -552,7 +581,7 @@ def coerce_to_dtypes(result, dtypes):
             if isnull(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = lib.Timestamp(r)
+                r = Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
@@ -1026,3 +1055,31 @@ def find_common_type(types):
             return np.object
 
     return np.find_common_type(types, [])
+
+
+def cast_scalar_to_array(shape, value, dtype=None):
+    """
+    create np.ndarray of specified shape and dtype, filled with values
+
+    Parameters
+    ----------
+    shape : tuple
+    value : scalar value
+    dtype : np.dtype, optional
+        dtype to coerce
+
+    Returns
+    -------
+    ndarray of shape, filled with value, of specified / inferred dtype
+
+    """
+
+    if dtype is None:
+        dtype, fill_value = infer_dtype_from_scalar(value)
+    else:
+        fill_value = value
+
+    values = np.empty(shape, dtype=dtype)
+    values.fill(fill_value)
+
+    return values

@@ -14,9 +14,11 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
-    _ensure_int64, _ensure_platform_int,
+    _ensure_int64,
+    _ensure_platform_int,
     is_integer,
     is_dtype_equal,
+    is_bool_dtype,
     is_timedelta64_dtype,
     is_datetime64_dtype, is_datetimetz, is_sparse,
     is_categorical, is_categorical_dtype,
@@ -33,17 +35,16 @@ from pandas.core.dtypes.common import (
     _get_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
-    maybe_convert_string_to_object,
     maybe_upcast,
-    maybe_convert_scalar, maybe_promote,
+    maybe_promote,
     infer_dtype_from_scalar,
+    infer_dtype_from,
     soft_convert_objects,
     maybe_convert_objects,
     astype_nansafe,
     find_common_type)
 from pandas.core.dtypes.missing import (
-    isnull, array_equivalent,
-    _is_na_compat,
+    isnull, notnull, array_equivalent,
     is_null_datelike_scalar)
 import pandas.core.dtypes.concat as _concat
 
@@ -374,7 +375,6 @@ class Block(PandasObject):
             else:
                 return self.copy()
 
-        original_value = value
         mask = isnull(self.values)
         if limit is not None:
             if not is_integer(limit):
@@ -387,24 +387,10 @@ class Block(PandasObject):
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
-        try:
-            values, _, value, _ = self._try_coerce_args(self.values, value)
-            blocks = self.putmask(mask, value, inplace=inplace)
-            blocks = [b.make_block(values=self._try_coerce_result(b.values))
-                      for b in blocks]
-            return self._maybe_downcast(blocks, downcast)
-        except (TypeError, ValueError):
-
-            # we can't process the value, but nothing to do
-            if not mask.any():
-                return self if inplace else self.copy()
-
-            # we cannot coerce the underlying object, so
-            # make an ObjectBlock
-            return self.to_object_block(mgr=mgr).fillna(original_value,
-                                                        limit=limit,
-                                                        inplace=inplace,
-                                                        downcast=False)
+        blocks = self.putmask(mask, value, inplace=inplace, mgr=mgr)
+        blocks = [b.make_block(values=self._try_coerce_result(b.values))
+                  for b in blocks]
+        return self._maybe_downcast(blocks, downcast)
 
     def _maybe_downcast(self, blocks, downcast=None):
 
@@ -548,9 +534,6 @@ class Block(PandasObject):
     def _can_hold_element(self, value):
         raise NotImplementedError()
 
-    def _try_cast(self, value):
-        raise NotImplementedError()
-
     def _try_cast_result(self, result, dtype=None):
         """ try to cast the result to our original type, we may have
         roundtripped thru object in the mean-time
@@ -590,6 +573,14 @@ class Block(PandasObject):
 
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
+
+        if np.any(notnull(other)) and not self._can_hold_element(other):
+            # coercion issues
+            # let higher levels handle
+            raise TypeError("cannot convert {} to an {}".format(
+                type(other).__name__,
+                type(self).__name__.lower().replace('Block', '')))
+
         return values, False, other, False
 
     def _try_coerce_result(self, result):
@@ -650,18 +641,15 @@ class Block(PandasObject):
                 filtered_out = ~self.mgr_locs.isin(filter)
                 mask[filtered_out.nonzero()[0]] = False
 
-            blocks = self.putmask(mask, value, inplace=inplace)
+            blocks = self.putmask(mask, value, inplace=inplace, mgr=mgr)
             if convert:
                 blocks = [b.convert(by_item=True, numeric=False,
                                     copy=not inplace) for b in blocks]
             return blocks
         except (TypeError, ValueError):
 
-            # we can't process the value, but nothing to do
-            if not mask.any():
-                return self if inplace else self.copy()
-
-            return self.to_object_block(mgr=mgr).replace(
+            block = self.to_object_block(mgr)
+            return block.replace(
                 to_replace=original_to_replace, value=value, inplace=inplace,
                 filter=filter, regex=regex, convert=convert)
 
@@ -676,6 +664,7 @@ class Block(PandasObject):
         indexer is a direct slice/positional indexer; value must be a
         compatible shape
         """
+        orig_value = value
 
         # coerce None values, if appropriate
         if value is None:
@@ -683,13 +672,20 @@ class Block(PandasObject):
                 value = np.nan
 
         # coerce args
-        values, _, value, _ = self._try_coerce_args(self.values, value)
-        arr_value = np.array(value)
+        try:
+            values, _, value, _ = self._try_coerce_args(self.values, value)
+            arr_value = np.array(value)
+        except (ValueError, TypeError):
+
+            # coercion has failed to the current type
+            # upcast to something that can hold it
+            block = self.coerce_to_target_dtype(value)
+            return block.setitem(indexer, orig_value, mgr=mgr)
 
         # cast the values to a type that can hold nan (if necessary)
-        if not self._can_hold_element(value):
-            dtype, _ = maybe_promote(arr_value.dtype)
-            values = values.astype(dtype)
+        if not self._can_hold_element(orig_value):
+            block = self.coerce_to_target_dtype(value)
+            return block.setitem(indexer, orig_value, mgr=mgr)
 
         transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
         values = transf(values)
@@ -757,6 +753,8 @@ class Block(PandasObject):
             else:
                 values[indexer] = value
 
+            # TODO: replace with coerce_to_target_dtype
+            #####
             # coerce and try to infer the dtypes of the result
             if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
                                                           value.dtype):
@@ -795,17 +793,19 @@ class Block(PandasObject):
 
         return [self]
 
-    def putmask(self, mask, new, align=True, inplace=False, axis=0,
+    def putmask(self, mask, other, align=True, inplace=False, axis=0,
                 transpose=False, mgr=None):
-        """ putmask the data to the block; it is possible that we may create a
-        new dtype of block
+        """ putmask the data to the block; we may create 1 or more
+        split blocks, with different dtypes
 
         return the resulting block(s)
+
+        this will NOT raise to the outside context!
 
         Parameters
         ----------
         mask  : the condition to respect
-        new : a ndarray/object
+        other : a ndarray/object
         align : boolean, perform alignment on other/cond, default is True
         inplace : perform inplace modification, default is False
         axis : int
@@ -816,49 +816,78 @@ class Block(PandasObject):
         -------
         a list of new blocks, the result of the putmask
         """
+        new_values = self.values
+        orig_other = other
 
-        new_values = self.values if inplace else self.values.copy()
-
-        if hasattr(new, 'reindex_axis'):
-            new = new.values
+        if hasattr(other, 'reindex_axis'):
+            other = other.values
 
         if hasattr(mask, 'reindex_axis'):
             mask = mask.values
 
         # if we are passed a scalar None, convert it here
-        if not is_list_like(new) and isnull(new) and not self.is_object:
-            new = self.fill_value
+        if is_scalar(other) and isnull(other) and not self.is_object:
+            other = self.fill_value
 
-        if self._can_hold_element(new):
+        # we will raise with an incompt type here
+        try:
+            _, _, other, _ = self._try_coerce_args(new_values, other)
+        except (ValueError, TypeError):
+            # coercion has failed to the current type
+            # upcast to object; if we are a single column
+            # already, convert to object
+            pass
+
+        if self._can_hold_element(orig_other):
+            # we may have converted the other
+            # at this point
+
+            new_values = self.values if inplace else self.values.copy()
+
             if transpose:
                 new_values = new_values.T
 
-            new = self._try_cast(new)
-
             # If the default repeat behavior in np.putmask would go in the
             # wrong direction, then explictly repeat and reshape new instead
-            if getattr(new, 'ndim', 0) >= 1:
-                if self.ndim - 1 == new.ndim and axis == 1:
-                    new = np.repeat(
-                        new, new_values.shape[-1]).reshape(self.shape)
-                new = new.astype(new_values.dtype)
+            if getattr(other, 'ndim', 0) >= 1:
+                if self.ndim - 1 == other.ndim and axis == 1:
+                    other = np.repeat(
+                        other, new_values.shape[-1]).reshape(self.shape)
+                other = other.astype(new_values.dtype)
 
-            np.putmask(new_values, mask, new)
+            # we require exact matches between the len of the
+            # values we are setting (or is compat). np.putmask
+            # doesn't check this and will simply truncate / pad
+            # the output, but we want sane error messages
+            #
+            # TODO: this prob needs some better checking
+            # for 2D cases
+            if ((is_list_like(other) and
+                 np.any(mask[mask]) and
+                 getattr(other, 'ndim', 1) == 1)):
+
+                if not (mask.shape[-1] == len(other) or
+                        mask[mask].shape[-1] == len(other) or
+                        len(other) == 1):
+                    raise ValueError("cannot assign mismatch "
+                                     "length to masked array")
+
+            np.putmask(new_values, mask, other)
 
         # maybe upcast me
         elif mask.any():
             if transpose:
                 mask = mask.T
-                if isinstance(new, np.ndarray):
-                    new = new.T
+                if isinstance(other, np.ndarray):
+                    other = other.T
                 axis = new_values.ndim - axis - 1
 
             # Pseudo-broadcast
-            if getattr(new, 'ndim', 0) >= 1:
-                if self.ndim - 1 == new.ndim:
-                    new_shape = list(new.shape)
+            if getattr(other, 'ndim', 0) >= 1:
+                if self.ndim - 1 == other.ndim:
+                    new_shape = list(other.shape)
                     new_shape.insert(axis, 1)
-                    new = new.reshape(tuple(new_shape))
+                    other = other.reshape(tuple(new_shape))
 
             # need to go column by column
             new_blocks = []
@@ -867,33 +896,30 @@ class Block(PandasObject):
                     m = mask[i]
                     v = new_values[i]
 
-                    # need a new block
                     if m.any():
-                        if isinstance(new, np.ndarray):
-                            n = np.squeeze(new[i % new.shape[0]])
-                        else:
-                            n = np.array(new)
+                        # need a new block
+                        block = make_block(
+                            _block_shape(v, ndim=self.ndim),
+                            placement=[ref_loc])
+                        block = block.putmask_a_column(m, orig_other,
+                                                       inplace=inplace)
 
-                        # type of the new block
-                        dtype, _ = maybe_promote(n.dtype)
-
-                        # we need to explicitly astype here to make a copy
-                        n = n.astype(dtype)
-
-                        nv = _putmask_smart(v, m, n)
                     else:
                         nv = v if inplace else v.copy()
+                        nv = nv[np.newaxis]
 
-                    # Put back the dimension that was taken from it and make
-                    # a block out of the result.
-                    block = self.make_block(values=nv[np.newaxis],
-                                            placement=[ref_loc], fastpath=True)
+                        # Put back the dimension that was taken
+                        # from it and make
+                        # a block out of the result.
+                        block = self.make_block(
+                            values=nv, placement=[ref_loc], fastpath=True)
 
                     new_blocks.append(block)
 
             else:
-                nv = _putmask_smart(new_values, mask, new)
-                new_blocks.append(self.make_block(values=nv, fastpath=True))
+
+                b = self.putmask_a_column(mask, orig_other, inplace=inplace)
+                new_blocks.append(b)
 
             return new_blocks
 
@@ -904,6 +930,79 @@ class Block(PandasObject):
             new_values = new_values.T
 
         return [self.make_block(new_values, fastpath=True)]
+
+    def putmask_a_column(self, mask, other, inplace=False):
+        """
+        a helper routine that will putmask on a single column
+        return a block with a potentially new dtype
+
+        Parameters
+        ----------
+        mask : boolean mask, same shape as self
+        other : scalar or shape compat with self
+        inplace : boolean, default False
+            operate in-place
+
+        Returns
+        -------
+        Block
+
+        """
+
+        try:
+            _, _, new, _ = self._try_coerce_args(self.values, other)
+
+            if not inplace:
+                self = self.copy()
+            np.putmask(self.values, mask, new)
+            return self
+
+        except (ValueError, TypeError):
+            pass
+
+        self = self.coerce_to_target_dtype(other)
+        return self.putmask_a_column(mask=mask, other=other,
+                                     inplace=False)
+
+    def coerce_to_target_dtype(self, other):
+        """
+        coerce the current block to a dtype compat for other
+        we will return a block, possibly object, and not raise
+
+        we can also safely try to coerce to the same dtype
+        and will receive the same block
+        """
+
+        # if we cannot then coerce to object
+        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+
+        if is_dtype_equal(self.dtype, dtype):
+            return self
+
+        if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
+            # we don't upcast to bool
+            return self.astype(object)
+
+        elif self.is_datelike:
+
+            # we don't upcast i8
+            if is_integer_dtype(dtype):
+                return self.astype(object)
+
+            # don't upcast timezone with different timezone or no timezone
+            if self.is_datetime:
+                mytz = getattr(self.dtype, 'tz', None)
+                othertz = getattr(dtype, 'tz', None)
+
+                if str(mytz) != str(othertz):
+                    return self.astype(object)
+
+        try:
+            return self.astype(dtype)
+        except (ValueError, TypeError):
+            pass
+
+        return self.astype(object)
 
     def interpolate(self, method='pad', axis=0, index=None, values=None,
                     inplace=False, limit=None, limit_direction='forward',
@@ -1135,8 +1234,17 @@ class Block(PandasObject):
         transf = (lambda x: x.T) if is_transposed else (lambda x: x)
 
         # coerce/transpose the args if needed
-        values, values_mask, other, other_mask = self._try_coerce_args(
-            transf(values), other)
+        try:
+            values, values_mask, other, other_mask = self._try_coerce_args(
+                transf(values), other)
+        except (ValueError, TypeError):
+
+            # coercion has failed to the current type
+            # upcast to object
+            block = self.to_object_block(mgr)
+            return block.eval(func=func, other=other,
+                              raise_on_error=raise_on_error,
+                              try_cast=try_cast, mgr=None)
 
         # get the result, may need to transpose the other
         def get_result(other):
@@ -1165,19 +1273,6 @@ class Block(PandasObject):
 
             return self._try_coerce_result(result)
 
-        # error handler if we have an issue operating with the function
-        def handle_error():
-
-            if raise_on_error:
-                # The 'detail' variable is defined in outer scope.
-                raise TypeError('Could not operate %s with block values %s' %
-                                (repr(other), str(detail)))  # noqa
-            else:
-                # return the values
-                result = np.empty(values.shape, dtype='O')
-                result.fill(np.nan)
-                return result
-
         # get the result
         try:
             with np.errstate(all='ignore'):
@@ -1187,8 +1282,19 @@ class Block(PandasObject):
         # GH4576, so raise instead of allowing to pass through
         except ValueError as detail:
             raise
+
+        # convert these to TypeErrors
+        except NotImplementedError as detail:
+            raise TypeError(detail)
+
         except Exception as detail:
-            result = handle_error()
+
+            if raise_on_error:
+                raise
+
+            # return the values
+            result = np.empty(values.shape, dtype='O')
+            result.fill(np.nan)
 
         # technically a broadcast error in numpy can 'work' by returning a
         # boolean False
@@ -1233,7 +1339,6 @@ class Block(PandasObject):
         -------
         a new block(s), the result of the func
         """
-
         values = self.values
         if transpose:
             values = values.T
@@ -1254,28 +1359,37 @@ class Block(PandasObject):
             raise ValueError("where must have a condition that is ndarray "
                              "like")
 
-        other = maybe_convert_string_to_object(other)
-        other = maybe_convert_scalar(other)
+        # all True
+        if cond.ravel().all():
+            return self.make_block(self.values)
+
+        try:
+            values, _, other, _ = self._try_coerce_args(values, other)
+        except (ValueError, TypeError) as detail:
+
+            # try to coerce to the other dtype
+            block = self.coerce_to_target_dtype(other)
+            return block.where(other, cond, align=align,
+                               raise_on_error=raise_on_error,
+                               try_cast=try_cast, axis=axis,
+                               transpose=transpose, mgr=mgr)
 
         # our where function
         def func(cond, values, other):
-            if cond.ravel().all():
-                return values
 
-            values, values_mask, other, other_mask = self._try_coerce_args(
-                values, other)
             try:
-                return self._try_coerce_result(expressions.where(
-                    cond, values, other, raise_on_error=True))
+                result = expressions.where(
+                    cond, values, other, raise_on_error=True)
+                return self._try_coerce_result(result)
             except Exception as detail:
+
                 if raise_on_error:
-                    raise TypeError('Could not operate [%s] with block values '
-                                    '[%s]' % (repr(other), str(detail)))
-                else:
-                    # return the values
-                    result = np.empty(values.shape, dtype='float64')
-                    result.fill(np.nan)
-                    return result
+                    raise
+
+                # return the values
+                result = np.empty(values.shape, dtype='float64')
+                result.fill(np.nan)
+                return result
 
         # see if we can operate on the entire block, or need item-by-item
         # or if we are a single block (ndim == 1)
@@ -1537,7 +1651,16 @@ class NonConsolidatableMixIn(object):
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new_values, _, new, _ = self._try_coerce_args(new_values, new)
+        try:
+            new_values, _, new, _ = self._try_coerce_args(new_values, new)
+        except:
+
+            # we cannot coerce the underlying object, so
+            # make an ObjectBlock
+            block = self.to_object_block(mgr=mgr)
+            return block.putmask(mask=mask, other=new, align=align,
+                                 inplace=inplace, axis=axis,
+                                 transpose=transpose, mgr=mgr)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -1582,15 +1705,9 @@ class FloatBlock(FloatOrComplexBlock):
             tipo = element.dtype.type
             return (issubclass(tipo, (np.floating, np.integer)) and
                     not issubclass(tipo, (np.datetime64, np.timedelta64)))
-        return (isinstance(element, (float, int, np.float_, np.int_)) and
+        return (isinstance(element, (float, int, np.floating, np.integer)) and
                 not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
-
-    def _try_cast(self, element):
-        try:
-            return float(element)
-        except:  # pragma: no cover
-            return element
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None,
                         decimal='.', quoting=None, **kwargs):
@@ -1635,17 +1752,14 @@ class ComplexBlock(FloatOrComplexBlock):
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
-            return issubclass(element.dtype.type,
-                              (np.floating, np.integer, np.complexfloating))
+            return (issubclass(
+                element.dtype.type, (np.floating,
+                                     np.integer,
+                                     np.complexfloating)) and not
+                    issubclass(element.dtype.type, np.bool_))
         return (isinstance(element,
                            (float, int, complex, np.float_, np.int_)) and
-                not isinstance(bool, np.bool_))
-
-    def _try_cast(self, element):
-        try:
-            return complex(element)
-        except:  # pragma: no cover
-            return element
+                not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
@@ -1663,12 +1777,6 @@ class IntBlock(NumericBlock):
             return (issubclass(tipo, np.integer) and
                     not issubclass(tipo, (np.datetime64, np.timedelta64)))
         return is_integer(element)
-
-    def _try_cast(self, element):
-        try:
-            return int(element)
-        except:  # pragma: no cover
-            return element
 
     def should_store(self, value):
         return is_integer_dtype(value) and value.dtype == self.dtype
@@ -1708,8 +1816,25 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _box_func(self):
         return lambda x: tslib.Timedelta(x, unit='ns')
 
-    def fillna(self, value, **kwargs):
+    def _can_hold_element(self, element):
+        """
+        boolean if we can hold this element
+        """
 
+        if is_list_like(element):
+
+            element = np.asarray(element)
+            return element.dtype == _TD_DTYPE
+
+        elif isnull(element):
+            return True
+
+        elif isinstance(element, timedelta):
+            return True
+
+        return False
+
+    def fillna(self, value, **kwargs):
         # allow filling with integers to be
         # interpreted as seconds
         if not isinstance(value, np.timedelta64) and is_integer(value):
@@ -1736,7 +1861,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         other_mask = False
 
         if isinstance(other, bool):
-            raise TypeError
+            raise TypeError("cannot convert bool to a Timedelta")
         elif is_null_datelike_scalar(other):
             other = tslib.iNaT
             other_mask = True
@@ -1748,14 +1873,15 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             other = Timedelta(other).value
         elif isinstance(other, timedelta):
             other = Timedelta(other).value
-        elif isinstance(other, np.ndarray):
-            other_mask = isnull(other)
+        elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
             other = other.astype('i8', copy=False).view('i8')
-        else:
-            # scalar
-            other = Timedelta(other)
             other_mask = isnull(other)
-            other = other.value
+        else:
+
+            # coercion issues
+            # let higher levels handle
+            raise TypeError("cannot convert {} to a Timedelta".format(
+                type(other).__name__))
 
         return values, values_mask, other, other_mask
 
@@ -1806,14 +1932,8 @@ class BoolBlock(NumericBlock):
     def _can_hold_element(self, element):
         if is_list_like(element):
             element = np.array(element)
-            return issubclass(element.dtype.type, np.integer)
-        return isinstance(element, (int, bool))
-
-    def _try_cast(self, element):
-        try:
-            return bool(element)
-        except:  # pragma: no cover
-            return element
+            return issubclass(element.dtype.type, np.bool_)
+        return isinstance(element, bool)
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
@@ -1948,9 +2068,6 @@ class ObjectBlock(Block):
 
     def _can_hold_element(self, element):
         return True
-
-    def _try_cast(self, element):
-        return element
 
     def should_store(self, value):
         return not (issubclass(value.dtype.type,
@@ -2243,17 +2360,33 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return super(DatetimeBlock, self)._astype(dtype=dtype, **kwargs)
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            return element.dtype == _NS_DTYPE or element.dtype == np.int64
-        return (is_integer(element) or isinstance(element, datetime) or
-                isnull(element))
+        """
+        boolean if we can hold this element, will raise on a
+        tz-aware datetime
+        """
 
-    def _try_cast(self, element):
-        try:
-            return int(element)
-        except:
-            return element
+        if is_list_like(element):
+
+            # we cannot hold tz-aware
+            # higher level to handle
+            if getattr(element, 'tz', None) is not None:
+                return False
+
+            element = np.asarray(element)
+            return element.dtype == _NS_DTYPE
+
+        elif isnull(element):
+            return True
+
+        elif isinstance(element, datetime):
+
+            # we cannot hold tz-aware
+            if getattr(element, 'tzinfo', None) is not None:
+                return False
+
+            return True
+
+        return False
 
     def _try_coerce_args(self, values, other):
         """
@@ -2277,7 +2410,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         other_mask = False
 
         if isinstance(other, bool):
-            raise TypeError
+            raise TypeError("cannot convert a bool to a Datetime")
         elif is_null_datelike_scalar(other):
             other = tslib.iNaT
             other_mask = True
@@ -2288,30 +2421,26 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                                 "naive Block")
             other_mask = isnull(other)
             other = other.asm8.view('i8')
-        elif hasattr(other, 'dtype') and is_integer_dtype(other):
+        elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
+            if is_datetime64tz_dtype(other):
+                raise TypeError("cannot coerce a Timestamp with a tz on a "
+                                "naive Block")
             other = other.view('i8')
+            other_mask = isnull(other)
+
         else:
-            try:
-                other = np.asarray(other)
-                other_mask = isnull(other)
 
-                other = other.astype('i8', copy=False).view('i8')
-            except ValueError:
-
-                # coercion issues
-                # let higher levels handle
-                raise TypeError
+            # coercion issues
+            # let higher levels handle
+            raise TypeError("cannot convert a {} to a Datetime".format(
+                type(other).__name__))
 
         return values, values_mask, other, other_mask
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                try:
-                    result = result.astype('M8[ns]')
-                except ValueError:
-                    pass
+            result = _coerce_array_to_datetime(result)
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = self._box_func(result)
         return result
@@ -2386,6 +2515,37 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             values = values.copy(deep=True)
         return self.make_block_same_class(values)
 
+    def _can_hold_element(self, element):
+        """
+        boolean if we can hold this element, will raise on a
+        tz-aware datetime
+        """
+
+        if is_list_like(element):
+
+            dtype = getattr(element, 'dtype', None)
+            tz = getattr(dtype, 'tz', None)
+
+            # we can only hold an identical tz-aware
+            if str(self.values.tz) != str(tz):
+                return False
+
+            element = np.asarray(element)
+            return element.dtype == _NS_DTYPE
+
+        elif isnull(element):
+            return True
+
+        elif isinstance(element, datetime):
+
+            # we can only hold an identical tz-aware
+            if str(self.values.tz) != str(getattr(element, 'tzinfo', None)):
+                return False
+
+            return True
+
+        return False
+
     def external_values(self):
         """ we internally represent the data as a DatetimeIndex, but for
         external compat with ndarray, export as a ndarray of Timestamps
@@ -2447,7 +2607,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             other_mask = isnull(other)
 
         if isinstance(other, bool):
-            raise TypeError
+            raise TypeError("cannot convert a bool to a tz-aware Datetime")
         elif (is_null_datelike_scalar(other) or
               (is_scalar(other) and isnull(other))):
             other = tslib.iNaT
@@ -2466,21 +2626,39 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
                 raise ValueError("incompatible or non tz-aware value")
             other_mask = isnull(other)
             other = other.value
+        elif hasattr(other, 'dtype'):
+            tz = getattr(other, 'tz', None)
+            if tz is None or str(tz) != str(self.values.tz):
+                raise ValueError("incompatible or non tz-aware value")
+            other_mask = isnull(other)
+            other = other.view('i8')
+        else:
+
+            if is_null_datelike_scalar(other):
+                other_mask = True
+            else:
+                # higher level to coerce
+                raise TypeError(
+                    "cannot convert a {} to a tz-aware Datetime".format(
+                        type(other).__name__))
 
         return values, values_mask, other, other_mask
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('M8[ns]')
+            result = _coerce_array_to_datetime(result)
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = lib.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
                 result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
+
+            try:
+                result = self.values._shallow_copy(result)
+            except (TypeError, ValueError):
+                pass
 
         return result
 
@@ -2562,6 +2740,11 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     @property
     def kind(self):
         return self.values.kind
+
+    def _can_hold_element(self, element):
+        """ we should actually check that our dtype is compat
+        with the inferred type """
+        return True
 
     def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
                 klass=None, mgr=None, **kwargs):
@@ -3055,7 +3238,7 @@ class BlockManager(PandasObject):
         elif f == 'putmask':
             align_copy = False
             if kwargs.get('align', True):
-                align_keys = ['new', 'mask']
+                align_keys = ['other', 'mask']
             else:
                 align_keys = ['mask']
         elif f == 'eval':
@@ -3246,16 +3429,6 @@ class BlockManager(PandasObject):
                 return isnull(values)
             return _maybe_compare(values, getattr(s, 'asm8', s), operator.eq)
 
-        def _cast_scalar(block, scalar):
-            dtype, val = infer_dtype_from_scalar(scalar, pandas_dtype=True)
-            if not is_dtype_equal(block.dtype, dtype):
-                dtype = find_common_type([block.dtype, dtype])
-                block = block.astype(dtype)
-                # use original value
-                val = scalar
-
-            return block, val
-
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
@@ -3278,8 +3451,8 @@ class BlockManager(PandasObject):
                         # particular block
                         m = masks[i][b.mgr_locs.indexer]
                         if m.any():
-                            b, val = _cast_scalar(b, d)
-                            new_rb.extend(b.putmask(m, val, inplace=True))
+                            b = b.putmask(m, d, mgr=mgr)
+                            new_rb.extend(b)
                         else:
                             new_rb.append(b)
                 rb = new_rb
@@ -4510,6 +4683,23 @@ def _interleaved_dtype(blocks):
     return dtype
 
 
+def _coerce_array_to_datetime(result):
+    """ preserves the underlying array """
+
+    if result.dtype.kind in ['i', 'f']:
+        result = result.astype('M8[ns]')
+    elif result.dtype.kind in ['O']:
+        try:
+            # PITA
+            # we could have mixed naive & tz-aware
+            from pandas import to_datetime
+            result = to_datetime(result.ravel(), box=False)
+        except (TypeError, ValueError):
+            pass
+
+    return result
+
+
 def _consolidate(blocks):
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
@@ -4753,61 +4943,6 @@ def _transform_index(index, func, level=None):
     else:
         items = [func(x) for x in index]
         return Index(items, name=index.name)
-
-
-def _putmask_smart(v, m, n):
-    """
-    Return a new block, try to preserve dtype if possible.
-
-    Parameters
-    ----------
-    v : `values`, updated in-place (array like)
-    m : `mask`, applies to both sides (array like)
-    n : `new values` either scalar or an array like aligned with `values`
-    """
-    # n should be the length of the mask or a scalar here
-    if not is_list_like(n):
-        n = np.array([n] * len(m))
-    elif isinstance(n, np.ndarray) and n.ndim == 0:  # numpy scalar
-        n = np.repeat(np.array(n, ndmin=1), len(m))
-
-    # see if we are only masking values that if putted
-    # will work in the current dtype
-    try:
-        nn = n[m]
-
-        # make sure that we have a nullable type
-        # if we have nulls
-        if not _is_na_compat(v, nn[0]):
-            raise ValueError
-
-        nn_at = nn.astype(v.dtype)
-
-        # avoid invalid dtype comparisons
-        if not is_numeric_v_string_like(nn, nn_at):
-            comp = (nn == nn_at)
-            if is_list_like(comp) and comp.all():
-                nv = v.copy()
-                nv[m] = nn_at
-                return nv
-    except (ValueError, IndexError, TypeError):
-        pass
-
-    # change the dtype
-    dtype, _ = maybe_promote(n.dtype)
-
-    if is_extension_type(v.dtype) and is_object_dtype(dtype):
-        nv = v.get_values(dtype)
-    else:
-        nv = v.astype(dtype)
-
-    try:
-        nv[m] = n[m]
-    except ValueError:
-        idx, = np.where(np.squeeze(m))
-        for mask_index, new_val in zip(idx, n[m]):
-            nv[mask_index] = new_val
-    return nv
 
 
 def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):

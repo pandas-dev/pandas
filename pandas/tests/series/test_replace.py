@@ -101,6 +101,7 @@ class TestSeriesReplace(TestData):
         ser = pd.Series(pd.date_range('20130101', periods=5))
         expected = ser.copy()
         expected.loc[2] = pd.Timestamp('20120101')
+
         result = ser.replace({pd.Timestamp('20130103'):
                               pd.Timestamp('20120101')})
         tm.assert_series_equal(result, expected)
@@ -133,8 +134,8 @@ class TestSeriesReplace(TestData):
             tm.assert_series_equal(expected, r)
             tm.assert_series_equal(expected, sc)
 
-        # MUST upcast to float
-        e = pd.Series([0., 1., 2., 3., 4.])
+        # will NOT upcast to float
+        e = s
         tr, v = [3], [3.0]
         check_replace(tr, v, e)
 

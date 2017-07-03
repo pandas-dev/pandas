@@ -1697,7 +1697,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other = other.reindex_like(self)
         mask = notnull(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._data = self._data.putmask(mask=mask, other=other, inplace=True)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------

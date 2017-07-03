@@ -25,7 +25,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.dtypes.cast import (
-    maybe_upcast, infer_dtype_from_scalar,
+    maybe_upcast,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -33,6 +33,7 @@ from pandas.core.dtypes.cast import (
     invalidate_string_dtypes,
     coerce_to_dtypes,
     maybe_upcast_putmask,
+    cast_scalar_to_array,
     find_common_type)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -58,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.missing import isnull, notnull
+
 
 from pandas.core.common import (_try_sort,
                                 _default_index,
@@ -385,15 +387,10 @@ class DataFrame(NDFrame):
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, compat.string_types) and dtype is None:
-                    dtype = np.object_
-                if dtype is None:
-                    dtype, data = infer_dtype_from_scalar(data)
-
-                values = np.empty((len(index), len(columns)), dtype=dtype)
-                values.fill(data)
-                mgr = self._init_ndarray(values, index, columns, dtype=dtype,
-                                         copy=False)
+                values = cast_scalar_to_array((len(index), len(columns)),
+                                              data, dtype=dtype)
+                mgr = self._init_ndarray(values, index, columns,
+                                         dtype=values.dtype, copy=False)
             else:
                 raise ValueError('DataFrame constructor not properly called!')
 
@@ -507,7 +504,7 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-            if values.dtype != dtype:
+            if not is_dtype_equal(values.dtype, dtype):
                 try:
                     values = values.astype(dtype)
                 except Exception as orig:
@@ -2683,9 +2680,8 @@ it is assumed to be aliases for the column names')
 
         else:
             # upcast the scalar
-            dtype, value = infer_dtype_from_scalar(value)
-            value = np.repeat(value, len(self.index)).astype(dtype)
-            value = maybe_cast_to_datetime(value, dtype)
+            value = cast_scalar_to_array(len(self.index), value)
+            value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
         if is_extension_type(value):
