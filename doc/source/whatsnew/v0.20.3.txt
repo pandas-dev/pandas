@@ -42,6 +42,7 @@ Bug Fixes
 - Fixed compat with loading a ``DataFrame`` with a ``PeriodIndex``, from a ``format='fixed'`` HDFStore, in Python 3, that was written in Python 2 (:issue:`16781`)
 - Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)
 - Bug in a DataFrame/Series with a ``TimedeltaIndex`` when slice indexing (:issue:`16637`)
+- Handle reindexing an empty categorical index rather than throwing (:issue:`16770`)
 
 
 Conversion
