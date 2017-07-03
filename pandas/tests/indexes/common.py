@@ -935,12 +935,8 @@ class Base(object):
         assert index[:0].empty
 
     @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, how):
+    def test_join_self_unique(self, how):
         index = self.create_index()
-        joined = index.join(index, how=how)
-
         if index.is_unique:
-            assert index is joined
-
-        else:
-            assert isinstance(joined, type(index))
+            joined = index.join(index, how=how)
+            assert (index == joined).all()
