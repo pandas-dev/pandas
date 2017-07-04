@@ -419,11 +419,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             raise ValueError("cannot reindex with a non-unique indexer")
 
         indexer, missing = self.get_indexer_non_unique(np.array(target))
-
-        if len(self.codes):
-            new_target = self.take(indexer)
-        else:
-            new_target = target
+        new_target = self.take(indexer)
 
         # filling in missing if needed
         if len(missing):
@@ -434,8 +430,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(
                     np.array(target))
-                # see GH 16819, indexer needs to be converted to correct type
-                indexer = np.array(indexer, dtype=np.int64)
             else:
 
                 codes = new_target.codes.copy()
