@@ -47,6 +47,7 @@ Bug Fixes
 - Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixed bug where computing the rolling covariance of a MultiIndexed ``DataFrame`` improperly raised a ``ValueError`` (:issue:`16789`)
+- Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)
 
 Conversion
 ^^^^^^^^^^
