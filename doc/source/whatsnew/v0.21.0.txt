@@ -91,6 +91,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in get_indexer_non_unique inconsistent return type with get_indexer (:issue:`16819`)
 
 Conversion
 ^^^^^^^^^^

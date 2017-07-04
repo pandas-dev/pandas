@@ -2704,7 +2704,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             tgt_values = target._values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return Index(indexer), missing
+        return indexer, missing
 
     def get_indexer_for(self, target, **kwargs):
         """
