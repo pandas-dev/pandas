@@ -455,6 +455,17 @@ class TestRolling(Base):
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_multi_index_names(self):
+
+        # GH 16789, 16825
+        cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']],
+                                          names=['1', '2'])
+        df = pd.DataFrame(np.ones((10, 6)), columns=cols)
+        result = df.rolling(3).cov()
+
+        tm.assert_index_equal(result.columns, df.columns)
+        assert result.index.names == [None, '1', '2']
+
 
 class TestExpanding(Base):
 
@@ -501,9 +512,10 @@ class TestExpanding(Base):
         'expander',
         [1, pytest.mark.xfail(
             reason='GH 16425 expanding with offset not supported')('1s')])
-    def tests_empty_df_expanding(self, expander):
+    def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
+
         expected = DataFrame()
         result = DataFrame().expanding(expander).sum()
         tm.assert_frame_equal(result, expected)

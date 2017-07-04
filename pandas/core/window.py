@@ -836,7 +836,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         return self._wrap_results(results, blocks, obj)
 
-    _shared_docs['apply'] = dedent("""
+    _shared_docs['apply'] = dedent(r"""
     %(name)s function apply
 
     Parameters
@@ -1922,7 +1922,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                 # TODO: not the most efficient (perf-wise)
                 # though not bad code-wise
-                from pandas import Panel, MultiIndex, Index
+                from pandas import Panel, MultiIndex
+
                 with warnings.catch_warnings(record=True):
                     p = Panel.from_dict(results).swapaxes('items', 'major')
                     if len(p.major_axis) > 0:
@@ -1945,8 +1946,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 # reset our index names to arg1 names
                 # reset our column names to arg2 names
                 # careful not to mutate the original names
-                result.columns = Index(result.columns).set_names(
-                    arg2.columns.name)
+                result.columns = result.columns.set_names(
+                    arg2.columns.names)
                 result.index = result.index.set_names(
                     arg1.index.names + arg1.columns.names)
 
