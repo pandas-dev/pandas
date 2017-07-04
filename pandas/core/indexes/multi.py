@@ -1388,6 +1388,9 @@ class MultiIndex(Index):
                 # cannot be sure whether the result will be sorted
                 sortorder = None
 
+                if isinstance(key, Index):
+                    key = np.asarray(key)
+
             new_labels = [lab[key] for lab in self.labels]
 
             return MultiIndex(levels=self.levels, labels=new_labels,
