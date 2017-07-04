@@ -425,7 +425,7 @@ class TestCategoricalIndex(Base):
         res, indexer = c.reindex(['a', 'b'])
         tm.assert_index_equal(res, Index(['a', 'b']), exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([-1, -1], dtype=np.int64))
+                                    np.array([-1, -1], dtype=np.intp))
 
     def test_duplicates(self):
 
