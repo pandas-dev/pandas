@@ -430,6 +430,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(
                     np.array(target))
+
             else:
 
                 codes = new_target.codes.copy()
