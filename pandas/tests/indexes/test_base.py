@@ -1131,6 +1131,17 @@ class TestIndex(Base):
         with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
+    def test_get_indexer_consistency(self):
+        # See GH 16819
+        for name, index in self.indices.items():
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
+            indexer, _ = index.get_indexer_non_unique(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
