@@ -551,15 +551,15 @@ def test_is_complex_dtype():
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),
-    ])
+])
 def test__get_dtype(input_param, result):
     assert com._get_dtype(input_param) == result
 
 
 @pytest.mark.parametrize('input_param', [None,
-                                   1, 1.2,
-                                   'random string',
-                                   pd.DataFrame([1, 2])])
+                                         1, 1.2,
+                                         'random string',
+                                         pd.DataFrame([1, 2])])
 def test__get_dtype_fails(input_param):
     # python objects
     pytest.raises(TypeError, com._get_dtype, input_param)
