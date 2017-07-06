@@ -776,8 +776,11 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`Using Grouper to group values across time
-<https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Grouper.html>`__
+`Using Grouper instead of TimeGrouper
+<https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+
+`Grouper#2
+<https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
 `Valid frequency arguments to Grouper
 <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
