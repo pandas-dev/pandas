@@ -102,10 +102,9 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
 
 ARGSORT_DEFAULTS = OrderedDict()
 ARGSORT_DEFAULTS['axis'] = -1
-ARGSORT_DEFAULTS['kind'] = 'quicksort'
 ARGSORT_DEFAULTS['order'] = None
 validate_argsort = CompatValidator(ARGSORT_DEFAULTS, fname='argsort',
-                                   max_fname_arg_count=0, method='both')
+                                   max_fname_arg_count=3, method='both')
 
 
 def validate_argsort_with_ascending(ascending, args, kwargs):
@@ -121,7 +120,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
         args = (ascending,) + args
         ascending = True
 
-    validate_argsort(args, kwargs, max_fname_arg_count=1)
+    validate_argsort(args, kwargs, max_fname_arg_count=3)
     return ascending
 
 
