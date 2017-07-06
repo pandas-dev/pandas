@@ -1311,14 +1311,6 @@ class TestOperationsNumExprPandas(object):
         expected['c'] = expected['a'] + expected['b']
         tm.assert_frame_equal(df, expected)
 
-        # Default for inplace will change
-        with tm.assert_produces_warnings(FutureWarning):
-            df.eval('c = a + b')
-
-        # but don't warn without assignment
-        with tm.assert_produces_warnings(None):
-            df.eval('a + b')
-
     def test_multi_line_expression(self):
         # GH 11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
@@ -1388,13 +1380,51 @@ class TestOperationsNumExprPandas(object):
             df.query('a = 1')
         assert_frame_equal(df, df_orig)
 
-    def query_inplace(self):
-        # GH 11149
+    def test_query_inplace(self):
+        # see gh-11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected['a'] == 2]
         df.query('a == 2', inplace=True)
         assert_frame_equal(expected, df)
+
+        df = {}
+        expected = {"a": 3}
+
+        self.eval("a = 1 + 2", target=df, inplace=True)
+        tm.assert_dict_equal(df, expected)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2],
+                                                np.array([]), (1, 3)])
+    def test_cannot_item_assign(self, invalid_target):
+        msg = "Cannot assign expression output to target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=True)
+
+        if hasattr(invalid_target, "copy"):
+            with tm.assert_raises_regex(ValueError, msg):
+                self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", (1, 3)])
+    def test_cannot_copy_item(self, invalid_target):
+        msg = "Cannot return a copy of the target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("target", [1, "cat", [1, 2],
+                                        np.array([]), (1, 3), {1: 2}])
+    def test_inplace_no_assignment(self, target):
+        expression = "1 + 2"
+
+        assert self.eval(expression, target=target, inplace=False) == 3
+
+        msg = "Cannot operate inplace if there is no assignment"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
