@@ -120,7 +120,6 @@ Categorical
 ^^^^^^^^^^^
 
 - Fixed comparison operations considering the order of the categories when both categoricals are unordered (:issue:`16014`)
-- Bug in ``DataFrame.sort_values`` not respecting the ``kind`` with categorical data (:issue:`16793`)
 
 Other
 ^^^^^
