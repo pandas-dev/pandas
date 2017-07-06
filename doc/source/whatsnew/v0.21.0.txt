@@ -141,6 +141,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
+- Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
 Conversion
 ^^^^^^^^^^
