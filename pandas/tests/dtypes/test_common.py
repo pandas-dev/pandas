@@ -200,9 +200,11 @@ def test_is_datetime64tz_dtype():
 def test_is_timedelta64_dtype():
     assert not com.is_timedelta64_dtype(object)
     assert not com.is_timedelta64_dtype([1, 2, 3])
-
+    assert not com.is_timedelta64_dtype(np.array([], dtype=np.datetime64))
     assert com.is_timedelta64_dtype(np.timedelta64)
     assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
+
+    assert not com.is_timedelta64_dtype("0 days 00:00:00")
 
 
 def test_is_period_dtype():
