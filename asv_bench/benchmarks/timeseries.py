@@ -55,6 +55,9 @@ class DatetimeIndex(object):
         self.rng7 = date_range(start='1/1/1700', freq='D', periods=100000)
         self.a = self.rng7[:50000].append(self.rng7[50002:])
 
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=100000)
+        self.b = self.rng8[:50000].append(self.rng8[50000:])
+
     def time_add_timedelta(self):
         (self.rng + dt.timedelta(minutes=2))
 
@@ -94,8 +97,11 @@ class DatetimeIndex(object):
     def time_timeseries_is_month_start(self):
         self.rng6.is_month_start
 
-    def time_infer_freq(self):
+    def time_infer_freq_daily(self):
         infer_freq(self.a)
+
+    def time_infer_freq_business(self):
+        infer_freq(self.b)
 
 
 class TimeDatetimeConverter(object):
