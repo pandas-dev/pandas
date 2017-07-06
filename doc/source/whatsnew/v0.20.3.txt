@@ -44,7 +44,6 @@ Bug Fixes
 - Bug in a DataFrame/Series with a ``TimedeltaIndex`` when slice indexing (:issue:`16637`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
-
 Conversion
 ^^^^^^^^^^
 
