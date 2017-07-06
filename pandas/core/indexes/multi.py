@@ -89,9 +89,6 @@ class MultiIndex(Index):
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
             raise ValueError('Length of levels and labels must be the same.')
-        if names is not None and len(names) > 0 and len(levels) == 0:
-            levels = [[] for _ in names]
-            labels = [[] for _ in names]
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
         if len(levels) == 1:
