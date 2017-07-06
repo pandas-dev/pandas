@@ -386,7 +386,7 @@ class TestCategoricalIndex(Base):
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(expected, actual, check_dtype=True)
+            tm.assert_numpy_array_equal(expected, actual)
 
     def test_reindex_dtype(self):
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
