@@ -5201,12 +5201,6 @@ class TestHDFStore(Base):
             result = pd.read_hdf(path, key='data', mode='r')
         tm.assert_series_equal(result, series)
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason="Need python 3.6")
-    def test_fspath(self):
-        with tm.ensure_clean('foo.h5') as path:
-            with pd.HDFStore(path) as store:
-                assert os.fspath(store) == str(path)
-
     def test_read_py2_hdf_file_in_py3(self):
         # GH 16781
 
