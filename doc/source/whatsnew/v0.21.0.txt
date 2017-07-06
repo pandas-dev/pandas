@@ -45,6 +45,52 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Improved error handling during item assignment in pd.eval
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0210.api_breaking.pandas_eval:
+
+:func:`eval` will now raise a ``ValueError`` when item assignment malfunctions, or
+inplace operations are specified, but there is no item assignment in the expression (:issue:`16732`)
+
+.. ipython:: python
+
+   arr = np.array([1, 2, 3])
+
+Previously, if you attempted the following expression, you would get a not very helpful error message:
+
+.. code-block:: ipython
+
+  In [3]: pd.eval("a = 1 + 2", target=arr, inplace=True)
+  ...
+  IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`)
+  and integer or boolean arrays are valid indices
+
+This is a very long way of saying numpy arrays don't support string-item indexing. With this
+change, the error message is now this:
+
+.. code-block:: python
+
+   In [3]: pd.eval("a = 1 + 2", target=arr, inplace=True)
+   ...
+   ValueError: Cannot assign expression output to target
+
+It also used to be possible to evaluate expressions inplace, even if there was no item assignment:
+
+.. code-block:: ipython
+
+  In [4]: pd.eval("1 + 2", target=arr, inplace=True)
+  Out[4]: 3
+
+However, this input does not make much sense because the output is not being assigned to
+the target. Now, a ``ValueError`` will be raised when such an input is passed in:
+
+.. code-block:: ipython
+
+   In [4]: pd.eval("1 + 2", target=arr, inplace=True)
+   ...
+   ValueError: Cannot operate inplace if there is no assignment
+
 - Support has been dropped for Python 3.4 (:issue:`15251`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`HDFStore` will now
@@ -79,6 +125,7 @@ Removal of prior version deprecations/changes
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
+- :func:`eval` and :method:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 
 
 .. _whatsnew_0210.performance:
@@ -145,3 +192,4 @@ Categorical
 
 Other
 ^^^^^
+- Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
