@@ -1080,9 +1080,7 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(arrays) == 0:
-            raise ValueError('Must pass non-zero number of levels/labels')
-        elif len(arrays) == 1:
+        if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
