@@ -1132,7 +1132,7 @@ class MultiIndex(Index):
             if names is None:
                 msg = 'Cannot infer number of levels from empty list'
                 raise TypeError(msg)
-            arrays = [[]]*len(names)
+            arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
