@@ -825,71 +825,139 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def get_indexer_for_ints_and_floats_updated_behavior(self):
 
-        index = IntervalIndex.from_tuples([(0, 2.5), (1, 3), (2, 4)], closed='right')
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed='right')
 
+        # single queries
         result = index.get_indexer([-0.5])
-        # expected = np.array([-1], dtype='intp')
+        expected = np.array([-1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([0])
-        # expected = np.array([-1], dtype='intp')
+        expected = np.array([-1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([0.5])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([1])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([1.5])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([2])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([2.5])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([-1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([3])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([-1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([3.5])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([2], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([4])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([2], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([4.5])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([-1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
+        # multiple queries
         result = index.get_indexer([1, 2])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0, 1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([1, 2, 3])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0, 1, -1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([1, 2, 3, 4])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0, 1, -1, 2], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer([1, 2, 3, 4, 2])
-        # expected = np.array([], dtype='intp')   ??
+        expected = np.array([0, 1, -1, 2, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def get_indexer_nonunique_for_ints_and_floats_updated_behavior(self):
+
+        index = IntervalIndex.from_tuples([(0, 2.5), (1, 3), (2, 4)], closed='left')
+
+        # single queries
+        result = index.get_indexer_nonunique([-0.5])
+        expected = np.array([-1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([0])
+        expected = np.array([0], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([0.5])
+        expected = np.array([0], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([1])
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([1.5])
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([2])
+        expected = np.array([0, 1, 2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([2.5])
+        expected = np.array([1, 2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([3])
+        expected = np.array([2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([3.5])
+        expected = np.array([2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([4])
+        expected = np.array([-1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([4.5])
+        expected = np.array([-1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        # multiple queries
+        result = index.get_indexer_nonunique([1, 2])
+        expected = np.array([0, 1, 0, 1, 2], dtype='intp')  # maybe we could put these in tuples for people? [(0, 1), (0, 1, 2)]
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([1, 2, 3])
+        expected = np.array([0, 1, 0, 1, 2, 2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([1, 2, 3, 4])
+        expected = np.array([0, 1, 0, 1, 2, 2, -1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.get_indexer_nonunique([1, 2, 3, 4, 2])
+        expected = np.array([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
         # we may also want to test get_indexer for the case when
-        # the intervals are non-overlapping, duplicated,
-        # decreasing, non-monotonic, etc..
+        # the intervals are duplicated, decreasing, non-monotonic, etc..
 
     def test_contains(self):
         ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
