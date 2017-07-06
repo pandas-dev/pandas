@@ -665,55 +665,75 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_ints_and_floats_updated_behavior(self):
 
-        # increasing
+        # increasing non-overlapping
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+
+        assert index.slice_locs(0, 1) == (0)
+        assert index.slice_locs(0, 2) == (0, 1)
+        assert index.slice_locs(0, 3) == (0, 1)
+        assert index.slice_locs(3, 1) == ()
+        assert index.slice_locs(3, 4) == (2)
+        assert index.slice_locs(0, 4) == (0, 1, 2)
+
+        # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(0, 1) == #?
-        assert index.slice_locs(0, 2) == #?
-        assert index.slice_locs(0, 3) == #?
-        assert index.slice_locs(3, 1) == #?
-        assert index.slice_locs(3, 4) == #?
-        assert index.slice_locs(0, 4) == #?
+        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
 
-        # decreasing
-        index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
+        # decreasing non-overlapping
+        index = IntervalIndex.from_tuples([(4, 3), (2, 1), (1, 0)])
+        # These were a little mind-bending to write, would appreciate a close review
+        assert index.slice_locs(0, 1) == (2)
+        assert index.slice_locs(0, 2) == (1, 2)
+        assert index.slice_locs(0, 3) == (1, 2)
+        assert index.slice_locs(3, 1) == (0, 1)
+        assert index.slice_locs(3, 4) == (0)
+        assert index.slice_locs(0, 4) == (0, 1, 2)
 
-        assert index.slice_locs(0, 1) == #?
-        assert index.slice_locs(0, 2) == #?
-        assert index.slice_locs(0, 3) == #?
-        assert index.slice_locs(3, 1) == #?
-        assert index.slice_locs(3, 4) == #?
-        assert index.slice_locs(0, 4) == #?
+        # decreasing overlapping
+        index = IntervalIndex.from_tuples([(4, 2), (3, 1), (2, 0)])
+
+        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(0, 1) == #?
-        assert index.slice_locs(0, 2) == #?
-        assert index.slice_locs(0, 3) == #?
-        assert index.slice_locs(3, 1) == #?
-        assert index.slice_locs(3, 4) == #?
-        assert index.slice_locs(0, 4) == #?
+        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
+        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
+        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        assert index.slice_locs(0, 1) == #?
-        assert index.slice_locs(0, 2) == #?
-        assert index.slice_locs(0, 3) == #?
-        assert index.slice_locs(3, 1) == #?
-        assert index.slice_locs(3, 4) == #?
-        assert index.slice_locs(0, 4) == #?
+        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping/unsorted?
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(0, 1) == #?
-        assert index.slice_locs(0, 2) == #?
-        assert index.slice_locs(0, 3) == #?
-        assert index.slice_locs(3, 1) == #?
-        assert index.slice_locs(3, 4) == #?
-        assert index.slice_locs(0, 4) == #?
+        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping/unsorted?
+        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping/unsorted?
 
 
     ### OLD GET INDEXER BEHAVIOR
@@ -941,7 +961,7 @@ class TestIntervalIndex(Base):
 
         # multiple queries
         result = index.get_indexer_nonunique([1, 2])
-        expected = np.array([0, 1, 0, 1, 2], dtype='intp')  # maybe we could put these in tuples for people? [(0, 1), (0, 1, 2)]
+        expected = np.array([0, 1, 0, 1, 2], dtype='intp')  # maybe we could put these in tuples? [(0, 1), (0, 1, 2)]
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.get_indexer_nonunique([1, 2, 3])
