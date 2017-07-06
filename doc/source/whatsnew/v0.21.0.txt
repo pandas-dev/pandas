@@ -83,7 +83,7 @@ It also used to be possible to evaluate expressions inplace, even if there was n
   Out[4]: 3
 
 However, this input does not make much sense because the output is not being assigned to
-the target. Now, a `ValueError` will be raised when such an input is passed in:
+the target. Now, a ``ValueError`` will be raised when such an input is passed in:
 
 .. code-block:: ipython
 
