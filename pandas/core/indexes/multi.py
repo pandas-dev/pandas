@@ -1083,7 +1083,9 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(arrays) == 1:
+        if len(arrays) == 0:
+            raise ValueError('Must pass non-zero number of levels/labels')
+        elif len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
@@ -1131,10 +1133,12 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(tuples) == 0 and names is None:
-            raise TypeError('Cannot infer number of levels from empty list')
-
-        if isinstance(tuples, (np.ndarray, Index)):
+        if len(tuples) == 0:
+            if names is None:
+                msg = 'Cannot infer number of levels from empty list'
+                raise TypeError(msg)
+            arrays = [[]]*len(names)
+        elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
 

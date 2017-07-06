@@ -766,14 +766,6 @@ class TestMultiIndex(Base):
                 ValueError, "Must pass non-zero number of levels/labels"):
             MultiIndex.from_arrays(arrays=[])
 
-        # 0 levels, names defined
-        result = MultiIndex.from_arrays(arrays=[],
-                                        names=['A', 'B'])
-        expected = MultiIndex(levels=[[], []],
-                              labels=[[], []],
-                              names=['A', 'B'])
-        tm.assert_index_equal(result, expected)
-
         # 1 level
         result = MultiIndex.from_arrays(arrays=[[]], names=['A'])
         expected = Index([], name='A')
@@ -1726,9 +1718,8 @@ class TestMultiIndex(Base):
                                MultiIndex.from_tuples, [])
 
         result = MultiIndex.from_tuples([], names=['a', 'b'])
-        expected = MultiIndex(levels=[[], []],
-                              labels=[[], []],
-                              names=['a', 'b'])
+        expected = MultiIndex.from_arrays(arrays=[[], []],
+                                          names=['a', 'b'])
         tm.assert_index_equal(result, expected)
 
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
