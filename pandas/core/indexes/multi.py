@@ -2624,7 +2624,7 @@ class MultiIndex(Index):
     def isin(self, values, level=None):
         if level is None:
             values = MultiIndex.from_tuples(values,
-                                            names=self._names).values
+                                            names=self.names).values
             return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
