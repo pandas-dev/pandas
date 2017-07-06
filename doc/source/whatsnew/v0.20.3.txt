@@ -43,6 +43,7 @@ Bug Fixes
 - Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)
 - Bug in a DataFrame/Series with a ``TimedeltaIndex`` when slice indexing (:issue:`16637`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
+- Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)
 
 Conversion
 ^^^^^^^^^^
