@@ -132,6 +132,20 @@ class Base(object):
         with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
 
+    def test_get_indexer_consistency(self):
+        # See GH 16819
+        for name, index in self.indices.items():
+            if isinstance(index, IntervalIndex):
+                continue
+
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
+            indexer, _ = index.get_indexer_non_unique(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
         assert idx.T.equals(idx)
