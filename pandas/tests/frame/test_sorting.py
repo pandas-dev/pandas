@@ -238,6 +238,15 @@ class TestDataFrameSorting(TestData):
                                    kind='mergesort')
         assert_frame_equal(sorted_df, expected)
 
+    def test_stable_categorial(self):
+        # GH 16793
+        df = DataFrame({
+            'x': pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)
+        })
+        expected = df.copy()
+        sorted_df = df.sort_values('x', kind='mergesort')
+        assert_frame_equal(sorted_df, expected)
+
     def test_sort_datetimes(self):
 
         # GH 3461, argsort / lexsort differences for a datetime column

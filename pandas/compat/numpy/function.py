@@ -107,6 +107,14 @@ ARGSORT_DEFAULTS['order'] = None
 validate_argsort = CompatValidator(ARGSORT_DEFAULTS, fname='argsort',
                                    max_fname_arg_count=0, method='both')
 
+# two different signatures of argsort, this second validation
+# for when the `kind` param is supported
+ARGSORT_DEFAULTS_KIND = OrderedDict()
+ARGSORT_DEFAULTS_KIND['axis'] = -1
+ARGSORT_DEFAULTS_KIND['order'] = None
+validate_argsort_kind = CompatValidator(ARGSORT_DEFAULTS_KIND, fname='argsort',
+                                        max_fname_arg_count=0, method='both')
+
 
 def validate_argsort_with_ascending(ascending, args, kwargs):
     """
@@ -121,7 +129,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
         args = (ascending,) + args
         ascending = True
 
-    validate_argsort(args, kwargs, max_fname_arg_count=1)
+    validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
     return ascending
 
 
