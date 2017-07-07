@@ -442,6 +442,17 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
+        
+        # Regression test https://github.com/pandas-dev/pandas/issues/16639
+        vals = np.array([0, 1, 2, 0]);
+        cats = ['a', 'b', 'c'];
+        
+        D = pd.DataFrame({'id': pd.Series(pd.Categorical(1).from_codes(vals, cats))});
+        T = pd.DataFrame({'id': pd.Series(pd.Categorical(1).from_codes(np.array([0, 1]), cats))});
+        
+        select_ids = D['id'].isin(T['id']);
+                      
+        assert( np.all(select_ids == np.array([True, True, False, True]) ) )
 
     def test_validate_ordered(self):
         # see gh-14058
