@@ -1150,7 +1150,8 @@ class TestMoments(Base):
             self._check_moment_func(f, alt, name='quantile', quantile=q)
 
     def test_rolling_quantile_np_percentile(self):
-        # #9413
+        # #9413: Tests that rolling window's quantile default behavior
+        # is analogus to Numpy's percentile 
         row = 10
         col = 5
         idx = pd.date_range(20100101, periods=row, freq='B')
@@ -1163,7 +1164,8 @@ class TestMoments(Base):
         tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
     def test_rolling_quantile_series(self):
-        # #16211
+        # #16211: Tests that rolling window's quantile default behavior
+        # is analogus to pd.Series' quantile
         arr = np.arange(100)
         s = pd.Series(arr)
         q1 = s.quantile(0.1)
