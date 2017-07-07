@@ -74,7 +74,6 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-
 Sparse
 ^^^^^^
 
