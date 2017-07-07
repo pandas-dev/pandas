@@ -586,9 +586,8 @@ class TestCategorical(object):
         tm.assert_numpy_array_equal(np.argsort(c), expected,
                                     check_dtype=False)
 
-        msg = "the 'kind' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               c, kind='mergesort')
+        tm.assert_numpy_array_equal(np.argsort(c, kind='mergesort'), expected,
+                                    check_dtype=False)
 
         msg = "the 'axis' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.argsort,
