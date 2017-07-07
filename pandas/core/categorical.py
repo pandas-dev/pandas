@@ -1284,7 +1284,7 @@ class Categorical(PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def argsort(self, ascending=True, *args, **kwargs):
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Returns the indices that would sort the Categorical instance if
         'sort_values' was called. This function is implemented to provide
@@ -1305,7 +1305,7 @@ class Categorical(PandasObject):
         numpy.ndarray.argsort
         """
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        result = np.argsort(self._codes.copy(), **kwargs)
+        result = np.argsort(self._codes.copy(), kind=kind, **kwargs)
         if not ascending:
             result = result[::-1]
         return result
