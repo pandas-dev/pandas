@@ -7,10 +7,11 @@ from pandas import DataFrame, Index, PeriodIndex
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
+
 @pytest.fixture
 def frame_with_period_index():
     return DataFrame(
-        data=np.arange(20).reshape(4,5),
+        data=np.arange(20).reshape(4, 5),
         columns=list('abcde'),
         index=PeriodIndex(start='2000', freq='A', periods=4))
 
@@ -164,4 +165,3 @@ def test_join_period_index(frame_with_period_index):
         index=frame_with_period_index.index)
 
     tm.assert_frame_equal(joined, expected)
-
