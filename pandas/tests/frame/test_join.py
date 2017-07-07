@@ -3,9 +3,17 @@
 import pytest
 import numpy as np
 
-from pandas import DataFrame, Index
+from pandas import DataFrame, Index, PeriodIndex
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
+
+
+@pytest.fixture
+def frame_with_period_index():
+    return DataFrame(
+        data=np.arange(20).reshape(4, 5),
+        columns=list('abcde'),
+        index=PeriodIndex(start='2000', freq='A', periods=4))
 
 
 @pytest.fixture
@@ -139,3 +147,21 @@ def test_join_overlap(frame):
 
     # column order not necessarily sorted
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
+
+
+def test_join_period_index(frame_with_period_index):
+    other = frame_with_period_index.rename(
+        columns=lambda x: '{key}{key}'.format(key=x))
+
+    joined_values = np.concatenate(
+        [frame_with_period_index.values] * 2, axis=1)
+
+    joined_cols = frame_with_period_index.columns.append(other.columns)
+
+    joined = frame_with_period_index.join(other)
+    expected = DataFrame(
+        data=joined_values,
+        columns=joined_cols,
+        index=frame_with_period_index.index)
+
+    tm.assert_frame_equal(joined, expected)
