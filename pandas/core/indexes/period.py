@@ -919,14 +919,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                               self[loc:].asi8))
         return self._shallow_copy(idx)
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
         self._assert_can_do_setop(other)
 
         result = Int64Index.join(self, other, how=how, level=level,
-                                 return_indexers=return_indexers)
+                                 return_indexers=return_indexers,
+                                 sort=sort)
 
         if return_indexers:
             result, lidx, ridx = result
