@@ -1151,7 +1151,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_np_percentile(self):
         # #9413: Tests that rolling window's quantile default behavior
-        # is analogus to Numpy's percentile 
+        # is analogus to Numpy's percentile
         row = 10
         col = 5
         idx = pd.date_range(20100101, periods=row, freq='B')
