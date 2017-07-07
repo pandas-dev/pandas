@@ -233,7 +233,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        return items.argsort(ascending=ascending)
+        return items.argsort(ascending=ascending, kind=kind)
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
