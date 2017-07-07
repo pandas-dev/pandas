@@ -188,7 +188,7 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in ``Series.isin()`` when called for categoricals (:issue`16639`)
+- Bug in ``:func:Series.isin()`` when called with a categorical (:issue`16639`)
 
 Other
 ^^^^^
