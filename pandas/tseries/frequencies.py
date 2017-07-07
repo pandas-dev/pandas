@@ -1012,11 +1012,13 @@ class _FrequencyInferer(object):
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
     def _is_business_daily(self):
-        if self.day_deltas != [1, 3]:  # quick check: cannot be business daily
+        # quick check: cannot be business daily
+        if self.day_deltas != [1, 3]:
             return False
+
         # probably business daily, but need to confirm
         first_weekday = self.index[0].weekday()
-        shifts = np.diff(np.asarray(self.index).view('i8'))
+        shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
         return np.all(((weekdays == 0) & (shifts == 3)) |

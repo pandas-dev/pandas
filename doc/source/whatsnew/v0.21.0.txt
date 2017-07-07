@@ -113,7 +113,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-
+- Bug in ``infer_freq`` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
 
 Sparse
 ^^^^^^
