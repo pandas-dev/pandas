@@ -497,7 +497,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-
         return _ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -508,7 +507,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
             target = target.categories
 
         codes = self.categories.get_indexer(target)
-        return self._engine.get_indexer_non_unique(codes)
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return _ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
