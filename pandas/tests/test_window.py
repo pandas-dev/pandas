@@ -2120,7 +2120,7 @@ class TestMomentsConsistency(Base):
                                 assert_equal(cov_x_y, mean_x_times_y -
                                              (mean_x * mean_y))
 
-    @tm.slow
+    @pytest.mark.slow
     def test_ewm_consistency(self):
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):
@@ -2219,7 +2219,7 @@ class TestMomentsConsistency(Base):
                     _variance_debiasing_factors(x, com=com, adjust=adjust,
                                                 ignore_na=ignore_na)))
 
-    @tm.slow
+    @pytest.mark.slow
     def test_expanding_consistency(self):
 
         # suppress warnings about empty slices, as we are deliberately testing
@@ -2293,7 +2293,7 @@ class TestMomentsConsistency(Base):
                             assert_equal(expanding_f_result,
                                          expanding_apply_f_result)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_rolling_consistency(self):
 
         # suppress warnings about empty slices, as we are deliberately testing
