@@ -188,7 +188,7 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug in ``Series.isin()`` when called for categoricals (:issue`16639`)
 
 Other
 ^^^^^
