@@ -132,6 +132,20 @@ class Base(object):
         with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
 
+    def test_get_indexer_consistency(self):
+        # See GH 16819
+        for name, index in self.indices.items():
+            if isinstance(index, IntervalIndex):
+                continue
+
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
+            indexer, _ = index.get_indexer_non_unique(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
         assert idx.T.equals(idx)
@@ -905,7 +919,7 @@ class Base(object):
 
     def test_nulls(self):
         # this is really a smoke test for the methods
-        # as these are adequantely tested for function elsewhere
+        # as these are adequately tested for function elsewhere
 
         for name, index in self.indices.items():
             if len(index) == 0:
@@ -933,3 +947,10 @@ class Base(object):
         index = self.create_index()
         assert not index.empty
         assert index[:0].empty
+
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self_unique(self, how):
+        index = self.create_index()
+        if index.is_unique:
+            joined = index.join(index, how=how)
+            assert (index == joined).all()

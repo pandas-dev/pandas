@@ -773,3 +773,9 @@ class TestPeriodIndex(DatetimeLike):
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
+
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, how):
+        index = period_range('1/1/2000', periods=10)
+        joined = index.join(index, how=how)
+        assert index is joined

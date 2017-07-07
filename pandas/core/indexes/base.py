@@ -2256,8 +2256,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except:
             # duplicates
-            indexer = Index(other._values).get_indexer_non_unique(
-                self._values)[0].unique()
+            indexer = algos.unique1d(
+                Index(other._values).get_indexer_non_unique(self._values)[0])
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
@@ -2704,7 +2704,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             tgt_values = target._values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return Index(indexer), missing
+        return indexer, missing
 
     def get_indexer_for(self, target, **kwargs):
         """
@@ -2942,7 +2942,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:
 
                 # need to retake to have the same size as the indexer
-                indexer = indexer.values
                 indexer[~check] = 0
 
                 # reset the new indexer to account for the new size
@@ -3127,7 +3126,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         left_idx = _ensure_platform_int(left_idx)
         right_idx = _ensure_platform_int(right_idx)
 
-        join_index = self.values.take(left_idx)
+        join_index = np.asarray(self.values.take(left_idx))
         mask = left_idx == -1
         np.putmask(join_index, mask, other._values.take(right_idx))
 

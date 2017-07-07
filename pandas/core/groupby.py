@@ -896,8 +896,9 @@ class _GroupBy(PandasObject, SelectionMixin):
                 # we can't reindex, so we resort to this
                 # GH 14776
                 if isinstance(ax, MultiIndex) and not ax.is_unique:
-                    result = result.take(result.index.get_indexer_for(
-                        ax.values).unique(), axis=self.axis)
+                    indexer = algorithms.unique1d(
+                        result.index.get_indexer_for(ax.values))
+                    result = result.take(indexer, axis=self.axis)
                 else:
                     result = result.reindex_axis(ax, axis=self.axis)
 

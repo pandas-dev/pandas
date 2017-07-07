@@ -516,7 +516,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                     result.freq = to_offset(result.inferred_freq)
             return result
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
@@ -527,7 +528,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 pass
 
         return Index.join(self, other, how=how, level=level,
-                          return_indexers=return_indexers)
+                          return_indexers=return_indexers,
+                          sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -680,8 +682,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
-
-        if is_bool_indexer(key):
+        if is_bool_indexer(key) or is_timedelta64_dtype(key):
             raise TypeError
 
         if isnull(key):
