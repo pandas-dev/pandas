@@ -1129,10 +1129,11 @@ class MultiIndex(Index):
                                   of iterables
         """
         if len(tuples) == 0:
-            # I think this is right? Not quite sure...
-            raise TypeError('Cannot infer number of levels from empty list')
-
-        if isinstance(tuples, (np.ndarray, Index)):
+            if names is None:
+                msg = 'Cannot infer number of levels from empty list'
+                raise TypeError(msg)
+            arrays = [[]] * len(names)
+        elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
 
@@ -2621,8 +2622,9 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return algos.isin(self.values,
-                              MultiIndex.from_tuples(values).values)
+            values = MultiIndex.from_tuples(values,
+                                            names=self.names).values
+            return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]

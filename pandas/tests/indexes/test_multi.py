@@ -1720,6 +1720,13 @@ class TestMultiIndex(Base):
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         assert len(idx) == 2
 
+    def test_from_tuples_empty(self):
+        # GH 16777
+        result = MultiIndex.from_tuples([], names=['a', 'b'])
+        expected = MultiIndex.from_arrays(arrays=[[], []],
+                                          names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.values.argsort()
