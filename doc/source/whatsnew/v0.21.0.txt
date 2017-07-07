@@ -169,6 +169,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 
+- Bug in ``.resample(..)`` with a ``BusinessHour`` raises ``ValueError`` (:issue:`12351`)
 
 
 Sparse
