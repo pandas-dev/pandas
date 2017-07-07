@@ -5279,7 +5279,8 @@ class TestHDFStore(Base):
             ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
 
         with ensure_clean_store(
-                tm.get_data_path('periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+                tm.get_data_path(
+                    'legacy_hdf/periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
