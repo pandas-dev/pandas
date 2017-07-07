@@ -37,6 +37,44 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.20.3
+-------------
+
+**Release date:** July 7, 2017
+
+This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes
+and bug fixes.  We recommend that all users upgrade to this version.
+
+See the :ref:`v0.20.3 Whatsnew <whatsnew_0203>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.20.3
+
+Thanks
+~~~~~~
+
+A total of 20 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* Bran Yang
+* Chris
+* Chris Kerr +
+* DSM
+* David Gwynne
+* Douglas Rudd
+* Forbidden Donut +
+* Jeff Reback
+* Joris Van den Bossche
+* Karel De Brabandere +
+* Peter Quackenbush +
+* Pradyumna Reddy Chinthala +
+* Telt +
+* Tom Augspurger
+* chris-b1
+* gfyoung
+* ian +
+* jdeschenes +
+* kjford +
+* ri938 +
+
 pandas 0.20.2
 -------------
 
