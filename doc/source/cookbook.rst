@@ -776,16 +776,16 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`Using Grouper instead of TimeGrouper
+`Using Grouper instead of TimeGrouper for time grouping of values
 <https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
 
-`Grouper#2
+`Time grouping with some missing values
 <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
 `Valid frequency arguments to Grouper
 <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
 
-`Grouping using multiindex
+`Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
