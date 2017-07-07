@@ -2976,6 +2976,37 @@ class TestResamplerGrouper(object):
         result = g.apply(f)
         assert_frame_equal(result, expected)
 
+    def test_apply_preserves_multiindex_columns(self):
+        # GH 16231
+        # the original failing case
+        cols = pd.MultiIndex.from_tuples([('A', 'a', '', 'one'),
+                                          ('B', 'b', 'i', 'two')])
+        ind = pd.DatetimeIndex(start='2017-01-01', freq='15Min', periods=8)
+        df = pd.DataFrame(np.random.randn(8, 2), index=ind, columns=cols)
+
+        agg_dict = {col: (np.sum if col[3] == 'one' else np.mean)
+                    for col in df.columns}
+        resampled = df.resample('H').apply(lambda x: agg_dict[x.name](x))
+        assert isinstance(resampled.columns, pd.MultiIndex)
+
+    @pytest.mark.parametrize('nlevel', range(1, 6))
+    @pytest.mark.parametrize('ncol', [1, 2])
+    @pytest.mark.parametrize('freq', ['D', '360Min'])
+    def test_apply_preserves_multiindex_columns_grid(self, nlevel, ncol, freq):
+        # GH 16231
+        cols = pd.MultiIndex.from_tuples([[i] * nlevel for i in range(ncol)],
+                                         names=['lev_{}'.format(lev)
+                                                for lev in range(nlevel)])
+        idx = pd.date_range('2000-01-01', freq="H", periods=50)
+        df = pd.DataFrame(np.random.randn(len(idx), len(cols)),
+                          columns=cols, index=idx)
+
+        resampled = df.resample(freq)
+
+        via_direct = resampled.sum()
+        via_apply = resampled.apply(lambda x: x.sum())
+        tm.assert_frame_equal(via_direct, via_apply)
+
     def test_resample_groupby_with_label(self):
         # GH 13235
         index = date_range('2000-01-01', freq='2D', periods=5)

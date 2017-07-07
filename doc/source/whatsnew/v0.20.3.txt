@@ -73,6 +73,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in groupby logic causing MultiIndex column levels to be lost (:issue:`16231`)
 
 Sparse
 ^^^^^^

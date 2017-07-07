@@ -3626,6 +3626,22 @@ class TestGroupBy(MixIn):
         tm.assert_frame_equal(result1, expected1)
         tm.assert_frame_equal(result2, expected2)
 
+    @pytest.mark.parametrize('nlevel', range(1, 6))
+    @pytest.mark.parametrize('as_index', [False, True])
+    def test_groupby_aggregate_preserves_multiindex_columns(self, nlevel,
+                                                            as_index):
+        # GH 16231
+        cols = pd.MultiIndex.from_tuples([[i] * nlevel for i in range(2)],
+                                         names=['lev_{}'.format(lev)
+                                                for lev in range(nlevel)])
+        df = pd.DataFrame(np.random.randn(10, len(cols)), columns=cols)
+
+        grouped = df.groupby(df.index % 3, as_index=as_index)
+        via_direct = grouped.sum()
+        via_agg = grouped.aggregate(lambda x: x.sum())
+
+        tm.assert_frame_equal(via_direct, via_agg)
+
     def test_groupby_preserves_sort(self):
         # Test to ensure that groupby always preserves sort order of original
         # object. Issue #8588 and #9651
