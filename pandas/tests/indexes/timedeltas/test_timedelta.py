@@ -579,7 +579,7 @@ class TestSlicing(object):
             assert back.freq == expected
         else:  # freq == 'B'
             assert index.freq == pd.tseries.offsets.BusinessDay(1)
-            assert shifted.freq == None
+            assert shifted.freq is None
             assert back.freq == pd.tseries.offsets.BusinessDay(1)
 
         result = index - timedelta(1)
