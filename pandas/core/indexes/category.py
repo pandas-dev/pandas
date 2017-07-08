@@ -420,7 +420,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         indexer, missing = self.get_indexer_non_unique(np.array(target))
 
-        if len(self.codes):
+        if len(indexer):
             new_target = self.take(indexer)
         else:
             new_target = target
