@@ -2329,6 +2329,14 @@ it is assumed to be aliases for the column names')
         3  0.0764  False  2
         4 -0.9703   True  1
         5 -1.2094  False  2
+        >>> df.select_dtypes(include='bool')
+           c
+        0  True
+        1  False
+        2  True
+        3  False
+        4  True
+        5  False
         >>> df.select_dtypes(include=['float64'])
            c
         0  1
@@ -2347,9 +2355,6 @@ it is assumed to be aliases for the column names')
         5  False
         """
 
-        # GH16855 - If either include or exclude is a non-None scalar then
-        # convert to a tuple of length 1 and continue.
-        # This allows, for example, df.select_dtypes(include='object').
         if not is_list_like(include):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):

@@ -104,7 +104,7 @@ class TestDataFrameDataTypes(TestData):
                                              ('b', np.float_),
                                              ('c', np.float_)])))
 
-    def test_select_dtypes_include(self):
+    def test_select_dtypes_include_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -145,18 +145,10 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['h', 'i']]
         assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=['timedelta'])
-        ei = df[['k']]
-        assert_frame_equal(ri, ei)
-
-        ri = df.select_dtypes(include='category')
-        ei = df[['f']]
-        assert_frame_equal(ri, ei)
-
         pytest.raises(NotImplementedError,
                       lambda: df.select_dtypes(include=['period']))
 
-    def test_select_dtypes_exclude(self):
+    def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -166,11 +158,7 @@ class TestDataFrameDataTypes(TestData):
         ee = df[['a', 'e']]
         assert_frame_equal(re, ee)
 
-        re = df.select_dtypes(exclude=np.number)
-        ee = df[['a', 'e']]
-        assert_frame_equal(re, ee)
-
-    def test_select_dtypes_exclude_include(self):
+    def test_select_dtypes_exclude_include_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -189,11 +177,113 @@ class TestDataFrameDataTypes(TestData):
         e = df[['b', 'e']]
         assert_frame_equal(r, e)
 
-        exclude = 'datetime'
-        include = 'bool'
-        r = df.select_dtypes(include=include, exclude=exclude)
-        e = df[['e']]
-        assert_frame_equal(r, e)
+    def test_select_dtypes_include_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number)
+        ei = df[['b', 'c', 'd', 'k']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='datetime')
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='datetime64')
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='category')
+        ei = df[['f']]
+        assert_frame_equal(ri, ei)
+
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(include='period'))
+
+    def test_select_dtypes_exclude_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(exclude=np.number)
+        ei = df[['a', 'e', 'f', 'g', 'h', 'i', 'j']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(exclude='category')
+        ei = df[['a', 'b', 'c', 'd', 'e', 'g', 'h', 'i', 'j', 'k']]
+        assert_frame_equal(ri, ei)
+
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(exclude='period'))
+
+    def test_select_dtypes_include_exclude_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number, exclude='floating')
+        ei = df[['b', 'c', 'k']]
+        assert_frame_equal(ri, ei)
+
+    def test_select_dtypes_include_exclude_mixed_scalars_lists(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number,
+                              exclude=['floating', 'timedelta'])
+        ei = df[['b', 'c']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=[np.number, 'category'],
+                              exclude='floating')
+        ei = df[['b', 'c', 'f', 'k']]
+        assert_frame_equal(ri, ei)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
         df = DataFrame({'a': list('abc'),
