@@ -170,7 +170,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 
-
+- Bug in ``infer_freq`` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
 
 Sparse
 ^^^^^^
