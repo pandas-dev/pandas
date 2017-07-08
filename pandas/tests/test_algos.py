@@ -438,8 +438,7 @@ class TestUnique(object):
 
         result = pd.unique(ci)
         tm.assert_index_equal(result, expected)
-        
-                      
+
     def test_datetime64tz_aware(self):
         # GH 15939
 
@@ -594,9 +593,10 @@ class TestIsin(object):
         Sd = pd.Series(pd.Categorical(1).from_codes(vals, cats))
         St = pd.Series(pd.Categorical(1).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
-        result = algos.isin(Sd,St)
+        result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
-        
+
+
 class TestValueCounts(object):
 
     def test_value_counts(self):

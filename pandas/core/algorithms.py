@@ -113,7 +113,7 @@ def _ensure_data(values, dtype=None):
         return values.asi8, dtype, 'int64'
 
     elif (is_categorical_dtype(values) and
-+          (is_categorical_dtype(dtype) or dtype is None)):
+          (is_categorical_dtype(dtype) or dtype is None)):
         values = getattr(values, 'values', values)
         values = values.codes
         dtype = 'category'

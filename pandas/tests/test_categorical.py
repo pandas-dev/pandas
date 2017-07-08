@@ -442,7 +442,7 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
-        
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"
