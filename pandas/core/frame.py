@@ -2285,9 +2285,9 @@ it is assumed to be aliases for the column names')
 
         Parameters
         ----------
-        include, exclude : list-like
-            A list of dtypes or strings to be included/excluded. You must pass
-            in a non-empty sequence for at least one of these.
+        include, exclude : scalar or list-like
+            A selection of dtypes or strings to be included/excluded. At least
+            one of these parameters must be supplied.
 
         Raises
         ------
@@ -2295,8 +2295,6 @@ it is assumed to be aliases for the column names')
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
-        TypeError
-            * If either of ``include`` or ``exclude`` is not a sequence
 
         Returns
         -------
@@ -2348,10 +2346,15 @@ it is assumed to be aliases for the column names')
         4   True
         5  False
         """
-        include, exclude = include or (), exclude or ()
-        if not (is_list_like(include) and is_list_like(exclude)):
-            raise TypeError('include and exclude must both be non-string'
-                            ' sequences')
+
+        # GH16855 - If either include or exclude is a non-None scalar then
+        # convert to a tuple of length 1 and continue.
+        # This allows, for example, df.select_dtypes(include='object').
+        if not is_list_like(include):
+            include = (include,) if include is not None else ()
+        if not is_list_like(exclude):
+            exclude = (exclude,) if exclude is not None else ()
+
         selection = tuple(map(frozenset, (include, exclude)))
 
         if not any(selection):

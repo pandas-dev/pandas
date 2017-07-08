@@ -149,6 +149,10 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['k']]
         assert_frame_equal(ri, ei)
 
+        ri = df.select_dtypes(include='category')
+        ei = df[['f']]
+        assert_frame_equal(ri, ei)
+
         pytest.raises(NotImplementedError,
                       lambda: df.select_dtypes(include=['period']))
 
@@ -159,6 +163,10 @@ class TestDataFrameDataTypes(TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True]})
         re = df.select_dtypes(exclude=[np.number])
+        ee = df[['a', 'e']]
+        assert_frame_equal(re, ee)
+
+        re = df.select_dtypes(exclude=np.number)
         ee = df[['a', 'e']]
         assert_frame_equal(re, ee)
 
@@ -179,6 +187,12 @@ class TestDataFrameDataTypes(TestData):
         include = 'bool', 'int64', 'int32'
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[['b', 'e']]
+        assert_frame_equal(r, e)
+
+        exclude = 'datetime'
+        include = 'bool'
+        r = df.select_dtypes(include=include, exclude=exclude)
+        e = df[['e']]
         assert_frame_equal(r, e)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
@@ -204,18 +218,6 @@ class TestDataFrameDataTypes(TestData):
                                     'include or exclude '
                                     'must be nonempty'):
             df.select_dtypes()
-
-    def test_select_dtypes_raises_on_string(self):
-        df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assert_raises_regex(TypeError, 'include and exclude '
-                                    '.+ non-'):
-            df.select_dtypes(include='object')
-        with tm.assert_raises_regex(TypeError, 'include and exclude '
-                                    '.+ non-'):
-            df.select_dtypes(exclude='object')
-        with tm.assert_raises_regex(TypeError, 'include and exclude '
-                                    '.+ non-'):
-            df.select_dtypes(include=int, exclude='object')
 
     def test_select_dtypes_bad_datetime64(self):
         df = DataFrame({'a': list('abc'),
