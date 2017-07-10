@@ -393,7 +393,7 @@ class TestCategoricalIndex(Base):
         res, indexer = c.reindex(['a', 'c'])
         tm.assert_index_equal(res, Index(['a', 'a', 'c']), exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([0, 3, 2], dtype=np.int64))
+                                    np.array([0, 3, 2], dtype=np.intp))
 
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
         res, indexer = c.reindex(Categorical(['a', 'c']))
