@@ -2229,7 +2229,3 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     numpy hierarchy and wont show up with the above function.
-
-.. note::
-
-   The ``include`` and ``exclude`` parameters must be non-string sequences.
