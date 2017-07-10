@@ -1348,8 +1348,9 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         bint is_variable
         ndarray[int64_t] start, end
         ndarray[double_t] output
+        double vlow, vhigh
 
-    if quantile < 0.0 or quantile > 1.0:
+    if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
 
     # we use the Fixed/Variable Indexer here as the
@@ -1391,7 +1392,17 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
 
         if nobs >= minp:
             idx = int(quantile * <double>(nobs - 1))
-            output[i] = skiplist.get(idx)
+
+            # Single value in skip list
+            if nobs == 1:
+                output[i] = skiplist.get(0)
+
+            # Interpolated quantile
+            else:
+                vlow = skiplist.get(idx)
+                vhigh = skiplist.get(idx + 1)
+                output[i] = (vlow + (vhigh - vlow) *
+                                 (quantile * (nobs - 1) - idx))
         else:
             output[i] = NaN
 
