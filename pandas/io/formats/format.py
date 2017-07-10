@@ -1130,7 +1130,9 @@ class HTMLFormatter(TableFormatter):
                          ('tbody tr th','vertical-align','top')]
         if isinstance(self.columns, MultiIndex):
             element_props.append(('thead tr th','text-align','left'))
-            if all((self.fmt.has_index_names, self.fmt.index, self.fmt.show_index_names)):
+            if all((self.fmt.has_index_names, 
+                    self.fmt.index, 
+                    self.fmt.show_index_names)):
                 element_props.append(('thead tr:last-of-type th','text-align','right'))
         else:
             element_props.append(('thead th','text-align','right'))
