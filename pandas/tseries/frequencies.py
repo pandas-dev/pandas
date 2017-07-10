@@ -637,20 +637,6 @@ def get_offset(name):
 getOffset = get_offset
 
 
-def get_offset_name(offset):
-    """
-    Return rule name associated with a DateOffset object
-
-    Examples
-    --------
-    get_offset_name(BMonthEnd(1)) --> 'EOM'
-    """
-
-    msg = "get_offset_name(offset) is deprecated. Use offset.freqstr instead"
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    return offset.freqstr
-
-
 def get_standard_freq(freq):
     """
     Return the standardized frequency string
