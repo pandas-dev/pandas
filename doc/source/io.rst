@@ -3194,7 +3194,7 @@ You can pass ``iterator=True`` to iterate over the unpacked results
 .. ipython:: python
 
    for o in pd.read_msgpack('foo.msg',iterator=True):
-       print o
+       print(o)
 
 You can pass ``append=True`` to the writer to append to an existing pack
 
@@ -3912,7 +3912,7 @@ chunks.
    evens = [2,4,6,8,10]
    coordinates = store.select_as_coordinates('dfeq','number=evens')
    for c in chunks(coordinates, 2):
-        print store.select('dfeq',where=c)
+        print(store.select('dfeq',where=c))
 
 Advanced Queries
 ++++++++++++++++
