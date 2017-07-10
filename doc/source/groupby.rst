@@ -933,7 +933,7 @@ The dimension of the returned result can also change:
 
         d = pd.DataFrame({"a":["x", "y"], "b":[1,2]})
         def identity(df):
-            print df
+            print(df)
             return df
 
         d.groupby("a").apply(identity)
