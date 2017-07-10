@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # cython: profile=False
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash

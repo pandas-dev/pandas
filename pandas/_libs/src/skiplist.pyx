@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Cython version of IndexableSkiplist, for implementing moving median
 # with O(log n) updates
 # Original author: Raymond Hettinger

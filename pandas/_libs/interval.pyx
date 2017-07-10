@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 cimport numpy as np
 import numpy as np
 import pandas as pd

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # cython: profile=False
 from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
 from cpython cimport PyObject

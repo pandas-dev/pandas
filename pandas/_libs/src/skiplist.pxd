@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 cdef extern from "skiplist.h":
     ctypedef struct node_t:
         node_t **next
