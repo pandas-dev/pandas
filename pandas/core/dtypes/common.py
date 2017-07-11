@@ -1714,7 +1714,7 @@ def _get_dtype(arr_or_dtype):
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
     elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
-        return  arr_or_dtype.dtype
+        return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
