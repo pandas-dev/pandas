@@ -235,7 +235,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : string, default 'ns'
+    unit : string, default None
         unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
         Example, with unit='ms' and origin='unix' (the default), this
@@ -342,6 +342,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     pandas.to_timedelta : Convert argument to timedelta.
     """
     from pandas.core.indexes.datetimes import DatetimeIndex
+    from pandas.core.frame import DataFrame
 
     tz = 'utc' if utc else None
 
@@ -451,8 +452,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
+    def check_numerical_arg():
+        return ((is_scalar(arg) and (is_integer(arg) or is_float(arg))) or
+                (is_numeric_dtype(np.asarray(arg)) and np.asarray(arg).size))
+
     if arg is None:
         return None
+    elif ((not isinstance(arg, DataFrame)) and
+          (check_numerical_arg() and unit is None and format is None)):
+        raise ValueError("a unit is required in case of numerical arg")
 
     # handle origin
     if origin == 'julian':
@@ -479,8 +487,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         # arg must be a numeric
         original = arg
-        if not ((is_scalar(arg) and (is_integer(arg) or is_float(arg))) or
-                is_numeric_dtype(np.asarray(arg))):
+        if not check_numerical_arg():
             raise ValueError(
                 "'{arg}' is not compatible with origin='{origin}'; "
                 "it must be numeric with a unit specified ".format(
@@ -605,7 +612,7 @@ def _assemble_from_unit_mappings(arg, errors):
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{excess}]".format(','.join(excess=excess)))
+                         "[{}]".format(','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows

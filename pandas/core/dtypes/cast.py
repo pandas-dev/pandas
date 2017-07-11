@@ -155,7 +155,7 @@ def maybe_downcast_to_dtype(result, dtype):
                 if dtype.tz:
                     # convert to datetime and change timezone
                     from pandas import to_datetime
-                    result = to_datetime(result).tz_localize('utc')
+                    result = to_datetime(result, unit='ns').tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
 
     except:
@@ -963,11 +963,13 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                                                 dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)._values
+                            value = to_datetime(value, unit='ns',
+                                                errors=errors)._values
                         elif is_datetime64tz:
                             # input has to be UTC at this point, so just
                             # localize
-                            value = (to_datetime(value, errors=errors)
+                            value = (to_datetime(value, unit='ns',
+                                                 errors=errors)
                                      .tz_localize('UTC')
                                      .tz_convert(dtype.tz)
                                      )

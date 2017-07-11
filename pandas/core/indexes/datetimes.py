@@ -277,6 +277,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         dayfirst = kwargs.pop('dayfirst', None)
         yearfirst = kwargs.pop('yearfirst', None)
+        unit = kwargs.pop('unit', None)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -333,7 +334,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if not (is_datetime64_dtype(data) or is_datetimetz(data) or
                 is_integer_dtype(data)):
             data = tools.to_datetime(data, dayfirst=dayfirst,
-                                     yearfirst=yearfirst)
+                                     unit=unit, yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
 

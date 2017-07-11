@@ -1730,7 +1730,7 @@ class TestDatetimeIndex(Base):
         start = 1443707890427
         exp_start = 1443707890400
         indx = pd.date_range(
-            start=pd.to_datetime(start),
+            start=pd.to_datetime(start, unit='ns'),
             periods=10,
             freq='100n'
         )
@@ -1739,7 +1739,7 @@ class TestDatetimeIndex(Base):
         result = r.agg('mean')
 
         exp_indx = pd.date_range(
-            start=pd.to_datetime(exp_start),
+            start=pd.to_datetime(exp_start, unit='ns'),
             periods=10,
             freq='100n'
         )
