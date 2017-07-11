@@ -26,7 +26,7 @@ class DataframeRolling(object):
     def time_rolling_median(self):
         (self.df.rolling(self.wins).median())
 
-    def time_rolling_median(self):
+    def time_rolling_mean(self):
         (self.df.rolling(self.wins).mean())
 
     def time_rolling_max(self):
@@ -68,7 +68,7 @@ class DataframeRolling(object):
     def time_rolling_median_l(self):
         (self.df.rolling(self.winl).median())
 
-    def time_rolling_median_l(self):
+    def time_rolling_mean_l(self):
         (self.df.rolling(self.winl).mean())
 
     def time_rolling_max_l(self):
@@ -118,7 +118,7 @@ class SeriesRolling(object):
     def time_rolling_median(self):
         (self.sr.rolling(self.wins).median())
 
-    def time_rolling_median(self):
+    def time_rolling_mean(self):
         (self.sr.rolling(self.wins).mean())
 
     def time_rolling_max(self):
@@ -160,7 +160,7 @@ class SeriesRolling(object):
     def time_rolling_median_l(self):
         (self.sr.rolling(self.winl).median())
 
-    def time_rolling_median_l(self):
+    def time_rolling_mean_l(self):
         (self.sr.rolling(self.winl).mean())
 
     def time_rolling_max_l(self):
