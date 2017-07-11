@@ -6,6 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+import re
 import types
 import warnings
 from textwrap import dedent
@@ -1047,6 +1048,16 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             except AttributeError:
                 with open(buf, 'w') as f:
                     f.write(result)
+
+    def _repr_html_(self):
+        """
+        Return a html representation for a particular Series.
+        Mainly for IPython notebook.
+        """
+        df = self.to_frame()
+        s = df._repr_html_()
+        s2 = re.sub(r'<thead>(.*)</thead>', '', s, flags=re.DOTALL)
+        return s2
 
     def __iter__(self):
         """ provide iteration over the values of the Series
