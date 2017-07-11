@@ -1484,6 +1484,10 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
+    def _unstack(self, new_values, new_placement):
+        """Return a list of unstacked blocks of self"""
+        return [make_block(new_values, placement=new_placement)]
+
     def quantile(self, qs, interpolation='linear', axis=0, mgr=None):
         """
         compute the quantiles of the
@@ -1711,6 +1715,12 @@ class NonConsolidatableMixIn(object):
 
     def _try_cast_result(self, result, dtype=None):
         return result
+
+    def _unstack(self, new_values, new_placement):
+        # NonConsolidatable blocks can have a single item only, so we return
+        # one block per item
+        return [self.make_block_same_class(vals, [place])
+                for vals, place in zip(new_values, new_placement)]
 
 
 class NumericBlock(Block):
@@ -4166,6 +4176,27 @@ class BlockManager(PandasObject):
         other_blocks = sorted(other.blocks, key=canonicalize)
         return all(block.equals(oblock)
                    for block, oblock in zip(self_blocks, other_blocks))
+
+    def unstack(self, unstacker):
+        """Return blockmanager with all blocks unstacked"""
+        dummy = unstacker(np.empty((0, 0)), value_columns=self.items)
+        new_columns = dummy.get_new_columns()
+        new_index = dummy.get_new_index()
+        new_blocks = []
+        mask_columns = np.zeros_like(new_columns, dtype=bool)
+
+        for blk in self.blocks:
+            bunstacker = unstacker(
+                blk.values.T, value_columns=self.items[blk.mgr_locs.indexer])
+            new_items = bunstacker.get_new_columns()
+            new_values, mask = bunstacker.get_new_values()
+            new_placement = new_columns.get_indexer(new_items)
+            mask_columns[new_placement] = mask.any(0)
+            new_blocks.extend(blk._unstack(new_values.T, new_placement))
+
+        bm = BlockManager(new_blocks, [new_columns, new_index])
+        bm = bm.take(mask_columns.nonzero()[0], axis=0)
+        return bm
 
 
 class SingleBlockManager(BlockManager):

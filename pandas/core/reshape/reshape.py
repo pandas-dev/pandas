@@ -2,6 +2,7 @@
 # pylint: disable=W0703,W0622,W0613,W0201
 from pandas.compat import range, text_type, zip
 from pandas import compat
+from functools import partial
 import itertools
 import re
 
@@ -475,48 +476,12 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
-    from pandas.core.internals import BlockManager, make_block as _make_block
-
     if obj._is_mixed_type:
-        unstacker = _Unstacker(np.empty((0, 0)),  # dummy
-                               obj.index, level=level,
-                               value_columns=obj.columns)
-        new_columns = unstacker.get_new_columns()
-        new_index = unstacker.get_new_index()
-        new_axes = [new_columns, new_index]
-
-        new_blocks = []
-        mask_blocks = np.zeros_like(new_columns, dtype=bool)
-        for blk in obj._data.blocks:
-            blk_items = obj._data.items[blk.mgr_locs.indexer]
-            bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
-                                    value_columns=blk_items,
-                                    fill_value=fill_value)
-            new_items = bunstacker.get_new_columns()
-            new_placement = new_columns.get_indexer(new_items)
-            new_values, mask = bunstacker.get_new_values()
-
-            mask_blocks[new_placement] = mask.any(0)
-
-            # BlockManager can't handle SparseBlocks with multiple items,
-            # so lets make one block for each item
-            if is_sparse(blk.values):
-                new_placement = [[i] for i in new_placement]
-                new_values = new_values.T
-                make_block = blk.make_block_same_class
-            else:
-                new_placement = [new_placement]
-                new_values = [new_values.T]
-                make_block = _make_block
-
-            for cols, placement in zip(new_values, new_placement):
-                newb = make_block(cols, placement=placement)
-                new_blocks.append(newb)
-
+        unstacker = partial(_Unstacker, index=obj.index,
+                            level=level, fill_value=fill_value)
+        blocks = obj._data.unstack(unstacker)
         klass = type(obj)
-        assert klass in (SparseDataFrame, DataFrame), klass
-        result = klass(BlockManager(new_blocks, new_axes))
-        return result.loc[:, mask_blocks]
+        return klass(blocks)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns,
