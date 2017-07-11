@@ -192,7 +192,7 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug in ``:func:Series.isin()`` when called with a categorical (:issue`16639`)
 
 
 Other
