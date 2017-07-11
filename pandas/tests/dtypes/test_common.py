@@ -524,3 +524,42 @@ def test_is_complex_dtype():
 
     assert com.is_complex_dtype(np.complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
+
+
+@pytest.mark.parametrize('input_param,result', [
+    (int, np.dtype(int)),
+    ('int32', np.dtype('int32')),
+    (float, np.dtype(float)),
+    ('float64', np.dtype('float64')),
+    (np.dtype('float64'), np.dtype('float64')),
+    pytest.mark.xfail((str, np.dtype('<U')), ),
+    (pd.Series([1, 2], dtype=np.dtype('int16')), np.dtype('int16')),
+    (pd.Series(['a', 'b']), np.dtype(object)),
+    (pd.Index([1, 2]), np.dtype('int64')),
+    (pd.Index(['a', 'b']), np.dtype(object)),
+    ('category', 'category'),
+    (pd.Categorical(['a', 'b']).dtype, CategoricalDtype()),
+    pytest.mark.xfail((pd.Categorical(['a', 'b']), CategoricalDtype()),),
+    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtype()),
+    pytest.mark.xfail((pd.CategoricalIndex(['a', 'b']), CategoricalDtype()),),
+    (pd.DatetimeIndex([1, 2]), np.dtype('<M8[ns]')),
+    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('<M8[ns]')),
+    ('<M8[ns]', np.dtype('<M8[ns]')),
+    ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
+    (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.dtype('int32')),
+    (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
+    ('period[D]', PeriodDtype(freq='D')),
+    (IntervalDtype(), IntervalDtype()),
+])
+def test__get_dtype(input_param, result):
+    assert com._get_dtype(input_param) == result
+
+
+@pytest.mark.parametrize('input_param', [None,
+                                         1, 1.2,
+                                         'random string',
+                                         pd.DataFrame([1, 2])])
+def test__get_dtype_fails(input_param):
+    # python objects
+    pytest.raises(TypeError, com._get_dtype, input_param)
