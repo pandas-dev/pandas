@@ -2388,27 +2388,37 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
 
-class TestSparse(object):
-    def setup_method(self, method):
-        self.sdf = pd.SparseDataFrame({0: {0: 1}, 1: {1: 1}, 2: {2: 1}})  # eye
-        self.mi = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
+@pytest.fixture
+def sparse_df():
+    return pd.SparseDataFrame({0: {0: 1}, 1: {1: 1}, 2: {2: 1}})  # eye
 
-    def test_sparse_frame_stack(self):
-        ss = self.sdf.stack()
-        expected = pd.SparseSeries(np.ones(3), index=self.mi)
-        tm.assert_sp_series_equal(ss, expected)
 
-    def test_sparse_frame_unstack(self):
-        mi = pd.MultiIndex.from_tuples([(0, 0), (1, 0), (1, 2)])
-        sdf = self.sdf
-        sdf.index = mi
-        df = pd.DataFrame(np.eye(3), index=mi).replace(0, np.nan)
+@pytest.fixture
+def multi_index3():
+    return MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
 
-        tm.assert_numpy_array_equal(df.unstack().values, sdf.unstack().values)
 
-    def test_sparse_series_unstack(self):
-        frame = pd.SparseSeries(np.ones(3), index=self.mi).unstack()
-        tm.assert_sp_frame_equal(frame, self.sdf)
+def test_sparse_frame_stack(sparse_df, multi_index3):
+    ss = sparse_df.stack()
+    expected = pd.SparseSeries(np.ones(3), index=multi_index3)
+    tm.assert_sp_series_equal(ss, expected)
+
+
+def test_sparse_frame_unstack(sparse_df):
+    mi = MultiIndex.from_tuples([(0, 0), (1, 0), (1, 2)])
+    sparse_df.index = mi
+    arr = np.array([[1, np.nan, np.nan],
+                    [np.nan, 1, np.nan],
+                    [np.nan, np.nan, 1]])
+    unstacked_df = pd.DataFrame(arr, index=mi).unstack()
+    unstacked_sdf = sparse_df.unstack()
+
+    tm.assert_numpy_array_equal(unstacked_df.values, unstacked_sdf.values)
+
+
+def test_sparse_series_unstack(sparse_df, multi_index3):
+    frame = pd.SparseSeries(np.ones(3), index=multi_index3).unstack()
+    tm.assert_sp_frame_equal(frame, sparse_df)
 
 
 class TestSorted(Base):
