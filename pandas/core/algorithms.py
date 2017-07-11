@@ -38,7 +38,6 @@ from pandas._libs.tslib import iNaT
 # --------------- #
 # dtype access    #
 # --------------- #
-
 def _ensure_data(values, dtype=None):
     """
     routine to ensure that our data is of the correct
@@ -113,7 +112,8 @@ def _ensure_data(values, dtype=None):
 
         return values.asi8, dtype, 'int64'
 
-    elif is_categorical_dtype(values) or is_categorical_dtype(dtype):
+    elif (is_categorical_dtype(values) and
+          (is_categorical_dtype(dtype) or dtype is None)):
         values = getattr(values, 'values', values)
         values = values.codes
         dtype = 'category'
