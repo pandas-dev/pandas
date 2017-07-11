@@ -2098,7 +2098,6 @@ it is assumed to be aliases for the column names.')
 
     _xs = xs
 
-    # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
