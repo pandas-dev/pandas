@@ -500,6 +500,193 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     return ax
 
 
+def parallel_sets(frame, class_column, color=None, colormap=None, **kwds):
+    """Parallel sets plotting.
+
+    Parallel sets is a visualization technique for categorical data
+    that is useful for identifying discriminating structure within
+    a dataset in most class classification problems. Each sample from
+    the dataset is viewed as a polyline whose segment endpoints
+    are the values of the respective columns in the frame and the line
+    is assigned a colour per the class_column value.
+
+    Parameters
+    ----------
+    frame: DataFrame
+    class_column: str
+        Column name containing class names
+    color: list or tuple, optional
+        Colors to use for the different classes
+    colormap: str or matplotlib colormap, default None
+        Colormap to use for line colors.
+    kwds: keywords
+        Options to pass to matplotlib plotting method
+
+    Returns
+    -------
+    ax: matplotlib axis object
+
+    Examples
+    --------
+    >>> from pandas import read_csv
+    >>> from pandas.tools.plotting import parallel_sets
+    >>> from matplotlib import pyplot as plt
+    >>> df = read_csv('https://raw.github.com/pandas-dev/pandas/master'
+                      '/pandas/tests/data/iris.csv')
+    >>> parallel_sets(df, 'Name', color=('#556270',
+                             '#4ECDC4', '#C7F464'))
+    >>> plt.show()
+    """
+    parsets = _ParSets(color, colormap)
+    return parsets.par_sets(frame, class_column)
+
+
+class _ParSets(object):
+    """ Utility class for parallel_sets.
+
+    Used to construct a parallel sets plot. It organizes the helper
+    functions and is useful for testing.
+    """
+
+    def __init__(self, color=None, colormap=None):
+        """
+
+        Objects needed for test
+        """
+        self._reverse_column_cats_map = {}
+        self._color = color
+        self._colormap = colormap
+
+    def par_sets(self, df, class_column):
+        import matplotlib.pyplot as plt
+        data = df.values
+
+        classes = df[class_column].drop_duplicates()
+        colour_map = self._get_colours_for_par_sets(classes)
+
+        class_column_ref = df[class_column]
+
+        df_to_use = df.drop(class_column, axis=1)
+        df_to_use.insert(len(df_to_use.columns), class_column,
+                         class_column_ref)
+
+        class_column_values = df[class_column]
+        data = df_to_use.values
+
+        value_to_string_maps, column_cats_list = \
+            self._map_data_points_to_strs_for_par_sets(df_to_use)
+
+        fig, axes = plt.subplots(ncols=len(df_to_use.columns), figsize=(10, 5))
+
+        self._set_axes_limits_with_column_cardinality(axes, column_cats_list)
+
+        self._connect_axes_pairs_with_polyline_segments(axes, data,
+                                                        value_to_string_maps,
+                                                        class_column_values,
+                                                        colour_map)
+
+        self._set_appropriate_label_values_to_axes(axes, df_to_use,
+                                                   column_cats_list)
+
+        fig.subplots_adjust(wspace=0)
+
+        self._remove_spines_to_match_parallel_sets_plot(axes[-1])
+
+        return axes
+
+    def _connect_polyline(self, left_ax_index, left_ax, right_ax_index,
+                          right_ax, left_data_y, right_data_y, **line_kwds):
+        """ Adapted from https://gist.github.com/phobson/9de120cabde660ec734c
+        The params left_ax_index and right_ax_index are not directly used in
+        this method but are need for testing via a proxy class
+        """
+        import mpl_toolkits.axes_grid1.inset_locator as inset
+        import matplotlib.transforms as mtrans
+
+        to_left_ax_transformer = left_ax.transScale + left_ax.transLimits
+        left_ax_y = to_left_ax_transformer.transform((0, left_data_y))[1]
+
+        to_right_ax_transformer = right_ax.transScale + right_ax.transLimits
+        right_ax_y = to_right_ax_transformer.transform((0, right_data_y))[1]
+
+        left_data_to_ax_transformer = \
+            mtrans.blended_transform_factory(left_ax.transData,
+                                             left_ax.transAxes)
+        right_data_to_ax_transformer = \
+            mtrans.blended_transform_factory(right_ax.transData,
+                                             right_ax.transAxes)
+
+        bbox = mtrans.Bbox.from_extents(0, left_ax_y, 0, right_ax_y)
+        left_bbox = mtrans.TransformedBbox(bbox, left_data_to_ax_transformer)
+        right_bbox = mtrans.TransformedBbox(bbox, right_data_to_ax_transformer)
+
+        left_bbox_corner, right_bbox_corner = 3, 2
+        bbox_connecter_line = inset.BboxConnector(left_bbox, right_bbox,
+                                                  loc1=left_bbox_corner,
+                                                  loc2=right_bbox_corner,
+                                                  **line_kwds)
+        bbox_connecter_line.set_clip_on(False)
+
+        return bbox_connecter_line
+
+    def _set_axes_limits_with_column_cardinality(self, axes, column_cats_list):
+        for ind, column_cats in enumerate(column_cats_list):
+            axes[ind].set_ylim(0, len(column_cats) - 1)
+
+    def _connect_axes_pairs_with_polyline_segments(self, axes, data,
+                                                   value_to_string_maps,
+                                                   class_column_values,
+                                                   colour_map):
+        for n, (ax1, ax2) in enumerate(zip(axes[:-1], axes[1:])):
+            for ind, row in enumerate(data):
+                polyline_segment = \
+                    self._connect_polyline(n, ax1, n + 1, ax2,
+                                           value_to_string_maps[(n, row[n])],
+                                           value_to_string_maps[(n + 1,
+                                                                row[n + 1])],
+                                           color=colour_map[
+                                               class_column_values[ind]])
+                ax1.add_line(polyline_segment)
+
+    def _set_appropriate_label_values_to_axes(self, axes, df_to_use,
+                                              column_cats_list):
+        from matplotlib.ticker import MaxNLocator
+        for n, ax in enumerate(axes):
+            ax.set_xticks([0])
+            ax.set_xticklabels([df_to_use.columns[n]])
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+        for cat_index in range(len(column_cats_list)):
+            axes[cat_index].set_yticklabels(column_cats_list[cat_index])
+
+    def _remove_spines_to_match_parallel_sets_plot(self, last_axes):
+        spine_keys = ['right', 'bottom', 'top']
+        for spine_key in spine_keys:
+            last_axes.spines[spine_key].set_visible(False)
+
+    def _get_colours_for_par_sets(self, classes):
+        colours = sorted(_get_standard_colors(num_colors=len(classes),
+                                              color=self._color,
+                                              colormap=self._colormap))
+        return dict(zip(classes, colours))
+
+    def _map_data_points_to_strs_for_par_sets(self, df):
+        maps = {}
+        column_cats_list = []
+        reverse_column_cats_map = {}
+
+        for column_index, column in enumerate(df.columns):
+            column_cats = df[column].unique()
+            column_cats_list.append(column_cats)
+            for value_map, cat in enumerate(column_cats):
+                maps[(column_index, cat)] = value_map
+                reverse_column_cats_map[(column_index, value_map)] = cat
+
+        self._reverse_column_cats_map = reverse_column_cats_map
+
+        return maps, column_cats_list
+
+
 def lag_plot(series, lag=1, ax=None, **kwds):
     """Lag plot for time series.
 
