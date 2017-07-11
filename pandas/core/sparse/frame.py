@@ -850,7 +850,7 @@ def _nan_to_np_nan(value):
     """Normalize nan values to singleton np.NaN object so that when NaNs are
     used as dict keys, getitem works.
     """
-    return np.nan if is_float(value) and np.isnan(value) else value
+    return np.nan if is_float(value) and isnull(value) else value
 
 
 def to_manager(sdf, columns, index):
