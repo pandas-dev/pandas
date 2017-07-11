@@ -168,7 +168,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
-
+- Bug in ``DataFrame.groupby`` when called with index or index + column key numbers equal to the axis length of the groupby (:issue:`16859`)
 
 
 Sparse
