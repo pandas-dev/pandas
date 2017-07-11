@@ -12,7 +12,10 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.common import (
+    _ensure_platform_int, is_scipy_sparse,
+    is_float,
+)
 
 from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
@@ -143,7 +146,7 @@ class SparseDataFrame(DataFrame):
         sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
                                          fill_value=self._default_fill_value,
                                          copy=True, dtype=dtype)
-        sdict = DataFrame()
+        sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
                 # Force alignment, no copy necessary
@@ -159,15 +162,12 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, nan) for i in index]
 
                 v = sp_maker(v)
-            sdict[k] = v
+            sdict[_nan_to_np_nan(k)] = v
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
-        nan_vec = np.empty(len(index))
-        nan_vec.fill(nan)
-        for c in columns:
-            if c not in sdict:
-                sdict[c] = sp_maker(nan_vec)
+        nan_arr = sp_maker(np.full(len(index), np.nan))
+        sdict.update((c, nan_arr) for c in columns if c not in sdict)
 
         return to_manager(sdict, columns, index)
 
@@ -846,6 +846,13 @@ class SparseDataFrame(DataFrame):
         return self.apply(lambda x: lmap(func, x))
 
 
+def _nan_to_np_nan(value):
+    """Normalize nan values to singleton np.NaN object so that when NaNs are
+    used as dict keys, getitem works.
+    """
+    return np.nan if is_float(value) and np.isnan(value) else value
+
+
 def to_manager(sdf, columns, index):
     """ create and return the block manager from a dataframe of series,
     columns, index
@@ -855,7 +862,7 @@ def to_manager(sdf, columns, index):
     axes = [_ensure_index(columns), _ensure_index(index)]
 
     return create_block_manager_from_arrays(
-        [sdf[c] for c in columns], columns, axes)
+        [sdf[_nan_to_np_nan(c)] for c in columns], columns, axes)
 
 
 def stack_sparse_frame(frame):
