@@ -147,7 +147,8 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
-
+- :func:`dtypes.common._get_dtype` now accepts ``Categorical``s and
+  ``CategoricalIndex`` (:issue:`16887`).
 
 Indexing
 ^^^^^^^^
