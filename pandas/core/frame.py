@@ -3808,7 +3808,7 @@ it is assumed to be aliases for the column names')
 
             result[col] = arr
 
-        # convert_objects just in case
+        # Convert objects just in case.
         return self._constructor(result, index=new_index,
                                  columns=new_columns)._convert(datetime=True,
                                                                copy=False)

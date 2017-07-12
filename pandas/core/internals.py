@@ -768,7 +768,7 @@ class Block(PandasObject):
             values = self._try_coerce_and_cast_result(values, dtype)
             block = self.make_block(transf(values), fastpath=True)
 
-            # may have to soft convert_objects here
+            # May have to soft convert objects here
             if block.is_object and not self.is_object:
                 block = block.convert(numeric=False)
 
@@ -1850,12 +1850,13 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    # TODO: Refactor when convert_objects is removed since there will be 1 path
     def convert(self, *args, **kwargs):
-        """ attempt to coerce any object types to better types return a copy of
-        the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
+        """
+        Attempt to coerce any object types to more specific data types.
+        If copy = True, return a copy of the block.
 
-        can return multiple blocks!
+        NOTE: This function can can return multiple blocks!
+        NOTE: By definition, we are an ObjectBlock!
         """
 
         if args:

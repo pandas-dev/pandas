@@ -776,7 +776,6 @@ Conversion
    :toctree: generated/
 
    DataFrame.astype
-   DataFrame.convert_objects
    DataFrame.copy
    DataFrame.isnull
    DataFrame.notnull
