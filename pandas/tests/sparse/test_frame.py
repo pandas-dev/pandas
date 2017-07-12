@@ -1252,7 +1252,6 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.skip_if_no_package('scipy')
 
     arr = np.arange(1, 5).reshape(2, 2)
-
     try:
         spm = spmatrix(arr)
         assert spm.dtype == arr.dtype
@@ -1268,9 +1267,9 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
-def test_from_scipy_object_fillna(spmatrix):
+def test_from_scipy_fillna(spmatrix):
     # GH 16112
-    tm.skip_if_no_package('scipy', max_version='0.19.0')
+    tm.skip_if_no_package('scipy')
 
     arr = np.eye(3)
     arr[1:, 0] = np.nan
@@ -1287,12 +1286,11 @@ def test_from_scipy_object_fillna(spmatrix):
     sdf = pd.SparseDataFrame(spm).fillna(-1.0)
 
     # Returning frame should fill all nan values with -1.0
-    expected = pd.SparseDataFrame({0: {0: 1.0, 1: np.nan, 2: np.nan},
-                                   1: {0: np.nan, 1: 1.0, 2: np.nan},
-                                   2: {0: np.nan, 1: np.nan, 2: 1.0}}
-                                  ).fillna(-1.0)
+    expected = pd.SparseDataFrame([[1, -1, -1],
+                                   [-1, 1, -1],
+                                   [-1, -1, 1.]])
 
-    tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
+    tm.assert_numpy_array_equal(sdf.values, expected.values)
 
 
 class TestSparseDataFrameArithmetic(object):
