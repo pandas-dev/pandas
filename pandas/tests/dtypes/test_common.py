@@ -589,6 +589,8 @@ def test__get_dtype_fails(input_param):
     (pd.DatetimeIndex([1, 2]), np.datetime64),
     (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
     ('<M8[ns]', np.datetime64),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London'), com.DatetimeTZDtypeType),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype, com.DatetimeTZDtypeType),
     ('datetime64[ns, Europe/London]', com.DatetimeTZDtypeType),
     (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
     (pd.SparseSeries([1, 2], dtype='int32').dtype, np.int32),
@@ -598,7 +600,7 @@ def test__get_dtype_fails(input_param):
     (None, type(None)),
     (1, type(None)),
     (1.2, type(None)),
-    (pd.DataFrame([1, 2]), type(None)),
+    (pd.DataFrame([1, 2]), type(None)),  # composite dtype
 ])
 def test__get_dtype_type(input_param, result):
     assert com._get_dtype_type(input_param) == result
