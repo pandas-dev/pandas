@@ -162,7 +162,7 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, nan) for i in index]
 
                 v = sp_maker(v)
-            sdict[_nan_to_np_nan(k)] = v
+            sdict[k] = v
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
@@ -846,13 +846,6 @@ class SparseDataFrame(DataFrame):
         return self.apply(lambda x: lmap(func, x))
 
 
-def _nan_to_np_nan(value):
-    """Normalize nan values to singleton np.NaN object so that when NaNs are
-    used as dict keys, getitem works.
-    """
-    return np.nan if is_float(value) and isnull(value) else value
-
-
 def to_manager(sdf, columns, index):
     """ create and return the block manager from a dataframe of series,
     columns, index
@@ -862,7 +855,7 @@ def to_manager(sdf, columns, index):
     axes = [_ensure_index(columns), _ensure_index(index)]
 
     return create_block_manager_from_arrays(
-        [sdf[_nan_to_np_nan(c)] for c in columns], columns, axes)
+        [sdf[c] for c in columns], columns, axes)
 
 
 def stack_sparse_frame(frame):
