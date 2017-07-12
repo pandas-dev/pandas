@@ -30,7 +30,7 @@ import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
-                                 assert_produces_warning, slow)
+                                 assert_produces_warning)
 from pandas.compat import PY3, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -144,7 +144,7 @@ class TestEvalNumexprPandas(object):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
-    @slow
+    @pytest.mark.slow
     def test_complex_cmp_ops(self):
         cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
         cmp2_ops = ('>', '<')
@@ -161,7 +161,7 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
             self.check_binary_arith_op(lhs, op, rhs)
@@ -181,17 +181,17 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_single_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_single_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_compound_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_compound_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_chained_cmp_op(self):
         mids = self.lhses
         cmp_ops = '<', '>'
@@ -870,7 +870,7 @@ class TestAlignment(object):
             res = pd.eval('df < df3', engine=engine, parser=parser)
             assert_frame_equal(res, df < df3)
 
-    @slow
+    @pytest.mark.slow
     def test_medium_complex_frame_alignment(self, engine, parser):
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
@@ -974,7 +974,7 @@ class TestAlignment(object):
                     if engine == 'numexpr':
                         assert_frame_equal(a, b)
 
-    @slow
+    @pytest.mark.slow
     def test_complex_series_frame_alignment(self, engine, parser):
         import random
         args = product(self.lhs_index_types, self.index_types,

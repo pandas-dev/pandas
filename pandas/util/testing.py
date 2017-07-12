@@ -50,13 +50,6 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
-try:
-    import pytest
-    slow = pytest.mark.slow
-except ImportError:
-    # Should be ok to just ignore. If you actually need
-    # slow then you'll hit an import error long before getting here.
-    pass
 
 
 N = 30

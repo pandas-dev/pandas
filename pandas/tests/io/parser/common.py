@@ -664,7 +664,7 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
-    @tm.slow
+    @pytest.mark.slow
     def test_file(self):
         dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salaries.csv')

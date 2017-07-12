@@ -12,7 +12,6 @@ import pandas as pd
 from pandas import Series, DataFrame, date_range
 from pandas.compat import range, lrange
 import pandas.util.testing as tm
-from pandas.util.testing import slow
 
 import numpy as np
 from numpy.random import randn
@@ -41,7 +40,7 @@ class TestSeriesPlots(TestPlotBase):
         self.iseries = tm.makePeriodSeries()
         self.iseries.name = 'iseries'
 
-    @slow
+    @pytest.mark.slow
     def test_plot(self):
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
@@ -79,7 +78,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(self.ts.plot, subplots=True, layout=(1, -1))
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
-    @slow
+    @pytest.mark.slow
     def test_plot_figsize_and_title(self):
         # figsize and title
         _, ax = self.plt.subplots()
@@ -210,7 +209,7 @@ class TestSeriesPlots(TestPlotBase):
         label2 = ax2.get_xlabel()
         assert label2 == ''
 
-    @slow
+    @pytest.mark.slow
     def test_bar_log(self):
         expected = np.array([1., 10., 100., 1000.])
 
@@ -252,7 +251,7 @@ class TestSeriesPlots(TestPlotBase):
         tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
-    @slow
+    @pytest.mark.slow
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         _, ax = self.plt.subplots()
@@ -280,7 +279,7 @@ class TestSeriesPlots(TestPlotBase):
         ax.set_xlim('1/1/1999', '1/1/2001')
         assert xp == ax.get_xlim()[0]
 
-    @slow
+    @pytest.mark.slow
     def test_pie_series(self):
         # if sum of values is less than 1.0, pie handle them as rate and draw
         # semicircle.
@@ -339,14 +338,14 @@ class TestSeriesPlots(TestPlotBase):
         result = [x.get_text() for x in ax.texts]
         assert result == expected
 
-    @slow
+    @pytest.mark.slow
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
         _, ax = self.plt.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
 
-    @slow
+    @pytest.mark.slow
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
         with tm.RNGContext(1):
@@ -361,7 +360,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = df.plot.hist(ax=ax)  # bins=10
         assert len(ax.patches) == 40
 
-    @slow
+    @pytest.mark.slow
     def test_hist_legacy(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
@@ -387,13 +386,13 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
-    @slow
+    @pytest.mark.slow
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
-    @slow
+    @pytest.mark.slow
     def test_hist_layout(self):
         df = self.hist_df
         with pytest.raises(ValueError):
@@ -402,7 +401,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.height.hist(layout=[1, 1])
 
-    @slow
+    @pytest.mark.slow
     def test_hist_layout_with_by(self):
         df = self.hist_df
 
@@ -446,7 +445,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2),
                                figsize=(12, 7))
 
-    @slow
+    @pytest.mark.slow
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import subplot, gcf
         x = Series(randn(2))
@@ -459,7 +458,7 @@ class TestSeriesPlots(TestPlotBase):
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
         assert len(axes) == 2
 
-    @slow
+    @pytest.mark.slow
     def test_hist_secondary_legend(self):
         # GH 9610
         df = DataFrame(np.random.randn(30, 4), columns=list('abcd'))
@@ -499,7 +498,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
-    @slow
+    @pytest.mark.slow
     def test_df_series_secondary_legend(self):
         # GH 9779
         df = DataFrame(np.random.randn(30, 3), columns=list('abc'))
@@ -563,14 +562,14 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
-    @slow
+    @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
             _, ax = self.plt.subplots()
             x.plot(style='k--', color='k', ax=ax)
 
-    @slow
+    @pytest.mark.slow
     def test_hist_kde(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, ax=ax)
@@ -593,7 +592,7 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-    @slow
+    @pytest.mark.slow
     def test_kde_kwargs(self):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
@@ -608,7 +607,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ax_scales(ax, yaxis='log')
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
-    @slow
+    @pytest.mark.slow
     def test_kde_missing_vals(self):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
@@ -619,7 +618,7 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    @slow
+    @pytest.mark.slow
     def test_hist_kwargs(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(bins=5, ax=ax)
@@ -637,7 +636,7 @@ class TestSeriesPlots(TestPlotBase):
             ax = self.ts.plot.hist(align='left', stacked=True, ax=ax)
             tm.close()
 
-    @slow
+    @pytest.mark.slow
     def test_hist_kde_color(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, bins=10, color='b', ax=ax)
@@ -654,7 +653,7 @@ class TestSeriesPlots(TestPlotBase):
         assert len(lines) == 1
         self._check_colors(lines, ['r'])
 
-    @slow
+    @pytest.mark.slow
     def test_boxplot_series(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.box(logy=True, ax=ax)
@@ -664,7 +663,7 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-    @slow
+    @pytest.mark.slow
     def test_kind_both_ways(self):
         s = Series(range(3))
         kinds = (plotting._core._common_kinds +
@@ -676,7 +675,7 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(kind=kind, ax=ax)
             getattr(s.plot, kind)()
 
-    @slow
+    @pytest.mark.slow
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
         _, ax = self.plt.subplots()
@@ -686,7 +685,7 @@ class TestSeriesPlots(TestPlotBase):
             with pytest.raises(TypeError):
                 s.plot(kind=kind, ax=ax)
 
-    @slow
+    @pytest.mark.slow
     def test_valid_object_plot(self):
         s = Series(lrange(10), dtype=object)
         for kind in plotting._core._common_kinds:
@@ -708,7 +707,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             s.plot(kind='aasdf')
 
-    @slow
+    @pytest.mark.slow
     def test_dup_datetime_index_plot(self):
         dr1 = date_range('1/1/2009', periods=4)
         dr2 = date_range('1/2/2009', periods=4)
@@ -717,7 +716,7 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(values, index=index)
         _check_plot_works(s.plot)
 
-    @slow
+    @pytest.mark.slow
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name='x')
@@ -764,14 +763,14 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)
 
-    @slow
+    @pytest.mark.slow
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(Series([1, 2, 3]),
                                   plotting._core._series_kinds +
                                   plotting._core._common_kinds)
 
-    @slow
+    @pytest.mark.slow
     def test_standard_colors(self):
         from pandas.plotting._style import _get_standard_colors
 
@@ -788,7 +787,7 @@ class TestSeriesPlots(TestPlotBase):
             result = _get_standard_colors(3, color=[c])
             assert result == [c] * 3
 
-    @slow
+    @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
         from pandas.plotting._style import _get_standard_colors

@@ -614,7 +614,7 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_read_from_file_url(self):
 
         # FILE
