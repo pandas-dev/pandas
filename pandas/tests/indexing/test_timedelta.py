@@ -5,7 +5,6 @@ from pandas.util import testing as tm
 
 
 class TestTimedeltaIndexing(object):
-
     def test_boolean_indexing(self):
         # GH 14946
         df = pd.DataFrame({'x': range(10)})
@@ -48,3 +47,5 @@ class TestTimedeltaIndexing(object):
         expected = df.iloc[0]
         sliced = df.loc['0 days']
         tm.assert_series_equal(sliced, expected)
+
+        assert df.index.get_loc('0 days') == 0
