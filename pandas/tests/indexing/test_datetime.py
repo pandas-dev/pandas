@@ -8,6 +8,33 @@ from pandas.util import testing as tm
 
 class TestDatetimeIndex(object):
 
+    def test_setitem_with_datetime_tz(self):
+        # 16889
+        # support .loc with alignment and tz-aware DatetimeIndex
+        mask = np.array([True, False, True, False])
+
+        idx = pd.date_range('20010101', periods=4, tz='UTC')
+        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+
+        result = df.copy()
+        result.loc[mask, :] = df.loc[mask, :]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[mask] = df.loc[mask]
+        tm.assert_frame_equal(result, df)
+
+        idx = pd.date_range('20010101', periods=4)
+        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+
+        result = df.copy()
+        result.loc[mask, :] = df.loc[mask, :]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[mask] = df.loc[mask]
+        tm.assert_frame_equal(result, df)
+
     def test_indexing_with_datetime_tz(self):
 
         # 8260
