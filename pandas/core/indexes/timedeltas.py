@@ -682,7 +682,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
-        if is_bool_indexer(key) or is_timedelta64_dtype(key):
+        if is_list_like(key):
             raise TypeError
 
         if isnull(key):

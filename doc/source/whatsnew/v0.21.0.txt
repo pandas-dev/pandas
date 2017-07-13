@@ -155,6 +155,7 @@ Indexing
 - When called with a null slice (e.g. ``df.iloc[:]``), the ``.iloc`` and ``.loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
 - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
+- Fixed ``TimedeltaIndex.get_loc`` ``for np.timedelta64`` data type(:issue:`16909`).
 
 I/O
 ^^^
