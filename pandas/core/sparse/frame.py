@@ -12,10 +12,7 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import (
-    _ensure_platform_int, is_scipy_sparse,
-    is_float,
-)
+from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
 
 from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
