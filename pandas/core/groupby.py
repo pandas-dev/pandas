@@ -3055,7 +3055,7 @@ class SeriesGroupBy(GroupBy):
         # we have a numeric dtype, as these are *always* udfs
         # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
-        if is_numeric_dtype(dtype) and not is_bool_dtype(result.dtype):
+        if is_numeric_dtype(dtype):
             result = maybe_downcast_to_dtype(result, dtype)
 
         result.name = self._selected_obj.name

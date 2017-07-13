@@ -9,7 +9,7 @@ import pytest
 from datetime import datetime, timedelta, date
 import numpy as np
 
-from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
+from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT, Series
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -44,6 +44,12 @@ class TestMaybeDowncast(object):
         result = maybe_downcast_to_dtype(arr, 'infer')
         expected = np.array([8, 8, 8, 8, 9])
         assert (np.array_equal(result, expected))
+
+        # GH16875 coercing of bools
+        ser = Series([True, True, False])
+        result = maybe_downcast_to_dtype(ser, np.dtype(np.float64))
+        expected = ser
+        tm.assert_series_equal(result, expected)
 
         # conversions
 
