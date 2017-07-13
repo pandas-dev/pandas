@@ -1,6 +1,9 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+from collections import OrderedDict
+from datetime import datetime
+
 import pytest
 
 from numpy import nan
@@ -1361,3 +1364,96 @@ class TestSparseSeriesAnalytics(object):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+
+def test_constructor_dict():
+    d = {'a': 0., 'b': 1., 'c': 2.}
+    result = SparseSeries(d)
+    expected = SparseSeries(d, index=sorted(d.keys()))
+    tm.assert_sp_series_equal(result, expected)
+
+    result = SparseSeries(d, index=['b', 'c', 'd', 'a'])
+    expected = SparseSeries([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
+    tm.assert_sp_series_equal(result, expected)
+
+
+def test_constructor_dict_multiindex():
+    d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
+    _d = sorted(d.items())
+    ser = SparseSeries(d)
+    expected = SparseSeries(
+        [x[1] for x in _d],
+        index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
+    tm.assert_series_equal(ser, expected)
+
+    d['z'] = 111.
+    _d.insert(0, ('z', d['z']))
+    ser = SparseSeries(d)
+    expected = SparseSeries([x[1] for x in _d],
+                            index=pd.Index([x[0] for x in _d],
+                                           tupleize_cols=False))
+    ser = ser.reindex(index=expected.index)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_constructor_dict_timedelta_index():
+    # GH #12169 : Resample category data with timedelta index
+    # construct Series from dict as data and TimedeltaIndex as index
+    # will result NaN in result Series data
+    expected = SparseSeries(
+        data=['A', 'B', 'C'],
+        index=pd.to_timedelta([0, 10, 20], unit='s')
+    )
+
+    result = SparseSeries(
+        data={pd.to_timedelta(0, unit='s'): 'A',
+              pd.to_timedelta(10, unit='s'): 'B',
+              pd.to_timedelta(20, unit='s'): 'C'},
+        index=pd.to_timedelta([0, 10, 20], unit='s')
+    )
+    tm.assert_sp_series_equal(result, expected)
+
+
+def test_constructor_subclass_dict():
+    data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+    series = SparseSeries(data)
+    refseries = SparseSeries(dict(compat.iteritems(data)))
+    tm.assert_sp_series_equal(refseries, series)
+
+
+def test_constructor_dict_datetime64_index():
+    # GH 9456
+    dates_as_str = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
+    values = [42544017.198965244, 1234565, 40512335.181958228, -1]
+
+    def create_data(constructor):
+        return dict(zip((constructor(x) for x in dates_as_str), values))
+
+    data_datetime64 = create_data(np.datetime64)
+    data_datetime = create_data(lambda x: datetime.strptime(x, '%Y-%m-%d'))
+    data_Timestamp = create_data(pd.Timestamp)
+
+    expected = SparseSeries(values, (pd.Timestamp(x) for x in dates_as_str))
+
+    result_datetime64 = SparseSeries(data_datetime64)
+    result_datetime = SparseSeries(data_datetime)
+    result_Timestamp = SparseSeries(data_Timestamp)
+
+    tm.assert_sp_series_equal(result_datetime64, expected)
+    tm.assert_sp_series_equal(result_datetime, expected)
+    tm.assert_sp_series_equal(result_Timestamp, expected)
+
+
+def test_orderedDict_ctor():
+    # GH3283
+    data = OrderedDict(('col%s' % i, np.random.random()) for i in range(12))
+    s = SparseSeries(data)
+    tm.assert_numpy_array_equal(s.values.values, np.array(list(data.values())))
+
+    # Test with subclass
+    class A(OrderedDict):
+        pass
+
+    data = A(('col%s' % i, np.random.random()) for i in range(12))
+    s = SparseSeries(data)
+    tm.assert_numpy_array_equal(s.values.values, np.array(list(data.values())))

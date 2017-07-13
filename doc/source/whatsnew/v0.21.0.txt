@@ -179,6 +179,7 @@ Sparse
 ^^^^^^
 
 
+- Bug in instantiating :class:`SparseSeries` from ``dict`` with or without ``index`` (:issue:`16905`)
 
 Reshaping
 ^^^^^^^^^
