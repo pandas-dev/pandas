@@ -1380,20 +1380,20 @@ def test_constructor_dict():
 def test_constructor_dict_multiindex():
     d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
     _d = sorted(d.items())
-    ser = SparseSeries(d)
+    result = SparseSeries(d)
     expected = SparseSeries(
         [x[1] for x in _d],
         index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
-    tm.assert_series_equal(ser, expected)
+    tm.assert_series_equal(result, expected)
 
     d['z'] = 111.
     _d.insert(0, ('z', d['z']))
-    ser = SparseSeries(d)
+    result = SparseSeries(d)
     expected = SparseSeries([x[1] for x in _d],
                             index=pd.Index([x[0] for x in _d],
                                            tupleize_cols=False))
-    ser = ser.reindex(index=expected.index)
-    tm.assert_series_equal(ser, expected)
+    result = result.reindex(index=expected.index)
+    tm.assert_series_equal(result, expected)
 
 
 def test_constructor_dict_timedelta_index():
@@ -1417,43 +1417,36 @@ def test_constructor_dict_timedelta_index():
 def test_constructor_subclass_dict():
     data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
     series = SparseSeries(data)
-    refseries = SparseSeries(dict(compat.iteritems(data)))
-    tm.assert_sp_series_equal(refseries, series)
+    expected = SparseSeries(dict(compat.iteritems(data)))
+    tm.assert_sp_series_equal(series, expected)
 
 
-def test_constructor_dict_datetime64_index():
+@pytest.mark.parametrize(
+    'datetime_type', (np.datetime64,
+                      pd.Timestamp,
+                      lambda x: datetime.strptime(x, '%Y-%m-%d')))
+def test_constructor_dict_datetime64_index(datetime_type):
     # GH 9456
-    dates_as_str = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
+    dates = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
     values = [42544017.198965244, 1234565, 40512335.181958228, -1]
 
-    def create_data(constructor):
-        return dict(zip((constructor(x) for x in dates_as_str), values))
+    result = SparseSeries(dict(zip(map(datetime_type, dates), values)))
+    expected = SparseSeries(values, map(pd.Timestamp, dates))
 
-    data_datetime64 = create_data(np.datetime64)
-    data_datetime = create_data(lambda x: datetime.strptime(x, '%Y-%m-%d'))
-    data_Timestamp = create_data(pd.Timestamp)
-
-    expected = SparseSeries(values, (pd.Timestamp(x) for x in dates_as_str))
-
-    result_datetime64 = SparseSeries(data_datetime64)
-    result_datetime = SparseSeries(data_datetime)
-    result_Timestamp = SparseSeries(data_Timestamp)
-
-    tm.assert_sp_series_equal(result_datetime64, expected)
-    tm.assert_sp_series_equal(result_datetime, expected)
-    tm.assert_sp_series_equal(result_Timestamp, expected)
+    tm.assert_sp_series_equal(result, expected)
 
 
 def test_orderedDict_ctor():
     # GH3283
     data = OrderedDict(('col%s' % i, np.random.random()) for i in range(12))
-    s = SparseSeries(data)
-    tm.assert_numpy_array_equal(s.values.values, np.array(list(data.values())))
+
+    series = SparseSeries(data)
+    expected = SparseSeries(list(data.values()), list(data.keys()))
+    tm.assert_sp_series_equal(series, expected)
 
     # Test with subclass
     class A(OrderedDict):
         pass
 
-    data = A(('col%s' % i, np.random.random()) for i in range(12))
-    s = SparseSeries(data)
-    tm.assert_numpy_array_equal(s.values.values, np.array(list(data.values())))
+    series = SparseSeries(A(data))
+    tm.assert_sp_series_equal(series, expected)
