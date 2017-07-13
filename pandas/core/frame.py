@@ -5591,9 +5591,8 @@ it is assumed to be aliases for the column names')
         2   True   True
         """
         if isinstance(values, dict):
-            from collections import defaultdict
             from pandas.core.reshape.concat import concat
-            values = defaultdict(list, values)
+            values = collections.defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)
         elif isinstance(values, Series):
@@ -5616,6 +5615,24 @@ it is assumed to be aliases for the column names')
                 algorithms.isin(self.values.ravel(),
                                 values).reshape(self.shape), self.index,
                 self.columns)
+
+    # ----------------------------------------------------------------------
+    # Add plotting methods to DataFrame
+    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    hist = gfx.hist_frame
+
+    @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+    def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
+                grid=True, figsize=None, layout=None, return_type=None, **kwds):
+        from pandas.plotting._core import boxplot
+        import matplotlib.pyplot as plt
+        ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                     grid=grid, rot=rot, figsize=figsize, layout=layout,
+                     return_type=return_type, **kwds)
+        plt.draw_if_interactive()
+        return ax
+
+
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
@@ -5970,26 +5987,6 @@ def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
 
-# ----------------------------------------------------------------------
-# Add plotting methods to DataFrame
-DataFrame.plot = base.AccessorProperty(gfx.FramePlotMethods,
-                                       gfx.FramePlotMethods)
-DataFrame.hist = gfx.hist_frame
-
-
-@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
-def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
-            grid=True, figsize=None, layout=None, return_type=None, **kwds):
-    from pandas.plotting._core import boxplot
-    import matplotlib.pyplot as plt
-    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                 grid=grid, rot=rot, figsize=figsize, layout=layout,
-                 return_type=return_type, **kwds)
-    plt.draw_if_interactive()
-    return ax
-
-
-DataFrame.boxplot = boxplot
 
 ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
 ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)

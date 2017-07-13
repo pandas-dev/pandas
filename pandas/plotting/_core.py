@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import AbstractMethodError, isnull, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
-from pandas.core.series import Series, remove_na
+
 from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
@@ -334,6 +334,7 @@ class MPLPlot(object):
     def _compute_plot_data(self):
         data = self.data
 
+        from pandas.core.series import Series
         if isinstance(data, Series):
             label = self.label
             if label is None and data.name is None:
@@ -1376,6 +1377,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
 
+        from pandas.core.series import remove_na
         y = remove_na(y)
 
         if LooseVersion(spv) >= '0.11.0':
@@ -1494,6 +1496,7 @@ class BoxPlot(LinePlot):
 
     @classmethod
     def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
+        from pandas.core.series import remove_na
         if y.ndim == 2:
             y = [remove_na(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -1566,6 +1569,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
+            from pandas.core.series import Series
             self._return_obj = Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
@@ -1968,6 +1972,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             setp(bp['medians'], color=colors[2], alpha=1)
 
     def plot_group(keys, values, ax):
+        from pandas.core.series import remove_na
         keys = [pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         bp = ax.boxplot(values, **kwds)
@@ -2317,6 +2322,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
+        from pandas.core.series import Series
         ret = Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
@@ -2388,7 +2394,6 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     _axes = _flatten(axes)
 
-    result = Series()
     ax_values = []
 
     for i, col in enumerate(columns):
@@ -2401,6 +2406,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         ax_values.append(re_plotf)
         ax.grid(grid)
 
+    from pandas.core.series import Series
     result = Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
