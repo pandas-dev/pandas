@@ -1286,11 +1286,20 @@ def test_from_scipy_fillna(spmatrix):
     sdf = pd.SparseDataFrame(spm).fillna(-1.0)
 
     # Returning frame should fill all nan values with -1.0
-    expected = pd.SparseDataFrame([[1, -1, -1],
-                                   [-1, 1, -1],
-                                   [-1, -1, 1.]])
+    expected = pd.SparseDataFrame({
+        0: pd.SparseSeries([1., -1, -1]),
+        1: pd.SparseSeries([np.nan, 1, np.nan]),
+        2: pd.SparseSeries([np.nan, np.nan, 1]),
+    }, default_fill_value=-1)
 
-    tm.assert_numpy_array_equal(sdf.values, expected.values)
+    # fill_value is expected to be what .fillna() above was called with
+    # We don't use -1 as initial fill_value in expected SparseSeries
+    # construction because this way we obtain "compressed" SparseArrays,
+    # avoiding having to construct them ourselves
+    for col in expected:
+        expected[col].fill_value = -1
+
+    tm.assert_sp_frame_equal(sdf, expected)
 
 
 class TestSparseDataFrameArithmetic(object):
