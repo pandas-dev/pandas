@@ -42,6 +42,7 @@ class TestTimedeltaIndexing(object):
         tm.assert_frame_equal(expected, df)
 
     def test_string_indexing(self):
+        # GH 16896
         df = pd.DataFrame({'x': range(3)}, index=pd.to_timedelta(range(3), unit='days'))
         expected = df.iloc[0]
         sliced = df.loc['0 days']
