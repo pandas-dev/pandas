@@ -257,6 +257,21 @@ _compression_to_extension = {
 
 
 def split_auth_from_url(url_with_uname):
+    """
+    If a url contains username and password, it is extracted and returned
+    along with a url that does not contain it.
+
+    Parameters
+    ----------
+    url_with_uname : a url that may or may not contain username and password
+            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+            //<user>:<password>@<host>:<port>/<url-path>
+
+    Returns
+    -------
+    (username, password), url_no_usrpwd : username or "", password or "", 
+         url without username or password (if it contained it )
+    """
     o = parse_url(url_with_uname)
     usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
     url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
@@ -264,6 +279,23 @@ def split_auth_from_url(url_with_uname):
 
 
 def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
+    """
+    generate args to pass to urlopen - including basic auth and and support
+    for disabling verification of SSL certificates ( useful where
+    self-signed SSL certificates are acceptable security risk -eg: Testing )
+
+    Parameters
+    ----------
+    url_with_uname : a url that may or may not contain username and password
+            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+            //<user>:<password>@<host>:<port>/<url-path>
+    auth : ( username/""/None, password/"", None) tuple
+    verify_ssl: If False, SSL certificate verification is disabled.
+
+    Returns
+    -------
+    Request, kwargs to pass to urlopen. kwargs may be {} or {'context': obj }
+    """
     uname = pwd = None
     if auth and len(auth) == 2:
         uname, pwd = auth
