@@ -4,6 +4,8 @@ import os
 import csv
 import codecs
 import mmap
+import ssl
+import base64
 from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
@@ -49,7 +51,11 @@ except:
 
 
 if compat.PY3:
-    from urllib.request import urlopen, pathname2url
+    from urllib.request import (urlopen, pathname2url, build_opener,
+                                install_opener,
+                                HTTPPasswordMgrWithDefaultRealm,
+                                HTTPBasicAuthHandler,
+                                HTTPSHandler)
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
@@ -58,6 +64,7 @@ if compat.PY3:
     from http.client import HTTPException  # noqa
 else:
     from urllib2 import urlopen as _urlopen
+    from urllib2 import Request
     from urllib import urlencode, pathname2url  # noqa
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params, urljoin
@@ -177,7 +184,8 @@ def _stringify_path(filepath_or_buffer):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, username=None,
+                           password=None, verify_ssl=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -186,7 +194,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
+            support 'https://username:password@fqdn.com:port/aaa.csv'
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    compression:
+    username: Authentication username (for https basic auth)
+    password: Authentication password (for https basic auth)
+    verify_ssl: Default True. If False, allow self signed and invalid SSL
+                 certificates for https
 
     Returns
     -------
@@ -195,7 +209,11 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(filepath_or_buffer)
+        ureq, kwargs = get_urlopen_args(filepath_or_buffer,
+                                        uname=username,
+                                        pwd=password,
+                                        verify_ssl=verify_ssl)
+        req = _urlopen(ureq, **kwargs)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
@@ -242,6 +260,53 @@ _compression_to_extension = {
     'zip': '.zip',
     'xz': '.xz',
 }
+
+
+def split_uname_from_url(url_with_uname):
+    o = parse_url(url_with_uname)
+    usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
+    url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
+    return o.username, o.password, url_no_usrpwd
+
+
+def get_urlopen_args(url_with_uname, uname=None, pwd=None, verify_ssl=True):
+    if not uname and not pwd:
+        uname, pwd, url_no_usrpwd = split_uname_from_url(url_with_uname)
+    else:
+        url_no_usrpwd = url_with_uname
+    if compat.PY3:
+        fn = get_urlopen_args_py3
+    else:
+        fn = get_urlopen_args_py2
+    req, kwargs = fn(uname, pwd, url_no_usrpwd, verify_ssl=verify_ssl)
+    return req, kwargs
+
+
+def get_urlopen_args_py2(uname, pwd, url_no_usrpwd, verify_ssl=True):
+    req = Request(url_no_usrpwd)
+    upstr = '{}:{}'.format(uname, pwd)
+    base64string = base64.encodestring(upstr).replace('\n', '')
+    req.add_header("Authorization", "Basic {}".format(base64string))
+    # I hope pandas can support self signed certs too
+    kwargs = {}
+    if verify_ssl not in [None, True]:
+        kwargs['context'] = ssl._create_unverified_context()
+    return req, kwargs
+
+
+def get_urlopen_args_py3(uname, pwd, url_no_usrpwd, verify_ssl=True):
+    passman = HTTPPasswordMgrWithDefaultRealm()
+    passman.add_password(None, url_no_usrpwd, uname, pwd)
+    authhandler = HTTPBasicAuthHandler(passman)
+    if verify_ssl in [None, True]:
+        opener = build_opener(authhandler)
+    else:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        opener = build_opener(authhandler, HTTPSHandler(context=context))
+    install_opener(opener)
+    return url_no_usrpwd, {}
 
 
 def _infer_compression(filepath_or_buffer, compression):

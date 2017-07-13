@@ -190,6 +190,17 @@ bar2,12,13,14,15
 
         tm.assert_frame_equal(result, expected)
 
+    def test_split_url_extract_uname_pwd(self):
+        for url, uname, pwd, nurl in [('https://aaa:bbb@ccc.com:1010/aaa.txt',
+                                       'aaa',
+                                       'bbb',
+                                       'https://ccc.com:1010/aaa.txt'
+                                       )]:
+            un, p, u = common.split_uname_from_url(url)
+            assert u == nurl
+            assert un == uname
+            assert p == pwd
+
 
 class TestMMapWrapper(object):
 
