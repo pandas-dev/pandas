@@ -268,3 +268,19 @@ class TestSeriesDtypes(TestData):
         expected = Series(['a', 'b', 'c'], dtype='category')
 
         tm.assert_series_equal(result, expected)
+
+    def test_infer_objects_series(self):
+        # GH 11221
+        actual = Series(np.array([1, 2, 3], dtype='O')).infer_objects()
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(actual, expected)
+
+        actual = Series(np.array([1, 2, 3, None], dtype='O')).infer_objects()
+        expected = Series([1., 2., 3., np.nan])
+        tm.assert_series_equal(actual, expected)
+
+        actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
+                  .infer_objects())
+        expected = Series([1, 2, 3, None, 'a'])
+        assert actual.dtype == 'object'
+        tm.assert_series_equal(actual, expected)

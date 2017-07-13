@@ -25,6 +25,35 @@ New features
 - Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 
+
+``infer_objects`` type conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``DataFrame`` and ``Series`` have gained an ``infer_objects`` method to perform dtype inference
+on object columns, replacing some of the functionality of the deprecated ``convert_objects``
+function (:issue:`11221`)
+
+This function only performs soft conversions on object columns, converting python scalars
+to native types, but not any coercive conversions.  For example
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': np.array([1, 2, 3], dtype='object'),
+                      'C': ['1', '2', '3']})
+   df.dtypes
+   df.infer_objects().dtype
+
+Note that column ``'C'`` was not converted - only scalar numeric types
+will be inferred to a new type.  Other types of conversion should be accomplished
+using :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`)
+
+.. ipython:: python
+
+   df = df.infer_objects()
+   df['C'] = pd.to_numeric(df['C'], errors='coerce')
+   df.dtypes
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements

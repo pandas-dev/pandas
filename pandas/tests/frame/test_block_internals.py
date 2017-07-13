@@ -495,6 +495,28 @@ starting,ending,measure
         mixed2 = mixed1._convert(datetime=True)
         assert_frame_equal(mixed1, mixed2)
 
+    def test_infer_objects(self):
+        # GH 11221
+        df = DataFrame({'a': ['a', 1, 2, 3],
+                        'b': ['b', 2.0, 3.0, 4.1],
+                        'c': ['c', datetime(2016, 1, 1),
+                              datetime(2016, 1, 2),
+                              datetime(2016, 1, 3)]},
+                       columns=['a', 'b', 'c'])
+        df = df.iloc[1:].infer_objects()
+
+        assert df['a'].dtype == 'int64'
+        assert df['b'].dtype == 'float64'
+        assert df['c'].dtype == 'M8[ns]'
+
+        expected = DataFrame({'a': [1, 2, 3],
+                              'b': [2.0, 3.0, 4.1],
+                              'c': [datetime(2016, 1, 1),
+                                    datetime(2016, 1, 2),
+                                    datetime(2016, 1, 3)]},
+                             columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(df.reset_index(drop=True), expected)
+
     def test_stale_cached_series_bug_473(self):
 
         # this is chained, but ok
