@@ -51,11 +51,7 @@ except:
 
 
 if compat.PY3:
-    from urllib.request import (urlopen, pathname2url, build_opener,
-                                install_opener,
-                                HTTPPasswordMgrWithDefaultRealm,
-                                HTTPBasicAuthHandler,
-                                HTTPSHandler)
+    from urllib.request import urlopen, pathname2url, Request
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
@@ -260,40 +256,14 @@ _compression_to_extension = {
 }
 
 
+def split_auth_from_url(url_with_uname):
+    o = parse_url(url_with_uname)
+    usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
+    url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
+    return (o.username, o.password), url_no_usrpwd
+
+
 def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
-    def split_auth_from_url(url_with_uname):
-        o = parse_url(url_with_uname)
-        usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
-        url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
-        return (o.username, o.password), url_no_usrpwd
-
-    def get_urlopen_args_py2(uname, pwd, url_no_usrpwd, verify_ssl=True):
-        req = Request(url_no_usrpwd)
-        upstr = '{}:{}'.format(uname, pwd)
-        base64string = base64.encodestring(upstr).replace('\n', '')
-        req.add_header("Authorization", "Basic {}".format(base64string))
-        # I hope pandas can support self signed certs too
-        kwargs = {}
-        if verify_ssl not in [None, True]:
-            kwargs['context'] = ssl._create_unverified_context()
-        return req, kwargs
-
-    def get_urlopen_args_py3(uname, pwd, url_no_usrpwd, verify_ssl=True):
-        # not using urllib.request Request for PY3 because
-        # this looks like better code from extensibility purpose
-        passman = HTTPPasswordMgrWithDefaultRealm()
-        passman.add_password(None, url_no_usrpwd, uname, pwd)
-        authhandler = HTTPBasicAuthHandler(passman)
-        if verify_ssl in [None, True]:
-            opener = build_opener(authhandler)
-        else:
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            opener = build_opener(authhandler, HTTPSHandler(context=context))
-        install_opener(opener)
-        return url_no_usrpwd, {}
-
     uname = pwd = None
     if auth and len(auth) == 2:
         uname, pwd = auth
@@ -301,11 +271,16 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
         (uname, pwd), url_no_usrpwd = split_auth_from_url(url_with_uname)
     else:
         url_no_usrpwd = url_with_uname
+    upstr = '{}:{}'.format(uname, pwd)
     if compat.PY3:
-        fn = get_urlopen_args_py3
+        b64str = base64.b64encode(bytes(upstr, 'ascii')).decode('utf-8')
     else:
-        fn = get_urlopen_args_py2
-    req, kwargs = fn(uname, pwd, url_no_usrpwd, verify_ssl=verify_ssl)
+        b64str = base64.encodestring(upstr).replace('\n', '')
+    req = Request(url_no_usrpwd)
+    req.add_header("Authorization", "Basic {}".format(b64str))
+    kwargs = {}
+    if verify_ssl not in [None, True]:
+        kwargs['context'] = ssl._create_unverified_context()
     return req, kwargs
 
 
