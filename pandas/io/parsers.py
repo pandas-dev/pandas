@@ -391,12 +391,11 @@ def _read(filepath_or_buffer, kwds):
         kwds['encoding'] = encoding
 
     compression = kwds.get('compression')
-    username = kwds.get('username', None)
-    password = kwds.get('password', None)
+    auth = kwds.get('auth', None)
     verify_ssl = kwds.get('verify_ssl', None)
     compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, username, password,
+        filepath_or_buffer, encoding, compression, auth,
         verify_ssl)
     kwds['compression'] = compression
 
@@ -580,9 +579,8 @@ def _make_parser_function(name, sep=','):
                  memory_map=False,
                  float_precision=None,
 
-                 # Basic auth (http/https)
-                 username=None,
-                 password=None,
+                 # Basic auth (http/https) (username, password)
+                 auth=None,
 
                  # skip verify self signed SSL certificates
                  verify_ssl=None):
@@ -667,8 +665,7 @@ def _make_parser_function(name, sep=','):
                     infer_datetime_format=infer_datetime_format,
                     skip_blank_lines=skip_blank_lines,
 
-                    username=username,
-                    password=password,
+                    auth=auth,
                     verify_ssl=verify_ssl
                     )
 

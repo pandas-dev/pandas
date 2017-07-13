@@ -117,21 +117,20 @@ def _get_skiprows(skiprows):
                     type(skiprows).__name__)
 
 
-def _read(obj, username=None, password=None, verify_ssl=None):
+def _read(obj, auth=None, verify_ssl=None):
     """Try to read from a url, file or string.
 
     Parameters
     ----------
     obj : str, unicode, or file-like
-    username: username for http basic auth
-    password: password for http basic auth
+    auth: None or (username, password) for http basic auth
     verify_ssl: Default True. Set to False to disable cert verification
     Returns
     -------
     raw_text : str
     """
     if _is_url(obj):
-        ureq, kwargs = get_urlopen_args(obj, username, password, verify_ssl)
+        ureq, kwargs = get_urlopen_args(obj, auth, verify_ssl)
         with urlopen(ureq, **kwargs) as url:
             text = url.read()
     elif hasattr(obj, 'read'):
@@ -191,14 +190,13 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, username=None,
-                 password=None, verify_ssl=None):
+    def __init__(self, io, match, attrs, encoding, auth=None,
+                 verify_ssl=None):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
-        self.username = username
-        self.password = password
+        self.auth = auth
         self.verify_ssl = verify_ssl
 
     def parse_tables(self):
@@ -452,8 +450,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return result
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io, self.username,
-                         self.password, self.verify_ssl)
+        raw_text = _read(self.io, self.auth, self.verify_ssl)
         if not raw_text:
             raise ValueError('No text parsed from document: %s' % self.io)
         return raw_text
@@ -743,8 +740,7 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
         p = parser(io, compiled_match,
                    attrs,
                    encoding,
-                   username=kwargs.get('username', None),
-                   password=kwargs.get('password', None),
+                   auth=kwargs.get('auth', None),
                    verify_ssl=kwargs.get('verify_ssl', None))
         try:
             tables = p.parse_tables()
@@ -768,7 +764,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True, username=None, password=None,
+              keep_default_na=True, auth=None,
               verify_ssl=False):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
@@ -870,11 +866,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    username : str, default None
-        username for HTTP(s) basic auth
-
-    password : str, default None
-        password for HTTP(s) basic auth
+    auth: (str,str), default None. (username, password) for HTTP(s) basic auth
 
     verify_ssl : bool, default True
         If False, ssl certificate is not verified (allow self signed SSL certs)
@@ -926,5 +918,5 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na, username=username,
-                  password=password, verify_ssl=verify_ssl)
+                  keep_default_na=keep_default_na, auth=auth,
+                  verify_ssl=verify_ssl)

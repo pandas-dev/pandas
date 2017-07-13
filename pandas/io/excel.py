@@ -212,8 +212,7 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io,
                        engine=engine,
-                       username=kwds.get('username', None),
-                       password=kwds.get('password', None),
+                       auth=kwds.get('auth', None),
                        verify_ssl=kwds.get('verify_ssl', None))
 
     return io._parse_excel(
@@ -264,8 +263,7 @@ class ExcelFile(object):
         if _is_url(self._io):
             verify_ssl = kwds.get('verify_ssl', None)
             ureq, kwargs = get_urlopen_args(self._io,
-                                            uname=kwds.get('username', None),
-                                            pwd=kwds.get('password', None),
+                                            auth=kwds.get('auth', None),
                                             verify_ssl=verify_ssl)
             io = _urlopen(ureq, **kwargs)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
