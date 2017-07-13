@@ -7,8 +7,9 @@ from math import ceil
 
 import numpy as np
 
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndex
+
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.index import Index
 from pandas.compat import range
 
 
@@ -43,10 +44,9 @@ def table(ax, data, rowLabels=None, colLabels=None,
     -------
     matplotlib table object
     """
-    from pandas import Series, DataFrame
-    if isinstance(data, Series):
-        data = DataFrame(data, columns=[data.name])
-    elif isinstance(data, DataFrame):
+    if isinstance(data, ABCSeries):
+        data = data.to_frame()
+    elif isinstance(data, ABCDataFrame):
         pass
     else:
         raise ValueError('Input data must be DataFrame or Series')
@@ -340,7 +340,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
 def _flatten(axes):
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, Index)):
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
         return axes.ravel()
     return np.array(axes)
 

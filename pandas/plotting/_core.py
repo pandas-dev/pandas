@@ -11,6 +11,9 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+
+from pandas.core.dtypes.generic import (ABCSeries, ABCDataFrame,
+                                        ABCMultiIndex, ABCPeriodIndex)
 from pandas.core.dtypes.missing import notnull
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -20,9 +23,8 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.common import AbstractMethodError, isnull, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
 
-from pandas.core.indexes.period import PeriodIndex
+
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
@@ -156,7 +158,7 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -334,8 +336,7 @@ class MPLPlot(object):
     def _compute_plot_data(self):
         data = self.data
 
-        from pandas.core.series import Series
-        if isinstance(data, Series):
+        if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
                 label = 'None'
@@ -452,7 +453,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -534,7 +535,7 @@ class MPLPlot(object):
                                               'datetime64', 'time')
 
         if self.use_index:
-            if convert_period and isinstance(index, PeriodIndex):
+            if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
@@ -564,7 +565,7 @@ class MPLPlot(object):
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, Index):
+        if isinstance(x, ABCIndex):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -583,7 +584,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
                 name = ','.join([pprint_thing(x) for x in name])
@@ -621,7 +622,7 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -672,14 +673,13 @@ class MPLPlot(object):
         if err is None:
             return None
 
-        from pandas import DataFrame, Series
 
         def match_labels(data, e):
             e = e.reindex_axis(data.index)
             return e
 
         # key-matched DataFrame
-        if isinstance(err, DataFrame):
+        if isinstance(err, ABCDataFrame):
 
             err = match_labels(self.data, err)
         # key-matched dict
@@ -687,7 +687,7 @@ class MPLPlot(object):
             pass
 
         # Series of error values
-        elif isinstance(err, Series):
+        elif isinstance(err, ABCSeries):
             # broadcast error series across data
             err = match_labels(self.data, err)
             err = np.atleast_2d(err)
@@ -733,14 +733,13 @@ class MPLPlot(object):
         return err
 
     def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
-        from pandas import DataFrame
         errors = {}
 
         for kw, flag in zip(['xerr', 'yerr'], [xerr, yerr]):
             if flag:
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
-                if isinstance(err, (DataFrame, dict)):
+                if isinstance(err, (ABCDataFrame, dict)):
                     if label is not None and label in err.keys():
                         err = err[label]
                     else:
@@ -1651,9 +1650,8 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    from pandas import DataFrame
     if kind in _dataframe_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
@@ -1661,7 +1659,7 @@ def _plot(data, x=None, y=None, subplots=False,
                              % kind)
 
     elif kind in _series_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if y is None and subplots is False:
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
@@ -1673,7 +1671,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 data.index.name = y
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
@@ -1956,9 +1954,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    from pandas import Series, DataFrame
-    if isinstance(data, Series):
-        data = DataFrame({'x': data})
+    if isinstance(data, ABCSeries):
+        data = data.to_frame(name='x')
         column = 'x'
 
     def _get_colors():
@@ -2128,7 +2125,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, Index)):
+        if not isinstance(column, (list, np.ndarray, ABCIndex)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
@@ -2350,7 +2347,6 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
-    from pandas import DataFrame
 
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
@@ -2371,7 +2367,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
-        if numeric_only and isinstance(group, DataFrame):
+        if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
