@@ -11,7 +11,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries)
+                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex)
 from .inference import is_string_like
 from .inference import *  # noqa
 
@@ -1713,6 +1713,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
