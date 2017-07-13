@@ -47,5 +47,3 @@ class TestTimedeltaIndexing(object):
         expected = df.iloc[0]
         sliced = df.loc['0 days']
         tm.assert_series_equal(sliced, expected)
-
-        assert df.index.get_loc('0 days') == 0
