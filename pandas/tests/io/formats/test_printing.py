@@ -127,14 +127,7 @@ class TestTableSchemaRepr(object):
     @classmethod
     def setup_class(cls):
         pytest.importorskip('IPython')
-        try:
-            import mock
-        except ImportError:
-            try:
-                from unittest import mock
-            except ImportError:
-                pytest.skip("Mock is not installed")
-        cls.mock = mock
+
         from IPython.core.interactiveshell import InteractiveShell
         cls.display_formatter = InteractiveShell.instance().display_formatter
 
