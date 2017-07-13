@@ -392,13 +392,15 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     >>> is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
     True
+    >>> is_timedelta64_dtype('0 days')
+    False
     """
 
     if arr_or_dtype is None:
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except ValueError:
+    except:
         return False
     return issubclass(tipo, np.timedelta64)
 

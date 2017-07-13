@@ -66,6 +66,9 @@ class TestTimedeltaIndex(DatetimeLike):
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             assert idx.get_loc('1 day 1 hour', method) == loc
 
+        # GH 16896
+        assert idx.get_loc('0 days') == 0
+
     def test_get_loc_nat(self):
         tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
 
