@@ -36,7 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isnull, notnull, remove_na_arraylike
 
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
@@ -2749,7 +2749,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         axis = self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
-            result = remove_na(self)
+            result = remove_na_arraylike(self)
             if inplace:
                 self._update_inplace(result)
             else:
@@ -2886,14 +2886,6 @@ _INDEX_TYPES = ndarray, Index, list, tuple
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
-
-
-def remove_na(series):
-    """
-    Return series containing only true/non-NaN values, possibly empty.
-    """
-    return series[notnull(_values_from_object(series))]
-
 
 def _sanitize_index(data, index, copy=False):
     """ sanitize an index type to return an ndarray of the underlying, pass

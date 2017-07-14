@@ -7,10 +7,10 @@ from warnings import catch_warnings
 import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.missing import remove_na_arraylike
 from pandas import Series, Index, isnull, notnull
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
-from pandas.core.series import remove_na
 from pandas.tseries.offsets import BDay
 
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -118,7 +118,7 @@ class SafeForLongAndSparse(object):
 
         if has_skipna:
             def skipna_wrapper(x):
-                nona = remove_na(x)
+                nona = remove_na_arraylike(x)
                 if len(nona) == 0:
                     return np.nan
                 return alternative(nona)
