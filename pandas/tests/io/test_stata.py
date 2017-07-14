@@ -1297,3 +1297,11 @@ class TestStata(object):
         reader = lambda x: read_stata(x).set_index('index')
         result = tm.round_trip_localpath(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
+
+    def test_read_index(self):
+        df = tm.makeDataFrame()
+        df.index.name = "my_index"
+        with tm.ensure_clean() as path:
+            df.to_stata(path)
+            result = pd.read_stata(path, index_col="my_index")
+        tm.assert_frame_equal(df, result)
