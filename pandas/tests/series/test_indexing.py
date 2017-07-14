@@ -4,6 +4,7 @@
 import pytest
 
 from datetime import datetime, timedelta
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -289,6 +290,44 @@ class TestSeriesIndexing(TestData):
         expected = self.series[self.series > 0]
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+
+    def test_setitem_generator(self):
+        bool_idx = self.series > 0
+        idces = self.series[bool_idx].index
+
+        values = range(bool_idx.sum())
+
+        expected = self.series.copy()
+        expected[bool_idx] = values
+
+        # list of labels:
+        s1 = self.series.copy()
+        s1[iter(idces)] = values
+        assert_series_equal(s1, expected)
+
+        # list of labels with .loc:
+        s2 = self.series.copy()
+        s2.loc[iter(idces)] = values
+        assert_series_equal(s2, expected)
+
+    @pytest.mark.xfail(reason="Setitem with booleans generators unsupported")
+    def test_setitem_boolean_generator(self):
+        bool_idx = self.series > 0
+
+        values = range(bool_idx.sum())
+
+        expected = self.series.copy()
+        expected[bool_idx] = values
+
+        # boolean generator (fails)
+        s1 = self.series.copy()
+        s1[iter(bool_idx)] = values
+        assert_series_equal(s1, expected)
+
+        # boolean generator with .loc (fails)
+        s2 = self.series.copy()
+        s2.loc[iter(bool_idx)] = values
+        assert_series_equal(s2, expected)
 
     def test_type_promotion(self):
         # GH12599

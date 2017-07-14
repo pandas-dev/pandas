@@ -512,13 +512,17 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         tm.assert_sp_series_equal(sparse.loc['B'],
                                   orig.loc['B'].to_sparse())
 
-        result = sparse.loc[[1, 3, 4]]
-        exp = orig.loc[[1, 3, 4]].to_sparse()
+        with tm.assertRaises(KeyError):
+            # GH15452
+            sparse.loc[['D', 'E', 'F']]
+
+        result = sparse.loc[['A', 'B']]
+        exp = orig.loc[['A', 'B']].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
         # exceeds the bounds
-        result = sparse.loc[[1, 3, 4, 5]]
-        exp = orig.loc[[1, 3, 4, 5]].to_sparse()
+        result = sparse.loc[['A', 'B', 'C', 'D']]
+        exp = orig.loc[['A', 'B', 'C', 'D']].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
         # single element list (GH 15447)
