@@ -190,12 +190,27 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
-            supports 'https://username:password@fqdn.com:port/aaa.csv'
+            now supports 'https://<user>:<password>@<host>:<port>/<url-path>'
+            
+            .. versionadded:: 0.21.0
+            
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
-    compression:
-    auth: (str,str), default None. (username, password) for HTTP(s) basic auth
-    verify_ssl: Default True. If False, allow self signed and invalid SSL
-                 certificates for https
+
+    compression : string, default None
+    
+            .. versionadded:: 0.18.1
+    
+    auth : tuple, default None 
+            A tuple of string with (username, password) string for 
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+            
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
+
 
     Returns
     -------
@@ -263,19 +278,34 @@ def split_auth_from_url(url_with_uname):
 
     Parameters
     ----------
-    url_with_uname : a url that may or may not contain username and password
+    url_with_uname : string
+            a url that may or may not contain username and password
             see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
             //<user>:<password>@<host>:<port>/<url-path>
+            
+            .. versionadded:: 0.21.0
 
     Returns
     -------
-    (username, password), url_no_usrpwd : username or "", password or "", 
-         url without username or password (if it contained it )
+    (username, password), url_no_usrpwd : tuple, string  Default ('', '') url
+            A tuple with (username, pwd) pair and 
+            url without username or password (if it contained it )
+
+    Raises
+    ------
+    ValueError for empty url
     """
+    if not url_with_uname: 
+        msg = "Empty url: {_type}"
+        raise ValueError(msg.format(_type=type(url_with_uname)))
     o = parse_url(url_with_uname)
-    usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
-    url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
-    return (o.username, o.password), url_no_usrpwd
+    uname = o.username if o.username else ''
+    pwd = o.password if o.password else ''
+    url_no_usrpwd = url_with_uname
+    if uname or pwd:
+        usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
+        url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
+    return (uname, pwd), url_no_usrpwd
 
 
 def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
@@ -286,30 +316,42 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
 
     Parameters
     ----------
-    url_with_uname : a url that may or may not contain username and password
+    url_with_uname : string
+            a url that may or may not contain username and password
             see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
             //<user>:<password>@<host>:<port>/<url-path>
-    auth : ( username/""/None, password/"", None) tuple
-    verify_ssl: If False, SSL certificate verification is disabled.
+            
+            .. versionadded:: 0.21.0
+
+    auth : tuple, default None 
+            A tuple of string with (username, password) string for 
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+            
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
 
     Returns
     -------
     Request, kwargs to pass to urlopen. kwargs may be {} or {'context': obj }
     """
     uname = pwd = None
+    url_no_usrpwd = url_with_uname
     if auth and len(auth) == 2:
         uname, pwd = auth
     if not uname and not pwd:
         (uname, pwd), url_no_usrpwd = split_auth_from_url(url_with_uname)
-    else:
-        url_no_usrpwd = url_with_uname
-    upstr = '{}:{}'.format(uname, pwd)
-    if compat.PY3:
-        b64str = base64.b64encode(bytes(upstr, 'ascii')).decode('utf-8')
-    else:
-        b64str = base64.encodestring(upstr).replace('\n', '')
     req = Request(url_no_usrpwd)
-    req.add_header("Authorization", "Basic {}".format(b64str))
+    if uname or pwd:
+        upstr = '{}:{}'.format(uname, pwd)
+        if compat.PY3:
+            b64str = base64.b64encode(bytes(upstr, 'ascii')).decode('utf-8')
+        else:
+            b64str = base64.encodestring(upstr).replace('\n', '')
+        req.add_header("Authorization", "Basic {}".format(b64str))
     kwargs = {}
     if verify_ssl not in [None, True]:
         kwargs['context'] = ssl._create_unverified_context()

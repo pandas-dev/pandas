@@ -263,9 +263,16 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
-    auth: (str,str), default None. (username, password) for HTTP(s) basic auth
-    verify_ssl: boolean, default None (True).
-                    If false, allow self siged SSL certificates
+    auth : tuple, default None 
+            A tuple of string with (username, password) string for 
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+            
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
 
     Returns
     -------

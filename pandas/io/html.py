@@ -123,8 +123,16 @@ def _read(obj, auth=None, verify_ssl=None):
     Parameters
     ----------
     obj : str, unicode, or file-like
-    auth: None or (username, password) for http basic auth
-    verify_ssl: Default True. Set to False to disable cert verification
+    auth : tuple, default None 
+            A tuple of string with (username, password) string for 
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+            
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
     Returns
     -------
     raw_text : str
@@ -866,10 +874,16 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    auth: (str,str), default None. (username, password) for HTTP(s) basic auth
+    auth : tuple, default None 
+            A tuple of string with (username, password) string for 
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+            
+            .. versionadded:: 0.21.0
 
-    verify_ssl : bool, default True
-        If False, ssl certificate is not verified (allow self signed SSL certs)
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
 
         Returns
     -------

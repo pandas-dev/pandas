@@ -579,10 +579,8 @@ def _make_parser_function(name, sep=','):
                  memory_map=False,
                  float_precision=None,
 
-                 # Basic auth (http/https) (username, password)
                  auth=None,
 
-                 # skip verify self signed SSL certificates
                  verify_ssl=None):
 
         # Alias sep -> delimiter.
