@@ -77,6 +77,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 
+import pandas.plotting._core as _gfx  # noqa
+
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
@@ -3066,8 +3068,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
 # ----------------------------------------------------------------------
 # Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
 
 Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
                                     _gfx.SeriesPlotMethods)
