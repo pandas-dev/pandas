@@ -334,6 +334,10 @@ class MPLPlot(object):
     def _compute_plot_data(self):
         data = self.data
 
+        from pandas import Series
+        if isinstance(data, ABCSeries) != isinstance(data, Series):
+            raise Exception('WTFError', data)
+
         if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
