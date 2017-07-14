@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64)
 from pandas.core.dtypes.missing import isnull
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
+from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
@@ -682,7 +682,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
-        if is_bool_indexer(key) or is_timedelta64_dtype(key):
+        if is_list_like(key):
             raise TypeError
 
         if isnull(key):
