@@ -190,24 +190,24 @@ bar2,12,13,14,15
 
         tm.assert_frame_equal(result, expected)
 
-    def test_split_url_extract_uname_pwd(self):
-        """
-        Test extraction of username, pwd from url, if contained.
-        """
-        for url, uname, pwd, nurl in [('https://aaa:bbb@ccc.com:1010/aaa.txt',
-                                       'aaa',
-                                       'bbb',
-                                       'https://ccc.com:1010/aaa.txt'
-                                       ),
-                                       ('https://ccc.com:1010/aaa.txt',
-                                       '',
-                                       '',
-                                       'https://ccc.com:1010/aaa.txt'
-                                       )]:
-            un, pw, mod_url = common.split_uname_from_url(url)
-            assert mod_url == nurl
-            assert un == uname
-            assert pw == pwd
+
+    @pytest.mark.parametrize('url, uname, pwd, nurl', [
+        ('https://a1:b1@cc.com:101/f.csv',
+         'a1',
+         'b1',
+         'https://cc.com:101/f.csv'
+        ),
+        ('https://ccc.com:1010/aaa.txt',
+         '',
+         '',
+         'https://ccc.com:1010/aaa.txt'
+        ),
+    ])
+    def test_split_url_extract_uname_pwd(self, url, uname, pwd, nurl):
+        (un, pw), ur = common.split_auth_from_url(url)
+        assert ur == nurl
+        assert un == uname
+        assert pw == pwd
 
 
 class TestMMapWrapper(object):

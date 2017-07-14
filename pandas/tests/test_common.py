@@ -1,269 +1,223 @@
-"""
-    Tests for the pandas.io.common functionalities
-"""
-import mmap
-import pytest
-import os
-from os.path import isabs
+# -*- coding: utf-8 -*-
 
-import pandas as pd
+import pytest
+import collections
+from functools import partial
+
+import numpy as np
+
+from pandas import Series, Timestamp
+from pandas.compat import range, lmap
+import pandas.core.common as com
 import pandas.util.testing as tm
 
-from pandas.io import common
-from pandas.compat import is_platform_windows, StringIO
 
-from pandas import read_csv, concat
-
-try:
-    from pathlib import Path
-except ImportError:
-    pass
-
-try:
-    from py.path import local as LocalPath
-except ImportError:
-    pass
+def test_mut_exclusive():
+    msg = "mutually exclusive arguments: '[ab]' and '[ab]'"
+    with tm.assert_raises_regex(TypeError, msg):
+        com._mut_exclusive(a=1, b=2)
+    assert com._mut_exclusive(a=1, b=None) == 1
+    assert com._mut_exclusive(major=None, major_axis=None) is None
+    assert com._mut_exclusive(a=None, b=2) == 2
 
 
-class CustomFSPath(object):
-    """For testing fspath on unknown objects"""
-    def __init__(self, path):
-        self.path = path
+def test_get_callable_name():
+    from functools import partial
+    getname = com._get_callable_name
 
-    def __fspath__(self):
-        return self.path
+    def fn(x):
+        return x
 
+    lambda_ = lambda x: x
+    part1 = partial(fn)
+    part2 = partial(part1)
 
-HERE = os.path.dirname(__file__)
+    class somecall(object):
 
+        def __call__(self):
+            return x  # noqa
 
-class TestCommonIOCapabilities(object):
-    data1 = """index,A,B,C,D
-foo,2,3,4,5
-bar,7,8,9,10
-baz,12,13,14,15
-qux,12,13,14,15
-foo2,12,13,14,15
-bar2,12,13,14,15
-"""
-
-    def test_expand_user(self):
-        filename = '~/sometest'
-        expanded_name = common._expand_user(filename)
-
-        assert expanded_name != filename
-        assert isabs(expanded_name)
-        assert os.path.expanduser(filename) == expanded_name
-
-    def test_expand_user_normal_path(self):
-        filename = '/somefolder/sometest'
-        expanded_name = common._expand_user(filename)
-
-        assert expanded_name == filename
-        assert os.path.expanduser(filename) == expanded_name
-
-    def test_stringify_path_pathlib(self):
-        tm._skip_if_no_pathlib()
-
-        rel_path = common._stringify_path(Path('.'))
-        assert rel_path == '.'
-        redundant_path = common._stringify_path(Path('foo//bar'))
-        assert redundant_path == os.path.join('foo', 'bar')
-
-    def test_stringify_path_localpath(self):
-        tm._skip_if_no_localpath()
-
-        path = os.path.join('foo', 'bar')
-        abs_path = os.path.abspath(path)
-        lpath = LocalPath(path)
-        assert common._stringify_path(lpath) == abs_path
-
-    def test_stringify_path_fspath(self):
-        p = CustomFSPath('foo/bar.csv')
-        result = common._stringify_path(p)
-        assert result == 'foo/bar.csv'
-
-    def test_get_filepath_or_buffer_with_path(self):
-        filename = '~/sometest'
-        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
-        assert filepath_or_buffer != filename
-        assert isabs(filepath_or_buffer)
-        assert os.path.expanduser(filename) == filepath_or_buffer
-
-    def test_get_filepath_or_buffer_with_buffer(self):
-        input_buffer = StringIO()
-        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
-        assert filepath_or_buffer == input_buffer
-
-    def test_iterator(self):
-        reader = read_csv(StringIO(self.data1), chunksize=1)
-        result = concat(reader, ignore_index=True)
-        expected = read_csv(StringIO(self.data1))
-        tm.assert_frame_equal(result, expected)
-
-        # GH12153
-        it = read_csv(StringIO(self.data1), chunksize=1)
-        first = next(it)
-        tm.assert_frame_equal(first, expected.iloc[[0]])
-        tm.assert_frame_equal(concat(it), expected.iloc[1:])
-
-    @pytest.mark.parametrize('reader, module, path', [
-        (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_fwf, 'os', os.path.join(HERE, 'data',
-                                         'fixed_width_format.txt')),
-        (pd.read_excel, 'xlrd', os.path.join(HERE, 'data', 'test1.xlsx')),
-        (pd.read_feather, 'feather', os.path.join(HERE, 'data',
-                                                  'feather-0_3_1.feather')),
-        (pd.read_hdf, 'tables', os.path.join(HERE, 'data', 'legacy_hdf',
-                                             'datetimetz_object.h5')),
-        (pd.read_stata, 'os', os.path.join(HERE, 'data', 'stata10_115.dta')),
-        (pd.read_sas, 'os', os.path.join(HERE, 'sas', 'data',
-                                         'test1.sas7bdat')),
-        (pd.read_json, 'os', os.path.join(HERE, 'json', 'data',
-                                          'tsframe_v012.json')),
-        (pd.read_msgpack, 'os', os.path.join(HERE, 'msgpack', 'data',
-                                             'frame.mp')),
-        (pd.read_pickle, 'os', os.path.join(HERE, 'data',
-                                            'categorical_0_14_1.pickle')),
-    ])
-    def test_read_fspath_all(self, reader, module, path):
-        pytest.importorskip(module)
-
-        mypath = CustomFSPath(path)
-        result = reader(mypath)
-        expected = reader(path)
-        if path.endswith('.pickle'):
-            # categorical
-            tm.assert_categorical_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('writer_name, writer_kwargs, module', [
-        ('to_csv', {}, 'os'),
-        ('to_excel', {'engine': 'xlwt'}, 'xlwt'),
-        ('to_feather', {}, 'feather'),
-        ('to_html', {}, 'os'),
-        ('to_json', {}, 'os'),
-        ('to_latex', {}, 'os'),
-        ('to_msgpack', {}, 'os'),
-        ('to_pickle', {}, 'os'),
-        ('to_stata', {}, 'os'),
-    ])
-    def test_write_fspath_all(self, writer_name, writer_kwargs, module):
-        p1 = tm.ensure_clean('string')
-        p2 = tm.ensure_clean('fspath')
-        df = pd.DataFrame({"A": [1, 2]})
-
-        with p1 as string, p2 as fspath:
-            pytest.importorskip(module)
-            mypath = CustomFSPath(fspath)
-            writer = getattr(df, writer_name)
-
-            writer(string, **writer_kwargs)
-            with open(string, 'rb') as f:
-                expected = f.read()
-
-            writer(mypath, **writer_kwargs)
-            with open(fspath, 'rb') as f:
-                result = f.read()
-
-            assert result == expected
-
-    def test_write_fspath_hdf5(self):
-        # Same test as write_fspath_all, except HDF5 files aren't
-        # necessarily byte-for-byte identical for a given dataframe, so we'll
-        # have to read and compare equality
-        pytest.importorskip('tables')
-
-        df = pd.DataFrame({"A": [1, 2]})
-        p1 = tm.ensure_clean('string')
-        p2 = tm.ensure_clean('fspath')
-
-        with p1 as string, p2 as fspath:
-            mypath = CustomFSPath(fspath)
-            df.to_hdf(mypath, key='bar')
-            df.to_hdf(string, key='bar')
-
-            result = pd.read_hdf(fspath, key='bar')
-            expected = pd.read_hdf(string, key='bar')
-
-        tm.assert_frame_equal(result, expected)
-    
-    @pytest.mark.parametrize('url, uname, pwd, nurl', [
-        ('https://a1:b1@cc.com:101/f.csv',
-         'a1',
-         'b1',
-         'https://cc.com:101/f.csv'
-        ),
-        ('https://ccc.com:1010/aaa.txt',
-         '',
-         '',
-         'https://ccc.com:1010/aaa.txt'
-        ),
-    ])
-    def test_split_url_extract_uname_pwd(self, url, uname, pwd, nurl):
-        (un, pw), ur = common.split_auth_from_url(url)
-        assert ur == nurl
-        assert un == uname
-        assert pw == pwd
+    assert getname(fn) == 'fn'
+    assert getname(lambda_)
+    assert getname(part1) == 'fn'
+    assert getname(part2) == 'fn'
+    assert getname(somecall()) == 'somecall'
+    assert getname(1) is None
 
 
-class TestMMapWrapper(object):
+def test_any_none():
+    assert (com._any_none(1, 2, 3, None))
+    assert (not com._any_none(1, 2, 3, 4))
 
-    def setup_method(self, method):
-        self.mmap_file = os.path.join(tm.get_data_path(),
-                                      'test_mmap.csv')
 
-    def test_constructor_bad_file(self):
-        non_file = StringIO('I am not a file')
-        non_file.fileno = lambda: -1
+def test_all_not_none():
+    assert (com._all_not_none(1, 2, 3, 4))
+    assert (not com._all_not_none(1, 2, 3, None))
+    assert (not com._all_not_none(None, None, None, None))
 
-        # the error raised is different on Windows
-        if is_platform_windows():
-            msg = "The parameter is incorrect"
-            err = OSError
-        else:
-            msg = "[Errno 22]"
-            err = mmap.error
 
-        tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
+def test_iterpairs():
+    data = [1, 2, 3, 4]
+    expected = [(1, 2), (2, 3), (3, 4)]
 
-        target = open(self.mmap_file, 'r')
-        target.close()
+    result = list(com.iterpairs(data))
 
-        msg = "I/O operation on closed file"
-        tm.assert_raises_regex(
-            ValueError, msg, common.MMapWrapper, target)
+    assert (result == expected)
 
-    def test_get_attr(self):
-        with open(self.mmap_file, 'r') as target:
-            wrapper = common.MMapWrapper(target)
 
-        attrs = dir(wrapper.mmap)
-        attrs = [attr for attr in attrs
-                 if not attr.startswith('__')]
-        attrs.append('__next__')
+def test_split_ranges():
+    def _bin(x, width):
+        "return int(x) as a base2 string of given width"
+        return ''.join(str((x >> i) & 1) for i in range(width - 1, -1, -1))
 
-        for attr in attrs:
-            assert hasattr(wrapper, attr)
+    def test_locs(mask):
+        nfalse = sum(np.array(mask) == 0)
 
-        assert not hasattr(wrapper, 'foo')
+        remaining = 0
+        for s, e in com.split_ranges(mask):
+            remaining += e - s
 
-    def test_next(self):
-        with open(self.mmap_file, 'r') as target:
-            wrapper = common.MMapWrapper(target)
-            lines = target.readlines()
+            assert 0 not in mask[s:e]
 
-        for line in lines:
-            next_line = next(wrapper)
-            assert next_line.strip() == line.strip()
+        # make sure the total items covered by the ranges are a complete cover
+        assert remaining + nfalse == len(mask)
 
-        pytest.raises(StopIteration, next, wrapper)
+    # exhaustively test all possible mask sequences of length 8
+    ncols = 8
+    for i in range(2 ** ncols):
+        cols = lmap(int, list(_bin(i, ncols)))  # count up in base2
+        mask = [cols[i] == 1 for i in range(len(cols))]
+        test_locs(mask)
 
-    def test_unknown_engine(self):
-        with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
-            df.to_csv(path)
-            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
-                read_csv(path, engine='pyt')
+    # base cases
+    test_locs([])
+    test_locs([0])
+    test_locs([1])
+
+
+def test_map_indices_py():
+    data = [4, 3, 2, 1]
+    expected = {4: 0, 3: 1, 2: 2, 1: 3}
+
+    result = com.map_indices_py(data)
+
+    assert (result == expected)
+
+
+def test_union():
+    a = [1, 2, 3]
+    b = [4, 5, 6]
+
+    union = sorted(com.union(a, b))
+
+    assert ((a + b) == union)
+
+
+def test_difference():
+    a = [1, 2, 3]
+    b = [1, 2, 3, 4, 5, 6]
+
+    inter = sorted(com.difference(b, a))
+
+    assert ([4, 5, 6] == inter)
+
+
+def test_intersection():
+    a = [1, 2, 3]
+    b = [1, 2, 3, 4, 5, 6]
+
+    inter = sorted(com.intersection(a, b))
+
+    assert (a == inter)
+
+
+def test_groupby():
+    values = ['foo', 'bar', 'baz', 'baz2', 'qux', 'foo3']
+    expected = {'f': ['foo', 'foo3'],
+                'b': ['bar', 'baz', 'baz2'],
+                'q': ['qux']}
+
+    grouped = com.groupby(values, lambda x: x[0])
+
+    for k, v in grouped:
+        assert v == expected[k]
+
+
+def test_random_state():
+    import numpy.random as npr
+    # Check with seed
+    state = com._random_state(5)
+    assert state.uniform() == npr.RandomState(5).uniform()
+
+    # Check with random state object
+    state2 = npr.RandomState(10)
+    assert (com._random_state(state2).uniform() ==
+            npr.RandomState(10).uniform())
+
+    # check with no arg random state
+    assert com._random_state() is np.random
+
+    # Error for floats or strings
+    with pytest.raises(ValueError):
+        com._random_state('test')
+
+    with pytest.raises(ValueError):
+        com._random_state(5.5)
+
+
+def test_maybe_match_name():
+
+    matched = com._maybe_match_name(
+        Series([1], name='x'), Series(
+            [2], name='x'))
+    assert (matched == 'x')
+
+    matched = com._maybe_match_name(
+        Series([1], name='x'), Series(
+            [2], name='y'))
+    assert (matched is None)
+
+    matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
+    assert (matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
+    assert (matched is None)
+
+    matched = com._maybe_match_name(Series([1], name='x'), [2])
+    assert (matched == 'x')
+
+    matched = com._maybe_match_name([1], Series([2], name='y'))
+    assert (matched == 'y')
+
+
+def test_dict_compat():
+    data_datetime64 = {np.datetime64('1990-03-15'): 1,
+                       np.datetime64('2015-03-15'): 2}
+    data_unchanged = {1: 2, 3: 4, 5: 6}
+    expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
+    assert (com._dict_compat(data_datetime64) == expected)
+    assert (com._dict_compat(expected) == expected)
+    assert (com._dict_compat(data_unchanged) == data_unchanged)
+
+
+def test_standardize_mapping():
+    # No uninitialized defaultdicts
+    with pytest.raises(TypeError):
+        com.standardize_mapping(collections.defaultdict)
+
+    # No non-mapping subtypes, instance
+    with pytest.raises(TypeError):
+        com.standardize_mapping([])
+
+    # No non-mapping subtypes, class
+    with pytest.raises(TypeError):
+        com.standardize_mapping(list)
+
+    fill = {'bad': 'data'}
+    assert (com.standardize_mapping(fill) == dict)
+
+    # Convert instance to type
+    assert (com.standardize_mapping({}) == dict)
+
+    dd = collections.defaultdict(list)
+    assert isinstance(com.standardize_mapping(dd), partial)
