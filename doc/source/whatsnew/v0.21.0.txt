@@ -162,6 +162,7 @@ I/O
 
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 
+- Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 
 Plotting
 ^^^^^^^^
