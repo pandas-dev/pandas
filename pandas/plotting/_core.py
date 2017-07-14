@@ -12,7 +12,7 @@ import numpy as np
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
 
-from pandas.core.dtypes.generic import (ABCSeries, ABCDataFrame,
+from pandas.core.dtypes.generic import (ABCSeries, ABCDataFrame, ABCIndex,
                                         ABCMultiIndex, ABCPeriodIndex)
 from pandas.core.dtypes.missing import notnull
 from pandas.core.dtypes.common import (
