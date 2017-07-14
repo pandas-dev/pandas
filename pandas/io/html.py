@@ -123,10 +123,10 @@ def _read(obj, auth=None, verify_ssl=None):
     Parameters
     ----------
     obj : str, unicode, or file-like
-    auth : tuple, default None 
-            A tuple of string with (username, password) string for 
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
             HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
-            
+
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True
@@ -874,10 +874,10 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    auth : tuple, default None 
-            A tuple of string with (username, password) string for 
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
             HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
-            
+
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True

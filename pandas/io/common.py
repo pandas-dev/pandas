@@ -191,19 +191,19 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
             now supports 'https://<user>:<password>@<host>:<port>/<url-path>'
-            
+
             .. versionadded:: 0.21.0
-            
+
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
     compression : string, default None
-    
+
             .. versionadded:: 0.18.1
-    
-    auth : tuple, default None 
-            A tuple of string with (username, password) string for 
+
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
             HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
-            
+
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True
@@ -282,20 +282,20 @@ def split_auth_from_url(url_with_uname):
             a url that may or may not contain username and password
             see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
             //<user>:<password>@<host>:<port>/<url-path>
-            
+
             .. versionadded:: 0.21.0
 
     Returns
     -------
     (username, password), url_no_usrpwd : tuple, string  Default ('', '') url
-            A tuple with (username, pwd) pair and 
+            A tuple with (username, pwd) pair and
             url without username or password (if it contained it )
 
     Raises
     ------
     ValueError for empty url
     """
-    if not url_with_uname: 
+    if not url_with_uname:
         msg = "Empty url: {_type}"
         raise ValueError(msg.format(_type=type(url_with_uname)))
     o = parse_url(url_with_uname)
@@ -320,13 +320,13 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
             a url that may or may not contain username and password
             see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
             //<user>:<password>@<host>:<port>/<url-path>
-            
+
             .. versionadded:: 0.21.0
 
-    auth : tuple, default None 
-            A tuple of string with (username, password) string for 
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
             HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
-            
+
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True

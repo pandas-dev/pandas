@@ -263,10 +263,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
-    auth : tuple, default None 
-            A tuple of string with (username, password) string for 
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
             HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
-            
+
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True
