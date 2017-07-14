@@ -77,6 +77,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 
+import pandas.plotting._core as gfx  # noqa
+
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
@@ -2877,6 +2879,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 pass
         return rv
 
+    # ----------------------------------------------------------------------
+    # Add plotting methods to Series
+
+    plot = base.AccessorProperty(gfx.SeriesPlotMethods, gfx.SeriesPlotMethods)
+    hist = gfx.hist_series
+
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
@@ -3064,14 +3072,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     return subarr
 
 
-# ----------------------------------------------------------------------
-# Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
-
-Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
-                                    _gfx.SeriesPlotMethods)
-Series.hist = _gfx.hist_series
 
 # Add arithmetic!
 ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
