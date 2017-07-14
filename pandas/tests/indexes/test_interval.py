@@ -333,29 +333,6 @@ class TestIntervalIndex(Base):
                                              closed='right')
         tm.assert_index_equal(result, expected)
 
-    def test_get_loc_value(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        pytest.raises(KeyError, self.index.get_loc, 0)
-        assert self.index.get_loc(0.5) == 0
-        assert self.index.get_loc(1) == 0
-        assert self.index.get_loc(1.5) == 1
-        assert self.index.get_loc(2) == 1
-        pytest.raises(KeyError, self.index.get_loc, -1)
-        pytest.raises(KeyError, self.index.get_loc, 3)
-
-        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
-        assert idx.get_loc(0.5) == 0
-        assert idx.get_loc(1) == 0
-        tm.assert_numpy_array_equal(idx.get_loc(1.5),
-                                    np.array([0, 1], dtype='int64'))
-        tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
-        assert idx.get_loc(3) == 1
-        pytest.raises(KeyError, idx.get_loc, 3.5)
-
-        idx = IntervalIndex.from_arrays([0, 2], [1, 3])
-        pytest.raises(KeyError, idx.get_loc, 1.5)
-
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_loc_value_closed_right_updated_behavior(self):
 
@@ -544,74 +521,6 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, neither.get_loc, Interval(2.5, 3, closed='neither'))
         pytest.raises(KeyError, neither.get_loc, Interval(-1, 4, closed='neither'))
 
-    ### OLD SLICE LOCS BEHAVIOR
-
-    def slice_locs_cases(self, tuples):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        # TODO: same tests for more index types
-        index = IntervalIndex.from_tuples(tuples, closed='right')
-        assert index.slice_locs() == (0, 2)
-        assert index.slice_locs(0, 1) == (0, 1)
-        assert index.slice_locs(1, 1) == (0, 1)
-        assert index.slice_locs(0, 2) == (0, 2)
-        assert index.slice_locs(0.5, 1.5) == (0, 2)
-        assert index.slice_locs(0, 0.5) == (0, 1)
-        assert index.slice_locs(start=1) == (0, 2)
-        assert index.slice_locs(start=1.2) == (1, 2)
-        assert index.slice_locs(end=1) == (0, 1)
-        assert index.slice_locs(end=1.1) == (0, 2)
-        assert index.slice_locs(end=1.0) == (0, 1)
-        assert index.slice_locs(-1, -1) == (0, 0)
-
-        index = IntervalIndex.from_tuples(tuples, closed='neither')
-        assert index.slice_locs(0, 1) == (0, 1)
-        assert index.slice_locs(0, 2) == (0, 2)
-        assert index.slice_locs(0.5, 1.5) == (0, 2)
-        assert index.slice_locs(1, 1) == (1, 1)
-        assert index.slice_locs(1, 2) == (1, 2)
-
-        index = IntervalIndex.from_tuples(tuples, closed='both')
-        assert index.slice_locs(1, 1) == (0, 2)
-        assert index.slice_locs(1, 2) == (0, 2)
-
-    def test_slice_locs_increasing_int64(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        self.slice_locs_cases([(0, 2), (1, 3), (2, 4)])
-
-    def test_slice_locs_increasing_float64(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        self.slice_locs_cases([(0., 2.), (1., 3.), (2., 4.)])
-
-    def slice_locs_decreasing_cases(self, tuples):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        index = IntervalIndex.from_tuples(tuples)
-        assert index.slice_locs(1.5, 0.5) == (1, 3)
-        assert index.slice_locs(2, 0) == (1, 3)
-        assert index.slice_locs(2, 1) == (1, 3)
-        assert index.slice_locs(3, 1.1) == (0, 3)
-        assert index.slice_locs(3, 3) == (0, 2)
-        assert index.slice_locs(3.5, 3.3) == (0, 1)
-        assert index.slice_locs(1, -3) == (2, 3)
-
-        slice_locs = index.slice_locs(-1, -1)
-        assert slice_locs[0] == slice_locs[1]
-
-    def test_slice_locs_decreasing_int64(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        self.slice_locs_decreasing_cases([(2, 4), (1, 3), (0, 2)])
-
-    def test_slice_locs_decreasing_float64(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        self.slice_locs_decreasing_cases([(2., 4.), (1., 3.), (0., 2.)])
-
-    def test_slice_locs_fails(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
-        with pytest.raises(KeyError):
-            index.slice_locs(1, 2)
-
-    ### NEW SLICE LOCS BEHAVIOR
-
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_interval_updated_behavior(self):
         # @jreback might prefer these be broken up into separate methods
@@ -734,59 +643,6 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(3, 1) == # this raises an error because index is overlapping/unsorted?
         assert index.slice_locs(3, 4) == # this raises an error because index is overlapping/unsorted?
         assert index.slice_locs(0, 4) == # this raises an error because index is overlapping/unsorted?
-
-
-    ### OLD GET INDEXER BEHAVIOR
-
-    def test_get_indexer(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
-        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        actual = self.index.get_indexer(self.index)
-        expected = np.array([0, 1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        index = IntervalIndex.from_breaks([0, 1, 2], closed='left')
-
-        actual = index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
-        expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        actual = self.index.get_indexer(index[:1])
-        expected = np.array([0], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        actual = self.index.get_indexer(index)
-        expected = np.array([-1, 1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-    def test_get_indexer_subintervals(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-
-        # TODO: is this right?
-        # return indexers for wholly contained subintervals
-        target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
-        actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 1, 1], dtype='p')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
-        actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 1, 1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        actual = self.index.get_indexer(target[[0, -1]])
-        expected = np.array([0, 1], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-        target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
-        actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 0], dtype='intp')
-        tm.assert_numpy_array_equal(actual, expected)
-
-    ### NEW GET INDEXER BEHAVIOR
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def get_indexer_for_interval_updated_behavior(self):
@@ -979,23 +835,6 @@ class TestIntervalIndex(Base):
         # we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
 
-    def test_contains(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        # Only endpoints are valid.
-        i = IntervalIndex.from_arrays([0, 1], [1, 2])
-
-        # Invalid
-        assert 0 not in i
-        assert 1 not in i
-        assert 2 not in i
-
-        # Valid
-        assert Interval(0, 1) in i
-        assert Interval(0, 2) in i
-        assert Interval(0, 0.5) in i
-        assert Interval(3, 5) not in i
-        assert Interval(-1, 0, closed='left') not in i
-
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_contains_updated_behavior(self):
 
@@ -1013,24 +852,6 @@ class TestIntervalIndex(Base):
         assert Interval(-1, 0, closed='left') not in index
         assert Interval(0, 1, closed='left') not in index
         assert Interval(0, 1, closed='both') not in index
-
-    def testcontains(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE IN 0.21
-        # can select values that are IN the range of a value
-        i = IntervalIndex.from_arrays([0, 1], [1, 2])
-
-        assert i.contains(0.1)
-        assert i.contains(0.5)
-        assert i.contains(1)
-        assert i.contains(Interval(0, 1))
-        assert i.contains(Interval(0, 2))
-
-        # these overlaps completely
-        assert i.contains(Interval(0, 3))
-        assert i.contains(Interval(1, 3))
-
-        assert not i.contains(20)
-        assert not i.contains(-20)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def testcontains_updated_behavior(self):
