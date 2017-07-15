@@ -810,12 +810,6 @@ class TestFrequencyInference(object):
         for freq in [None, 'L']:
             s = Series(period_range('2013', periods=10, freq=freq))
             pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
-        for freq in ['Y']:
-
-            msg = frequencies._INVALID_FREQ_ERROR
-            with tm.assert_raises_regex(ValueError, msg):
-                s = Series(period_range('2013', periods=10, freq=freq))
-            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # DateTimeIndex
         for freq in ['M', 'L', 'S']:
