@@ -3020,6 +3020,38 @@ it is assumed to be aliases for the column names')
         Returns
         -------
         resetted : DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]},
+        ...                   index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                  name='idx'))
+        >>> df.reset_index()
+          idx  a  b
+        0   a  1  5
+        1   b  2  6
+        2   c  3  7
+        3   d  4  8
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
+        ...                     'foo', 'qux', 'qux']),
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
+        >>> df2 = pd.DataFrame(
+        ...     np.random.randn(8, 4),
+        ...     index=pd.MultiIndex.from_arrays(arrays,
+        ...                                     names=['a', 'b']))
+        >>> df2.reset_index(level='a')
+               a         0         1         2         3
+        b
+        one  bar -1.099413  0.291838  0.598198  0.162181
+        two  bar -0.312184 -0.119904  0.250360  0.364378
+        one  baz  0.713596 -0.490636  0.074967 -0.297857
+        two  baz  0.998397  0.524499 -2.228976  0.901155
+        one  foo  0.923204  0.920695  1.264488  1.476921
+        two  foo -1.566922  0.783278 -0.073656  0.266027
+        one  qux -0.230470  0.109800 -1.383409  0.048421
+        two  qux -0.865993 -0.865984  0.705367 -0.170446
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
