@@ -4309,9 +4309,9 @@ it is assumed to be aliases for the column names')
         ----------
         func : function
             Function to apply to each column/row
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index': apply function to each column
-            * 1 or 'columns': apply function to each row
+        axis : {0 or ``'index'``, 1 or ``'columns'``}, default 0
+            * 0 or ``'index'``: apply function to each column
+            * 1 or ``'columns'``: apply function to each row
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
