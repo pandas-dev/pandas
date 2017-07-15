@@ -19,6 +19,8 @@ if missing_dependencies:
         "Missing required dependencies {0}".format(missing_dependencies))
 del hard_dependencies, dependency, missing_dependencies
 
+foo  = 1
+
 # numpy compat
 from pandas.compat.numpy import *
 
