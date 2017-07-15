@@ -46,10 +46,10 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0210.api_breaking.pandas_eval:
+
 Improved error handling during item assignment in pd.eval
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _whatsnew_0210.api_breaking.pandas_eval:
 
 :func:`eval` will now raise a ``ValueError`` when item assignment malfunctions, or
 inplace operations are specified, but there is no item assignment in the expression (:issue:`16732`)
@@ -154,8 +154,8 @@ Indexing
 - When called with a null slice (e.g. ``df.iloc[:]``), the ``.iloc`` and ``.loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
 - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
-- Fixed ``TimedeltaIndex.get_loc`` handling of ``np.timedelta64`` inputs (:issue:`16909`).
-- Fix :meth:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
+- Fixed :func:`TimedeltaIndex.get_loc` handling of ``np.timedelta64`` inputs (:issue:`16909`).
+- Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
 
 I/O
 ^^^
@@ -172,9 +172,9 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
-- Bug in ``infer_freq`` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
-- Bug in ``.rolling.quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
+- Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
+- Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
+- Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
 
 
 Sparse
@@ -194,7 +194,7 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in ``:func:Series.isin()`` when called with a categorical (:issue`16639`)
+- Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
 
 
 Other
