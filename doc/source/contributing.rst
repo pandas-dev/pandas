@@ -171,7 +171,7 @@ other dependencies, you can install them as follows::
 
 To install *all* pandas dependencies you can do the following::
 
-      conda install -n pandas_dev -c pandas --file ci/requirements_all.txt
+      conda install -n pandas_dev -c conda-forge --file ci/requirements_all.txt
 
 To work in this environment, Windows users should ``activate`` it as follows::
 
