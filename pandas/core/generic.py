@@ -2063,7 +2063,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         """
-        Analogous to ndarray.take
+        Return an object formed from the elements in the given indices along an
+        axis
 
         Parameters
         ----------
@@ -2071,6 +2072,44 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int, default 0
         convert : translate neg to pos indices (default)
         is_copy : mark the returned frame as a copy
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+                               ('parrot', 'bird',     24.0),
+                               ('lion',   'mammal',   80.5),
+                               ('monkey', 'mammal', np.nan)],
+                              columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        Take elements at indices 0 and 3 along the axis 0 (default)
+
+        >>> df.take([0, 3])
+        0  falcon    bird      389.0
+        3  monkey  mammal        NaN
+
+        Take elements at indices 1 and 2 along the axis 1
+
+        >>> df.take([1, 2], axis=1)
+            class  max_speed
+        0    bird      389.0
+        1    bird       24.0
+        2  mammal       80.5
+        3  mammal        NaN
+
+        Also, we may take elements using negative integers for pos indices
+
+        >>> df.take([-1, -2])
+             name   class  max_speed
+        3  monkey  mammal        NaN
+        2    lion  mammal       80.5
 
         Returns
         -------
