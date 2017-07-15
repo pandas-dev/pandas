@@ -961,8 +961,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         3      3  4
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
-        ...     np.array(['one', 'two', 'one', 'two', 'one', 'two',
-        ...               'one', 'two'])]
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
         >>> s2 = pd.Series(
         ...     np.random.randn(8),
         ...     index=pd.MultiIndex.from_arrays(arrays,

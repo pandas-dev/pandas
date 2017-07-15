@@ -3034,8 +3034,8 @@ it is assumed to be aliases for the column names')
         3   d  4  8
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
-        ...     np.array(['one', 'two', 'one', 'two', 'one', 'two',
-        ...               'one', 'two'])]
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
         >>> df2 = pd.DataFrame(
         ...     np.random.randn(8, 4),
         ...     index=pd.MultiIndex.from_arrays(arrays,
