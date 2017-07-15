@@ -87,6 +87,12 @@ class TestSparseSeries(SharedWithSparse):
                                       fill_value=0)
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
+    def test_constructor_data_input(self):
+        arr = SparseSeries({1: 1})
+        assert arr.count() == len({1: 1})
+
+        arr = SparseSeries(pd.Series({1: 1}, index=[0, 1, 2]))
+        assert arr.count() == pd.Series({1: 1}, index=[0, 1, 2]).count()
 
     def test_constructor_dtype(self):
         arr = SparseSeries([np.nan, 1, 2, np.nan])
@@ -108,6 +114,9 @@ class TestSparseSeries(SharedWithSparse):
         arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
         assert arr.dtype == np.int64
         assert arr.fill_value == 0
+
+        arr = SparseSeries({1: 1})
+        assert arr.dtype == np.int64
 
     def test_iteration_and_str(self):
         [x for x in self.bseries]

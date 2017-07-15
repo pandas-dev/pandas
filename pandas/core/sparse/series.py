@@ -146,10 +146,10 @@ class SparseSeries(Series):
                 data = data._data
 
             elif isinstance(data, (Series, dict)):
+                data = Series(data)
                 if index is None:
                     index = data.index.view()
 
-                data = Series(data)
                 res = make_sparse(data, kind=kind, fill_value=fill_value)
                 data, sparse_index, fill_value = res
 
