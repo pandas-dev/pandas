@@ -2794,7 +2794,13 @@ class TestSorted(Base):
                                           names=['first', 'second', 'third'])
         s = pd.Series(range(8), index=index)
 
+        # Sort with boolean ascending
+        result = s.sort_index(level=['third', 'first'], ascending=False)
+        expected = s.iloc[[4, 0, 5, 1, 6, 2, 7, 3]]
+        tm.assert_series_equal(result, expected)
+
+        # Sort with list of boolean ascending
         result = s.sort_index(level=['third', 'first'],
                               ascending=[False, True])
-
-        assert np.array_equal(result, [0, 4, 1, 5, 2, 6, 3, 7])
+        expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
+        tm.assert_series_equal(result, expected)
