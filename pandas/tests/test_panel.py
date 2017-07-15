@@ -10,11 +10,11 @@ import numpy as np
 import pandas as pd
 
 from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.missing import remove_na_arraylike
 from pandas import (Series, DataFrame, Index, date_range, isnull, notnull,
                     pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
-from pandas.core.series import remove_na
 
 from pandas.io.formats.printing import pprint_thing
 from pandas import compat
@@ -155,7 +155,7 @@ class SafeForLongAndSparse(object):
         if has_skipna:
 
             def skipna_wrapper(x):
-                nona = remove_na(x)
+                nona = remove_na_arraylike(x)
                 if len(nona) == 0:
                     return np.nan
                 return alternative(nona)
