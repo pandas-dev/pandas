@@ -150,10 +150,13 @@ def maybe_exclude_notebooks():
             print("Warning: Pandoc is not installed. Skipping notebooks.")
             _remove_notebooks()
 
-    yield
-    for nb, content in contents.items():
-        with open(nb, 'wt') as f:
-            f.write(content)
+    try:
+        yield
+    except BaseException:
+        for nb, content in contents.items():
+            with open(nb, 'wt') as f:
+                f.write(content)
+        raise
 
 
 def html():

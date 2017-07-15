@@ -1522,6 +1522,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
+        Notes
+        -----
+        Iteratively appending to a series can be more computationally intense
+        than a single concatenate. A better solution is to append values to a
+        list then concatenate the list with the original series all at once.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
         Returns
         -------
         appended : Series

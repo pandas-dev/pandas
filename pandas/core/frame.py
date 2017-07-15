@@ -4618,6 +4618,11 @@ it is assumed to be aliases for the column names')
         the DataFrame's index, the order of the columns in the resulting
         DataFrame will be unchanged.
 
+        Iteratively appending rows to a Dataframe can be more computationally
+        intense than a single concatenate. A better solution is to append those
+        rows to a list then concatenate the list with the original Dataframe
+        all at once.
+
         See also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
