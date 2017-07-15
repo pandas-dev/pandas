@@ -156,6 +156,7 @@ Indexing
 - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
 - Fixed ``TimedeltaIndex.get_loc`` handling of ``np.timedelta64`` inputs (:issue:`16909`).
+- Fix MultiIndex ``sort_index`` ordering when ``ascending`` argument is a list but not all levels are specified, or are in a different order (:issue:`16934`).
 
 I/O
 ^^^
