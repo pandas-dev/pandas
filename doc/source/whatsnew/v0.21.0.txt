@@ -166,7 +166,7 @@ I/O
 
 Plotting
 ^^^^^^^^
-
+- Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 
 
 Groupby/Resample/Rolling
