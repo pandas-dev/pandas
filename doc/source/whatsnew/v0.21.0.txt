@@ -31,15 +31,15 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - The ``validate`` argument for :func:`merge` function now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
-- ``Series.to_dict()`` and ``DataFrame.to_dict()`` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
-- ``RangeIndex.append`` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
-- ``Series.rename_axis()`` and ``DataFrame.rename_axis()`` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
-- :func:`to_pickle` has gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
+- :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
+- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
+- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
-- :func:`Dataframe.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
+- :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -92,9 +92,14 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
+.. _whatsnew_0210.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
 - Support has been dropped for Python 3.4 (:issue:`15251`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
-- Accessing a non-existent attribute on a closed :class:`HDFStore` will now
+- Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 - :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
 - :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
@@ -102,12 +107,6 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
 - Compression defaults in HDF stores now follow pytable standards. Default is no compression and if ``complib`` is missing and ``complevel`` > 0 ``zlib`` is used (:issue:`15943`)
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
-
-.. _whatsnew_0210.api:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 
 
@@ -127,7 +126,7 @@ Removal of prior version deprecations/changes
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
-- :func:`eval` and :method:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
+- :func:`eval` and :func:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 - The function ``get_offset_name`` has been dropped in favor of the ``.freqstr`` attribute for an offset (:issue:`11834`)
 
 
