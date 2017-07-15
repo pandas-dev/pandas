@@ -185,7 +185,7 @@ Sparse
 
 Reshaping
 ^^^^^^^^^
-
+- Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
 
 
 Numeric

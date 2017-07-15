@@ -551,11 +551,16 @@ class TestJoin(object):
         tm.assert_frame_equal(result, expected)
 
     def test_join_non_unique_period_index(self):
-        per_index = pd.period_range('2016-01-01', periods=16, freq='M')
-        per_df = DataFrame([i for i in range(len(per_index))],
-                           index=per_index, columns=['pnum'])
-        df2 = concat([per_df, per_df])
-        per_df.join(df2, how='outer', rsuffix='_df2')
+        # GH #16871
+        index = pd.period_range('2016-01-01', periods=16, freq='M')
+        df = DataFrame([i for i in range(len(index))],
+                       index=index, columns=['pnum'])
+        df2 = concat([df, df])
+        result = df.join(df2, how='inner', rsuffix='_df2')
+        expected = DataFrame(np.tile(np.arange(16).repeat(2).reshape(-1, 1), 2),
+                             columns=['pnum', 'pnum_df2'],
+                             index=df2.sort_index().index)
+        tm.assert_frame_equal(result, expected)
 
     def test_mixed_type_join_with_suffix(self):
         # GH #916

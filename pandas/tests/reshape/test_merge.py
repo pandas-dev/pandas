@@ -586,11 +586,16 @@ class TestMerge(object):
         assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
     def test_merge_non_unique_period_index(self):
-        per_index = pd.period_range('2016-01-01', periods=16, freq='M')
-        per_df = DataFrame([i for i in range(len(per_index))],
-                           index=per_index, columns=['pnum'])
-        df2 = concat([per_df, per_df])
-        per_df.merge(df2, left_index=True, right_index=True, how='outer')
+        # GH #16871
+        index = pd.period_range('2016-01-01', periods=16, freq='M')
+        df = DataFrame([i for i in range(len(index))],
+                       index=index, columns=['pnum'])
+        df2 = concat([df, df])
+        result = df.merge(df2, left_index=True, right_index=True, how='inner')
+        expected = DataFrame(np.tile(np.arange(16).repeat(2).reshape(-1, 1), 2),
+                             columns=['pnum_x', 'pnum_y'],
+                             index=df2.sort_index().index)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_on_periods(self):
         left = pd.DataFrame({'key': pd.period_range('20151010', periods=2,
