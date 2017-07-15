@@ -260,13 +260,13 @@ class Panel(NDFrame):
         -------
         Panel
         """
+        from collections import defaultdict
+
         orient = orient.lower()
         if orient == 'minor':
-            new_data = OrderedDict()
+            new_data = defaultdict(OrderedDict)
             for col, df in compat.iteritems(data):
                 for item, s in compat.iteritems(df):
-                    if item not in new_data:
-                        new_data[item] = {}
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
