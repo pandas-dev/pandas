@@ -972,7 +972,8 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
-                          "columns will be omitted.", UserWarning)
+                          "columns will be omitted.", UserWarning,
+                          stacklevel=2)
         # GH16122
         into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
