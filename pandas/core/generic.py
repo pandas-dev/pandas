@@ -3360,7 +3360,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if (self.ndim > 1) and (is_list_like(value)):
                     warnings.warn("Pandas doesn't allow Series to be assigned "
                                   "into nonexistent columns - see "
-                                  "https://pandas.pydata.org/pandas-docs/stable""/indexing.html#attribute-access")
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access")
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
