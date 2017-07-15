@@ -3359,7 +3359,7 @@ it is assumed to be aliases for the column names')
         inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
-            warnings.warn("by argument to sort_index is deprecated, pls use "
+            warnings.warn("by argument to sort_index is deprecated, please use "
                           ".sort_values(by=...)", FutureWarning, stacklevel=2)
             if level is not None:
                 raise ValueError("unable to simultaneously sort by and level")
