@@ -362,10 +362,13 @@ class Block(PandasObject):
         return result
 
     def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+               errors=None, mgr=None):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
+        if not errors:
+            errors = 'coerce'
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if not self._can_hold_na:
@@ -399,12 +402,16 @@ class Block(PandasObject):
             if not mask.any():
                 return self if inplace else self.copy()
 
-            # we cannot coerce the underlying object, so
-            # make an ObjectBlock
-            return self.to_object_block(mgr=mgr).fillna(original_value,
-                                                        limit=limit,
-                                                        inplace=inplace,
-                                                        downcast=False)
+            if errors == 'coerce':
+                # we cannot coerce the underlying object, so
+                # make an ObjectBlock
+                return self.to_object_block(mgr=mgr).fillna(original_value,
+                                                            limit=limit,
+                                                            inplace=inplace,
+                                                            downcast=False,
+                                                            errors='ignore')
+            else:  # errors == 'ignore'
+                return self
 
     def _maybe_downcast(self, blocks, downcast=None):
 
@@ -2132,11 +2139,14 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return result
 
     def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+               errors=None, mgr=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
             raise NotImplementedError("specifying a limit for 'fillna' has "
                                       "not been implemented yet")
+        if errors is not None:
+            raise NotImplementedError("specifying error handling for 'fillna' "
+                                      "has not been implemented yet")
 
         values = self.values if inplace else self.values.copy()
         values = self._try_coerce_result(values.fillna(value=value,
@@ -2626,11 +2636,13 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+               errors=None, mgr=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
             raise NotImplementedError("specifying a limit for 'fillna' has "
                                       "not been implemented yet")
+        if errors is not None:
+            raise NotImplementedError
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value, downcast=downcast)
         return [self.make_block_same_class(values=values,

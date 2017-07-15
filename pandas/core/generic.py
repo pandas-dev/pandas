@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isnull, notnull
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -3779,8 +3779,26 @@ it is assumed to be aliases for the column names.')
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None):
+               limit=None, downcast=None, errors=None):
         inplace = validate_bool_kwarg(inplace, 'inplace')
+
+        # if a singular fill value is provided, validate it
+        # special case: a DataFrame may be passed to a DataFrame
+        # in that case, short-circuit
+        if value is not None and not (isinstance(value, ABCDataFrame) and
+                                          isinstance(self, ABCDataFrame)):
+            # fill values by column, not all at once, to respect dtypes
+            if not isinstance(value, (dict, ABCSeries)) and \
+                    isinstance(self, ABCDataFrame):
+                value = {col: value for col in self.columns}
+            try:
+                missing.validate_fill_value(self, value)
+            except TypeError:
+                if errors == 'ignore':
+                    return self
+                elif errors == 'raise':
+                    raise
+                # if errors == 'coerce' continue
 
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
@@ -3800,7 +3818,8 @@ it is assumed to be aliases for the column names.')
             if self._is_mixed_type and axis == 1:
                 if inplace:
                     raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
+                result = self.T.fillna(method=method, limit=limit,
+                                       errors=errors).T
 
                 # need to downcast here because of all of the transposes
                 result._data = result._data.downcast()
@@ -3816,7 +3835,8 @@ it is assumed to be aliases for the column names.')
             elif self.ndim == 3:
 
                 # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
+                result = dict([(col, s.fillna(method=method, value=value,
+                                              errors=errors))
                                for col, s in self.iteritems()])
                 new_obj = self._constructor.\
                     from_dict(result).__finalize__(self)
@@ -3848,7 +3868,8 @@ it is assumed to be aliases for the column names.')
 
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
-                                             downcast=downcast)
+                                             downcast=downcast,
+                                             errors=errors)
 
             elif isinstance(value, (dict, ABCSeries)):
                 if axis == 1:
@@ -3861,12 +3882,14 @@ it is assumed to be aliases for the column names.')
                     if k not in result:
                         continue
                     obj = result[k]
-                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
-                return result
+                    obj.fillna(v, limit=limit, inplace=True,
+                               downcast=downcast, errors=errors)
+                return None if inplace else result
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
-                                             downcast=downcast)
+                                             downcast=downcast,
+                                             errors=errors)
             elif isinstance(value, DataFrame) and self.ndim == 2:
                 new_data = self.where(self.notnull(), value)
             else:
