@@ -3361,7 +3361,8 @@ class NDFrame(PandasObject, SelectionMixin):
                     warnings.warn("Pandas doesn't allow Series to be assigned "
                                   "into nonexistent columns - see "
                                   "https://pandas.pydata.org/pandas-docs/"
-                                  "stable/indexing.html#attribute-access")
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
