@@ -4,7 +4,7 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 from pandas.core.dtypes import generic as gt
-import pytest
+from pandas.util import testing as tm
 
 
 class TestABCClasses(object):
@@ -40,8 +40,33 @@ class TestABCClasses(object):
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
+
+
+class TestABCWarnings(object):
+    # GH5904 - Suggestion: Warning for DataFrame colname-methodname clash
+    # GH7175 - GOTCHA: You can't use dot notation to add a column...
+    d = {'one': pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
+         'two': pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
+    df = pd.DataFrame(d)
+
+    def test_setattr_warnings(self):
         with catch_warnings(record=True) as w:
-            self.series.not_an_index = [1, 2]
-            assert len(w) == 0 # fail if false warning on Series
-        with pytest.warns(UserWarning):
-            self.df.not_a_column = [1, 2]
+            # successfully add new column
+            self.df['three'] = self.df.two + 1
+            assert len(w) == 0
+            assert self.df.three.sum() > self.df.two.sum()
+        with catch_warnings(record=True) as w:
+            # successfully modify column in place
+            self.df.one += 1
+            assert len(w) == 0
+            assert self.df.one.iloc[0] == 2
+        with catch_warnings(record=True) as w:
+            # successfully add an attribute to a series
+            self.df.two.not_an_index = [1, 2]
+            assert len(w) == 0
+        with tm.assert_produces_warning(UserWarning):
+            # warn when setting column to nonexistent name
+            self.df.four = self.df.two + 2
+        with tm.assert_produces_warning(UserWarning):
+            # warn when column has same name as method
+            self.df['sum'] = self.df.two
