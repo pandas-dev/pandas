@@ -228,8 +228,8 @@ as an attribute:
    panel.one
 
 You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
-if you try to use attribute access to create a new column, it issues a ```UserWarning`` and creates a new attribute rather than a
-new column.
+if you try to use attribute access to create a new column, it creates a new attribute rather than a
+new column. This behavior will incur a ``UserWarning`` in 0.21.0 and later.
 
 .. ipython:: python
 
