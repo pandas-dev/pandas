@@ -18,7 +18,6 @@ class TestABCClasses(object):
     df = pd.DataFrame({'names': ['a', 'b', 'c']}, index=multi_index)
     sparse_series = pd.Series([1, 2, 3]).to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
-    series = pd.Series([1, 2, 3])
 
     def test_abc_types(self):
         assert isinstance(pd.Index(['a', 'b', 'c']), gt.ABCIndex)
@@ -42,31 +41,35 @@ class TestABCClasses(object):
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
 
 
-class TestABCWarnings(object):
+def test_setattr_warnings():
     # GH5904 - Suggestion: Warning for DataFrame colname-methodname clash
     # GH7175 - GOTCHA: You can't use dot notation to add a column...
     d = {'one': pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
          'two': pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
     df = pd.DataFrame(d)
 
-    def test_setattr_warnings(self):
-        with catch_warnings(record=True) as w:
-            # successfully add new column
-            self.df['three'] = self.df.two + 1
-            assert len(w) == 0
-            assert self.df.three.sum() > self.df.two.sum()
-        with catch_warnings(record=True) as w:
-            # successfully modify column in place
-            self.df.one += 1
-            assert len(w) == 0
-            assert self.df.one.iloc[0] == 2
-        with catch_warnings(record=True) as w:
-            # successfully add an attribute to a series
-            self.df.two.not_an_index = [1, 2]
-            assert len(w) == 0
-        with tm.assert_produces_warning(UserWarning):
-            # warn when setting column to nonexistent name
-            self.df.four = self.df.two + 2
-        with tm.assert_produces_warning(UserWarning):
-            # warn when column has same name as method
-            self.df['sum'] = self.df.two
+    with catch_warnings(record=True) as w:
+        # successfully add new column
+        df['three'] = df.two + 1
+        assert len(w) == 0
+        assert df.three.sum() > df.two.sum()
+
+    with catch_warnings(record=True) as w:
+        # successfully modify column in place
+        df.one += 1
+        assert len(w) == 0
+        assert df.one.iloc[0] == 2
+
+    with catch_warnings(record=True) as w:
+        # successfully add an attribute to a series
+        df.two.not_an_index = [1, 2]
+        assert len(w) == 0
+
+    with tm.assert_produces_warning(UserWarning):
+        # warn when setting column to nonexistent name
+        df.four = df.two + 2
+        assert df.four.sum() > df.two.sum()
+    
+    with tm.assert_produces_warning(UserWarning):
+        # warn when column has same name as method
+        df['sum'] = df.two
