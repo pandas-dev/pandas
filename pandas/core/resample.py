@@ -1020,6 +1020,10 @@ class TimeGrouper(Grouper):
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0, **kwargs):
+        # deprecation TimeGrouper, #16747
+        warnings.warn("TimeGrouper is deprecated. Please use "
+                      "Grouper", FutureWarning, stacklevel=2)
+
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
