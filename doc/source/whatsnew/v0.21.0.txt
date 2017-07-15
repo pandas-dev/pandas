@@ -130,6 +130,7 @@ Removal of prior version deprecations/changes
 - :func:`eval` and :method:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 - The function ``get_offset_name`` has been dropped in favor of the ``.freqstr`` attribute for an offset (:issue:`11834`)
 
+
 .. _whatsnew_0210.performance:
 
 Performance Improvements
