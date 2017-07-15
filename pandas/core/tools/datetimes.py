@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
     ABCDataFrame)
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
 
 import pandas.compat as compat
@@ -176,7 +176,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
 
 def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
@@ -665,7 +665,7 @@ def _attempt_YYYYMMDD(arg, errors):
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
-        return calc_with_mask(carg, notnull(carg))
+        return calc_with_mask(carg, notna(carg))
     except:
         pass
 
@@ -744,7 +744,7 @@ _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
 
 def _guess_time_format_for_array(arr):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         element = arr[non_nan_elements[0]]
         for time_format in _time_formats:

@@ -229,8 +229,8 @@ class TestMerge(object):
         merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
 
         assert_series_equal(merged['key'], merged2['key'])
-        assert merged['key'].notnull().all()
-        assert merged2['key'].notnull().all()
+        assert merged['key'].notna().all()
+        assert merged2['key'].notna().all()
 
         left = DataFrame({'value': lrange(5)}, columns=['value'])
         right = DataFrame({'rvalue': lrange(6)})
@@ -926,8 +926,8 @@ class TestMergeMulti(object):
                 res = left.join(right, on=icols, how='left', sort=sort)
 
                 assert len(left) < len(res) + 1
-                assert not res['4th'].isnull().any()
-                assert not res['5th'].isnull().any()
+                assert not res['4th'].isna().any()
+                assert not res['5th'].isna().any()
 
                 tm.assert_series_equal(
                     res['4th'], - res['5th'], check_names=False)

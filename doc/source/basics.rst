@@ -444,7 +444,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 
 .. ipython:: python
 
-   combiner = lambda x, y: np.where(pd.isnull(x), y, x)
+   combiner = lambda x, y: np.where(pd.isna(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
@@ -511,7 +511,7 @@ optional ``level`` parameter which applies only if the object has a
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``count``, Number of non-null observations
+    ``count``, Number of non-na observations
     ``sum``, Sum of values
     ``mean``, Mean of values
     ``mad``, Mean absolute deviation
@@ -541,7 +541,7 @@ will exclude NAs on Series input by default:
    np.mean(df['one'].values)
 
 ``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-null values:
+number of unique non-na values:
 
 .. ipython:: python
 

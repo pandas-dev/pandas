@@ -15,151 +15,151 @@ from pandas import (NaT, Float64Index, Series,
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
-    array_equivalent, isnull, notnull,
+    array_equivalent, isna, notna,
     na_value_for_dtype)
 
 
-def test_notnull():
-    assert notnull(1.)
-    assert not notnull(None)
-    assert not notnull(np.NaN)
+def test_notna():
+    assert notna(1.)
+    assert not notna(None)
+    assert not notna(np.NaN)
 
-    with cf.option_context("mode.use_inf_as_null", False):
-        assert notnull(np.inf)
-        assert notnull(-np.inf)
+    with cf.option_context("mode.use_inf_as_na", False):
+        assert notna(np.inf)
+        assert notna(-np.inf)
 
         arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notnull(arr)
+        result = notna(arr)
         assert result.all()
 
-    with cf.option_context("mode.use_inf_as_null", True):
-        assert not notnull(np.inf)
-        assert not notnull(-np.inf)
+    with cf.option_context("mode.use_inf_as_na", True):
+        assert not notna(np.inf)
+        assert not notna(-np.inf)
 
         arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notnull(arr)
+        result = notna(arr)
         assert result.sum() == 2
 
-    with cf.option_context("mode.use_inf_as_null", False):
+    with cf.option_context("mode.use_inf_as_na", False):
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            assert (isinstance(isnull(s), Series))
+            assert (isinstance(isna(s), Series))
 
 
-class TestIsNull(object):
+class TestIsNA(object):
 
     def test_0d_array(self):
-        assert isnull(np.array(np.nan))
-        assert not isnull(np.array(0.0))
-        assert not isnull(np.array(0))
+        assert isna(np.array(np.nan))
+        assert not isna(np.array(0.0))
+        assert not isna(np.array(0))
         # test object dtype
-        assert isnull(np.array(np.nan, dtype=object))
-        assert not isnull(np.array(0.0, dtype=object))
-        assert not isnull(np.array(0, dtype=object))
+        assert isna(np.array(np.nan, dtype=object))
+        assert not isna(np.array(0.0, dtype=object))
+        assert not isna(np.array(0, dtype=object))
 
     def test_empty_object(self):
 
         for shape in [(4, 0), (4,)]:
             arr = np.empty(shape=shape, dtype=object)
-            result = isnull(arr)
+            result = isna(arr)
             expected = np.ones(shape=shape, dtype=bool)
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_isnull(self):
-        assert not isnull(1.)
-        assert isnull(None)
-        assert isnull(np.NaN)
+    def test_isna(self):
+        assert not isna(1.)
+        assert isna(None)
+        assert isna(np.NaN)
         assert float('nan')
-        assert not isnull(np.inf)
-        assert not isnull(-np.inf)
+        assert not isna(np.inf)
+        assert not isna(-np.inf)
 
         # series
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            assert isinstance(isnull(s), Series)
+            assert isinstance(isna(s), Series)
 
         # frame
         for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
                    tm.makeMixedDataFrame()]:
-            result = isnull(df)
-            expected = df.apply(isnull)
+            result = isna(df)
+            expected = df.apply(isna)
             tm.assert_frame_equal(result, expected)
 
         # panel
         with catch_warnings(record=True):
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
-                result = isnull(p)
-                expected = p.apply(isnull)
+                result = isna(p)
+                expected = p.apply(isna)
                 tm.assert_panel_equal(result, expected)
 
         # panel 4d
         with catch_warnings(record=True):
             for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-                result = isnull(p)
-                expected = p.apply(isnull)
+                result = isna(p)
+                expected = p.apply(isna)
                 tm.assert_panel4d_equal(result, expected)
 
-    def test_isnull_lists(self):
-        result = isnull([[False]])
+    def test_isna_lists(self):
+        result = isna([[False]])
         exp = np.array([[False]])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isnull([[1], [2]])
+        result = isna([[1], [2]])
         exp = np.array([[False], [False]])
         tm.assert_numpy_array_equal(result, exp)
 
         # list of strings / unicode
-        result = isnull(['foo', 'bar'])
+        result = isna(['foo', 'bar'])
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isnull([u('foo'), u('bar')])
+        result = isna([u('foo'), u('bar')])
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
-    def test_isnull_nat(self):
-        result = isnull([NaT])
+    def test_isna_nat(self):
+        result = isna([NaT])
         exp = np.array([True])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isnull(np.array([NaT], dtype=object))
+        result = isna(np.array([NaT], dtype=object))
         exp = np.array([True])
         tm.assert_numpy_array_equal(result, exp)
 
-    def test_isnull_numpy_nat(self):
+    def test_isna_numpy_nat(self):
         arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
                         np.datetime64('NaT', 's')])
-        result = isnull(arr)
+        result = isna(arr)
         expected = np.array([True] * 4)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isnull_datetime(self):
-        assert not isnull(datetime.now())
-        assert notnull(datetime.now())
+    def test_isna_datetime(self):
+        assert not isna(datetime.now())
+        assert notna(datetime.now())
 
         idx = date_range('1/1/1990', periods=20)
         exp = np.ones(len(idx), dtype=bool)
-        tm.assert_numpy_array_equal(notnull(idx), exp)
+        tm.assert_numpy_array_equal(notna(idx), exp)
 
         idx = np.asarray(idx)
         idx[0] = iNaT
         idx = DatetimeIndex(idx)
-        mask = isnull(idx)
+        mask = isna(idx)
         assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
         # GH 9129
         pidx = idx.to_period(freq='M')
-        mask = isnull(pidx)
+        mask = isna(pidx)
         assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
-        mask = isnull(pidx[1:])
+        mask = isna(pidx[1:])
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
@@ -174,7 +174,7 @@ class TestIsNull(object):
          (np.array([1, 1 + 0j, np.nan, 3]).astype(object),
           np.array([False, False, True, False]))])
     def test_complex(self, value, expected):
-        result = isnull(value)
+        result = isna(value)
         if is_scalar(result):
             assert result is expected
         else:
@@ -183,10 +183,10 @@ class TestIsNull(object):
     def test_datetime_other_units(self):
         idx = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-02'])
         exp = np.array([False, True, False])
-        tm.assert_numpy_array_equal(isnull(idx), exp)
-        tm.assert_numpy_array_equal(notnull(idx), ~exp)
-        tm.assert_numpy_array_equal(isnull(idx.values), exp)
-        tm.assert_numpy_array_equal(notnull(idx.values), ~exp)
+        tm.assert_numpy_array_equal(isna(idx), exp)
+        tm.assert_numpy_array_equal(notna(idx), ~exp)
+        tm.assert_numpy_array_equal(isna(idx.values), exp)
+        tm.assert_numpy_array_equal(notna(idx.values), ~exp)
 
         for dtype in ['datetime64[D]', 'datetime64[h]', 'datetime64[m]',
                       'datetime64[s]', 'datetime64[ms]', 'datetime64[us]',
@@ -194,24 +194,24 @@ class TestIsNull(object):
             values = idx.values.astype(dtype)
 
             exp = np.array([False, True, False])
-            tm.assert_numpy_array_equal(isnull(values), exp)
-            tm.assert_numpy_array_equal(notnull(values), ~exp)
+            tm.assert_numpy_array_equal(isna(values), exp)
+            tm.assert_numpy_array_equal(notna(values), ~exp)
 
             exp = pd.Series([False, True, False])
             s = pd.Series(values)
-            tm.assert_series_equal(isnull(s), exp)
-            tm.assert_series_equal(notnull(s), ~exp)
+            tm.assert_series_equal(isna(s), exp)
+            tm.assert_series_equal(notna(s), ~exp)
             s = pd.Series(values, dtype=object)
-            tm.assert_series_equal(isnull(s), exp)
-            tm.assert_series_equal(notnull(s), ~exp)
+            tm.assert_series_equal(isna(s), exp)
+            tm.assert_series_equal(notna(s), ~exp)
 
     def test_timedelta_other_units(self):
         idx = pd.TimedeltaIndex(['1 days', 'NaT', '2 days'])
         exp = np.array([False, True, False])
-        tm.assert_numpy_array_equal(isnull(idx), exp)
-        tm.assert_numpy_array_equal(notnull(idx), ~exp)
-        tm.assert_numpy_array_equal(isnull(idx.values), exp)
-        tm.assert_numpy_array_equal(notnull(idx.values), ~exp)
+        tm.assert_numpy_array_equal(isna(idx), exp)
+        tm.assert_numpy_array_equal(notna(idx), ~exp)
+        tm.assert_numpy_array_equal(isna(idx.values), exp)
+        tm.assert_numpy_array_equal(notna(idx.values), ~exp)
 
         for dtype in ['timedelta64[D]', 'timedelta64[h]', 'timedelta64[m]',
                       'timedelta64[s]', 'timedelta64[ms]', 'timedelta64[us]',
@@ -219,30 +219,30 @@ class TestIsNull(object):
             values = idx.values.astype(dtype)
 
             exp = np.array([False, True, False])
-            tm.assert_numpy_array_equal(isnull(values), exp)
-            tm.assert_numpy_array_equal(notnull(values), ~exp)
+            tm.assert_numpy_array_equal(isna(values), exp)
+            tm.assert_numpy_array_equal(notna(values), ~exp)
 
             exp = pd.Series([False, True, False])
             s = pd.Series(values)
-            tm.assert_series_equal(isnull(s), exp)
-            tm.assert_series_equal(notnull(s), ~exp)
+            tm.assert_series_equal(isna(s), exp)
+            tm.assert_series_equal(notna(s), ~exp)
             s = pd.Series(values, dtype=object)
-            tm.assert_series_equal(isnull(s), exp)
-            tm.assert_series_equal(notnull(s), ~exp)
+            tm.assert_series_equal(isna(s), exp)
+            tm.assert_series_equal(notna(s), ~exp)
 
     def test_period(self):
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2012-01'], freq='M')
         exp = np.array([False, True, False])
-        tm.assert_numpy_array_equal(isnull(idx), exp)
-        tm.assert_numpy_array_equal(notnull(idx), ~exp)
+        tm.assert_numpy_array_equal(isna(idx), exp)
+        tm.assert_numpy_array_equal(notna(idx), ~exp)
 
         exp = pd.Series([False, True, False])
         s = pd.Series(idx)
-        tm.assert_series_equal(isnull(s), exp)
-        tm.assert_series_equal(notnull(s), ~exp)
+        tm.assert_series_equal(isna(s), exp)
+        tm.assert_series_equal(notna(s), ~exp)
         s = pd.Series(idx, dtype=object)
-        tm.assert_series_equal(isnull(s), exp)
-        tm.assert_series_equal(notnull(s), ~exp)
+        tm.assert_series_equal(isna(s), exp)
+        tm.assert_series_equal(notna(s), ~exp)
 
 
 def test_array_equivalent():
@@ -331,3 +331,13 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+
+
+@pytest.mark.parametrize("func", [pd.notnull, pd.isnull])
+def test_deprecation_deprecations(func):
+
+    # top level deprecations
+    # 15001
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        func('foo')

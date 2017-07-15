@@ -58,7 +58,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 
 
 from pandas.core.common import (_try_sort,
@@ -3689,8 +3689,8 @@ it is assumed to be aliases for the column names')
 
         def _arith_op(left, right):
             if fill_value is not None:
-                left_mask = isnull(left)
-                right_mask = isnull(right)
+                left_mask = isna(left)
+                right_mask = isna(right)
                 left = left.copy()
                 right = right.copy()
 
@@ -3874,8 +3874,8 @@ it is assumed to be aliases for the column names')
             this_dtype = series.dtype
             other_dtype = otherSeries.dtype
 
-            this_mask = isnull(series)
-            other_mask = isnull(otherSeries)
+            this_mask = isna(series)
+            other_mask = isna(otherSeries)
 
             # don't overwrite columns unecessarily
             # DO propagate if this column is not in the intersection
@@ -3954,11 +3954,11 @@ it is assumed to be aliases for the column names')
             x_values = x.values if hasattr(x, 'values') else x
             y_values = y.values if hasattr(y, 'values') else y
             if needs_i8_conversion:
-                mask = isnull(x)
+                mask = isna(x)
                 x_values = x_values.view('i8')
                 y_values = y_values.view('i8')
             else:
-                mask = isnull(x_values)
+                mask = isna(x_values)
 
             return expressions.where(mask, y_values, x_values,
                                      raise_on_error=True)
@@ -3998,18 +3998,18 @@ it is assumed to be aliases for the column names')
             that = other[col].values
             if filter_func is not None:
                 with np.errstate(all='ignore'):
-                    mask = ~filter_func(this) | isnull(that)
+                    mask = ~filter_func(this) | isna(that)
             else:
                 if raise_conflict:
-                    mask_this = notnull(that)
-                    mask_that = notnull(this)
+                    mask_this = notna(that)
+                    mask_that = notna(this)
                     if any(mask_this & mask_that):
                         raise ValueError("Data overlaps.")
 
                 if overwrite:
-                    mask = isnull(that)
+                    mask = isna(that)
                 else:
-                    mask = notnull(this)
+                    mask = notna(this)
 
             # don't overwrite columns unecessarily
             if mask.all():
@@ -5181,7 +5181,7 @@ it is assumed to be aliases for the column names')
         idx = cols.copy()
         mat = numeric_df.values
 
-        if notnull(mat).all():
+        if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
                 baseCov = np.empty((mat.shape[1], mat.shape[1]))
                 baseCov.fill(np.nan)
@@ -5281,9 +5281,9 @@ it is assumed to be aliases for the column names')
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
             if frame._is_mixed_type:
-                result = notnull(frame).sum(axis=axis)
+                result = notna(frame).sum(axis=axis)
             else:
-                counts = notnull(frame.values).sum(axis=axis)
+                counts = notna(frame.values).sum(axis=axis)
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
@@ -5302,12 +5302,12 @@ it is assumed to be aliases for the column names')
                             self._get_axis_name(axis))
 
         if frame._is_mixed_type:
-            # Since we have mixed types, calling notnull(frame.values) might
+            # Since we have mixed types, calling notna(frame.values) might
             # upcast everything to object
-            mask = notnull(frame).values
+            mask = notna(frame).values
         else:
             # But use the speedup when we have homogeneous dtypes
-            mask = notnull(frame.values)
+            mask = notna(frame.values)
 
         if axis == 1:
             # We're transposing the mask rather than frame to avoid potential
@@ -5400,7 +5400,7 @@ it is assumed to be aliases for the column names')
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)
-                elif filter_type == 'bool' and notnull(result).all():
+                elif filter_type == 'bool' and notna(result).all():
                     result = result.astype(np.bool_)
             except (ValueError, TypeError):
 

@@ -1,6 +1,7 @@
 """
 missing types & inference
 """
+import warnings
 import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
@@ -23,7 +24,7 @@ from .common import (is_string_dtype, is_datetimelike,
 from .inference import is_list_like
 
 
-def isnull(obj):
+def isna(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
 
     Parameters
@@ -33,34 +34,40 @@ def isnull(obj):
 
     Returns
     -------
-    isnulled : array-like of bool or bool
+    isna : array-like of bool or bool
         Array or bool indicating whether an object is null or if an array is
         given which of the element is null.
 
     See also
     --------
-    pandas.notnull: boolean inverse of pandas.isnull
+    pandas.notna: boolean inverse of pandas.isna
     """
-    return _isnull(obj)
+    return _isna(obj)
 
 
-def _isnull_new(obj):
+def isnull(obj):
+    warnings.warn("isnull is deprecated. Use isna instead",
+                  DeprecationWarning, stacklevel=2)
+    return isna(obj)
+
+
+def _isna_new(obj):
     if is_scalar(obj):
         return lib.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
-        raise NotImplementedError("isnull is not defined for MultiIndex")
+        raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
-        return _isnull_ndarraylike(obj)
+        return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.isnull(func=isnull))
+        return obj._constructor(obj._data.isna(func=isna))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike(np.asarray(obj))
+        return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
 
 
-def _isnull_old(obj):
+def _isna_old(obj):
     """Detect missing values. Treat None, NaN, INF, -INF as null.
 
     Parameters
@@ -75,22 +82,22 @@ def _isnull_old(obj):
         return lib.checknull_old(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
-        raise NotImplementedError("isnull is not defined for MultiIndex")
+        raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
-        return _isnull_ndarraylike_old(obj)
+        return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
-        return obj._constructor(obj._data.isnull(func=_isnull_old))
+        return obj._constructor(obj._data.isna(func=_isna_old))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike_old(np.asarray(obj))
+        return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
 
 
-_isnull = _isnull_new
+_isna = _isna_new
 
 
-def _use_inf_as_null(key):
-    """Option change callback for null/inf behaviour
+def _use_inf_as_na(key):
+    """Option change callback for na/inf behaviour
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
 
     Parameters
@@ -111,12 +118,12 @@ def _use_inf_as_null(key):
     from pandas.core.config import get_option
     flag = get_option(key)
     if flag:
-        globals()['_isnull'] = _isnull_old
+        globals()['_isna'] = _isna_old
     else:
-        globals()['_isnull'] = _isnull_new
+        globals()['_isna'] = _isna_new
 
 
-def _isnull_ndarraylike(obj):
+def _isna_ndarraylike(obj):
 
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
@@ -126,10 +133,10 @@ def _isnull_ndarraylike(obj):
             from pandas import Categorical
             if not isinstance(values, Categorical):
                 values = values.values
-            result = values.isnull()
+            result = values.isna()
         elif is_interval_dtype(values):
             from pandas import IntervalIndex
-            result = IntervalIndex(obj).isnull()
+            result = IntervalIndex(obj).isna()
         else:
 
             # Working around NumPy ticket 1542
@@ -139,7 +146,7 @@ def _isnull_ndarraylike(obj):
                 result = np.zeros(values.shape, dtype=bool)
             else:
                 result = np.empty(shape, dtype=bool)
-                vec = lib.isnullobj(values.ravel())
+                vec = lib.isnaobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
     elif needs_i8_conversion(obj):
@@ -156,7 +163,7 @@ def _isnull_ndarraylike(obj):
     return result
 
 
-def _isnull_ndarraylike_old(obj):
+def _isna_ndarraylike_old(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
@@ -168,7 +175,7 @@ def _isnull_ndarraylike_old(obj):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)
-            vec = lib.isnullobj_old(values.ravel())
+            vec = lib.isnaobj_old(values.ravel())
             result[:] = vec.reshape(shape)
 
     elif is_datetime64_dtype(dtype):
@@ -185,7 +192,7 @@ def _isnull_ndarraylike_old(obj):
     return result
 
 
-def notnull(obj):
+def notna(obj):
     """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
     on object arrays.
 
@@ -196,18 +203,24 @@ def notnull(obj):
 
     Returns
     -------
-    isnulled : array-like of bool or bool
+    notisna : array-like of bool or bool
         Array or bool indicating whether an object is *not* null or if an array
         is given which of the element is *not* null.
 
     See also
     --------
-    pandas.isnull : boolean inverse of pandas.notnull
+    pandas.isna : boolean inverse of pandas.notna
     """
-    res = isnull(obj)
+    res = isna(obj)
     if is_scalar(res):
         return not res
     return ~res
+
+
+def notnull(obj):
+    warnings.warn("notnull is deprecated. Use notna instead",
+                  DeprecationWarning, stacklevel=2)
+    return notna(obj)
 
 
 def is_null_datelike_scalar(other):
@@ -222,11 +235,11 @@ def is_null_datelike_scalar(other):
             return other.view('i8') == iNaT
         elif is_integer(other) and other == iNaT:
             return True
-        return isnull(other)
+        return isna(other)
     return False
 
 
-def _is_na_compat(arr, fill_value=np.nan):
+def _isna_compat(arr, fill_value=np.nan):
     """
     Parameters
     ----------
@@ -238,7 +251,7 @@ def _is_na_compat(arr, fill_value=np.nan):
     True if we can fill using this fill_value
     """
     dtype = arr.dtype
-    if isnull(fill_value):
+    if isna(fill_value):
         return not (is_bool_dtype(dtype) or
                     is_integer_dtype(dtype))
     return True
@@ -286,7 +299,7 @@ def array_equivalent(left, right, strict_nan=False):
     if is_string_dtype(left) or is_string_dtype(right):
 
         if not strict_nan:
-            # isnull considers NaN and None to be equivalent.
+            # isna considers NaN and None to be equivalent.
             return lib.array_equivalent_object(
                 _ensure_object(left.ravel()), _ensure_object(right.ravel()))
 
@@ -305,7 +318,7 @@ def array_equivalent(left, right, strict_nan=False):
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left) or is_complex_dtype(left):
-        return ((left == right) | (isnull(left) & isnull(right))).all()
+        return ((left == right) | (isna(left) & isna(right))).all()
 
     # numpy will will not allow this type of datetimelike vs integer comparison
     elif is_datetimelike_v_numeric(left, right):
@@ -365,7 +378,7 @@ def _maybe_fill(arr, fill_value=np.nan):
     """
     if we have a compatiable fill_value and arr dtype, then fill
     """
-    if _is_na_compat(arr, fill_value):
+    if _isna_compat(arr, fill_value):
         arr.fill(fill_value)
     return arr
 
@@ -400,4 +413,4 @@ def remove_na_arraylike(arr):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    return arr[notnull(lib.values_from_object(arr))]
+    return arr[notna(lib.values_from_object(arr))]

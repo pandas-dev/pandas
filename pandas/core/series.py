@@ -36,7 +36,8 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isnull, notnull, remove_na_arraylike
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -745,7 +746,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isnull(value):
+                    if isna(value):
                         value = iNaT
 
                         try:
@@ -1226,7 +1227,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         from pandas.core.index import _get_na_value
 
         if level is None:
-            return notnull(_values_from_object(self)).sum()
+            return notna(_values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1239,7 +1240,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             lab[mask] = cnt = len(lev)
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        obs = lab[notnull(self.values)]
+        obs = lab[notna(self.values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
@@ -1665,8 +1666,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other_vals = other.values
 
         if fill_value is not None:
-            this_mask = isnull(this_vals)
-            other_mask = isnull(other_vals)
+            this_mask = isna(this_vals)
+            other_mask = isna(other_vals)
             this_vals = this_vals.copy()
             other_vals = other_vals.copy()
 
@@ -1735,7 +1736,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
         name = _maybe_match_name(self, other)  # noqa
-        rs_vals = com._where_compat(isnull(this), other._values, this._values)
+        rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
     def update(self, other):
@@ -1748,7 +1749,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other : Series
         """
         other = other.reindex_like(self)
-        mask = notnull(other)
+        mask = notna(other)
 
         self._data = self._data.putmask(mask=mask, new=other, inplace=True)
         self._maybe_update_cacher()
@@ -1781,7 +1782,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         arr = self._values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
-        bad = isnull(arr)
+        bad = isna(arr)
 
         good = ~bad
         idx = _default_index(len(self))
@@ -1886,7 +1887,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         numpy.ndarray.argsort
         """
         values = self._values
-        mask = isnull(values)
+        mask = isna(values)
 
         if mask.any():
             result = Series(-1, index=self.index, name=self.name,
@@ -2215,7 +2216,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if na_action == 'ignore':
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f,
-                                              isnull(values).view(np.uint8))
+                                              isna(values).view(np.uint8))
             else:
                 map_f = lib.map_infer
 
@@ -2824,7 +2825,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values)
+        mask = isna(self._values)
         i = mask.argmin()
         if mask[i]:
             return None
@@ -2838,7 +2839,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values[::-1])
+        mask = isna(self._values[::-1])
         i = mask.argmin()
         if mask[i]:
             return None
@@ -3010,7 +3011,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                if not isnull(data).any():
+                if not isna(data).any():
                     subarr = _try_cast(data, True)
                 elif copy:
                     subarr = data.copy()

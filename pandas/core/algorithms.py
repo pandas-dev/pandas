@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
@@ -427,7 +427,7 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isnull(values).any()
+            checknull = isna(values).any()
             f = lambda x, y: htable.ismember_float64(x, y, checknull)
         except (TypeError, ValueError):
             values = values.astype(object)
@@ -529,7 +529,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
-        result = result[result.index.notnull()]
+        result = result[result.index.notna()]
         result.index = result.index.astype('interval')
         result = result.sort_index()
 
@@ -597,9 +597,9 @@ def _value_counts_arraylike(values, dropna):
         f = getattr(htable, "value_count_{dtype}".format(dtype=ndtype))
         keys, counts = f(values, dropna)
 
-        mask = isnull(values)
+        mask = isna(values)
         if not dropna and mask.any():
-            if not isnull(keys).any():
+            if not isna(keys).any():
                 keys = np.insert(keys, 0, np.NaN)
                 counts = np.insert(counts, 0, mask.sum())
 
@@ -860,7 +860,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
     """
     x = np.asarray(x)
-    mask = isnull(x)
+    mask = isna(x)
 
     x = x[~mask]
 

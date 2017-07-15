@@ -128,8 +128,6 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
-.. _whatsnew_0210.dtype_conversions:
-
 Dtype Conversions
 ^^^^^^^^^^^^^^^^^
 
@@ -186,6 +184,22 @@ Dtype Conversions
 
   - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
    - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+
+.. _whatsnew_0210.api.na_changes:
+
+NA naming Changes
+^^^^^^^^^^^^^^^^^
+
+In orde to promote more consistency among the pandas API, we have added additional top-level
+functions :func:`isna` and :func:`notna` that are the same as :func:`isnull` and :func:`notnull`.
+The naming scheme is now more consistent with methods ``.dropna()`` and ``.fillna()``. Furthermore
+in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
+named ``.isna()`` and ``.notna()``, these include for classes `Categorical`,
+`Index`, `Series`, and `DataFrame`. (:issue:`15001`).
+
+Using :func:`isnull` and :func:`notnull` will now issue a ``DeprecationWarning`` and recommend using :func:`isna` and :func`notnull` respectively.
+
+The configuration option ``mode.use_inf_as_null``is deprecated, and ``mode.use_inf_as_na`` is added as a replacement.
 
 .. _whatsnew_0210.api:
 

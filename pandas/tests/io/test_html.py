@@ -385,7 +385,7 @@ class TestReadHtml(ReadHtmlMixin):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self):
@@ -394,7 +394,7 @@ class TestReadHtml(ReadHtmlMixin):
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
