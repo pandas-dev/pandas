@@ -972,7 +972,8 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
-                          "columns will be omitted.", UserWarning)
+                          "columns will be omitted.", UserWarning,
+                          stacklevel=2)
         # GH16122
         into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
@@ -3359,8 +3360,9 @@ it is assumed to be aliases for the column names')
         inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
-            warnings.warn("by argument to sort_index is deprecated, pls use "
-                          ".sort_values(by=...)", FutureWarning, stacklevel=2)
+            warnings.warn("by argument to sort_index is deprecated, "
+                          "please use .sort_values(by=...)",
+                          FutureWarning, stacklevel=2)
             if level is not None:
                 raise ValueError("unable to simultaneously sort by and level")
             return self.sort_values(by, axis=axis, ascending=ascending,

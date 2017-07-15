@@ -11,8 +11,10 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notnull, remove_na_arraylike
+
 from pandas.core.dtypes.common import (
     is_list_like,
     is_integer,
@@ -22,6 +24,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import AbstractMethodError, isnull, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
+
 from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
@@ -1380,8 +1383,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
 
-        from pandas.core.series import remove_na
-        y = remove_na(y)
+        y = remove_na_arraylike(y)
 
         if LooseVersion(spv) >= '0.11.0':
             gkde = gaussian_kde(y, bw_method=bw_method)
@@ -1501,13 +1503,13 @@ class BoxPlot(LinePlot):
     def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
         from pandas.core.series import remove_na
         if y.ndim == 2:
-            y = [remove_na(v) for v in y]
+            y = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
             #   if any cols are empty
             # GH 8181
             y = [v if v.size > 0 else np.array([np.nan]) for v in y]
         else:
-            y = remove_na(y)
+            y = remove_na_arraylike(y)
         bp = ax.boxplot(y, **kwds)
 
         if return_type == 'dict':
@@ -1977,7 +1979,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(keys, values, ax):
         from pandas.core.series import remove_na
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na(v) for v in values]
+        values = [remove_na_arraylike(v) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)

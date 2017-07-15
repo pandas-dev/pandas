@@ -2,7 +2,7 @@ pytest
 pytest-cov
 pytest-xdist
 flake8
-sphinx
+sphinx=1.5*
 nbsphinx
 ipython
 python-dateutil
