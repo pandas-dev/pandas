@@ -3031,7 +3031,7 @@ class TestTimeGrouper(object):
                          index=date_range('1/1/2000', periods=1000))
 
     def test_TimeGrouper_deprecation(self):
-        # deprecation TimeGrouper, #16747
+        # GH 16747
         with tm.assert_produces_warning(FutureWarning):
             TimeGrouper('A', label='right', closed='right')
 
