@@ -4,6 +4,7 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 from pandas.core.dtypes import generic as gt
+import pytest
 
 
 class TestABCClasses(object):
@@ -17,6 +18,7 @@ class TestABCClasses(object):
     df = pd.DataFrame({'names': ['a', 'b', 'c']}, index=multi_index)
     sparse_series = pd.Series([1, 2, 3]).to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
+    series = pd.Series([1, 2, 3])
 
     def test_abc_types(self):
         assert isinstance(pd.Index(['a', 'b', 'c']), gt.ABCIndex)
@@ -38,3 +40,8 @@ class TestABCClasses(object):
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
+        with catch_warnings(record=True) as w:
+            self.series.not_an_index = [1, 2]
+            assert len(w) == 0 # fail if false warning on Series
+        with pytest.warns(UserWarning):
+            self.df.not_a_column = [1, 2]
