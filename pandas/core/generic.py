@@ -2979,6 +2979,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def head(self, n=5):
         """
         Returns first n rows
+
+        Parameters
+        ----------
+        n : int, optional
+            Number of rows.
         """
         return self.iloc[:n]
 
