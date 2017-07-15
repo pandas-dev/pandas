@@ -1242,16 +1242,31 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1
 
-    def test_numpy_argmin(self):
-        # argmin is aliased to idxmin
+    def test_numpy_argmin_deprecated(self):
+        # See gh-16830
         data = np.random.randint(0, 11, size=10)
-        result = np.argmin(Series(data))
-        assert result == np.argmin(data)
+
+        s = Series(data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmin also causes a deprecation
+            # warning when calling np.argmin. This behavior is temporary
+            # until the implemention of Series.argmin is corrected.
+            result = np.argmin(s)
+            expected = np.argmin(data)
+            assert result == expected
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmin is aliased to idxmin
+            result = s.argmin()
+            expected = s.idxmin()
+            assert result == expected
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                       s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1297,17 +1312,31 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1.1
 
-    def test_numpy_argmax(self):
-
-        # argmax is aliased to idxmax
+    def test_numpy_argmax_deprecated(self):
+        # See gh-16830
         data = np.random.randint(0, 11, size=10)
-        result = np.argmax(Series(data))
-        assert result == np.argmax(data)
+
+        s = Series(data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmax also causes a deprecation
+            # warning when calling np.argmax. This behavior is temporary
+            # until the implemention of Series.argmax is corrected.
+            result = np.argmax(s)
+            expected = np.argmax(data)
+            assert result == expected
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmax is aliased to idxmax
+            result = s.argmax()
+            expected = s.idxmax()
+            assert result == expected
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                       s, out=data)
 
     def test_ptp(self):
         N = 1000
