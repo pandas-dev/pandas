@@ -2887,6 +2887,7 @@ _INDEX_TYPES = ndarray, Index, list, tuple
 # -----------------------------------------------------------------------------
 # Supplementary functions
 
+
 def _sanitize_index(data, index, copy=False):
     """ sanitize an index type to return an ndarray of the underlying, pass
     thru a non-Index

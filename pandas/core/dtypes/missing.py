@@ -396,8 +396,8 @@ def na_value_for_dtype(dtype):
     return np.nan
 
 
-def remove_na_arraylike(series):
+def remove_na_arraylike(arr):
     """
-    Return series containing only true/non-NaN values, possibly empty.
+    Return array-like containing only true/non-NaN values, possibly empty.
     """
-    return series[notnull(lib.values_from_object(series))]
+    return arr[notnull(lib.values_from_object(arr))]
