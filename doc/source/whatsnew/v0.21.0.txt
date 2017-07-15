@@ -116,8 +116,6 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
-- :method:`Series.argmax` has been deprecated in favor of :method:`Series.idxmax` (:issue:`16830`)
-- :method:`Series.argmin` has been deprecated in favor of :method:`Series.idxmin` (:issue:`16830`)
 
 
 .. _whatsnew_0210.prior_deprecations:

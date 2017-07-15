@@ -1212,14 +1212,9 @@ class TestSeriesAnalytics(TestData):
 
     def test_numpy_argmin(self):
         data = np.random.randint(0, 11, size=10)
-
-        with pytest.warns(FutureWarning):
-            result = np.argmin(Series(data))
-            assert result == np.argmin(data)
-
-        with tm.assert_produces_warning(FutureWarning):
-            # argmin is aliased to idxmin
-            Series(data).argmin()
+        result = np.argmin(Series(data))
+        assert result == np.argmin(data)
+        assert result == Series(data).argmin()
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
@@ -1272,14 +1267,9 @@ class TestSeriesAnalytics(TestData):
 
     def test_numpy_argmax(self):
         data = np.random.randint(0, 11, size=10)
-
-        with pytest.warns(FutureWarning):
-            result = np.argmax(Series(data))
-            assert result == np.argmax(data)
-
-        with tm.assert_produces_warning(FutureWarning):
-            # argmax is aliased to idxmax
-            Series(data).argmax()
+        result = np.argmax(Series(data))
+        assert result == np.argmax(data)
+        assert result == Series(data).argmax()
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
