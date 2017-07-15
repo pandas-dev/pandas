@@ -202,6 +202,17 @@ pc_table_schema_doc = """
     (default: False)
 """
 
+pc_html_border_doc = """
+: int
+    A ``border=value`` attribute is inserted in the ``<table>`` tag
+    for the DataFrame HTML repr.
+"""
+
+pc_html_border_deprecation_warning = """\
+html.border has been deprecated, use display.html.border instead
+(currently both are identical)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -381,6 +392,8 @@ with cf.config_prefix('display'):
                        validator=is_bool)
     cf.register_option('html.table_schema', False, pc_table_schema_doc,
                        validator=is_bool, cb=table_schema_cb)
+    cf.register_option('html.border', 1, pc_html_border_doc,
+                       validator=is_int)
 
 
 cf.deprecate_option('display.line_width',
@@ -390,15 +403,12 @@ cf.deprecate_option('display.line_width',
 cf.deprecate_option('display.height', msg=pc_height_deprecation_warning,
                     rkey='display.max_rows')
 
-pc_html_border_doc = """
-: int
-    A ``border=value`` attribute is inserted in the ``<table>`` tag
-    for the DataFrame HTML repr.
-"""
-
 with cf.config_prefix('html'):
     cf.register_option('border', 1, pc_html_border_doc,
                        validator=is_int)
+
+cf.deprecate_option('html.border', msg=pc_html_border_deprecation_warning,
+                    rkey='display.html.border')
 
 
 tc_sim_interactive_doc = """
