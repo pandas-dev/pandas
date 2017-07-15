@@ -19,7 +19,7 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
 from pandas import compat
-from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
+from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
 from pandas.core.common import _try_sort, _default_index
 from pandas.core.frame import DataFrame
@@ -262,7 +262,7 @@ class Panel(NDFrame):
         """
         orient = orient.lower()
         if orient == 'minor':
-            new_data = OrderedDefaultdict(dict)
+            new_data = OrderedDict(dict)
             for col, df in compat.iteritems(data):
                 for item, s in compat.iteritems(df):
                     new_data[item][col] = s
