@@ -1,30 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime, timedelta
 
-from numpy import nan
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+import pytest
+from numpy import nan
+from pandas import (Index, Series, isnull, date_range,
+                    NaT, period_range, MultiIndex, IntervalIndex)
+from pandas import compat
+from pandas.compat import lrange, range, zip, OrderedDict, long
 
+import pandas.util.testing as tm
+from pandas._libs import lib
+from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
-from pandas import (Index, Series, isnull, date_range,
-                    NaT, period_range, MultiIndex, IntervalIndex)
 from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
-
-from pandas._libs import lib
-from pandas._libs.tslib import iNaT
-
-from pandas.compat import lrange, range, zip, OrderedDict, long
-from pandas import compat
 from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-
 from .common import TestData
 
 
@@ -301,12 +297,35 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
 
     def test_constructor_cast(self):
-        pytest.raises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Series(['a', 'b', 'c'], dtype=float)
+
+    @pytest.mark.parametrize("unsigned_integers", ['uint8', 'uint16', 'uint32',
+                                                   'uint64'])
+    def test_constructor_unsigned_dtype_overflow(self, unsigned_integers):
+        # GH 15832
+        msg = 'Trying to coerce negative values to unsigned integers'
+        with tm.assert_raises_regex(OverflowError, msg):
+            Series([-1], dtype=unsigned_integers)
+
+    @pytest.mark.parametrize("integers", ['uint8', 'uint16', 'uint32',
+                                          'uint64', 'int32', 'int64', 'int16',
+                                          'int8'])
+    @pytest.mark.parametrize("floats", ['float16', 'float32'])
+    def test_constructor_coerce_float_fail(self, integers, floats):
+        # GH 15832
+        msg = 'Trying to coerce float values to integers'
+        with tm.assert_raises_regex(ValueError, msg):
+            Series([1, 2, 3.5], dtype=integers)
+
+        s = Series([1, 2, 3.5], dtype=floats)
+        expected = Series([1, 2, 3.5]).astype(floats)
+        assert_series_equal(s, expected)
 
     def test_constructor_dtype_nocast(self):
         # 1572
         s = Series([1, 2, 3])
-
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5

@@ -2135,7 +2135,7 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict([(c, Series(np.random.randn(5), dtype=c))
+            df1 = DataFrame(dict([(c, Series(np.random.randn(5).astype(c)))
                                   for c in ['float32', 'float64', 'int32',
                                             'int64', 'int16', 'int8']]))
             df1['string'] = 'foo'
@@ -2149,7 +2149,8 @@ class TestHDFStore(Base):
             result = store.select('df_mixed_dtypes1').get_dtype_counts()
             expected = Series({'float32': 2, 'float64': 1, 'int32': 1,
                                'bool': 1, 'int16': 1, 'int8': 1,
-                               'int64': 1, 'object': 1, 'datetime64[ns]': 2})
+                               'int64': 1, 'object': 1,
+                               'datetime64[ns]': 2})
             result = result.sort_index()
             result = expected.sort_index()
             tm.assert_series_equal(result, expected)

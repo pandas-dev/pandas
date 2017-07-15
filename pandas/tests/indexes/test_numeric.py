@@ -304,6 +304,20 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
+    @pytest.mark.parametrize("int_dtype", ['uint8', 'uint16', 'uint32',
+                                          'uint64', 'int32', 'int64', 'int16',
+                                          'int8'])
+    @pytest.mark.parametrize("float_dtype", ['float16', 'float32'])
+    def test_type_coercion(self, int_dtype, float_dtype):
+
+        # GH 15832
+        msg = 'Trying to coerce float values to integers'
+        with tm.assert_raises_regex(ValueError, msg):
+            Index([1, 2, 3.5], dtype=int_dtype)
+
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
+
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
@@ -705,6 +719,13 @@ class TestInt64Index(NumericInt):
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
         with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
+
+    @pytest.mark.parametrize("uints", ['uint8', 'uint16', 'uint32', 'uint64'])
+    def test_constructor_overflow_coercion_signed_to_unsigned(self, uints):
+        # GH 15832
+        msg = 'Trying to coerce negative values to unsigned integers'
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([-1], dtype=uints)
 
     def test_coerce_list(self):
         # coerce things

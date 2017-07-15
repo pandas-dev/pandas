@@ -16,6 +16,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_timedelta64_dtype, is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
+                     is_unsigned_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
@@ -1026,3 +1027,56 @@ def find_common_type(types):
             return np.object
 
     return np.find_common_type(types, [])
+
+
+def maybe_cast_to_integer_array(arr, dtype, copy=False):
+    """
+    Takes any dtype and returns the casted version, raising for when data is
+    incompatible with integer/unsigned integer dtypes.
+
+    .. versionadded:: 0.21.0
+
+    Parameters
+    ----------
+    arr : ndarray
+    dtype : np.dtype
+    copy: boolean, default False
+
+    Returns
+    -------
+    integer or unsigned integer array
+
+    Raises
+    ------
+    OverflowError
+        * If ``dtype`` is incompatible
+    ValueError
+        * If coercion from float to integer loses precision
+
+    Examples
+    --------
+    If you try to coerce negative values to unsigned integers, it raises:
+
+    >>> Series([-1], dtype='uint64')
+    Traceback (most recent call last):
+        ...
+    OverflowError: Trying to coerce negative values to unsigned integers
+
+    Also, if you try to coerce float values to integers, it raises:
+    >>> Series([1, 2, 3.5], dtype='int64')
+    Traceback (most recent call last):
+        ...
+    ValueError: Trying to coerce float values to integers
+
+    """
+    casted = arr.astype(dtype, copy=copy)
+    if np.array(arr == casted).all():
+        return casted
+
+    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
+        raise OverflowError("Trying to coerce negative values to unsigned "
+                            "integers")
+
+    if is_integer_dtype(dtype) and (is_float_dtype(arr) or
+                                    is_object_dtype(arr)):
+        raise ValueError("Trying to coerce float values to integers")

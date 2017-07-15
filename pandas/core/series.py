@@ -35,7 +35,8 @@ from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
-    maybe_cast_to_datetime, maybe_castable)
+    maybe_cast_to_datetime, maybe_castable,
+    maybe_cast_to_integer_array)
 from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (is_bool_indexer,
@@ -2944,9 +2945,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
+            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+                subarr = maybe_cast_to_integer_array(np.asarray(arr), dtype)
+
             subarr = maybe_cast_to_datetime(arr, dtype)
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
+
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)

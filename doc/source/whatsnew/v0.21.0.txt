@@ -107,7 +107,7 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
-
+- Series and Index constructors now raises when data is incompatible with a passed dtype= kwarg (:issue:`15832`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 
 
