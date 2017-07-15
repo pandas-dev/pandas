@@ -111,8 +111,8 @@ def maybe_downcast_to_dtype(result, dtype):
                 return result
 
         # don't convert bool to float GH16875
-        if issubclass(dtype.type, np.floating) and\
-                not is_bool_dtype(result.dtype):
+        if (issubclass(dtype.type, np.floating) and
+                not is_bool_dtype(result.dtype)):
             return result.astype(dtype)
         elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
