@@ -71,7 +71,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._decorators import (
+    Appender, deprecate, deprecate_kwarg, Substitution)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
@@ -1293,8 +1294,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self.index[i]
 
     # ndarray compat
-    argmin = idxmin
-    argmax = idxmax
+    argmin = deprecate('argmin', idxmin)
+    argmax = deprecate('argmax', idxmax)
 
     def round(self, decimals=0, *args, **kwargs):
         """
