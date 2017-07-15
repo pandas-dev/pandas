@@ -379,6 +379,11 @@ class MPLPlot(object):
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
+
+            if hasattr(ax, 'right_ax'):
+                self._apply_axis_properties(ax.right_ax.yaxis,
+                                            fontsize=self.fontsize)
+
         elif self.orientation == 'horizontal':
             if self._need_to_set_index:
                 yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
@@ -386,6 +391,10 @@ class MPLPlot(object):
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
+
+            if hasattr(ax, 'right_ax'):
+                self._apply_axis_properties(ax.right_ax.yaxis,
+                                            fontsize=self.fontsize)
         else:  # pragma no cover
             raise ValueError
 
