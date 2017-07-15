@@ -4,6 +4,8 @@ import os
 import csv
 import codecs
 import mmap
+import ssl
+import base64
 from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
@@ -49,7 +51,7 @@ except:
 
 
 if compat.PY3:
-    from urllib.request import urlopen, pathname2url
+    from urllib.request import urlopen, pathname2url, Request
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
@@ -58,6 +60,7 @@ if compat.PY3:
     from http.client import HTTPException  # noqa
 else:
     from urllib2 import urlopen as _urlopen
+    from urllib2 import Request
     from urllib import urlencode, pathname2url  # noqa
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params, urljoin
@@ -177,7 +180,8 @@ def _stringify_path(filepath_or_buffer):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, auth=None,
+                           verify_ssl=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -186,7 +190,27 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
+            now supports 'https://<user>:<password>@<host>:<port>/<url-path>'
+
+            .. versionadded:: 0.21.0
+
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+
+    compression : string, default None
+
+            .. versionadded:: 0.18.1
+
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
+
 
     Returns
     -------
@@ -195,7 +219,10 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(filepath_or_buffer)
+        ureq, kwargs = get_urlopen_args(filepath_or_buffer,
+                                        auth=auth,
+                                        verify_ssl=verify_ssl)
+        req = _urlopen(ureq, **kwargs)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
@@ -242,6 +269,93 @@ _compression_to_extension = {
     'zip': '.zip',
     'xz': '.xz',
 }
+
+
+def split_auth_from_url(url_with_uname):
+    """
+    If a url contains username and password, it is extracted and returned
+    along with a url that does not contain it.
+
+    Parameters
+    ----------
+    url_with_uname : string
+            a url that may or may not contain username and password
+            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+            //<user>:<password>@<host>:<port>/<url-path>
+
+            .. versionadded:: 0.21.0
+
+    Returns
+    -------
+    (username, password), url_no_usrpwd : tuple, string  Default ('', '') url
+            A tuple with (username, pwd) pair and
+            url without username or password (if it contained it )
+
+    Raises
+    ------
+    ValueError for empty url
+    """
+    if not url_with_uname:
+        msg = "Empty url: {_type}"
+        raise ValueError(msg.format(_type=type(url_with_uname)))
+    o = parse_url(url_with_uname)
+    uname = o.username if o.username else ''
+    pwd = o.password if o.password else ''
+    url_no_usrpwd = url_with_uname
+    if uname or pwd:
+        usrch = '{}:{}@{}'.format(o.username, o.password, o.hostname)
+        url_no_usrpwd = url_with_uname.replace(usrch, o.hostname)
+    return (uname, pwd), url_no_usrpwd
+
+
+def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
+    """
+    generate args to pass to urlopen - including basic auth and and support
+    for disabling verification of SSL certificates ( useful where
+    self-signed SSL certificates are acceptable security risk -eg: Testing )
+
+    Parameters
+    ----------
+    url_with_uname : string
+            a url that may or may not contain username and password
+            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+            //<user>:<password>@<host>:<port>/<url-path>
+
+            .. versionadded:: 0.21.0
+
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
+
+    Returns
+    -------
+    Request, kwargs to pass to urlopen. kwargs may be {} or {'context': obj }
+    """
+    uname = pwd = None
+    url_no_usrpwd = url_with_uname
+    if auth and len(auth) == 2:
+        uname, pwd = auth
+    if not uname and not pwd:
+        (uname, pwd), url_no_usrpwd = split_auth_from_url(url_with_uname)
+    req = Request(url_no_usrpwd)
+    if uname or pwd:
+        upstr = '{}:{}'.format(uname, pwd)
+        if compat.PY3:
+            b64str = base64.b64encode(bytes(upstr, 'ascii')).decode('utf-8')
+        else:
+            b64str = base64.encodestring(upstr).replace('\n', '')
+        req.add_header("Authorization", "Basic {}".format(b64str))
+    kwargs = {}
+    if verify_ssl not in [None, True]:
+        kwargs['context'] = ssl._create_unverified_context()
+    return req, kwargs
 
 
 def _infer_compression(filepath_or_buffer, compression):

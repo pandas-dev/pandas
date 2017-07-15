@@ -174,7 +174,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False):
+              lines=False, auth=None, verify_ssl=None):
     """
     Convert a JSON string to pandas object
 
@@ -263,6 +263,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
@@ -321,7 +332,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
-                                                      encoding=encoding)
+                                                      encoding=encoding,
+                                                      auth=auth,
+                                                      verify_ssl=verify_ssl)
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)

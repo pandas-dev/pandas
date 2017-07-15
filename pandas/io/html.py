@@ -15,7 +15,8 @@ import numpy as np
 from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, urlopen,
-                              parse_url, _validate_header_arg)
+                              parse_url, _validate_header_arg,
+                              get_urlopen_args)
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
@@ -116,19 +117,29 @@ def _get_skiprows(skiprows):
                     type(skiprows).__name__)
 
 
-def _read(obj):
+def _read(obj, auth=None, verify_ssl=None):
     """Try to read from a url, file or string.
 
     Parameters
     ----------
     obj : str, unicode, or file-like
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
 
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
     Returns
     -------
     raw_text : str
     """
     if _is_url(obj):
-        with urlopen(obj) as url:
+        ureq, kwargs = get_urlopen_args(obj, auth, verify_ssl)
+        with urlopen(ureq, **kwargs) as url:
             text = url.read()
     elif hasattr(obj, 'read'):
         text = obj.read()
@@ -187,11 +198,14 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding):
+    def __init__(self, io, match, attrs, encoding, auth=None,
+                 verify_ssl=None):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
+        self.auth = auth
+        self.verify_ssl = verify_ssl
 
     def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
@@ -444,7 +458,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return result
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io)
+        raw_text = _read(self.io, self.auth, self.verify_ssl)
         if not raw_text:
             raise ValueError('No text parsed from document: %s' % self.io)
         return raw_text
@@ -731,8 +745,11 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding)
-
+        p = parser(io, compiled_match,
+                   attrs,
+                   encoding,
+                   auth=kwargs.get('auth', None),
+                   verify_ssl=kwargs.get('verify_ssl', None))
         try:
             tables = p.parse_tables()
         except Exception as caught:
@@ -755,7 +772,8 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True):
+              keep_default_na=True, auth=None,
+              verify_ssl=False):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -856,7 +874,18 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    Returns
+    auth : tuple, default None
+            A tuple of string with (username, password) string for
+            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+
+            .. versionadded:: 0.21.0
+
+    verify_ssl : boolean, Default True
+            If False, allow self signed and invalid SSL certificates for https
+
+            .. versionadded:: 0.21.0
+
+        Returns
     -------
     dfs : list of DataFrames
 
@@ -903,4 +932,5 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na)
+                  keep_default_na=keep_default_na, auth=auth,
+                  verify_ssl=verify_ssl)

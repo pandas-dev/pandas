@@ -20,7 +20,7 @@ from pandas.io.parsers import TextParser
 from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
-                              _stringify_path)
+                              _stringify_path, get_urlopen_args)
 from pandas.core.indexes.period import Period
 import pandas._libs.json as json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -200,7 +200,6 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
-
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
         warnings.warn("The `sheetname` keyword is deprecated, use "
@@ -211,7 +210,10 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                         "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine)
+        io = ExcelFile(io,
+                       engine=engine,
+                       auth=kwds.get('auth', None),
+                       verify_ssl=kwds.get('verify_ssl', None))
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
@@ -259,7 +261,11 @@ class ExcelFile(object):
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
         if _is_url(self._io):
-            io = _urlopen(self._io)
+            verify_ssl = kwds.get('verify_ssl', None)
+            ureq, kwargs = get_urlopen_args(self._io,
+                                            auth=kwds.get('auth', None),
+                                            verify_ssl=verify_ssl)
+            io = _urlopen(ureq, **kwargs)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
             io, _, _ = get_filepath_or_buffer(self._io)
 
