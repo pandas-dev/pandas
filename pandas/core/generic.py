@@ -1907,7 +1907,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
-        if callable(getattr(self, key, None)):
+        if callable(getattr(self, str(key), None)):
             warnings.warn("Column name '{key}' collides with a built-in "
                           "method, which will cause unexpected attribute "
                           "behavior".format(key=key), stacklevel=3)
