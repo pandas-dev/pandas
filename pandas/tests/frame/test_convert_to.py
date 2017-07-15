@@ -220,7 +220,8 @@ class TestDataFrameConvertTo(TestData):
         # When converting to a dict, if a column has a non-unique name it will
         # be dropped, throwing a warning.
         df = DataFrame([[1, 2, 3]], columns=['a', 'a', 'b'])
-        tm.assert_produces_warning(df.to_dict())
+        with tm.assert_produces_warning(UserWarning):
+            df.to_dict()
 
     @pytest.mark.parametrize('tz', ['UTC', 'GMT', 'US/Eastern'])
     def test_to_records_datetimeindex_with_tz(self, tz):
