@@ -394,3 +394,10 @@ def na_value_for_dtype(dtype):
     elif is_bool_dtype(dtype):
         return False
     return np.nan
+
+
+def remove_na_arraylike(arr):
+    """
+    Return array-like containing only true/non-NaN values, possibly empty.
+    """
+    return arr[notnull(lib.values_from_object(arr))]
