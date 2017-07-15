@@ -1907,6 +1907,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
+        if callable(getattr(self, key, None)):
+            warnings.warn("Pandas doesn't allow attribute-like access to "
+                          "columns whose names collide with methods",
+                          stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
