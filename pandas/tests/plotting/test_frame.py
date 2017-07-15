@@ -2735,6 +2735,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize('method', ['line', 'barh', 'bar'])
     def test_secondary_axis_font_size(self, method):
+        # GH: 12565
         df = (pd.DataFrame(np.random.randn(15, 2),
                            columns=list('AB'))
               .assign(C=lambda df: df.B.cumsum())
