@@ -557,9 +557,9 @@ class TestJoin(object):
                        index=index, columns=['pnum'])
         df2 = concat([df, df])
         result = df.join(df2, how='inner', rsuffix='_df2')
-        expected = DataFrame(np.tile(np.arange(16).repeat(2).reshape(-1, 1), 2),
-                             columns=['pnum', 'pnum_df2'],
-                             index=df2.sort_index().index)
+        expected = DataFrame(
+            np.tile(np.arange(16, dtype=np.int64).repeat(2).reshape(-1, 1), 2),
+            columns=['pnum', 'pnum_df2'], index=df2.sort_index().index)
         tm.assert_frame_equal(result, expected)
 
     def test_mixed_type_join_with_suffix(self):
