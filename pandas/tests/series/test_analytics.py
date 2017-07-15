@@ -1092,6 +1092,15 @@ class TestSeriesAnalytics(TestData):
         expected = Series([True, False, True, False, False, False, True, True])
         assert_series_equal(result, expected)
 
+        # GH: 16012
+        # This specific issue has to have a series over 1e6 in len, but the
+        # comparison array (in_list) must be large enough so that numpy doesn't
+        # do a manual masking trick that will avoid this issue altogether
+        s = Series(list('abcdefghijk' * 10 ** 5))
+        in_list = [-1, 'a', 'b', 'G', 'Y', 'Z', 'E', 'K', 'E', 'S', 'I', 'R', 'R']*6
+
+        assert s.isin(in_list).sum() == 200000
+
     def test_isin_with_string_scalar(self):
         # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])

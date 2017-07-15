@@ -204,3 +204,4 @@ Categorical
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+- Bug when using :func:`isin` on a large object series and large comparison array, numpy's in1d is used but doesn't support objects in most conditions (:issue:`16012`)
