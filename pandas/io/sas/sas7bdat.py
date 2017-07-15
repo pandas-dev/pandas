@@ -20,7 +20,7 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.saslib import Parser
+from pandas.io.sas._sas import Parser
 
 
 class _subheader_pointer(object):

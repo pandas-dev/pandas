@@ -5,14 +5,16 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
+import pytest
+
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
-from pandas.types.dtypes import CategoricalDtype
-from pandas.io.common import ParserWarning
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.errors import ParserWarning
 
 
 class DtypeTests(object):
@@ -40,9 +42,9 @@ class DtypeTests(object):
             tm.assert_frame_equal(result, df)
 
             # invalid dtype
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'foo', 'B': 'float64'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'foo', 'B': 'float64'},
+                          index_col=0)
 
         # see gh-12048: empty frame
         actual = self.read_csv(StringIO('A,B'), dtype=str)
@@ -58,8 +60,8 @@ one,two
 4,5.5"""
 
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
-        self.assertEqual(result['one'].dtype, 'u1')
-        self.assertEqual(result['two'].dtype, 'object')
+        assert result['one'].dtype == 'u1'
+        assert result['two'].dtype == 'object'
 
     def test_categorical_dtype(self):
         # GH 10153
@@ -213,9 +215,9 @@ one,two
 2001,106380451,10
 2001,,11
 2001,106380451,67"""
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          sep=",", skipinitialspace=True,
-                          dtype={'DOY': np.int64})
+        pytest.raises(ValueError, self.read_csv, StringIO(data),
+                      sep=",", skipinitialspace=True,
+                      dtype={'DOY': np.int64})
 
     def test_dtype_with_converter(self):
         data = """a,b

@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestIndexingCallable(tm.TestCase):
+class TestIndexingCallable(object):
 
     def test_frame_loc_ix_callable(self):
         # GH 11485
@@ -59,10 +59,10 @@ class TestIndexingCallable(tm.TestCase):
 
         # scalar
         res = df.loc[lambda x: 1, lambda x: 'A']
-        self.assertEqual(res, df.loc[1, 'A'])
+        assert res == df.loc[1, 'A']
 
         res = df.loc[lambda x: 1, lambda x: 'A']
-        self.assertEqual(res, df.loc[1, 'A'])
+        assert res == df.loc[1, 'A']
 
     def test_frame_loc_ix_callable_mixture(self):
         # GH 11485

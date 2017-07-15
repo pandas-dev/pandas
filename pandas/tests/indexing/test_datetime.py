@@ -1,10 +1,12 @@
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
 from pandas.util import testing as tm
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_indexing_with_datetime_tz(self):
 
@@ -35,10 +37,10 @@ class TestDatetimeIndex(tm.TestCase):
         df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
         result = df.iloc[5]
         expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', freq='D')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.loc[5]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # indexing - boolean
         result = df[df.a > df.a[3]]
@@ -57,11 +59,42 @@ class TestDatetimeIndex(tm.TestCase):
         def f():
             df.loc[df.new_col == 'new', 'time'] = v
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v
         tm.assert_series_equal(df.loc[df.new_col == 'new', 'time'], v)
+
+    def test_consistency_with_tz_aware_scalar(self):
+        # xef gh-12938
+        # various ways of indexing the same tz-aware scalar
+        df = Series([Timestamp('2016-03-30 14:35:25',
+                               tz='Europe/Brussels')]).to_frame()
+
+        df = pd.concat([df, df]).reset_index(drop=True)
+        expected = Timestamp('2016-03-30 14:35:25+0200',
+                             tz='Europe/Brussels')
+
+        result = df[0][0]
+        assert result == expected
+
+        result = df.iloc[0, 0]
+        assert result == expected
+
+        result = df.loc[0, 0]
+        assert result == expected
+
+        result = df.iat[0, 0]
+        assert result == expected
+
+        result = df.at[0, 0]
+        assert result == expected
+
+        result = df[0].loc[0]
+        assert result == expected
+
+        result = df[0].at[0]
+        assert result == expected
 
     def test_indexing_with_datetimeindex_tz(self):
 
@@ -96,7 +129,7 @@ class TestDatetimeIndex(tm.TestCase):
         # single element indexing
 
         # getitem
-        self.assertEqual(ser[index[1]], 1)
+        assert ser[index[1]] == 1
 
         # setitem
         result = ser.copy()
@@ -105,7 +138,7 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # .loc getitem
-        self.assertEqual(ser.loc[index[1]], 1)
+        assert ser.loc[index[1]] == 1
 
         # .loc setitem
         result = ser.copy()

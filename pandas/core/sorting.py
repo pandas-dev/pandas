@@ -3,14 +3,14 @@
 import numpy as np
 from pandas.compat import long
 from pandas.core.categorical import Categorical
-from pandas.types.common import (_ensure_platform_int,
-                                 _ensure_int64,
-                                 is_categorical_dtype)
-from pandas.types.missing import isnull
-import pandas.core.algorithms as algos
-import pandas.algos as _algos
-import pandas.hashtable as _hash
-from pandas import lib
+from pandas.core.dtypes.common import (
+    _ensure_platform_int,
+    _ensure_int64,
+    is_categorical_dtype)
+from pandas.core.dtypes.missing import isnull
+import pandas.core.algorithms as algorithms
+from pandas._libs import lib, algos, hashtable
+from pandas._libs.hashtable import unique_label_indices
 
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -94,6 +94,27 @@ def get_group_index(labels, shape, sort, xnull):
     return loop(list(labels), list(shape))
 
 
+def get_compressed_ids(labels, sizes):
+    """
+
+    Group_index is offsets into cartesian product of all possible labels. This
+    space can be huge, so this function compresses it, by computing offsets
+    (comp_ids) into the list of unique labels (obs_group_ids).
+
+    Parameters
+    ----------
+    labels : list of label arrays
+    sizes : list of size of the levels
+
+    Returns
+    -------
+    tuple of (comp_ids, obs_group_ids)
+
+    """
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
+    return compress_group_index(ids, sort=True)
+
+
 def is_int64_overflow_possible(shape):
     the_prod = long(1)
     for x in shape:
@@ -131,7 +152,6 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
     xnull: boolean,
         if nulls are excluded; i.e. -1 labels are passed through
     """
-    from pandas.hashtable import unique_label_indices
 
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype='i8')
@@ -213,7 +233,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        return items.argsort(ascending=ascending)
+        return items.argsort(ascending=ascending, kind=kind)
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
@@ -250,7 +270,8 @@ class _KeyMapper(object):
         self.comp_ids = comp_ids.astype(np.int64)
 
         self.k = len(labels)
-        self.tables = [_hash.Int64HashTable(ngroups) for _ in range(self.k)]
+        self.tables = [hashtable.Int64HashTable(ngroups)
+                       for _ in range(self.k)]
 
         self._populate_tables()
 
@@ -291,7 +312,7 @@ def get_indexer_dict(label_list, keys):
 
 def get_group_index_sorter(group_index, ngroups):
     """
-    _algos.groupsort_indexer implements `counting sort` and it is at least
+    algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
         ngroups = prod(shape)
         shape = map(len, keys)
@@ -309,8 +330,8 @@ def get_group_index_sorter(group_index, ngroups):
     do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
                                    (count * np.log(count))))
     if do_groupsort:
-        sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
-                                             ngroups)
+        sorter, _ = algos.groupsort_indexer(_ensure_int64(group_index),
+                                            ngroups)
         return _ensure_platform_int(sorter)
     else:
         return group_index.argsort(kind='mergesort')
@@ -323,8 +344,8 @@ def compress_group_index(group_index, sort=True):
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
 
-    size_hint = min(len(group_index), _hash._SIZE_HINT_LIMIT)
-    table = _hash.Int64HashTable(size_hint)
+    size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
+    table = hashtable.Int64HashTable(size_hint)
 
     group_index = _ensure_int64(group_index)
 
@@ -348,10 +369,10 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algos.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algos.take_nd(uniques, sorter, allow_fill=False)
+    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels

@@ -68,8 +68,8 @@ class series_nlargest1(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nlargest1(self):
-        self.s1.nlargest(3, take_last=True)
-        self.s1.nlargest(3, take_last=False)
+        self.s1.nlargest(3, keep='last')
+        self.s1.nlargest(3, keep='first')
 
 
 class series_nlargest2(object):
@@ -83,8 +83,8 @@ class series_nlargest2(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nlargest2(self):
-        self.s2.nlargest(3, take_last=True)
-        self.s2.nlargest(3, take_last=False)
+        self.s2.nlargest(3, keep='last')
+        self.s2.nlargest(3, keep='first')
 
 
 class series_nsmallest2(object):
@@ -98,8 +98,8 @@ class series_nsmallest2(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nsmallest2(self):
-        self.s2.nsmallest(3, take_last=True)
-        self.s2.nsmallest(3, take_last=False)
+        self.s2.nsmallest(3, keep='last')
+        self.s2.nsmallest(3, keep='first')
 
 
 class series_dropna_int64(object):
@@ -111,6 +111,7 @@ class series_dropna_int64(object):
     def time_series_dropna_int64(self):
         self.s.dropna()
 
+
 class series_dropna_datetime(object):
     goal_time = 0.2
 
@@ -120,3 +121,13 @@ class series_dropna_datetime(object):
 
     def time_series_dropna_datetime(self):
         self.s.dropna()
+
+
+class series_clip(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = pd.Series(np.random.randn(50))
+
+    def time_series_dropna_datetime(self):
+        self.s.clip(0, 1)

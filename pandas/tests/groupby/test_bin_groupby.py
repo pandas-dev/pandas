@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from numpy import nan
 import numpy as np
 
-from pandas.types.common import _ensure_int64
+from pandas.core.dtypes.common import _ensure_int64
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
-import pandas.lib as lib
-import pandas.algos as algos
+from pandas._libs import lib, groupby
 
 
 def test_series_grouper():
@@ -45,9 +46,9 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-class TestBinGroupers(tm.TestCase):
+class TestBinGroupers(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
         self.bins = np.array([3, 6], dtype=np.int64)
@@ -71,15 +72,15 @@ class TestBinGroupers(tm.TestCase):
             bins = func(values, binner, closed='right')
             assert ((bins == np.array([3, 6])).all())
 
-        self.assertRaises(ValueError, generate_bins_generic, values, [],
-                          'right')
-        self.assertRaises(ValueError, generate_bins_generic, values[:0],
-                          binner, 'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [],
+                      'right')
+        pytest.raises(ValueError, generate_bins_generic, values[:0],
+                      binner, 'right')
 
-        self.assertRaises(ValueError, generate_bins_generic, values, [4],
-                          'right')
-        self.assertRaises(ValueError, generate_bins_generic, values, [-3, -1],
-                          'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [4],
+                      'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [-3, -1],
+                      'right')
 
 
 def test_group_ohlc():
@@ -92,7 +93,7 @@ def test_group_ohlc():
         labels = _ensure_int64(np.repeat(np.arange(3),
                                          np.diff(np.r_[0, bins])))
 
-        func = getattr(algos, 'group_ohlc_%s' % dtype)
+        func = getattr(groupby, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
@@ -116,11 +117,11 @@ def test_group_ohlc():
     _check('float64')
 
 
-class TestMoments(tm.TestCase):
+class TestMoments(object):
     pass
 
 
-class TestReducer(tm.TestCase):
+class TestReducer(object):
 
     def test_int_index(self):
         from pandas.core.series import Series

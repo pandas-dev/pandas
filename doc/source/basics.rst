@@ -93,7 +93,7 @@ Accelerated operations
 ----------------------
 
 pandas has support for accelerating certain types of binary numerical and boolean operations using
-the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
+the ``numexpr`` library and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
 speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
@@ -113,6 +113,15 @@ Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 
 You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
+
+These are both enabled to be used by default, you can control this by setting the options:
+
+.. versionadded:: 0.20.0
+
+.. code-block:: python
+
+   pd.set_option('compute.use_bottleneck', False)
+   pd.set_option('compute.use_numexpr', False)
 
 .. _basics.binop:
 
@@ -702,7 +711,8 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
 2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
-3. Elementwise_ function application: :meth:`~DataFrame.applymap`
+3. `Aggregation API`_: :meth:`~DataFrame.agg` and :meth:`~DataFrame.transform`
+4. `Applying Elementwise Functions`_: :meth:`~DataFrame.applymap`
 
 .. _basics.pipe:
 
@@ -778,6 +788,13 @@ statistics methods, take an optional ``axis`` argument:
    df.apply(np.cumsum)
    df.apply(np.exp)
 
+``.apply()`` will also dispatch on a string method name.
+
+.. ipython:: python
+
+   df.apply('mean')
+   df.apply('mean', axis=1)
+
 Depending on the return type of the function passed to :meth:`~DataFrame.apply`,
 the result will either be of lower dimension or the same dimension.
 
@@ -827,16 +844,226 @@ set to True, the passed function will instead receive an ndarray object, which
 has positive performance implications if you do not need the indexing
 functionality.
 
-.. seealso::
+.. _basics.aggregate:
 
-   The section on :ref:`GroupBy <groupby>` demonstrates related, flexible
-   functionality for grouping by some criterion, applying, and combining the
-   results into a Series, DataFrame, etc.
+Aggregation API
+~~~~~~~~~~~~~~~
 
-.. _Elementwise:
+.. versionadded:: 0.20.0
 
-Applying elementwise Python functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
+This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
+:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+The entry point for aggregation is the method :meth:`~DataFrame.aggregate`, or the alias :meth:`~DataFrame.agg`.
+
+We will use a similar starting frame from above:
+
+.. ipython:: python
+
+   tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=10))
+   tsdf.iloc[3:7] = np.nan
+   tsdf
+
+Using a single function is equivalent to :meth:`~DataFrame.apply`; You can also pass named methods as strings.
+These will return a ``Series`` of the aggregated output:
+
+.. ipython:: python
+
+   tsdf.agg(np.sum)
+
+   tsdf.agg('sum')
+
+   # these are equivalent to a ``.sum()`` because we are aggregating on a single function
+   tsdf.sum()
+
+Single aggregations on a ``Series`` this will result in a scalar value:
+
+.. ipython:: python
+
+   tsdf.A.agg('sum')
+
+
+Aggregating with multiple functions
++++++++++++++++++++++++++++++++++++
+
+You can pass multiple aggregation arguments as a list.
+The results of each of the passed functions will be a row in the resultant ``DataFrame``.
+These are naturally named from the aggregation function.
+
+.. ipython:: python
+
+   tsdf.agg(['sum'])
+
+Multiple functions yield multiple rows:
+
+.. ipython:: python
+
+   tsdf.agg(['sum', 'mean'])
+
+On a ``Series``, multiple functions return a ``Series``, indexed by the function names:
+
+.. ipython:: python
+
+   tsdf.A.agg(['sum', 'mean'])
+
+Passing a ``lambda`` function will yield a ``<lambda>`` named row:
+
+.. ipython:: python
+
+   tsdf.A.agg(['sum', lambda x: x.mean()])
+
+Passing a named function will yield that name for the row:
+
+.. ipython:: python
+
+   def mymean(x):
+      return x.mean()
+
+   tsdf.A.agg(['sum', mymean])
+
+Aggregating with a dict
++++++++++++++++++++++++
+
+Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFame.agg``
+allows you to customize which functions are applied to which columns. Note that the results
+are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
+
+.. ipython:: python
+
+   tsdf.agg({'A': 'mean', 'B': 'sum'})
+
+Passing a list-like will generate a ``DataFrame`` output. You will get a matrix-like output
+of all of the aggregators. The output will consist of all unique functions. Those that are
+not noted for a particular column will be ``NaN``:
+
+.. ipython:: python
+
+   tsdf.agg({'A': ['mean', 'min'], 'B': 'sum'})
+
+.. _basics.aggregation.mixed_dtypes:
+
+Mixed Dtypes
+++++++++++++
+
+When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
+aggregations. This is similiar to how groupby ``.agg`` works.
+
+.. ipython:: python
+
+   mdf = pd.DataFrame({'A': [1, 2, 3],
+                       'B': [1., 2., 3.],
+                       'C': ['foo', 'bar', 'baz'],
+                       'D': pd.date_range('20130101', periods=3)})
+   mdf.dtypes
+
+.. ipython:: python
+
+   mdf.agg(['min', 'sum'])
+
+.. _basics.aggregation.custom_describe:
+
+Custom describe
++++++++++++++++
+
+With ``.agg()`` is it possible to easily create a custom describe function, similar
+to the built in :ref:`describe function <basics.describe>`.
+
+.. ipython:: python
+
+   from functools import partial
+
+   q_25 = partial(pd.Series.quantile, q=0.25)
+   q_25.__name__ = '25%'
+   q_75 = partial(pd.Series.quantile, q=0.75)
+   q_75.__name__ = '75%'
+
+   tsdf.agg(['count', 'mean', 'std', 'min', q_25, 'median', q_75, 'max'])
+
+.. _basics.transform:
+
+Transform API
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+The :meth:`~DataFrame.transform` method returns an object that is indexed the same (same size)
+as the original. This API allows you to provide *multiple* operations at the same
+time rather than one-by-one. Its API is quite similar to the ``.agg`` API.
+
+Use a similar frame to the above sections.
+
+.. ipython:: python
+
+   tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=10))
+   tsdf.iloc[3:7] = np.nan
+   tsdf
+
+Transform the entire frame. ``.transform()`` allows input functions as: a numpy function, a string
+function name or a user defined function.
+
+.. ipython:: python
+   :okwarning:
+
+   tsdf.transform(np.abs)
+   tsdf.transform('abs')
+   tsdf.transform(lambda x: x.abs())
+
+Here ``.transform()`` received a single function; this is equivalent to a ufunc application
+
+.. ipython:: python
+
+   np.abs(tsdf)
+
+Passing a single function to ``.transform()`` with a ``Series`` will yield a single ``Series`` in return.
+
+.. ipython:: python
+
+   tsdf.A.transform(np.abs)
+
+
+Transform with multiple functions
++++++++++++++++++++++++++++++++++
+
+Passing multiple functions will yield a column multi-indexed DataFrame.
+The first level will be the original frame column names; the second level
+will be the names of the transforming functions.
+
+.. ipython:: python
+
+   tsdf.transform([np.abs, lambda x: x+1])
+
+Passing multiple functions to a Series will yield a DataFrame. The
+resulting column names will be the transforming functions.
+
+.. ipython:: python
+
+   tsdf.A.transform([np.abs, lambda x: x+1])
+
+
+Transforming with a dict
+++++++++++++++++++++++++
+
+
+Passing a dict of functions will will allow selective transforming per column.
+
+.. ipython:: python
+
+   tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
+
+Passing a dict of lists will generate a multi-indexed DataFrame with these
+selective transforms.
+
+.. ipython:: python
+   :okwarning:
+
+   tsdf.transform({'A': np.abs, 'B': [lambda x: x+1, 'sqrt']})
+
+.. _basics.elementwise:
+
+Applying Elementwise Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
 another array or value), the methods :meth:`~DataFrame.applymap` on DataFrame
@@ -1889,7 +2116,7 @@ gotchas
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
-See also :ref:`Support for integer ``NA`` <gotchas.intna>`
+See also :ref:`Support for integer NA <gotchas.intna>`
 
 .. ipython:: python
 
@@ -2002,7 +2229,3 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     numpy hierarchy and wont show up with the above function.
-
-.. note::
-
-   The ``include`` and ``exclude`` parameters must be non-string sequences.

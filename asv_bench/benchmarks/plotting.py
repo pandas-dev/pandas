@@ -4,7 +4,10 @@ try:
 except ImportError:
     def date_range(start=None, end=None, periods=None, freq=None):
         return DatetimeIndex(start, end, periods=periods, offset=freq)
-from pandas.tools.plotting import andrews_curves
+try:
+    from pandas.plotting import andrews_curves
+except ImportError:
+    from pandas.tools.plotting import andrews_curves
 
 
 class TimeseriesPlotting(object):

@@ -2,6 +2,7 @@
 Entrypoint for testing from the top-level namespace
 """
 import os
+import sys
 
 PKG = os.path.dirname(os.path.dirname(__file__))
 
@@ -20,7 +21,7 @@ else:
             cmd = extra_args
         cmd += [PKG]
         print("running: pytest {}".format(' '.join(cmd)))
-        pytest.main(cmd)
+        sys.exit(pytest.main(cmd))
 
 
 __all__ = ['test']

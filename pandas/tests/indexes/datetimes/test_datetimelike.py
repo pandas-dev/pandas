@@ -8,10 +8,10 @@ from pandas import Series, Index, DatetimeIndex, date_range
 from ..datetimelike import DatetimeLike
 
 
-class TestDatetimeIndex(DatetimeLike, tm.TestCase):
+class TestDatetimeIndex(DatetimeLike):
     _holder = DatetimeIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=tm.makeDateIndex(10))
         self.setup_indices()
 
@@ -28,19 +28,19 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         expected = DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
                                   '2013-01-05',
                                   '2013-01-06'], freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = drange.shift(-1)
         expected = DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
                                   '2013-01-03', '2013-01-04'],
                                  freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = drange.shift(3, freq='2D')
         expected = DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
                                   '2013-01-10',
                                   '2013-01-11'], freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_pickle_compat_construction(self):
         pass
@@ -49,28 +49,28 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         first = self.index
         second = self.index[5:]
         intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
+        assert tm.equalContents(intersect, second)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
+            assert tm.equalContents(result, second)
 
         third = Index(['a', 'b', 'c'])
         result = first.intersection(third)
         expected = pd.Index([], dtype=object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_union(self):
         first = self.index[:5]
         second = self.index[5:]
         everything = self.index
         union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
+        assert tm.equalContents(union, everything)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
+            assert tm.equalContents(result, everything)

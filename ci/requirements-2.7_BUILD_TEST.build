@@ -1,4 +1,6 @@
+python=2.7*
 dateutil
 pytz
+nomkl
 numpy
 cython

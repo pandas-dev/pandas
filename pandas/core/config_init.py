@@ -9,14 +9,45 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import warnings
-
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
                                 is_callable)
-from pandas.formats.format import detect_console_encoding
+from pandas.io.formats.console import detect_console_encoding
 
+# compute
+
+use_bottleneck_doc = """
+: bool
+    Use the bottleneck library to accelerate if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_bottleneck_cb(key):
+    from pandas.core import nanops
+    nanops.set_use_bottleneck(cf.get_option(key))
+
+
+use_numexpr_doc = """
+: bool
+    Use the numexpr library to accelerate computation if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_numexpr_cb(key):
+    from pandas.core.computation import expressions
+    expressions.set_use_numexpr(cf.get_option(key))
+
+
+with cf.config_prefix('compute'):
+    cf.register_option('use_bottleneck', True, use_bottleneck_doc,
+                       validator=is_bool, cb=use_bottleneck_cb)
+    cf.register_option('use_numexpr', True, use_numexpr_doc,
+                       validator=is_bool, cb=use_numexpr_cb)
 #
 # options from the "display" namespace
 
@@ -164,6 +195,13 @@ pc_latex_repr_doc = """
     (default: False)
 """
 
+pc_table_schema_doc = """
+: boolean
+    Whether to publish a Table Schema representation for frontends
+    that support it.
+    (default: False)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -239,44 +277,44 @@ pc_latex_escape = """
 : bool
     This specifies if the to_latex method of a Dataframe uses escapes special
     characters.
-    method. Valid values: False,True
+    Valid values: False,True
 """
 
 pc_latex_longtable = """
 :bool
     This specifies if the to_latex method of a Dataframe uses the longtable
     format.
-    method. Valid values: False,True
+    Valid values: False,True
+"""
+
+pc_latex_multicolumn = """
+: bool
+    This specifies if the to_latex method of a Dataframe uses multicolumns
+    to pretty-print MultiIndex columns.
+    Valid values: False,True
+"""
+
+pc_latex_multicolumn_format = """
+: string
+    This specifies the format for multicolumn headers.
+    Can be surrounded with '|'.
+    Valid values: 'l', 'c', 'r', 'p{<width>}'
+"""
+
+pc_latex_multirow = """
+: bool
+    This specifies if the to_latex method of a Dataframe uses multirows
+    to pretty-print MultiIndex rows.
+    Valid values: False,True
 """
 
 style_backup = dict()
 
 
-def mpl_style_cb(key):
-    warnings.warn(pc_mpl_style_deprecation_warning, FutureWarning,
-                  stacklevel=5)
+def table_schema_cb(key):
+    from pandas.io.formats.printing import _enable_data_resource_formatter
+    _enable_data_resource_formatter(cf.get_option(key))
 
-    import sys
-    from pandas.tools.plotting import mpl_stylesheet
-    global style_backup
-
-    val = cf.get_option(key)
-
-    if 'matplotlib' not in sys.modules.keys():
-        if not val:  # starting up, we get reset to None
-            return val
-        raise Exception("matplotlib has not been imported. aborting")
-
-    import matplotlib.pyplot as plt
-
-    if val == 'default':
-        style_backup = dict([(k, plt.rcParams[k]) for k in mpl_stylesheet])
-        plt.rcParams.update(mpl_stylesheet)
-    elif not val:
-        if style_backup:
-            plt.rcParams.update(style_backup)
-
-    return val
 
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
@@ -315,9 +353,6 @@ with cf.config_prefix('display'):
                        validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
-    cf.register_option('mpl_style', None, pc_mpl_style_doc,
-                       validator=is_one_of_factory([None, False, 'default']),
-                       cb=mpl_style_cb)
     cf.register_option('height', 60, pc_height_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('width', 80, pc_width_doc,
@@ -338,6 +373,15 @@ with cf.config_prefix('display'):
                        validator=is_bool)
     cf.register_option('latex.longtable', False, pc_latex_longtable,
                        validator=is_bool)
+    cf.register_option('latex.multicolumn', True, pc_latex_multicolumn,
+                       validator=is_bool)
+    cf.register_option('latex.multicolumn_format', 'l', pc_latex_multicolumn,
+                       validator=is_text)
+    cf.register_option('latex.multirow', False, pc_latex_multirow,
+                       validator=is_bool)
+    cf.register_option('html.table_schema', False, pc_table_schema_doc,
+                       validator=is_bool, cb=table_schema_cb)
+
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
@@ -377,8 +421,9 @@ use_inf_as_null_doc = """
 
 
 def use_inf_as_null_cb(key):
-    from pandas.types.missing import _use_inf_as_null
+    from pandas.core.dtypes.missing import _use_inf_as_null
     _use_inf_as_null(key)
+
 
 with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,

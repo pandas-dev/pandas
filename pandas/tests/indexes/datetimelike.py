@@ -9,22 +9,22 @@ class DatetimeLike(Base):
     def test_shift_identity(self):
 
         idx = self.create_index()
-        self.assert_index_equal(idx, idx.shift(0))
+        tm.assert_index_equal(idx, idx.shift(0))
 
     def test_str(self):
 
         # test the string repr
         idx = self.create_index()
         idx.name = 'foo'
-        self.assertFalse("length=%s" % len(idx) in str(idx))
-        self.assertTrue("'foo'" in str(idx))
-        self.assertTrue(idx.__class__.__name__ in str(idx))
+        assert not "length=%s" % len(idx) in str(idx)
+        assert "'foo'" in str(idx)
+        assert idx.__class__.__name__ in str(idx)
 
         if hasattr(idx, 'tz'):
             if idx.tz is not None:
-                self.assertTrue(idx.tz in str(idx))
+                assert idx.tz in str(idx)
         if hasattr(idx, 'freq'):
-            self.assertTrue("freq='%s'" % idx.freqstr in str(idx))
+            assert "freq='%s'" % idx.freqstr in str(idx)
 
     def test_view(self):
         super(DatetimeLike, self).test_view()

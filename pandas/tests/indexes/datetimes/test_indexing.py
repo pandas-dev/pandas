@@ -1,12 +1,14 @@
-import numpy as np
+import pytest
 
+import pytz
+import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.compat as compat
 from pandas import notnull, Index, DatetimeIndex, datetime, date_range
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_where_other(self):
 
@@ -54,9 +56,9 @@ class TestDatetimeIndex(tm.TestCase):
         expected = Index([datetime(2000, 1, 4), 'inserted',
                           datetime(2000, 1, 1),
                           datetime(2000, 1, 2)], name='idx')
-        self.assertNotIsInstance(result, DatetimeIndex)
+        assert not isinstance(result, DatetimeIndex)
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
+        assert result.name == expected.name
 
         idx = date_range('1/1/2000', periods=3, freq='M', name='idx')
 
@@ -85,33 +87,29 @@ class TestDatetimeIndex(tm.TestCase):
         for n, d, expected in cases:
             result = idx.insert(n, d)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         # reset freq to None
         result = idx.insert(3, datetime(2000, 1, 2))
         expected = DatetimeIndex(['2000-01-31', '2000-02-29', '2000-03-31',
                                   '2000-01-02'], name='idx', freq=None)
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
-        self.assertTrue(result.freq is None)
+        assert result.name == expected.name
+        assert result.freq is None
 
-        # GH 7299
-        tm._skip_if_no_pytz()
-        import pytz
-
+        # see gh-7299
         idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo',
                          name='idx')
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, pd.Timestamp('2000-01-04'))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, datetime(2000, 1, 4))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3, pd.Timestamp('2000-01-04', tz='US/Eastern'))
-        with tm.assertRaises(ValueError):
-            result = idx.insert(3,
-                                datetime(2000, 1, 4,
-                                         tzinfo=pytz.timezone('US/Eastern')))
+        with pytest.raises(ValueError):
+            idx.insert(3, pd.Timestamp('2000-01-04'))
+        with pytest.raises(ValueError):
+            idx.insert(3, datetime(2000, 1, 4))
+        with pytest.raises(ValueError):
+            idx.insert(3, pd.Timestamp('2000-01-04', tz='US/Eastern'))
+        with pytest.raises(ValueError):
+            idx.insert(3, datetime(2000, 1, 4,
+                                   tzinfo=pytz.timezone('US/Eastern')))
 
         for tz in ['US/Pacific', 'Asia/Singapore']:
             idx = date_range('1/1/2000 09:00', periods=6, freq='H', tz=tz,
@@ -124,9 +122,9 @@ class TestDatetimeIndex(tm.TestCase):
 
                 result = idx.insert(6, d)
                 tm.assert_index_equal(result, expected)
-                self.assertEqual(result.name, expected.name)
-                self.assertEqual(result.freq, expected.freq)
-                self.assertEqual(result.tz, expected.tz)
+                assert result.name == expected.name
+                assert result.freq == expected.freq
+                assert result.tz == expected.tz
 
             expected = DatetimeIndex(['2000-01-01 09:00', '2000-01-01 10:00',
                                       '2000-01-01 11:00',
@@ -139,9 +137,9 @@ class TestDatetimeIndex(tm.TestCase):
                       pytz.timezone(tz).localize(datetime(2000, 1, 1, 10))]:
                 result = idx.insert(6, d)
                 tm.assert_index_equal(result, expected)
-                self.assertEqual(result.name, expected.name)
-                self.assertTrue(result.freq is None)
-                self.assertEqual(result.tz, expected.tz)
+                assert result.name == expected.name
+                assert result.tz == expected.tz
+                assert result.freq is None
 
     def test_delete(self):
         idx = date_range(start='2000-01-01', periods=5, freq='M', name='idx')
@@ -164,10 +162,10 @@ class TestDatetimeIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
-        with tm.assertRaises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError)):
             # either depeidnig on numpy version
             result = idx.delete(5)
 
@@ -179,17 +177,17 @@ class TestDatetimeIndex(tm.TestCase):
                                   freq='H', name='idx', tz=tz)
             result = idx.delete(0)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freqstr, 'H')
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freqstr == 'H'
+            assert result.tz == expected.tz
 
             expected = date_range(start='2000-01-01 09:00', periods=9,
                                   freq='H', name='idx', tz=tz)
             result = idx.delete(-1)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freqstr, 'H')
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freqstr == 'H'
+            assert result.tz == expected.tz
 
     def test_delete_slice(self):
         idx = date_range(start='2000-01-01', periods=10, freq='D', name='idx')
@@ -211,13 +209,13 @@ class TestDatetimeIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
             result = idx.delete(slice(n[0], n[-1] + 1))
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         for tz in [None, 'Asia/Tokyo', 'US/Pacific']:
             ts = pd.Series(1, index=pd.date_range(
@@ -227,9 +225,9 @@ class TestDatetimeIndex(tm.TestCase):
             expected = pd.date_range('2000-01-01 14:00', periods=5, freq='H',
                                      name='idx', tz=tz)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
+            assert result.tz == expected.tz
 
             # reset freq to None
             result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
@@ -238,6 +236,6 @@ class TestDatetimeIndex(tm.TestCase):
                                       '2000-01-01 15:00', '2000-01-01 17:00'],
                                      freq=None, name='idx', tz=tz)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
+            assert result.tz == expected.tz

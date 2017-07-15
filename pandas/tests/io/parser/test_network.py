@@ -7,7 +7,6 @@ and hence require a network connection to be read.
 
 import os
 import pytest
-from itertools import product
 
 import pandas.util.testing as tm
 from pandas import DataFrame
@@ -20,15 +19,21 @@ def salaries_table():
     return read_table(path)
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
-    "compression,extension", [('gzip', '.gz'), ('bz2', '.bz2'),
-                              ('zip', '.zip'), ('xz', '.xz')])
-def test_compressed_urls(salaries_table, compression, extension):
-    check_compressed_urls(salaries_table, compression, extension)
+    "compression,extension",
+    [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
+     pytest.mark.skipif(not tm._check_if_lzma(),
+                        reason='need backports.lzma to run')(('xz', '.xz'))])
+@pytest.mark.parametrize('mode', ['explicit', 'infer'])
+@pytest.mark.parametrize('engine', ['python', 'c'])
+def test_compressed_urls(salaries_table, compression, extension, mode, engine):
+    check_compressed_urls(salaries_table, compression, extension, mode, engine)
 
 
 @tm.network
-def check_compressed_urls(salaries_table, compression, extension):
+def check_compressed_urls(salaries_table, compression, extension, mode,
+                          engine):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = ('https://github.com/pandas-dev/pandas/raw/master/'
@@ -36,19 +41,16 @@ def check_compressed_urls(salaries_table, compression, extension):
 
     url = base_url + extension
 
-    # args is a (compression, engine) tuple
-    for (c, engine) in product([compression, 'infer'], ['python', 'c']):
+    if mode != 'explicit':
+        compression = mode
 
-        if url.endswith('.xz'):
-            tm._skip_if_no_lzma()
-
-        url_table = read_table(url, compression=c, engine=engine)
-        tm.assert_frame_equal(url_table, salaries_table)
+    url_table = read_table(url, compression=compression, engine=engine)
+    tm.assert_frame_equal(url_table, salaries_table)
 
 
-class TestS3(tm.TestCase):
+class TestS3(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         try:
             import s3fs  # noqa
         except ImportError:
@@ -59,23 +61,23 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
-            self.assertFalse(df.empty)
+            assert isinstance(df, DataFrame)
+            assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
         # Read public file from bucket with not-public contents
         df = read_csv('s3://cant_get_it/tips.csv')
-        self.assertTrue(isinstance(df, DataFrame))
-        self.assertFalse(df.empty)
+        assert isinstance(df, DataFrame)
+        assert not df.empty
         tm.assert_frame_equal(read_csv(tm.get_data_path('tips.csv')), df)
 
     @tm.network
     def test_parse_public_s3n_bucket(self):
         # Read from AWS s3 as "s3n" URL
         df = read_csv('s3n://pandas-test/tips.csv', nrows=10)
-        self.assertTrue(isinstance(df, DataFrame))
-        self.assertFalse(df.empty)
+        assert isinstance(df, DataFrame)
+        assert not df.empty
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
@@ -83,8 +85,8 @@ class TestS3(tm.TestCase):
     def test_parse_public_s3a_bucket(self):
         # Read from AWS s3 as "s3a" URL
         df = read_csv('s3a://pandas-test/tips.csv', nrows=10)
-        self.assertTrue(isinstance(df, DataFrame))
-        self.assertFalse(df.empty)
+        assert isinstance(df, DataFrame)
+        assert not df.empty
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
@@ -93,8 +95,8 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, nrows=10, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
-            self.assertFalse(df.empty)
+            assert isinstance(df, DataFrame)
+            assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
@@ -106,13 +108,13 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
                                  chunksize=chunksize, compression=comp)
-            self.assertEqual(df_reader.chunksize, chunksize)
+            assert df_reader.chunksize == chunksize
             for i_chunk in [0, 1, 2]:
                 # Read a couple of chunks and make sure we see them
                 # properly.
                 df = df_reader.get_chunk()
-                self.assertTrue(isinstance(df, DataFrame))
-                self.assertFalse(df.empty)
+                assert isinstance(df, DataFrame)
+                assert not df.empty
                 true_df = local_tips.iloc[
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
@@ -126,12 +128,12 @@ class TestS3(tm.TestCase):
             df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
                                  chunksize=chunksize, compression=comp,
                                  engine='python')
-            self.assertEqual(df_reader.chunksize, chunksize)
+            assert df_reader.chunksize == chunksize
             for i_chunk in [0, 1, 2]:
                 # Read a couple of chunks and make sure we see them properly.
                 df = df_reader.get_chunk()
-                self.assertTrue(isinstance(df, DataFrame))
-                self.assertFalse(df.empty)
+                assert isinstance(df, DataFrame)
+                assert not df.empty
                 true_df = local_tips.iloc[
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
@@ -141,8 +143,8 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
-            self.assertFalse(df.empty)
+            assert isinstance(df, DataFrame)
+            assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
@@ -151,8 +153,8 @@ class TestS3(tm.TestCase):
         for ext in ['', '.gz', '.bz2']:
             df = read_csv('s3://pandas-test/tips.csv' + ext,
                           engine='python', compression='infer')
-            self.assertTrue(isinstance(df, DataFrame))
-            self.assertFalse(df.empty)
+            assert isinstance(df, DataFrame)
+            assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
@@ -161,17 +163,36 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           nrows=10, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
-            self.assertFalse(df.empty)
+            assert isinstance(df, DataFrame)
+            assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
     @tm.network
     def test_s3_fails(self):
-        with tm.assertRaises(IOError):
+        with pytest.raises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with tm.assertRaises(IOError):
+        with pytest.raises(IOError):
             read_csv('s3://cant_get_it/')
+
+    @tm.network
+    def boto3_client_s3(self):
+        # see gh-16135
+
+        # boto3 is a dependency of s3fs
+        import boto3
+        client = boto3.client("s3")
+
+        key = "/tips.csv"
+        bucket = "pandas-test"
+        s3_object = client.get_object(Bucket=bucket, Key=key)
+
+        result = read_csv(s3_object["Body"])
+        assert isinstance(result, DataFrame)
+        assert not result.empty
+
+        expected = read_csv(tm.get_data_path('tips.csv'))
+        tm.assert_frame_equal(result, expected)

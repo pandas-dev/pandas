@@ -12,15 +12,16 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.types.common import is_list_like
-from pandas.io.common import (EmptyDataError, _is_url, urlopen,
+from pandas.core.dtypes.common import is_list_like
+from pandas.errors import EmptyDataError
+from pandas.io.common import (_is_url, urlopen,
                               parse_url, _validate_header_arg)
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
 from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -355,9 +356,12 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = lmap(self._text_getter, self._parse_th(thead[0]))
-        return np.atleast_1d(
-            np.array(res).squeeze()) if res and len(res) == 1 else res
+            trs = self._parse_tr(thead[0])
+            for tr in trs:
+                cols = lmap(self._text_getter, self._parse_td(tr))
+                if any([col != '' for col in cols]):
+                    res.append(cols)
+        return res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
@@ -591,9 +595,17 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath('.//tfoot')
 
     def _parse_raw_thead(self, table):
-        expr = './/thead//th'
-        return [_remove_whitespace(x.text_content()) for x in
-                table.xpath(expr)]
+        expr = './/thead'
+        thead = table.xpath(expr)
+        res = []
+        if thead:
+            trs = self._parse_tr(thead[0])
+            for tr in trs:
+                cols = [_remove_whitespace(x.text_content()) for x in
+                        self._parse_td(tr)]
+                if any([col != '' for col in cols]):
+                    res.append(cols)
+        return res
 
     def _parse_raw_tfoot(self, table):
         expr = './/tfoot//th|//tfoot//td'
@@ -615,19 +627,17 @@ def _data_to_frame(**kwargs):
     head, body, foot = kwargs.pop('data')
     header = kwargs.pop('header')
     kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
-
     if head:
-        body = [head] + body
-
+        rows = lrange(len(head))
+        body = head + body
         if header is None:  # special case when a table has <th> elements
-            header = 0
+            header = 0 if rows == [0] else rows
 
     if foot:
         body += [foot]
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-
     tp = TextParser(body, header=header, **kwargs)
     df = tp.read()
     return df
@@ -853,7 +863,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     Notes
     -----
     Before using this function you should read the :ref:`gotchas about the
-    HTML parsing libraries <html-gotchas>`.
+    HTML parsing libraries <io.html.gotchas>`.
 
     Expect to do some cleanup after you call this function. For example, you
     might need to manually assign column names if the column names are

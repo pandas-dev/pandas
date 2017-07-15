@@ -6,21 +6,23 @@ Testing that functions from compat work as expected
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
                            next)
-import pandas.util.testing as tm
 
 
-class TestBuiltinIterators(tm.TestCase):
+class TestBuiltinIterators(object):
 
-    def check_result(self, actual, expected, lengths):
+    @classmethod
+    def check_result(cls, actual, expected, lengths):
         for (iter_res, list_res), exp, length in zip(actual, expected,
                                                      lengths):
-            self.assertNotIsInstance(iter_res, list)
-            tm.assertIsInstance(list_res, list)
+            assert not isinstance(iter_res, list)
+            assert isinstance(list_res, list)
+
             iter_res = list(iter_res)
-            self.assertEqual(len(list_res), length)
-            self.assertEqual(len(iter_res), length)
-            self.assertEqual(iter_res, exp)
-            self.assertEqual(list_res, exp)
+
+            assert len(list_res) == length
+            assert len(iter_res) == length
+            assert iter_res == exp
+            assert list_res == exp
 
     def test_range(self):
         actual1 = range(10)
@@ -64,6 +66,6 @@ class TestBuiltinIterators(tm.TestCase):
         self.check_result(actual, expected, lengths)
 
     def test_dict_iterators(self):
-        self.assertEqual(next(itervalues({1: 2})), 2)
-        self.assertEqual(next(iterkeys({1: 2})), 1)
-        self.assertEqual(next(iteritems({1: 2})), (1, 2))
+        assert next(itervalues({1: 2})) == 2
+        assert next(iterkeys({1: 2})) == 1
+        assert next(iteritems({1: 2})) == (1, 2)

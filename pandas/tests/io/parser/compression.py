@@ -45,23 +45,24 @@ class CompressionTests(object):
                 tmp.writestr(file_name, data)
             tmp.close()
 
-            self.assertRaisesRegexp(ValueError, 'Multiple files',
-                                    self.read_csv, path, compression='zip')
+            tm.assert_raises_regex(ValueError, 'Multiple files',
+                                   self.read_csv, path, compression='zip')
 
-            self.assertRaisesRegexp(ValueError, 'Multiple files',
-                                    self.read_csv, path, compression='infer')
+            tm.assert_raises_regex(ValueError, 'Multiple files',
+                                   self.read_csv, path,
+                                   compression='infer')
 
         with tm.ensure_clean() as path:
             tmp = zipfile.ZipFile(path, mode='w')
             tmp.close()
 
-            self.assertRaisesRegexp(ValueError, 'Zero files',
-                                    self.read_csv, path, compression='zip')
+            tm.assert_raises_regex(ValueError, 'Zero files',
+                                   self.read_csv, path, compression='zip')
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
-                self.assertRaises(zipfile.BadZipfile, self.read_csv,
-                                  f, compression='zip')
+                pytest.raises(zipfile.BadZipfile, self.read_csv,
+                              f, compression='zip')
 
     def test_gzip(self):
         try:
@@ -110,8 +111,8 @@ class CompressionTests(object):
             result = self.read_csv(path, compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
+            pytest.raises(ValueError, self.read_csv,
+                          path, compression='bz3')
 
             with open(path, 'rb') as fin:
                 result = self.read_csv(fin, compression='bz2')
@@ -167,5 +168,5 @@ class CompressionTests(object):
 
     def test_invalid_compression(self):
         msg = 'Unrecognized compression type: sfark'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv('test_file.zip', compression='sfark')

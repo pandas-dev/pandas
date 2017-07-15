@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from warnings import catch_warnings
 import numpy as np
 from pandas import Series, DataFrame, Index, Float64Index
@@ -7,7 +9,7 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestFloatIndexers(tm.TestCase):
+class TestFloatIndexers(object):
 
     def check(self, result, original, indexer, getitem):
         """
@@ -46,13 +48,13 @@ class TestFloatIndexers(tm.TestCase):
 
             def f():
                 s.iloc[3.0]
-            self.assertRaisesRegexp(TypeError,
-                                    'cannot do positional indexing',
-                                    f)
+            tm.assert_raises_regex(TypeError,
+                                   'cannot do positional indexing',
+                                   f)
 
             def f():
                 s.iloc[3.0] = 0
-            self.assertRaises(TypeError, f)
+            pytest.raises(TypeError, f)
 
     def test_scalar_non_numeric(self):
 
@@ -87,7 +89,7 @@ class TestFloatIndexers(tm.TestCase):
                         error = KeyError
                     else:
                         error = TypeError
-                    self.assertRaises(error, f)
+                    pytest.raises(error, f)
 
                 # label based can be a TypeError or KeyError
                 def f():
@@ -97,15 +99,15 @@ class TestFloatIndexers(tm.TestCase):
                     error = KeyError
                 else:
                     error = TypeError
-                self.assertRaises(error, f)
+                pytest.raises(error, f)
 
                 # contains
-                self.assertFalse(3.0 in s)
+                assert 3.0 not in s
 
                 # setting with a float fails with iloc
                 def f():
                     s.iloc[3.0] = 0
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
                 # setting with an indexer
                 if s.index.inferred_type in ['categorical']:
@@ -121,26 +123,26 @@ class TestFloatIndexers(tm.TestCase):
                     #    s2 = s.copy()
                     #    def f():
                     #        idxr(s2)[3.0] = 0
-                    #    self.assertRaises(TypeError, f)
+                    #    pytest.raises(TypeError, f)
                     pass
 
                 else:
 
                     s2 = s.copy()
                     s2.loc[3.0] = 10
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
                     for idxr in [lambda x: x.ix,
                                  lambda x: x]:
                         s2 = s.copy()
                         with catch_warnings(record=True):
                             idxr(s2)[3.0] = 0
-                        self.assertTrue(s2.index.is_object())
+                        assert s2.index.is_object()
 
             # fallsback to position selection, series only
             s = Series(np.arange(len(i)), index=i)
             s[3]
-            self.assertRaises(TypeError, lambda: s[3.0])
+            pytest.raises(TypeError, lambda: s[3.0])
 
     def test_scalar_with_mixed(self):
 
@@ -157,13 +159,13 @@ class TestFloatIndexers(tm.TestCase):
                 with catch_warnings(record=True):
                     idxr(s2)[1.0]
 
-            self.assertRaises(TypeError, f)
+            pytest.raises(TypeError, f)
 
-        self.assertRaises(KeyError, lambda: s2.loc[1.0])
+        pytest.raises(KeyError, lambda: s2.loc[1.0])
 
         result = s2.loc['b']
         expected = 2
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # mixed index so we have label
         # indexing
@@ -174,18 +176,18 @@ class TestFloatIndexers(tm.TestCase):
                 with catch_warnings(record=True):
                     idxr(s3)[1.0]
 
-            self.assertRaises(TypeError, f)
+            pytest.raises(TypeError, f)
 
             result = idxr(s3)[1]
             expected = 2
-            self.assertEqual(result, expected)
+            assert result == expected
 
-        self.assertRaises(TypeError, lambda: s3.iloc[1.0])
-        self.assertRaises(KeyError, lambda: s3.loc[1.0])
+        pytest.raises(TypeError, lambda: s3.iloc[1.0])
+        pytest.raises(KeyError, lambda: s3.loc[1.0])
 
         result = s3.loc[1.5]
         expected = 3
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_scalar_integer(self):
 
@@ -214,7 +216,8 @@ class TestFloatIndexers(tm.TestCase):
                                       (lambda x: x, True)]:
 
                     if isinstance(s, Series):
-                        compare = self.assertEqual
+                        def compare(x, y):
+                            assert x == y
                         expected = 100
                     else:
                         compare = tm.assert_series_equal
@@ -237,7 +240,7 @@ class TestFloatIndexers(tm.TestCase):
 
                 # contains
                 # coerce to equal int
-                self.assertTrue(3.0 in s)
+                assert 3.0 in s
 
     def test_scalar_float(self):
 
@@ -270,10 +273,10 @@ class TestFloatIndexers(tm.TestCase):
 
                 # random integer is a KeyError
                 with catch_warnings(record=True):
-                    self.assertRaises(KeyError, lambda: idxr(s)[3.5])
+                    pytest.raises(KeyError, lambda: idxr(s)[3.5])
 
             # contains
-            self.assertTrue(3.0 in s)
+            assert 3.0 in s
 
             # iloc succeeds with an integer
             expected = s.iloc[3]
@@ -284,11 +287,11 @@ class TestFloatIndexers(tm.TestCase):
             self.check(result, s, 3, False)
 
             # iloc raises with a float
-            self.assertRaises(TypeError, lambda: s.iloc[3.0])
+            pytest.raises(TypeError, lambda: s.iloc[3.0])
 
             def g():
                 s2.iloc[3.0] = 0
-            self.assertRaises(TypeError, g)
+            pytest.raises(TypeError, g)
 
     def test_slice_non_numeric(self):
 
@@ -311,7 +314,7 @@ class TestFloatIndexers(tm.TestCase):
 
                     def f():
                         s.iloc[l]
-                    self.assertRaises(TypeError, f)
+                    pytest.raises(TypeError, f)
 
                     for idxr in [lambda x: x.ix,
                                  lambda x: x.loc,
@@ -321,7 +324,7 @@ class TestFloatIndexers(tm.TestCase):
                         def f():
                             with catch_warnings(record=True):
                                 idxr(s)[l]
-                        self.assertRaises(TypeError, f)
+                        pytest.raises(TypeError, f)
 
                 # setitem
                 for l in [slice(3.0, 4),
@@ -330,7 +333,7 @@ class TestFloatIndexers(tm.TestCase):
 
                     def f():
                         s.iloc[l] = 0
-                    self.assertRaises(TypeError, f)
+                    pytest.raises(TypeError, f)
 
                     for idxr in [lambda x: x.ix,
                                  lambda x: x.loc,
@@ -339,7 +342,7 @@ class TestFloatIndexers(tm.TestCase):
                         def f():
                             with catch_warnings(record=True):
                                 idxr(s)[l] = 0
-                        self.assertRaises(TypeError, f)
+                        pytest.raises(TypeError, f)
 
     def test_slice_integer(self):
 
@@ -378,7 +381,7 @@ class TestFloatIndexers(tm.TestCase):
                 def f():
                     s[l]
 
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
             # getitem out-of-bounds
             for l in [slice(-6, 6),
@@ -402,7 +405,7 @@ class TestFloatIndexers(tm.TestCase):
             def f():
                 s[slice(-6.0, 6.0)]
 
-            self.assertRaises(TypeError, f)
+            pytest.raises(TypeError, f)
 
             # getitem odd floats
             for l, res1 in [(slice(2.5, 4), slice(3, 5)),
@@ -425,7 +428,7 @@ class TestFloatIndexers(tm.TestCase):
                 def f():
                     s[l]
 
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
             # setitem
             for l in [slice(3.0, 4),
@@ -438,13 +441,13 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                 # positional indexing
                 def f():
                     s[l] = 0
 
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
     def test_integer_positional_indexing(self):
         """ make sure that we are raising on positional indexing
@@ -466,7 +469,7 @@ class TestFloatIndexers(tm.TestCase):
                 def f():
                     idxr(s)[l]
 
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
     def test_slice_integer_frame_getitem(self):
 
@@ -493,7 +496,7 @@ class TestFloatIndexers(tm.TestCase):
                     def f():
                         s[l]
 
-                    self.assertRaises(TypeError, f)
+                    pytest.raises(TypeError, f)
 
                 # getitem out-of-bounds
                 for l in [slice(-10, 10),
@@ -506,7 +509,7 @@ class TestFloatIndexers(tm.TestCase):
                 def f():
                     s[slice(-10.0, 10.0)]
 
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
                 # getitem odd floats
                 for l, res in [(slice(0.5, 1), slice(1, 2)),
@@ -521,7 +524,7 @@ class TestFloatIndexers(tm.TestCase):
                     def f():
                         s[l]
 
-                    self.assertRaises(TypeError, f)
+                    pytest.raises(TypeError, f)
 
                 # setitem
                 for l in [slice(3.0, 4),
@@ -532,13 +535,13 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                     # positional indexing
                     def f():
                         s[l] = 0
 
-                    self.assertRaises(TypeError, f)
+                    pytest.raises(TypeError, f)
 
     def test_slice_float(self):
 
@@ -560,24 +563,24 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         result = idxr(s)[l]
                     if isinstance(s, Series):
-                        self.assert_series_equal(result, expected)
+                        tm.assert_series_equal(result, expected)
                     else:
-                        self.assert_frame_equal(result, expected)
+                        tm.assert_frame_equal(result, expected)
                     # setitem
                     s2 = s.copy()
                     with catch_warnings(record=True):
                         idxr(s2)[l] = 0
                         result = idxr(s2)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
 
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
-        self.assertEqual(s[3], 2)
-        self.assertEqual(s.loc[3], 2)
-        self.assertEqual(s.loc[3], 2)
-        self.assertEqual(s.iloc[3], 3)
+        assert s[3] == 2
+        assert s.loc[3] == 2
+        assert s.loc[3] == 2
+        assert s.iloc[3] == 3
 
     def test_floating_misc(self):
 
@@ -596,23 +599,23 @@ class TestFloatIndexers(tm.TestCase):
         result1 = s[5.0]
         result2 = s.loc[5.0]
         result3 = s.loc[5.0]
-        self.assertEqual(result1, result2)
-        self.assertEqual(result1, result3)
+        assert result1 == result2
+        assert result1 == result3
 
         result1 = s[5]
         result2 = s.loc[5]
         result3 = s.loc[5]
-        self.assertEqual(result1, result2)
-        self.assertEqual(result1, result3)
+        assert result1 == result2
+        assert result1 == result3
 
-        self.assertEqual(s[5.0], s[5])
+        assert s[5.0] == s[5]
 
         # value not found (and no fallbacking at all)
 
         # scalar integers
-        self.assertRaises(KeyError, lambda: s.loc[4])
-        self.assertRaises(KeyError, lambda: s.loc[4])
-        self.assertRaises(KeyError, lambda: s[4])
+        pytest.raises(KeyError, lambda: s.loc[4])
+        pytest.raises(KeyError, lambda: s.loc[4])
+        pytest.raises(KeyError, lambda: s[4])
 
         # fancy floats/integers create the correct entry (as nan)
         # fancy tests
@@ -700,15 +703,17 @@ class TestFloatIndexers(tm.TestCase):
         assert_series_equal(result1, Series([1], index=[2.5]))
 
     def test_floating_tuples(self):
-        # GH13509
+        # see gh-13509
         s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name='foo')
-        result = s[0.0]
-        self.assertEqual(result, (1, 1))
 
-        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name='foo')
         result = s[0.0]
+        assert result == (1, 1)
+
         expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name='foo')
-        assert_series_equal(result, expected)
+        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name='foo')
+
+        result = s[0.0]
+        tm.assert_series_equal(result, expected)
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index

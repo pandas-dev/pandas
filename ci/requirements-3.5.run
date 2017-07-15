@@ -1,4 +1,3 @@
-python-dateutil
 pytz
 numpy=1.11.3
 openpyxl
@@ -18,3 +17,4 @@ pymysql
 psycopg2
 s3fs
 beautifulsoup4
+ipython

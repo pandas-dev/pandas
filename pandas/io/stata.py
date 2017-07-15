@@ -15,8 +15,9 @@ import sys
 import struct
 from dateutil.relativedelta import relativedelta
 
-from pandas.types.common import (is_categorical_dtype, is_datetime64_dtype,
-                                 _ensure_object)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64_dtype,
+    _ensure_object)
 
 from pandas.core.base import StringMixin
 from pandas.core.categorical import Categorical
@@ -26,12 +27,16 @@ import datetime
 from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas.lib import max_len_string_array, infer_dtype
-from pandas.tslib import NaT, Timestamp
+from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
+                              _stringify_path)
+from pandas._libs.lib import max_len_string_array, infer_dtype
+from pandas._libs.tslib import NaT, Timestamp
+
+VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
+                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -45,7 +50,7 @@ convert_categoricals : boolean, defaults to True
 
 _encoding_params = """\
 encoding : string, None or encoding
-    Encoding used to parse the files. None defaults to iso-8859-1."""
+    Encoding used to parse the files. None defaults to latin-1."""
 
 _statafile_processing_params2 = """\
 index : identifier of index column
@@ -105,9 +110,11 @@ Read a Stata dta file in 10,000 line chunks:
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
 
-_data_method_doc = """Reads observations from Stata file, converting them into a dataframe
+_data_method_doc = """\
+Reads observations from Stata file, converting them into a dataframe
 
-This is a legacy method.  Use `read` in new code.
+    .. deprecated::
+       This is a legacy method.  Use `read` in new code.
 
 Parameters
 ----------
@@ -458,6 +465,7 @@ conversion range. This may result in a loss of precision in the saved data.
 
 class ValueLabelTypeMismatch(Warning):
     pass
+
 
 value_label_mismatch_doc = """
 Stata value labels (pandas categories) must be strings. Column {0} contains
@@ -815,9 +823,14 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    _default_encoding = 'iso-8859-1'
+    _default_encoding = 'latin-1'
 
     def __init__(self, encoding):
+        if encoding is not None:
+            if encoding not in VALID_ENCODINGS:
+                raise ValueError('Unknown encoding. Only latin-1 and ascii '
+                                 'supported.')
+
         self._encoding = encoding
 
         # type          code.
@@ -935,7 +948,7 @@ class StataReader(StataParser, BaseIterator):
                  convert_categoricals=True, index=None,
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
-                 encoding='iso-8859-1', chunksize=None):
+                 encoding='latin-1', chunksize=None):
         super(StataReader, self).__init__(encoding)
         self.col_sizes = ()
 
@@ -948,6 +961,10 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
+        if encoding is not None:
+            if encoding not in VALID_ENCODINGS:
+                raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                                 'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
 
@@ -962,6 +979,7 @@ class StataReader(StataParser, BaseIterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
+        path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _ = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
@@ -979,6 +997,7 @@ class StataReader(StataParser, BaseIterator):
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
+        self._setup_dtype()
 
     def __enter__(self):
         """ enter context manager """
@@ -1281,6 +1300,23 @@ class StataReader(StataParser, BaseIterator):
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
 
+    def _setup_dtype(self):
+        """Map between numpy and state dtypes"""
+        if self._dtype is not None:
+            return self._dtype
+
+        dtype = []  # Convert struct data types to numpy data type
+        for i, typ in enumerate(self.typlist):
+            if typ in self.NUMPY_TYPE_MAP:
+                dtype.append(('s' + str(i), self.byteorder +
+                              self.NUMPY_TYPE_MAP[typ]))
+            else:
+                dtype.append(('s' + str(i), 'S' + str(typ)))
+        dtype = np.dtype(dtype)
+        self._dtype = dtype
+
+        return self._dtype
+
     def _calcsize(self, fmt):
         return (type(fmt) is int and fmt or
                 struct.calcsize(self.byteorder + fmt))
@@ -1361,7 +1397,8 @@ class StataReader(StataParser, BaseIterator):
 
     def _read_strls(self):
         self.path_or_buf.seek(self.seek_strls)
-        self.GSO = {0: ''}
+        # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+        self.GSO = {'0': ''}
         while True:
             if self.path_or_buf.read(3) != b'GSO':
                 break
@@ -1386,10 +1423,11 @@ class StataReader(StataParser, BaseIterator):
                 if self.format_version == 117:
                     encoding = self._encoding or self._default_encoding
                 va = va[0:-1].decode(encoding)
-            self.GSO[v_o] = va
+            # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+            self.GSO[str(v_o)] = va
 
     # legacy
-    @Appender('DEPRECATED: ' + _data_method_doc)
+    @Appender(_data_method_doc)
     def data(self, **kwargs):
 
         import warnings
@@ -1452,21 +1490,9 @@ class StataReader(StataParser, BaseIterator):
         if nrows is None:
             nrows = self.nobs
 
-        if (self.format_version >= 117) and (self._dtype is None):
+        if (self.format_version >= 117) and (not self._value_labels_read):
             self._can_read_value_labels = True
             self._read_strls()
-
-        # Setup the dtype.
-        if self._dtype is None:
-            dtype = []  # Convert struct data types to numpy data type
-            for i, typ in enumerate(self.typlist):
-                if typ in self.NUMPY_TYPE_MAP:
-                    dtype.append(('s' + str(i), self.byteorder +
-                                  self.NUMPY_TYPE_MAP[typ]))
-                else:
-                    dtype.append(('s' + str(i), 'S' + str(typ)))
-            dtype = np.dtype(dtype)
-            self._dtype = dtype
 
         # Read data
         dtype = self._dtype
@@ -1622,7 +1648,8 @@ class StataReader(StataParser, BaseIterator):
         for i, typ in enumerate(self.typlist):
             if typ != 'Q':
                 continue
-            data.iloc[:, i] = [self.GSO[k] for k in data.iloc[:, i]]
+            # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+            data.iloc[:, i] = [self.GSO[str(k)] for k in data.iloc[:, i]]
         return data
 
     def _do_select_columns(self, data, columns):
@@ -1854,7 +1881,7 @@ class StataWriter(StataParser):
     write_index : bool
         Write the index to Stata dataset.
     encoding : str
-        Default is latin-1. Unicode is not supported
+        Default is latin-1. Only latin-1 and ascii are supported.
     byteorder : str
         Can be ">", "<", "little", or "big". default is `sys.byteorder`
     time_stamp : datetime
@@ -1913,7 +1940,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = fname
+        self._fname = _stringify_path(fname)
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
@@ -1937,7 +1964,6 @@ class StataWriter(StataParser):
             return data
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
-        index = data.index
         data_formatted = []
         for col, col_is_cat in zip(data, is_cat):
             if col_is_cat:
@@ -1960,8 +1986,7 @@ class StataWriter(StataParser):
 
                 # Replace missing values with Stata missing value for type
                 values[values == -1] = get_base_missing_value(dtype)
-                data_formatted.append((col, values, index))
-
+                data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
         return DataFrame.from_items(data_formatted)

@@ -1,0 +1,1019 @@
+"""
+Template for each `dtype` helper function for hashtable
+
+WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
+"""
+
+from lib cimport is_null_datetimelike
+
+
+#----------------------------------------------------------------------
+# VectorData
+#----------------------------------------------------------------------
+
+{{py:
+
+# name, dtype, arg
+# the generated StringVector is not actually used
+# but is included for completeness (rather ObjectVector is used
+# for uniques in hashtables)
+
+dtypes = [('Float64', 'float64', 'float64_t'),
+          ('Int64', 'int64', 'int64_t'),
+          ('String', 'string', 'char *'),
+          ('UInt64', 'uint64', 'uint64_t')]
+}}
+
+{{for name, dtype, arg in dtypes}}
+
+
+{{if dtype != 'int64'}}
+
+ctypedef struct {{name}}VectorData:
+    {{arg}} *data
+    size_t n, m
+
+{{endif}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+                                       {{arg}} x) nogil:
+
+    data.data[data.n] = x
+    data.n += 1
+
+{{endfor}}
+
+ctypedef fused vector_data:
+    Int64VectorData
+    UInt64VectorData
+    Float64VectorData
+    StringVectorData
+
+cdef inline bint needs_resize(vector_data *data) nogil:
+    return data.n == data.m
+
+#----------------------------------------------------------------------
+# Vector
+#----------------------------------------------------------------------
+
+{{py:
+
+# name, dtype, arg, idtype
+dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
+          ('UInt64', 'uint64', 'uint64_t', 'np.uint64'),
+          ('Int64', 'int64', 'int64_t', 'np.int64')]
+
+}}
+
+{{for name, dtype, arg, idtype in dtypes}}
+
+cdef class {{name}}Vector:
+
+    {{if dtype != 'int64'}}
+    cdef:
+        bint external_view_exists
+        {{name}}VectorData *data
+        ndarray ao
+    {{endif}}
+
+    def __cinit__(self):
+        self.data = <{{name}}VectorData *>PyMem_Malloc(
+            sizeof({{name}}VectorData))
+        if not self.data:
+            raise MemoryError()
+        self.external_view_exists = False
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.ao = np.empty(self.data.m, dtype={{idtype}})
+        self.data.data = <{{arg}}*> self.ao.data
+
+    cdef resize(self):
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(self.data.m, refcheck=False)
+        self.data.data = <{{arg}}*> self.ao.data
+
+    def __dealloc__(self):
+        if self.data is not NULL:
+            PyMem_Free(self.data)
+            self.data = NULL
+
+    def __len__(self):
+        return self.data.n
+
+    cpdef to_array(self):
+        if self.data.m != self.data.n:
+            if self.external_view_exists:
+                # should never happen
+                raise ValueError("should have raised on append()")
+            self.ao.resize(self.data.n, refcheck=False)
+            self.data.m = self.data.n
+        self.external_view_exists = True
+        return self.ao
+
+    cdef inline void append(self, {{arg}} x):
+
+        if needs_resize(self.data):
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
+            self.resize()
+
+        append_data_{{dtype}}(self.data, x)
+
+    cdef extend(self, {{arg}}[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
+
+{{endfor}}
+
+cdef class StringVector:
+
+    cdef:
+        StringVectorData *data
+        bint external_view_exists
+
+    def __cinit__(self):
+        self.data = <StringVectorData *>PyMem_Malloc(
+            sizeof(StringVectorData))
+        if not self.data:
+            raise MemoryError()
+        self.external_view_exists = False
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
+
+    cdef resize(self):
+        cdef:
+            char **orig_data
+            size_t i, m
+
+        m = self.data.m
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+
+        orig_data = self.data.data
+        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
+        for i in range(m):
+            self.data.data[i] = orig_data[i]
+
+    def __dealloc__(self):
+        if self.data is not NULL:
+            if self.data.data is not NULL:
+                free(self.data.data)
+            PyMem_Free(self.data)
+            self.data = NULL
+
+    def __len__(self):
+        return self.data.n
+
+    def to_array(self):
+        cdef:
+            ndarray ao
+            size_t n
+            object val
+
+        ao = np.empty(self.data.n, dtype=np.object)
+        for i in range(self.data.n):
+            val = self.data.data[i]
+            ao[i] = val
+        self.external_view_exists = True
+        self.data.m = self.data.n
+        return ao
+
+    cdef inline void append(self, char * x):
+
+        if needs_resize(self.data):
+            self.resize()
+
+        append_data_string(self.data, x)
+
+    cdef extend(self, ndarray[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
+
+cdef class ObjectVector:
+
+    cdef:
+        PyObject **data
+        size_t n, m
+        ndarray ao
+        bint external_view_exists
+
+    def __cinit__(self):
+        self.external_view_exists = False
+        self.n = 0
+        self.m = _INIT_VEC_CAP
+        self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
+        self.data = <PyObject**> self.ao.data
+
+    def __len__(self):
+        return self.n
+
+    cdef inline append(self, object o):
+        if self.n == self.m:
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
+            self.m = max(self.m * 2, _INIT_VEC_CAP)
+            self.ao.resize(self.m, refcheck=False)
+            self.data = <PyObject**> self.ao.data
+
+        Py_INCREF(o)
+        self.data[self.n] = <PyObject*> o
+        self.n += 1
+
+    def to_array(self):
+        if self.m != self.n:
+            if self.external_view_exists:
+                raise ValueError("should have raised on append()")
+            self.ao.resize(self.n, refcheck=False)
+            self.m = self.n
+        self.external_view_exists = True
+        return self.ao
+
+    cdef extend(self, ndarray[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
+
+#----------------------------------------------------------------------
+# HashTable
+#----------------------------------------------------------------------
+
+
+cdef class HashTable:
+
+    pass
+
+{{py:
+
+# name, dtype, null_condition, float_group
+dtypes = [('Float64', 'float64', 'val != val', True),
+          ('UInt64', 'uint64', 'False', False),
+          ('Int64', 'int64', 'val == iNaT', False)]
+
+}}
+
+
+{{for name, dtype, null_condition, float_group in dtypes}}
+
+cdef class {{name}}HashTable(HashTable):
+
+    def __cinit__(self, size_hint=1):
+        self.table = kh_init_{{dtype}}()
+        if size_hint is not None:
+            kh_resize_{{dtype}}(self.table, size_hint)
+
+    def __len__(self):
+        return self.table.size
+
+    def __dealloc__(self):
+        if self.table is not NULL:
+            kh_destroy_{{dtype}}(self.table)
+            self.table = NULL
+
+    def __contains__(self, object key):
+        cdef khiter_t k
+        k = kh_get_{{dtype}}(self.table, key)
+        return k != self.table.n_buckets
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
+
+    cpdef get_item(self, {{dtype}}_t val):
+        cdef khiter_t k
+        k = kh_get_{{dtype}}(self.table, val)
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret = 0
+
+        k = kh_put_{{dtype}}(self.table, key, &ret)
+        self.table.keys[k] = key
+        if kh_exist_{{dtype}}(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    @cython.boundscheck(False)
+    def map(self, {{dtype}}_t[:] keys, int64_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            {{dtype}}_t key
+            khiter_t k
+
+        with nogil:
+            for i in range(n):
+                key = keys[i]
+                k = kh_put_{{dtype}}(self.table, key, &ret)
+                self.table.vals[k] = <Py_ssize_t> values[i]
+
+    @cython.boundscheck(False)
+    def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_put_{{dtype}}(self.table, val, &ret)
+                self.table.vals[k] = i
+
+    @cython.boundscheck(False)
+    def lookup(self, {{dtype}}_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_{{dtype}}(self.table, val)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
+
+        return np.asarray(locs)
+
+    def factorize(self, {{dtype}}_t values):
+        uniques = {{name}}Vector()
+        labels = self.get_labels(values, uniques, 0, 0)
+        return uniques.to_array(), labels
+
+    @cython.boundscheck(False)
+    def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
+                   Py_ssize_t count_prior, Py_ssize_t na_sentinel,
+                   bint check_null=True):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int64_t[:] labels
+            Py_ssize_t idx, count = count_prior
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+            {{name}}VectorData *ud
+
+        labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+
+                if check_null and {{null_condition}}:
+                    labels[i] = na_sentinel
+                    continue
+
+                k = kh_get_{{dtype}}(self.table, val)
+
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    self.table.vals[k] = count
+
+                    if needs_resize(ud):
+                        with gil:
+                            if uniques.external_view_exists:
+                                raise ValueError("external reference to uniques held, "
+                                        "but Vector.resize() needed")
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                    labels[i] = count
+                    count += 1
+
+        return np.asarray(labels)
+
+    @cython.boundscheck(False)
+    def get_labels_groupby(self, {{dtype}}_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int64_t[:] labels
+            Py_ssize_t idx, count = 0
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+            {{name}}Vector uniques = {{name}}Vector()
+            {{name}}VectorData *ud
+
+        labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+
+                # specific for groupby
+                {{if dtype != 'uint64'}}
+                if val < 0:
+                    labels[i] = -1
+                    continue
+                {{endif}}
+
+                k = kh_get_{{dtype}}(self.table, val)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = idx
+                else:
+                    k = kh_put_{{dtype}}(self.table, val, &ret)
+                    self.table.vals[k] = count
+
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                    labels[i] = count
+                    count += 1
+
+        arr_uniques = uniques.to_array()
+
+        return np.asarray(labels), arr_uniques
+
+    @cython.boundscheck(False)
+    def unique(self, {{dtype}}_t[:] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+            bint seen_na = 0
+            {{name}}Vector uniques = {{name}}Vector()
+            {{name}}VectorData *ud
+
+        ud = uniques.data
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+
+                {{if float_group}}
+                if val == val:
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k == self.table.n_buckets:
+                        kh_put_{{dtype}}(self.table, val, &ret)
+                        if needs_resize(ud):
+                            with gil:
+                                uniques.resize()
+                        append_data_{{dtype}}(ud, val)
+                elif not seen_na:
+                    seen_na = 1
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, NAN)
+                {{else}}
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                {{endif}}
+
+        return uniques.to_array()
+
+{{endfor}}
+
+
+cdef class StringHashTable(HashTable):
+    # these by-definition *must* be strings
+    # or a sentinel np.nan / None missing value
+    na_string_sentinel = '__nan__'
+
+    def __init__(self, int size_hint=1):
+        self.table = kh_init_str()
+        if size_hint is not None:
+            kh_resize_str(self.table, size_hint)
+
+    def __dealloc__(self):
+        if self.table is not NULL:
+            kh_destroy_str(self.table)
+            self.table = NULL
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(char *) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
+
+    cpdef get_item(self, object val):
+        cdef:
+            khiter_t k
+            char *v
+        v = util.get_c_string(val)
+
+        k = kh_get_str(self.table, v)
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret = 0
+            char *v
+
+        v = util.get_c_string(val)
+
+        k = kh_put_str(self.table, v, &ret)
+        self.table.keys[k] = key
+        if kh_exist_str(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    @cython.boundscheck(False)
+    def get_indexer(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
+            int64_t *resbuf = <int64_t*> labels.data
+            khiter_t k
+            kh_str_t *table = self.table
+            char *v
+            char **vecs
+
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+            v = util.get_c_string(val)
+            vecs[i] = v
+
+        with nogil:
+            for i in range(n):
+                k = kh_get_str(table, vecs[i])
+                if k != table.n_buckets:
+                    resbuf[i] = table.vals[k]
+                else:
+                    resbuf[i] = -1
+
+        free(vecs)
+        return labels
+
+    @cython.boundscheck(False)
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, count, n = len(values)
+            int64_t[:] uindexer
+            int ret = 0
+            object val
+            ObjectVector uniques
+            khiter_t k
+            char *v
+            char **vecs
+
+        vecs = <char **> malloc(n * sizeof(char *))
+        uindexer = np.empty(n, dtype=np.int64)
+        for i in range(n):
+            val = values[i]
+            v = util.get_c_string(val)
+            vecs[i] = v
+
+        count = 0
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k == self.table.n_buckets:
+                    kh_put_str(self.table, v, &ret)
+                    uindexer[count] = i
+                    count += 1
+        free(vecs)
+
+        # uniques
+        uniques = ObjectVector()
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
+        return uniques.to_array()
+
+    def factorize(self, ndarray[object] values):
+        uniques = ObjectVector()
+        labels = self.get_labels(values, uniques, 0, 0)
+        return uniques.to_array(), labels
+
+    @cython.boundscheck(False)
+    def lookup(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            char *v
+            khiter_t k
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
+
+        # these by-definition *must* be strings
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
+            else:
+                v = util.get_c_string(self.na_string_sentinel)
+            vecs[i] = v
+
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
+
+        free(vecs)
+        return np.asarray(locs)
+
+    @cython.boundscheck(False)
+    def map_locations(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            char *v
+            char **vecs
+            khiter_t k
+
+        # these by-definition *must* be strings
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
+            else:
+                v = util.get_c_string(self.na_string_sentinel)
+            vecs[i] = v
+
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_put_str(self.table, v, &ret)
+                self.table.vals[k] = i
+        free(vecs)
+
+    @cython.boundscheck(False)
+    def get_labels(self, ndarray[object] values, ObjectVector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=1):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int64_t[:] labels
+            int64_t[:] uindexer
+            Py_ssize_t idx, count = count_prior
+            int ret = 0
+            object val
+            char *v
+            char **vecs
+            khiter_t k
+
+        # these by-definition *must* be strings
+        labels = np.zeros(n, dtype=np.int64)
+        uindexer = np.empty(n, dtype=np.int64)
+
+        # pre-filter out missing
+        # and assign pointers
+        vecs = <char **> malloc(n * sizeof(char *))
+        for i in range(n):
+            val = values[i]
+
+            if PyUnicode_Check(val) or PyString_Check(val):
+                v = util.get_c_string(val)
+                vecs[i] = v
+            else:
+                labels[i] = na_sentinel
+
+        # compute
+        with nogil:
+            for i in range(n):
+                if labels[i] == na_sentinel:
+                    continue
+
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k != self.table.n_buckets:
+                    idx = self.table.vals[k]
+                    labels[i] = <int64_t>idx
+                else:
+                    k = kh_put_str(self.table, v, &ret)
+                    self.table.vals[k] = count
+                    uindexer[count] = i
+                    labels[i] = <int64_t>count
+                    count += 1
+
+        free(vecs)
+
+        # uniques
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
+
+        return np.asarray(labels)
+
+na_sentinel = object
+
+cdef class PyObjectHashTable(HashTable):
+
+    def __init__(self, size_hint=1):
+        self.table = kh_init_pymap()
+        kh_resize_pymap(self.table, size_hint)
+
+    def __dealloc__(self):
+        if self.table is not NULL:
+            kh_destroy_pymap(self.table)
+            self.table = NULL
+
+    def __len__(self):
+        return self.table.size
+
+    def __contains__(self, object key):
+        cdef khiter_t k
+        hash(key)
+        if key != key or key is None:
+            key = na_sentinel
+        k = kh_get_pymap(self.table, <PyObject*>key)
+        return k != self.table.n_buckets
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(PyObject *) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
+
+    cpdef get_item(self, object val):
+        cdef khiter_t k
+        if val != val or val is None:
+            val = na_sentinel
+        k = kh_get_pymap(self.table, <PyObject*>val)
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret = 0
+            char* buf
+
+        hash(key)
+        if key != key or key is None:
+            key = na_sentinel
+        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        # self.table.keys[k] = key
+        if kh_exist_pymap(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    def map_locations(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            khiter_t k
+
+        for i in range(n):
+            val = values[i]
+            hash(val)
+            if val != val or val is None:
+                val = na_sentinel
+
+            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+            self.table.vals[k] = i
+
+    def lookup(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            khiter_t k
+            int64_t[:] locs = np.empty(n, dtype=np.int64)
+
+        for i in range(n):
+            val = values[i]
+            hash(val)
+            if val != val or val is None:
+                val = na_sentinel
+
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k != self.table.n_buckets:
+                locs[i] = self.table.vals[k]
+            else:
+                locs[i] = -1
+
+        return np.asarray(locs)
+
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            khiter_t k
+            ObjectVector uniques = ObjectVector()
+            bint seen_na = 0
+
+        for i in range(n):
+            val = values[i]
+            hash(val)
+            if not _checknan(val):
+                k = kh_get_pymap(self.table, <PyObject*>val)
+                if k == self.table.n_buckets:
+                    kh_put_pymap(self.table, <PyObject*>val, &ret)
+                    uniques.append(val)
+            elif not seen_na:
+                seen_na = 1
+                uniques.append(nan)
+
+        return uniques.to_array()
+
+    def get_labels(self, ndarray[object] values, ObjectVector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=True):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int64_t[:] labels
+            Py_ssize_t idx, count = count_prior
+            int ret = 0
+            object val
+            khiter_t k
+
+        labels = np.empty(n, dtype=np.int64)
+
+        for i in range(n):
+            val = values[i]
+            hash(val)
+
+            if check_null and val != val or val is None:
+                labels[i] = na_sentinel
+                continue
+
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+            else:
+                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                self.table.vals[k] = count
+                uniques.append(val)
+                labels[i] = count
+                count += 1
+
+        return np.asarray(labels)
+
+
+cdef class MultiIndexHashTable(HashTable):
+
+    def __init__(self, size_hint=1):
+        self.table = kh_init_uint64()
+        self.mi = None
+        kh_resize_uint64(self.table, size_hint)
+
+    def __dealloc__(self):
+        if self.table is not NULL:
+            kh_destroy_uint64(self.table)
+            self.table = NULL
+
+    def __len__(self):
+        return self.table.size
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(uint64_t) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
+
+    def _check_for_collisions(self, int64_t[:] locs, object mi):
+        # validate that the locs map to the actual values
+        # provided in the mi
+        # we can only check if we *don't* have any missing values
+        # :<
+        cdef:
+            ndarray[int64_t] alocs
+
+        alocs = np.asarray(locs)
+        if (alocs != -1).all():
+
+            result = self.mi.take(locs)
+            if isinstance(mi, tuple):
+                from pandas import Index
+                mi = Index([mi])
+            if not result.equals(mi):
+                raise AssertionError(
+                    "hash collision\nlocs:\n{}\n"
+                    "result:\n{}\nmi:\n{}".format(alocs, result, mi))
+
+    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label):
+        # validate that the loc maps to the actual value
+        # version of _check_for_collisions above for single label (tuple)
+
+        result = self.mi[loc]
+
+        if not all(l == r or (is_null_datetimelike(l)
+                              and is_null_datetimelike(r))
+                   for l, r in zip(result, label)):
+            raise AssertionError(
+                "hash collision\nloc:\n{}\n"
+                "result:\n{}\nmi:\n{}".format(loc, result, label))
+
+    def __contains__(self, object key):
+        try:
+            self.get_item(key)
+            return True
+        except (KeyError, ValueError, TypeError):
+            return False
+
+    cpdef get_item(self, object key):
+        cdef:
+            khiter_t k
+            uint64_t value
+            int64_t[:] locs
+            Py_ssize_t loc
+
+        value = self.mi._hashed_indexing_key(key)
+        k = kh_get_uint64(self.table, value)
+        if k != self.table.n_buckets:
+            loc = self.table.vals[k]
+            self._check_for_collision(loc, key)
+            return loc
+        else:
+            raise KeyError(key)
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        raise NotImplementedError
+
+    @cython.boundscheck(False)
+    def map_locations(self, object mi):
+        cdef:
+            Py_ssize_t i, n
+            ndarray[uint64_t] values
+            uint64_t val
+            int ret = 0
+            khiter_t k
+
+        self.mi = mi
+        n = len(mi)
+        values = mi._hashed_values
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_put_uint64(self.table, val, &ret)
+                self.table.vals[k] = i
+
+    @cython.boundscheck(False)
+    def lookup(self, object mi):
+        # look up with a target mi
+        cdef:
+            Py_ssize_t i, n
+            ndarray[uint64_t] values
+            int ret = 0
+            uint64_t val
+            khiter_t k
+            int64_t[:] locs
+
+        n = len(mi)
+        values = mi._hashed_values
+
+        locs = np.empty(n, dtype=np.int64)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_uint64(self.table, val)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
+
+        self._check_for_collisions(locs, mi)
+        return np.asarray(locs)
+
+    def unique(self, object mi):
+        raise NotImplementedError
+
+    def get_labels(self, object mi, ObjectVector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=True):
+        raise NotImplementedError

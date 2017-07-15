@@ -16,8 +16,9 @@ from pandas.core.sorting import (is_int64_overflow_possible,
                                  lexsort_indexer)
 
 
-class TestSorting(tm.TestCase):
+class TestSorting(object):
 
+    @pytest.mark.slow
     def test_int64_overflow(self):
 
         B = np.concatenate((np.arange(1000), np.arange(1000), np.arange(500)))
@@ -39,10 +40,10 @@ class TestSorting(tm.TestCase):
         right = rg.sum()['values']
 
         exp_index, _ = left.index.sortlevel()
-        self.assert_index_equal(left.index, exp_index)
+        tm.assert_index_equal(left.index, exp_index)
 
         exp_index, _ = right.index.sortlevel(0)
-        self.assert_index_equal(right.index, exp_index)
+        tm.assert_index_equal(right.index, exp_index)
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
@@ -51,9 +52,11 @@ class TestSorting(tm.TestCase):
         expected = df.groupby(tups).sum()['values']
 
         for k, v in compat.iteritems(expected):
-            self.assertEqual(left[k], right[k[::-1]])
-            self.assertEqual(left[k], v)
-        self.assertEqual(len(left), len(right))
+            assert left[k] == right[k[::-1]]
+            assert left[k] == v
+        assert len(left) == len(right)
+
+    def test_int64_overflow_moar(self):
 
         # GH9096
         values = range(55109)
@@ -62,7 +65,7 @@ class TestSorting(tm.TestCase):
                                        'c': values,
                                        'd': values})
         grouped = data.groupby(['a', 'b', 'c', 'd'])
-        self.assertEqual(len(grouped), len(values))
+        assert len(grouped) == len(values)
 
         arr = np.random.randint(-1 << 12, 1 << 12, (1 << 15, 5))
         i = np.random.choice(len(arr), len(arr) * 4)
@@ -76,7 +79,7 @@ class TestSorting(tm.TestCase):
         gr = df.groupby(list('abcde'))
 
         # verify this is testing what it is supposed to test!
-        self.assertTrue(is_int64_overflow_possible(gr.grouper.shape))
+        assert is_int64_overflow_possible(gr.grouper.shape)
 
         # mannually compute groupings
         jim, joe = defaultdict(list), defaultdict(list)
@@ -84,7 +87,7 @@ class TestSorting(tm.TestCase):
             jim[key].append(a)
             joe[key].append(b)
 
-        self.assertEqual(len(gr), len(jim))
+        assert len(gr) == len(jim)
         mi = MultiIndex.from_tuples(jim.keys(), names=list('abcde'))
 
         def aggr(func):
@@ -188,7 +191,7 @@ class TestSorting(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
 
-class TestMerge(tm.TestCase):
+class TestMerge(object):
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):
@@ -201,7 +204,7 @@ class TestMerge(tm.TestCase):
 
         # it works!
         result = merge(df1, df2, how='outer')
-        self.assertTrue(len(result) == 2000)
+        assert len(result) == 2000
 
         low, high, n = -1 << 10, 1 << 10, 1 << 20
         left = DataFrame(np.random.randint(low, high, (n, 7)),
@@ -216,11 +219,11 @@ class TestMerge(tm.TestCase):
         right['right'] *= -1
 
         out = merge(left, right, how='outer')
-        self.assertEqual(len(out), len(left))
+        assert len(out) == len(left)
         assert_series_equal(out['left'], - out['right'], check_names=False)
         result = out.iloc[:, :-2].sum(axis=1)
         assert_series_equal(out['left'], result, check_names=False)
-        self.assertTrue(result.name is None)
+        assert result.name is None
 
         out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
@@ -241,7 +244,7 @@ class TestMerge(tm.TestCase):
 
         # confirm that this is checking what it is supposed to check
         shape = left.apply(Series.nunique).values
-        self.assertTrue(is_int64_overflow_possible(shape))
+        assert is_int64_overflow_possible(shape)
 
         # add duplicates to left frame
         left = concat([left, left], ignore_index=True)
@@ -307,7 +310,7 @@ class TestMerge(tm.TestCase):
         for how in 'left', 'right', 'outer', 'inner':
             mask = jmask[how]
             frame = align(out[mask].copy())
-            self.assertTrue(mask.all() ^ mask.any() or how == 'outer')
+            assert mask.all() ^ mask.any() or how == 'outer'
 
             for sort in [False, True]:
                 res = merge(left, right, how=how, sort=sort)

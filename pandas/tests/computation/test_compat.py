@@ -1,49 +1,35 @@
-
-# flake8: noqa
-
 import pytest
-from itertools import product
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas.util import testing as tm
 
-from pandas.computation.engines import _engines
-import pandas.computation.expr as expr
-
-ENGINES_PARSERS = list(product(_engines, expr._parsers))
+from pandas.core.computation.engines import _engines
+import pandas.core.computation.expr as expr
+from pandas.core.computation import _MIN_NUMEXPR_VERSION
 
 
 def test_compat():
     # test we have compat with our version of nu
 
-    from pandas.computation import _NUMEXPR_INSTALLED
+    from pandas.core.computation import _NUMEXPR_INSTALLED
     try:
         import numexpr as ne
         ver = ne.__version__
-        if ver == LooseVersion('2.4.4'):
+        if ver < LooseVersion(_MIN_NUMEXPR_VERSION):
             assert not _NUMEXPR_INSTALLED
-        elif ver < LooseVersion('2.1'):
-            with tm.assert_produces_warning(UserWarning,
-                                            check_stacklevel=False):
-                assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
-
     except ImportError:
         pytest.skip("not testing numexpr version compat")
 
 
-def test_invalid_numexpr_version():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_invalid_numexpr_version, engine, parser
-
-
-def check_invalid_numexpr_version(engine, parser):
+@pytest.mark.parametrize('engine', _engines)
+@pytest.mark.parametrize('parser', expr._parsers)
+def test_invalid_numexpr_version(engine, parser):
     def testit():
-        a, b = 1, 2
+        a, b = 1, 2  # noqa
         res = pd.eval('a + b', engine=engine, parser=parser)
-        tm.assert_equal(res, 3)
+        assert res == 3
 
     if engine == 'numexpr':
         try:
@@ -51,12 +37,9 @@ def check_invalid_numexpr_version(engine, parser):
         except ImportError:
             pytest.skip("no numexpr")
         else:
-            if ne.__version__ < LooseVersion('2.1'):
-                with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
-                                           ".+, must be >= 2.1"):
+            if ne.__version__ < LooseVersion(_MIN_NUMEXPR_VERSION):
+                with pytest.raises(ImportError):
                     testit()
-            elif ne.__version__ == LooseVersion('2.4.4'):
-                pytest.skip("numexpr version==2.4.4")
             else:
                 testit()
     else:

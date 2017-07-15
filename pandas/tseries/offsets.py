@@ -3,15 +3,14 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
-from pandas.tseries.tools import to_datetime, normalize_date
+from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
+from pandas.core.tools.datetimes import to_datetime, normalize_date
 from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
-import pandas.tslib as tslib
-from pandas.tslib import Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 
 import functools
 import operator
@@ -1597,7 +1596,6 @@ class Week(DateOffset):
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
-            other = other
             for i in range(k):
                 other = other + self._inc
         else:
@@ -1651,6 +1649,7 @@ class WeekDay(object):
     FRI = 4
     SAT = 5
     SUN = 6
+
 
 _int_to_weekday = {
     WeekDay.MON: 'MON',
@@ -1923,6 +1922,7 @@ class BQuarterEnd(QuarterOffset):
             return False
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
+
 
 _int_to_month = tslib._MONTH_ALIASES
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
@@ -2799,6 +2799,7 @@ def _delta_to_tick(delta):
         else:  # pragma: no cover
             return Nano(nanos)
 
+
 _delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
 
@@ -2930,6 +2931,7 @@ def generate_range(start=None, end=None, periods=None,
             if next_date >= cur:
                 raise ValueError('Offset %s did not decrement date' % offset)
             cur = next_date
+
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
     YearBegin,                 # 'AS'

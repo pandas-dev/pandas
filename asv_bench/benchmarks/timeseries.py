@@ -1,7 +1,9 @@
-from pandas.tseries.converter import DatetimeConverter
+try:
+    from pandas.plotting._converter import DatetimeConverter
+except ImportError:
+    from pandas.tseries.converter import DatetimeConverter
 from .pandas_vb_common import *
 import pandas as pd
-from datetime import timedelta
 import datetime as dt
 try:
     import pandas.tseries.holiday
@@ -51,10 +53,14 @@ class DatetimeIndex(object):
         self.rng6 = date_range(start='1/1/1', periods=self.N, freq='B')
 
         self.rng7 = date_range(start='1/1/1700', freq='D', periods=100000)
-        self.a = self.rng7[:50000].append(self.rng7[50002:])
+        self.no_freq = self.rng7[:50000].append(self.rng7[50002:])
+        self.d_freq = self.rng7[:50000].append(self.rng7[50000:])
+
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=100000)
+        self.b_freq = self.rng8[:50000].append(self.rng8[50000:])
 
     def time_add_timedelta(self):
-        (self.rng + timedelta(minutes=2))
+        (self.rng + dt.timedelta(minutes=2))
 
     def time_add_offset_delta(self):
         (self.rng + self.delta_offset)
@@ -92,8 +98,14 @@ class DatetimeIndex(object):
     def time_timeseries_is_month_start(self):
         self.rng6.is_month_start
 
-    def time_infer_freq(self):
-        infer_freq(self.a)
+    def time_infer_freq_none(self):
+        infer_freq(self.no_freq)
+
+    def time_infer_freq_daily(self):
+        infer_freq(self.d_freq)
+
+    def time_infer_freq_business(self):
+        infer_freq(self.b_freq)
 
 
 class TimeDatetimeConverter(object):
@@ -292,7 +304,10 @@ class TimeSeries(object):
         self.rng3 = date_range(start='1/1/2000', periods=1500000, freq='S')
         self.ts3 = Series(1, index=self.rng3)
 
-    def time_sort_index(self):
+    def time_sort_index_monotonic(self):
+        self.ts2.sort_index()
+
+    def time_sort_index_non_monotonic(self):
         self.ts.sort_index()
 
     def time_timeseries_slice_minutely(self):

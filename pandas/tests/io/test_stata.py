@@ -9,23 +9,23 @@ import warnings
 from datetime import datetime
 from distutils.version import LooseVersion
 
-import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+import pytest
 from pandas import compat
+from pandas._libs.tslib import NaT
 from pandas.compat import iterkeys
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-from pandas.tslib import NaT
-from pandas.types.common import is_categorical_dtype
 
 
-class TestStata(tm.TestCase):
+class TestStata(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
@@ -181,7 +181,7 @@ class TestStata(tm.TestCase):
             w = [x for x in w if x.category is UserWarning]
 
             # should get warning for each call to read_dta
-            self.assertEqual(len(w), 3)
+            assert len(w) == 3
 
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
@@ -283,7 +283,7 @@ class TestStata(tm.TestCase):
                            u'Floats': u'float data'}
             tm.assert_dict_equal(vl, vl_expected)
 
-            self.assertEqual(rdr.data_label, u'This is a  Ünicode data label')
+            assert rdr.data_label == u'This is a  Ünicode data label'
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -351,12 +351,12 @@ class TestStata(tm.TestCase):
 
         if compat.PY3:
             expected = raw.kreis1849[0]
-            self.assertEqual(result, expected)
-            self.assertIsInstance(result, compat.string_types)
+            assert result == expected
+            assert isinstance(result, compat.string_types)
         else:
             expected = raw.kreis1849.str.decode("latin-1")[0]
-            self.assertEqual(result, expected)
-            self.assertIsInstance(result, unicode)  # noqa
+            assert result == expected
+            assert isinstance(result, unicode)  # noqa
 
         with tm.ensure_clean() as path:
             encoded.to_stata(path, encoding='latin-1', write_index=False)
@@ -377,7 +377,7 @@ class TestStata(tm.TestCase):
             with warnings.catch_warnings(record=True) as w:
                 original.to_stata(path, None)
                 # should get a warning for that format.
-            self.assertEqual(len(w), 1)
+            assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -405,7 +405,7 @@ class TestStata(tm.TestCase):
             with warnings.catch_warnings(record=True) as w:
                 original.to_stata(path, None)
                 # should get a warning for that format.
-                self.assertEqual(len(w), 1)
+                assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -523,7 +523,7 @@ class TestStata(tm.TestCase):
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
             written_and_read_again = self.read_dta(path)
-            tm.assertRaises(
+            pytest.raises(
                 KeyError, lambda: written_and_read_again['index_not_written'])
 
     def test_string_no_dates(self):
@@ -647,10 +647,10 @@ class TestStata(tm.TestCase):
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
         for k, v in compat.iteritems(sr_115):
-            self.assertTrue(k in sr_117)
-            self.assertTrue(v == sr_117[k])
-            self.assertTrue(k in keys)
-            self.assertTrue(v in labels)
+            assert k in sr_117
+            assert v == sr_117[k]
+            assert k in keys
+            assert v in labels
 
     def test_minimal_size_col(self):
         str_lens = (1, 100, 244)
@@ -667,8 +667,8 @@ class TestStata(tm.TestCase):
                 variables = sr.varlist
                 formats = sr.fmtlist
                 for variable, fmt, typ in zip(variables, formats, typlist):
-                    self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
-                    self.assertTrue(int(variable[1:]) == typ)
+                    assert int(variable[1:]) == int(fmt[1:-1])
+                    assert int(variable[1:]) == typ
 
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
@@ -677,7 +677,7 @@ class TestStata(tm.TestCase):
             s['s' + str(str_len)] = Series(['a' * str_len,
                                             'b' * str_len, 'c' * str_len])
         original = DataFrame(s)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
@@ -694,21 +694,21 @@ class TestStata(tm.TestCase):
             offset = valid_range[t][1]
             for i in range(0, 27):
                 val = StataMissingValue(offset + 1 + i)
-                self.assertTrue(val.string == expected_values[i])
+                assert val.string == expected_values[i]
 
         # Test extremes for floats
         val = StataMissingValue(struct.unpack('<f', b'\x00\x00\x00\x7f')[0])
-        self.assertTrue(val.string == '.')
+        assert val.string == '.'
         val = StataMissingValue(struct.unpack('<f', b'\x00\xd0\x00\x7f')[0])
-        self.assertTrue(val.string == '.z')
+        assert val.string == '.z'
 
         # Test extremes for floats
         val = StataMissingValue(struct.unpack(
             '<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
-        self.assertTrue(val.string == '.')
+        assert val.string == '.'
         val = StataMissingValue(struct.unpack(
             '<d', b'\x00\x00\x00\x00\x00\x1a\xe0\x7f')[0])
-        self.assertTrue(val.string == '.z')
+        assert val.string == '.z'
 
     def test_missing_value_conversion(self):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
@@ -831,11 +831,11 @@ class TestStata(tm.TestCase):
                                columns=columns)
         tm.assert_frame_equal(expected, reordered)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             columns = ['byte_', 'byte_']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             columns = ['byte_', 'int_', 'long_', 'not_found']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
@@ -889,7 +889,7 @@ class TestStata(tm.TestCase):
         original = pd.concat([original[col].astype('category')
                               for col in original], axis=1)
         with tm.ensure_clean() as path:
-            tm.assertRaises(ValueError, original.to_stata, path)
+            pytest.raises(ValueError, original.to_stata, path)
 
         original = pd.DataFrame.from_records(
             [['a'],
@@ -904,7 +904,7 @@ class TestStata(tm.TestCase):
         with warnings.catch_warnings(record=True) as w:
             original.to_stata(path)
             # should get a warning for mixed content
-            self.assertEqual(len(w), 1)
+            assert len(w) == 1
 
     def test_categorical_with_stata_missing_values(self):
         values = [['a' + str(i)] for i in range(120)]
@@ -986,10 +986,10 @@ class TestStata(tm.TestCase):
         for col in parsed_115:
             if not is_categorical_dtype(parsed_115[col]):
                 continue
-            self.assertEqual(True, parsed_115[col].cat.ordered)
-            self.assertEqual(True, parsed_117[col].cat.ordered)
-            self.assertEqual(False, parsed_115_unordered[col].cat.ordered)
-            self.assertEqual(False, parsed_117_unordered[col].cat.ordered)
+            assert parsed_115[col].cat.ordered
+            assert parsed_117[col].cat.ordered
+            assert not parsed_115_unordered[col].cat.ordered
+            assert not parsed_117_unordered[col].cat.ordered
 
     def test_read_chunks_117(self):
         files_117 = [self.dta1_117, self.dta2_117, self.dta3_117,
@@ -1129,14 +1129,14 @@ class TestStata(tm.TestCase):
                                'a': 'City Rank',
                                'b': 'City Exponent',
                                'c': 'City'}
-            tm.assert_equal(read_labels, expected_labels)
+            assert read_labels == expected_labels
 
         variable_labels['index'] = 'The Index'
         with tm.ensure_clean() as path:
             original.to_stata(path, variable_labels=variable_labels)
             with StataReader(path) as sr:
                 read_labels = sr.variable_labels()
-            tm.assert_equal(read_labels, variable_labels)
+            assert read_labels == variable_labels
 
     def test_write_variable_label_errors(self):
         original = pd.DataFrame({'a': [1, 2, 3, 4],
@@ -1151,7 +1151,7 @@ class TestStata(tm.TestCase):
                                 'b': 'City Exponent',
                                 'c': u''.join(values)}
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
                 original.to_stata(path, variable_labels=variable_labels_utf8)
 
@@ -1161,7 +1161,7 @@ class TestStata(tm.TestCase):
                                      'that is too long for Stata which means '
                                      'that it has more than 80 characters'}
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
                 original.to_stata(path, variable_labels=variable_labels_long)
 
@@ -1188,7 +1188,7 @@ class TestStata(tm.TestCase):
     def test_unsupported_type(self):
         original = pd.DataFrame({'a': [1 + 2j, 2 + 4j]})
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
@@ -1200,7 +1200,7 @@ class TestStata(tm.TestCase):
                                  'strs': ['apple', 'banana', 'cherry'],
                                  'dates': dates})
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_dates={'dates': 'tC'})
 
@@ -1208,15 +1208,15 @@ class TestStata(tm.TestCase):
         original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
                                  'strs': ['apple', 'banana', 'cherry'],
                                  'dates': dates})
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
     def test_repeated_column_labels(self):
         # GH 13923
-        with tm.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as cm:
             read_stata(self.dta23, convert_categoricals=True)
-            tm.assertTrue('wolof' in cm.exception)
+            assert 'wolof' in cm.exception
 
     def test_stata_111(self):
         # 111 is an old version but still used by current versions of
@@ -1239,17 +1239,17 @@ class TestStata(tm.TestCase):
                         'ColumnTooBig': [0.0,
                                          np.finfo(np.double).eps,
                                          np.finfo(np.double).max]})
-        with tm.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
 
         df.loc[2, 'ColumnTooBig'] = np.inf
-        with tm.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
-            tm.assertTrue('infinity' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
+            assert 'infinity' in cm.exception
 
     def test_out_of_range_float(self):
         original = DataFrame({'ColumnOk': [0.0,
@@ -1271,8 +1271,41 @@ class TestStata(tm.TestCase):
                                   reread.set_index('index'))
 
         original.loc[2, 'ColumnTooBig'] = np.inf
-        with tm.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 original.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
-            tm.assertTrue('infinity' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
+            assert 'infinity' in cm.exception
+
+    def test_invalid_encoding(self):
+        # GH15723, validate encoding
+        original = self.read_csv(self.csv3)
+        with pytest.raises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, encoding='utf-8')
+
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        reader = lambda x: read_stata(x).set_index('index')
+        result = tm.round_trip_pathlib(df.to_stata, reader)
+        tm.assert_frame_equal(df, result)
+
+    def test_pickle_path_localpath(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        reader = lambda x: read_stata(x).set_index('index')
+        result = tm.round_trip_localpath(df.to_stata, reader)
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize('write_index', [True, False])
+    def test_value_labels_iterator(self, write_index):
+        # GH 16923
+        d = {'A': ['B', 'E', 'C', 'A', 'E']}
+        df = pd.DataFrame(data=d)
+        df['A'] = df['A'].astype('category')
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=write_index)
+            dta_iter = pd.read_stata(path, iterator=True)
+            value_labels = dta_iter.value_labels()
+        assert value_labels == {'A': {0: 'A', 1: 'B', 2: 'C', 3: 'E'}}

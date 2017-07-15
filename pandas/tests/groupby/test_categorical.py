@@ -2,18 +2,20 @@
 from __future__ import print_function
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 from numpy import nan
 
 import pandas as pd
 from pandas import (Index, MultiIndex, CategoricalIndex,
-                    DataFrame, Categorical, Series)
+                    DataFrame, Categorical, Series, Interval)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pandas.util.testing as tm
 from .common import MixIn
 
 
-class TestGroupByCategorical(MixIn, tm.TestCase):
+class TestGroupByCategorical(MixIn):
 
     def test_level_groupby_get_group(self):
         # GH15155
@@ -46,7 +48,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                     'mean': group.mean()}
 
         result = self.df.groupby(cats).D.apply(get_stats)
-        self.assertEqual(result.index.names[0], 'C')
+        assert result.index.names[0] == 'C'
 
     def test_apply_categorical_data(self):
         # GH 10138
@@ -113,14 +115,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(np.arange(4).repeat(8),
                                       levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
@@ -157,14 +157,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(
             np.arange(4).repeat(8), levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_categorical_index(self):
 
@@ -231,7 +229,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         # len(bins) != len(series) here
         def f():
             series.groupby(bins).mean()
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_groupby_multi_categorical_as_index(self):
         # GH13204
@@ -283,6 +281,30 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                 result = df.groupby(group_columns, as_index=False).sum()
 
             tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_groupby_preserve_categories(self):
+        # GH-13179
+        categories = list('abc')
+
+        # ordered=True
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=True)})
+        index = pd.CategoricalIndex(categories, categories, ordered=True)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index, index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index, index)
+
+        # ordered=False
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=False)})
+        sort_index = pd.CategoricalIndex(categories, categories, ordered=False)
+        nosort_index = pd.CategoricalIndex(list('bac'), list('bac'),
+                                           ordered=False)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index,
+                              sort_index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index,
+                              nosort_index)
 
     def test_groupby_preserve_categorical_dtype(self):
         # GH13743, GH13854
@@ -356,7 +378,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         result = data.groupby("b").mean()
         result = result["a"].values
         exp = np.array([1, 2, 4, np.nan])
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_groupby_sort_categorical(self):
         # dataframe groupby sort was being ignored # GH 8868
@@ -495,7 +517,8 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         res = groups_double_key.agg('mean')
         nan = np.nan
         idx = MultiIndex.from_product(
-            [Categorical(["(1, 2]", "(2, 3]", "(3, 6]"], ordered=True),
+            [Categorical([Interval(1, 2), Interval(2, 3),
+                          Interval(3, 6)], ordered=True),
              [1, 2, 3, 4]],
             names=["cat", "C2"])
         exp = DataFrame({"C1": [nan, nan, nan, nan, 3, 3,

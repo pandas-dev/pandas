@@ -1,20 +1,24 @@
 # pylint: disable-msg=E1101,W0613,W0603
-
 import os
 import numpy as np
 
-import pandas.json as _json
-from pandas.tslib import iNaT
+import pandas._libs.json as json
+from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
-from pandas import Series, DataFrame, to_datetime
-from pandas.io.common import get_filepath_or_buffer, _get_handle
+from pandas import Series, DataFrame, to_datetime, MultiIndex
+from pandas.io.common import (get_filepath_or_buffer, _get_handle,
+                              _stringify_path)
 from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
+from .table_schema import build_table_schema
+from pandas.core.dtypes.common import is_period_dtype
 
-loads = _json.loads
-dumps = _json.dumps
+loads = json.loads
+dumps = json.dumps
+
+TABLE_SCHEMA_VERSION = '0.20.0'
 
 
 # interface to/from
@@ -22,22 +26,26 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
             default_handler=None, lines=False):
 
+    path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")
 
-    if isinstance(obj, Series):
-        s = SeriesWriter(
-            obj, orient=orient, date_format=date_format,
-            double_precision=double_precision, ensure_ascii=force_ascii,
-            date_unit=date_unit, default_handler=default_handler).write()
+    if orient == 'table' and isinstance(obj, Series):
+        obj = obj.to_frame(name=obj.name or 'values')
+    if orient == 'table' and isinstance(obj, DataFrame):
+        writer = JSONTableWriter
+    elif isinstance(obj, Series):
+        writer = SeriesWriter
     elif isinstance(obj, DataFrame):
-        s = FrameWriter(
-            obj, orient=orient, date_format=date_format,
-            double_precision=double_precision, ensure_ascii=force_ascii,
-            date_unit=date_unit, default_handler=default_handler).write()
+        writer = FrameWriter
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
+
+    s = writer(
+        obj, orient=orient, date_format=date_format,
+        double_precision=double_precision, ensure_ascii=force_ascii,
+        date_unit=date_unit, default_handler=default_handler).write()
 
     if lines:
         s = _convert_to_line_delimits(s)
@@ -81,7 +89,8 @@ class Writer(object):
             ensure_ascii=self.ensure_ascii,
             date_unit=self.date_unit,
             iso_dates=self.date_format == 'iso',
-            default_handler=self.default_handler)
+            default_handler=self.default_handler
+        )
 
 
 class SeriesWriter(Writer):
@@ -106,6 +115,60 @@ class FrameWriter(Writer):
                 'index', 'columns', 'records'):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'%s'." % self.orient)
+
+
+class JSONTableWriter(FrameWriter):
+    _default_orient = 'records'
+
+    def __init__(self, obj, orient, date_format, double_precision,
+                 ensure_ascii, date_unit, default_handler=None):
+        """
+        Adds a `schema` attribut with the Table Schema, resets
+        the index (can't do in caller, because the schema inference needs
+        to know what the index is, forces orient to records, and forces
+        date_format to 'iso'.
+        """
+        super(JSONTableWriter, self).__init__(
+            obj, orient, date_format, double_precision, ensure_ascii,
+            date_unit, default_handler=default_handler)
+
+        if date_format != 'iso':
+            msg = ("Trying to write with `orient='table'` and "
+                   "`date_format='%s'`. Table Schema requires dates "
+                   "to be formatted with `date_format='iso'`" % date_format)
+            raise ValueError(msg)
+
+        self.schema = build_table_schema(obj)
+
+        # NotImplementd on a column MultiIndex
+        if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
+            raise NotImplementedError(
+                "orient='table' is not supported for MultiIndex")
+
+        # TODO: Do this timedelta properly in objToJSON.c See GH #15137
+        if ((obj.ndim == 1) and (obj.name in set(obj.index.names)) or
+                len(obj.columns & obj.index.names)):
+            msg = "Overlapping names between the index and columns"
+            raise ValueError(msg)
+
+        obj = obj.copy()
+        timedeltas = obj.select_dtypes(include=['timedelta']).columns
+        if len(timedeltas):
+            obj[timedeltas] = obj[timedeltas].applymap(
+                lambda x: x.isoformat())
+        # Convert PeriodIndex to datetimes before serialzing
+        if is_period_dtype(obj.index):
+            obj.index = obj.index.to_timestamp()
+
+        self.obj = obj.reset_index()
+        self.date_format = 'iso'
+        self.orient = 'records'
+
+    def write(self):
+        data = super(JSONTableWriter, self).write()
+        serialized = '{{"schema": {}, "data": {}}}'.format(
+            dumps(self.schema), data)
+        return serialized
 
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
@@ -244,6 +307,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
       col 1 col 2
     0     a     b
     1     c     d
+
+    Encoding with Table Schema
+
+    >>> df.to_json(orient='table')
+    '{"schema": {"fields": [{"name": "index", "type": "string"},
+                            {"name": "col 1", "type": "string"},
+                            {"name": "col 2", "type": "string"}],
+                    "primaryKey": "index",
+                    "pandas_version": "0.20.0"},
+        "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
+                {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,

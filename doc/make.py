@@ -34,39 +34,52 @@ os.environ['PYTHONPATH'] = '..'
 SPHINX_BUILD = 'sphinxbuild'
 
 
-def upload_dev(user='pandas'):
+def _process_user(user):
+    if user is None or user is False:
+        user = ''
+    else:
+        user = user + '@'
+    return user
+
+
+def upload_dev(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/html; rsync -avz . {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh'.format(user)):
         raise SystemExit('Upload to Pydata Dev failed')
 
 
-def upload_dev_pdf(user='pandas'):
+def upload_dev_pdf(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/latex; scp pandas.pdf {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/dev/'.format(user)):
         raise SystemExit('PDF upload to Pydata Dev failed')
 
 
-def upload_stable(user='pandas'):
+def upload_stable(user=None):
     'push a copy to the pydata stable directory'
-    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/html; rsync -avz . {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'.format(user)):
         raise SystemExit('Upload to stable failed')
 
 
-def upload_stable_pdf(user='pandas'):
+def upload_stable_pdf(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/latex; scp pandas.pdf {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/'.format(user)):
         raise SystemExit('PDF upload to stable failed')
 
 
-def upload_prev(ver, doc_root='./', user='pandas'):
+def upload_prev(ver, doc_root='./', user=None):
     'push a copy of older release to appropriate version directory'
+    user = _process_user(user)
     local_dir = doc_root + 'build/html'
     remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
-    cmd = 'cd %s; rsync -avz . %s@pandas.pydata.org:%s -essh'
+    cmd = 'cd %s; rsync -avz . %spandas.pydata.org:%s -essh'
     cmd = cmd % (local_dir, user, remote_dir)
     print(cmd)
     if os.system(cmd):
@@ -74,7 +87,7 @@ def upload_prev(ver, doc_root='./', user='pandas'):
             'Upload to %s from %s failed' % (remote_dir, local_dir))
 
     local_dir = doc_root + 'build/latex'
-    pdf_cmd = 'cd %s; scp pandas.pdf %s@pandas.pydata.org:%s'
+    pdf_cmd = 'cd %s; scp pandas.pdf %spandas.pydata.org:%s'
     pdf_cmd = pdf_cmd % (local_dir, user, remote_dir)
     if os.system(pdf_cmd):
         raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
@@ -106,106 +119,55 @@ def clean():
 
 
 @contextmanager
-def cleanup_nb(nb):
+def maybe_exclude_notebooks():
+    """
+    Skip building the notebooks if pandoc is not installed.
+    This assumes that nbsphinx is installed.
+    """
+    base = os.path.dirname(__file__)
+    notebooks = [os.path.join(base, 'source', nb)
+                 for nb in ['style.ipynb']]
+    contents = {}
+
+    def _remove_notebooks():
+        for nb in notebooks:
+            with open(nb, 'rt') as f:
+                contents[nb] = f.read()
+            os.remove(nb)
+
+    # Skip notebook conversion if
+    # 1. nbconvert isn't installed, or
+    # 2. nbconvert is installed, but pandoc isn't
     try:
-        yield
-    finally:
+        import nbconvert
+    except ImportError:
+        print("Warning: nbconvert not installed. Skipping notebooks.")
+        _remove_notebooks()
+    else:
         try:
-            os.remove(nb + '.executed')
-        except OSError:
-            pass
+            nbconvert.utils.pandoc.get_pandoc_version()
+        except nbconvert.utils.pandoc.PandocMissing:
+            print("Warning: Pandoc is not installed. Skipping notebooks.")
+            _remove_notebooks()
 
-
-def get_kernel():
-    """Find the kernel name for your python version"""
-    return 'python%s' % sys.version_info.major
-
-
-def execute_nb(src, dst, allow_errors=False, timeout=1000, kernel_name=''):
-    """
-    Execute notebook in `src` and write the output to `dst`
-
-    Parameters
-    ----------
-    src, dst: str
-        path to notebook
-    allow_errors: bool
-    timeout: int
-    kernel_name: str
-        defualts to value set in notebook metadata
-
-    Returns
-    -------
-    dst: str
-    """
-    import nbformat
-    from nbconvert.preprocessors import ExecutePreprocessor
-
-    with io.open(src, encoding='utf-8') as f:
-        nb = nbformat.read(f, as_version=4)
-
-    ep = ExecutePreprocessor(allow_errors=allow_errors,
-                             timeout=timeout,
-                             kernel_name=kernel_name)
-    ep.preprocess(nb, resources={})
-
-    with io.open(dst, 'wt', encoding='utf-8') as f:
-        nbformat.write(nb, f)
-    return dst
-
-
-def convert_nb(src, dst, to='html', template_file='basic'):
-    """
-    Convert a notebook `src`.
-
-    Parameters
-    ----------
-    src, dst: str
-        filepaths
-    to: {'rst', 'html'}
-        format to export to
-    template_file: str
-        name of template file to use. Default 'basic'
-    """
-    from nbconvert import HTMLExporter, RSTExporter
-
-    dispatch = {'rst': RSTExporter, 'html': HTMLExporter}
-    exporter = dispatch[to.lower()](template_file=template_file)
-
-    (body, resources) = exporter.from_filename(src)
-    with io.open(dst, 'wt', encoding='utf-8') as f:
-        f.write(body)
-    return dst
+    yield
+    for nb, content in contents.items():
+        with open(nb, 'wt') as f:
+            f.write(content)
 
 
 def html():
     check_build()
 
-    notebooks = [
-        'source/html-styling.ipynb',
-    ]
-
-    for nb in notebooks:
-        with cleanup_nb(nb):
-            try:
-                print("Converting %s" % nb)
-                kernel_name = get_kernel()
-                executed = execute_nb(nb, nb + '.executed', allow_errors=True,
-                                      kernel_name=kernel_name)
-                convert_nb(executed, nb.rstrip('.ipynb') + '.html')
-            except (ImportError, IndexError) as e:
-                print(e)
-                print("Failed to convert %s" % nb)
-
-    if os.system('sphinx-build -P -b html -d build/doctrees '
-                 'source build/html'):
-        raise SystemExit("Building HTML failed.")
-    try:
-        # remove stale file
-        os.system('rm source/html-styling.html')
-        os.system('cd build; rm -f html/pandas.zip;')
-    except:
-        pass
+    with maybe_exclude_notebooks():
+        if os.system('sphinx-build -P -b html -d build/doctrees '
+                     'source build/html'):
+            raise SystemExit("Building HTML failed.")
+        try:
+            # remove stale file
+            os.remove('build/html/pandas.zip')
+        except:
+            pass
 
 
 def zip_html():
@@ -222,7 +184,7 @@ def latex():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.
@@ -245,7 +207,7 @@ def latex_forced():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.

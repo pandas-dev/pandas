@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from warnings import catch_warnings
 import numpy as np
 
 from pandas import DataFrame, Series, MultiIndex, Panel
@@ -11,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSubclassing(tm.TestCase, TestData):
+class TestDataFrameSubclassing(TestData):
 
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -49,45 +50,45 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         cdf = CustomDataFrame(data)
 
         # Did we get back our own DF class?
-        self.assertTrue(isinstance(cdf, CustomDataFrame))
+        assert isinstance(cdf, CustomDataFrame)
 
         # Do we get back our own Series class after selecting a column?
         cdf_series = cdf.col1
-        self.assertTrue(isinstance(cdf_series, CustomSeries))
-        self.assertEqual(cdf_series.custom_series_function(), 'OK')
+        assert isinstance(cdf_series, CustomSeries)
+        assert cdf_series.custom_series_function() == 'OK'
 
         # Do we get back our own DF class after slicing row-wise?
         cdf_rows = cdf[1:5]
-        self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
-        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')
+        assert isinstance(cdf_rows, CustomDataFrame)
+        assert cdf_rows.custom_frame_function() == 'OK'
 
         # Make sure sliced part of multi-index frame is custom class
         mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
         cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi['A'], CustomDataFrame))
+        assert isinstance(cdf_multi['A'], CustomDataFrame)
 
         mcol = pd.MultiIndex.from_tuples([('A', ''), ('B', '')])
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
+        assert isinstance(cdf_multi2['A'], CustomSeries)
 
     def test_dataframe_metadata(self):
         df = tm.SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
                                     index=['a', 'b', 'c'])
         df.testattr = 'XXX'
 
-        self.assertEqual(df.testattr, 'XXX')
-        self.assertEqual(df[['X']].testattr, 'XXX')
-        self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
-        self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+        assert df.testattr == 'XXX'
+        assert df[['X']].testattr == 'XXX'
+        assert df.loc[['a', 'b'], :].testattr == 'XXX'
+        assert df.iloc[[0, 1], :].testattr == 'XXX'
 
-        # GH9776
-        self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+        # see gh-9776
+        assert df.iloc[0:1, :].testattr == 'XXX'
 
-        # GH10553
-        unpickled = self.round_trip_pickle(df)
+        # see gh-10553
+        unpickled = tm.round_trip_pickle(df)
         tm.assert_frame_equal(df, unpickled)
-        self.assertEqual(df._metadata, unpickled._metadata)
-        self.assertEqual(df.testattr, unpickled.testattr)
+        assert df._metadata == unpickled._metadata
+        assert df.testattr == unpickled.testattr
 
     def test_indexing_sliced(self):
         # GH 11559
@@ -98,54 +99,55 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         res = df.loc[:, 'X']
         exp = tm.SubclassedSeries([1, 2, 3], index=list('abc'), name='X')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.iloc[:, 1]
         exp = tm.SubclassedSeries([4, 5, 6], index=list('abc'), name='Y')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc[:, 'Z']
         exp = tm.SubclassedSeries([7, 8, 9], index=list('abc'), name='Z')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc['a', :]
         exp = tm.SubclassedSeries([1, 4, 7], index=list('XYZ'), name='a')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.iloc[1, :]
         exp = tm.SubclassedSeries([2, 5, 8], index=list('XYZ'), name='b')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc['c', :]
         exp = tm.SubclassedSeries([3, 6, 9], index=list('XYZ'), name='c')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
     def test_to_panel_expanddim(self):
         # GH 9762
 
-        class SubclassedFrame(DataFrame):
+        with catch_warnings(record=True):
+            class SubclassedFrame(DataFrame):
 
-            @property
-            def _constructor_expanddim(self):
-                return SubclassedPanel
+                @property
+                def _constructor_expanddim(self):
+                    return SubclassedPanel
 
-        class SubclassedPanel(Panel):
-            pass
+            class SubclassedPanel(Panel):
+                pass
 
-        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-        df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-        result = df.to_panel()
-        self.assertTrue(isinstance(result, SubclassedPanel))
-        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                   items=['X', 'Y'], major_axis=[0],
-                                   minor_axis=[0, 1, 2],
-                                   dtype='int64')
-        tm.assert_panel_equal(result, expected)
+            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+            result = df.to_panel()
+            assert isinstance(result, SubclassedPanel)
+            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                       items=['X', 'Y'], major_axis=[0],
+                                       minor_axis=[0, 1, 2],
+                                       dtype='int64')
+            tm.assert_panel_equal(result, expected)
 
     def test_subclass_attr_err_propagation(self):
         # GH 11808
@@ -154,7 +156,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assertRaisesRegexp(AttributeError, '.*i_dont_exist.*'):
+        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):
@@ -171,15 +173,15 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         exp2 = tm.SubclassedDataFrame({'c': [1, 2, np.nan, 4, np.nan],
                                        'd': [1, 2, np.nan, 4, np.nan]},
                                       index=list('ABCDE'))
-        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
-        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        assert isinstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp2)
 
         res1, res2 = df1.a.align(df2.c)
-        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        assert isinstance(res1, tm.SubclassedSeries)
         tm.assert_series_equal(res1, exp1.a)
-        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2.c)
 
     def test_subclass_align_combinations(self):
@@ -197,23 +199,23 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         exp2 = pd.Series([1, 2, np.nan, 4, np.nan],
                          index=list('ABCDE'), name='x')
 
-        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
-        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2)
 
         # series + frame
         res1, res2 = s.align(df)
-        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        assert isinstance(res1, tm.SubclassedSeries)
         tm.assert_series_equal(res1, exp2)
-        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        assert isinstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp1)
 
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({'a': [1]})
         for i, row in df.iterrows():
-            tm.assertIsInstance(row, tm.SubclassedSeries)
+            assert isinstance(row, tm.SubclassedSeries)
             tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_sparse_slice(self):
@@ -227,9 +229,9 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
                                  tm.SubclassedSparseDataFrame(rows[:2]))
         tm.assert_sp_frame_equal(ssdf[:2],
                                  tm.SubclassedSparseDataFrame(rows[:2]))
-        tm.assert_equal(ssdf.loc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf.iloc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf[:2].testattr, "testattr")
+        assert ssdf.loc[:2].testattr == "testattr"
+        assert ssdf.iloc[:2].testattr == "testattr"
+        assert ssdf[:2].testattr == "testattr"
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),

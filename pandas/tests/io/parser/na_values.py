@@ -8,10 +8,10 @@ parsing for all of the parsers defined in parsers.py
 import numpy as np
 from numpy import nan
 
-import pandas.io.parsers as parsers
+import pandas.io.common as com
 import pandas.util.testing as tm
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import StringIO, range
 
 
@@ -70,9 +70,9 @@ NaN,nan
 
     def test_default_na_values(self):
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                          '#N/A', 'N/A', 'NA', '#NA', 'NULL', 'NaN',
-                          'nan', '-NaN', '-nan', '#N/A N/A', ''])
-        self.assertEqual(_NA_VALUES, parsers._NA_VALUES)
+                          '#N/A', 'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null',
+                          'NaN', 'nan', '-NaN', '-nan', '#N/A N/A', ''])
+        assert _NA_VALUES == com._NA_VALUES
         nv = len(_NA_VALUES)
 
         def f(i, v):
@@ -248,8 +248,8 @@ nan,B
 2012-05-12,USD,SBUX,SELL,500"""
 
         result = self.read_csv(StringIO(data))
-        self.assertEqual(result['Date'][1], '2012-05-12')
-        self.assertTrue(result['UnitPrice'].isnull().all())
+        assert result['Date'][1] == '2012-05-12'
+        assert result['UnitPrice'].isnull().all()
 
     def test_na_values_scalar(self):
         # see gh-12224
@@ -302,4 +302,13 @@ nan,B
         data = str(2**63) + ',1' + '\n,2'
         expected = DataFrame([[str(2**63), 1], ['', 2]])
         out = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(out, expected)
+
+    def test_empty_na_values_no_default_with_index(self):
+        # see gh-15835
+        data = "a,1\nb,2"
+
+        expected = DataFrame({'1': [2]}, index=Index(["b"], name="a"))
+        out = self.read_csv(StringIO(data), keep_default_na=False, index_col=0)
+
         tm.assert_frame_equal(out, expected)

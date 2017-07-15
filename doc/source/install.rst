@@ -23,18 +23,6 @@ Officially Python 2.7, 3.4, 3.5, and 3.6
 Installing pandas
 -----------------
 
-Trying out pandas, no installation required!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The easiest way to start experimenting with pandas doesn't involve installing
-pandas at all.
-
-`Wakari <https://wakari.io>`__ is a free service that provides a hosted
-`IPython Notebook <http://ipython.org/notebook.html>`__ service in the cloud.
-
-Simply create an account, and have access to pandas from within your brower via
-an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
-
 .. _install.anaconda:
 
 Installing pandas with Anaconda
@@ -214,7 +202,7 @@ installed), make sure you have `pytest
 Dependencies
 ------------
 
-* `setuptools <http://pythonhosted.org/setuptools>`__
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
 * `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
 * `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
@@ -226,7 +214,7 @@ Recommended Dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.1 or higher (excluding a buggy 2.4.4). Version 2.4.6 or higher is highly recommended.
+  If installed, must be Version 2.4.6 or higher.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
@@ -272,7 +260,7 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* For Google BigQuery I/O - see :ref:`here <io.bigquery_deps>`.
+* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
 
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the
@@ -282,7 +270,7 @@ Optional Dependencies
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
   * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML Table Parsing <gotchas.html>`
+  * Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
     for reasons as to why you should probably **not** take this approach.
 
   .. warning::

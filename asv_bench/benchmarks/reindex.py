@@ -16,8 +16,8 @@ class Reindexing(object):
                              data=np.random.rand(10000, 30), columns=range(30))
 
         # multi-index
-        N = 1000
-        K = 20
+        N = 5000
+        K = 200
         level1 = tm.makeStringIndex(N).values.repeat(K)
         level2 = np.tile(tm.makeStringIndex(K).values, N)
         index = MultiIndex.from_arrays([level1, level2])
@@ -132,6 +132,9 @@ class Duplicates(object):
         self.K = 10000
         self.key1 = np.random.randint(0, self.K, size=self.N)
         self.df_int = DataFrame({'key1': self.key1})
+        self.df_bool = DataFrame({i: np.random.randint(0, 2, size=self.K,
+                                                       dtype=bool)
+                                  for i in range(10)})
 
     def time_frame_drop_dups(self):
         self.df.drop_duplicates(['key1', 'key2'])
@@ -154,6 +157,8 @@ class Duplicates(object):
     def time_frame_drop_dups_int(self):
         self.df_int.drop_duplicates()
 
+    def time_frame_drop_dups_bool(self):
+        self.df_bool.drop_duplicates()
 
 #----------------------------------------------------------------------
 # blog "pandas escaped the zoo"
