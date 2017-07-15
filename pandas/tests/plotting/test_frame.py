@@ -2739,7 +2739,7 @@ class TestDataFramePlots(TestPlotBase):
         df = (pd.DataFrame(np.random.randn(15, 2),
                            columns=list('AB'))
               .assign(C=lambda df: df.B.cumsum())
-              .assign(D=lambda df: df.C*1.1))
+              .assign(D=lambda df: df.C * 1.1))
 
         fontsize = 20
         sy = ['C', 'D']
