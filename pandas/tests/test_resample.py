@@ -3030,6 +3030,11 @@ class TestTimeGrouper(object):
         self.ts = Series(np.random.randn(1000),
                          index=date_range('1/1/2000', periods=1000))
 
+    def test_TimeGrouper_deprecation(self):
+        # deprecation TimeGrouper, #16747
+        with tm.assert_produces_warning(FutureWarning):
+            TimeGrouper('A', label='right', closed='right')
+
     def test_apply(self):
         grouper = TimeGrouper('A', label='right', closed='right')
 
