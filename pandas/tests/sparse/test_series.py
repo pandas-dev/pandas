@@ -92,12 +92,12 @@ class TestSparseSeries(SharedWithSparse):
         # see gh-16905
         test_dict = {1: 1}
         test_index = [0, 1, 2]
-        test_series = pd.Series({1: 1}, index=test_index)
+        test_series = pd.Series(test_dict, index=test_index)
 
         arr = SparseSeries(test_dict)
         assert arr.count() == len(test_dict)
 
-        arr = SparseSeries(test_series, index=test_index))
+        arr = SparseSeries(test_series, index=test_index)
         assert arr.count() == test_series.count()
 
     def test_constructor_dtype(self):
