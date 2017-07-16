@@ -146,7 +146,7 @@ class SparseSeries(Series):
                 data = data._data
 
             elif isinstance(data, (Series, dict)):
-                data = Series(data)
+                data = Series(data, index=index)
                 if index is None:
                     index = data.index.view()
 
