@@ -255,18 +255,6 @@ pc_large_repr_doc = """
     df.info() (the behaviour in earlier versions of pandas).
 """
 
-pc_mpl_style_doc = """
-: bool
-    Setting this to 'default' will modify the rcParams used by matplotlib
-    to give plots a more pleasing visual style by default.
-    Setting this to None/False restores the values to their initial value.
-"""
-
-pc_mpl_style_deprecation_warning = """
-mpl_style had been deprecated and will be removed in a future version.
-Use `matplotlib.pyplot.style.use` instead.
-"""
-
 pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
