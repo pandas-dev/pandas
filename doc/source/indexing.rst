@@ -78,8 +78,10 @@ of multi-axis indexing.
     *label* of the index. This use is **not** an integer position along the
     index)
   - A list or array of labels ``['a', 'b', 'c']``
-  - A slice object with labels ``'a':'f'``, (note that contrary to usual python
-    slices, **both** the start and the stop are included!)
+  - A slice object with labels ``'a':'f'`` (note that contrary to usual python
+    slices, **both** the start and the stop are included, when present in the
+    index! - also see :ref:`Slicing with labels
+    <indexing.slicing_with_labels>`)
   - A boolean array
   - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
     that returns valid output for indexing (one of the above)
@@ -330,13 +332,16 @@ Selection By Label
      dfl.loc['20130102':'20130104']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
 - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
 - A list or array of labels ``['a', 'b', 'c']``
-- A slice object with labels ``'a':'f'`` (note that contrary to usual python slices, **both** the start and the stop are included!)
+- A slice object with labels ``'a':'f'`` (note that contrary to usual python
+  slices, **both** the start and the stop are included, when present in the
+  index! - also See :ref:`Slicing with labels
+  <indexing.slicing_with_labels>`)
 - A boolean array
 - A ``callable``, see :ref:`Selection By Callable <indexing.callable>`
 
@@ -389,6 +394,34 @@ For getting a value explicitly (equiv to deprecated ``df.get_value('a','A')``)
 
    # this is also equivalent to ``df1.at['a','A']``
    df1.loc['a', 'A']
+
+.. _indexing.slicing_with_labels:
+
+Slicing with labels
+~~~~~~~~~~~~~~~~~~~
+
+When using ``.loc`` with slices, if both the start and the stop labels are
+present in the index, then elements *located* between the two (including them)
+are returned:
+
+.. ipython:: python
+
+   s = pd.Series(list('abcde'), index=[0,3,2,5,4])
+   s.loc[3:5]
+
+If at least one of the two is absent, but the index is sorted, and can be
+compared against start and stop labels, then slicing will still work as
+expected, by selecting labels which *rank* between the two:
+
+.. ipython:: python
+
+   s.sort_index()
+   s.sort_index().loc[1:6]
+
+However, if at least one of the two is absent *and* the index is not sorted, an
+error will be raised (since doing otherwise would be computationally expensive,
+as well as potentially ambiguous for mixed type indexes). For instance, in the
+above example, ``s.loc[1:6]`` would raise ``KeyError``.
 
 .. _indexing.integer:
 
