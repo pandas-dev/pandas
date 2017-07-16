@@ -422,27 +422,6 @@ def get_period_alias(offset_str):
     return _offset_to_period_map.get(offset_str, None)
 
 
-_pure_alias = {
-    # 'A' is equivalent to 'Y'.
-    'Y': 'A',
-    'YS': 'AS',
-    'BY': 'BA',
-    'BYS': 'BAS',
-    'Y-DEC': 'A-DEC',
-    'Y-JAN': 'A-JAN',
-    'Y-FEB': 'A-FEB',
-    'Y-MAR': 'A-MAR',
-    'Y-APR': 'A-APR',
-    'Y-MAY': 'A-MAY',
-    'Y-JUN': 'A-JUN',
-    'Y-JUL': 'A-JUL',
-    'Y-AUG': 'A-AUG',
-    'Y-SEP': 'A-SEP',
-    'Y-OCT': 'A-OCT',
-    'Y-NOV': 'A-NOV',
-}
-
-
 _lite_rule_alias = {
     'W': 'W-SUN',
     'Q': 'Q-DEC',
@@ -739,7 +718,6 @@ _period_code_map.update({
 
 
 def _period_str_to_code(freqstr):
-    freqstr = _pure_alias.get(freqstr, freqstr)
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
