@@ -175,7 +175,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 - Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
 - Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
-
+- Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 
 Sparse
 ^^^^^^
