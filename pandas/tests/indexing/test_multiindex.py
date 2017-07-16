@@ -430,7 +430,7 @@ class TestMultiIndexBasic(object):
 
 
     def test_set_level_checkall(self):
-        # testing previous behaviour
+
         idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -456,6 +456,17 @@ class TestMultiIndexBasic(object):
         expected = MultiIndex(levels=[[u'a', u'b'], [1, 2]],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
+        tm.assert_index_equal(result, expected)
+
+        # setting empty levels are allowed
+        idx = MultiIndex(levels=[['L1'], ['L2']], labels=[[], []], names=['a', 'b'])
+        result = idx.set_levels([], level='a')
+        expected = MultiIndex(levels=[[], ['L2']], labels=[[], []], names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
+        idx = MultiIndex(levels=[['L1'], ['L2']], labels=[[], []], names=['a', 'b'])
+        result = idx.set_levels([[],[]], level=['a','b'])
+        expected = MultiIndex(levels=[[], []], labels=[[], []], names=['a', 'b'])
         tm.assert_index_equal(result, expected)
 
 
