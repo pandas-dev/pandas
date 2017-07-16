@@ -230,24 +230,27 @@ class MultiIndex(Index):
                    names=[u'foo', u'bar'])
         """
 
-        if not (level is None or is_list_like(level)):
+        level_list_like = level is None or is_list_like(level)
+        levels_list_like = (levels != [] and
+                            is_list_like(levels) and
+                            all(is_list_like(x) for x in levels))
+
+        if level_list_like:
+            # level is a list-like object of scalars
+            levels_error = ("`levels` and `level` are incompatible. "
+                            "When `level` is list-like, `levels` must be a "
+                            "list-like object containing list-like objects")
+            if not levels_list_like:
+                raise TypeError(levels_error)
+        elif not level_list_like:
             # level is a scalar
             levels_error = ("`levels` and `level` are incompatible. "
                             "When `level` is a scalar, `levels` must be a "
                             " list-like object of scalars.")
-            if not is_list_like(levels):
-                raise TypeError(levels_error)
-            if any(is_list_like(x) for x in levels):
+            if levels_list_like:
                 raise TypeError(levels_error)
             level = [level]
             levels = [levels]
-        elif level is None or is_list_like(level):
-            # level is a sequence of scalars
-            levels_error = ("`levels` and `level` are incompatible. "
-                            "When `level` is list-like, `levels` must be a "
-                            "list-like object containing list-like objects")
-            if not (is_list_like(levels) and all(is_list_like(x) for x in levels)):
-                raise TypeError(levels_error)
 
         if inplace:
             idx = self
