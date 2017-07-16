@@ -132,9 +132,6 @@ class TestSparseSeries(SharedWithSparse):
         assert arr.dtype == np.int64
         assert arr.fill_value == 0
 
-        arr = SparseSeries({1: 1})
-        assert arr.dtype == np.int64
-
     def test_iteration_and_str(self):
         [x for x in self.bseries]
         str(self.bseries)
