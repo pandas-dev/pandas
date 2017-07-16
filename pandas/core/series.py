@@ -1524,9 +1524,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Notes
         -----
-        Iteratively appending to a series can be more computationally intense
+        Iteratively appending to a Series can be more computationally intensive
         than a single concatenate. A better solution is to append values to a
-        list then concatenate the list with the original series all at once.
+        list and then concatenate the list with the original series all at
+        once.
 
         See also
         --------
