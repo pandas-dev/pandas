@@ -116,6 +116,7 @@ Deprecations
 ~~~~~~~~~~~~
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 
+- ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 
 .. _whatsnew_0210.prior_deprecations:
 
