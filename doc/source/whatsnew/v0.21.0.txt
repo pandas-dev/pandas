@@ -179,7 +179,7 @@ Sparse
 ^^^^^^
 
 
-- Bug in instantiating :class:`SparseSeries` from ``dict`` with or without ``index=`` kwarg (:issue:`16905`)
+- Bug in instantiating :class:`SparseSeries` from ``dict`` (:issue:`16905`)
 
 Reshaping
 ^^^^^^^^^
