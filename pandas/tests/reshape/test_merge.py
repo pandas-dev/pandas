@@ -1,7 +1,7 @@
 # pylint: disable=E1103
 
 import pytest
-from datetime import datetime
+from datetime import datetime, date
 from numpy.random import randn
 from numpy import nan
 import numpy as np
@@ -1514,6 +1514,27 @@ class TestMergeCategorical(object):
         result = pd.merge(df, df, on=list(df.columns))
 
         assert_frame_equal(result, df)
+
+    def test_dtype_on_categorical_dates(self):
+        # GH 16900
+        # dates should not be coerced to ints
+
+        df = pd.DataFrame(
+            [[date(2001, 1, 1), 1.1],
+             [date(2001, 1, 2), 1.3]],
+            columns=['date', 'num2']
+        )
+        df['date'] = df['date'].astype('category')
+
+        df2 = pd.DataFrame(
+            [[date(2001, 1, 1), 1.3],
+             [date(2001, 1, 3), 1.4]],
+            columns=['date', 'num4']
+        )
+        df2['date'] = df2['date'].astype('category')
+
+        result = pd.merge(df, df2, how='outer', on=['date'])
+        assert result['date'].dtype == 'category'
 
 
 @pytest.fixture

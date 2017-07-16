@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_integer,
     is_int_or_datetime_dtype,
+    is_datetimelike,
     is_dtype_equal,
     is_bool,
     is_list_like,
@@ -877,7 +878,7 @@ class _MergeOperation(object):
         return left_keys, right_keys, join_names
 
     def _maybe_coerce_merge_keys(self):
-        # we have valid mergee's but we may have to further
+        # we have valid mergees but we may have to further
         # coerce these if they are originally incompatible types
         #
         # for example if these are categorical, but are not dtype_equal
@@ -894,6 +895,13 @@ class _MergeOperation(object):
             if is_categorical_dtype(lk) and is_categorical_dtype(rk):
                 if lk.is_dtype_equal(rk):
                     continue
+
+                # if we are dates with differing categories
+                # then allow them to proceed because
+                # coercing to object below results in integers.
+                if is_datetimelike(lk.categories) and is_datetimelike(rk.categories):
+                    continue
+
             elif is_categorical_dtype(lk) or is_categorical_dtype(rk):
                 pass
 
@@ -904,7 +912,7 @@ class _MergeOperation(object):
             # kinds to proceed, eg. int64 and int8
             # further if we are object, but we infer to
             # the same, then proceed
-            if (is_numeric_dtype(lk) and is_numeric_dtype(rk)):
+            if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
