@@ -400,7 +400,7 @@ display.width                       80           Width of the display in charact
 display.html.table_schema           False        Whether to publish a Table Schema
                                                  representation for frontends that
                                                  support it.
-html.border                         1            A ``border=value`` attribute is
+display.html.border                 1            A ``border=value`` attribute is
                                                  inserted in the ``<table>`` tag
                                                  for the DataFrame HTML repr.
 io.excel.xls.writer                 xlwt         The default Excel writer engine for

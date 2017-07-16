@@ -1064,7 +1064,7 @@ class HTMLFormatter(TableFormatter):
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
-            border = get_option('html.border')
+            border = get_option('display.html.border')
         self.border = border
 
     def write(self, s, indent=0):
