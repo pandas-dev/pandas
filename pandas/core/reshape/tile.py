@@ -44,7 +44,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     labels : array or boolean, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
-        bins.
+        bins. If True, raises an error.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -155,7 +155,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     labels : array or boolean, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
-        bins.
+        bins. If True, raises an error.
     retbins : bool, optional
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
@@ -245,7 +245,10 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is None:
+        if labels is True:
+            raise ValueError("User desired bin labels must be passed "
+                             "in as an argument, not just `True`")
+        elif labels is None:
             labels = _format_labels(bins, precision, right=right,
                                     include_lowest=include_lowest,
                                     dtype=dtype)
