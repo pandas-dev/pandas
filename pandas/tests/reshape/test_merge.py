@@ -1536,6 +1536,9 @@ class TestMergeCategorical(object):
         result = pd.merge(df, df2, how='outer', on=['date'])
         assert result['date'].dtype == 'category'
 
+        result_inner = pd.merge(df, df2, how='inner', on=['date'])
+        assert result_inner['date'].dtype == 'category'
+
 
 @pytest.fixture
 def left_df():
