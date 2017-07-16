@@ -1,7 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
-from collections import OrderedDict
 from datetime import datetime
 
 import pytest
@@ -60,6 +59,8 @@ def _test_data2_zero():
 
 
 class TestSparseSeries(SharedWithSparse):
+
+    Series = SparseSeries
 
     def setup_method(self, method):
         arr, index = _test_data1()
@@ -1366,61 +1367,6 @@ class TestSparseSeriesAnalytics(object):
                 getattr(np, func)(getattr(self, series))
 
 
-def test_constructor_dict():
-    d = {'a': 0., 'b': 1., 'c': 2.}
-    result = SparseSeries(d)
-    expected = SparseSeries(d, index=sorted(d.keys()))
-    tm.assert_sp_series_equal(result, expected)
-
-    result = SparseSeries(d, index=['b', 'c', 'd', 'a'])
-    expected = SparseSeries([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
-    tm.assert_sp_series_equal(result, expected)
-
-
-def test_constructor_dict_multiindex():
-    d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
-    _d = sorted(d.items())
-    result = SparseSeries(d)
-    expected = SparseSeries(
-        [x[1] for x in _d],
-        index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
-    tm.assert_series_equal(result, expected)
-
-    d['z'] = 111.
-    _d.insert(0, ('z', d['z']))
-    result = SparseSeries(d)
-    expected = SparseSeries([x[1] for x in _d],
-                            index=pd.Index([x[0] for x in _d],
-                                           tupleize_cols=False))
-    result = result.reindex(index=expected.index)
-    tm.assert_series_equal(result, expected)
-
-
-def test_constructor_dict_timedelta_index():
-    # GH #12169 : Resample category data with timedelta index
-    # construct Series from dict as data and TimedeltaIndex as index
-    # will result NaN in result Series data
-    expected = SparseSeries(
-        data=['A', 'B', 'C'],
-        index=pd.to_timedelta([0, 10, 20], unit='s')
-    )
-
-    result = SparseSeries(
-        data={pd.to_timedelta(0, unit='s'): 'A',
-              pd.to_timedelta(10, unit='s'): 'B',
-              pd.to_timedelta(20, unit='s'): 'C'},
-        index=pd.to_timedelta([0, 10, 20], unit='s')
-    )
-    tm.assert_sp_series_equal(result, expected)
-
-
-def test_constructor_subclass_dict():
-    data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
-    series = SparseSeries(data)
-    expected = SparseSeries(dict(compat.iteritems(data)))
-    tm.assert_sp_series_equal(series, expected)
-
-
 @pytest.mark.parametrize(
     'datetime_type', (np.datetime64,
                       pd.Timestamp,
@@ -1434,19 +1380,3 @@ def test_constructor_dict_datetime64_index(datetime_type):
     expected = SparseSeries(values, map(pd.Timestamp, dates))
 
     tm.assert_sp_series_equal(result, expected)
-
-
-def test_orderedDict_ctor():
-    # GH3283
-    data = OrderedDict(('col%s' % i, np.random.random()) for i in range(12))
-
-    series = SparseSeries(data)
-    expected = SparseSeries(list(data.values()), list(data.keys()))
-    tm.assert_sp_series_equal(series, expected)
-
-    # Test with subclass
-    class A(OrderedDict):
-        pass
-
-    series = SparseSeries(A(data))
-    tm.assert_sp_series_equal(series, expected)

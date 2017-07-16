@@ -1,5 +1,6 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
+from collections import OrderedDict
 
 import pytest
 
@@ -117,8 +118,77 @@ class SharedWithSparse(object):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
 
+    def test_constructor_dict(self):
+        d = {'a': 0., 'b': 1., 'c': 2.}
+        result = self.Series(d)
+        expected = self.Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
+
+        result = self.Series(d, index=['b', 'c', 'd', 'a'])
+        expected = self.Series([1, 2, np.nan, 0], index=['b', 'c', 'd', 'a'])
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_subclass_dict(self):
+        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+        series = self.Series(data)
+        expected = self.Series(dict(compat.iteritems(data)))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_ordereddict(self):
+        # GH3283
+        data = OrderedDict(
+            ('col%s' % i, np.random.random()) for i in range(12))
+
+        series = self.Series(data)
+        expected = self.Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
+
+        # Test with subclass
+        class A(OrderedDict):
+            pass
+
+        series = self.Series(A(data))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_dict_multiindex(self):
+        d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
+        _d = sorted(d.items())
+        result = self.Series(d)
+        expected = self.Series(
+            [x[1] for x in _d],
+            index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
+        tm.assert_series_equal(result, expected)
+
+        d['z'] = 111.
+        _d.insert(0, ('z', d['z']))
+        result = self.Series(d)
+        expected = self.Series([x[1] for x in _d],
+                               index=pd.Index([x[0] for x in _d],
+                                              tupleize_cols=False))
+        result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = self.Series(
+            data=['A', 'B', 'C'],
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+
+        result = self.Series(
+            data={pd.to_timedelta(0, unit='s'): 'A',
+                  pd.to_timedelta(10, unit='s'): 'B',
+                  pd.to_timedelta(20, unit='s'): 'C'},
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
+
+    Series = Series
 
     def test_tab_completion(self):
         # GH 9910
