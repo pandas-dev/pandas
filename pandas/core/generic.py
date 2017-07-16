@@ -4948,24 +4948,21 @@ it is assumed to be aliases for the column names.')
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
-        For a Series with a PeriodIndex, the keyword ``convention`` can be
-        used to control whether to use the start or end of ``rule``.
+        For a Series with a PeriodIndex, the keyword `convention` can be
+        used to control whether to use the start or end of `rule`.
 
-        >>> series_p = pd.Series([1, 2],
-                                 index=pd.period_range('2012-01-01',
-                                                       freq='A',
-                                                       periods=2
-                                                       )
-                                 )
-        >>> series_p
+        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
+                                                        freq='A',
+                                                        periods=2))
+        >>> s
         2012    1
         2013    2
         Freq: A-DEC, dtype: int64
 
-        Resample by month using 'start' ``convention``. Values are assigned to
+        Resample by month using 'start' `convention`. Values are assigned to
         the first month of the period.
 
-        >>> series_p.resample('M', convention='start').asfreq().head()
+        >>> s.resample('M', convention='start').asfreq().head()
         2012-01    1.0
         2012-02    NaN
         2012-03    NaN
@@ -4973,10 +4970,10 @@ it is assumed to be aliases for the column names.')
         2012-05    NaN
         Freq: M, dtype: float64
 
-        Resample by month using 'end' ``convention``. Values are assigned to
+        Resample by month using 'end' `convention`. Values are assigned to
         the last month of the period.
 
-        >>> series_p.resample('M', convention='end').asfreq()
+        >>> s.resample('M', convention='end').asfreq()
         2012-12    1.0
         2013-01    NaN
         2013-02    NaN
