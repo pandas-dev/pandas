@@ -1,5 +1,8 @@
 # reasonably efficient
 
+import numpy as np
+from pandas import Panel
+
 
 def create_panels_append(cls, panels):
         """ return an append list of panels """
@@ -82,4 +85,4 @@ def create_panels_join(cls, panels):
                           for minor_i in minor])
         # construct the panel
         return Panel(data, items, major, minor)
-add_class_method(Panel, create_panels_join, 'join_many')
+# add_class_method(Panel, create_panels_join, 'join_many')
