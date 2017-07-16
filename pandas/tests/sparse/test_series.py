@@ -90,15 +90,15 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_constructor_data_input(self):
         # see gh-16905
-        test_dict = {1: 1}
-        test_index = [0, 1, 2]
-        test_series = pd.Series(test_dict, index=test_index)
+        constructor_dict = {1: 1}
+        index = [0, 1, 2]
+        series = pd.Series(constructor_dict, index=index)
 
-        arr = SparseSeries(test_dict)
-        assert arr.count() == len(test_dict)
+        result = SparseSeries(constructor_dict)
+        tm.assert_dict_equal(result.to_dict(), constructor_dict)
 
-        arr = SparseSeries(test_series, index=test_index)
-        assert arr.count() == test_series.count()
+        result = SparseSeries(series, index=index)
+        tm.assert_series_equal(result, series, check_series_type=False)
 
     def test_constructor_dtype(self):
         arr = SparseSeries([np.nan, 1, 2, np.nan])
