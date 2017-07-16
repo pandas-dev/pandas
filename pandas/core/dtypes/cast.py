@@ -110,9 +110,7 @@ def maybe_downcast_to_dtype(result, dtype):
                     np.prod(result.shape)):
                 return result
 
-        if issubclass(dtype.type, np.floating):
-            return result.astype(dtype)
-        elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
+        if is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
             # if we don't have any elements, just astype it
             if not np.prod(result.shape):
@@ -144,6 +142,9 @@ def maybe_downcast_to_dtype(result, dtype):
                     # hit here
                     if (new_result == result).all():
                         return new_result
+        elif (issubclass(dtype.type, np.floating) and
+                not is_bool_dtype(result.dtype)):
+            return result.astype(dtype)
 
         # a datetimelike
         # GH12821, iNaT is casted to float
