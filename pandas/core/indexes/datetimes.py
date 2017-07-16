@@ -1882,7 +1882,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Select values between particular times of day (e.g., 9:00-9:30AM).
 
         Return values of the index between two times.  If start_time or
-        end_time are strings then tseres.tools.to_time is used to convert to
+        end_time are strings then tseries.tools.to_time is used to convert to
         a time object.
 
         Parameters
