@@ -399,10 +399,14 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
-    'M': 'M'
+    'M': 'M',
+    'Y': 'A',
+    'BY': 'A',
+    'YS': 'A',
+    'BYS': 'A',
 }
 
-need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
+need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 for __prefix in need_suffix:
     for _m in tslib._MONTHS:
         _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
@@ -422,35 +426,18 @@ def get_period_alias(offset_str):
     return _offset_to_period_map.get(offset_str, None)
 
 
-_pure_alias = {
-    # 'A' is equivalent to 'Y'.
-    'Y': 'A',
-    'YS': 'AS',
-    'BY': 'BA',
-    'BYS': 'BAS',
-    'Y-DEC': 'A-DEC',
-    'Y-JAN': 'A-JAN',
-    'Y-FEB': 'A-FEB',
-    'Y-MAR': 'A-MAR',
-    'Y-APR': 'A-APR',
-    'Y-MAY': 'A-MAY',
-    'Y-JUN': 'A-JUN',
-    'Y-JUL': 'A-JUL',
-    'Y-AUG': 'A-AUG',
-    'Y-SEP': 'A-SEP',
-    'Y-OCT': 'A-OCT',
-    'Y-NOV': 'A-NOV',
-}
-
-
 _lite_rule_alias = {
     'W': 'W-SUN',
     'Q': 'Q-DEC',
 
     'A': 'A-DEC',  # YearEnd(month=12),
+    'Y': 'A-DEC',
     'AS': 'AS-JAN',  # YearBegin(month=1),
+    'YS': 'AS-JAN',
     'BA': 'BA-DEC',  # BYearEnd(month=12),
+    'BY': 'BA-DEC',
     'BAS': 'BAS-JAN',  # BYearBegin(month=1),
+    'BYS': 'BAS-JAN',
 
     'Min': 'T',
     'min': 'T',
@@ -729,7 +716,17 @@ _reverse_period_code_map = {}
 for _k, _v in compat.iteritems(_period_code_map):
     _reverse_period_code_map[_v] = _k
 
-# Additional aliases
+# Yearly aliases
+year_aliases = {}
+
+for k, v in compat.iteritems(_period_code_map):
+    if k.startswith("A-"):
+        alias = "Y" + k[1:]
+        year_aliases[alias] = v
+
+_period_code_map.update(**year_aliases)
+del year_aliases
+
 _period_code_map.update({
     "Q": 2000,  # Quarterly - December year end (default quarterly)
     "A": 1000,  # Annual
@@ -739,7 +736,6 @@ _period_code_map.update({
 
 
 def _period_str_to_code(freqstr):
-    freqstr = _pure_alias.get(freqstr, freqstr)
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
