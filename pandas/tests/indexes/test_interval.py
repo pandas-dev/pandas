@@ -334,7 +334,27 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_right_updated_behavior(self):
+    def test_get_loc_interval_updated_behavior(self):
+
+        for idx_side in ['right', 'left, both, neither']:
+
+            idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
+
+            for bound in [[0, 1],[1, 2],[2, 3],[3, 4],[0, 2],[2.5, 3],[-1, 4]]:
+                for side in ['right', 'left, both, neither']:
+
+                    if idx_side == side:
+                        if bound == [0, 1]:
+                            assert idx.get_loc(Interval(0, 1, closed=side)) == 0
+                        elif bound == [2, 3]:
+                            assert idx.get_loc(Interval(2, 3, closed=side)) == 1
+                        else:
+                            pytest.raises(KeyError, idx.get_loc, Interval(*bound, closed=side))
+                    else:
+                        pytest.raises(KeyError, idx.get_loc, Interval(*bound, closed=side))
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_get_loc_scalar_updated_behavior(self):
 
         right = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='right')
 
@@ -348,41 +368,6 @@ class TestIntervalIndex(Base):
         assert right.get_loc(3)   == 1
         pytest.raises(KeyError, right.get_loc, 3.5)
 
-        assert right.get_loc(Interval(0, 1, closed='right')) == 0
-        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='right'))
-        assert right.get_loc(Interval(2, 3, closed='right')) == 1
-        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='right'))
-        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='right'))
-        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='right'))
-        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='right'))
-
-        pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(2, 3, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='left'))
-        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='left'))
-
-        pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(2, 3, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='both'))
-        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='both'))
-
-        pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(2, 3, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='neither'))
-        pytest.raises(KeyError, right.get_loc, Interval(-1, 4, closed='neither'))
-
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_left_updated_behavior(self):
-
         left = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='left')
 
         pytest.raises(KeyError, left.get_loc, -0.5)
@@ -394,41 +379,6 @@ class TestIntervalIndex(Base):
         assert left.get_loc(2.5) == 1
         pytest.raises(KeyError, left.get_loc, 3)
         pytest.raises(KeyError, left.get_loc, 3.5)
-
-        pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(2, 3, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='right'))
-        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='right'))
-
-        assert left.get_loc(Interval(0, 1, closed='left')) == 0
-        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='left'))
-        assert left.get_loc(Interval(2, 3, closed='left')) == 1
-        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='left'))
-        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='left'))
-        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='left'))
-        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='left'))
-
-        pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(2, 3, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='both'))
-        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='both'))
-
-        pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(2, 3, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='neither'))
-        pytest.raises(KeyError, left.get_loc, Interval(-1, 4, closed='neither'))
-
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_both_updated_behavior(self):
 
         both = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='both')
 
@@ -442,41 +392,6 @@ class TestIntervalIndex(Base):
         assert both.get_loc(3)   == 1
         pytest.raises(KeyError, both.get_loc, 3.5)
 
-        pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(2, 3, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='right'))
-        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='right'))
-
-        pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(2, 3, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='left'))
-        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='left'))
-
-        assert both.get_loc(Interval(0, 1, closed='both')) == 0
-        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='both'))
-        assert both.get_loc(Interval(2, 3, closed='both')) == 1
-        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='both'))
-        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='both'))
-        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='both'))
-        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='both'))
-
-        pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(2, 3, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='neither'))
-        pytest.raises(KeyError, both.get_loc, Interval(-1, 4, closed='neither'))
-
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_neither_updated_behavior(self):
-
         neither = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='neither')
 
         pytest.raises(KeyError, neither.get_loc, -0.5)
@@ -489,41 +404,9 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, neither.get_loc, 3)
         pytest.raises(KeyError, neither.get_loc, 3.5)
 
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 1, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(1, 2, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2, 3, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(3, 4, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 2, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2.5, 3, closed='right'))
-        pytest.raises(KeyError, neither.get_loc, Interval(-1, 4, closed='right'))
-
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 1, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(1, 2, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2, 3, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(3, 4, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 2, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2.5, 3, closed='left'))
-        pytest.raises(KeyError, neither.get_loc, Interval(-1, 4, closed='left'))
-
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 1 closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(1, 2, closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2, 3, closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(3, 4, closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 2, closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2.5, 3, closed='both'))
-        pytest.raises(KeyError, neither.get_loc, Interval(-1, 4, closed='both'))
-
-        assert neither.get_loc(Interval(0, 1, closed='neither')) == 0
-        pytest.raises(KeyError, neither.get_loc, Interval(1, 2, closed='neither'))
-        assert neither.get_loc(Interval(2, 3, closed='neither')) == 1
-        pytest.raises(KeyError, neither.get_loc, Interval(3, 4, closed='neither'))
-        pytest.raises(KeyError, neither.get_loc, Interval(0, 2, closed='neither'))
-        pytest.raises(KeyError, neither.get_loc, Interval(2.5, 3, closed='neither'))
-        pytest.raises(KeyError, neither.get_loc, Interval(-1, 4, closed='neither'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_interval_updated_behavior(self):
-        # @jreback might prefer these be broken up into separate methods
 
         # increasing
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
@@ -573,6 +456,8 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_ints_and_floats_updated_behavior(self):
 
+        queries = [[0, 1], [0, 2], [0, 3], [3, 1], [3, 4], [0, 4]]
+
         # increasing non-overlapping
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
 
@@ -585,13 +470,8 @@ class TestIntervalIndex(Base):
 
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
-
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
+        for query in queries:
+            pytest.raises(InvalidIndexError, index.slice_locs, query)
 
         # decreasing non-overlapping
         index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
@@ -605,47 +485,23 @@ class TestIntervalIndex(Base):
 
         # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
-
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
-        # should there be a test for get_indexer_nonunique here?
+        for query in queries:
+            pytest.raises(InvalidIndexError, index.slice_locs, query)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
-
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
-        # should there be a test for get_indexer_nonunique here?
+        for query in queries:
+            pytest.raises(InvalidIndexError, index.slice_locs, query)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
-
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
-        # should there be a test for get_indexer_nonunique here?
+        for query in queries:
+            pytest.raises(InvalidIndexError, index.slice_locs, query)
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
-
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
-        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
-        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
-        # should there be a test for get_indexer_nonunique here?
+        for query in queries:
+            pytest.raises(InvalidIndexError, index.slice_locs, query)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def get_indexer_for_interval_updated_behavior(self):
@@ -719,7 +575,7 @@ class TestIntervalIndex(Base):
             tm.assert_numpy_array_equal(result, expect)
 
         queries  = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
-        expected = [[0, 1, 0, 1, 2], [0, 1, 0, 1, 2, 2], [0, 1, 0, 1, 2, 2, -1], [0, 1, 0, 1, 2, 2, -1, 0, 1, 2]]  # should we use tuples here?
+        expected = [[0, 1, 0, 1, 2], [0, 1, 0, 1, 2, 2], [0, 1, 0, 1, 2, 2, -1], [0, 1, 0, 1, 2, 2, -1, 0, 1, 2]]  # should we use tuples here, e.g. [(0, 1), (0, 1, 2)]?
 
         # multiple queries
         for query, expected_result in zip(queries, expected):
