@@ -75,8 +75,7 @@ class TestFancy(Base):
         df.loc[np.inf] = 3
 
         # make sure we can look up the value
-        result = df.loc[np.inf, 0]
-        tm.assert_almost_equal(result, 3)
+        assert df.loc[np.inf, 0] == 3
 
         result = df.index
         expected = pd.Float64Index([1, 2, np.inf])
@@ -571,17 +570,23 @@ class TestFancy(Base):
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
-    def test_coercion_with_contains(self):
+    @pytest.mark.parametrize("val,expected", [
+        (np.inf, False),
+        (np.nan, False),
+        (3.0, True),
+        (3.5, False),
+        (0.0, True),
+    ])
+    def test_coercion_with_contains(self, val, expected):
         # Related to GH 16957
         # Checking if Int64Index contains np.inf should catch the OverflowError
-        for val in [np.inf, np.nan]:
-            index = pd.Int64Index([1, 2, 3])
-            result = val in index
-            tm.assert_almost_equal(result, False)
+        index = pd.Int64Index([1, 2, 3])
+        result = val in index
+        assert result is expected
 
-            index = pd.UInt64Index([1, 2, 3])
-            result = np.inf in index
-            tm.assert_almost_equal(result, False)
+        index = pd.UInt64Index([1, 2, 3])
+        result = val in index
+        assert result is expected
 
     def test_index_type_coercion(self):
 
