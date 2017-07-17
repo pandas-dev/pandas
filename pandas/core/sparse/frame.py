@@ -163,7 +163,9 @@ class SparseDataFrame(DataFrame):
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
-        nan_arr = sp_maker(np.full(len(index), np.nan))
+        nan_arr = np.empty(len(index), dtype='float64')
+        nan_arr.fill(np.nan)
+        nan_arr = sp_maker(nan_arr)
         sdict.update((c, nan_arr) for c in columns if c not in sdict)
 
         return to_manager(sdict, columns, index)
