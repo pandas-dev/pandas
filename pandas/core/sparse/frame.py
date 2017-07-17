@@ -143,7 +143,7 @@ class SparseDataFrame(DataFrame):
         sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
                                          fill_value=self._default_fill_value,
                                          copy=True, dtype=dtype)
-        sdict = DataFrame()
+        sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
                 # Force alignment, no copy necessary
@@ -163,11 +163,8 @@ class SparseDataFrame(DataFrame):
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
-        nan_vec = np.empty(len(index))
-        nan_vec.fill(nan)
-        for c in columns:
-            if c not in sdict:
-                sdict[c] = sp_maker(nan_vec)
+        nan_arr = sp_maker(np.full(len(index), np.nan))
+        sdict.update((c, nan_arr) for c in columns if c not in sdict)
 
         return to_manager(sdict, columns, index)
 
