@@ -180,6 +180,7 @@ Bug Fixes
 
 - Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
+- Fixes regression when sorting by multiple columns on a datetime array with NaT values (:issue:`16836`)
 
 Conversion
 ^^^^^^^^^^
