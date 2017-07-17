@@ -587,12 +587,12 @@ class TestIntervalIndex(Base):
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
+        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
 
         # decreasing non-overlapping
         index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
@@ -607,42 +607,46 @@ class TestIntervalIndex(Base):
         # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
+        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        # should there be a test for get_indexer_nonunique here?
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping?
-        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping?
-        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
+        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        # should there be a test for get_indexer_nonunique here?
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping/unsorted?
+        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        # should there be a test for get_indexer_nonunique here?
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(0, 1) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 2) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 3) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(3, 1) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(3, 4) == # this raises an error because index is overlapping/unsorted?
-        assert index.slice_locs(0, 4) == # this raises an error because index is overlapping/unsorted?
+        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
+        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        # should there be a test for get_indexer_nonunique here?
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def get_indexer_for_interval_updated_behavior(self):
