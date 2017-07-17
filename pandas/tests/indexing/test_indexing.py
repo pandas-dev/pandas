@@ -570,22 +570,33 @@ class TestFancy(Base):
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
-    @pytest.mark.parametrize("index,val,expected", [
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), 2),
+        (pd.Index([0, 1, '2']), '2'),
+        (pd.Index([0, 1, 2, np.inf]), 4),
+        (pd.Index([0, 1, 2, np.nan]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.nan),
+        (pd.Index([0, 1, 2, np.nan]), np.inf),
         # Checking if np.inf in Int64Index should not cause an OverflowError
-        (pd.Int64Index([0, 1, 2]), np.inf, False),
-        (pd.Int64Index([0, 1, 2]), np.nan, False),
-        (pd.UInt64Index([0, 1, 2]), np.inf, False),
-        (pd.UInt64Index([0, 1, 2]), np.nan, False),
-        # Check contains correctly checks for np.inf
-        (pd.Index([0, 1, 2, np.inf]), np.inf, True),
-        (pd.Index([0, 1, 2, np.nan]), np.nan, True),
-        (pd.Index([0, 1, 2, np.inf]), np.nan, False),
-        (pd.Index([0, 1, 2, np.nan]), np.inf, False),
-    ])
-    def test_coercion_with_contains(self, index, val, expected):
         # Related to GH 16957
-        result = val in index
-        assert result is expected
+        (pd.Int64Index([0, 1, 2]), np.inf),
+        (pd.Int64Index([0, 1, 2]), np.nan),
+        (pd.UInt64Index([0, 1, 2]), np.inf),
+        (pd.UInt64Index([0, 1, 2]), np.nan),
+    ])
+    def test_index_contains(self, index, val):
+        assert val in index
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), '2'),
+        (pd.Index([0, 1, '2']), 2),
+        (pd.Index([0, 1, 2, np.inf, 4]), 4),
+        (pd.Index([0, 1, 2, np.nan, 4]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.inf),
+        (pd.Index([0, 1, 2, np.nan]), np.nan),
+    ])
+    def test_index_not_contains(self, index, val):
+        assert val not in index
 
     def test_index_type_coercion(self):
 
