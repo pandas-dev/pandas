@@ -340,7 +340,7 @@ class TestIntervalIndex(Base):
 
             idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-            for bound in [[0, 1],[1, 2],[2, 3],[3, 4],[0, 2],[2.5, 3],[-1, 4]]:
+            for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
                 for side in ['right', 'left, both, neither']:
 
                     if idx_side == side:
@@ -361,21 +361,21 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, right.get_loc, -0.5)
         pytest.raises(KeyError, right.get_loc, 0)
         assert right.get_loc(0.5) == 0
-        assert right.get_loc(1)   == 0
+        assert right.get_loc(1) == 0
         pytest.raises(KeyError, right.get_loc, 1.5)
         pytest.raises(KeyError, right.get_loc, 2)
         assert right.get_loc(2.5) == 1
-        assert right.get_loc(3)   == 1
+        assert right.get_loc(3) == 1
         pytest.raises(KeyError, right.get_loc, 3.5)
 
         left = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='left')
 
         pytest.raises(KeyError, left.get_loc, -0.5)
-        assert left.get_loc(0)   == 0
+        assert left.get_loc(0) == 0
         assert left.get_loc(0.5) == 0
         pytest.raises(KeyError, left.get_loc, 1)
         pytest.raises(KeyError, left.get_loc, 1.5)
-        assert left.get_loc(2)   == 1
+        assert left.get_loc(2) == 1
         assert left.get_loc(2.5) == 1
         pytest.raises(KeyError, left.get_loc, 3)
         pytest.raises(KeyError, left.get_loc, 3.5)
@@ -383,13 +383,13 @@ class TestIntervalIndex(Base):
         both = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='both')
 
         pytest.raises(KeyError, both.get_loc, -0.5)
-        assert both.get_loc(0)   == 0
+        assert both.get_loc(0) == 0
         assert both.get_loc(0.5) == 0
-        assert both.get_loc(1)   == 0
+        assert both.get_loc(1) == 0
         pytest.raises(KeyError, both.get_loc, 1.5)
-        assert both.get_loc(2)   == 1
+        assert both.get_loc(2) == 1
         assert both.get_loc(2.5) == 1
-        assert both.get_loc(3)   == 1
+        assert both.get_loc(3) == 1
         pytest.raises(KeyError, both.get_loc, 3.5)
 
         neither = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='neither')
@@ -552,7 +552,7 @@ class TestIntervalIndex(Base):
             tm.assert_numpy_array_equal(result, expect)
 
         # multiple queries
-        queries  = [[1, 2],[1, 2, 3],[1, 2, 3, 4],[1, 2, 3, 4, 2]]
+        queries  = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
         expected = [[0, 1], [0, 1, -1], [0, 1, -1, 2], [0, 1, -1, 2, 1]]
 
         for query, expected_result in zip(queries, expected):
