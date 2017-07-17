@@ -571,20 +571,19 @@ class TestFancy(Base):
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
     @pytest.mark.parametrize("val,expected", [
-        (np.inf, False),
-        (np.nan, False),
-        (3.0, True),
-        (3.5, False),
-        (0.0, True),
+        # Checking if np.inf in Int64Index should not cause an OverflowError
+        (pd.Int64Index([0, 1, 2]), np.inf, False),
+        (pd.Int64Index([0, 1, 2]), np.nan, False),
+        (pd.UInt64Index([0, 1, 2]), np.inf, False),
+        (pd.UInt64Index([0, 1, 2]), np.nan, False),
+        # Check contains correctly checks for np.inf
+        (pd.Index([0, 1, 2, np.inf]), np.inf, True),
+        (pd.Index([0, 1, 2, np.nan]), np.nan, True),
+        (pd.Index([0, 1, 2, np.inf]), np.nan, False),
+        (pd.Index([0, 1, 2, np.nan]), np.inf, False),
     ])
-    def test_coercion_with_contains(self, val, expected):
+    def test_coercion_with_contains(self, index, val, expected):
         # Related to GH 16957
-        # Checking if Int64Index contains np.inf should catch the OverflowError
-        index = pd.Int64Index([1, 2, 3])
-        result = val in index
-        assert result is expected
-
-        index = pd.UInt64Index([1, 2, 3])
         result = val in index
         assert result is expected
 
