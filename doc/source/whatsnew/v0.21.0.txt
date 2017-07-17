@@ -124,6 +124,8 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- The ``pd.options.display.height`` configuration has been dropped (:issue:`3663`)
+- The ``pd.options.display.line_width`` configuration has been dropped (:issue:`2881`)
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
