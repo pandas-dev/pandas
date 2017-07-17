@@ -231,9 +231,9 @@ class MultiIndex(Index):
         """
 
         level_list_like = level is None or is_list_like(level)
-        levels_list_like = (levels != [] and
-                            is_list_like(levels) and
-                            all(is_list_like(x) for x in levels))
+        levels_list_like = (is_list_like(levels) and
+                            all(is_list_like(x) for x in levels) and
+                            levels != [] )
 
         if level_list_like:
             # level is a list-like object of scalars
