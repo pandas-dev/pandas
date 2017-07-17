@@ -1002,12 +1002,14 @@ class TestSparseDataFrame(SharedWithSparse):
 
             shifted = frame.shift(2, freq='B')
             exp = orig.shift(2, freq='B')
-            exp = exp.to_sparse(frame.default_fill_value)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
             shifted = frame.shift(2, freq=BDay())
             exp = orig.shift(2, freq=BDay())
-            exp = exp.to_sparse(frame.default_fill_value)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
         self._check_all(_check)
