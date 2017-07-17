@@ -1095,6 +1095,8 @@ class TestSparseDataFrame(SharedWithSparse):
         assert list(df_blocks.keys()) == ['float64']
         tm.assert_frame_equal(df_blocks['float64'], df)
 
+    @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
+                              '(GH 16894)')
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])

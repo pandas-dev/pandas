@@ -1,3 +1,5 @@
+from itertools import repeat
+
 from .pandas_vb_common import *
 import scipy.sparse
 from pandas import SparseSeries, SparseDataFrame
@@ -26,6 +28,12 @@ class sparse_frame_constructor(object):
 
     def time_sparse_frame_constructor(self):
         SparseDataFrame(columns=np.arange(100), index=np.arange(1000))
+
+    def time_sparse_from_scipy(self):
+        SparseDataFrame(scipy.sparse.rand(1000, 1000, 0.005))
+
+    def time_sparse_from_dict(self):
+        SparseDataFrame(dict(zip(range(1000), repeat([0]))))
 
 
 class sparse_series_from_coo(object):

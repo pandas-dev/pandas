@@ -136,6 +136,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 
 
 .. _whatsnew_0210.bug_fixes:
