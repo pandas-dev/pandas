@@ -302,7 +302,7 @@ class TestDataFrameFormatting(object):
         df = DataFrame('hello', lrange(1000), lrange(5))
 
         with option_context('mode.sim_interactive', False, 'display.width', 0,
-                            'display.height', 0, 'display.max_rows', 5000):
+                            'display.max_rows', 5000):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 

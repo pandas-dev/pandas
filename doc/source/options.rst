@@ -304,7 +304,6 @@ display.float_format                None         The callable should accept a fl
                                                  This is used in some places like
                                                  SeriesFormatter.
                                                  See core.format.EngFormatter for an example.
-display.height                      60           Deprecated. Use `display.max_rows` instead.
 display.large_repr                  truncate     For DataFrames exceeding max_rows/max_cols,
                                                  the repr (and HTML repr) can show
                                                  a truncated table (the default from 0.13),
@@ -323,7 +322,6 @@ display.latex.multicolumn_format    'l'          Alignment of multicolumn labels
 display.latex.multirow              False        Combines rows when using a MultiIndex.
                                                  Centered instead of top-aligned,
                                                  separated by clines.
-display.line_width                  80           Deprecated. Use `display.width` instead.
 display.max_columns                 20           max_rows and max_columns are used
                                                  in __repr__() methods to decide if
                                                  to_string() or info() is used to
