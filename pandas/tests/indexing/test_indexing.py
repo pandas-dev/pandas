@@ -573,6 +573,17 @@ class TestFancy(Base):
     @pytest.mark.parametrize("index,val", [
         (pd.Index([0, 1, 2]), 2),
         (pd.Index([0, 1, '2']), '2'),
+        (pd.Index([0, 1, 2, np.inf, 4]), 4),
+        (pd.Index([0, 1, 2, np.nan, 4]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.inf),
+        (pd.Index([0, 1, 2, np.nan]), np.nan),
+    ])
+    def test_index_contains(self, index, val):
+        assert val in index
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), '2'),
+        (pd.Index([0, 1, '2']), 2),
         (pd.Index([0, 1, 2, np.inf]), 4),
         (pd.Index([0, 1, 2, np.nan]), 4),
         (pd.Index([0, 1, 2, np.inf]), np.nan),
@@ -583,17 +594,6 @@ class TestFancy(Base):
         (pd.Int64Index([0, 1, 2]), np.nan),
         (pd.UInt64Index([0, 1, 2]), np.inf),
         (pd.UInt64Index([0, 1, 2]), np.nan),
-    ])
-    def test_index_contains(self, index, val):
-        assert val in index
-
-    @pytest.mark.parametrize("index,val", [
-        (pd.Index([0, 1, 2]), '2'),
-        (pd.Index([0, 1, '2']), 2),
-        (pd.Index([0, 1, 2, np.inf, 4]), 4),
-        (pd.Index([0, 1, 2, np.nan, 4]), 4),
-        (pd.Index([0, 1, 2, np.inf]), np.inf),
-        (pd.Index([0, 1, 2, np.nan]), np.nan),
     ])
     def test_index_not_contains(self, index, val):
         assert val not in index
