@@ -916,11 +916,13 @@ class _MergeOperation(object):
             # Houston, we have a problem!
             # let's coerce to object
             if name in self.left.columns:
-                typ = lk.categories.dtype if is_categorical_dtype(lk) else object
+                cat = is_categorical_dtype(lk)
+                typ = lk.categories.dtype if cat else object
                 self.left = self.left.assign(
                     **{name: self.left[name].astype(typ)})
             if name in self.right.columns:
-                typ = rk.categories.dtype if is_categorical_dtype(rk) else object
+                cat = is_categorical_dtype(rk)
+                typ = rk.categories.dtype if cat else object
                 self.right = self.right.assign(
                     **{name: self.right[name].astype(typ)})
 
