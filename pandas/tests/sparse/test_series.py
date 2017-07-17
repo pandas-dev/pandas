@@ -88,27 +88,22 @@ class TestSparseSeries(SharedWithSparse):
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
 
-    def test_constructor_data_input(self):
+    def test_constructor_dict_input(self):
+        # gh-16905
         constructor_dict = {1: 1.}
         index = [0, 1, 2]
-        series = pd.Series(constructor_dict)
 
+        # Series with index passed in
+        series = pd.Series(constructor_dict)
         expected = SparseSeries(series, index=index)
 
         result = SparseSeries(constructor_dict, index=index)
         tm.assert_sp_series_equal(result, expected)
 
-        # Series and dictionary with no index: see gh-16905
+        # Series with index and dictionary with no index
         expected = SparseSeries(series)
 
         result = SparseSeries(constructor_dict)
-        tm.assert_sp_series_equal(result, expected)
-
-        # Series with index and dictionary with no index
-        series = pd.Series(constructor_dict, index=index)
-        expected = SparseSeries(series)
-
-        result = SparseSeries(constructor_dict, index=index)
         tm.assert_sp_series_equal(result, expected)
 
     def test_constructor_dtype(self):
