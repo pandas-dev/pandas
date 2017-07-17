@@ -3649,8 +3649,14 @@ it is assumed to be aliases for the column names.')
 
     def infer_objects(self):
         """
-        Attempt to infer better dtypes for only object columns
-        Only attempts soft conversions
+        Attempt to infer better dtypes for object columns
+
+        Attempts soft conversion of object dtyped
+        columns, leaving non-object and unconvertible
+        columns unchanged. The inference rules are the
+        same as during normal Series/DataFrame construction.
+
+        .. versionadded:: 0.20.0
 
         See Also
         --------
@@ -3660,7 +3666,7 @@ it is assumed to be aliases for the column names.')
 
         Returns
         -------
-        converted : same as input object
+        converted : same type as input object
 
         Examples
         --------

@@ -501,20 +501,24 @@ starting,ending,measure
                         'b': ['b', 2.0, 3.0, 4.1],
                         'c': ['c', datetime(2016, 1, 1),
                               datetime(2016, 1, 2),
-                              datetime(2016, 1, 3)]},
-                       columns=['a', 'b', 'c'])
+                              datetime(2016, 1, 3)],
+                        'd': [1, 2, 3, 'd']},
+                       columns=['a', 'b', 'c', 'd'])
         df = df.iloc[1:].infer_objects()
 
         assert df['a'].dtype == 'int64'
         assert df['b'].dtype == 'float64'
         assert df['c'].dtype == 'M8[ns]'
+        assert df['d'].dtype == 'object'
 
         expected = DataFrame({'a': [1, 2, 3],
                               'b': [2.0, 3.0, 4.1],
                               'c': [datetime(2016, 1, 1),
                                     datetime(2016, 1, 2),
-                                    datetime(2016, 1, 3)]},
-                             columns=['a', 'b', 'c'])
+                                    datetime(2016, 1, 3)],
+                              'd': [2, 3, 'd']},
+                             columns=['a', 'b', 'c', 'd'])
+        # reconstruct frame to verify inference is same
         tm.assert_frame_equal(df.reset_index(drop=True), expected)
 
     def test_stale_cached_series_bug_473(self):

@@ -2024,7 +2024,22 @@ object conversion
 ~~~~~~~~~~~~~~~~~
 
 pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
-The following functions are available for one dimensional object arrays or scalars:
+In cases where the data is already of the correct type, but stored in an ``object`` array, the
+:meth:`~DataFrame.infer_objects` and :meth:`~Series.infer_objects` can be used to soft convert
+to the correct type.
+
+  .. ipython:: python
+
+     df = pd.DataFrame([[1, 2],
+                        ['a', 'b'],
+                        [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]])
+     df = df.T
+     df
+     df.dtypes
+     df.infer_objects().dtypes
+
+The following functions are available for one dimensional object arrays or scalars to perform
+hard conversion of objects to a specified type:
 
 - :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
 
