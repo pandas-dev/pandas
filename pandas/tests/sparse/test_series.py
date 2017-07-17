@@ -60,7 +60,7 @@ def _test_data2_zero():
 
 class TestSparseSeries(SharedWithSparse):
 
-    Series = SparseSeries
+    series_klass = SparseSeries
 
     def setup_method(self, method):
         arr, index = _test_data1()

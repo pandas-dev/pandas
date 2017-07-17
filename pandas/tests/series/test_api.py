@@ -120,18 +120,18 @@ class SharedWithSparse(object):
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
-        result = self.Series(d)
-        expected = self.Series(d, index=sorted(d.keys()))
+        result = self.series_klass(d)
+        expected = self.series_klass(d, index=sorted(d.keys()))
         tm.assert_series_equal(result, expected)
 
-        result = self.Series(d, index=['b', 'c', 'd', 'a'])
-        expected = self.Series([1, 2, np.nan, 0], index=['b', 'c', 'd', 'a'])
+        result = self.series_klass(d, index=['b', 'c', 'd', 'a'])
+        expected = self.series_klass([1, 2, np.nan, 0], index=['b', 'c', 'd', 'a'])
         tm.assert_series_equal(result, expected)
 
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
-        series = self.Series(data)
-        expected = self.Series(dict(compat.iteritems(data)))
+        series = self.series_klass(data)
+        expected = self.series_klass(dict(compat.iteritems(data)))
         tm.assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
@@ -139,30 +139,30 @@ class SharedWithSparse(object):
         data = OrderedDict(
             ('col%s' % i, np.random.random()) for i in range(12))
 
-        series = self.Series(data)
-        expected = self.Series(list(data.values()), list(data.keys()))
+        series = self.series_klass(data)
+        expected = self.series_klass(list(data.values()), list(data.keys()))
         tm.assert_series_equal(series, expected)
 
         # Test with subclass
         class A(OrderedDict):
             pass
 
-        series = self.Series(A(data))
+        series = self.series_klass(A(data))
         tm.assert_series_equal(series, expected)
 
     def test_constructor_dict_multiindex(self):
         d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
         _d = sorted(d.items())
-        result = self.Series(d)
-        expected = self.Series(
+        result = self.series_klass(d)
+        expected = self.series_klass(
             [x[1] for x in _d],
             index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
         tm.assert_series_equal(result, expected)
 
         d['z'] = 111.
         _d.insert(0, ('z', d['z']))
-        result = self.Series(d)
-        expected = self.Series([x[1] for x in _d],
+        result = self.series_klass(d)
+        expected = self.series_klass([x[1] for x in _d],
                                index=pd.Index([x[0] for x in _d],
                                               tupleize_cols=False))
         result = result.reindex(index=expected.index)
@@ -172,12 +172,12 @@ class SharedWithSparse(object):
         # GH #12169 : Resample category data with timedelta index
         # construct Series from dict as data and TimedeltaIndex as index
         # will result NaN in result Series data
-        expected = self.Series(
+        expected = self.series_klass(
             data=['A', 'B', 'C'],
             index=pd.to_timedelta([0, 10, 20], unit='s')
         )
 
-        result = self.Series(
+        result = self.series_klass(
             data={pd.to_timedelta(0, unit='s'): 'A',
                   pd.to_timedelta(10, unit='s'): 'B',
                   pd.to_timedelta(20, unit='s'): 'C'},
@@ -188,7 +188,7 @@ class SharedWithSparse(object):
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
-    Series = Series
+    series_klass = Series
 
     def test_tab_completion(self):
         # GH 9910
