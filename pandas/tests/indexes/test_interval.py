@@ -595,7 +595,7 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(0, 4) == # this raises an error because index is overlapping?
 
         # decreasing non-overlapping
-        index = IntervalIndex.from_tuples([(4, 3), (2, 1), (1, 0)])
+        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
         # These were a little mind-bending to write, would appreciate a close review
         assert index.slice_locs(0, 1) == (2)
         assert index.slice_locs(0, 2) == (1, 2)
@@ -605,7 +605,7 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(0, 4) == (0, 1, 2)
 
         # decreasing overlapping
-        index = IntervalIndex.from_tuples([(4, 2), (3, 1), (2, 0)])
+        index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
         assert index.slice_locs(0, 1) == # this raises an error because index is overlapping?
         assert index.slice_locs(0, 2) == # this raises an error because index is overlapping?
