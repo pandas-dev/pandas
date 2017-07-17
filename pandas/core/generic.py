@@ -3152,7 +3152,7 @@ it is assumed to be aliases for the column names.')
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
-    agg is an alias for aggregate. Use it.
+    `agg` is an alias for `aggregate`. Use the alias.
 
     Returns
     -------
