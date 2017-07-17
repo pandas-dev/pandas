@@ -63,6 +63,35 @@ class TestFancy(Base):
 
         pytest.raises(ValueError, f)
 
+    def test_inf_upcast(self):
+        # GH 16957
+        # We should be able to use np.inf as a key
+        # np.inf should cause an index to convert to float
+
+        # Test with np.inf in rows
+        df = pd.DataFrame(columns=[0])
+        df.loc[1] = 1
+        df.loc[2] = 2
+        df.loc[np.inf] = 3
+
+        # make sure we can look up the value
+        result = df.loc[np.inf, 0]
+        tm.assert_almost_equal(result, 3)
+
+        result = df.index
+        expected = pd.Float64Index([1, 2, np.inf])
+        tm.assert_index_equal(result, expected)
+
+        # Test with np.inf in columns
+        df = pd.DataFrame()
+        df.loc[0, 0] = 1
+        df.loc[1, 1] = 2
+        df.loc[0, np.inf] = 3
+
+        result = df.columns
+        expected = pd.Float64Index([0, 1, np.inf])
+        tm.assert_index_equal(result, expected)
+
     def test_setitem_dtype_upcast(self):
 
         # GH3216
@@ -541,6 +570,18 @@ class TestFancy(Base):
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
+
+    def test_coercion_with_contains(self):
+        # Related to GH 16957
+        # Checking if Int64Index contains np.inf should catch the OverflowError
+        for val in [np.inf, np.nan]:
+            index = pd.Int64Index([1, 2, 3])
+            result = val in index
+            tm.assert_almost_equal(result, False)
+
+            index = pd.UInt64Index([1, 2, 3])
+            result = np.inf in index
+            tm.assert_almost_equal(result, False)
 
     def test_index_type_coercion(self):
 

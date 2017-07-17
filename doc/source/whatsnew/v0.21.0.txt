@@ -145,6 +145,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
+- Fixes inf upcast from integer indices in 0.20, previously :func:`Int64Index.__contains__` and `DataFrame.loc.__setitem__` raised an `OverflowError` when given `np.inf` (:issue:`16957`)
 
 Conversion
 ^^^^^^^^^^

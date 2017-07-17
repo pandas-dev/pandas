@@ -666,7 +666,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             res = data.astype('u8', copy=False)
             if (res == data).all():
                 return UInt64Index(res, copy=copy, name=name)
-        except (TypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             pass
 
         raise ValueError
@@ -1640,7 +1640,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except (TypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             return False
 
     _index_shared_docs['contains'] = """
@@ -3365,7 +3365,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 ckey = int(key)
                 if ckey == key:
                     key = ckey
-            except (ValueError, TypeError):
+            except (OverflowError, ValueError, TypeError):
                 pass
         return key
 
