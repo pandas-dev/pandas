@@ -586,12 +586,12 @@ class TestIntervalIndex(Base):
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
 
         # decreasing non-overlapping
         index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
@@ -606,45 +606,45 @@ class TestIntervalIndex(Base):
         # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
         # should there be a test for get_indexer_nonunique here?
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
         # should there be a test for get_indexer_nonunique here?
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
         # should there be a test for get_indexer_nonunique here?
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        pytest.raises(KeyError, index.slice_locs, [0, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 2]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 3]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 1]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [3, 4]) # is KeyError correct here?
-        pytest.raises(KeyError, index.slice_locs, [0, 4]) # is KeyError correct here?
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 2])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 3])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 1])
+        pytest.raises(InvalidIndexError, index.slice_locs, [3, 4])
+        pytest.raises(InvalidIndexError, index.slice_locs, [0, 4])
         # should there be a test for get_indexer_nonunique here?
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
