@@ -20,8 +20,7 @@ from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import lrange, range, zip, OrderedDict, long
-from pandas import compat
+from pandas.compat import lrange, range, zip, long
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
