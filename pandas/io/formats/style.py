@@ -1043,7 +1043,7 @@ class Styler(object):
 
         return self
 
-    def highlight_max(self, subset=None, color='yellow', axis=0):
+    def highlight_max(self, subset=None, color='yellow', axis=None):
         """
         Highlight the maximum by shading the background
 
@@ -1065,7 +1065,7 @@ class Styler(object):
         return self._highlight_handler(subset=subset, color=color, axis=axis,
                                        max_=True)
 
-    def highlight_min(self, subset=None, color='yellow', axis=0):
+    def highlight_min(self, subset=None, color='yellow', axis=None):
         """
         Highlight the minimum by shading the background
 
