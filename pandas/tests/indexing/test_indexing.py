@@ -570,7 +570,7 @@ class TestFancy(Base):
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
-    @pytest.mark.parametrize("val,expected", [
+    @pytest.mark.parametrize("index,val,expected", [
         # Checking if np.inf in Int64Index should not cause an OverflowError
         (pd.Int64Index([0, 1, 2]), np.inf, False),
         (pd.Int64Index([0, 1, 2]), np.nan, False),
