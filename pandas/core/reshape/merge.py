@@ -896,12 +896,6 @@ class _MergeOperation(object):
                 if lk.is_dtype_equal(rk):
                     continue
 
-                # if we are dates with differing categories
-                # then allow them to proceed because
-                # coercing to object below results in integers.
-                if is_datetimelike(lk.categories) and is_datetimelike(rk.categories):
-                    continue
-
             elif is_categorical_dtype(lk) or is_categorical_dtype(rk):
                 pass
 
@@ -923,11 +917,13 @@ class _MergeOperation(object):
             # Houston, we have a problem!
             # let's coerce to object
             if name in self.left.columns:
+                typ = lk.categories.dtype if is_categorical_dtype(lk) else object
                 self.left = self.left.assign(
-                    **{name: self.left[name].astype(object)})
+                    **{name: self.left[name].astype(typ)})
             if name in self.right.columns:
+                typ = rk.categories.dtype if is_categorical_dtype(rk) else object
                 self.right = self.right.assign(
-                    **{name: self.right[name].astype(object)})
+                    **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??

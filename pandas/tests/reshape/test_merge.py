@@ -1515,7 +1515,7 @@ class TestMergeCategorical(object):
 
         assert_frame_equal(result, df)
 
-    def test_dtype_on_categorical_dates(self):
+    def test_categorical_dates(self):
         # GH 16900
         # dates should not be coerced to ints
 
@@ -1534,10 +1534,13 @@ class TestMergeCategorical(object):
         df2['date'] = df2['date'].astype('category')
 
         result = pd.merge(df, df2, how='outer', on=['date'])
-        assert result['date'].dtype == 'category'
+        assert result.shape == (3, 3)
+        assert result['date'].iloc[0] == pd.Timestamp('2001-01-01')
+        assert result['date'].iloc[-1] == pd.Timestamp('2001-01-03')
 
         result_inner = pd.merge(df, df2, how='inner', on=['date'])
-        assert result_inner['date'].dtype == 'category'
+        assert result_inner.shape == (1, 3)
+        assert result_inner['date'].iloc[-1] == pd.Timestamp('2001-01-01')
 
 
 @pytest.fixture
