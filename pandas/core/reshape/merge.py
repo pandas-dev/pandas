@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_integer,
     is_int_or_datetime_dtype,
-    is_datetimelike,
     is_dtype_equal,
     is_bool,
     is_list_like,
