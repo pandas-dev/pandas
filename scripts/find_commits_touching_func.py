@@ -4,7 +4,7 @@
 # copryright 2013, y-p @ github
 
 from __future__ import print_function
-from pandas.compat import range, lrange, map
+from pandas.compat import range, lrange, map, string_types, text_type
 
 """Search the git history for all commits touching a named method
 
@@ -94,7 +94,7 @@ def get_hits(defname,files=()):
 
 def get_commit_info(c,fmt,sep='\t'):
     r=sh.git('log', "--format={}".format(fmt), '{}^..{}'.format(c,c),"-n","1",_tty_out=False)
-    return compat.text_type(r).split(sep)
+    return text_type(r).split(sep)
 
 def get_commit_vitals(c,hlen=HASH_LEN):
     h,s,d= get_commit_info(c,'%H\t%s\t%ci',"\t")
@@ -183,11 +183,11 @@ You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
         return
-    if isinstance(args.file_masks,compat.string_types):
+    if isinstance(args.file_masks, string_types):
         args.file_masks = args.file_masks.split(',')
-    if isinstance(args.path_masks,compat.string_types):
+    if isinstance(args.path_masks, string_types):
         args.path_masks = args.path_masks.split(',')
-    if isinstance(args.dir_masks,compat.string_types):
+    if isinstance(args.dir_masks, string_types):
         args.dir_masks = args.dir_masks.split(',')
 
     logger.setLevel(getattr(logging,args.debug_level))

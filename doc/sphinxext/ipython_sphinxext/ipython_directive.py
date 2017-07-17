@@ -111,7 +111,7 @@ import re
 import sys
 import tempfile
 import ast
-from pandas.compat import zip, range, map, lmap, u, cStringIO as StringIO
+from pandas.compat import zip, range, map, lmap, u, text_type, cStringIO as StringIO
 import warnings
 
 # To keep compatibility with various python versions
@@ -138,10 +138,8 @@ from IPython.utils.py3compat import PY3
 
 if PY3:
     from io import StringIO
-    text_type = str
 else:
     from StringIO import StringIO
-    text_type = unicode
 
 #-----------------------------------------------------------------------------
 # Globals
