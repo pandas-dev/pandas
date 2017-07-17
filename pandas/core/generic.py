@@ -466,9 +466,91 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    def set_axis(self, axis, labels):
-        """ public verson of axis assignment """
-        setattr(self, self._get_axis_name(axis), labels)
+    _shared_docs['set_axis'] = """Assign desired index to given axis
+
+        Parameters
+        ----------
+        labels: list-like or Index
+            The values for the new index
+        axis : int or string, default 0
+        inplace : boolean, default None
+            Whether to return a new %(klass)s instance.
+
+            WARNING: inplace=None currently falls back to to True, but
+            in a future version, will default to False.  Use inplace=True
+            explicitly rather than relying on the default.
+
+        .. versionadded:: 0.21.0
+            The signature was uniformed to the rest of the API: previously,
+            "axis" and "labels" were respectively the first and second
+            positional arguments.
+
+        Returns
+        -------
+        renamed : %(klass)s or None
+            New object if inplace=False, None otherwise.
+
+        See Also
+        --------
+        pandas.NDFrame.rename
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.set_axis(0, ['a', 'b', 'c'], inplace=False)
+        a    1
+        b    2
+        c    3
+        dtype: int64
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.set_axis(0, ['a', 'b', 'c'], inplace=False)
+           A  B
+        a  1  4
+        b  2  5
+        c  3  6
+        >>> df.set_axis(1, ['I', 'II'], inplace=False)
+           I  II
+        0  1   4
+        1  2   5
+        2  3   6
+        >>> df.set_axis(1, ['i', 'ii'], inplace=True)
+        >>> df
+           i  ii
+        0  1   4
+        1  2   5
+        2  3   6
+
+        """
+
+    @Appender(_shared_docs['set_axis'] % dict(klass='NDFrame'))
+    def set_axis(self, labels, axis=0, inplace=None):
+        if is_scalar(labels):
+            warnings.warn(
+                "set_axis now takes \"labels\" as first argument, and "
+                "\"axis\" as named parameter. The old form, with \"axis\" as "
+                "first parameter and \"labels\" as second, is still supported "
+                "but will be deprecated in a future version of pandas.",
+                FutureWarning, stacklevel=2)
+            labels, axis = axis, labels
+
+        if inplace is None:
+            warnings.warn(
+                "set_axis currently defaults to operating inplace.\nThis "
+                "will change in a future version of pandas, use "
+                "inplace=True to avoid this warning.",
+                FutureWarning, stacklevel=2)
+            inplace = True
+        if inplace:
+            setattr(self, self._get_axis_name(axis), labels)
+        else:
+            obj = self.copy()
+            obj.set_axis(labels, axis=axis, inplace=True)
+            return obj
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
