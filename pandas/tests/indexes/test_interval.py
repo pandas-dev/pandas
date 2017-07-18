@@ -559,7 +559,7 @@ class TestIntervalIndex(Base):
 
         # single queries
         queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-        expected = [-1, -1, 0, 0, 1, 1,  -1, -1, 2, 2, -1]
+        expected = [-1, -1, 0, 0, 1, 1, -1, -1, 2, 2, -1]
 
         for query, expected_result in zip(queries, expected):
             result = index.get_indexer([query])
@@ -582,7 +582,7 @@ class TestIntervalIndex(Base):
             [(0, 2.5), (1, 3), (2, 4)], closed='left')
 
         # single queries
-        queries = [-0.5, 0,  0.5, 1, 1.5, 2,  2.5, 3,  3.5, 4, 4.5]
+        queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
         expected = [[-1], [0], [0], [0, 1], [0, 1],
                     [0, 1, 2], [1, 2], [2], [2], [-1], [-1]]
 

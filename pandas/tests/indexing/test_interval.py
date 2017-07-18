@@ -68,7 +68,7 @@ class TestIntervalIndex(object):
         tm.assert_series_equal(expected, s[s >= 2])
 
     def test_loc_and_getitem_with_interval(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
+        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         s = self.s
         expected = 0
@@ -104,7 +104,6 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
 
-
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_and_getitem_with_interval_updated_behavior(self):
 
@@ -131,7 +130,7 @@ class TestIntervalIndex(object):
             s[Interval(5, 6)]
 
     def test_with_slices(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
+        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         s = self.s
 
@@ -184,14 +183,14 @@ class TestIntervalIndex(object):
 
         # slice of scalar
         with pytest.raises(NotImplementedError):
-            s[0:4] ## not sure what the behvaior should be here.
+            s[0:4]  # not sure what the behvaior should be here.
 
         # slice of scalar with step != 1
         with pytest.raises(ValueError):
-            s[0:4:2] ## This should probably definitely fail I guess?
+            s[0:4:2]  # This should probably definitely fail I guess?
 
     def test_with_overlaps(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
+        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         s = self.s
         expected = s.iloc[[3, 4, 3, 4]]
@@ -273,7 +272,7 @@ class TestIntervalIndex(object):
         tm.assert_series_equal(expected, result)
 
     def test_non_unique_moar(self):
-        ### THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
+        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
         s = Series(range(len(idx)), index=idx)
@@ -366,4 +365,3 @@ class TestIntervalIndex(object):
         # partial missing
         with pytest.raises(KeyError):
             df.loc[[10, 4]]
-
