@@ -270,6 +270,7 @@ Conversion
    :toctree: generated/
 
    Series.astype
+   Series.infer_objects
    Series.copy
    Series.isnull
    Series.notnull
@@ -777,6 +778,7 @@ Conversion
 
    DataFrame.astype
    DataFrame.convert_objects
+   DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isnull
    DataFrame.notnull
