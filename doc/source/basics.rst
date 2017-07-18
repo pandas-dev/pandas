@@ -2036,6 +2036,12 @@ to the correct type.
      df = df.T
      df
      df.dtypes
+
+Because the data transposed the original inference stored all columns as object, which
+``infer_objects`` will correct.
+
+  .. ipython:: python
+
      df.infer_objects().dtypes
 
 The following functions are available for one dimensional object arrays or scalars to perform

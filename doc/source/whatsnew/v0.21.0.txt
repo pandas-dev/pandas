@@ -32,9 +32,10 @@ New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The `:meth:`~DataFrame.infer_objects` and :meth:`~Series.infer_objects`
-have been added  to perform dtype inference on object columns, replacing
+methods have been added to perform dtype inference on object columns, replacing
 some of the functionality of the deprecated ``convert_objects``
-method (:issue:`11221`)
+method. See the documentation :ref:`here <basics.object_conversion>`
+for more details. (:issue:`11221`)
 
 This function only performs soft conversions on object columns, converting Python objects
 to native types, but not any coercive conversions.  For example:
@@ -49,9 +50,7 @@ to native types, but not any coercive conversions.  For example:
 
 Note that column ``'C'`` was not converted - only scalar numeric types
 will be inferred to a new type.  Other types of conversion should be accomplished
-using :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).  See
-the documentation :ref:`here <basics.object_conversion>` for more details.
-
+using :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
 .. ipython:: python
 
    df = df.infer_objects()

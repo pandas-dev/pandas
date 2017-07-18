@@ -3677,9 +3677,11 @@ it is assumed to be aliases for the column names.')
         1  1
         2  2
         3  3
+
         >>> df.dtypes
         A    object
         dtype: object
+
         >>> df.infer_objects().dtypes
         A    int64
         dtype: object
