@@ -221,7 +221,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
-
+- Bug in :func:`crosstab` where non-aligned series of integers were casted to float (:issue:`17005`)
 
 Numeric
 ^^^^^^^
