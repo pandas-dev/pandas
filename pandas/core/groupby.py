@@ -2883,7 +2883,12 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.grouper.names[0])
+            # mixed types fail to sort
+            try:
+                values = sorted(result)
+            except TypeError:
+                values = result
+            index = Index(values, name=self.grouper.names[0])
             ret = Series(result, index=index)
 
         if not self.as_index:  # pragma: no cover
