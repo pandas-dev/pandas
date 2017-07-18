@@ -1043,7 +1043,7 @@ class Styler(object):
 
         return self
 
-    def highlight_max(self, subset=None, color='yellow', axis=None):
+    def highlight_max(self, subset=None, color='yellow', axis=0):
         """
         Highlight the maximum by shading the background
 
@@ -1054,9 +1054,9 @@ class Styler(object):
         subset: IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
-        axis: int, str, or None; default None
-            0 or 'index' for columnwise, 1 or 'columns' for rowwise
-            or ``None`` for tablewise (the default)
+        axis: int, str, or None; default 0
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise
+            or ``None`` for tablewise
 
         Returns
         -------
@@ -1065,7 +1065,7 @@ class Styler(object):
         return self._highlight_handler(subset=subset, color=color, axis=axis,
                                        max_=True)
 
-    def highlight_min(self, subset=None, color='yellow', axis=None):
+    def highlight_min(self, subset=None, color='yellow', axis=0):
         """
         Highlight the minimum by shading the background
 
@@ -1076,9 +1076,9 @@ class Styler(object):
         subset: IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
-        axis: int, str, or None; default None
-            0 or 'index' for columnwise, 1 or 'columns' for rowwise
-            or ``None`` for tablewise (the default)
+        axis: int, str, or None; default 0
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise
+            or ``None`` for tablewise
 
         Returns
         -------
