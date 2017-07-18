@@ -222,6 +222,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
+- Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
 
 
 Numeric
