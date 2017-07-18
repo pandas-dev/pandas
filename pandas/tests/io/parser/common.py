@@ -664,7 +664,7 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
-    @tm.slow
+    @pytest.mark.slow
     def test_file(self):
         dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salaries.csv')
@@ -1676,6 +1676,16 @@ j,-inF"""
 
             result = self.read_csv(path)
             tm.assert_frame_equal(result, expected)
+
+    def test_sub_character(self):
+        # see gh-16893
+        dirpath = tm.get_data_path()
+        filename = os.path.join(dirpath, "sub_char.csv")
+
+        expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
+        result = self.read_csv(filename)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_file_handles(self):
         # GH 14418 - don't close user provided file handles

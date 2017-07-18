@@ -8,6 +8,7 @@ import sys
 
 from numpy import nan
 import numpy as np
+import pytest
 
 from pandas import (DataFrame, compat, option_context)
 from pandas.compat import StringIO, lrange, u
@@ -40,7 +41,7 @@ class TestDataFrameReprInfoEtc(TestData):
         foo = repr(self.mixed_frame)  # noqa
         self.mixed_frame.info(verbose=False, buf=buf)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
@@ -87,7 +88,7 @@ class TestDataFrameReprInfoEtc(TestData):
         with option_context('display.show_dimensions', 'truncate'):
             assert "2 rows x 2 columns" not in repr(df)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_big(self):
         # big one
         biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),

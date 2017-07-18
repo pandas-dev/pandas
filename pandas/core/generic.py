@@ -547,6 +547,43 @@ class NDFrame(PandasObject, SelectionMixin):
     def pop(self, item):
         """
         Return item and drop from frame. Raise KeyError if not found.
+
+        Parameters
+        ----------
+        item : str
+            Column label to be popped
+
+        Returns
+        -------
+        popped : Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        >>> df.pop('class')
+        0      bird
+        1      bird
+        2    mammal
+        3    mammal
+        Name: class, dtype: object
+
+        >>> df
+             name  max_speed
+        0  falcon      389.0
+        1  parrot       24.0
+        2    lion       80.5
+        3  monkey        NaN
         """
         result = self[item]
         del self[item]
@@ -2098,7 +2135,6 @@ it is assumed to be aliases for the column names.')
 
     _xs = xs
 
-    # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -3116,7 +3152,7 @@ it is assumed to be aliases for the column names.')
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
-    agg is an alias for aggregate. Use it.
+    `agg` is an alias for `aggregate`. Use the alias.
 
     Returns
     -------
@@ -3635,15 +3671,65 @@ it is assumed to be aliases for the column names.')
         converted : same as input object
         """
         from warnings import warn
-        warn("convert_objects is deprecated.  Use the data-type specific "
-             "converters pd.to_datetime, pd.to_timedelta and pd.to_numeric.",
-             FutureWarning, stacklevel=2)
+        msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
+               "object columns, use {klass}.infer_objects()\nFor all "
+               "other conversions use the data-type specific converters "
+               "pd.to_datetime, pd.to_timedelta and pd.to_numeric."
+               ).format(klass=self.__class__.__name__)
+        warn(msg, FutureWarning, stacklevel=2)
 
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
                                convert_numeric=convert_numeric,
                                convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
+
+    def infer_objects(self):
+        """
+        Attempt to infer better dtypes for object columns.
+
+        Attempts soft conversion of object-dtyped
+        columns, leaving non-object and unconvertible
+        columns unchanged. The inference rules are the
+        same as during normal Series/DataFrame construction.
+
+        .. versionadded:: 0.20.0
+
+        See Also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to numeric typeR
+
+        Returns
+        -------
+        converted : same type as input object
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["a", 1, 2, 3]})
+        >>> df = df.iloc[1:]
+        >>> df
+           A
+        1  1
+        2  2
+        3  3
+
+        >>> df.dtypes
+        A    object
+        dtype: object
+
+        >>> df.infer_objects().dtypes
+        A    int64
+        dtype: object
+        """
+        # numeric=False necessary to only soft convert;
+        # python objects will still be converted to
+        # native numpy numeric types
+        return self._constructor(
+            self._data.convert(datetime=True, numeric=False,
+                               timedelta=True, coerce=False,
+                               copy=True)).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -4790,6 +4876,8 @@ it is assumed to be aliases for the column names.')
         label : {'right', 'left'}
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
+            For PeriodIndex only, controls whether to use the start or end of
+            `rule`
         loffset : timedelta
             Adjust the resampled time labels
         base : int, default 0
@@ -4909,6 +4997,47 @@ it is assumed to be aliases for the column names.')
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
+
+        For a Series with a PeriodIndex, the keyword `convention` can be
+        used to control whether to use the start or end of `rule`.
+
+        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
+                                                        freq='A',
+                                                        periods=2))
+        >>> s
+        2012    1
+        2013    2
+        Freq: A-DEC, dtype: int64
+
+        Resample by month using 'start' `convention`. Values are assigned to
+        the first month of the period.
+
+        >>> s.resample('M', convention='start').asfreq().head()
+        2012-01    1.0
+        2012-02    NaN
+        2012-03    NaN
+        2012-04    NaN
+        2012-05    NaN
+        Freq: M, dtype: float64
+
+        Resample by month using 'end' `convention`. Values are assigned to
+        the last month of the period.
+
+        >>> s.resample('M', convention='end').asfreq()
+        2012-12    1.0
+        2013-01    NaN
+        2013-02    NaN
+        2013-03    NaN
+        2013-04    NaN
+        2013-05    NaN
+        2013-06    NaN
+        2013-07    NaN
+        2013-08    NaN
+        2013-09    NaN
+        2013-10    NaN
+        2013-11    NaN
+        2013-12    2.0
+        Freq: M, dtype: float64
 
         For DataFrame objects, the keyword ``on`` can be used to specify the
         column instead of the index for resampling.

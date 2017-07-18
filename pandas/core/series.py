@@ -36,8 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isnull, notnull
-
+from pandas.core.dtypes.missing import isnull, notnull, remove_na_arraylike
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -86,6 +85,17 @@ _shared_doc_kwargs = dict(
     unique='np.ndarray', duplicated='Series',
     optional_by='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
+
+
+# see gh-16971
+def remove_na(arr):
+    """
+    DEPRECATED : this function will be removed in a future version.
+    """
+
+    warnings.warn("remove_na is deprecated and is a private "
+                  "function. Do not use.", FutureWarning, stacklevel=2)
+    return remove_na_arraylike(arr)
 
 
 def _coerce_method(converter):
@@ -948,6 +958,37 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Returns
         ----------
         resetted : DataFrame, or Series if drop == True
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
+        >>> s.reset_index()
+           index  0
+        0      0  1
+        1      1  2
+        2      2  3
+        3      3  4
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
+        ...                     'foo', 'qux', 'qux']),
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
+        >>> s2 = pd.Series(
+        ...     np.random.randn(8),
+        ...     index=pd.MultiIndex.from_arrays(arrays,
+        ...                                     names=['a', 'b']))
+        >>> s2.reset_index(level='a')
+               a         0
+        b
+        one  bar -0.286320
+        two  bar -0.587934
+        one  baz  0.710491
+        two  baz -1.429006
+        one  foo  0.790700
+        two  foo  0.824863
+        one  qux -0.718963
+        two  qux -0.055028
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -2749,7 +2790,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         axis = self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
-            result = remove_na(self)
+            result = remove_na_arraylike(self)
             if inplace:
                 self._update_inplace(result)
             else:
@@ -2886,13 +2927,6 @@ _INDEX_TYPES = ndarray, Index, list, tuple
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
-
-
-def remove_na(series):
-    """
-    Return series containing only true/non-NaN values, possibly empty.
-    """
-    return series[notnull(_values_from_object(series))]
 
 
 def _sanitize_index(data, index, copy=False):

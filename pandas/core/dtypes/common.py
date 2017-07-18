@@ -11,7 +11,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries)
+                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex)
 from .inference import is_string_like
 from .inference import *  # noqa
 
@@ -392,13 +392,15 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     >>> is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
     True
+    >>> is_timedelta64_dtype('0 days')
+    False
     """
 
     if arr_or_dtype is None:
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except ValueError:
+    except:
         return False
     return issubclass(tipo, np.timedelta64)
 
@@ -1713,6 +1715,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype

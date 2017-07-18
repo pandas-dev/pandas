@@ -972,7 +972,8 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
-                          "columns will be omitted.", UserWarning)
+                          "columns will be omitted.", UserWarning,
+                          stacklevel=2)
         # GH16122
         into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
@@ -2285,9 +2286,9 @@ it is assumed to be aliases for the column names')
 
         Parameters
         ----------
-        include, exclude : list-like
-            A list of dtypes or strings to be included/excluded. You must pass
-            in a non-empty sequence for at least one of these.
+        include, exclude : scalar or list-like
+            A selection of dtypes or strings to be included/excluded. At least
+            one of these parameters must be supplied.
 
         Raises
         ------
@@ -2295,8 +2296,6 @@ it is assumed to be aliases for the column names')
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
-        TypeError
-            * If either of ``include`` or ``exclude`` is not a sequence
 
         Returns
         -------
@@ -2331,6 +2330,14 @@ it is assumed to be aliases for the column names')
         3  0.0764  False  2
         4 -0.9703   True  1
         5 -1.2094  False  2
+        >>> df.select_dtypes(include='bool')
+           c
+        0  True
+        1  False
+        2  True
+        3  False
+        4  True
+        5  False
         >>> df.select_dtypes(include=['float64'])
            c
         0  1
@@ -2348,10 +2355,12 @@ it is assumed to be aliases for the column names')
         4   True
         5  False
         """
-        include, exclude = include or (), exclude or ()
-        if not (is_list_like(include) and is_list_like(exclude)):
-            raise TypeError('include and exclude must both be non-string'
-                            ' sequences')
+
+        if not is_list_like(include):
+            include = (include,) if include is not None else ()
+        if not is_list_like(exclude):
+            exclude = (exclude,) if exclude is not None else ()
+
         selection = tuple(map(frozenset, (include, exclude)))
 
         if not any(selection):
@@ -3011,6 +3020,38 @@ it is assumed to be aliases for the column names')
         Returns
         -------
         resetted : DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]},
+        ...                   index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                  name='idx'))
+        >>> df.reset_index()
+          idx  a  b
+        0   a  1  5
+        1   b  2  6
+        2   c  3  7
+        3   d  4  8
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
+        ...                     'foo', 'qux', 'qux']),
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
+        >>> df2 = pd.DataFrame(
+        ...     np.random.randn(8, 4),
+        ...     index=pd.MultiIndex.from_arrays(arrays,
+        ...                                     names=['a', 'b']))
+        >>> df2.reset_index(level='a')
+               a         0         1         2         3
+        b
+        one  bar -1.099413  0.291838  0.598198  0.162181
+        two  bar -0.312184 -0.119904  0.250360  0.364378
+        one  baz  0.713596 -0.490636  0.074967 -0.297857
+        two  baz  0.998397  0.524499 -2.228976  0.901155
+        one  foo  0.923204  0.920695  1.264488  1.476921
+        two  foo -1.566922  0.783278 -0.073656  0.266027
+        one  qux -0.230470  0.109800 -1.383409  0.048421
+        two  qux -0.865993 -0.865984  0.705367 -0.170446
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -3351,8 +3392,9 @@ it is assumed to be aliases for the column names')
         inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
-            warnings.warn("by argument to sort_index is deprecated, pls use "
-                          ".sort_values(by=...)", FutureWarning, stacklevel=2)
+            warnings.warn("by argument to sort_index is deprecated, "
+                          "please use .sort_values(by=...)",
+                          FutureWarning, stacklevel=2)
             if level is not None:
                 raise ValueError("unable to simultaneously sort by and level")
             return self.sort_values(by, axis=axis, ascending=ascending,

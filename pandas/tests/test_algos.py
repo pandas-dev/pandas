@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import warnings
 
 from numpy.random import RandomState
 from numpy import nan
@@ -127,7 +128,7 @@ class TestSafeSort(object):
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
         if compat.PY2 and not pd._np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with tm.assert_produces_warning(RuntimeWarning):
+            with warnings.catch_warnings():
                 pytest.raises(TypeError, algos.safe_sort, arr)
         else:
             pytest.raises(TypeError, algos.safe_sort, arr)
@@ -585,6 +586,16 @@ class TestIsin(object):
         expected[0] = True
         expected[1] = True
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_categorical_from_codes(self):
+        # GH 16639
+        vals = np.array([0, 1, 2, 0])
+        cats = ['a', 'b', 'c']
+        Sd = pd.Series(pd.Categorical(1).from_codes(vals, cats))
+        St = pd.Series(pd.Categorical(1).from_codes(np.array([0, 1]), cats))
+        expected = np.array([True, True, False, True])
+        result = algos.isin(Sd, St)
+        tm.assert_numpy_array_equal(expected, result)
 
 
 class TestValueCounts(object):

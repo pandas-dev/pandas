@@ -20,8 +20,7 @@ from pandas._libs import tslib, lib
 
 from pandas.compat import lrange, range
 from pandas import compat
-from pandas.util.testing import (slow,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
@@ -2592,7 +2591,7 @@ class TestDatetimeIndexing(object):
         # s2 = s.set_value(dates[1], index[1])
         # assert s2.values.dtype == 'M8[ns]'
 
-    @slow
+    @pytest.mark.slow
     def test_slice_locs_indexerror(self):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
                  for i in range(100000)]

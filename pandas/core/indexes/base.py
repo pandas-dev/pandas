@@ -666,7 +666,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             res = data.astype('u8', copy=False)
             if (res == data).all():
                 return UInt64Index(res, copy=copy, name=name)
-        except (TypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             pass
 
         raise ValueError
@@ -1640,7 +1640,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except (TypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             return False
 
     _index_shared_docs['contains'] = """
@@ -3119,14 +3119,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
-        left_idx, right_idx = _get_join_indexers([self.values],
+        left_idx, right_idx = _get_join_indexers([self._values],
                                                  [other._values], how=how,
                                                  sort=True)
 
         left_idx = _ensure_platform_int(left_idx)
         right_idx = _ensure_platform_int(right_idx)
 
-        join_index = np.asarray(self.values.take(left_idx))
+        join_index = np.asarray(self._values.take(left_idx))
         mask = left_idx == -1
         np.putmask(join_index, mask, other._values.take(right_idx))
 
@@ -3365,7 +3365,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 ckey = int(key)
                 if ckey == key:
                     key = ckey
-            except (ValueError, TypeError):
+            except (OverflowError, ValueError, TypeError):
                 pass
         return key
 

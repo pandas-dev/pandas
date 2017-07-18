@@ -1697,7 +1697,8 @@ class MultiIndex(Index):
                 raise ValueError("level must have same length as ascending")
 
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(self.labels, orders=ascending)
+            indexer = lexsort_indexer([self.labels[lev] for lev in level],
+                                      orders=ascending)
 
         # level ordering
         else:
