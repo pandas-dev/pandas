@@ -57,5 +57,3 @@ Reshaping
 Categorical
 ^^^^^^^^^^^
 
-
-- Bug in ``DataFrame.sort_values`` not respecting the ``kind`` with categorical data (:issue:`16793`)
