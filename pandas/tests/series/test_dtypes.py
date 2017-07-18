@@ -283,5 +283,6 @@ class TestSeriesDtypes(TestData):
         actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
                   .infer_objects())
         expected = Series([1, 2, 3, None, 'a'])
+
         assert actual.dtype == 'object'
         tm.assert_series_equal(actual, expected)
