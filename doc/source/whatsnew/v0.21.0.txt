@@ -192,6 +192,7 @@ Indexing
 - Fixed :func:`TimedeltaIndex.get_loc` handling of ``np.timedelta64`` inputs (:issue:`16909`).
 - Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
+- Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
 I/O
 ^^^
