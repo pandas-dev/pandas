@@ -125,12 +125,13 @@ class TestIntervalIndex(object):
             s[Interval(3, 4, closed='both'):]
 
         # slice of scalar
-        with pytest.raises(NotImplementedError):
-            s[0:4]  # not sure what the behvaior should be here.
+        expected = s.iloc[:4]  # maybe [:5] ?
+        result = s[0:4]
+        tm.assert_series_equal(expected, result)
 
         # slice of scalar with step != 1
-        with pytest.raises(ValueError):
-            s[0:4:2]  # This should probably definitely fail I guess?
+        with pytest.raises(NotImplementedError):
+            s[0:4:2]
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_with_overlaps_updated_behavior(self):
