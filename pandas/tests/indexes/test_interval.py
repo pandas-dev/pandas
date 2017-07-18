@@ -408,41 +408,41 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_interval_updated_behavior(self):
 
-        # increasing
+        # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-        assert index.slice_locs(end=Interval(0, 2)) == ()
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=Interval(0, 2)) == (0, 1)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)
 
-        # decreasing
+        # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == ()
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)
         assert index.slice_locs(start=Interval(0, 2)) == (2, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == ()
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 1)
+        assert index.slice_locs(end=Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 2)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-        assert index.slice_locs(end=Interval(0, 2)) == ()  # questionable
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
+        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == # This should raise?
-        assert index.slice_locs(start=Interval(0, 2)) == #  This should raise?
+        pytest.raises(KeyError, index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)))
+        pytest.raises(KeyError, index.slice_locs(start=Interval(0, 2)))
         assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-        assert index.slice_locs(end=Interval(0, 2)) == #  This should raise?
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == # This should raise?
+        pytest.raises(KeyError, index.slice_locs(end=Interval(0, 2)))
+        pytest.raises(KeyError, index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)))
 
         # different unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
@@ -450,8 +450,8 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 4)
         assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == ()
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == ()
+        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_ints_and_floats_updated_behavior(self):
