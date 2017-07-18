@@ -65,6 +65,8 @@ def _ensure_data(values, dtype=None):
 
     # we check some simple dtypes first
     try:
+        if is_object_dtype(dtype):
+            return _ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos suppport uint8 directly (see TODO)
