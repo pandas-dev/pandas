@@ -405,3 +405,32 @@ AA   BBB  C
 
         with pytest.raises(EmptyDataError):
             read_fwf(StringIO(test), skiprows=3)
+
+    def test_whitespace_preservation(self):
+        # Addresses Issue #16772
+        data_expected = """
+ a ,bbb
+ cc,dd """
+        expected = read_csv(StringIO(data_expected), header=None)
+
+        test_data = """
+ a bbb
+ ccdd """
+        result = read_fwf(StringIO(test_data), widths=[3, 3],
+                          header=None, skiprows=[0], delimiter="\n\t")
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_default_delimiter(self):
+        data_expected = """
+a,bbb
+cc,dd"""
+        expected = read_csv(StringIO(data_expected), header=None)
+
+        test_data = """
+a \tbbb
+cc\tdd """
+        result = read_fwf(StringIO(test_data), widths=[3, 3],
+                          header=None, skiprows=[0])
+
+        tm.assert_frame_equal(result, expected)
