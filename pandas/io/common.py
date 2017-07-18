@@ -189,27 +189,27 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     Parameters
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
-                         or buffer
-            now supports 'https://<user>:<password>@<host>:<port>/<url-path>'
+        or buffer  now supports url with username and password
+        eg: 'https://<user>:<password>@<host>:<port>/<url-path>'
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
     compression : string, default None
 
-            .. versionadded:: 0.18.1
+        .. versionadded:: 0.18.1
 
     auth : tuple, default None
-            A tuple of string with (username, password) string for
-            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+        A tuple of string with (username, password) string for
+        HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
 
             .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True
-            If False, allow self signed and invalid SSL certificates for https
+        If False, allow self signed and invalid SSL certificates for https
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
 
     Returns
@@ -279,17 +279,17 @@ def split_auth_from_url(url_with_uname):
     Parameters
     ----------
     url_with_uname : string
-            a url that may or may not contain username and password
-            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
-            //<user>:<password>@<host>:<port>/<url-path>
+        a url that may or may not contain username and password
+        see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+        //<user>:<password>@<host>:<port>/<url-path>
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
     Returns
     -------
     (username, password), url_no_usrpwd : tuple, string  Default ('', '') url
-            A tuple with (username, pwd) pair and
-            url without username or password (if it contained it )
+        A tuple with (username, pwd) pair and
+        url without username or password (if it contained it )
 
     Raises
     ------
@@ -317,22 +317,22 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
     Parameters
     ----------
     url_with_uname : string
-            a url that may or may not contain username and password
-            see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
-            //<user>:<password>@<host>:<port>/<url-path>
+        a url that may or may not contain username and password
+        see section 3.1 RFC 1738 https://www.ietf.org/rfc/rfc1738.txt
+        //<user>:<password>@<host>:<port>/<url-path>
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
     auth : tuple, default None
-            A tuple of string with (username, password) string for
-            HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
+        A tuple of string with (username, password) string for
+        HTTP(s) basic auth: eg auth= ('roberto', 'panda$4life')
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
     verify_ssl : boolean, Default True
-            If False, allow self signed and invalid SSL certificates for https
+        If False, allow self signed and invalid SSL certificates for https
 
-            .. versionadded:: 0.21.0
+        .. versionadded:: 0.21.0
 
     Returns
     -------
