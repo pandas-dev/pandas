@@ -63,8 +63,6 @@ object with a read() method (such as a file handle or StringIO)
     file. For file URLs, a host is expected. For instance, a local file could
     be file ://localhost/path/to/table.csv
 %s
-delimiter : str, default ``None``
-    Alternative argument name for sep.
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\s+'``. If this option
@@ -316,7 +314,9 @@ _sep_doc = r"""sep : str, default {default}
     be used automatically. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``"""
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
+delimiter : str, default ``None``
+    Alternative argument name for sep."""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -341,15 +341,16 @@ colspecs : list of pairs (int, int) or 'infer'. optional
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
+delimiter : str, default ``'\t' + ' '``
+    Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 """
 
 _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame
 
 %s
-
-Also, 'delimiter' is used to specify the filler character of the
-fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
