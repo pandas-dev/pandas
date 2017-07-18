@@ -488,7 +488,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         renamed : %(klass)s or None
-            New object if inplace=False, None otherwise.
+            An object of same type as caller if inplace=False, None otherwise.
 
         See Also
         --------
@@ -502,23 +502,23 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2
         2    3
         dtype: int64
-        >>> s.set_axis(0, ['a', 'b', 'c'], inplace=False)
+        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
         a    1
         b    2
         c    3
         dtype: int64
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.set_axis(0, ['a', 'b', 'c'], inplace=False)
+        >>> df.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
            A  B
         a  1  4
         b  2  5
         c  3  6
-        >>> df.set_axis(1, ['I', 'II'], inplace=False)
+        >>> df.set_axis(['I', 'II'], axis=1, inplace=False)
            I  II
         0  1   4
         1  2   5
         2  3   6
-        >>> df.set_axis(1, ['i', 'ii'], inplace=True)
+        >>> df.set_axis(['i', 'ii'], axis=1, inplace=True)
         >>> df
            i  ii
         0  1   4
@@ -531,18 +531,18 @@ class NDFrame(PandasObject, SelectionMixin):
     def set_axis(self, labels, axis=0, inplace=None):
         if is_scalar(labels):
             warnings.warn(
-                "set_axis now takes \"labels\" as first argument, and "
-                "\"axis\" as named parameter. The old form, with \"axis\" as "
-                "first parameter and \"labels\" as second, is still supported "
-                "but will be deprecated in a future version of pandas.",
+                'set_axis now takes "labels" as first argument, and '
+                '"axis" as named parameter. The old form, with "axis" as '
+                'first parameter and \"labels\" as second, is still supported '
+                'but will be deprecated in a future version of pandas.',
                 FutureWarning, stacklevel=2)
             labels, axis = axis, labels
 
         if inplace is None:
             warnings.warn(
-                "set_axis currently defaults to operating inplace.\nThis "
-                "will change in a future version of pandas, use "
-                "inplace=True to avoid this warning.",
+                'set_axis currently defaults to operating inplace.\nThis '
+                'will change in a future version of pandas, use '
+                'inplace=True to avoid this warning.',
                 FutureWarning, stacklevel=2)
             inplace = True
         if inplace:
@@ -957,7 +957,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         renamed = self if inplace else self.copy()
-        renamed.set_axis(axis, idx)
+        renamed.set_axis(idx, axis=axis, inplace=True)
         if not inplace:
             return renamed
 
@@ -5845,7 +5845,7 @@ it is assumed to be aliases for the column names.')
 
         new_obj = self._slice(vslicer, axis=axis)
         shifted_axis = self._get_axis(axis)[islicer]
-        new_obj.set_axis(axis, shifted_axis)
+        new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
 
         return new_obj.__finalize__(self)
 
@@ -6005,7 +6005,7 @@ it is assumed to be aliases for the column names.')
             ax = _tz_convert(ax, tz)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(axis, ax)
+        result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
@@ -6073,7 +6073,7 @@ it is assumed to be aliases for the column names.')
             ax = _tz_localize(ax, tz, ambiguous)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(axis, ax)
+        result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
     # ----------------------------------------------------------------------
