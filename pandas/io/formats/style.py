@@ -1055,7 +1055,7 @@ class Styler(object):
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
         axis: int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
             or ``None`` for tablewise
 
         Returns
@@ -1077,7 +1077,7 @@ class Styler(object):
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
         axis: int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
             or ``None`` for tablewise
 
         Returns
