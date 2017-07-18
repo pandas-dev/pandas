@@ -67,43 +67,6 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
 
-    def test_loc_and_getitem_with_interval(self):
-        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
-
-        s = self.s
-        expected = 0
-
-        result = s.loc[Interval(0, 1)]
-        assert result == expected
-
-        result = s[Interval(0, 1)]
-        assert result == expected
-
-        expected = s.iloc[3:5]
-        result = s.loc[Interval(3, 6)]
-        tm.assert_series_equal(expected, result)
-
-        expected = s.iloc[3:5]
-        result = s.loc[[Interval(3, 6)]]
-        tm.assert_series_equal(expected, result)
-
-        expected = s.iloc[3:5]
-        result = s.loc[[Interval(3, 5)]]
-        tm.assert_series_equal(expected, result)
-
-        # missing
-        with pytest.raises(KeyError):
-            s.loc[Interval(-2, 0)]
-
-        with pytest.raises(KeyError):
-            s[Interval(-2, 0)]
-
-        with pytest.raises(KeyError):
-            s.loc[Interval(5, 6)]
-
-        with pytest.raises(KeyError):
-            s[Interval(5, 6)]
-
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_and_getitem_with_interval_updated_behavior(self):
 
@@ -128,26 +91,6 @@ class TestIntervalIndex(object):
 
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
-
-    def test_with_slices(self):
-        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
-
-        s = self.s
-
-        # slice of interval
-        with pytest.raises(NotImplementedError):
-            result = s.loc[Interval(3, 6):]
-
-        with pytest.raises(NotImplementedError):
-            result = s[Interval(3, 6):]
-
-        expected = s.iloc[3:5]
-        result = s[[Interval(3, 6)]]
-        tm.assert_series_equal(expected, result)
-
-        # slice of scalar with step != 1
-        with pytest.raises(ValueError):
-            s[0:4:2]
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_with_slices_updated_behavior(self):
@@ -188,44 +131,6 @@ class TestIntervalIndex(object):
         # slice of scalar with step != 1
         with pytest.raises(ValueError):
             s[0:4:2]  # This should probably definitely fail I guess?
-
-    def test_with_overlaps(self):
-        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
-
-        s = self.s
-        expected = s.iloc[[3, 4, 3, 4]]
-        result = s.loc[[Interval(3, 6), Interval(3, 6)]]
-        tm.assert_series_equal(expected, result)
-
-        idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
-        s = Series(range(len(idx)), index=idx)
-
-        result = s[4]
-        expected = s
-        tm.assert_series_equal(expected, result)
-
-        result = s[[4]]
-        expected = s
-        tm.assert_series_equal(expected, result)
-
-        result = s.loc[[4]]
-        expected = s
-        tm.assert_series_equal(expected, result)
-
-        result = s[Interval(3, 5)]
-        expected = s
-        tm.assert_series_equal(expected, result)
-
-        result = s.loc[Interval(3, 5)]
-        expected = s
-        tm.assert_series_equal(expected, result)
-
-        # doesn't intersect unique set of intervals
-        with pytest.raises(KeyError):
-            s[[Interval(3, 5)]]
-
-        with pytest.raises(KeyError):
-            s.loc[[Interval(3, 5)]]
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_with_overlaps_updated_behavior(self):
@@ -270,27 +175,6 @@ class TestIntervalIndex(object):
         result = s.loc[[Interval(1, 3)]]
         expected = s.iloc[0:1]
         tm.assert_series_equal(expected, result)
-
-    def test_non_unique_moar(self):
-        # THIS METHOD TO BE REMOVED FOR BEHAVIOR UPDATE
-
-        idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
-        s = Series(range(len(idx)), index=idx)
-
-        result = s.loc[Interval(1, 3)]
-        expected = s.iloc[[0, 1]]
-        tm.assert_series_equal(expected, result)
-
-        # non-unique index and slices not allowed
-        with pytest.raises(ValueError):
-            s.loc[Interval(1, 3):]
-
-        with pytest.raises(ValueError):
-            s[Interval(1, 3):]
-
-        # non-unique
-        with pytest.raises(ValueError):
-            s[[Interval(1, 3)]]
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_non_unique_moar_updated_behavior(self):
