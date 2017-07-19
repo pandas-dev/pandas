@@ -2025,11 +2025,12 @@ object conversion
 
 pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
 In cases where the data is already of the correct type, but stored in an ``object`` array, the
-:meth:`~DataFrame.infer_objects` and :meth:`~Series.infer_objects` can be used to soft convert
+:meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects` methods can be used to soft convert
 to the correct type.
 
   .. ipython:: python
 
+     import datetime
      df = pd.DataFrame([[1, 2],
                         ['a', 'b'],
                         [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]])
@@ -2037,7 +2038,7 @@ to the correct type.
      df
      df.dtypes
 
-Because the data transposed the original inference stored all columns as object, which
+Because the data was transposed the original inference stored all columns as object, which
 ``infer_objects`` will correct.
 
   .. ipython:: python

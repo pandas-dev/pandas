@@ -31,13 +31,13 @@ New features
 ``infer_objects`` type conversion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `:meth:`~DataFrame.infer_objects` and :meth:`~Series.infer_objects`
+The :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects`
 methods have been added to perform dtype inference on object columns, replacing
 some of the functionality of the deprecated ``convert_objects``
 method. See the documentation :ref:`here <basics.object_conversion>`
 for more details. (:issue:`11221`)
 
-This function only performs soft conversions on object columns, converting Python objects
+This method only performs soft conversions on object columns, converting Python objects
 to native types, but not any coercive conversions.  For example:
 
 .. ipython:: python
@@ -46,11 +46,12 @@ to native types, but not any coercive conversions.  For example:
                       'B': np.array([1, 2, 3], dtype='object'),
                       'C': ['1', '2', '3']})
    df.dtypes
-   df.infer_objects().dtype
+   df.infer_objects().dtypes
 
 Note that column ``'C'`` was not converted - only scalar numeric types
 will be inferred to a new type.  Other types of conversion should be accomplished
-using :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
+using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
+
 .. ipython:: python
 
    df = df.infer_objects()
