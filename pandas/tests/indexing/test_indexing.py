@@ -63,6 +63,34 @@ class TestFancy(Base):
 
         pytest.raises(ValueError, f)
 
+    def test_inf_upcast(self):
+        # GH 16957
+        # We should be able to use np.inf as a key
+        # np.inf should cause an index to convert to float
+
+        # Test with np.inf in rows
+        df = pd.DataFrame(columns=[0])
+        df.loc[1] = 1
+        df.loc[2] = 2
+        df.loc[np.inf] = 3
+
+        # make sure we can look up the value
+        assert df.loc[np.inf, 0] == 3
+
+        result = df.index
+        expected = pd.Float64Index([1, 2, np.inf])
+        tm.assert_index_equal(result, expected)
+
+        # Test with np.inf in columns
+        df = pd.DataFrame()
+        df.loc[0, 0] = 1
+        df.loc[1, 1] = 2
+        df.loc[0, np.inf] = 3
+
+        result = df.columns
+        expected = pd.Float64Index([0, 1, np.inf])
+        tm.assert_index_equal(result, expected)
+
     def test_setitem_dtype_upcast(self):
 
         # GH3216
@@ -541,6 +569,34 @@ class TestFancy(Base):
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), 2),
+        (pd.Index([0, 1, '2']), '2'),
+        (pd.Index([0, 1, 2, np.inf, 4]), 4),
+        (pd.Index([0, 1, 2, np.nan, 4]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.inf),
+        (pd.Index([0, 1, 2, np.nan]), np.nan),
+    ])
+    def test_index_contains(self, index, val):
+        assert val in index
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), '2'),
+        (pd.Index([0, 1, '2']), 2),
+        (pd.Index([0, 1, 2, np.inf]), 4),
+        (pd.Index([0, 1, 2, np.nan]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.nan),
+        (pd.Index([0, 1, 2, np.nan]), np.inf),
+        # Checking if np.inf in Int64Index should not cause an OverflowError
+        # Related to GH 16957
+        (pd.Int64Index([0, 1, 2]), np.inf),
+        (pd.Int64Index([0, 1, 2]), np.nan),
+        (pd.UInt64Index([0, 1, 2]), np.inf),
+        (pd.UInt64Index([0, 1, 2]), np.nan),
+    ])
+    def test_index_not_contains(self, index, val):
+        assert val not in index
 
     def test_index_type_coercion(self):
 

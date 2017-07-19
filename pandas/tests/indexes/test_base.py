@@ -1407,6 +1407,15 @@ class TestIndex(Base):
         # Float64Index overrides isin, so must be checked separately
         check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
 
+    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    def test_isin_empty(self, empty):
+        # see gh-16991
+        idx = Index(["a", "b"])
+        expected = np.array([False, False])
+
+        result = idx.isin(empty)
+        tm.assert_numpy_array_equal(expected, result)
+
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
 

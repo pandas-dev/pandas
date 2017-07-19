@@ -399,10 +399,14 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
-    'M': 'M'
+    'M': 'M',
+    'Y': 'A',
+    'BY': 'A',
+    'YS': 'A',
+    'BYS': 'A',
 }
 
-need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
+need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 for __prefix in need_suffix:
     for _m in tslib._MONTHS:
         _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
@@ -427,9 +431,13 @@ _lite_rule_alias = {
     'Q': 'Q-DEC',
 
     'A': 'A-DEC',  # YearEnd(month=12),
+    'Y': 'A-DEC',
     'AS': 'AS-JAN',  # YearBegin(month=1),
+    'YS': 'AS-JAN',
     'BA': 'BA-DEC',  # BYearEnd(month=12),
+    'BY': 'BA-DEC',
     'BAS': 'BAS-JAN',  # BYearBegin(month=1),
+    'BYS': 'BAS-JAN',
 
     'Min': 'T',
     'min': 'T',
@@ -708,7 +716,17 @@ _reverse_period_code_map = {}
 for _k, _v in compat.iteritems(_period_code_map):
     _reverse_period_code_map[_v] = _k
 
-# Additional aliases
+# Yearly aliases
+year_aliases = {}
+
+for k, v in compat.iteritems(_period_code_map):
+    if k.startswith("A-"):
+        alias = "Y" + k[1:]
+        year_aliases[alias] = v
+
+_period_code_map.update(**year_aliases)
+del year_aliases
+
 _period_code_map.update({
     "Q": 2000,  # Quarterly - December year end (default quarterly)
     "A": 1000,  # Annual

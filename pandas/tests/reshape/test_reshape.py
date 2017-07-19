@@ -643,6 +643,10 @@ class TestGetDummies(object):
 class TestGetDummiesSparse(TestGetDummies):
     sparse = True
 
+    @pytest.mark.xfail(reason='nan in index is problematic (GH 16894)')
+    def test_include_na(self):
+        super(TestGetDummiesSparse, self).test_include_na()
+
 
 class TestMakeAxisDummies(object):
 
