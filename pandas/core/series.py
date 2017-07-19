@@ -50,7 +50,9 @@ from pandas.core.common import (is_bool_indexer,
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
-from pandas.core import generic, base
+
+from pandas.core import generic, base, accessors
+
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
@@ -2891,7 +2893,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             raise AttributeError("Can only use .dt accessor with datetimelike "
                                  "values")
 
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties,
+    dt = accessors.AccessorProperty(CombinedDatetimelikeProperties,
                                _make_dt_accessor)
 
     # -------------------------------------------------------------------------
@@ -2903,7 +2905,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                  "'category' dtype")
         return CategoricalAccessor(self.values, self.index)
 
-    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
+    cat = accessors.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
 
     def _dir_deletions(self):
         return self._accessors
@@ -3103,7 +3105,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
 import pandas.plotting._core as _gfx  # noqa
 
-Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
+Series.plot = accessors.AccessorProperty(_gfx.SeriesPlotMethods,
                                     _gfx.SeriesPlotMethods)
 Series.hist = _gfx.hist_series
 

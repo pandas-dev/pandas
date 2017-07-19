@@ -29,7 +29,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
-from pandas.core.base import (PandasObject, PandasDelegate,
+from pandas.core.accessors import PandasDelegate
+from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d

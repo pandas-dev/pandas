@@ -19,15 +19,15 @@ from pandas.core.algorithms import take_1d
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
-import pandas.core.base as base
-import pandas.core.missing as missing
+
+from pandas.core import base, accessors, missing
 import pandas.core.indexes.base as ibase
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
-class CategoricalIndex(Index, base.PandasDelegate):
+class CategoricalIndex(Index, accessors.PandasDelegate):
     """
 
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex

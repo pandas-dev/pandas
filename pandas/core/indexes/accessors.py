@@ -11,7 +11,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessors import PandasDelegate
+from pandas.core.base import NoNewAttributesMixin
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
