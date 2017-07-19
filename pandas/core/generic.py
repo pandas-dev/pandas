@@ -26,8 +26,8 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -3361,7 +3361,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
-                if (self.ndim > 1) and (is_list_like(value)):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
                     warnings.warn("Pandas doesn't allow Series to be assigned "
                                   "into nonexistent columns - see "
                                   "https://pandas.pydata.org/pandas-docs/"
