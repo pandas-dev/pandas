@@ -24,6 +24,9 @@ New features
   <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
 - Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
   and :class:`pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
+- Added 'iso week year support to to_datetime', added method '_calc_julian_from_V'
+  and amended method 'array_strptime' to support the feature. 
+  (:issue: '16607') 
 
 .. _whatsnew_0210.enhancements.other:
 
