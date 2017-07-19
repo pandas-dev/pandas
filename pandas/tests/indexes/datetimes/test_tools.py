@@ -100,7 +100,7 @@ class TimeConversionFormats(object):
 
         s = Series([200001, 200105, 200206])
         expected = Series([Timestamp(x[:4] + '-' + x[4:]) for x in s.apply(str)
-                            ])
+                           ])
 
         result = to_datetime(s, format='%Y%m')
         assert_series_equal(result, expected)
