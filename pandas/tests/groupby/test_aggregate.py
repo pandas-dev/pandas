@@ -894,13 +894,15 @@ class TestGroupByAggregate(object):
         tm.assert_frame_equal(result, expected)
 
     def test_mixed_type_grouping(self):
-        X = pd.DataFrame(data=[[[1, 1], [2, 2], [3, 3]],
-                               [[1, 1], [2, 2], [3, 3]]],
-                         columns=['X', 'Y', 'Z'],
-                         index=pd.Index(data=[2, 'g1'], name='grouping'))
+        # see gh-19616
+        expected = pd.DataFrame(data=[[[1, 1], [2, 2], [3, 3]],
+                                      [[1, 1], [2, 2], [3, 3]]],
+                                columns=['X', 'Y', 'Z'],
+                                index=pd.Index(data=[2, 'g1'],
+                                name='grouping'))
 
-        S = pd.DataFrame(data=[[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
-                         columns=list('XYZ'), index=list('qwer'))
-        S['grouping'] = ['g1', 'g1', 2, 2]
-        T = S.groupby('grouping').aggregate(lambda x: x.tolist())
-        tm.assert_frame_equal(T, X)
+        df = pd.DataFrame(data=[[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                          columns=list('XYZ'), index=list('qwer'))
+        df['grouping'] = ['g1', 'g1', 2, 2]
+        result = df.groupby('grouping').aggregate(lambda x: x.tolist())
+        tm.assert_frame_equal(result, expected)
