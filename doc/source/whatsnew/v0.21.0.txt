@@ -52,6 +52,7 @@ Backwards incompatible API changes
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 - :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
 - :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
+- Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:pr:`16672`)
 
 .. _whatsnew_0210.api:
 

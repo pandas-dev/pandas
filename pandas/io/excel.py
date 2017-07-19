@@ -78,27 +78,15 @@ header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
     be combined into a ``MultiIndex``
-skiprows : list-like
-    Rows to skip at the beginning (0-indexed)
-skip_footer : int, default 0
-    Rows at the end to skip (0-indexed)
-nrows : int, default None
-    Number of rows to parse
-
-    .. versionadded:: 0.21.0
-
+names : array-like, default None
+    List of column names to use. If file contains no header row,
+    then you should explicitly pass header=None
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``
-names : array-like, default None
-    List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None
-converters : dict, default None
-    Dict of functions for converting values in certain columns. Keys can
-    either be integers or column labels, values are functions that take one
-    input argument, the Excel cell content, and return the transformed
-    content.
+squeeze : boolean, default False
+    If the parsed data only contains one column then return a Series
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `str` or `object` to preserve and not interpret dtype.
@@ -107,6 +95,14 @@ dtype : Type name or dict of column -> type, default None
 
     .. versionadded:: 0.20.0
 
+engine: string, default None
+    If io is not a buffer or path, this must be set to identify io.
+    Acceptable values are None or xlrd
+converters : dict, default None
+    Dict of functions for converting values in certain columns. Keys can
+    either be integers or column labels, values are functions that take one
+    input argument, the Excel cell content, and return the transformed
+    content.
 true_values : list, default None
     Values to consider as True
 
@@ -117,35 +113,64 @@ false_values : list, default None
 
     .. versionadded:: 0.19.0
 
+skiprows : list-like
+    Rows to skip at the beginning (0-indexed)
+nrows : int, default None
+    Number of rows to parse
+
+    .. versionadded:: 0.21.0
+
+na_values : scalar, str, list-like, or dict, default None
+    Additional strings to recognize as NA/NaN. If dict passed, specific
+    per-column NA values. By default the following values are interpreted
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
 parse_cols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
     * If string then indicates comma separated list of column names and
       column ranges (e.g. "A:E" or "A,C,E:F")
-squeeze : boolean, default False
-    If the parsed data only contains one column then return a Series
-na_values : scalar, str, list-like, or dict, default None
-    Additional strings to recognize as NA/NaN. If dict passed, specific
-    per-column NA values. By default the following values are interpreted
-    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
+parse_dates : boolean or list of ints or names or list of lists or dict, \
+default False
+
+    * boolean. If True -> try parsing the index.
+    * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+      each as a separate date column.
+    * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+      a single date column.
+    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
+      'foo'
+
+    If a column or index contains an unparseable date, the entire column or
+    index will be returned unaltered as an object data type. For non-standard
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+
+    Note: A fast-path exists for iso8601-formatted dates.
+date_parser : function, default None
+    Function to use for converting a sequence of string columns to an array of
+    datetime instances. The default uses ``dateutil.parser.parser`` to do the
+    conversion. Pandas will try to call date_parser in three different ways,
+    advancing to the next if an exception occurs: 1) Pass one or more arrays
+    (as defined by parse_dates) as arguments; 2) concatenate (row-wise) the
+    string values from the columns defined by parse_dates into a single array
+    and pass that; and 3) call date_parser once for each row using one or more
+    strings (corresponding to the columns defined by parse_dates) as arguments.
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+skip_footer : int, default 0
+    Rows at the end to skip (0-indexed)
+convert_float : boolean, default True
+    convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
+    data will be read in as floats: Excel stores all numbers as floats
+    internally
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
 verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
-engine: string, default None
-    If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd
-convert_float : boolean, default True
-    convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
-    data will be read in as floats: Excel stores all numbers as floats
-    internally
 
 Returns
 -------
@@ -196,12 +221,12 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
-def read_excel(io, sheet_name=0, header=0, skiprows=None, nrows=None,
-               skip_footer=0, index_col=None, names=None, parse_cols=None,
-               parse_dates=False, date_parser=None, na_values=None,
-               thousands=None, convert_float=True, converters=None,
-               dtype=None, true_values=None, false_values=None,
-               engine=None, squeeze=False, **kwds):
+def read_excel(io, sheet_name=0, header=0, names=None, index_col=None,
+               squeeze=False, dtype=None, engine=None, converters=None,
+               true_values=None, false_values=None, skiprows=None, nrows=None,
+               na_values=None, parse_cols=None, parse_dates=False,
+               date_parser=None, thousands=None, skip_footer=0,
+               convert_float=True, **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
@@ -216,13 +241,12 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, nrows=None,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name, header=header, skiprows=skiprows, nrows=nrows,
-        names=names, index_col=index_col, parse_cols=parse_cols,
-        parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
-        thousands=thousands, convert_float=convert_float,
-        skip_footer=skip_footer, converters=converters, dtype=dtype,
-        true_values=true_values, false_values=false_values,
-        squeeze=squeeze, **kwds)
+        sheetname=sheet_name, header=header, names=names, index_col=index_col,
+        squeeze=squeeze, dtype=dtype, converters=converters,
+        true_values=true_values, false_values=false_values, skiprows=skiprows,
+        nrows=nrows, na_values=na_values, parse_cols=parse_cols,
+        parse_dates=parse_dates, date_parser=date_parser, thousands=thousands,
+        skip_footer=skip_footer, convert_float=convert_float, **kwds)
 
 
 class ExcelFile(object):
@@ -281,11 +305,11 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheet_name=0, header=0, skiprows=None, nrows=None,
-              skip_footer=0, names=None, index_col=None, parse_cols=None, 
-              parse_dates=False, date_parser=None, na_values=None,
-              thousands=None, convert_float=True, converters=None,
-              true_values=None, false_values=None, squeeze=False, **kwds):
+    def parse(self, sheet_name=0, header=0, names=None, index_col=None,
+              squeeze=False, converters=None, true_values=None,
+              false_values=None, skiprows=None, nrows=None, na_values=None,
+              parse_cols=None, parse_dates=False, date_parser=None,
+              thousands=None, skip_footer=0, convert_float=True, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -293,21 +317,23 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name, header=header,
-                                 skiprows=skiprows,
-                                 nrow=nrows,
+        return self._parse_excel(sheetname=sheet_name,
+                                 header=header,
                                  names=names,
                                  index_col=index_col,
-                                 parse_cols=parse_cols,
-                                 parse_dates=parse_dates,
-                                 date_parser=date_parser, na_values=na_values,
-                                 thousands=thousands,
-                                 skip_footer=skip_footer,
-                                 convert_float=convert_float,
+                                 squeeze=squeeze,
                                  converters=converters,
                                  true_values=true_values,
                                  false_values=false_values,
-                                 squeeze=squeeze,
+                                 skiprows=skiprows,
+                                 nrow=nrows,
+                                 na_values=na_values,
+                                 parse_cols=parse_cols,
+                                 parse_dates=parse_dates,
+                                 date_parser=date_parser, 
+                                 thousands=thousands,
+                                 skip_footer=skip_footer,
+                                 convert_float=convert_float,
                                  **kwds)
 
     def _should_parse(self, i, parse_cols):
@@ -343,12 +369,12 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, nrows=None,
-                     names=None, skip_footer=0, index_col=None,
-                     parse_cols=None, parse_dates=False, date_parser=None,
-                     na_values=None, thousands=None, convert_float=True,
-                     true_values=None, false_values=None, verbose=False,
-                     dtype=None, squeeze=False, **kwds):
+    def _parse_excel(self, sheetname=0, header=0, names=None, index_col=None,
+                     squeeze=False, dtype=None, true_values=None,
+                     false_values=None, skiprows=None, nrows=None,
+                     na_values=None, parse_cols=None, parse_dates=False,
+                     date_parser=None, thousands=None, skip_footer=0,
+                     convert_float=True, verbose=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -510,18 +536,20 @@ class ExcelFile(object):
 
             # GH 12292 : error when read one empty column from excel file
             try:
-                parser = TextParser(data, header=header, index_col=index_col,
+                parser = TextParser(data,
+                                    header=header,
+                                    index_col=index_col,
                                     has_index_names=has_index_names,
                                     na_values=na_values,
                                     thousands=thousands,
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
-                                    true_values=true_values,
-                                    false_values=false_values,
                                     skiprows=skiprows,
                                     nrows=nrows,
                                     skipfooter=skip_footer,
                                     squeeze=squeeze,
+                                    true_values=true_values,
+                                    false_values=false_values,
                                     dtype=dtype,
                                     **kwds)
 
