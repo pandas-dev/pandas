@@ -330,7 +330,7 @@ class ExcelFile(object):
                                  na_values=na_values,
                                  parse_cols=parse_cols,
                                  parse_dates=parse_dates,
-                                 date_parser=date_parser, 
+                                 date_parser=date_parser,
                                  thousands=thousands,
                                  skip_footer=skip_footer,
                                  convert_float=convert_float,

@@ -999,7 +999,7 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
-        
+
         if nrows is not None:
             if self.options.get('skipfooter'):
                 raise ValueError('skipfooter not supported for iteration')
