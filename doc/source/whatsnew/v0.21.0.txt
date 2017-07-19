@@ -220,6 +220,7 @@ Sparse
 ^^^^^^
 
 
+- Bug in instantiating :class:`SparseSeries` from ``dict`` (:issue:`16905`)
 
 Reshaping
 ^^^^^^^^^

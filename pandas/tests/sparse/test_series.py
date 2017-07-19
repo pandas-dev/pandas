@@ -1,6 +1,8 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+from datetime import datetime
+
 import pytest
 
 from numpy import nan
@@ -57,6 +59,8 @@ def _test_data2_zero():
 
 
 class TestSparseSeries(SharedWithSparse):
+
+    series_klass = SparseSeries
 
     def setup_method(self, method):
         arr, index = _test_data1()
@@ -1361,3 +1365,18 @@ class TestSparseSeriesAnalytics(object):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+
+@pytest.mark.parametrize(
+    'datetime_type', (np.datetime64,
+                      pd.Timestamp,
+                      lambda x: datetime.strptime(x, '%Y-%m-%d')))
+def test_constructor_dict_datetime64_index(datetime_type):
+    # GH 9456
+    dates = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
+    values = [42544017.198965244, 1234565, 40512335.181958228, -1]
+
+    result = SparseSeries(dict(zip(map(datetime_type, dates), values)))
+    expected = SparseSeries(values, map(pd.Timestamp, dates))
+
+    tm.assert_sp_series_equal(result, expected)

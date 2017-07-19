@@ -46,7 +46,7 @@ from pandas.core.computation import expressions as expr
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
                     Index, MultiIndex,
-                    Series, DataFrame, Panel, Panel4D)
+                    Series, DataFrame, SparseSeries, Panel, Panel4D)
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
@@ -1217,6 +1217,12 @@ def assert_series_equal(left, right, check_dtype=True,
 
     # instance validation
     _check_isinstance(left, right, Series)
+
+    if isinstance(left, SparseSeries) and isinstance(right, SparseSeries):
+        return assert_sp_series_equal(left, right,
+                                      check_dtype=check_dtype,
+                                      check_series_type=check_series_type,
+                                      check_names=check_names)
 
     if check_series_type:
         # ToDo: There are some tests using rhs is sparse
