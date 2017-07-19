@@ -3598,7 +3598,7 @@ def array_strptime(ndarray[object] values, object fmt,
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
         int year, month, day, minute, hour, second, weekday, julian, tz
-        int week_of_year, week_of_year_start
+        int week_of_year, week_of_year_start, iso_week, iso_year
         int64_t us, ns
         object val, group_key, ampm, found
         dict found_key
