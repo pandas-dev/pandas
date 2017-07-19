@@ -65,6 +65,8 @@ def _ensure_data(values, dtype=None):
 
     # we check some simple dtypes first
     try:
+        if is_object_dtype(dtype):
+            return _ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos suppport uint8 directly (see TODO)
@@ -402,7 +404,10 @@ def isin(comps, values):
     # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
-    if (_np_version_under1p8 and compat.PY3) or len(comps) > 1000000:
+    # GH16012
+    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    if ((_np_version_under1p8 and compat.PY3) or len(comps) > 1000000 and
+       not is_object_dtype(comps)):
         f = lambda x, y: np.in1d(x, y)
     elif is_integer_dtype(comps):
         try:

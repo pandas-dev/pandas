@@ -72,6 +72,8 @@ Other Enhancements
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
+- :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
+- :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -178,7 +180,6 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 Conversion
 ^^^^^^^^^^
@@ -192,6 +193,8 @@ Indexing
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
 - Fixed :func:`TimedeltaIndex.get_loc` handling of ``np.timedelta64`` inputs (:issue:`16909`).
 - Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
+- Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
+- Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
 I/O
 ^^^
@@ -222,6 +225,8 @@ Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
 - Bug in :func:`crosstab` where non-aligned series of integers were casted to float (:issue:`17005`)
+- Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
+- Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 Numeric
 ^^^^^^^
@@ -236,3 +241,4 @@ Categorical
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+- Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)

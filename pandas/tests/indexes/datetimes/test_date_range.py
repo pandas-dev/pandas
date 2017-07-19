@@ -33,6 +33,31 @@ class TestDateRanges(TestData):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         assert len(rng) == 4
 
+    @pytest.mark.parametrize("freq", ["AS", "YS"])
+    def test_begin_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-01-01", "2014-01-01",
+                                "2015-01-01", "2016-01-01",
+                                "2017-01-01"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
+    @pytest.mark.parametrize("freq", ["A", "Y"])
+    def test_end_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-12-31", "2014-12-31",
+                                "2015-12-31", "2016-12-31"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
+    @pytest.mark.parametrize("freq", ["BA", "BY"])
+    def test_business_end_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-12-31", "2014-12-31",
+                                "2015-12-31", "2016-12-30"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
     def test_date_range_negative_freq(self):
         # GH 11018
         rng = date_range('2011-12-31', freq='-2A', periods=3)
