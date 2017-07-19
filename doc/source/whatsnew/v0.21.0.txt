@@ -220,6 +220,7 @@ Groupby/Resample/Rolling
 Sparse
 ^^^^^^
 
+- Bug in :func:`SparseDataFrame.fillna` not filling all NaNs when frame was instantiated from SciPy sparse matrix (:issue:`16112`)
 
 
 Reshaping
