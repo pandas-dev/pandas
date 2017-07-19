@@ -3693,7 +3693,7 @@ it is assumed to be aliases for the column names.')
         columns unchanged. The inference rules are the
         same as during normal Series/DataFrame construction.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.21.0
 
         See Also
         --------
