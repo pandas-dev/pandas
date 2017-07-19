@@ -186,6 +186,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
+- Merging with categorical date columns raised a TypeError (:issue:`16900`)
 
 
 Numeric
