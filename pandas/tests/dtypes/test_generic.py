@@ -49,27 +49,30 @@ def test_setattr_warnings():
     df = pd.DataFrame(d)
 
     with catch_warnings(record=True) as w:
-        # successfully add new column
+        #  successfully add new column
+        #  this should not raise a warning
         df['three'] = df.two + 1
         assert len(w) == 0
         assert df.three.sum() > df.two.sum()
 
     with catch_warnings(record=True) as w:
-        # successfully modify column in place
+        #  successfully modify column in place
+        #  this should not raise a warning
         df.one += 1
         assert len(w) == 0
         assert df.one.iloc[0] == 2
 
     with catch_warnings(record=True) as w:
-        # successfully add an attribute to a series
+        #  successfully add an attribute to a series
+        #  this should not raise a warning
         df.two.not_an_index = [1, 2]
         assert len(w) == 0
 
     with tm.assert_produces_warning(UserWarning):
-        # warn when setting column to nonexistent name
+        #  warn when setting column to nonexistent name
         df.four = df.two + 2
         assert df.four.sum() > df.two.sum()
-    
+
     with tm.assert_produces_warning(UserWarning):
-        # warn when column has same name as method
+        #  warn when column has same name as method
         df['sum'] = df.two
