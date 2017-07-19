@@ -25,6 +25,39 @@ New features
 - Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 
+
+.. _whatsnew_0210.enhancements.infer_objects:
+
+``infer_objects`` type conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects`
+methods have been added to perform dtype inference on object columns, replacing
+some of the functionality of the deprecated ``convert_objects``
+method. See the documentation :ref:`here <basics.object_conversion>`
+for more details. (:issue:`11221`)
+
+This method only performs soft conversions on object columns, converting Python objects
+to native types, but not any coercive conversions.  For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': np.array([1, 2, 3], dtype='object'),
+                      'C': ['1', '2', '3']})
+   df.dtypes
+   df.infer_objects().dtypes
+
+Note that column ``'C'`` was not converted - only scalar numeric types
+will be inferred to a new type.  Other types of conversion should be accomplished
+using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
+
+.. ipython:: python
+
+   df = df.infer_objects()
+   df['C'] = pd.to_numeric(df['C'], errors='coerce')
+   df.dtypes
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
@@ -40,6 +73,8 @@ Other Enhancements
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
+- :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
+- :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -124,6 +159,8 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- The ``pd.options.display.height`` configuration has been dropped (:issue:`3663`)
+- The ``pd.options.display.line_width`` configuration has been dropped (:issue:`2881`)
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
@@ -136,6 +173,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 
 
 .. _whatsnew_0210.bug_fixes:
@@ -143,7 +181,6 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 Conversion
 ^^^^^^^^^^
@@ -157,6 +194,8 @@ Indexing
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
 - Fixed :func:`TimedeltaIndex.get_loc` handling of ``np.timedelta64`` inputs (:issue:`16909`).
 - Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
+- Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
+- Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
 I/O
 ^^^
@@ -180,13 +219,15 @@ Groupby/Resample/Rolling
 
 Sparse
 ^^^^^^
-
+- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16777`)
 
 
 Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
 - Merging with categorical date columns raised a TypeError (:issue:`16900`)
+- Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
+- Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 
 Numeric
@@ -202,3 +243,4 @@ Categorical
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+- Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)

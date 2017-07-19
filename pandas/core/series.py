@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
 from pandas.core.dtypes.missing import isnull, notnull, remove_na_arraylike
-
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -86,6 +85,17 @@ _shared_doc_kwargs = dict(
     unique='np.ndarray', duplicated='Series',
     optional_by='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
+
+
+# see gh-16971
+def remove_na(arr):
+    """
+    DEPRECATED : this function will be removed in a future version.
+    """
+
+    warnings.warn("remove_na is deprecated and is a private "
+                  "function. Do not use.", FutureWarning, stacklevel=2)
+    return remove_na_arraylike(arr)
 
 
 def _coerce_method(converter):
@@ -1552,6 +1562,18 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
+
+        Notes
+        -----
+        Iteratively appending to a Series can be more computationally intensive
+        than a single concatenate. A better solution is to append values to a
+        list and then concatenate the list with the original Series all at
+        once.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
 
         Returns
         -------

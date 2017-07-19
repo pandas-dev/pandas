@@ -3152,7 +3152,7 @@ it is assumed to be aliases for the column names.')
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
-    agg is an alias for aggregate. Use it.
+    `agg` is an alias for `aggregate`. Use the alias.
 
     Returns
     -------
@@ -3161,7 +3161,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['transform'] = ("""
     Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values`
+    and return a %(klass)s with the transformed values
 
     .. versionadded:: 0.20.0
 
@@ -3671,15 +3671,65 @@ it is assumed to be aliases for the column names.')
         converted : same as input object
         """
         from warnings import warn
-        warn("convert_objects is deprecated.  Use the data-type specific "
-             "converters pd.to_datetime, pd.to_timedelta and pd.to_numeric.",
-             FutureWarning, stacklevel=2)
+        msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
+               "object columns, use {klass}.infer_objects()\nFor all "
+               "other conversions use the data-type specific converters "
+               "pd.to_datetime, pd.to_timedelta and pd.to_numeric."
+               ).format(klass=self.__class__.__name__)
+        warn(msg, FutureWarning, stacklevel=2)
 
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
                                convert_numeric=convert_numeric,
                                convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
+
+    def infer_objects(self):
+        """
+        Attempt to infer better dtypes for object columns.
+
+        Attempts soft conversion of object-dtyped
+        columns, leaving non-object and unconvertible
+        columns unchanged. The inference rules are the
+        same as during normal Series/DataFrame construction.
+
+        .. versionadded:: 0.21.0
+
+        See Also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to numeric typeR
+
+        Returns
+        -------
+        converted : same type as input object
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["a", 1, 2, 3]})
+        >>> df = df.iloc[1:]
+        >>> df
+           A
+        1  1
+        2  2
+        3  3
+
+        >>> df.dtypes
+        A    object
+        dtype: object
+
+        >>> df.infer_objects().dtypes
+        A    int64
+        dtype: object
+        """
+        # numeric=False necessary to only soft convert;
+        # python objects will still be converted to
+        # native numpy numeric types
+        return self._constructor(
+            self._data.convert(datetime=True, numeric=False,
+                               timedelta=True, coerce=False,
+                               copy=True)).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Filling NA's

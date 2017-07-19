@@ -3023,35 +3023,98 @@ it is assumed to be aliases for the column names')
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]},
-        ...                   index=pd.Index(['a', 'b', 'c', 'd'],
-        ...                                  name='idx'))
-        >>> df.reset_index()
-          idx  a  b
-        0   a  1  5
-        1   b  2  6
-        2   c  3  7
-        3   d  4  8
+        >>> df = pd.DataFrame([('bird',    389.0),
+        ...                    ('bird',     24.0),
+        ...                    ('mammal',   80.5),
+        ...                    ('mammal', np.nan)],
+        ...                   index=['falcon', 'parrot', 'lion', 'monkey'],
+        ...                   columns=('class', 'max_speed'))
+        >>> df
+                 class  max_speed
+        falcon    bird      389.0
+        parrot    bird       24.0
+        lion    mammal       80.5
+        monkey  mammal        NaN
 
-        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
-        ...                     'foo', 'qux', 'qux']),
-        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
-        ...                     'one', 'two'])]
-        >>> df2 = pd.DataFrame(
-        ...     np.random.randn(8, 4),
-        ...     index=pd.MultiIndex.from_arrays(arrays,
-        ...                                     names=['a', 'b']))
-        >>> df2.reset_index(level='a')
-               a         0         1         2         3
-        b
-        one  bar -1.099413  0.291838  0.598198  0.162181
-        two  bar -0.312184 -0.119904  0.250360  0.364378
-        one  baz  0.713596 -0.490636  0.074967 -0.297857
-        two  baz  0.998397  0.524499 -2.228976  0.901155
-        one  foo  0.923204  0.920695  1.264488  1.476921
-        two  foo -1.566922  0.783278 -0.073656  0.266027
-        one  qux -0.230470  0.109800 -1.383409  0.048421
-        two  qux -0.865993 -0.865984  0.705367 -0.170446
+        When we reset the index, the old index is added as a column, and a
+        new sequential index is used:
+
+        >>> df.reset_index()
+            index   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        We can use the `drop` parameter to avoid the old index being added as
+        a column:
+
+        >>> df.reset_index(drop=True)
+            class  max_speed
+        0    bird      389.0
+        1    bird       24.0
+        2  mammal       80.5
+        3  mammal        NaN
+
+        You can also use `reset_index` with `MultiIndex`.
+
+        >>> index = pd.MultiIndex.from_tuples([('bird', 'falcon'),
+        ...                                    ('bird', 'parrot'),
+        ...                                    ('mammal', 'lion'),
+        ...                                    ('mammal', 'monkey')],
+        ...                                   names=['class', 'name'])
+        >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
+        ...                                      ('speed', 'type')])
+        >>> df = pd.DataFrame([(389.0, 'fly'),
+        ...                    ( 24.0, 'fly'),
+        ...                    ( 80.5, 'run'),
+        ...                    (np.nan, 'jump')],
+        ...                   index=index,
+        ...                   columns=columns)
+        >>> df
+                       speed
+                         max  type
+        class  name
+        bird   falcon  389.0   fly
+               parrot   24.0   fly
+        mammal lion     80.5   run
+               monkey    NaN  jump
+
+        If the index has multiple levels, we can reset a subset of them:
+
+        >>> df.reset_index(level='class')
+                 class  speed
+                          max  type
+        name
+        falcon    bird  389.0   fly
+        parrot    bird   24.0   fly
+        lion    mammal   80.5   run
+        monkey  mammal    NaN  jump
+
+        If we are not dropping the index, by default, it is placed in the top
+        level. We can place it in another level:
+
+        >>> df.reset_index(level='class', col_level=1)
+                        speed
+                 class    max  type
+        name
+        falcon    bird  389.0   fly
+        parrot    bird   24.0   fly
+        lion    mammal   80.5   run
+        monkey  mammal    NaN  jump
+
+        When the index is inserted under another level, we can specify under
+        which one with the parameter `col_fill`. If we specify a nonexistent
+        level, it is created:
+
+        >>> df.reset_index(level='class', col_level=1, col_fill='species')
+                      species  speed
+                        class    max  type
+        name
+        falcon           bird  389.0   fly
+        parrot           bird   24.0   fly
+        lion           mammal   80.5   run
+        monkey         mammal    NaN  jump
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -4652,6 +4715,11 @@ it is assumed to be aliases for the column names')
         the DataFrame's index, the order of the columns in the resulting
         DataFrame will be unchanged.
 
+        Iteratively appending rows to a DataFrame can be more computationally
+        intensive than a single concatenate. A better solution is to append
+        those rows to a list and then concatenate the list with the original
+        DataFrame all at once.
+
         See also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
@@ -4681,6 +4749,33 @@ it is assumed to be aliases for the column names')
         1  3  4
         2  5  6
         3  7  8
+
+        The following, while not recommended methods for generating DataFrames,
+        show two ways to generate a DataFrame from multiple data sources.
+
+        Less efficient:
+
+        >>> df = pd.DataFrame(columns=['A'])
+        >>> for i in range(5):
+        ...     df = df.append({'A'}: i}, ignore_index=True)
+        >>> df
+           A
+        0  0
+        1  1
+        2  2
+        3  3
+        4  4
+
+        More efficient:
+
+        >>> pd.concat([pd.DataFrame([i], columns=['A']) for i in range(5)],
+        ...           ignore_index=True)
+           A
+        0  0
+        1  1
+        2  2
+        3  3
+        4  4
 
         """
         if isinstance(other, (Series, dict)):
