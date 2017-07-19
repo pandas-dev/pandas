@@ -6,6 +6,7 @@ import codecs
 import mmap
 import ssl
 import base64
+import warnings
 from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
@@ -271,6 +272,11 @@ _compression_to_extension = {
 }
 
 
+class InsecureRequestWarning(Warning):
+    "Warned when making an unverified HTTPS request. Borrowed from requests"
+    pass
+
+
 def split_auth_from_url(url_with_uname):
     """
     If a url contains username and password, it is extracted and returned
@@ -337,6 +343,10 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
     Returns
     -------
     Request, kwargs to pass to urlopen. kwargs may be {} or {'context': obj }
+
+    Raises
+    ------
+    ValueError if only one of username or password is provided.
     """
     uname = pwd = None
     url_no_usrpwd = url_with_uname
@@ -345,16 +355,20 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
     if not uname and not pwd:
         (uname, pwd), url_no_usrpwd = split_auth_from_url(url_with_uname)
     req = Request(url_no_usrpwd)
-    if uname or pwd:
+    if uname and pwd:
         upstr = '{}:{}'.format(uname, pwd)
         if compat.PY3:
             b64str = base64.b64encode(bytes(upstr, 'ascii')).decode('utf-8')
         else:
             b64str = base64.encodestring(upstr).replace('\n', '')
         req.add_header("Authorization", "Basic {}".format(b64str))
+    elif uname or pwd:
+        raise ValueError('Only username or password provided without providing the other')
     kwargs = {}
     if verify_ssl not in [None, True]:
         kwargs['context'] = ssl._create_unverified_context()
+        msg = 'SSL certificate verification is being disabled for HTTPS. Possible security risk'
+        warnings.warn(msg, InsecureRequestWarning)
     return req, kwargs
 
 
