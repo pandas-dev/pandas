@@ -15,6 +15,7 @@ from pandas import (Series, DataFrame, isnull, date_range,
                     MultiIndex, Index, Timestamp, NaT, IntervalIndex)
 from pandas.compat import range
 from pandas._libs.tslib import iNaT
+from pandas.core.series import remove_na
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
@@ -49,6 +50,11 @@ def _simple_ts(start, end, freq='D'):
 
 
 class TestSeriesMissingData(TestData):
+
+    def test_remove_na_deprecation(self):
+        # see gh-16971
+        with tm.assert_produces_warning(FutureWarning):
+            remove_na(Series([]))
 
     def test_timedelta_fillna(self):
         # GH 3371

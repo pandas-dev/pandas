@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import warnings
 
 from numpy.random import RandomState
 from numpy import nan
@@ -127,7 +128,7 @@ class TestSafeSort(object):
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
         if compat.PY2 and not pd._np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with tm.assert_produces_warning(RuntimeWarning):
+            with warnings.catch_warnings():
                 pytest.raises(TypeError, algos.safe_sort, arr)
         else:
             pytest.raises(TypeError, algos.safe_sort, arr)
@@ -594,6 +595,15 @@ class TestIsin(object):
         St = pd.Series(pd.Categorical(1).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
         result = algos.isin(Sd, St)
+        tm.assert_numpy_array_equal(expected, result)
+
+    @pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
+    def test_empty(self, empty):
+        # see gh-16991
+        vals = pd.Index(["a", "b"])
+        expected = np.array([False, False])
+
+        result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
 
 

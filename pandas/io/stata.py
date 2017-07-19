@@ -997,6 +997,7 @@ class StataReader(StataParser, BaseIterator):
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
+        self._setup_dtype()
 
     def __enter__(self):
         """ enter context manager """
@@ -1299,6 +1300,23 @@ class StataReader(StataParser, BaseIterator):
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
 
+    def _setup_dtype(self):
+        """Map between numpy and state dtypes"""
+        if self._dtype is not None:
+            return self._dtype
+
+        dtype = []  # Convert struct data types to numpy data type
+        for i, typ in enumerate(self.typlist):
+            if typ in self.NUMPY_TYPE_MAP:
+                dtype.append(('s' + str(i), self.byteorder +
+                              self.NUMPY_TYPE_MAP[typ]))
+            else:
+                dtype.append(('s' + str(i), 'S' + str(typ)))
+        dtype = np.dtype(dtype)
+        self._dtype = dtype
+
+        return self._dtype
+
     def _calcsize(self, fmt):
         return (type(fmt) is int and fmt or
                 struct.calcsize(self.byteorder + fmt))
@@ -1472,21 +1490,9 @@ class StataReader(StataParser, BaseIterator):
         if nrows is None:
             nrows = self.nobs
 
-        if (self.format_version >= 117) and (self._dtype is None):
+        if (self.format_version >= 117) and (not self._value_labels_read):
             self._can_read_value_labels = True
             self._read_strls()
-
-        # Setup the dtype.
-        if self._dtype is None:
-            dtype = []  # Convert struct data types to numpy data type
-            for i, typ in enumerate(self.typlist):
-                if typ in self.NUMPY_TYPE_MAP:
-                    dtype.append(('s' + str(i), self.byteorder +
-                                  self.NUMPY_TYPE_MAP[typ]))
-                else:
-                    dtype.append(('s' + str(i), 'S' + str(typ)))
-            dtype = np.dtype(dtype)
-            self._dtype = dtype
 
         # Read data
         dtype = self._dtype
@@ -1958,7 +1964,6 @@ class StataWriter(StataParser):
             return data
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
-        index = data.index
         data_formatted = []
         for col, col_is_cat in zip(data, is_cat):
             if col_is_cat:
@@ -1981,8 +1986,7 @@ class StataWriter(StataParser):
 
                 # Replace missing values with Stata missing value for type
                 values[values == -1] = get_base_missing_value(dtype)
-                data_formatted.append((col, values, index))
-
+                data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
         return DataFrame.from_items(data_formatted)

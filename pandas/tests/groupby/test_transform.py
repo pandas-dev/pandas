@@ -195,6 +195,19 @@ class TestGroupBy(MixIn):
         expected = Series(np.arange(5, 0, step=-1), name='B')
         assert_series_equal(result, expected)
 
+    def test_transform_numeric_to_boolean(self):
+        # GH 16875
+        # inconsistency in transforming boolean values
+        expected = pd.Series([True, True], name='A')
+
+        df = pd.DataFrame({'A': [1.1, 2.2], 'B': [1, 2]})
+        result = df.groupby('B').A.transform(lambda x: True)
+        assert_series_equal(result, expected)
+
+        df = pd.DataFrame({'A': [1, 2], 'B': [1, 2]})
+        result = df.groupby('B').A.transform(lambda x: True)
+        assert_series_equal(result, expected)
+
     def test_transform_datetime_to_timedelta(self):
         # GH 15429
         # transforming a datetime to timedelta

@@ -972,7 +972,8 @@ class DataFrame(NDFrame):
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
-                          "columns will be omitted.", UserWarning)
+                          "columns will be omitted.", UserWarning,
+                          stacklevel=2)
         # GH16122
         into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
@@ -3019,6 +3020,101 @@ it is assumed to be aliases for the column names')
         Returns
         -------
         resetted : DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('bird',    389.0),
+        ...                    ('bird',     24.0),
+        ...                    ('mammal',   80.5),
+        ...                    ('mammal', np.nan)],
+        ...                   index=['falcon', 'parrot', 'lion', 'monkey'],
+        ...                   columns=('class', 'max_speed'))
+        >>> df
+                 class  max_speed
+        falcon    bird      389.0
+        parrot    bird       24.0
+        lion    mammal       80.5
+        monkey  mammal        NaN
+
+        When we reset the index, the old index is added as a column, and a
+        new sequential index is used:
+
+        >>> df.reset_index()
+            index   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        We can use the `drop` parameter to avoid the old index being added as
+        a column:
+
+        >>> df.reset_index(drop=True)
+            class  max_speed
+        0    bird      389.0
+        1    bird       24.0
+        2  mammal       80.5
+        3  mammal        NaN
+
+        You can also use `reset_index` with `MultiIndex`.
+
+        >>> index = pd.MultiIndex.from_tuples([('bird', 'falcon'),
+        ...                                    ('bird', 'parrot'),
+        ...                                    ('mammal', 'lion'),
+        ...                                    ('mammal', 'monkey')],
+        ...                                   names=['class', 'name'])
+        >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
+        ...                                      ('speed', 'type')])
+        >>> df = pd.DataFrame([(389.0, 'fly'),
+        ...                    ( 24.0, 'fly'),
+        ...                    ( 80.5, 'run'),
+        ...                    (np.nan, 'jump')],
+        ...                   index=index,
+        ...                   columns=columns)
+        >>> df
+                       speed
+                         max  type
+        class  name
+        bird   falcon  389.0   fly
+               parrot   24.0   fly
+        mammal lion     80.5   run
+               monkey    NaN  jump
+
+        If the index has multiple levels, we can reset a subset of them:
+
+        >>> df.reset_index(level='class')
+                 class  speed
+                          max  type
+        name
+        falcon    bird  389.0   fly
+        parrot    bird   24.0   fly
+        lion    mammal   80.5   run
+        monkey  mammal    NaN  jump
+
+        If we are not dropping the index, by default, it is placed in the top
+        level. We can place it in another level:
+
+        >>> df.reset_index(level='class', col_level=1)
+                        speed
+                 class    max  type
+        name
+        falcon    bird  389.0   fly
+        parrot    bird   24.0   fly
+        lion    mammal   80.5   run
+        monkey  mammal    NaN  jump
+
+        When the index is inserted under another level, we can specify under
+        which one with the parameter `col_fill`. If we specify a nonexistent
+        level, it is created:
+
+        >>> df.reset_index(level='class', col_level=1, col_fill='species')
+                      species  speed
+                        class    max  type
+        name
+        falcon           bird  389.0   fly
+        parrot           bird   24.0   fly
+        lion           mammal   80.5   run
+        monkey         mammal    NaN  jump
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -3359,8 +3455,9 @@ it is assumed to be aliases for the column names')
         inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
-            warnings.warn("by argument to sort_index is deprecated, pls use "
-                          ".sort_values(by=...)", FutureWarning, stacklevel=2)
+            warnings.warn("by argument to sort_index is deprecated, "
+                          "please use .sort_values(by=...)",
+                          FutureWarning, stacklevel=2)
             if level is not None:
                 raise ValueError("unable to simultaneously sort by and level")
             return self.sort_values(by, axis=axis, ascending=ascending,
@@ -4618,6 +4715,11 @@ it is assumed to be aliases for the column names')
         the DataFrame's index, the order of the columns in the resulting
         DataFrame will be unchanged.
 
+        Iteratively appending rows to a DataFrame can be more computationally
+        intensive than a single concatenate. A better solution is to append
+        those rows to a list and then concatenate the list with the original
+        DataFrame all at once.
+
         See also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
@@ -4647,6 +4749,33 @@ it is assumed to be aliases for the column names')
         1  3  4
         2  5  6
         3  7  8
+
+        The following, while not recommended methods for generating DataFrames,
+        show two ways to generate a DataFrame from multiple data sources.
+
+        Less efficient:
+
+        >>> df = pd.DataFrame(columns=['A'])
+        >>> for i in range(5):
+        ...     df = df.append({'A'}: i}, ignore_index=True)
+        >>> df
+           A
+        0  0
+        1  1
+        2  2
+        3  3
+        4  4
+
+        More efficient:
+
+        >>> pd.concat([pd.DataFrame([i], columns=['A']) for i in range(5)],
+        ...           ignore_index=True)
+           A
+        0  0
+        1  1
+        2  2
+        3  3
+        4  4
 
         """
         if isinstance(other, (Series, dict)):

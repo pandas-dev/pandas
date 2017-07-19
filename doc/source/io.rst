@@ -1258,7 +1258,8 @@ Files with Fixed Width Columns
 
 While ``read_csv`` reads delimited data, the :func:`read_fwf` function works
 with data files that have known and fixed column widths. The function parameters
-to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
+to ``read_fwf`` are largely the same as `read_csv` with two extra parameters, and
+a different usage of the ``delimiter`` parameter:
 
   - ``colspecs``: A list of pairs (tuples) giving the extents of the
     fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -1267,6 +1268,9 @@ to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
     behaviour, if not specified, is to infer.
   - ``widths``: A list of field widths which can be used instead of 'colspecs'
     if the intervals are contiguous.
+  - ``delimiter``: Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 
 .. ipython:: python
    :suppress:

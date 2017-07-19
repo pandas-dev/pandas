@@ -171,7 +171,7 @@ other dependencies, you can install them as follows::
 
 To install *all* pandas dependencies you can do the following::
 
-      conda install -n pandas_dev -c pandas --file ci/requirements_all.txt
+      conda install -n pandas_dev -c conda-forge --file ci/requirements_all.txt
 
 To work in this environment, Windows users should ``activate`` it as follows::
 
@@ -509,7 +509,7 @@ the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master --name-only -- '*.py' | flake8 --diff
+   git diff master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -518,18 +518,28 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs -r flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
 
-Note that on Windows, ``grep``, ``xargs``, and other tools are likely
-unavailable. However, this has been shown to work on smaller commits in the
-standard Windows command line::
+Note that on Windows, these commands are unfortunately not possible because
+commands like ``grep`` and ``xargs`` are not available natively. To imitate the
+behavior with the commands above, you should run::
 
-   git diff master -u -- "*.py" | flake8 --diff
+    git diff master --name-only -- "*.py"
+
+This will list all of the Python files that have been modified. The only ones
+that matter during linting are any whose directory filepath begins with "pandas."
+For each filepath, copy and paste it after the ``flake8`` command as shown below:
+
+    flake8 <python-filepath>
+
+Alternatively, you can install the ``grep`` and ``xargs`` commands via the
+`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
+commands above.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
