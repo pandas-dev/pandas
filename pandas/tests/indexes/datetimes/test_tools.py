@@ -1003,13 +1003,9 @@ class TestToDatetimeInferFormat(object):
         tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
                                pd.to_datetime(s, infer_datetime_format=True))
 
-    def test_to_datetime_infer_datetime_format_series_starting_with_nans(
-            self):
-        s = pd.Series(np.array([np.nan,
-                                np.nan,
-                                '01/01/2011 00:00:00',
-                                '01/02/2011 00:00:00',
-                                '01/03/2011 00:00:00']))
+    def test_to_datetime_infer_datetime_format_series_starting_with_nans(self):
+        s = pd.Series(np.array([np.nan, np.nan, '01/01/2011 00:00:00',
+                                '01/02/2011 00:00:00', '01/03/2011 00:00:00']))
 
         tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
                                pd.to_datetime(s, infer_datetime_format=True))
