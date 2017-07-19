@@ -3161,7 +3161,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['transform'] = ("""
     Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values`
+    and return a %(klass)s with the transformed values
 
     .. versionadded:: 0.20.0
 
