@@ -9,7 +9,6 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.index import Index
-from pandas.core.series import Series
 from pandas.compat import range
 
 
@@ -44,7 +43,7 @@ def table(ax, data, rowLabels=None, colLabels=None,
     -------
     matplotlib table object
     """
-    from pandas import DataFrame
+    from pandas import Series, DataFrame
     if isinstance(data, Series):
         data = DataFrame(data, columns=[data.name])
     elif isinstance(data, DataFrame):
