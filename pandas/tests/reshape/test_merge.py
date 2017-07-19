@@ -68,6 +68,14 @@ class TestMerge(object):
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
         tm.assert_frame_equal(joined, exp)
 
+    def test_merge_index_as_on_arg(self):
+        # GH14355
+        left = self.df.set_index('key1')
+        right = self.df2.set_index('key1')
+        result = merge(left, right, on='key1')
+        expected = merge(self.df, self.df2, on='key1').set_index('key1')
+        assert_frame_equal(result, expected)
+
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
                           'v1': np.random.randn(7)})
@@ -1349,6 +1357,131 @@ class TestMergeMulti(object):
         def f():
             household.join(log_return, how='outer')
         pytest.raises(NotImplementedError, f)
+
+    def test_merge_on_index_and_column(self):
+        # Construct DataFrames
+        df1 = DataFrame(dict(
+            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            v1=np.linspace(0, 1, 11)
+        )).set_index(['outer'])
+
+        df2 = DataFrame(dict(
+            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            v2=np.linspace(10, 11, 12)
+        )).set_index(['outer'])
+
+        # Test merge on outer (index) and inner (column)
+        for how in ['inner', 'left', 'right', 'outer']:
+            expected = (df1.reset_index()
+                        .merge(df2.reset_index(),
+                               on=['outer', 'inner'], how=how)
+                        .set_index('outer'))
+
+            result = df1.merge(df2, on=['outer', 'inner'], how=how)
+            assert_frame_equal(result, expected)
+
+            # Same result when index/column order is flipped
+            result = df1.merge(df2, on=['inner', 'outer'], how=how)
+            assert_frame_equal(result, expected)
+
+    def test_merge_on_index_and_column_multi(self):
+        # GH14355
+
+        # Construct DataFrames
+        df1 = DataFrame(dict(
+            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            v1=np.linspace(0, 1, 11)
+        )).set_index(['outer', 'inner'])
+
+        df2 = DataFrame(dict(
+            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            v2=np.linspace(10, 11, 12)
+        )).set_index(['outer'])
+
+        # Test merge on outer (both index) and inner (one as index and
+        # one as column)
+        for how in ['inner', 'left', 'right', 'outer']:
+            expected = (df1.reset_index()
+                        .merge(df2.reset_index(),
+                               on=['outer', 'inner'], how=how)
+                        .set_index('outer'))
+
+            result = df1.merge(df2,
+                               on=['outer', 'inner'], how=how)
+            assert_frame_equal(result, expected)
+
+            # Same result when index/column order is flipped
+            result = df1.merge(df2,
+                               on=['inner', 'outer'], how=how)
+            assert_frame_equal(result, expected)
+
+    def test_merge_on_index_and_column_multi2(self):
+        # GH14355
+
+        # Construct DataFrames
+        df1 = DataFrame(dict(
+            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            v1=np.linspace(0, 1, 11)
+        )).set_index(['outer', 'inner'])
+
+        df2 = DataFrame(dict(
+            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            v2=np.linspace(10, 11, 12)
+        )).set_index(['outer', 'inner'])
+
+        # Test merge on outer (both index) and inner (both index)
+        for how in ['inner', 'left', 'right', 'outer']:
+            expected = (df1.reset_index()
+                        .merge(df2.reset_index(),
+                               on=['outer', 'inner'], how=how)
+                        .set_index(['outer', 'inner']))
+
+            result = df1.merge(df2, on=['outer', 'inner'], how=how)
+            assert_frame_equal(result, expected)
+
+            # Same result when index/column order is flipped
+            result = df1.merge(df2, on=['inner', 'outer'], how=how)
+            assert_frame_equal(result, expected)
+
+    def test_merge_index_column_precedence(self):
+        # GH14355
+
+        # Construct DataFrames
+        df1 = DataFrame(dict(
+            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            v1=np.linspace(0, 1, 11)
+        )).set_index(['outer'])
+        #  - df1 has both a column and index named 'outer'
+        df1['outer'] = df1['inner']
+
+        df2 = DataFrame(dict(
+            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            v2=np.linspace(10, 11, 12)
+        )).set_index(['outer'])
+
+        # Merge df1 and df2 on 'outer' and 'inner'
+        #  - 'outer' for df1 should refer to the 'outer' column
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df1.merge(df2, on=['outer', 'inner'])
+
+        # Remove 'outer' index from df1 prior to merge
+        expected = df1.reset_index(drop=True).merge(df2.reset_index(),
+                                                    on=['outer', 'inner'])
+        # Remove 'outer' column from df1 prior to merge
+        not_expected = df1.drop('outer', axis=1).reset_index().merge(
+            df2.reset_index(), on=['outer', 'inner'])
+
+        # Check results
+        assert_frame_equal(result, expected)
+        assert not result.equals(not_expected)
 
 
 @pytest.fixture

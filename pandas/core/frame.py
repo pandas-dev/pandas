@@ -3437,6 +3437,36 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Sorting
+    def _get_column_or_level_values(self, key, axis=1,
+                                    op_description='retrieve'):
+        if (is_integer(key) or
+                (axis == 1 and key in self) or
+                (axis == 0 and key in self.index)):
+
+            if axis == 1 and key in self.index.names:
+                warnings.warn(
+                    ("'%s' is both a column name and an index level.\n"
+                     "Defaulting to column but "
+                     "this will raise an ambiguity error in a "
+                     "future version") % key,
+                    FutureWarning, stacklevel=2)
+
+            k = self.xs(key, axis=axis)._values
+            if k.ndim == 2:
+
+                # try to be helpful
+                if isinstance(self.columns, MultiIndex):
+                    raise ValueError('Cannot %s column "%s" in a multi-index. '
+                                     'All levels must be provided explicitly'
+                                     % (op_description, str(key)))
+
+                raise ValueError('Cannot %s duplicate column "%s"' %
+                                 (op_description, str(key)))
+        elif key in self.index.names:
+            k = self.index.get_level_values(key).values
+        else:
+            raise KeyError(key)
+        return k
 
     @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
