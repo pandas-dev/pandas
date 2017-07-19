@@ -299,6 +299,7 @@ Reshaping
 - Bug in merging with categorical dtypes with datetimelikes incorrectly raised a ``TypeError`` (:issue:`16900`)
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
+- Fixes dtype of result from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
 
 Numeric
 ^^^^^^^
