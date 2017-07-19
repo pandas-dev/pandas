@@ -5655,18 +5655,7 @@ it is assumed to be aliases for the column names')
     # Add plotting methods to DataFrame
     plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
     hist = gfx.hist_frame
-
-    @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
-    def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
-                grid=True, figsize=None, layout=None,
-                return_type=None, **kwds):
-        from pandas.plotting._core import boxplot
-        import matplotlib.pyplot as plt
-        ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                     grid=grid, rot=rot, figsize=figsize, layout=layout,
-                     return_type=return_type, **kwds)
-        plt.draw_if_interactive()
-        return ax
+    boxplot = gfx.boxplot_frame
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
