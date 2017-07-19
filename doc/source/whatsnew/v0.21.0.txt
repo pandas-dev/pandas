@@ -61,7 +61,7 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
    df['C'] = pd.to_numeric(df['C'], errors='coerce')
    df.dtypes
 
-.. _whatsnew_0210.enhancements.column_creation:
+.. _whatsnew_0210.enhancements.column-creation:
 
 Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,7 +75,7 @@ of this confusion include attempting to create a new column by setting into an a
   In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
   In[2]: df.two = [4, 5, 6]
 
-which does not raise any obvious exceptions, but also does not create a new column:
+This does not raise any obvious exceptions, but also does not create a new column:
 
 .. code-block:: ipython
 
@@ -86,14 +86,14 @@ which does not raise any obvious exceptions, but also does not create a new colu
   1  2.0
   2  3.0
 
-and creating a column whose name collides with a method or attribute already in the instance
-namespace:
+The second source of confusion is creating a column whose name collides with a method or
+attribute already in the instance namespace:
 
 .. code-block:: ipython
 
   In[4]: df['sum'] = [5., 7., 9.]
 
-which does not permit that column to be accessed as an attribute:
+This does not permit that column to be accessed as an attribute:
 
 .. code-block:: ipython
 
@@ -104,19 +104,7 @@ which does not permit that column to be accessed as an attribute:
   1  2.0  7.0
   2  3.0  9.0>
 
-Both of these now raise a ``UserWarning`` about the potential for unexpected behavior. Upon executing input 2, you can now expect to see:
-
-.. code-block:: ipython
-
-  In[2]: df.two = [4, 5, 6]
-  UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute-access
-
-and the example in input 4 will now produce:
-
-.. code-block:: ipython
-
-  In[4]: df['sum'] = [5., 7., 9.]
-  UserWarning: Column name 'sum' collides with a built-in method, which will cause unexpected attribute behavior
+Both of these now raise a ``UserWarning`` about the potential for unexpected behavior. See `Attribute Access <https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute-access>`__.
 
 .. _whatsnew_0210.enhancements.other:
 
