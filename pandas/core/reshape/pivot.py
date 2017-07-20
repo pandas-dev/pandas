@@ -142,7 +142,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys)
+    grouped = data.groupby(keys, dropna=dropna)
     agged = grouped.agg(aggfunc)
 
     table = agged
@@ -169,15 +169,15 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     if isinstance(table, DataFrame):
         table = table.sort_index(axis=1)
 
-    if fill_value is not None:
-        table = table.fillna(value=fill_value, downcast='infer')
-
     if margins:
         if dropna:
             data = data[data.notnull().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
-                             margins_name=margins_name)
+                             margins_name=margins_name, dropna=dropna)
+
+    if fill_value is not None:
+        table = table.fillna(value=fill_value, downcast='infer')
 
     # discard the top level
     if values_passed and not values_multi and not table.empty and \
@@ -198,7 +198,7 @@ DataFrame.pivot_table = pivot_table
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
-                 margins_name='All'):
+                 margins_name='All', dropna=True):
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
@@ -229,7 +229,8 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         marginal_result_set = _generate_marginal_results(table, data, values,
                                                          rows, cols, aggfunc,
                                                          grand_margin,
-                                                         margins_name)
+                                                         margins_name,
+                                                         dropna=dropna)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
@@ -287,8 +288,7 @@ def _compute_grand_margin(data, values, aggfunc,
 
 
 def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
-                               grand_margin,
-                               margins_name='All'):
+                               grand_margin, margins_name='All', dropna=True):
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -298,7 +298,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
             return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            margin = data[rows +
+                          values].groupby(rows, dropna=dropna).agg(aggfunc)
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis):
@@ -335,7 +336,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = data[cols +
+                          values].groupby(cols, dropna=dropna).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack

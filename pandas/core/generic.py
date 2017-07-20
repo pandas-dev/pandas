@@ -4658,7 +4658,7 @@ it is assumed to be aliases for the column names.')
                                          axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, **kwargs):
+                group_keys=True, squeeze=False, dropna=True, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -4714,7 +4714,7 @@ it is assumed to be aliases for the column names.')
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
-                       **kwargs)
+                       dropna=dropna, **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False,
                fill_value=None):

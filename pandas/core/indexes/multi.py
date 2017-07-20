@@ -1052,7 +1052,7 @@ class MultiIndex(Index):
         return 0
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
+    def from_arrays(cls, arrays, sortorder=None, names=None, dropna=False):
         """
         Convert arrays to MultiIndex
 
@@ -1092,7 +1092,7 @@ class MultiIndex(Index):
 
         from pandas.core.categorical import _factorize_from_iterables
 
-        labels, levels = _factorize_from_iterables(arrays)
+        labels, levels = _factorize_from_iterables(arrays, dropna=dropna)
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 
