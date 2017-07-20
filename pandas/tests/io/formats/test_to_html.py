@@ -1863,12 +1863,12 @@ class TestToHTML(object):
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
-        assert "thead tr:only-child" in result
+        assert "tbody tr th:only-of-type" in result
 
     def test_to_html_notebook_has_no_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html()
-        assert "thead tr:only-child" not in result
+        assert "tbody tr th:only-of-type" not in result
 
     def test_to_html_with_index_names_false(self):
         # gh-16493
