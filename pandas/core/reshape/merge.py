@@ -38,6 +38,7 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
+import pandas.core.sorting as sorting
 import pandas.core.common as com
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
 from pandas.errors import MergeError
@@ -1491,7 +1492,7 @@ def _sort_labels(uniques, left, right):
     l = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = _ensure_int64(new_labels)
     new_left, new_right = new_labels[:l], new_labels[l:]
 
