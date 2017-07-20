@@ -1912,6 +1912,8 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
+    # TODO: Should we explicitly subclass PandasDelegate to clarify its role,
+    # even though it isn't actually needed?
     # TODO: Use this instead of wrapping all of these methods individually?
     def _delegate_method(self, name, *args, **kwargs):
         # TODO: It would be really nice to keep the signatures

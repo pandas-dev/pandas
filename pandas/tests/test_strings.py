@@ -2690,8 +2690,6 @@ class TestStringMethods(object):
             s.str.cat('    ')
 
     def test_index_str_accessor_visibility(self):
-        from pandas.core.strings import StringMethods
-
         if not compat.PY3:
             cases = [(['a', 'b'], 'string'), (['a', u('b')], 'mixed'),
                      ([u('a'), u('b')], 'unicode'),
