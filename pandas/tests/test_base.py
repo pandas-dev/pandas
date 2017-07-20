@@ -17,7 +17,8 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta, IntervalIndex, Interval)
 from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.accessors import PandasDelegate
+from pandas.core import accessors
+
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
@@ -105,7 +106,7 @@ class TestPandasDelegate(object):
             """ a test bar method """
             pass
 
-    class Delegate(PandasDelegate):
+    class Delegate(accessors.PandasDelegate):
 
         def __init__(self, obj):
             self.obj = obj
@@ -113,20 +114,18 @@ class TestPandasDelegate(object):
     def setup_method(self, method):
         pass
 
-    def test_invalida_delgation(self):
+    def test_invalid_delegation(self):
         # these show that in order for the delegation to work
         # the _delegate_* methods need to be overriden to not raise a TypeError
 
-        self.Delegate._add_delegate_accessors(
-            delegate=self.Delegator,
-            accessors=self.Delegator._properties,
-            typ='property'
-        )
-        self.Delegate._add_delegate_accessors(
-            delegate=self.Delegator,
-            accessors=self.Delegator._methods,
-            typ='method'
-        )
+        for name in self.Delegator._properties:
+            func = accessors.Delegator.create_delegator_property(name, self.Delegator)
+            setattr(self.Delegate, name, func)
+
+        for name in self.Delegator._methods:
+            func = accessors.Delegator.create_delegator_method(name, self.Delegator)
+            setattr(self.Delegate, name, func)
+
 
         delegate = self.Delegate(self.Delegator())
 

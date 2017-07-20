@@ -4276,11 +4276,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_str_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.strings import StringMethods
+        from pandas.core.strings import StringDelegate
         s = Series(list('aabb'))
         s = s + " " + s
         c = s.astype('category')
-        assert isinstance(c.str, StringMethods)
+        assert isinstance(c.str, StringDelegate)
 
         # str functions, which need special arguments
         special_func_defs = [
@@ -4352,7 +4352,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_dt_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.indexes.accessors import Properties
+        from pandas.core.indexes.accessors import BaseDatetimeAccessor
 
         s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
         c_dr = s_dr.astype("category")
@@ -4372,7 +4372,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ("Period", get_ops(PeriodIndex), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
-        assert isinstance(c_dr.dt, Properties)
+        assert isinstance(c_dr.dt, BaseDatetimeAccessor)
 
         special_func_defs = [
             ('strftime', ("%Y-%m-%d",), {}),
