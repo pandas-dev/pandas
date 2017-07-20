@@ -2034,6 +2034,18 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     return result
 
 
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
+                  grid=True, figsize=None, layout=None,
+                  return_type=None, **kwds):
+    import matplotlib.pyplot as plt
+    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                 grid=grid, rot=rot, figsize=figsize, layout=layout,
+                 return_type=return_type, **kwds)
+    plt.draw_if_interactive()
+    return ax
+
+
 def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
                  **kwargs):
     """
