@@ -16,6 +16,8 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
+from pandas.core import accessors
+
 from pandas.core.accessors import AccessorProperty
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
@@ -1437,7 +1439,11 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         self._is_categorical = is_categorical_dtype(data)
-        self._data = data.cat.categories if self._is_categorical else data
+        if self._is_categorical:
+            self._data = data.cat.categories
+        else:
+            self._data = data
+
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -1456,8 +1462,7 @@ class StringMethods(NoNewAttributesMixin):
             i += 1
             g = self.get(i)
 
-    def _wrap_result(self, result, use_codes=True,
-                     name=None, expand=None):
+    def _wrap_result(self, result, use_codes=True, name=None, expand=None):
 
         from pandas.core.index import Index, MultiIndex
 
@@ -1475,7 +1480,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if expand is None:
             # infer from ndim if expand is not specified
-            expand = False if result.ndim == 1 else True
+            expand = result.ndim != 1
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
@@ -1527,7 +1532,10 @@ class StringMethods(NoNewAttributesMixin):
 
     @copy_doc(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
-        data = self._orig if self._is_categorical else self._data
+        if self._is_categorical:
+            data = self._orig
+        else:
+            data = self._data
         result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result, use_codes=(not self._is_categorical))
 
@@ -1739,7 +1747,10 @@ class StringMethods(NoNewAttributesMixin):
     def get_dummies(self, sep='|'):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        data = self._orig.astype(str) if self._is_categorical else self._data
+        if self._is_categorical:
+            data = self._orig.astype(str)
+        else:
+            data = self._data
         result, name = str_get_dummies(data, sep)
         return self._wrap_result(result, use_codes=(not self._is_categorical),
                                  name=name, expand=True)
@@ -1900,18 +1911,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
+    @classmethod
+    def _make_accessor(cls, data):
         from pandas.core.index import Index
 
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
             # it's neither a string series not a categorical series with
             # strings inside the categories.
             # this really should exclude all series with any non-string values
@@ -1920,23 +1927,34 @@ class StringAccessorMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index):
+        elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
             # see scc/inferrence.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
+            if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
                 raise AttributeError(message)
-            if self.nlevels > 1:
+            if data.nlevels > 1:
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(self)
+        return StringAccessor(data)
 
-    str = AccessorProperty(StringMethods, _make_str_accessor)
+StringAccessor = StringMethods # Alias to mirror CategoricalAccessor
+
+
+# TODO: This is only mixed in to Index (this PR takes it out of Series)
+# and the _dir_additions/_dir_deletions won't play nicely with
+# any other class this gets mixed into that *does* implement its own
+# _dir_additions/_dir_deletions.  This should be deprecated.
+class StringAccessorMixin(object):
+    """ Mixin to add a `.str` acessor to the class."""
+
+
+    str = accessors.AccessorProperty(StringAccessor)
 
     def _dir_additions(self):
         return set()
