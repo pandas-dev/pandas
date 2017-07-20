@@ -137,7 +137,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t words_len
         int64_t words_cap
 
-        char *pword_start       # pointer to stream start of current field
+        char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
 
         int64_t *line_start      # position in words for start of line
@@ -177,9 +177,9 @@ cdef extern from "parser/tokenizer.h":
         # thousands separator (comma, period)
         char thousands
 
-        int header # Boolean: 1: has header, 0: no header
-        int64_t header_start # header row start
-        int64_t header_end # header row end
+        int header                  # Boolean: 1: has header, 0: no header
+        int64_t header_start        # header row start
+        int64_t header_end          # header row end
 
         void *skipset
         PyObject *skipfunc
