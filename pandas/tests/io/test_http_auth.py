@@ -2,7 +2,10 @@ import pytest
 from pandas.io.common import InsecureRequestWarning
 import pandas as pd
 import pandas.util.testing as tm
-from urllib2 import HTTPError
+try:
+    from urllib2 import HTTPError
+except:
+    from urllib.error import HTTPError
 
 uname = 'pandasusr'
 pwd = 'pandaspwd'
