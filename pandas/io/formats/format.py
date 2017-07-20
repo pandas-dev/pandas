@@ -1126,17 +1126,27 @@ class HTMLFormatter(TableFormatter):
                 .dataframe %s {
                     %s: %s;
                 }"""
-        element_props = [('tbody tr th:only-of-type','vertical-align','middle'),
-                         ('tbody tr th','vertical-align','top')]
+        element_props = [('tbody tr th:only-of-type',
+                          'vertical-align',
+                          'middle'),
+                         ('tbody tr th',
+                          'vertical-align',
+                          'top')]
         if isinstance(self.columns, MultiIndex):
-            element_props.append(('thead tr th','text-align','left'))
-            if all((self.fmt.has_index_names, 
-                    self.fmt.index, 
+            element_props.append(('thead tr th',
+                                  'text-align',
+                                  'left'))
+            if all((self.fmt.has_index_names,
+                    self.fmt.index,
                     self.fmt.show_index_names)):
-                element_props.append(('thead tr:last-of-type th','text-align','right'))
+                element_props.append(('thead tr:last-of-type th',
+                                      'text-align',
+                                      'right'))
         else:
-            element_props.append(('thead th','text-align','right'))
-        template_mid = '\n\n'.join(map(lambda t: template_select%t,
+            element_props.append(('thead th',
+                                  'text-align',
+                                  'right'))
+        template_mid = '\n\n'.join(map(lambda t: template_select % t,
                                        element_props))
         template = dedent('\n'.join((template_first,
                                      template_mid,
