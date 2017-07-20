@@ -160,7 +160,7 @@ I/O
 ^^^
 
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
-- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indexes or non-MultiIndex indexes had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`) 
+- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels respectively (:issue:`16792`) 
 
 
 Plotting
