@@ -3161,7 +3161,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['transform'] = ("""
     Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values`
+    and return a %(klass)s with the transformed values
 
     .. versionadded:: 0.20.0
 
@@ -3693,7 +3693,7 @@ it is assumed to be aliases for the column names.')
         columns unchanged. The inference rules are the
         same as during normal Series/DataFrame construction.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.21.0
 
         See Also
         --------

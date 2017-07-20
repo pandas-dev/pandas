@@ -48,6 +48,7 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
+import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
@@ -2306,7 +2307,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
         try:
-            the_diff = algos.safe_sort(the_diff)
+            the_diff = sorting.safe_sort(the_diff)
         except TypeError:
             pass
 
@@ -2366,7 +2367,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
         try:
-            the_diff = algos.safe_sort(the_diff)
+            the_diff = sorting.safe_sort(the_diff)
         except TypeError:
             pass
 
