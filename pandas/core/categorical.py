@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
-from pandas.core.accessors import PandasDelegate
+from pandas.core import accessors
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
@@ -2014,7 +2014,20 @@ class Categorical(PandasObject):
 # The Series.cat accessor
 
 
-class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
+@accessors.wrap_delegate_names(delegate=Categorical,
+                               accessors=["rename_categories",
+                                          "reorder_categories",
+                                          "add_categories",
+                                          "remove_categories",
+                                          "remove_unused_categories",
+                                          "set_categories",
+                                          "as_ordered",
+                                          "as_unordered"],
+                               typ="method")
+@accessors.wrap_delegate_names(delegate=Categorical,
+                               accessors=["categories", "ordered"],
+                               typ="property")
+class CategoricalAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
@@ -2037,6 +2050,13 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
 
     """
 
+    @classmethod
+    def _make_accessor(cls, values):
+        if not is_categorical_dtype(values.dtype):
+            msg = "Can only use .cat accessor with a 'category' dtype"
+            raise AttributeError(msg)
+        return CategoricalAccessor(values.values, values.index)
+
     def __init__(self, values, index):
         self.categorical = values
         self.index = index
@@ -2048,11 +2068,6 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
     def _delegate_property_set(self, name, new_values):
         return setattr(self.categorical, name, new_values)
 
-    @property
-    def codes(self):
-        from pandas import Series
-        return Series(self.categorical.codes, index=self.index)
-
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
         method = getattr(self.categorical, name)
@@ -2060,18 +2075,15 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         if res is not None:
             return Series(res, index=self.index)
 
+    # TODO: Can we get this from _delegate_property_get?
+    # Would need to get self.index into the result
+    @property
+    def codes(self):
+        from pandas import Series
+        return Series(self.categorical.codes, index=self.index)
 
-CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
-                                            accessors=["categories",
-                                                       "ordered"],
-                                            typ='property')
-CategoricalAccessor._add_delegate_accessors(delegate=Categorical, accessors=[
-    "rename_categories", "reorder_categories", "add_categories",
-    "remove_categories", "remove_unused_categories", "set_categories",
-    "as_ordered", "as_unordered"], typ='method')
 
 # utility routines
-
 
 def _get_codes_for_values(values, categories):
     """

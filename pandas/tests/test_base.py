@@ -119,13 +119,16 @@ class TestPandasDelegate(object):
         # the _delegate_* methods need to be overriden to not raise a TypeError
 
         for name in self.Delegator._properties:
-            func = accessors.Delegator.create_delegator_property(name, self.Delegator)
+            func = accessors.Delegator.create_delegator_property(name,
+                                                                 self.Delegator
+                                                                 )
             setattr(self.Delegate, name, func)
 
         for name in self.Delegator._methods:
-            func = accessors.Delegator.create_delegator_method(name, self.Delegator)
+            func = accessors.Delegator.create_delegator_method(name,
+                                                               self.Delegator
+                                                               )
             setattr(self.Delegate, name, func)
-
 
         delegate = self.Delegate(self.Delegator())
 

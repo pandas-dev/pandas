@@ -74,9 +74,9 @@ class StateDelegate(PandasDelegate):
 
 With `_make_accessor` defined, we have enough to create the accessor, but
 not enough to actually do anything useful with it.  In order to access
-*methods* of State objects, we implement `_delegate_method`.  `_delegate_method`
-calls the underlying method for each object in the series and wraps these
-in a new Series.  The simplest version looks like:
+*methods* of State objects, we implement `_delegate_method`.
+`_delegate_method` calls the underlying method for each object in the
+series and wraps these in a new Series.  The simplest version looks like:
 
     def _delegate_method(self, name, *args, **kwargs):
         state_method = lambda x: getattr(x, name)(*args, **kwargs)
@@ -150,6 +150,7 @@ dtype: object
 from pandas.core.base import PandasObject
 from pandas.core import common as com
 
+
 class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties
 
@@ -164,11 +165,11 @@ class PandasDelegate(PandasObject):
 
     @classmethod
     def _make_accessor(cls, data):  # pragma: no cover
-        raise NotImplementedError('It is up to subclasses to implement '
+        raise NotImplementedError(
+            'It is up to subclasses to implement '
             '_make_accessor.  This does input validation on the object to '
             'which the accessor is being pinned.  '
             'It should return an instance of `cls`.')
-
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -179,7 +180,6 @@ class PandasDelegate(PandasObject):
 
     def _delegate_method(self, name, *args, **kwargs):
         raise TypeError("You cannot call method {name}".format(name=name))
-
 
 
 class AccessorProperty(object):
@@ -235,7 +235,6 @@ class Delegator(object):
         _doc = getattr(delegate, name).__doc__
         return property(fget=_getter, fset=_setter, doc=_doc)
 
-
     @staticmethod
     def create_delegator_method(name, delegate):
         # Note: we really only need the `delegate` here for the docstring
@@ -246,13 +245,12 @@ class Delegator(object):
         if callable(name):
             # A function/method was passed directly instead of a name
             # This may also render the `delegate` arg unnecessary.
-            func.__name__ = name.__name__ # TODO: is this generally valid?
+            func.__name__ = name.__name__  # TODO: is this generally valid?
             func.__doc__ = name.__doc__
         else:
             func.__name__ = name
             func.__doc__ = getattr(delegate, name).__doc__
         return func
-
 
     @staticmethod
     def delegate_names(delegate, accessors, typ, overwrite=False):
@@ -309,7 +307,6 @@ class Delegator(object):
         return add_delegate_accessors
 
 
-
 wrap_delegate_names = Delegator.delegate_names
 # TODO: the `delegate` arg to `wrap_delegate_names` is really only relevant
 # for a docstring.  It'd be nice if we didn't require it and could duck-type
@@ -346,6 +343,3 @@ wrap_delegate_names = Delegator.delegate_names
 # The third thing to consider moving into the general case is
 # core.strings.StringMethods._wrap_result, which handles a bunch of cases
 # for how to wrap delegated outputs.
-
-
-

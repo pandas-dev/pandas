@@ -9,7 +9,8 @@ An example/recipe/test for implementing custom accessors.
 import pandas as pd
 
 from pandas.core.accessors import (wrap_delegate_names,
-								   PandasDelegate, AccessorProperty)
+                                   PandasDelegate, AccessorProperty)
+
 
 class State(object):
     def __repr__(self):
@@ -31,7 +32,6 @@ class State(object):
         return {'California': 6, 'Alabama': 1}[self.name]
 
 
-
 @wrap_delegate_names(delegate=State,
                      accessors=["fips"],
                      typ="method")
@@ -39,18 +39,17 @@ class State(object):
                      accessors=["abbrev"],
                      typ="property")
 class StateDelegate(PandasDelegate):
-   
+
     def __init__(self, values):
         self.values = values
-        #self._freeze()
 
     @classmethod
     def _make_accessor(cls, data):
-    	"""
-    	When implementing custom accessors, `_make_accessor` is the place
-    	to do validation that the attributes be accessed will actually be
-    	present in the underlying data.
-    	"""
+        """
+        When implementing custom accessors, `_make_accessor` is the place
+        to do validation that the attributes be accessed will actually be
+        present in the underlying data.
+        """
         if not isinstance(data, pd.Series):
             raise ValueError('Input must be a Series of States')
         elif not data.apply(lambda x: isinstance(x, State)).all():
@@ -66,35 +65,27 @@ class StateDelegate(PandasDelegate):
         return self.values.apply(state_property)
 
     def _delegate_property_set(self, name, new_values):
-    	"""
-    	Setting properties via accessors is permitted but discouraged.
-    	"""
-    	for (obj, val) in zip(self.values, new_values):
-    		setattr(obj, name, val)
-
-
-
+        """
+        Setting properties via accessors is permitted but discouraged.
+        """
+        for (obj, val) in zip(self.values, new_values):
+            setattr(obj, name, val)
 
 
 def test_geo_state_accessor():
-	import pandas.util.testing as tm
+    import pandas.util.testing as tm
 
-	pd.Series.state = AccessorProperty(StateDelegate)
+    pd.Series.state = AccessorProperty(StateDelegate)
 
-	ser = pd.Series([State('Alabama'), State('California')])
+    ser = pd.Series([State('Alabama'), State('California')])
 
-	abbrev = pd.Series(['AL', 'CA'])
-	tm.assert_series_equal(ser.state.abbrev, abbrev)
+    abbrev = pd.Series(['AL', 'CA'])
+    tm.assert_series_equal(ser.state.abbrev, abbrev)
 
-	fips = pd.Series([1, 6])
-	tm.assert_series_equal(ser.state.fips(), fips)
+    fips = pd.Series([1, 6])
+    tm.assert_series_equal(ser.state.fips(), fips)
 
+    ser.state.abbrev = ['Foo', 'Bar']
 
-
-	ser.state.abbrev = ['Foo', 'Bar']
-
-	new_abbrev = pd.Series(['Foo', 'Bar'])
-	tm.assert_series_equal(ser.state.abbrev, new_abbrev)
-
-
-
+    new_abbrev = pd.Series(['Foo', 'Bar'])
+    tm.assert_series_equal(ser.state.abbrev, new_abbrev)

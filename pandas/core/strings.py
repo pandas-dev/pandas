@@ -18,7 +18,6 @@ from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core import accessors
 
-from pandas.core.accessors import AccessorProperty
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
@@ -941,6 +940,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
     return _na_map(f, arr, dtype=int)
 
+
 _shared_docs['index'] = textwrap.dedent("""
     Return %(side)s indexes in each strings where the substring is
     fully contained between [start:end]. This is the same as
@@ -964,6 +964,7 @@ _shared_docs['index'] = textwrap.dedent("""
     --------
     %(also)s
     """)
+
 
 @Appender(_shared_docs['index'] %
           dict(side='lowest', similar='find', method='index',
@@ -1911,6 +1912,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
+    # TODO: Use this instead of wrapping all of these methods individually?
+    def _delegate_method(self, name, *args, **kwargs):
+        # TODO: It would be really nice to keep the signatures
+        method = getattr(self.values, name)
+        res = method(*args, **kwargs)
+        # TODO: Should this get wrapped in an index?
+        return res
+
     @classmethod
     def _make_accessor(cls, data):
         from pandas.core.index import Index
@@ -1943,7 +1952,8 @@ class StringMethods(NoNewAttributesMixin):
                 raise AttributeError(message)
         return StringAccessor(data)
 
-StringAccessor = StringMethods # Alias to mirror CategoricalAccessor
+
+StringAccessor = StringMethods  # Alias to mirror CategoricalAccessor
 
 
 # TODO: This is only mixed in to Index (this PR takes it out of Series)
@@ -1952,7 +1962,6 @@ StringAccessor = StringMethods # Alias to mirror CategoricalAccessor
 # _dir_additions/_dir_deletions.  This should be deprecated.
 class StringAccessorMixin(object):
     """ Mixin to add a `.str` acessor to the class."""
-
 
     str = accessors.AccessorProperty(StringAccessor)
 

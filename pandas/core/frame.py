@@ -88,7 +88,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.core import accessors, base, nanops, ops
+from pandas.core import accessors, nanops, ops
 import pandas.core.common as com
 
 import pandas.io.formats.format as fmt
@@ -6006,7 +6006,7 @@ def _put_str(s, space):
 # ----------------------------------------------------------------------
 # Add plotting methods to DataFrame
 DataFrame.plot = accessors.AccessorProperty(gfx.FramePlotMethods,
-                                       gfx.FramePlotMethods)
+                                            gfx.FramePlotMethods)
 DataFrame.hist = gfx.hist_frame
 
 

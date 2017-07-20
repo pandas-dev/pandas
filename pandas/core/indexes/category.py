@@ -23,10 +23,25 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import base, accessors, missing
 import pandas.core.indexes.base as ibase
 
+from pandas.core.categorical import Categorical
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
+@accessors.wrap_delegate_names(delegate=Categorical,
+                               accessors=["rename_categories",
+                                          "reorder_categories",
+                                          "add_categories",
+                                          "remove_categories",
+                                          "remove_unused_categories",
+                                          "set_categories",
+                                          "as_ordered",
+                                          "as_unordered",
+                                          "min",
+                                          "max"],
+                               typ='method',
+                               overwrite=True)
 class CategoricalIndex(Index, accessors.PandasDelegate):
     """
 
@@ -55,6 +70,11 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
     _typ = 'categoricalindex'
     _engine_type = libindex.Int64Engine
     _attributes = ['name']
+
+    def __init__(self, *args, **kwargs):
+        # Override to prevent accessors.PandasDelegate.__init__ from executing
+        # This is a kludge.
+        pass
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=False, **kwargs):
@@ -681,32 +701,15 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
-        if 'inplace' in kwargs:
+        if kwargs.get('inplace', False):
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    @classmethod
-    def _add_accessors(cls):
-        """ add in Categorical accessor methods """
-
-        from pandas.core.categorical import Categorical
-        CategoricalIndex._add_delegate_accessors(
-            delegate=Categorical, accessors=["rename_categories",
-                                             "reorder_categories",
-                                             "add_categories",
-                                             "remove_categories",
-                                             "remove_unused_categories",
-                                             "set_categories",
-                                             "as_ordered", "as_unordered",
-                                             "min", "max"],
-            typ='method', overwrite=True)
-
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()
-CategoricalIndex._add_accessors()

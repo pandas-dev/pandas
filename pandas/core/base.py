@@ -162,10 +162,6 @@ class NoNewAttributesMixin(object):
         object.__setattr__(self, key, value)
 
 
-
-
-
-
 class GroupByError(Exception):
     pass
 

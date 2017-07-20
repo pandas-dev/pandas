@@ -11,7 +11,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.accessors import PandasDelegate
+from pandas.core import accessors
+
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
@@ -85,7 +86,7 @@ def maybe_to_datetimelike(data, copy=False):
                     "datetimelike index".format(type(data)))
 
 
-class Properties(PandasDelegate, NoNewAttributesMixin):
+class BaseDatetimeAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
         self.values = values
@@ -95,7 +96,7 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         self._freeze()
 
     def _delegate_property_get(self, name):
-        from pandas import Series
+        from pandas import Series, DataFrame
 
         result = getattr(self.values, name)
 
@@ -105,6 +106,9 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
                 result = result.astype('int64')
         elif not is_list_like(result):
             return result
+        elif isinstance(result, DataFrame):
+            # e.g. TimedeltaProperties.components
+            return result.set_index(self.index)
 
         result = np.asarray(result)
 
@@ -146,7 +150,18 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         return result
 
 
-class DatetimeProperties(Properties):
+# An alternative to decorating with @accessors.wrap_delegate_names
+# is to define each method individually, e.g.:
+# to_period = PandasDelegate._make_delegate_accessor(delegate=DatetimeIndex,
+#                                                    name='to_period',
+#                                                    typ='method')
+@accessors.wrap_delegate_names(delegate=DatetimeIndex,
+                               accessors=DatetimeIndex._datetimelike_ops,
+                               typ='property')
+@accessors.wrap_delegate_names(delegate=DatetimeIndex,
+                               accessors=DatetimeIndex._datetimelike_methods,
+                               typ='method')
+class DatetimeProperties(BaseDatetimeAccessor):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -164,17 +179,13 @@ class DatetimeProperties(Properties):
         return self.values.to_pydatetime()
 
 
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_ops,
-    typ='property')
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_methods,
-    typ='method')
-
-
-class TimedeltaProperties(Properties):
+@accessors.wrap_delegate_names(delegate=TimedeltaIndex,
+                               accessors=TimedeltaIndex._datetimelike_ops,
+                               typ='property')
+@accessors.wrap_delegate_names(delegate=TimedeltaIndex,
+                               accessors=TimedeltaIndex._datetimelike_methods,
+                               typ='method')
+class TimedeltaProperties(BaseDatetimeAccessor):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -190,6 +201,7 @@ class TimedeltaProperties(Properties):
     def to_pytimedelta(self):
         return self.values.to_pytimedelta()
 
+    # TODO: Do this with wrap_delegate_names
     @property
     def components(self):
         """
@@ -204,17 +216,13 @@ class TimedeltaProperties(Properties):
         return self.values.components.set_index(self.index)
 
 
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_ops,
-    typ='property')
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_methods,
-    typ='method')
-
-
-class PeriodProperties(Properties):
+@accessors.wrap_delegate_names(delegate=PeriodIndex,
+                               accessors=PeriodIndex._datetimelike_ops,
+                               typ='property')
+@accessors.wrap_delegate_names(delegate=PeriodIndex,
+                               accessors=PeriodIndex._datetimelike_methods,
+                               typ='method')
+class PeriodProperties(BaseDatetimeAccessor):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -229,18 +237,20 @@ class PeriodProperties(Properties):
     """
 
 
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_ops,
-    typ='property')
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_methods,
-    typ='method')
-
-
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
     # This class is never instantiated, and exists solely for the benefit of
     # the Series.dt class property. For Series objects, .dt will always be one
     # of the more specific classes above.
     __doc__ = DatetimeProperties.__doc__
+
+    @classmethod
+    def _make_accessor(cls, values):
+        try:
+            return maybe_to_datetimelike(values)
+        except Exception:
+            msg = "Can only use .dt accessor with datetimelike values"
+            raise AttributeError(msg)
+
+
+DatetimeAccessor = CombinedDatetimelikeProperties
+# Alias to mirror CategoricalAccessor

@@ -4276,11 +4276,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_str_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.strings import StringDelegate
+        from pandas.core.strings import StringAccessor
         s = Series(list('aabb'))
         s = s + " " + s
         c = s.astype('category')
-        assert isinstance(c.str, StringDelegate)
+        assert isinstance(c.str, StringAccessor)
 
         # str functions, which need special arguments
         special_func_defs = [
