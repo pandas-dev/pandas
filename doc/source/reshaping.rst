@@ -265,7 +265,7 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The top-level :func:``melt` and :func:`~DataFrame.melt` functions are useful to
+The top-level :func:`melt` and :func:`~DataFrame.melt` functions are useful to
 massage a DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "unpivoted" to the
 row axis, leaving just two non-identifier columns, "variable" and "value". The
