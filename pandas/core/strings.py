@@ -939,7 +939,33 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
     return _na_map(f, arr, dtype=int)
 
+_shared_docs['index'] = textwrap.dedent("""
+    Return %(side)s indexes in each strings where the substring is
+    fully contained between [start:end]. This is the same as
+    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError
+    when the substring is not found. Equivalent to standard ``str.%(method)s``.
 
+    Parameters
+    ----------
+    sub : str
+        Substring being searched
+    start : int
+        Left edge index
+    end : int
+        Right edge index
+
+    Returns
+    -------
+    found : Series/Index of objects
+
+    See Also
+    --------
+    %(also)s
+    """)
+
+@Appender(_shared_docs['index'] %
+          dict(side='lowest', similar='find', method='index',
+               also='rindex : Return highest indexes in each strings'))
 def str_index(arr, sub, start=0, end=None, side='left'):
     if not isinstance(sub, compat.string_types):
         msg = 'expected a string object, not {0}'
@@ -1125,6 +1151,18 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
     return _na_map(f, arr)
 
 
+_shared_docs['str_strip'] = textwrap.dedent("""
+    Strip whitespace (including newlines) from each string in the
+    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+
+    Returns
+    -------
+    stripped : Series/Index of objects
+    """)
+
+
+@Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
+                                           method='strip'))
 def str_strip(arr, to_strip=None, side='both'):
     """
     Strip whitespace (including newlines) from each string in the
@@ -1317,6 +1355,27 @@ def str_encode(arr, encoding, errors="strict"):
     return _na_map(f, arr)
 
 
+def str_normalize(arr, form):
+    """
+    Return the Unicode normal form for the strings in the Series/Index.
+    For more information on the forms, see the
+    :func:`unicodedata.normalize`.
+
+    Parameters
+    ----------
+    form : {'NFC', 'NFKC', 'NFD', 'NFKD'}
+        Unicode form
+
+    Returns
+    -------
+    normalized : Series/Index of objects
+    """
+    import unicodedata
+    f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
+    result = _na_map(f, arr)
+    return result
+
+
 def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
         result = _na_map(f, self._data, **kargs)
@@ -1353,7 +1412,7 @@ def _pat_wrapper(f, flags=False, na=False, **kwargs):
     return wrapper
 
 
-def copy(source):
+def copy_doc(source):
     "Copy a docstring from another source function (if present)"
 
     def do_copy(target):
@@ -1466,18 +1525,18 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
-    @copy(str_cat)
+    @copy_doc(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
         data = self._orig if self._is_categorical else self._data
         result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result, use_codes=(not self._is_categorical))
 
-    @copy(str_split)
+    @copy_doc(str_split)
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
-    @copy(str_rsplit)
+    @copy_doc(str_rsplit)
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
@@ -1548,40 +1607,40 @@ class StringMethods(NoNewAttributesMixin):
         result = _na_map(f, self._data)
         return self._wrap_result(result, expand=expand)
 
-    @copy(str_get)
+    @copy_doc(str_get)
     def get(self, i):
         result = str_get(self._data, i)
         return self._wrap_result(result)
 
-    @copy(str_join)
+    @copy_doc(str_join)
     def join(self, sep):
         result = str_join(self._data, sep)
         return self._wrap_result(result)
 
-    @copy(str_contains)
+    @copy_doc(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self._data, pat, case=case, flags=flags, na=na,
                               regex=regex)
         return self._wrap_result(result)
 
-    @copy(str_match)
+    @copy_doc(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         result = str_match(self._data, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
 
-    @copy(str_replace)
+    @copy_doc(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0):
         result = str_replace(self._data, pat, repl, n=n, case=case,
                              flags=flags)
         return self._wrap_result(result)
 
-    @copy(str_repeat)
+    @copy_doc(str_repeat)
     def repeat(self, repeats):
         result = str_repeat(self._data, repeats)
         return self._wrap_result(result)
 
-    @copy(str_pad)
+    @copy_doc(str_pad)
     def pad(self, width, side='left', fillchar=' '):
         result = str_pad(self._data, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
@@ -1634,37 +1693,27 @@ class StringMethods(NoNewAttributesMixin):
         result = str_pad(self._data, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
-    @copy(str_slice)
+    @copy_doc(str_slice)
     def slice(self, start=None, stop=None, step=None):
         result = str_slice(self._data, start, stop, step)
         return self._wrap_result(result)
 
-    @copy(str_slice_replace)
+    @copy_doc(str_slice_replace)
     def slice_replace(self, start=None, stop=None, repl=None):
         result = str_slice_replace(self._data, start, stop, repl)
         return self._wrap_result(result)
 
-    @copy(str_decode)
+    @copy_doc(str_decode)
     def decode(self, encoding, errors="strict"):
         result = str_decode(self._data, encoding, errors)
         return self._wrap_result(result)
 
-    @copy(str_encode)
+    @copy_doc(str_encode)
     def encode(self, encoding, errors="strict"):
         result = str_encode(self._data, encoding, errors)
         return self._wrap_result(result)
 
-    _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
-
-    Returns
-    -------
-    stripped : Series/Index of objects
-    """)
-
-    @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
-                                               method='strip'))
+    @copy_doc(str_strip)
     def strip(self, to_strip=None):
         result = str_strip(self._data, to_strip, side='both')
         return self._wrap_result(result)
@@ -1681,12 +1730,12 @@ class StringMethods(NoNewAttributesMixin):
         result = str_strip(self._data, to_strip, side='right')
         return self._wrap_result(result)
 
-    @copy(str_wrap)
+    @copy_doc(str_wrap)
     def wrap(self, width, **kwargs):
         result = str_wrap(self._data, width, **kwargs)
         return self._wrap_result(result)
 
-    @copy(str_get_dummies)
+    @copy_doc(str_get_dummies)
     def get_dummies(self, sep='|'):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
@@ -1695,7 +1744,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, use_codes=(not self._is_categorical),
                                  name=name, expand=True)
 
-    @copy(str_translate)
+    @copy_doc(str_translate)
     def translate(self, table, deletechars=None):
         result = str_translate(self._data, table, deletechars)
         return self._wrap_result(result)
@@ -1705,11 +1754,11 @@ class StringMethods(NoNewAttributesMixin):
     endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
 
-    @copy(str_extract)
+    @copy_doc(str_extract)
     def extract(self, pat, flags=0, expand=None):
         return str_extract(self, pat, flags=flags, expand=expand)
 
-    @copy(str_extractall)
+    @copy_doc(str_extractall)
     def extractall(self, pat, flags=0):
         return str_extractall(self._orig, pat, flags=flags)
 
@@ -1750,52 +1799,12 @@ class StringMethods(NoNewAttributesMixin):
         result = str_find(self._data, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
 
+    @copy_doc(str_normalize)
     def normalize(self, form):
-        """Return the Unicode normal form for the strings in the Series/Index.
-        For more information on the forms, see the
-        :func:`unicodedata.normalize`.
-
-        Parameters
-        ----------
-        form : {'NFC', 'NFKC', 'NFD', 'NFKD'}
-            Unicode form
-
-        Returns
-        -------
-        normalized : Series/Index of objects
-        """
-        import unicodedata
-        f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
-        result = _na_map(f, self._data)
+        result = str_normalize(self._data, form)
         return self._wrap_result(result)
 
-    _shared_docs['index'] = ("""
-    Return %(side)s indexes in each strings where the substring is
-    fully contained between [start:end]. This is the same as
-    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError
-    when the substring is not found. Equivalent to standard ``str.%(method)s``.
-
-    Parameters
-    ----------
-    sub : str
-        Substring being searched
-    start : int
-        Left edge index
-    end : int
-        Right edge index
-
-    Returns
-    -------
-    found : Series/Index of objects
-
-    See Also
-    --------
-    %(also)s
-    """)
-
-    @Appender(_shared_docs['index'] %
-              dict(side='lowest', similar='find', method='index',
-                   also='rindex : Return highest indexes in each strings'))
+    @copy_doc(str_index)
     def index(self, sub, start=0, end=None):
         result = str_index(self._data, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
