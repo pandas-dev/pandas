@@ -4892,7 +4892,7 @@ pandas integrates with this external package. if ``pandas-gbq`` is installed, yo
 use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
 respective functions from ``pandas-gbq``.
 
-Full cocumentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
+Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _io.stata:
 
