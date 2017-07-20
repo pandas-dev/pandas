@@ -25,33 +25,100 @@ New features
 - Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 
+
+.. _whatsnew_0210.enhancements.infer_objects:
+
+``infer_objects`` type conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects`
+methods have been added to perform dtype inference on object columns, replacing
+some of the functionality of the deprecated ``convert_objects``
+method. See the documentation :ref:`here <basics.object_conversion>`
+for more details. (:issue:`11221`)
+
+This method only performs soft conversions on object columns, converting Python objects
+to native types, but not any coercive conversions.  For example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': np.array([1, 2, 3], dtype='object'),
+                      'C': ['1', '2', '3']})
+   df.dtypes
+   df.infer_objects().dtypes
+
+Note that column ``'C'`` was not converted - only scalar numeric types
+will be inferred to a new type.  Other types of conversion should be accomplished
+using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
+
+.. ipython:: python
+
+   df = df.infer_objects()
+   df['C'] = pd.to_numeric(df['C'], errors='coerce')
+   df.dtypes
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - The ``validate`` argument for :func:`merge` function now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
-- ``Series.to_dict()`` and ``DataFrame.to_dict()`` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
-- ``RangeIndex.append`` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
-- ``Series.rename_axis()`` and ``DataFrame.rename_axis()`` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
-- :func:`to_pickle` has gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
+- :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
+- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
+- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
-- :func:`Dataframe.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
-- It is now possible to read data (i.e. CSV, JSON, HTML) from a HTTP/HTTPS URL that requires Basic Authentication (:issue:`16716`)
-- It is now possible to skip check of validity of SSL certificate (eg: Testing using self-signed SSL certificates) (:issue:`16716`)
+- :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
+- :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
+- :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+
+.. _whatsnew_0210.enhancements.read_csv:
+
+``read_csv`` allow basic auth and skip SSL verification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to read data (i.e. CSV, JSON, HTML) from a URL that is password-protected (:issue:`16716`)
+The :meth:`DataFrame.read_csv`, :meth:`DataFrame.read_html`, :meth:`DataFrame.read_json`,
+:meth:`DataFrame.read_excel` can now perform Basic Authentication over HTTP/HTTPS
+now accept an optional parameter of ``auth`` of type tuple containing username and password
+It also fixes an issue where a url containing username and password in the standard form now works:
+https://<user>:<password>@<fqdn>:<port>/<path>
+Use of username and password over HTTP (without ssl) is a security threat and not recommended.
+
+.. ipython:: python
+   url = 'http://<fqdn>:<port>/my.csv'
+   username = 'darth'
+   password = 'cand3stroypassword'
+   df = pd.read_csv(url, auth=(username, password))
+
+   # or
+   df = pd.read_csv('https://darth:cand3stroypassword@myhost.com:1010/my.csv')
+
+It is now also possible to bypass verification of SSL certificate for HTTPS call.
+The :meth:`DataFrame.read_csv`, :meth:`DataFrame.read_html`, :meth:`DataFrame.read_json`,
+:meth:`DataFrame.read_excel` can now accept an optional parameter ``verify_ssl=False`` to bypass SSL verification.
+Doing this creates a security risk and is not recommended. It will raise a warning `pandas.io.common.InsecureRequestWarning`
+This functionality is added to primarily help in testability scenarios or within private networks where obtaining SSL certificates is burdensome.
+
+.. ipython:: python
+   url = 'https://my-test-server.internal/my.csv'
+   df = pd.read_csv(url, verify_ssl=False) # succeed with pandas.io.common.InsecureRequestWarning
+   
+   df = pd.read_csv(url) # Fails by default 
 
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0210.api_breaking.pandas_eval:
+
 Improved error handling during item assignment in pd.eval
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _whatsnew_0210.api_breaking.pandas_eval:
 
 :func:`eval` will now raise a ``ValueError`` when item assignment malfunctions, or
 inplace operations are specified, but there is no item assignment in the expression (:issue:`16732`)
@@ -94,9 +161,14 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
+.. _whatsnew_0210.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
 - Support has been dropped for Python 3.4 (:issue:`15251`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
-- Accessing a non-existent attribute on a closed :class:`HDFStore` will now
+- Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 - :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
 - :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
@@ -104,12 +176,6 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
 - Compression defaults in HDF stores now follow pytable standards. Default is no compression and if ``complib`` is missing and ``complevel`` > 0 ``zlib`` is used (:issue:`15943`)
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
-
-.. _whatsnew_0210.api:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 
 
@@ -119,6 +185,7 @@ Deprecations
 ~~~~~~~~~~~~
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 
+- ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 
 .. _whatsnew_0210.prior_deprecations:
 
@@ -126,10 +193,12 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- The ``pd.options.display.height`` configuration has been dropped (:issue:`3663`)
+- The ``pd.options.display.line_width`` configuration has been dropped (:issue:`2881`)
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
-- :func:`eval` and :method:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
+- :func:`eval` and :func:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 - The function ``get_offset_name`` has been dropped in favor of the ``.freqstr`` attribute for an offset (:issue:`11834`)
 
 
@@ -138,6 +207,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 
 
 .. _whatsnew_0210.bug_fixes:
@@ -145,7 +215,6 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Fixes regression in 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 Conversion
 ^^^^^^^^^^
@@ -157,34 +226,41 @@ Indexing
 - When called with a null slice (e.g. ``df.iloc[:]``), the ``.iloc`` and ``.loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
 - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
 - Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
+- Fixed :func:`TimedeltaIndex.get_loc` handling of ``np.timedelta64`` inputs (:issue:`16909`).
+- Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
+- Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
+- Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 
 I/O
 ^^^
 
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 
+- Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 
 Plotting
 ^^^^^^^^
-
+- Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
-- Bug in ``infer_freq`` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
-- Bug in ``.rolling.quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
-
+- Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
+- Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
+- Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
+- Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 
 Sparse
 ^^^^^^
-
+- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16777`)
 
 
 Reshaping
 ^^^^^^^^^
-
+- Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
+- Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
+- Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 
 
 Numeric
@@ -194,9 +270,10 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in ``:func:Series.isin()`` when called with a categorical (:issue`16639`)
+- Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
 
 
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+- Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)

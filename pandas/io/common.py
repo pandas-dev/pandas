@@ -363,11 +363,13 @@ def get_urlopen_args(url_with_uname, auth=None, verify_ssl=True):
             b64str = base64.encodestring(upstr).replace('\n', '')
         req.add_header("Authorization", "Basic {}".format(b64str))
     elif uname or pwd:
-        raise ValueError('Only username or password provided without providing the other')
+        msg = 'Only username or password provided without the other'
+        raise ValueError(msg)
     kwargs = {}
-    if verify_ssl not in [None, True]:
+    if verify_ssl is False and url_no_usrpwd.lower().startswith('https://'):
         kwargs['context'] = ssl._create_unverified_context()
-        msg = 'SSL certificate verification is being disabled for HTTPS. Possible security risk'
+        msg = 'SSL certificate verification is being disabled for HTTPS.' + \
+              ' Possible security risk'
         warnings.warn(msg, InsecureRequestWarning)
     return req, kwargs
 
