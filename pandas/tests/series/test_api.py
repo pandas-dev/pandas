@@ -21,7 +21,12 @@ from .common import TestData
 
 
 class SharedWithSparse(object):
+    """
+    A collection of tests Series and SparseSeries can share.
 
+    In generic tests on this class, use ``self._assert_series_equal()``
+    which is implemented in sub-classes.
+    """
     def _assert_series_equal(self, left, right):
         """Dispatch to series class dependent assertion"""
         raise NotImplementedError
@@ -194,6 +199,7 @@ class SharedWithSparse(object):
 class TestSeriesMisc(TestData, SharedWithSparse):
 
     series_klass = Series
+    # SharedWithSparse tests use generic, series_klass-agnostic assertion
     _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_tab_completion(self):

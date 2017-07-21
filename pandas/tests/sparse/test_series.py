@@ -61,6 +61,7 @@ def _test_data2_zero():
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
+    # SharedWithSparse tests use generic, series_klass-agnostic assertion
     _assert_series_equal = staticmethod(tm.assert_sp_series_equal)
 
     def setup_method(self, method):
