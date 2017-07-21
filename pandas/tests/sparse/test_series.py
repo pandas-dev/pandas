@@ -61,6 +61,7 @@ def _test_data2_zero():
 class TestSparseSeries(SharedWithSparse):
 
     series_klass = SparseSeries
+    _assert_series_equal = staticmethod(tm.assert_sp_series_equal)
 
     def setup_method(self, method):
         arr, index = _test_data1()

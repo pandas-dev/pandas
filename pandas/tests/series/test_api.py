@@ -23,10 +23,8 @@ from .common import TestData
 class SharedWithSparse(object):
 
     def _assert_series_equal(self, left, right):
-        """Helper dispatching to series class dependent assertion"""
-        if isinstance(left, SparseSeries) or isinstance(right, SparseSeries):
-            return tm.assert_sp_series_equal(left, right)
-        return tm.assert_series_equal(left, right)
+        """Dispatch to series class dependent assertion"""
+        raise NotImplementedError
 
     def test_scalarop_preserve_name(self):
         result = self.ts * 2
@@ -196,6 +194,7 @@ class SharedWithSparse(object):
 class TestSeriesMisc(TestData, SharedWithSparse):
 
     series_klass = Series
+    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_tab_completion(self):
         # GH 9910
