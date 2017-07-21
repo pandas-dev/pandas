@@ -185,6 +185,7 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
+- Bug in ``IntervalIndex`` where ``is_non_overlapping_monotonic`` returned incorrect value for intervals closed on both sides (:issue:`16560`)
 
 Indexing
 ^^^^^^^^
