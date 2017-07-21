@@ -468,7 +468,7 @@ static int end_line(parser_t *self) {
         if (self->error_bad_lines) {
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "Expected %d fields in line %zu, saw %d\n",
+                    "Expected %d fields in line %d, saw %d\n",
                     ex_fields, self->file_lines, fields);
 
             TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
@@ -480,7 +480,7 @@ static int end_line(parser_t *self) {
                 // pass up error message
                 msg = (char *)malloc(bufsize);
                 snprintf(msg, bufsize,
-                        "Skipping line %zu: expected %d fields, saw %d\n",
+                        "Skipping line %d: expected %d fields, saw %d\n",
                          self->file_lines, ex_fields, fields);
                 append_warning(self, msg);
                 free(msg);
@@ -1147,7 +1147,7 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at line %zu", self->file_lines);
+                    "EOF inside string starting at line %d", self->file_lines);
             return -1;
 
         case ESCAPED_CHAR:
@@ -1323,7 +1323,7 @@ void debug_print_parser(parser_t *self) {
     char *token;
 
     for (line = 0; line < self->lines; ++line) {
-        printf("(Parsed) Line %zu: ", line);
+        printf("(Parsed) Line %d: ", line);
 
         for (j = 0; j < self->line_fields[j]; ++j) {
             token = self->words[j + self->line_start[line]];

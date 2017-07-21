@@ -122,7 +122,7 @@ cdef extern from "parser/tokenizer.h":
         io_cleanup cb_cleanup
 
         int64_t chunksize  # Number of bytes to prepare for each chunk
-        char *data        # pointer to data to be processed
+        char *data         # pointer to data to be processed
         int64_t datalen    # amount of data available
         int64_t datapos
 
