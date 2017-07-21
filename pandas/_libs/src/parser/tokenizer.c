@@ -305,11 +305,11 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
              "self->words_cap=%d\n",
              nbytes, self->words_cap))
         newptr = safe_realloc((void *)self->word_starts,
-                              sizeof(size_t) * self->words_cap);
+                              sizeof(int64_t) * self->words_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            self->word_starts = (size_t *)newptr;
+            self->word_starts = (int64_t *)newptr;
         }
     }
 
@@ -318,8 +318,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     */
     cap = self->lines_cap;
     self->line_start =
-        (size_t *)grow_buffer((void *)self->line_start, self->lines + 1,
-                           &self->lines_cap, nbytes, sizeof(size_t), &status);
+        (int64_t *)grow_buffer((void *)self->line_start, self->lines + 1,
+                           &self->lines_cap, nbytes, sizeof(int64_t), &status);
     TRACE((
         "make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
         self->lines + 1, self->lines_cap, nbytes, status))
@@ -332,11 +332,11 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
         TRACE(("make_stream_space: cap != self->lines_cap, nbytes = %d\n",
                nbytes))
         newptr = safe_realloc((void *)self->line_fields,
-                              sizeof(size_t) * self->lines_cap);
+                              sizeof(int64_t) * self->lines_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            self->line_fields = (size_t *)newptr;
+            self->line_fields = (int64_t *)newptr;
         }
     }
 
@@ -718,8 +718,8 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(parser_t *self, size_t line_limit, size_t start_lines) {
-    size_t i, slen;
+int tokenize_bytes(parser_t *self, size_t line_limit, int64_t start_lines) {
+    int64_t i, slen;
     int should_skip;
     char c;
     char *stream;
@@ -1235,7 +1235,7 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
     void *newptr;
 
-    size_t i;
+    int64_t i;
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
@@ -1248,11 +1248,11 @@ int parser_trim_buffers(parser_t *self) {
             self->words = (char **)newptr;
         }
         newptr = safe_realloc((void *)self->word_starts,
-                              new_cap * sizeof(size_t));
+                              new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            self->word_starts = (size_t *)newptr;
+            self->word_starts = (int64_t *)newptr;
             self->words_cap = new_cap;
         }
     }
@@ -1299,18 +1299,18 @@ int parser_trim_buffers(parser_t *self) {
     if (new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
         newptr = safe_realloc((void *)self->line_start,
-                              new_cap * sizeof(size_t));
+                              new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            self->line_start = (size_t *)newptr;
+            self->line_start = (int64_t *)newptr;
         }
         newptr = safe_realloc((void *)self->line_fields,
-                              new_cap * sizeof(size_t));
+                              new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
-            self->line_fields = (size_t *)newptr;
+            self->line_fields = (int64_t *)newptr;
             self->lines_cap = new_cap;
         }
     }
@@ -1319,7 +1319,7 @@ int parser_trim_buffers(parser_t *self) {
 }
 
 void debug_print_parser(parser_t *self) {
-    size_t j, line;
+    int64_t j, line;
     char *token;
 
     for (line = 0; line < self->lines; ++line) {
@@ -1340,7 +1340,7 @@ void debug_print_parser(parser_t *self) {
 
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     int status = 0;
-    size_t start_lines = self->lines;
+    int64_t start_lines = self->lines;
 
     if (self->state == FINISHED) {
         return 0;

@@ -137,9 +137,9 @@ typedef struct parser_t {
     io_callback cb_io;
     io_cleanup cb_cleanup;
 
-    int64_t chunksize;  // Number of bytes to prepare for each chunk
-    char *data;     // pointer to data to be processed
-    int64_t datalen;    // amount of data available
+    int64_t chunksize;      // Number of bytes to prepare for each chunk
+    char *data;             // pointer to data to be processed
+    int64_t datalen;        // amount of data available
     int64_t datapos;
 
     // where to write out tokenized data
@@ -149,18 +149,18 @@ typedef struct parser_t {
 
     // Store words in (potentially ragged) matrix for now, hmm
     char **words;
-    int64_t *word_starts;  // where we are in the stream
+    int64_t *word_starts;   // where we are in the stream
     int64_t words_len;
     int64_t words_cap;
 
-    char *pword_start;  // pointer to stream start of current field
+    char *pword_start;      // pointer to stream start of current field
     int64_t word_start;     // position start of current field
 
-    int64_t *line_start;   // position in words for start of line
-    int64_t *line_fields;  // Number of fields in each line
-    int64_t lines;         // Number of (good) lines observed
-    int64_t file_lines;  // Number of lines observed (including bad or skipped)
-    int64_t lines_cap;   // Vector capacity
+    int64_t *line_start;    // position in words for start of line
+    int64_t *line_fields;   // Number of fields in each line
+    int64_t lines;          // Number of (good) lines observed
+    int64_t file_lines;     // Number of lines observed (including bad or skipped)
+    int64_t lines_cap;      // Vector capacity
 
     // Tokenizing stuff
     ParserState state;
@@ -193,7 +193,7 @@ typedef struct parser_t {
     // thousands separator (comma, period)
     char thousands;
 
-    int header;        // Boolean: 1: has header, 0: no header
+    int header;            // Boolean: 1: has header, 0: no header
     int64_t header_start;  // header row start
     int64_t header_end;    // header row end
 
