@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from cpython cimport PyDict_Contains, PyDict_GetItem, PyDict_GetItem
 
 

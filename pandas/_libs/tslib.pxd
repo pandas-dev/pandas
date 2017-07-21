@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from numpy cimport ndarray, int64_t
 
 cdef convert_to_tsobject(object, object, object, bint, bint)

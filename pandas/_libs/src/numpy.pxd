@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # NumPy static imports for Cython
 #
 # If any of the PyArray_* functions are called, import_array must be

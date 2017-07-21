@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check

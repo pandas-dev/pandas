@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from numpy cimport ndarray
 cimport numpy as cnp
 cimport cpython

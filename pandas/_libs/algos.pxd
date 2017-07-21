@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from util cimport numeric
 from numpy cimport float64_t, double_t
 
