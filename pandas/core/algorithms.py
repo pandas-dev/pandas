@@ -150,6 +150,12 @@ def _reconstruct_data(values, dtype, original):
         pass
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
+    elif is_bool_dtype(dtype):
+        values = values.astype(dtype)
+
+        # we only support object dtypes bool Index
+        if isinstance(original, Index):
+            values = values.astype(object)
     elif dtype is not None:
         values = values.astype(dtype)
 
