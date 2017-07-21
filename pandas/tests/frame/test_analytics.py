@@ -1031,6 +1031,34 @@ class TestDataFrameAnalytics(TestData):
 
         pytest.raises(ValueError, frame.idxmax, axis=2)
 
+    def test_argmin(self):
+        frame = self.frame
+        frame.loc[5:10] = np.nan
+        frame.loc[15:20, -2:] = np.nan
+        for skipna in [True, False]:
+            for axis in [0, 1]:
+                for df in [frame, self.intframe]:
+                    result = df.argmin(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.argmin, axis=axis,
+                                        skipna=skipna)
+                    tm.assert_series_equal(result, expected)
+
+        pytest.raises(ValueError, frame.argmin, axis=2)
+
+    def test_argmax(self):
+        frame = self.frame
+        frame.loc[5:10] = np.nan
+        frame.loc[15:20, -2:] = np.nan
+        for skipna in [True, False]:
+            for axis in [0, 1]:
+                for df in [frame, self.intframe]:
+                    result = df.argmax(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.argmax, axis=axis,
+                                        skipna=skipna)
+                    tm.assert_series_equal(result, expected)
+
+        pytest.raises(ValueError, frame.argmax, axis=2)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 

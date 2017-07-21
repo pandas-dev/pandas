@@ -5456,7 +5456,7 @@ it is assumed to be aliases for the column names')
 
     def idxmax(self, axis=0, skipna=True):
         """
-        Return index of first occurrence of maximum over requested axis.
+        Return label of first occurrence of maximum over requested axis.
         NA/null values are excluded.
 
         Parameters
@@ -5484,6 +5484,64 @@ it is assumed to be aliases for the column names')
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else NA for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
+
+    def argmin(self, axis=0, skipna=True):
+        """
+        Return index of first occurrence of minimum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        argmin : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        See Also
+        --------
+        Series.idxmin
+        """
+        axis = self._get_axis_number(axis)
+        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        return Series(indices, index=self._get_agg_axis(axis))
+
+    def argmax(self, axis=0, skipna=True):
+        """
+        Return index of first occurrence of maximum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be first index.
+
+        Returns
+        -------
+        argmax : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        See Also
+        --------
+        Series.argmax
+        """
+        axis = self._get_axis_number(axis)
+        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        return Series(indices, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
         """ let's be explict about this """

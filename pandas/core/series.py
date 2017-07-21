@@ -70,7 +70,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._decorators import (
+    Appender, deprecate_kwarg, Substitution)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
@@ -1279,7 +1280,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of minimum of values.
+        Label of first occurrence of minimum of values.
 
         Parameters
         ----------
@@ -1299,15 +1300,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         DataFrame.idxmin
         numpy.ndarray.argmin
         """
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
+        i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
 
     def idxmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of maximum of values.
+        Label of first occurrence of maximum of values.
 
         Parameters
         ----------
@@ -1327,15 +1327,62 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         DataFrame.idxmax
         numpy.ndarray.argmax
         """
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
+        i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
 
-    # ndarray compat
-    argmin = idxmin
-    argmax = idxmax
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Index of first occurrence of minimum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        idxmin : Index of minimum of values
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmin``.
+
+        See Also
+        --------
+        DataFrame.argmin
+        numpy.ndarray.argmin
+        """
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+        i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
+        return i
+
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+        """
+        Index of first occurrence of maximum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        idxmax : Index of maximum of values
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmax``.
+
+        See Also
+        --------
+        DataFrame.argmax
+        numpy.ndarray.argmax
+        """
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
+        i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
+        return i
 
     def round(self, decimals=0, *args, **kwargs):
         """
