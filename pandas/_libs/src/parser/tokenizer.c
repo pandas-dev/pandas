@@ -76,11 +76,7 @@ static void *grow_buffer(void *buffer, size_t length, size_t *capacity,
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
     while ((length + space >= cap) && (newbuffer != NULL)) {
-        if (cap < 1024 * 1024 * 1024) {
-            cap = cap ? cap << 1 : 2;
-        } else {
-            cap *= 2;
-        }
+        cap = cap ? cap << 1 : 2;
         buffer = newbuffer;
         newbuffer = safe_realloc(newbuffer, elsize * cap);
     }
@@ -457,7 +453,7 @@ static int end_line(parser_t *self) {
         return 0;
     }
 
-    if (!(self->lines <= (unsigned long) self->header_end + 1) &&
+    if (!(self->lines <= (int64_t) self->header_end + 1) &&
         (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
@@ -492,7 +488,7 @@ static int end_line(parser_t *self) {
         }
     } else {
         // missing trailing delimiters
-        if ((self->lines >= (unsigned long) self->header_end + 1) &&
+        if ((self->lines >= (int64_t) self->header_end + 1) &&
                 fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
@@ -1299,11 +1295,7 @@ int parser_trim_buffers(parser_t *self) {
     }
 
     /* trim line_start, line_fields */
-    if (new_cap < 1024 * 1024 * 1024) {
-        new_cap = _next_pow2(self->lines) + 1;
-    } else {
-        new_cap *= 2;
-    }
+    new_cap = _next_pow2(self->lines) + 1;
     if (new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
         newptr = safe_realloc((void *)self->line_start,
