@@ -225,9 +225,9 @@ Sparse
 Reshaping
 ^^^^^^^^^
 - Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
+- Bug in :func:`crosstab` where non-aligned series of integers were casted to float (:issue:`17005`)
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
-
 
 Numeric
 ^^^^^^^
