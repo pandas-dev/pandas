@@ -1094,6 +1094,11 @@ class TestSeriesIndexing(TestData):
         rs = s2.where(cond[:3], -s2)
         assert_series_equal(rs, expected)
 
+    def test_where_error(self):
+
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
         pytest.raises(ValueError, s.where, 1)
         pytest.raises(ValueError, s.where, cond[:3].values, -s)
 
@@ -1108,6 +1113,8 @@ class TestSeriesIndexing(TestData):
                       [0, 2, 3])
         pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
                       [])
+
+    def test_where_unsafe(self):
 
         # unsafe dtype changes
         for dtype in [np.int8, np.int16, np.int32, np.int64, np.float16,
@@ -1374,9 +1381,9 @@ class TestSeriesIndexing(TestData):
         expected = Series([5, 11, 2, 5, 11, 2], index=[0, 1, 2, 0, 1, 2])
         assert_series_equal(comb, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime_conversion(self):
         s = Series(date_range('20130102', periods=2))
-        expected = Series([10, 10], dtype='datetime64[ns]')
+        expected = Series([10, 10])
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
@@ -1392,7 +1399,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='datetime64[ns]')
+        expected = Series([10, None], dtype='object')
         assert_series_equal(rs, expected)
 
         # GH 15701
@@ -1403,9 +1410,9 @@ class TestSeriesIndexing(TestData):
         expected = Series([pd.NaT, s[1]])
         assert_series_equal(rs, expected)
 
-    def test_where_timedelta(self):
+    def test_where_timedelta_coerce(self):
         s = Series([1, 2], dtype='timedelta64[ns]')
-        expected = Series([10, 10], dtype='timedelta64[ns]')
+        expected = Series([10, 10])
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
@@ -1421,7 +1428,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='timedelta64[ns]')
+        expected = Series([10, None], dtype='object')
         assert_series_equal(rs, expected)
 
     def test_mask(self):

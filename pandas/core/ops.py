@@ -1278,12 +1278,14 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
         other = _align_method_FRAME(self, other, axis)
 
         if isinstance(other, pd.DataFrame):  # Another DataFrame
-            return self._flex_compare_frame(other, na_op, str_rep, level)
+            return self._flex_compare_frame(other, na_op, str_rep, level,
+                                            try_cast=False)
 
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, na_op, None, axis, level)
+            return self._combine_series(other, na_op, None, axis, level,
+                                        try_cast=False)
         else:
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, na_op, try_cast=False)
 
     f.__name__ = name
 
@@ -1296,12 +1298,14 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
         if isinstance(other, pd.DataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
         elif isinstance(other, ABCSeries):
-            return self._combine_series_infer(other, func)
+            return self._combine_series_infer(other, func, try_cast=False)
         else:
 
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func, raise_on_error=False)
+            res = self._combine_const(other, func,
+                                      raise_on_error=False,
+                                      try_cast=False)
             return res.fillna(True).astype(bool)
 
     f.__name__ = name
@@ -1381,13 +1385,13 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
             axis = self._get_axis_number(axis)
 
         if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op)
+            return self._compare_constructor(other, na_op, try_cast=False)
         elif isinstance(other, (self._constructor_sliced, pd.DataFrame,
                                 ABCSeries)):
             raise Exception("input needs alignment for this object [%s]" %
                             self._constructor)
         else:
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, na_op, try_cast=False)
 
     f.__name__ = name
 

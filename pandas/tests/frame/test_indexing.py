@@ -2522,14 +2522,15 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         cond = DataFrame([[True, False, True], [False, False, True]])
 
-        out = df.where(cond)
+        result = df.where(cond)
         expected = DataFrame([[1.0, np.nan, 3], [np.nan, np.nan, 6]])
-        tm.assert_frame_equal(out, expected)
+        tm.assert_frame_equal(result, expected)
 
-        cond.columns = ["a", "b", "c"]  # Columns no longer match.
-        msg = "Boolean array expected for the condition"
-        with tm.assert_raises_regex(ValueError, msg):
-            df.where(cond)
+        # this *does* align, though has no matching columns
+        cond.columns = ["a", "b", "c"]
+        result = df.where(cond)
+        expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_where_ndframe_align(self):
         msg = "Array conditional must be same shape as self"
@@ -2712,7 +2713,7 @@ class TestDataFrameIndexing(TestData):
         result.where(mask, s, axis='index', inplace=True)
         assert_frame_equal(result, expected)
 
-        expected = DataFrame([[0, np.nan], [0, np.nan]], dtype='float64')
+        expected = DataFrame([[0, np.nan], [0, np.nan]])
         result = df.where(mask, s, axis='columns')
         assert_frame_equal(result, expected)
 
@@ -2723,17 +2724,18 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(result, expected)
 
         # Multiple dtypes (=> multiple Blocks)
-        df = pd.concat([DataFrame(np.random.randn(10, 2)),
-                        DataFrame(np.random.randint(0, 10, size=(10, 2)))],
-                       ignore_index=True, axis=1)
+        df = pd.concat([
+            DataFrame(np.random.randn(10, 2)),
+            DataFrame(np.random.randint(0, 10, size=(10, 2)), dtype='int64')],
+            ignore_index=True, axis=1)
         mask = DataFrame(False, columns=df.columns, index=df.index)
         s1 = Series(1, index=df.columns)
         s2 = Series(2, index=df.index)
 
         result = df.where(mask, s1, axis='columns')
         expected = DataFrame(1.0, columns=df.columns, index=df.index)
-        expected[2] = expected[2].astype(int)
-        expected[3] = expected[3].astype(int)
+        expected[2] = expected[2].astype('int64')
+        expected[3] = expected[3].astype('int64')
         assert_frame_equal(result, expected)
 
         result = df.copy()
@@ -2742,8 +2744,8 @@ class TestDataFrameIndexing(TestData):
 
         result = df.where(mask, s2, axis='index')
         expected = DataFrame(2.0, columns=df.columns, index=df.index)
-        expected[2] = expected[2].astype(int)
-        expected[3] = expected[3].astype(int)
+        expected[2] = expected[2].astype('int64')
+        expected[3] = expected[3].astype('int64')
         assert_frame_equal(result, expected)
 
         result = df.copy()

@@ -500,7 +500,8 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None, level=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None,
+                       try_cast=True):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -543,7 +544,8 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=new_fill_value
                                  ).__finalize__(self)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None):
+    def _combine_match_index(self, other, func, level=None, fill_value=None,
+                             try_cast=True):
         new_data = {}
 
         if fill_value is not None:
@@ -573,7 +575,8 @@ class SparseDataFrame(DataFrame):
             new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+    def _combine_match_columns(self, other, func, level=None, fill_value=None,
+                               try_cast=True):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -599,7 +602,7 @@ class SparseDataFrame(DataFrame):
             new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func, raise_on_error=True):
+    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
         return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,

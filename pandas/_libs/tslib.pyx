@@ -14,6 +14,7 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
+    PyComplex_Check,
     PyLong_Check,
     PyObject_RichCompareBool,
     PyObject_RichCompare,
@@ -902,7 +903,7 @@ cdef inline bint _checknull_with_nat(object val):
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
     cdef bint res
-    if PyFloat_Check(val):
+    if PyFloat_Check(val) or PyComplex_Check(val):
         res = val != val
     elif val is NaT:
         res = 1

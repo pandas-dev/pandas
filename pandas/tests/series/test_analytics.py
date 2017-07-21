@@ -1033,11 +1033,11 @@ class TestSeriesAnalytics(TestData):
         # naive and tz-aware datetimes
 
         t = Timestamp('2015-12-01 09:30:30')
-        s = Series([Timestamp('2015-12-01 09:30:00'), Timestamp(
-            '2015-12-01 09:31:00')])
+        s = Series([Timestamp('2015-12-01 09:30:00'),
+                    Timestamp('2015-12-01 09:31:00')])
         result = s.clip(upper=t)
-        expected = Series([Timestamp('2015-12-01 09:30:00'), Timestamp(
-            '2015-12-01 09:30:30')])
+        expected = Series([Timestamp('2015-12-01 09:30:00'),
+                           Timestamp('2015-12-01 09:30:30')])
         assert_series_equal(result, expected)
 
         t = Timestamp('2015-12-01 09:30:30', tz='US/Eastern')

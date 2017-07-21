@@ -13,7 +13,6 @@ from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
-    needs_i8_conversion,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -26,7 +25,8 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_re_compilable,
     pandas_dtype)
-from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.cast import (
+    maybe_promote, maybe_upcast_putmask)
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel
 
@@ -5464,48 +5464,6 @@ it is assumed to be aliases for the column names.')
             else:
                 raise NotImplementedError("cannot align with a higher "
                                           "dimensional NDFrame")
-
-        elif is_list_like(other):
-
-            if self.ndim == 1:
-
-                # try to set the same dtype as ourselves
-                try:
-                    new_other = np.array(other, dtype=self.dtype)
-                except ValueError:
-                    new_other = np.array(other)
-                except TypeError:
-                    new_other = other
-
-                # we can end up comparing integers and m8[ns]
-                # which is a numpy no no
-                is_i8 = needs_i8_conversion(self.dtype)
-                if is_i8:
-                    matches = False
-                else:
-                    matches = (new_other == np.array(other))
-
-                if matches is False or not matches.all():
-
-                    # coerce other to a common dtype if we can
-                    if needs_i8_conversion(self.dtype):
-                        try:
-                            other = np.array(other, dtype=self.dtype)
-                        except:
-                            other = np.array(other)
-                    else:
-                        other = np.asarray(other)
-                        other = np.asarray(other,
-                                           dtype=np.common_type(other,
-                                                                new_other))
-
-                    # we need to use the new dtype
-                    try_quick = False
-                else:
-                    other = new_other
-            else:
-
-                other = np.array(other)
 
         if isinstance(other, np.ndarray):
 
