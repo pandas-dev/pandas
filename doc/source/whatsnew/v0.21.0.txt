@@ -259,6 +259,7 @@ Indexing
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
+- Fixes ``test_argsort``, ``test_numpy_argsort`` to cover both `>` and `<` in the error message (:issue:`17046`)
  
 I/O
 ^^^
