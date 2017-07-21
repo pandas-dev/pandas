@@ -267,6 +267,8 @@ I/O
 
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 
+- Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
+
 Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)

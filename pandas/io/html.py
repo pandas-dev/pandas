@@ -37,8 +37,6 @@ def _importers():
     if _IMPORTS:
         return
 
-    _IMPORTS = True
-
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
 
     try:
@@ -58,6 +56,8 @@ def _importers():
         _HAS_HTML5LIB = True
     except ImportError:
         pass
+
+    _IMPORTS = True
 
 
 #############
