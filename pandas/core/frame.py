@@ -25,7 +25,8 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.dtypes.cast import (
-    maybe_upcast, infer_dtype_from_scalar,
+    maybe_upcast,
+    cast_scalar_to_array,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -58,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.missing import isnull, notnull
+
 
 from pandas.core.common import (_try_sort,
                                 _default_index,
@@ -385,15 +387,10 @@ class DataFrame(NDFrame):
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
-                if isinstance(data, compat.string_types) and dtype is None:
-                    dtype = np.object_
-                if dtype is None:
-                    dtype, data = infer_dtype_from_scalar(data)
-
-                values = np.empty((len(index), len(columns)), dtype=dtype)
-                values.fill(data)
-                mgr = self._init_ndarray(values, index, columns, dtype=dtype,
-                                         copy=False)
+                values = cast_scalar_to_array((len(index), len(columns)),
+                                              data, dtype=dtype)
+                mgr = self._init_ndarray(values, index, columns,
+                                         dtype=values.dtype, copy=False)
             else:
                 raise ValueError('DataFrame constructor not properly called!')
 
@@ -507,7 +504,7 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-            if values.dtype != dtype:
+            if not is_dtype_equal(values.dtype, dtype):
                 try:
                     values = values.astype(dtype)
                 except Exception as orig:
@@ -2689,9 +2686,8 @@ it is assumed to be aliases for the column names')
 
         else:
             # upcast the scalar
-            dtype, value = infer_dtype_from_scalar(value)
-            value = np.repeat(value, len(self.index)).astype(dtype)
-            value = maybe_cast_to_datetime(value, dtype)
+            value = cast_scalar_to_array(len(self.index), value)
+            value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
         if is_extension_type(value):
@@ -3676,7 +3672,8 @@ it is assumed to be aliases for the column names')
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None,
+                       try_cast=True):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -3729,19 +3726,23 @@ it is assumed to be aliases for the column names')
                                  copy=False)
 
     def _combine_series(self, other, func, fill_value=None, axis=None,
-                        level=None):
+                        level=None, try_cast=True):
         if axis is not None:
             axis = self._get_axis_name(axis)
             if axis == 'index':
                 return self._combine_match_index(other, func, level=level,
-                                                 fill_value=fill_value)
+                                                 fill_value=fill_value,
+                                                 try_cast=try_cast)
             else:
                 return self._combine_match_columns(other, func, level=level,
-                                                   fill_value=fill_value)
+                                                   fill_value=fill_value,
+                                                   try_cast=try_cast)
         return self._combine_series_infer(other, func, level=level,
-                                          fill_value=fill_value)
+                                          fill_value=fill_value,
+                                          try_cast=try_cast)
 
-    def _combine_series_infer(self, other, func, level=None, fill_value=None):
+    def _combine_series_infer(self, other, func, level=None,
+                              fill_value=None, try_cast=True):
         if len(other) == 0:
             return self * NA
 
@@ -3751,9 +3752,11 @@ it is assumed to be aliases for the column names')
                                      columns=self.columns)
 
         return self._combine_match_columns(other, func, level=level,
-                                           fill_value=fill_value)
+                                           fill_value=fill_value,
+                                           try_cast=try_cast)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None):
+    def _combine_match_index(self, other, func, level=None,
+                             fill_value=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         if fill_value is not None:
@@ -3763,7 +3766,8 @@ it is assumed to be aliases for the column names')
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+    def _combine_match_columns(self, other, func, level=None,
+                               fill_value=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         if fill_value is not None:
@@ -3771,15 +3775,17 @@ it is assumed to be aliases for the column names')
                                       fill_value)
 
         new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index])
+                                   axes=[left.columns, self.index],
+                                   try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True):
+    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error)
+                                   raise_on_error=raise_on_error,
+                                   try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame_evaluate(self, other, func, str_rep):
+    def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
 
         # unique
         if self.columns.is_unique:
@@ -3803,16 +3809,18 @@ it is assumed to be aliases for the column names')
             result.columns = self.columns
             return result
 
-    def _compare_frame(self, other, func, str_rep):
+    def _compare_frame(self, other, func, str_rep, try_cast=True):
         if not self._indexed_same(other):
             raise ValueError('Can only compare identically-labeled '
                              'DataFrame objects')
-        return self._compare_frame_evaluate(other, func, str_rep)
+        return self._compare_frame_evaluate(other, func, str_rep,
+                                            try_cast=try_cast)
 
-    def _flex_compare_frame(self, other, func, str_rep, level):
+    def _flex_compare_frame(self, other, func, str_rep, level, try_cast=True):
         if not self._indexed_same(other):
             self, other = self.align(other, 'outer', level=level, copy=False)
-        return self._compare_frame_evaluate(other, func, str_rep)
+        return self._compare_frame_evaluate(other, func, str_rep,
+                                            try_cast=try_cast)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -5746,11 +5754,20 @@ it is assumed to be aliases for the column names')
                                 values).reshape(self.shape), self.index,
                 self.columns)
 
+    # ----------------------------------------------------------------------
+    # Add plotting methods to DataFrame
+    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    hist = gfx.hist_frame
+    boxplot = gfx.boxplot_frame
+
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
                       axes_are_reversed=True, aliases={'rows': 0})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
+
+ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
+ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
 
 _EMPTY_SERIES = Series([])
 
@@ -6097,28 +6114,3 @@ def _from_nested_dict(data):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
-
-# ----------------------------------------------------------------------
-# Add plotting methods to DataFrame
-DataFrame.plot = base.AccessorProperty(gfx.FramePlotMethods,
-                                       gfx.FramePlotMethods)
-DataFrame.hist = gfx.hist_frame
-
-
-@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
-def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
-            grid=True, figsize=None, layout=None, return_type=None, **kwds):
-    from pandas.plotting._core import boxplot
-    import matplotlib.pyplot as plt
-    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                 grid=grid, rot=rot, figsize=figsize, layout=layout,
-                 return_type=return_type, **kwds)
-    plt.draw_if_interactive()
-    return ax
-
-
-DataFrame.boxplot = boxplot
-
-ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)

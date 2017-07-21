@@ -188,6 +188,7 @@ class TestDataFrameOperators(TestData):
         df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
         ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
                'ne': 'ne'}
+
         for left, right in ops.items():
             left_f = getattr(operator, left)
             right_f = getattr(operator, right)
@@ -315,14 +316,12 @@ class TestDataFrameOperators(TestData):
         # operator.neg is deprecated in numpy >= 1.9
         _check_unary_op(operator.inv)
 
-    def test_logical_typeerror(self):
-        if not compat.PY3:
-            pytest.raises(TypeError, self.frame.__eq__, 'foo')
-            pytest.raises(TypeError, self.frame.__lt__, 'foo')
-            pytest.raises(TypeError, self.frame.__gt__, 'foo')
-            pytest.raises(TypeError, self.frame.__ne__, 'foo')
-        else:
-            pytest.skip('test_logical_typeerror not tested on PY3')
+    @pytest.mark.parametrize('op,res', [('__eq__', False),
+                                        ('__ne__', True)])
+    def test_logical_typeerror_with_non_valid(self, op, res):
+        # we are comparing floats vs a string
+        result = getattr(self.frame, op)('foo')
+        assert bool(result.all().all()) is res
 
     def test_logical_with_nas(self):
         d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
@@ -832,9 +831,11 @@ class TestDataFrameOperators(TestData):
         assert 'E' in larger_added
         assert np.isnan(larger_added['E']).all()
 
-        # vs mix (upcast) as needed
+        # no upcast needed
         added = self.mixed_float + series
-        _check_mixed_float(added, dtype='float64')
+        _check_mixed_float(added)
+
+        # vs mix (upcast) as needed
         added = self.mixed_float + series.astype('float32')
         _check_mixed_float(added, dtype=dict(C=None))
         added = self.mixed_float + series.astype('float16')

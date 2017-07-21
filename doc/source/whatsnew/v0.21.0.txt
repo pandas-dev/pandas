@@ -127,6 +127,65 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
+.. _whatsnew_0210.dtype_conversions:
+
+Dtype Conversions
+^^^^^^^^^^^^^^^^^
+
+- Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to
+  same type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
+
+   .. ipython:: python
+
+      s = Series([1, 2, 3])
+
+   .. code-block:: python
+
+      In [5]: s[1] = True
+
+      In [6]: s
+      Out[6]:
+      0    1
+      1    1
+      2    3
+      dtype: int64
+
+   New Behavior
+
+   .. ipython:: python
+
+      s[1] = True
+      s
+
+- Previously as assignment to a datetimelike with a non-datetimelike would coerce the
+  non-datetime-like item being assigned (:issue:`14145`).
+
+   .. ipython:: python
+
+      s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+
+   .. code-block:: python
+
+      In [1]: s[1] = 1
+
+      In [2]: s
+      Out[2]:
+      0   2011-01-01 00:00:00.000000000
+      1   1970-01-01 00:00:00.000000001
+      dtype: datetime64[ns]
+
+   These now coerce to ``object`` dtype.
+
+   .. ipython:: python
+
+      s[1] = 1
+      s
+
+- Additional bug fixes w.r.t. dtype conversions.
+
+  - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
+   - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+
 .. _whatsnew_0210.api:
 
 Other API Changes
@@ -185,6 +244,9 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
+- Bug in assignment against datetime-like data with ``int`` may incorrectly converte to datetime-like (:issue:`14145`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+
 
 Indexing
 ^^^^^^^^
@@ -196,7 +258,8 @@ Indexing
 - Fix :func:`MultiIndex.sort_index` ordering when ``ascending`` argument is a list, but not all levels are specified, or are in a different order (:issue:`16934`).
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
-
+- Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
+ 
 I/O
 ^^^
 
@@ -225,10 +288,11 @@ Sparse
 
 Reshaping
 ^^^^^^^^^
-- Joining/Merging with a non unique ``PeriodIndex`` raised a TypeError (:issue:`16871`)
+- Joining/Merging with a non unique ``PeriodIndex`` raised a ``TypeError`` (:issue:`16871`)
+- Bug in :func:`crosstab` where non-aligned series of integers were casted to float (:issue:`17005`)
+- Bug in merging with categorical dtypes with datetimelikes incorrectly raised a ``TypeError`` (:issue:`16900`)
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
-
 
 Numeric
 ^^^^^^^

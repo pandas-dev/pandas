@@ -493,10 +493,12 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
     assert not com.is_bool_dtype(np.array(['a', 'b']))
+    assert not com.is_bool_dtype(pd.Index(['a', 'b']))
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool)
     assert com.is_bool_dtype(np.array([True, False]))
+    assert com.is_bool_dtype(pd.Index([True, False]))
 
 
 def test_is_extension_type():
@@ -568,3 +570,40 @@ def test__get_dtype(input_param, result):
 def test__get_dtype_fails(input_param):
     # python objects
     pytest.raises(TypeError, com._get_dtype, input_param)
+
+
+@pytest.mark.parametrize('input_param,result', [
+    (int, np.dtype(int).type),
+    ('int32', np.int32),
+    (float, np.dtype(float).type),
+    ('float64', np.float64),
+    (np.dtype('float64'), np.float64),
+    (str, np.dtype(str).type),
+    (pd.Series([1, 2], dtype=np.dtype('int16')), np.int16),
+    (pd.Series(['a', 'b']), np.object_),
+    (pd.Index([1, 2], dtype='int64'), np.int64),
+    (pd.Index(['a', 'b']), np.object_),
+    ('category', com.CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']).dtype, com.CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']), com.CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']).dtype, com.CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']), com.CategoricalDtypeType),
+    (pd.DatetimeIndex([1, 2]), np.datetime64),
+    (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
+    ('<M8[ns]', np.datetime64),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London'), com.DatetimeTZDtypeType),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype,
+     com.DatetimeTZDtypeType),
+    ('datetime64[ns, Europe/London]', com.DatetimeTZDtypeType),
+    (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.int32),
+    (PeriodDtype(freq='D'), com.PeriodDtypeType),
+    ('period[D]', com.PeriodDtypeType),
+    (IntervalDtype(), com.IntervalDtypeType),
+    (None, type(None)),
+    (1, type(None)),
+    (1.2, type(None)),
+    (pd.DataFrame([1, 2]), type(None)),  # composite dtype
+])
+def test__get_dtype_type(input_param, result):
+    assert com._get_dtype_type(input_param) == result

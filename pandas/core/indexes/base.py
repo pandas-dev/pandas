@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype,
+    is_bool,
     is_bool_dtype,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
@@ -48,6 +49,7 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
+import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
@@ -610,9 +612,18 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
-        values = np.where(cond, self.values, other)
 
         dtype = self.dtype
+        values = self.values
+
+        if is_bool(other) or is_bool_dtype(other):
+
+            # bools force casting
+            values = values.astype(object)
+            dtype = None
+
+        values = np.where(cond, values, other)
+
         if self._is_numeric_dtype and np.any(isnull(values)):
             # We can't coerce to the numeric dtype of "self" (unless
             # it's float) if there are NaN values in our output.
@@ -2306,7 +2317,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
         try:
-            the_diff = algos.safe_sort(the_diff)
+            the_diff = sorting.safe_sort(the_diff)
         except TypeError:
             pass
 
@@ -2366,7 +2377,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
         try:
-            the_diff = algos.safe_sort(the_diff)
+            the_diff = sorting.safe_sort(the_diff)
         except TypeError:
             pass
 

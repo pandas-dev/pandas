@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
+    cast_scalar_to_array,
     maybe_cast_item)
 from pandas.core.dtypes.common import (
     is_integer, is_list_like,
@@ -178,11 +179,9 @@ class Panel(NDFrame):
             copy = False
             dtype = None
         elif is_scalar(data) and all(x is not None for x in passed_axes):
-            if dtype is None:
-                dtype, data = infer_dtype_from_scalar(data)
-            values = np.empty([len(x) for x in passed_axes], dtype=dtype)
-            values.fill(data)
-            mgr = self._init_matrix(values, passed_axes, dtype=dtype,
+            values = cast_scalar_to_array([len(x) for x in passed_axes],
+                                          data, dtype=dtype)
+            mgr = self._init_matrix(values, passed_axes, dtype=values.dtype,
                                     copy=False)
             copy = False
         else:  # pragma: no cover
@@ -327,7 +326,7 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Comparison methods
 
-    def _compare_constructor(self, other, func):
+    def _compare_constructor(self, other, func, try_cast=True):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
@@ -584,9 +583,7 @@ class Panel(NDFrame):
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif is_scalar(value):
-            dtype, value = infer_dtype_from_scalar(value)
-            mat = np.empty(shape[1:], dtype=dtype)
-            mat.fill(value)
+            mat = cast_scalar_to_array(shape[1:], value)
         else:
             raise TypeError('Cannot set item of type: %s' % str(type(value)))
 
@@ -719,13 +716,13 @@ class Panel(NDFrame):
                                       "operation with %s" %
                                       (str(type(other)), str(type(self))))
 
-    def _combine_const(self, other, func):
+    def _combine_const(self, other, func, try_cast=True):
         with np.errstate(all='ignore'):
             new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
-    def _combine_frame(self, other, func, axis=0):
+    def _combine_frame(self, other, func, axis=0, try_cast=True):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
@@ -744,7 +741,7 @@ class Panel(NDFrame):
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
 
-    def _combine_panel(self, other, func):
+    def _combine_panel(self, other, func, try_cast=True):
         items = self.items.union(other.items)
         major = self.major_axis.union(other.major_axis)
         minor = self.minor_axis.union(other.minor_axis)
