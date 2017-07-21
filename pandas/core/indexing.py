@@ -760,10 +760,12 @@ class _NDFrameIndexer(object):
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
+                    if isinstance(ix, np.ndarray):
+                        ix = ix.ravel()
                     if idx is None:
-                        idx = ax[ix].ravel()
+                        idx = ax[ix]
                     elif cols is None:
-                        cols = ax[ix].ravel()
+                        cols = ax[ix]
                     else:
                         break
                 else:
