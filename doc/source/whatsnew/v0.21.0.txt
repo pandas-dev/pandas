@@ -282,7 +282,7 @@ Groupby/Resample/Rolling
 
 Sparse
 ^^^^^^
-- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16777`)
+- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16905`)
 
 
 Reshaping
