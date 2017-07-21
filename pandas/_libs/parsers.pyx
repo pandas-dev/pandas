@@ -143,7 +143,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t *line_start      # position in words for start of line
         int64_t *line_fields     # Number of fields in each line
         int64_t lines            # Number of lines observed
-        int64_t file_lines       # Number of file lines observed (with bad/skipped)
+        int64_t file_lines       # Number of lines observed (with bad/skipped)
         int64_t lines_cap        # Vector capacity
 
         # Tokenizing stuff
@@ -210,7 +210,8 @@ cdef extern from "parser/tokenizer.h":
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
 
-    void coliter_setup(coliter_t *it, parser_t *parser, int64_t i, int64_t start) nogil
+    void coliter_setup(coliter_t *it, parser_t *parser,
+                       int64_t i, int64_t start) nogil
     void COLITER_NEXT(coliter_t, const char *) nogil
 
     parser_t* parser_new()
@@ -1702,7 +1703,8 @@ cdef char* cinf = b'inf'
 cdef char* cposinf = b'+inf'
 cdef char* cneginf = b'-inf'
 
-cdef _try_double(parser_t *parser, int64_t col, int64_t line_start, int64_t line_end,
+cdef _try_double(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
@@ -1811,7 +1813,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
 
     return 0
 
-cdef _try_uint64(parser_t *parser, int64_t col, int64_t line_start, int64_t line_end,
+cdef _try_uint64(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error
@@ -1845,7 +1848,8 @@ cdef _try_uint64(parser_t *parser, int64_t col, int64_t line_start, int64_t line
 
     return result
 
-cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col, int64_t line_start,
+cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
+                                  int64_t line_start,
                                   int64_t line_end, bint na_filter,
                                   const kh_str_t *na_hashset,
                                   uint64_t *data, uint_state *state) nogil:
@@ -1882,7 +1886,8 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col, int64_t line_st
 
     return 0
 
-cdef _try_int64(parser_t *parser, int64_t col, int64_t line_start, int64_t line_end,
+cdef _try_int64(parser_t *parser, int64_t col,
+                int64_t line_start, int64_t line_end,
                 bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
@@ -1909,7 +1914,8 @@ cdef _try_int64(parser_t *parser, int64_t col, int64_t line_start, int64_t line_
 
     return result, na_count
 
-cdef inline int _try_int64_nogil(parser_t *parser, int64_t col, int64_t line_start,
+cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
+                                 int64_t line_start,
                                  int64_t line_end, bint na_filter,
                                  const kh_str_t *na_hashset, int64_t NA,
                                  int64_t *data, int *na_count) nogil:
@@ -1947,7 +1953,8 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col, int64_t line_sta
 
     return 0
 
-cdef _try_bool(parser_t *parser, int64_t col, int64_t line_start, int64_t line_end,
+cdef _try_bool(parser_t *parser, int64_t col,
+               int64_t line_start, int64_t line_end,
                bint na_filter, kh_str_t *na_hashset):
     cdef:
         int na_count
@@ -1969,7 +1976,8 @@ cdef _try_bool(parser_t *parser, int64_t col, int64_t line_start, int64_t line_e
         return None, None
     return result.view(np.bool_), na_count
 
-cdef inline int _try_bool_nogil(parser_t *parser, int64_t col, int64_t line_start,
+cdef inline int _try_bool_nogil(parser_t *parser, int64_t col,
+                                int64_t line_start,
                                 int64_t line_end, bint na_filter,
                                 const kh_str_t *na_hashset, uint8_t NA,
                                 uint8_t *data, int *na_count) nogil:
@@ -2009,7 +2017,8 @@ cdef inline int _try_bool_nogil(parser_t *parser, int64_t col, int64_t line_star
             data += 1
     return 0
 
-cdef _try_bool_flex(parser_t *parser, int64_t col, int64_t line_start, int64_t line_end,
+cdef _try_bool_flex(parser_t *parser, int64_t col,
+                    int64_t line_start, int64_t line_end,
                     bint na_filter, const kh_str_t *na_hashset,
                     const kh_str_t *true_hashset,
                     const kh_str_t *false_hashset):
@@ -2035,7 +2044,8 @@ cdef _try_bool_flex(parser_t *parser, int64_t col, int64_t line_start, int64_t l
         return None, None
     return result.view(np.bool_), na_count
 
-cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col, int64_t line_start,
+cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
+                                     int64_t line_start,
                                      int64_t line_end, bint na_filter,
                                      const kh_str_t *na_hashset,
                                      const kh_str_t *true_hashset,
