@@ -775,7 +775,7 @@ class Block(PandasObject):
             return block
         except ValueError:
             raise
-        except TypeError:
+        except TypeError as e:
 
             # cast to the passed dtype if possible
             # otherwise raise the original error
@@ -788,7 +788,7 @@ class Block(PandasObject):
             except:
                 pass
 
-            raise
+            raise e
 
         except Exception:
             pass
@@ -1634,7 +1634,7 @@ class ComplexBlock(FloatOrComplexBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             return issubclass(element.dtype.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
@@ -1658,7 +1658,7 @@ class IntBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             tipo = element.dtype.type
             return (issubclass(tipo, np.integer) and
                     not issubclass(tipo, (np.datetime64, np.timedelta64)))
@@ -1805,7 +1805,7 @@ class BoolBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             return issubclass(element.dtype.type, np.integer)
         return isinstance(element, (int, bool))
 
@@ -2570,6 +2570,16 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         values = values.astype(dtype, copy=copy)
         return self.make_block_same_class(values=values,
                                           placement=self.mgr_locs)
+
+    def _can_hold_element(self, element):
+        element = np.asanyarray(element)
+        return np.issubdtype(element.dtype, self.sp_values.dtype)
+
+    def _try_cast(self, element):
+        try:
+            return np.asarray(element, dtype=self.sp_values.dtype)
+        except ValueError:
+            return element
 
     def __len__(self):
         try:

@@ -540,6 +540,37 @@ class TestSparseDataFrame(SharedWithSparse):
                                   self.frame['F'].reindex(index),
                                   check_names=False)
 
+    def test_setitem_spmatrix(self):
+        # GH-15634
+        tm.skip_if_no_package('scipy')
+        from scipy.sparse import csr_matrix
+
+        sdf = self.frame.copy(False)
+
+        def _equal(spm1, spm2):
+            return np.all(spm1.toarray() == spm2.toarray())
+
+        # 1d -- column
+        spm = csr_matrix(np.arange(len(sdf))).T
+        sdf['X'] = spm
+        assert _equal(sdf[['X']].to_coo(), spm)
+
+        # 1d -- existing column
+        sdf['A'] = spm.T
+        assert _equal(sdf[['X']].to_coo(), spm)
+
+        # 1d row -- changing series contents not yet supported
+        spm = csr_matrix(np.arange(sdf.shape[1], dtype=float))
+        idx = np.zeros(sdf.shape[0], dtype=bool)
+        idx[1] = True
+        tm.assert_raises_regex(TypeError, 'assignment',
+                               lambda: sdf.__setitem__(idx, spm))
+
+        # 2d -- 2 columns
+        spm = csr_matrix(np.eye(len(sdf))[:, :2])
+        sdf[['X', 'A']] = spm
+        assert _equal(sdf[['X', 'A']].to_coo(), spm)
+
     def test_delitem(self):
         A = self.frame['A']
         C = self.frame['C']

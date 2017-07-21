@@ -105,6 +105,24 @@ class TestSparseArray(object):
         assert arr.dtype == np.int64
         assert arr.fill_value == 0
 
+    def test_constructor_spmatrix(self):
+        # GH-15634
+        tm.skip_if_no_package('scipy')
+        from scipy.sparse import csr_matrix
+
+        spm = csr_matrix(np.arange(5))
+
+        arr = SparseArray(spm)
+        assert arr.dtype == spm.dtype
+        assert arr.fill_value == 0
+
+        arr = SparseArray(spm, kind='block', dtype=float, fill_value=np.nan)
+        assert arr.dtype == float
+        assert np.isnan(arr.fill_value)
+
+        tm.assert_raises_regex(ValueError, '1D',
+                               lambda: SparseArray(csr_matrix(np.eye(3))))
+
     def test_sparseseries_roundtrip(self):
         # GH 13999
         for kind in ['integer', 'block']:
