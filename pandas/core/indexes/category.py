@@ -72,8 +72,8 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
     _attributes = ['name']
 
     def __init__(self, *args, **kwargs):
-        # Override to prevent accessors.PandasDelegate.__init__ from executing
-        # This is a kludge.
+        # Override to prevent accessors.PandasDelegate.__init__ from
+        # executing
         pass
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,

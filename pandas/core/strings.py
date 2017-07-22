@@ -1912,16 +1912,6 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-    # TODO: Should we explicitly subclass PandasDelegate to clarify its role,
-    # even though it isn't actually needed?
-    # TODO: Use this instead of wrapping all of these methods individually?
-    def _delegate_method(self, name, *args, **kwargs):
-        # TODO: It would be really nice to keep the signatures
-        method = getattr(self.values, name)
-        res = method(*args, **kwargs)
-        # TODO: Should this get wrapped in an index?
-        return res
-
     @classmethod
     def _make_accessor(cls, data):
         from pandas.core.index import Index
@@ -1953,6 +1943,12 @@ class StringMethods(NoNewAttributesMixin):
                            "MultiIndex")
                 raise AttributeError(message)
         return StringAccessor(data)
+
+    # TODO: Should we explicitly subclass PandasDelegate to clarify its
+    # role, even though it isn't actually needed?
+    # _delegate_method is really simple in this case:
+    # getattr(self.values, name)(*args, **kwargs)
+    # possibly wrapped in an Index.
 
 
 StringAccessor = StringMethods  # Alias to mirror CategoricalAccessor
