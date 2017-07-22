@@ -5747,7 +5747,8 @@ it is assumed to be aliases for the column names')
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = accessors.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    plot = accessors.AccessorProperty(gfx.FramePlotMethods,
+                                      gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 
@@ -6105,4 +6106,3 @@ def _from_nested_dict(data):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
