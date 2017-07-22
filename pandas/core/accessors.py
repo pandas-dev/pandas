@@ -1,181 +1,73 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-An example/recipe for creating a custom accessor.
-
-
-The primary use case for accessors is when a Series contains instances
-of a particular class and we want to access properties/methods of these
-instances in Series form.
-
-Suppose we have a custom State class representing US states:
-
-class State(object):
-    def __repr__(self):
-        return repr(self.name)
-
-    def __init__(self, name):
-        self.name = name
-        self._abbrev_dict = {'California': 'CA', 'Alabama': 'AL'}
-
-    @property
-    def abbrev(self):
-        return self._abbrev_dict[self.name]
-
-    @abbrev.setter
-    def abbrev(self, value):
-        self._abbrev_dict[self.name] = value
-
-    def fips(self):
-        return {'California': 6, 'Alabama': 1}[self.name]
-
-
-We can construct a series of these objects:
-
->>> ser = pd.Series([State('Alabama'), State('California')])
->>> ser
-0       'Alabama'
-1    'California'
-dtype: object
-
-We would like direct access to the `abbrev` property and `fips` method.
-One option is to access these manually with `apply`:
-
->>> ser.apply(lambda x: x.fips())
-0    1
-1    6
-dtype: int64
-
-But doing that repeatedly gets old in a hurry, so we decide to make a
-custom accessor.  This entails subclassing `PandasDelegate` to specify
-what should be accessed and how.
-
-There are four methods that *may* be defined in this subclass, one of which
-*must* be defined.  The mandatory method is a classmethod called
-`_make_accessor`.  `_make_accessor` is responsible doing any validation on
-inputs for the accessor.  In this case, the inputs must be a Series
-containing State objects.
-
-
-class StateDelegate(PandasDelegate):
-
-    def __init__(self, values):
-        self.values = values
-
-    @classmethod
-    def _make_accessor(cls, data):
-        if not isinstance(data, pd.Series):
-            raise ValueError('Input must be a Series of States')
-        elif not data.apply(lambda x: isinstance(x, State)).all():
-            raise ValueError('All entries must be State objects')
-        return StateDelegate(data)
-
-
-With `_make_accessor` defined, we have enough to create the accessor, but
-not enough to actually do anything useful with it.  In order to access
-*methods* of State objects, we implement `_delegate_method`.
-`_delegate_method` calls the underlying method for each object in the
-series and wraps these in a new Series.  The simplest version looks like:
-
-    def _delegate_method(self, name, *args, **kwargs):
-        state_method = lambda x: getattr(x, name)(*args, **kwargs)
-        return self.values.apply(state_method)
-
-Similarly in order to access *properties* of State objects, we need to
-implement `_delegate_property_get`:
-
-    def _delegate_property_get(self, name):
-        state_property = lambda x: getattr(x, name)
-        return self.values.apply(state_property)
-
-
-On ocassion, we may want to be able to *set* property being accessed.
-This is discouraged, but allowed (as long as the class being accessed
-allows the property to be set).  Doing so requires implementing
-`_delegate_property_set`:
-
-    def _delegate_property_set(self, name, new_values):
-        for (obj, val) in zip(self.values, new_values):
-            setattr(obj, name, val)
-
-
-With these implemented, `StateDelegate` knows how to handle methods and
-properties.  We just need to tell it what names and properties it is
-supposed to handle.  This is done by decorating the `StateDelegate`
-class with `pd.accessors.wrap_delegate_names`.  We apply the decorator
-once with a list of all the methods the accessor should recognize and
-once with a list of all the properties the accessor should recognize.
-
-
-@wrap_delegate_names(delegate=State,
-                     accessors=["fips"],
-                     typ="method")
-@wrap_delegate_names(delegate=State,
-                     accessors=["abbrev"],
-                     typ="property")
-class StateDelegate(PandasDelegate):
-    [...]
-
-
-We can now pin the `state` accessor to the pd.Series class (we could
-alternatively pin it to the pd.Index class with a slightly different
-implementation above):
-
-pd.Series.state = accessors.AccessorProperty(StateDelegate)
-
-
->>> ser = pd.Series([State('Alabama'), State('California')])
->>> isinstance(ser.state, StateDelegate)
-True
-
->>> ser.state.abbrev
-0    AL
-1    CA
-dtype: object
-
->>> ser.state.fips()
-0    1
-1    6
-
->>> ser.state.abbrev = ['Foo', 'Bar']
->>> ser.state.abbrev
-0    Foo
-1    Bar
-dtype: object
-
-
-
-"""
 from pandas.core.base import PandasObject
-from pandas.core import common as com
 
 
 class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties
 
-    Usage: To make a custom accessor, start by subclassing `Delegate`.
-    See example in the module-level docstring.
+    Usage: To make a custom accessor, subclass `PandasDelegate`, overriding
+    the methods below.  Then decorate this subclass with
+    `accessors.wrap_delegate_names` describing the methods and properties
+    that should be delegated.
+
+    Examples can be found in:
+
+    pandas.core.accessors.CategoricalAccessor
+    pandas.core.indexes.accessors (complicated example)
+    pandas.core.indexes.category.CategoricalIndex
+    pandas.core.strings.StringMethods
+    pandas.tests.test_accessors
 
     """
 
     def __init__(self, values):
+        """
+        The subclassed constructor will generally only be called by
+        _make_accessor.  See _make_accessor.__doc__.
+        """
         self.values = values
-    #    #self._freeze()
 
     @classmethod
     def _make_accessor(cls, data):  # pragma: no cover
+        """
+        _make_accessor should implement any necessary validation on the
+        data argument to ensure that the properties/methods being
+        accessed will be available.
+
+        _make_accessor should return cls(data).  If necessary, the arguments
+        to the constructor can be expanded.  In this case, __init__ will
+        need to be overrided as well.
+
+        Parameters
+        ----------
+        data : the underlying object being accessed, usually Series or Index
+
+        Returns
+        -------
+        Delegate : instance of PandasDelegate or subclass
+
+        """
         raise NotImplementedError(
             'It is up to subclasses to implement '
             '_make_accessor.  This does input validation on the object to '
             'which the accessor is being pinned.  '
             'It should return an instance of `cls`.')
+        # return cls(data)
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
                         "property {name}".format(name=name))
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
+        """
+        Overriding _delegate_property_set is discouraged.  It is generally
+        better to directly interact with the underlying data than to
+        alter it via the accessor.
+
+        An example that ignores this advice can be found in
+        tests.test_accessors.TestVectorizedAccessor
+        """
         raise TypeError("The property {name} cannot be set".format(name=name))
 
     def _delegate_method(self, name, *args, **kwargs):
@@ -242,14 +134,8 @@ class Delegator(object):
         def func(self, *args, **kwargs):
             return self._delegate_method(name, *args, **kwargs)
 
-        if callable(name):
-            # A function/method was passed directly instead of a name
-            # This may also render the `delegate` arg unnecessary.
-            func.__name__ = name.__name__  # TODO: is this generally valid?
-            func.__doc__ = name.__doc__
-        else:
-            func.__name__ = name
-            func.__doc__ = getattr(delegate, name).__doc__
+        func.__name__ = name
+        func.__doc__ = getattr(delegate, name).__doc__
         return func
 
     @staticmethod
@@ -294,13 +180,10 @@ class Delegator(object):
                 else:
                     func = Delegator.create_delegator_method(name, delegate)
 
-                # Allow for a callable to be passed instead of a name.
-                title = com._get_callable_name(name)
-                title = title or name
                 # don't overwrite existing methods/properties unless
                 # specifically told to do so
-                if overwrite or not hasattr(cls, title):
-                    setattr(cls, title, func)
+                if overwrite or not hasattr(cls, name):
+                    setattr(cls, name, func)
 
             return cls
 

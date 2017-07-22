@@ -5,14 +5,22 @@
 An example/recipe/test for implementing custom accessors.
 
 """
+import unittest
+import pandas.util.testing as tm
 
 import pandas as pd
 
 from pandas.core.accessors import (wrap_delegate_names,
                                    PandasDelegate, AccessorProperty)
 
+# Example 1:
+# An accessor for attributes of custom class in a Series with object dtype.
+
 
 class State(object):
+    """
+    A dummy class for which only two states have the attributes implemented.
+    """
     def __repr__(self):
         return repr(self.name)
 
@@ -72,20 +80,80 @@ class StateDelegate(PandasDelegate):
             setattr(obj, name, val)
 
 
-def test_geo_state_accessor():
-    import pandas.util.testing as tm
+class TestVectorizedAccessor(unittest.TestCase):
 
-    pd.Series.state = AccessorProperty(StateDelegate)
+    @classmethod
+    def setup_class(cls):
+        pd.Series.state = AccessorProperty(StateDelegate)
 
-    ser = pd.Series([State('Alabama'), State('California')])
+        cls.ser = pd.Series([State('Alabama'), State('California')])
 
-    abbrev = pd.Series(['AL', 'CA'])
-    tm.assert_series_equal(ser.state.abbrev, abbrev)
+    @classmethod
+    def teardown_class(cls):
+        del pd.Series.state
+        # TODO: is there a nicer way to do this with `mock`?
 
-    fips = pd.Series([1, 6])
-    tm.assert_series_equal(ser.state.fips(), fips)
+    def test_method(self):
+        ser = self.ser
+        fips = pd.Series([1, 6])
+        tm.assert_series_equal(ser.state.fips(), fips)
 
-    ser.state.abbrev = ['Foo', 'Bar']
+    def test_property_get(self):
+        ser = self.ser
+        abbrev = pd.Series(['AL', 'CA'])
+        tm.assert_series_equal(ser.state.abbrev, abbrev)
 
-    new_abbrev = pd.Series(['Foo', 'Bar'])
-    tm.assert_series_equal(ser.state.abbrev, new_abbrev)
+    def test_property_set(self):
+        ser = self.ser.copy()
+
+        ser.state.abbrev = ['Foo', 'Bar']
+        new_abbrev = pd.Series(['Foo', 'Bar'])
+        tm.assert_series_equal(ser.state.abbrev, new_abbrev)
+
+
+@wrap_delegate_names(delegate=pd.Series,
+                     accessors=["real", "imag"],
+                     typ="property")
+@wrap_delegate_names(delegate=pd.Series,
+                     accessors=["abs"],
+                     typ="method")
+class ForgotToOverride(PandasDelegate):
+    # A case where the relevant methods were not overridden.  Everything
+    # should raise NotImplementedError or TypeError
+    @classmethod
+    def _make_accessor(cls, data):
+        return cls(data)
+
+
+class TestUnDelegated(unittest.TestCase):
+
+    @classmethod
+    def setup_class(cls):
+        pd.Series.forgot = AccessorProperty(ForgotToOverride)
+
+        cls.ser = pd.Series(range(-2, 2))
+
+    @classmethod
+    def teardown_class(cls):
+        del pd.Series.forgot
+
+    def test_get_fails(self):
+        forgot = self.ser.forgot
+        with self.assertRaises(TypeError):
+            forgot.real
+
+        with self.assertRaises(TypeError):
+            forgot.imag
+
+    def test_set_fails(self):
+        forgot = self.ser.forgot
+        with self.assertRaises(TypeError):
+            forgot.real = range(5)
+
+        # Check that the underlying hasn't been affected
+        tm.assert_series_equal(self.ser, pd.Series(range(-2, 2)))
+
+    def test_method_fails(self):
+        forgot = self.ser.forgot
+        with self.assertRaises(TypeError):
+            forgot.abs()
