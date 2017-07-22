@@ -7,7 +7,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pandas import Index, Series, SparseSeries, DataFrame, date_range
+from pandas import Index, Series, DataFrame, date_range
 from pandas.core.indexes.datetimes import Timestamp
 
 from pandas.compat import range
