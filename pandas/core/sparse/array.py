@@ -595,14 +595,11 @@ class SparseArray(PandasObject, np.ndarray):
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
 
-        if self._null_fill_value:
-            return self._simple_new(self.sp_values, self.sp_index,
-                                    fill_value=value)
-        else:
-            new_values = self.sp_values.copy()
-            new_values[isnull(new_values)] = value
-            return self._simple_new(new_values, self.sp_index,
-                                    fill_value=self.fill_value)
+        new_values = np.where(isnull(self.sp_values), value, self.sp_values)
+        fill_value = value if self._null_fill_value else self.fill_value
+
+        return self._simple_new(new_values, self.sp_index,
+                                fill_value=fill_value)
 
     def sum(self, axis=0, *args, **kwargs):
         """
