@@ -149,13 +149,15 @@ def _create_methods(arith_method, comp_method, bool_method,
 def add_methods(cls, new_methods, force, select, exclude):
     if select and exclude:
         raise TypeError("May only pass either select or exclude")
-    methods = new_methods
+
     if select:
         select = set(select)
         methods = {}
         for key, method in new_methods.items():
             if key in select:
                 methods[key] = method
+        new_methods = methods
+
     if exclude:
         for k in exclude:
             new_methods.pop(k, None)
