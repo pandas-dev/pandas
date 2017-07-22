@@ -1846,7 +1846,7 @@ class TestMixedIntIndex(Base):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = idx.argsort()
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -1859,7 +1859,7 @@ class TestMixedIntIndex(Base):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = np.argsort(idx)
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
