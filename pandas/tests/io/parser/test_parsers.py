@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-from io import StringIO
-
-import pytest
-
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table
@@ -26,18 +22,6 @@ from .compression import CompressionTests
 from .multithread import MultithreadTests
 from .python_parser_only import PythonParserTests
 from .dtypes import DtypeTests
-
-
-@pytest.mark.high_memory
-def test_bytes_exceed_2gb():
-    """Read from a "CSV" that has a column larger than 2GB.
-
-    GH 16798
-    """
-    csv = StringIO('strings\n' + '\n'.join(
-        ['x' * (1 << 20) for _ in range(2100)]))
-    df = read_csv(csv, low_memory=False)
-    assert not df.empty
 
 
 class BaseParser(CommentTests, CompressionTests,
