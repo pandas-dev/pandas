@@ -1,7 +1,6 @@
 """
 missing types & inference
 """
-import warnings
 import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
@@ -45,10 +44,7 @@ def isna(obj):
     return _isna(obj)
 
 
-def isnull(obj):
-    warnings.warn("isnull is deprecated. Use isna instead",
-                  DeprecationWarning, stacklevel=2)
-    return isna(obj)
+isnull = isna
 
 
 def _isna_new(obj):
@@ -217,10 +213,7 @@ def notna(obj):
     return ~res
 
 
-def notnull(obj):
-    warnings.warn("notnull is deprecated. Use notna instead",
-                  DeprecationWarning, stacklevel=2)
-    return notna(obj)
+notnull = notna
 
 
 def is_null_datelike_scalar(other):

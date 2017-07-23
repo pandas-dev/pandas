@@ -15,36 +15,37 @@ from pandas import (NaT, Float64Index, Series,
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
-    array_equivalent, isna, notna,
+    array_equivalent, isna, notna, isnull, notnull,
     na_value_for_dtype)
 
 
-def test_notna():
-    assert notna(1.)
-    assert not notna(None)
-    assert not notna(np.NaN)
+@pytest.mark.parametrize('notna_f', [notna, notnull])
+def test_notna_notnull(notna_f):
+    assert notna_f(1.)
+    assert not notna_f(None)
+    assert not notna_f(np.NaN)
 
     with cf.option_context("mode.use_inf_as_na", False):
-        assert notna(np.inf)
-        assert notna(-np.inf)
+        assert notna_f(np.inf)
+        assert notna_f(-np.inf)
 
         arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna(arr)
+        result = notna_f(arr)
         assert result.all()
 
     with cf.option_context("mode.use_inf_as_na", True):
-        assert not notna(np.inf)
-        assert not notna(-np.inf)
+        assert not notna_f(np.inf)
+        assert not notna_f(-np.inf)
 
         arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna(arr)
+        result = notna_f(arr)
         assert result.sum() == 2
 
     with cf.option_context("mode.use_inf_as_na", False):
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            assert (isinstance(isna(s), Series))
+            assert (isinstance(notna_f(s), Series))
 
 
 class TestIsNA(object):
@@ -66,40 +67,41 @@ class TestIsNA(object):
             expected = np.ones(shape=shape, dtype=bool)
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_isna(self):
-        assert not isna(1.)
-        assert isna(None)
-        assert isna(np.NaN)
+    @pytest.mark.parametrize('isna_f', [isna, isnull])
+    def test_isna_isnull(self, isna_f):
+        assert not isna_f(1.)
+        assert isna_f(None)
+        assert isna_f(np.NaN)
         assert float('nan')
-        assert not isna(np.inf)
-        assert not isna(-np.inf)
+        assert not isna_f(np.inf)
+        assert not isna_f(-np.inf)
 
         # series
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            assert isinstance(isna(s), Series)
+            assert isinstance(isna_f(s), Series)
 
         # frame
         for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
                    tm.makeMixedDataFrame()]:
-            result = isna(df)
-            expected = df.apply(isna)
+            result = isna_f(df)
+            expected = df.apply(isna_f)
             tm.assert_frame_equal(result, expected)
 
         # panel
         with catch_warnings(record=True):
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
-                result = isna(p)
-                expected = p.apply(isna)
+                result = isna_f(p)
+                expected = p.apply(isna_f)
                 tm.assert_panel_equal(result, expected)
 
         # panel 4d
         with catch_warnings(record=True):
             for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-                result = isna(p)
-                expected = p.apply(isna)
+                result = isna_f(p)
+                expected = p.apply(isna_f)
                 tm.assert_panel4d_equal(result, expected)
 
     def test_isna_lists(self):
@@ -331,13 +333,3 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
-
-
-@pytest.mark.parametrize("func", [pd.notnull, pd.isnull])
-def test_deprecation_deprecations(func):
-
-    # top level deprecations
-    # 15001
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
-        func('foo')

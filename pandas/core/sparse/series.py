@@ -28,7 +28,6 @@ from pandas.core.sparse.array import (
     _make_index)
 from pandas._libs.sparse import BlockIndex, IntIndex
 import pandas._libs.sparse as splib
-from pandas.util._decorators import deprecate
 
 from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,
@@ -648,7 +647,7 @@ class SparseSeries(Series):
                           sparse_index=self.values.sp_index,
                           fill_value=isna(self.fill_value))
         return self._constructor(arr, index=self.index).__finalize__(self)
-    isnull = deprecate('isna', isna, klass=DeprecationWarning)
+    isnull = isna
 
     @Appender(generic._shared_docs['notna'])
     def notna(self):
@@ -656,7 +655,7 @@ class SparseSeries(Series):
                           sparse_index=self.values.sp_index,
                           fill_value=notna(self.fill_value))
         return self._constructor(arr, index=self.index).__finalize__(self)
-    notnull = deprecate('notna', notna, klass=DeprecationWarning)
+    notnull = notna
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """

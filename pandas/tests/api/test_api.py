@@ -64,8 +64,8 @@ class TestPDApi(Base):
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
              'date_range', 'interval_range', 'eval',
              'factorize', 'get_dummies',
-             'infer_freq', 'isna', 'lreshape',
-             'melt', 'notna', 'offsets',
+             'infer_freq', 'isna', 'isnull', 'lreshape',
+             'melt', 'notna', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
              'period_range',
              'pivot', 'pivot_table', 'qcut',
@@ -89,7 +89,7 @@ class TestPDApi(Base):
                 'to_numeric', 'to_pickle', 'to_timedelta']
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future = ['isnull', 'notnull']
+    deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
     deprecated_funcs = ['ewma', 'ewmcorr', 'ewmcov', 'ewmstd', 'ewmvar',

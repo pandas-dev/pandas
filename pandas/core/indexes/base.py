@@ -43,7 +43,7 @@ from pandas.core.common import (is_bool_indexer,
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
 from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate, deprecate_kwarg)
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
@@ -1859,7 +1859,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         pandas.isna : pandas version
         """
         return self._isnan
-    isnull = deprecate('isna', isna, klass=DeprecationWarning)
+    isnull = isna
 
     def notna(self):
         """
@@ -1876,7 +1876,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         pandas.notna : pandas version
         """
         return ~self.isna()
-    notnull = deprecate('notna', notna, klass=DeprecationWarning)
+    notnull = notna
 
     def putmask(self, mask, value):
         """

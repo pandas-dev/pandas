@@ -35,7 +35,7 @@ import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    Appender, cache_readonly, deprecate_kwarg, deprecate, Substitution)
+    Appender, cache_readonly, deprecate_kwarg, Substitution)
 
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg
@@ -1179,7 +1179,7 @@ class Categorical(PandasObject):
                 # we only have one NA in categories
                 ret = np.logical_or(ret, self._codes == nan_pos)
         return ret
-    isnull = deprecate('isna', isna, klass=DeprecationWarning)
+    isnull = isna
 
     def notna(self):
         """
@@ -1199,7 +1199,7 @@ class Categorical(PandasObject):
 
         """
         return ~self.isna()
-    notnull = deprecate('notna', notna, klass=DeprecationWarning)
+    notnull = notna
 
     def put(self, *args, **kwargs):
         """

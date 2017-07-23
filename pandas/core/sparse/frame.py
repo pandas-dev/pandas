@@ -26,7 +26,7 @@ from pandas.core.internals import (BlockManager,
 import pandas.core.generic as generic
 from pandas.core.sparse.series import SparseSeries, SparseArray
 from pandas._libs.sparse import BlockIndex, get_blocks
-from pandas.util._decorators import Appender, deprecate
+from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 
 
@@ -788,12 +788,12 @@ class SparseDataFrame(DataFrame):
     @Appender(generic._shared_docs['isna'])
     def isna(self):
         return self._apply_columns(lambda x: x.isna())
-    isnull = deprecate('isna', isna, klass=DeprecationWarning)
+    isnull = isna
 
     @Appender(generic._shared_docs['notna'])
     def notna(self):
         return self._apply_columns(lambda x: x.notna())
-    notnull = deprecate('notna', notna, klass=DeprecationWarning)
+    notnull = notna
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):
         """

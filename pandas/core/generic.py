@@ -54,7 +54,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types,
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate, deprecate_kwarg)
+                                     deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
@@ -4544,7 +4544,7 @@ it is assumed to be aliases for the column names.')
     @Appender(_shared_docs['isna'])
     def isna(self):
         return isna(self).__finalize__(self)
-    isnull = deprecate('isna', isna, klass=DeprecationWarning)
+    isnull = isna
 
     _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
@@ -4558,7 +4558,7 @@ it is assumed to be aliases for the column names.')
     @Appender(_shared_docs['notna'])
     def notna(self):
         return notna(self).__finalize__(self)
-    notnull = deprecate('notna', notna, klass=DeprecationWarning)
+    notnull = notna
 
     def _clip_with_scalar(self, lower, upper, inplace=False):
         if ((lower is not None and np.any(isna(lower))) or
