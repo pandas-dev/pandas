@@ -201,8 +201,8 @@ I/O
 ^^^
 
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
-- Bug in :func:`read_csv` in which passing a CSV with at least one very large (i.e. more than 2^31 - 1 bytes) column along with ``low_memory=False`` would cause an integer overflow. The result was an always unsuccessful attempt to allocate an enourmous buffer and then reporting "Out of memory." (:issue:`16798`).
-- Bug in :func:`read_csv` in which some errors paths were assigning error messages to the internal tokenizer's ``error_msg`` field without first allocating the memory. When this happened as part of exception handling, it resulted in a double ``free`` and the program halted due to a ``SIGSEGV`` (:issue:`16798`).
+- Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the Python interpreter to crash (:issue:`16798`).
+- Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size caused Pandas to grossly overestimate memory requirements and preemptively raise an Exception with the message "out of memory" (:issue:`16798`).
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 
 Plotting
