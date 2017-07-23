@@ -123,8 +123,6 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         -------
         CategoricalIndex
         """
-
-        from pandas.core.categorical import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -154,7 +152,6 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         """
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
-            from pandas.core.categorical import Categorical
             data = Categorical(data, categories=categories, ordered=ordered)
         else:
             if categories is not None:
@@ -403,7 +400,6 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.categorical import Categorical
         cat = Categorical(values,
                           categories=self.categories,
                           ordered=self.ordered)
@@ -698,6 +694,7 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         cls.__le__ = _make_compare('__le__')
         cls.__ge__ = _make_compare('__ge__')
 
+    # TODO: Can we de-duplicate this with core.categorical Delegate?
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
@@ -707,7 +704,6 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
-
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()

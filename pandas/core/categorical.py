@@ -2055,11 +2055,11 @@ class CategoricalAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
         if not is_categorical_dtype(values.dtype):
             msg = "Can only use .cat accessor with a 'category' dtype"
             raise AttributeError(msg)
-        return CategoricalAccessor(values.values, values.index)
+        return CategoricalAccessor(values)
 
-    def __init__(self, values, index):
-        self.categorical = values
-        self.index = index
+    def __init__(self, values):
+        self.categorical = values.values
+        self.index = values.index
         self._freeze()
 
     def _delegate_property_get(self, name):
