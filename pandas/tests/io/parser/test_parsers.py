@@ -33,7 +33,8 @@ def test_bytes_exceed_2gb():
 
     GH 16798
     """
-    csv = StringIO('strings\n' + '\n'.join(['x' * (1 << 20) for _ in range(2100)]))
+    csv = StringIO('strings\n' + '\n'.join(
+        ['x' * (1 << 20) for _ in range(2100)]))
     df = read_csv(csv, low_memory=False)
     assert not df.empty
 
