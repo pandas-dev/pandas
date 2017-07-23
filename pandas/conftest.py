@@ -28,8 +28,8 @@ def pytest_runtest_setup(item):
 
     if 'high_memory' in item.keywords and not item.config.getoption(
         "--run-highmemory"):
-        pytest.skip(
-            "skipping high memory test since --run-highmemory was not set")
+            pytest.skip(
+                "skipping high memory test since --run-highmemory was not set")
 
 
 # Configurations for all tests and all test modules

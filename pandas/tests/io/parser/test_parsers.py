@@ -27,6 +27,7 @@ from .multithread import MultithreadTests
 from .python_parser_only import PythonParserTests
 from .dtypes import DtypeTests
 
+
 @pytest.mark.high_memory
 def test_bytes_exceed_2gb():
     """Read from a "CSV" that has a column larger than 2GB.
