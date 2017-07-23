@@ -3060,7 +3060,7 @@ it is assumed to be aliases for the column names')
         ...                                    ('mammal', 'monkey')],
         ...                                   names=['class', 'name'])
         >>> columns = pd.MultiIndex.from_tuples([('speed', 'max'),
-        ...                                      ('speed', 'type')])
+        ...                                      ('species', 'type')])
         >>> df = pd.DataFrame([(389.0, 'fly'),
         ...                    ( 24.0, 'fly'),
         ...                    ( 80.5, 'run'),
@@ -3068,49 +3068,59 @@ it is assumed to be aliases for the column names')
         ...                   index=index,
         ...                   columns=columns)
         >>> df
-                       speed
-                         max  type
+                       speed species
+                         max    type
         class  name
-        bird   falcon  389.0   fly
-               parrot   24.0   fly
-        mammal lion     80.5   run
-               monkey    NaN  jump
+        bird   falcon  389.0     fly
+               parrot   24.0     fly
+        mammal lion     80.5     run
+               monkey    NaN    jump
 
         If the index has multiple levels, we can reset a subset of them:
 
         >>> df.reset_index(level='class')
-                 class  speed
-                          max  type
+                 class  speed species
+                          max    type
         name
-        falcon    bird  389.0   fly
-        parrot    bird   24.0   fly
-        lion    mammal   80.5   run
-        monkey  mammal    NaN  jump
+        falcon    bird  389.0     fly
+        parrot    bird   24.0     fly
+        lion    mammal   80.5     run
+        monkey  mammal    NaN    jump
 
         If we are not dropping the index, by default, it is placed in the top
         level. We can place it in another level:
 
         >>> df.reset_index(level='class', col_level=1)
-                        speed
-                 class    max  type
+                        speed species
+                 class    max    type
         name
-        falcon    bird  389.0   fly
-        parrot    bird   24.0   fly
-        lion    mammal   80.5   run
-        monkey  mammal    NaN  jump
+        falcon    bird  389.0     fly
+        parrot    bird   24.0     fly
+        lion    mammal   80.5     run
+        monkey  mammal    NaN    jump
 
         When the index is inserted under another level, we can specify under
-        which one with the parameter `col_fill`. If we specify a nonexistent
-        level, it is created:
+        which one with the parameter `col_fill`:
 
         >>> df.reset_index(level='class', col_level=1, col_fill='species')
-                      species  speed
-                        class    max  type
+                      species  speed species
+                        class    max    type
         name
-        falcon           bird  389.0   fly
-        parrot           bird   24.0   fly
-        lion           mammal   80.5   run
-        monkey         mammal    NaN  jump
+        falcon           bird  389.0     fly
+        parrot           bird   24.0     fly
+        lion           mammal   80.5     run
+        monkey         mammal    NaN    jump
+
+        If we specify a nonexistent level for `col_fill`, it is created:
+
+        >>> df.reset_index(level='class', col_level=1, col_fill='genus')
+                        genus  speed species
+                        class    max    type
+        name
+        falcon           bird  389.0     fly
+        parrot           bird   24.0     fly
+        lion           mammal   80.5     run
+        monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
