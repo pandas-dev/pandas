@@ -1258,12 +1258,7 @@ int parser_trim_buffers(parser_t *self) {
     }
 
     /* trim stream */
-    if (new_cap < INT32_MAX) {
-        new_cap = _next_pow2(self->stream_len) + 1;
-    } else {
-        new_cap *= 2;
-    }
-
+    new_cap = _next_pow2(self->stream_len) + 1;
     TRACE(
         ("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = "
          "%zu\n",
