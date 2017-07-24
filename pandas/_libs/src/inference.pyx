@@ -597,222 +597,267 @@ cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 
-cpdef bint is_bool_array(ndarray values, bint skipna=False):
+cdef class Validator:
+
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
-        object val
+        Py_ssize_t n
+        object dtype
+        bint skipna
 
-    if issubclass(values.dtype.type, np.bool_):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
+    def __cinit__(self, Py_ssize_t n, object dtype=None, bint skipna=False):
+        self.n = n
+        self.dtype = dtype if dtype is not None else np.dtype(np.object_)
+        self.skipna = skipna
 
-        if n == 0:
+    cdef bint validate(self, object[:] values):
+        if not self.n:
             return False
 
-        if skipna:
-            for i in range(n):
-                val = objbuf[i]
-                if not util._checknull(val) and not util.is_bool_object(val):
-                    return False
+        if self.is_array_typed():
+            return True
+        elif self.dtype.type == np.object_:
+            if self.skipna:
+                return self._validate_skipna(values)
+            else:
+                return self._validate(values)
         else:
-            for i in range(n):
-                val = objbuf[i]
-                if not util.is_bool_object(val):
-                    return False
+            return False
+
+    cdef bint _validate(self, object[:] values):
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t n = self.n
+
+        for i in range(n):
+            if not self.is_valid(values[i]):
+                return False
+        return self.finalize()
+
+    cdef bint _validate_skipna(self, object[:] values):
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t n = self.n
+
+        for i in range(n):
+            if not self.is_valid_skipna(values[i]):
+                return False
+        return self.finalize()
+
+    cdef bint is_valid(self, object value) except -1:
+        return self.is_value_typed(value)
+
+    cdef bint is_valid_skipna(self, object value) except -1:
+        return self.is_valid(value) or self.is_valid_null(value)
+
+    cdef bint is_value_typed(self, object value) except -1:
+        raise NotImplementedError(
+            'is_value_typed must be implemented in subclasses'
+        )
+
+    cdef bint is_valid_null(self, object value) except -1:
+        return util._checknull(value)
+
+    cdef bint is_array_typed(self) except -1:
+        raise NotImplementedError(
+            'is_array_typed must be implemented in subclasses'
+        )
+
+    cdef bint finalize(self):
         return True
-    else:
-        return False
+
+
+cdef class BoolValidator(Validator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_bool_object(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.bool_)
+
+
+cpdef bint is_bool_array(ndarray values, bint skipna=False):
+    cdef:
+        BoolValidator validator = BoolValidator(
+            len(values),
+            values.dtype,
+            skipna=skipna
+        )
+    return validator.validate(values)
+
+
+cdef class IntegerValidator(Validator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_integer_object(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.integer)
 
 
 cpdef bint is_integer_array(ndarray values):
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
+        IntegerValidator validator = IntegerValidator(
+            len(values),
+            values.dtype,
+        )
+    return validator.validate(values)
 
-    if issubclass(values.dtype.type, np.integer):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class IntegerFloatValidator(Validator):
 
-        for i in range(n):
-            if not util.is_integer_object(objbuf[i]):
-                return False
-        return True
-    else:
-        return False
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_integer_object(value) or util.is_float_object(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.integer)
 
 
 cpdef bint is_integer_float_array(ndarray values):
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
-        object value
+        IntegerFloatValidator validator = IntegerFloatValidator(
+            len(values),
+            values.dtype,
+        )
+    return validator.validate(values)
 
-    if issubclass(values.dtype.type, np.integer):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class FloatValidator(Validator):
 
-        for i in range(n):
-            val = objbuf[i]
-            if not (util.is_integer_object(val) or util.is_float_object(val)):
-                return False
-        return True
-    else:
-        return False
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_float_object(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.floating)
 
 
 cpdef bint is_float_array(ndarray values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
+    cdef FloatValidator validator = FloatValidator(len(values), values.dtype)
+    return validator.validate(values)
 
-    if issubclass(values.dtype.type, np.floating):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class StringValidator(Validator):
 
-        for i in range(n):
-            if not util.is_float_object(objbuf[i]):
-                return False
-        return True
-    else:
-        return False
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyString_Check(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return (
+            PY2 and issubclass(self.dtype.type, np.string_)
+        ) or not PY2 and issubclass(self.dtype.type, np.unicode_)
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
-        object val
+        StringValidator validator = StringValidator(
+            len(values),
+            values.dtype,
+            skipna=skipna,
+        )
+    return validator.validate(values)
 
-    if ((PY2 and issubclass(values.dtype.type, np.string_)) or
-        not PY2 and issubclass(values.dtype.type, np.unicode_)):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class UnicodeValidator(Validator):
 
-        if skipna:
-            for i in range(n):
-                val = objbuf[i]
-                if not util._checknull(val) and not PyString_Check(val):
-                    return False
-        else:
-            for i in range(n):
-                val = objbuf[i]
-                if not PyString_Check(val):
-                    return False
-        return True
-    else:
-        return False
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyUnicode_Check(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.unicode_)
 
 
 cpdef bint is_unicode_array(ndarray values, bint skipna=False):
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
-        object val
+        UnicodeValidator validator = UnicodeValidator(
+            len(values),
+            values.dtype,
+            skipna=skipna,
+        )
+    return validator.validate(values)
 
-    if issubclass(values.dtype.type, np.unicode_):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class BytesValidator(Validator):
 
-        if skipna:
-            for i in range(n):
-                val = objbuf[i]
-                if not util._checknull(val) and not PyUnicode_Check(val):
-                    return False
-        else:
-            for i in range(n):
-                val = objbuf[i]
-                if not PyUnicode_Check(val):
-                    return False
-        return True
-    else:
-        return False
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyBytes_Check(value)
+
+    cdef bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.bytes_)
 
 
 cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] objbuf
-        object val
+        BytesValidator validator = BytesValidator(
+            len(values),
+            values.dtype,
+            skipna=skipna
+        )
+    return validator.validate(values)
 
-    if issubclass(values.dtype.type, np.bytes_):
-        return True
-    elif values.dtype == np.object_:
-        objbuf = values
 
-        if n == 0:
-            return False
+cdef class TemporalValidator(Validator):
 
-        if skipna:
-            for i in range(n):
-                val = objbuf[i]
-                if not util._checknull(val) and not PyBytes_Check(val):
-                    return False
-        else:
-            for i in range(n):
-                val = objbuf[i]
-                if not PyBytes_Check(val):
-                    return False
-        return True
-    else:
+    cdef Py_ssize_t generic_null_count
+
+    def __cinit__(self, Py_ssize_t n, object dtype=None, bint skipna=False):
+        self.n = n
+        self.dtype = dtype if dtype is not None else np.dtype(np.object_)
+        self.skipna = skipna
+        self.generic_null_count = 0
+
+    cdef bint is_valid(self, object value) except -1:
+        return self.is_value_typed(value) or self.is_valid_null(value)
+
+    cdef bint is_value_typed(self, object value) except -1:
+        raise NotImplementedError()
+
+    cdef bint is_valid_null(self, object value) except -1:
+        raise NotImplementedError()
+
+    cdef bint is_valid_skipna(self, object value) except -1:
+        cdef:
+            bint is_typed_null = self.is_valid_null(value)
+            bint is_generic_null = util._checknull(value)
+        self.generic_null_count += is_typed_null and is_generic_null
+        return self.is_value_typed(value) or is_typed_null or is_generic_null
+
+    cdef bint is_array_typed(self) except -1:
         return False
+
+    cdef bint finalize(self):
+        return self.generic_null_count != self.n
+
+
+cdef class DatetimeValidator(TemporalValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_datetime(value)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        return is_null_datetime64(value)
 
 
 cpdef bint is_datetime_array(ndarray[object] values):
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
-        return False
+    cdef:
+        DatetimeValidator validator = DatetimeValidator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
 
-    # return False for all nulls
-    for i in range(n):
-        v = values[i]
-        if is_null_datetime64(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not is_datetime(v):
-            return False
-    return null_count != n
+
+cdef class Datetime64Validator(DatetimeValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_datetime64_object(value)
 
 
 cpdef bint is_datetime64_array(ndarray values):
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
-        return False
-
-    # return False for all nulls
-    for i in range(n):
-        v = values[i]
-        if is_null_datetime64(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not util.is_datetime64_object(v):
-            return False
-    return null_count != n
+    cdef:
+        Datetime64Validator validator = Datetime64Validator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
 
 
 cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
@@ -843,130 +888,110 @@ cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
     return True
 
 
+cdef class TimedeltaValidator(TemporalValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyDelta_Check(value)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        return is_null_timedelta64(value)
+
+
 cpdef bint is_timedelta_array(ndarray values):
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
-        return False
-    for i in range(n):
-        v = values[i]
-        if is_null_timedelta64(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not PyDelta_Check(v):
-            return False
-    return null_count != n
+    cdef:
+        TimedeltaValidator validator = TimedeltaValidator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
+
+
+cdef class Timedelta64Validator(TimedeltaValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return util.is_timedelta64_object(value)
 
 
 cpdef bint is_timedelta64_array(ndarray values):
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
-        return False
-    for i in range(n):
-        v = values[i]
-        if is_null_timedelta64(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not util.is_timedelta64_object(v):
-            return False
-    return null_count != n
+    cdef:
+        Timedelta64Validator validator = Timedelta64Validator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
+
+
+cdef class AnyTimedeltaValidator(TimedeltaValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_timedelta(value)
 
 
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """ infer with timedeltas and/or nat/none """
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
+    cdef:
+        AnyTimedeltaValidator validator = AnyTimedeltaValidator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
+
+
+cdef class DateValidator(Validator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_date(value)
+
+    cdef bint is_array_typed(self) except -1:
         return False
-    for i in range(n):
-        v = values[i]
-        if is_null_timedelta64(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not is_timedelta(v):
-            return False
-    return null_count != n
 
 
 cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val
+    cdef DateValidator validator = DateValidator(len(values), skipna=skipna)
+    return validator.validate(values)
 
-    if n == 0:
+
+cdef class TimeValidator(Validator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_time(value)
+
+    cdef bint is_array_typed(self) except -1:
         return False
-
-    if skipna:
-        for i in range(n):
-            val = values[i]
-            if not util._checknull(val) and not is_date(val):
-                return False
-    else:
-        for i in range(n):
-            val = values[i]
-            if not is_date(val):
-                return False
-    return True
 
 
 cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val
+    cdef TimeValidator validator = TimeValidator(len(values), skipna=skipna)
+    return validator.validate(values)
 
-    if n == 0:
-        return False
 
-    if skipna:
-        for i in range(n):
-            val = values[i]
-            if not util._checknull(val) and not is_time(val):
-                return False
-    else:
-        for i in range(n):
-            val = values[i]
-            if not is_time(val):
-                return False
-    return True
+cdef class PeriodValidator(TemporalValidator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_period(value)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        return is_null_period(value)
 
 
 cpdef bint is_period_array(ndarray[object] values):
-    cdef Py_ssize_t i, null_count = 0, n = len(values)
-    cdef object v
-    if n == 0:
-        return False
+    cdef PeriodValidator validator = PeriodValidator(len(values), skipna=True)
+    return validator.validate(values)
 
-    # return False for all nulls
-    for i in range(n):
-        v = values[i]
-        if is_null_period(v):
-            # we are a regular null
-            if util._checknull(v):
-                null_count += 1
-        elif not is_period(v):
-            return False
-    return null_count != n
+
+cdef class IntervalValidator(Validator):
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return is_interval(value)
 
 
 cpdef bint is_interval_array(ndarray[object] values):
     cdef:
-        Py_ssize_t i, n = len(values), null_count = 0
-        object v
-
-    if n == 0:
-        return False
-    for i in range(n):
-        v = values[i]
-        if util._checknull(v):
-            null_count += 1
-            continue
-        if not is_interval(v):
-            return False
-    return null_count != n
+        IntervalValidator validator = IntervalValidator(
+            len(values),
+            skipna=True,
+        )
+    return validator.validate(values)
 
 
 cdef extern from "parse_helper.h":
