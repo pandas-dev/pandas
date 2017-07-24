@@ -566,7 +566,7 @@ cdef class TextReader:
         while self.buffer_lines * 2< heuristic:
             self.buffer_lines *= 2
 
-    def __init__(self, *args, **kwards):
+    def __init__(self, *args, **kwargs):
         pass
 
     def __dealloc__(self):
