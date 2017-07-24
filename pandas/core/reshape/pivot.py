@@ -526,10 +526,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
                            margins=margins, margins_name=margins_name,
                            dropna=dropna, **kwargs)
 
-    # GH 17013:
-    if values is None and margins:
-        table = table.fillna(0).astype(np.int64)
-
     # Post-process
     if normalize is not False:
         table = _normalize(table, normalize=normalize, margins=margins,
