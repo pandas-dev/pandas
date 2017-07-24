@@ -3205,6 +3205,22 @@ it is assumed to be aliases for the column names')
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return super(DataFrame, self).isna()
+
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def isnull(self):
+        return super(DataFrame, self).isnull()
+
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def notna(self):
+        return super(DataFrame, self).notna()
+
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    def notnull(self):
+        return super(DataFrame, self).notnull()
+
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
         """

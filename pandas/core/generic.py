@@ -4538,13 +4538,18 @@ it is assumed to be aliases for the column names.')
 
         See Also
         --------
-        notna : boolean inverse of isna
+        %(klass)s.notna : boolean inverse of isna
+        %(klass)s.isnull : alias of isna
+        isna : top-level isna
         """
 
-    @Appender(_shared_docs['isna'])
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         return isna(self).__finalize__(self)
-    isnull = isna
+
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def isnull(self):
+        return isna(self).__finalize__(self)
 
     _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
@@ -4552,13 +4557,18 @@ it is assumed to be aliases for the column names.')
 
         See Also
         --------
-        isna : boolean inverse of notna
+        %(klass)s.isna : boolean inverse of notna
+        %(klass)s.notnull : alias of notna
+        notna : top-level notna
         """
 
-    @Appender(_shared_docs['notna'])
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return notna(self).__finalize__(self)
-    notnull = notna
+
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    def notnull(self):
+        return notna(self).__finalize__(self)
 
     def _clip_with_scalar(self, lower, upper, inplace=False):
         if ((lower is not None and np.any(isna(lower))) or

@@ -1165,7 +1165,8 @@ class Categorical(PandasObject):
 
         See also
         --------
-        isna : pandas version
+        isna : top-level isna
+        isnull : alias of isna
         Categorical.notna : boolean inverse of Categorical.isna
 
         """
@@ -1183,7 +1184,7 @@ class Categorical(PandasObject):
 
     def notna(self):
         """
-        Reverse of isna
+        Inverse of isna
 
         Both missing values (-1 in .codes) and NA as a category are detected as
         null.
@@ -1194,7 +1195,8 @@ class Categorical(PandasObject):
 
         See also
         --------
-        notna : pandas version
+        notna : top-level notna
+        notnull : alias of notna
         Categorical.isna : boolean inverse of Categorical.notna
 
         """

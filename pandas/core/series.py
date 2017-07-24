@@ -2784,6 +2784,22 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     merge_cells=merge_cells, encoding=encoding,
                     inf_rep=inf_rep, verbose=verbose)
 
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return super(Series, self).isna()
+
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isnull(self):
+        return super(Series, self).isnull()
+
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def notna(self):
+        return super(Series, self).notna()
+
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    def notnull(self):
+        return super(Series, self).notnull()
+
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
         Return Series without null values

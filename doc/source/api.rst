@@ -188,7 +188,9 @@ Top-level missing data
    :toctree: generated/
 
    isna
+   isnull
    notna
+   notnull
 
 Top-level conversions
 ~~~~~~~~~~~~~~~~~~~~~

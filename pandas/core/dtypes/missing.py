@@ -40,6 +40,7 @@ def isna(obj):
     See also
     --------
     pandas.notna: boolean inverse of pandas.isna
+    pandas.isnull: alias of isna
     """
     return _isna(obj)
 
@@ -206,6 +207,7 @@ def notna(obj):
     See also
     --------
     pandas.isna : boolean inverse of pandas.notna
+    pandas.notnull : alias of notna
     """
     res = isna(obj)
     if is_scalar(res):

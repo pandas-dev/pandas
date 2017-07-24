@@ -1856,14 +1856,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         See also
         --------
-        pandas.isna : pandas version
+        isnull : alias of isna
+        pandas.isna : top-level isna
         """
         return self._isnan
     isnull = isna
 
     def notna(self):
         """
-        Reverse of isna
+        Inverse of isna
 
         .. versionadded:: 0.20.0
 
@@ -1873,7 +1874,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         See also
         --------
-        pandas.notna : pandas version
+        notnull : alias of notna
+        pandas.notna : top-level notna
         """
         return ~self.isna()
     notnull = notna
