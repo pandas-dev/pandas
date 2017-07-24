@@ -196,14 +196,14 @@ int parser_init(parser_t *self) {
     sz = STREAM_INIT_SIZE / 10;
     sz = sz ? sz : 1;
     self->words = (char **)malloc(sz * sizeof(char *));
-    self->word_starts = (size_t *)malloc(sz * sizeof(size_t));
+    self->word_starts = (int64_t *)malloc(sz * sizeof(int64_t));
     self->words_cap = sz;
     self->words_len = 0;
 
     // line pointers and metadata
-    self->line_start = (size_t *)malloc(sz * sizeof(size_t));
+    self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
 
-    self->line_fields = (size_t *)malloc(sz * sizeof(size_t));
+    self->line_fields = (int64_t *)malloc(sz * sizeof(int64_t));
 
     self->lines_cap = sz;
     self->lines = 0;
@@ -247,7 +247,7 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    size_t i, cap;
+    int64_t i, cap;
     int status;
     void *orig_ptr, *newptr;
 
@@ -419,7 +419,7 @@ static void append_warning(parser_t *self, const char *msg) {
 
 static int end_line(parser_t *self) {
     char *msg;
-    int fields;
+    int64_t fields;
     int ex_fields = self->expected_fields;
     size_t bufsize = 100;  // for error or warning messages
 
@@ -468,8 +468,8 @@ static int end_line(parser_t *self) {
         if (self->error_bad_lines) {
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "Expected %d fields in line %d, saw %d\n",
-                    ex_fields, self->file_lines, fields);
+                    "Expected %d fields in line %lld, saw %lld\n",
+                    ex_fields, (long long)self->file_lines, (long long)fields);
 
             TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
 
@@ -480,8 +480,8 @@ static int end_line(parser_t *self) {
                 // pass up error message
                 msg = (char *)malloc(bufsize);
                 snprintf(msg, bufsize,
-                        "Skipping line %d: expected %d fields, saw %d\n",
-                         self->file_lines, ex_fields, fields);
+                        "Skipping line %lld: expected %d fields, saw %lld\n",
+                         (long long)self->file_lines, ex_fields, (long long)fields);
                 append_warning(self, msg);
                 free(msg);
             }
@@ -632,7 +632,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (size_t)line_limit) {  \
+    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -647,7 +647,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + (size_t)line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int64_t)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -1147,7 +1147,7 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at line %d", self->file_lines);
+                    "EOF inside string starting at line %lld", (long long)self->file_lines);
             return -1;
 
         case ESCAPED_CHAR:
@@ -1318,7 +1318,7 @@ void debug_print_parser(parser_t *self) {
     char *token;
 
     for (line = 0; line < self->lines; ++line) {
-        printf("(Parsed) Line %d: ", line);
+        printf("(Parsed) Line %lld: ", (long long)line);
 
         for (j = 0; j < self->line_fields[j]; ++j) {
             token = self->words[j + self->line_start[line]];
