@@ -19,6 +19,7 @@ from .converters import ConverterTests
 from .c_parser_only import CParserTests
 from .parse_dates import ParseDatesTests
 from .compression import CompressionTests
+from .mangle_dupes import DupeColumnTests
 from .multithread import MultithreadTests
 from .python_parser_only import PythonParserTests
 from .dtypes import DtypeTests
@@ -26,11 +27,12 @@ from .dtypes import DtypeTests
 
 class BaseParser(CommentTests, CompressionTests,
                  ConverterTests, DialectTests,
+                 DtypeTests, DupeColumnTests,
                  HeaderTests, IndexColTests,
                  MultithreadTests, NAvaluesTests,
                  ParseDatesTests, ParserTests,
                  SkipRowsTests, UsecolsTests,
-                 QuotingTests, DtypeTests):
+                 QuotingTests):
 
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
