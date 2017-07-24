@@ -908,3 +908,62 @@ class TestIntervalIndex(object):
         df = df.set_index('B')
 
         df = df.reset_index()
+
+    def test_set_axis_inplace(self):
+        # GH14636
+        df = DataFrame({'A': [1.1, 2.2, 3.3],
+                        'B': [5.0, 6.1, 7.2],
+                        'C': [4.4, 5.5, 6.6]},
+                       index=[2010, 2011, 2012])
+
+        expected = {0: df.copy(),
+                    1: df.copy()}
+        expected[0].index = list('abc')
+        expected[1].columns = list('abc')
+        expected['index'] = expected[0]
+        expected['columns'] = expected[1]
+
+        for axis in expected:
+            # inplace=True
+            # The FutureWarning comes from the fact that we would like to have
+            # inplace default to False some day
+            for inplace, warn in (None, FutureWarning), (True, None):
+                kwargs = {'inplace': inplace}
+
+                result = df.copy()
+                with tm.assert_produces_warning(warn):
+                    result.set_axis(list('abc'), axis=axis, **kwargs)
+                tm.assert_frame_equal(result, expected[axis])
+
+            # inplace=False
+            result = df.set_axis(list('abc'), axis=axis, inplace=False)
+            tm.assert_frame_equal(expected[axis], result)
+
+        # omitting the "axis" parameter
+        with tm.assert_produces_warning(None):
+            result = df.set_axis(list('abc'), inplace=False)
+        tm.assert_frame_equal(result, expected[0])
+
+        # wrong values for the "axis" parameter
+        for axis in 3, 'foo':
+            with tm.assert_raises_regex(ValueError, 'No axis named'):
+                df.set_axis(list('abc'), axis=axis, inplace=False)
+
+    def test_set_axis_prior_to_deprecation_signature(self):
+        df = DataFrame({'A': [1.1, 2.2, 3.3],
+                        'B': [5.0, 6.1, 7.2],
+                        'C': [4.4, 5.5, 6.6]},
+                       index=[2010, 2011, 2012])
+
+        expected = {0: df.copy(),
+                    1: df.copy()}
+        expected[0].index = list('abc')
+        expected[1].columns = list('abc')
+        expected['index'] = expected[0]
+        expected['columns'] = expected[1]
+
+        # old signature
+        for axis in expected:
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.set_axis(axis, list('abc'), inplace=False)
+            tm.assert_frame_equal(result, expected[axis])

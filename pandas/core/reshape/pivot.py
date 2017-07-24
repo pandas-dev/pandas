@@ -312,8 +312,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(
-                        cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(piece._get_axis(
+                                   cat_axis)._to_safe_for_reshape(),
+                                   axis=cat_axis, inplace=True)
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)

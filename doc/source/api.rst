@@ -410,6 +410,7 @@ Reindexing / Selection / Label manipulation
    Series.reset_index
    Series.sample
    Series.select
+   Series.set_axis
    Series.take
    Series.tail
    Series.truncate

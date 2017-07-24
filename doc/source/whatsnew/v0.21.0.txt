@@ -67,6 +67,7 @@ Other Enhancements
 - :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 - :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
 - :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`Series.set_axis` and :func:`DataFrame.set_axis` now support the ``inplace`` parameter. (:issue:`14636`)
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
@@ -202,6 +203,7 @@ Other API Changes
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
+- The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is still supported and causes a ``FutureWarning`` to be emitted (:issue:`14636`)
 
 
 .. _whatsnew_0210.deprecations:
