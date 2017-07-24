@@ -1,4 +1,6 @@
 # pylint: disable-msg=E1101,W0613,W0603
+from itertools import islice
+from pandas import concat
 import os
 import numpy as np
 
@@ -175,7 +177,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False):
+              lines=False, chunksize=None):
     """
     Convert a JSON string to pandas object
 
@@ -264,6 +266,14 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
+    chunksize: integer, default None
+        If `lines=True`, how many lines to read into memory at a time.
+        If this is None, the file will be read into memory all at once.
+        Passing a chunksize helps with memory usage, but is slower.
+        Also note this is different from the `chunksize` parameter in
+            `read_csv`, which returns a FileTextReader.
+        If the JSON input is a string, this argument has no effect.
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
@@ -323,6 +333,27 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
+
+    def _read_json_as_lines(fh, chunksize):
+        return_val = None
+        while True:
+            lines = list(islice(fh, chunksize))
+
+            if lines:
+                lines_json = '[' + ','.join(lines) + ']'
+                obj = _get_obj(typ, lines_json, orient, dtype, convert_axes,
+                               convert_dates, keep_default_dates, numpy,
+                               precise_float, date_unit)
+                if not return_val:
+                    obj = return_val
+                else:
+                    return_val = concat([return_val, obj])
+
+            else:
+                break
+        fh.close()
+        return return_val
+
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)
@@ -335,12 +366,18 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         if exists:
             fh, handles = _get_handle(filepath_or_buffer, 'r',
                                       encoding=encoding)
-            json = fh.read()
-            fh.close()
+            if lines and chunksize:
+                return _read_json_as_lines(fh, chunksize)
+            else:
+                json = fh.read()
+                fh.close()
         else:
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
-        json = filepath_or_buffer.read()
+        if lines and chunksize:
+            return _read_json_as_lines(fh, chunksize)
+        else:
+            json = filepath_or_buffer.read()
     else:
         json = filepath_or_buffer
 
@@ -350,6 +387,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         lines = list(StringIO(json.strip()))
         json = '[' + ','.join(lines) + ']'
 
+    return _get_obj(typ, json, orient, dtype, convert_axes, convert_dates,
+                    keep_default_dates, numpy, precise_float, date_unit)
+
+
+def _get_obj(typ, json, orient, dtype, convert_axes, convert_dates,
+             keep_default_dates, numpy, precise_float,
+             date_unit):
     obj = None
     if typ == 'frame':
         obj = FrameParser(json, orient, dtype, convert_axes, convert_dates,
