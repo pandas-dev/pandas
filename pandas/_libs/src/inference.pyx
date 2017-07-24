@@ -1,6 +1,7 @@
 import sys
 from decimal import Decimal
 cimport util
+cimport cython
 from tslib import NaT, get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
@@ -623,6 +624,8 @@ cdef class Validator:
         else:
             return False
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cdef bint _validate(self, object[:] values):
         cdef:
             Py_ssize_t i
@@ -631,8 +634,11 @@ cdef class Validator:
         for i in range(n):
             if not self.is_valid(values[i]):
                 return False
+
         return self.finalize()
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cdef bint _validate_skipna(self, object[:] values):
         cdef:
             Py_ssize_t i
@@ -641,6 +647,7 @@ cdef class Validator:
         for i in range(n):
             if not self.is_valid_skipna(values[i]):
                 return False
+
         return self.finalize()
 
     cdef bint is_valid(self, object value) except -1:
