@@ -222,7 +222,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(object value):
+def infer_dtype(object value, bint skipna=False):
     """
     Effeciently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -230,6 +230,8 @@ def infer_dtype(object value):
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
+    skipna : bool, default False
+        Ignore NaN values when inferring the type.
 
     Returns
     -------
@@ -272,6 +274,9 @@ def infer_dtype(object value):
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
+    >>> infer_dtype(['a', np.nan, 'b'], skipna=True)
+    'string'
+
     >>> infer_dtype([b'foo', b'bar'])
     'bytes'
 
@@ -310,7 +315,6 @@ def infer_dtype(object value):
 
     >>> infer_dtype(pd.Series(list('aabc')).astype('category'))
     'categorical'
-
     """
     cdef:
         Py_ssize_t i, n
@@ -356,7 +360,7 @@ def infer_dtype(object value):
     values = values.ravel()
 
     # try to use a valid value
-    for i from 0 <= i < n:
+    for i in range(n):
         val = util.get_value_1d(values, i)
 
         # do not use is_nul_datetimelike to keep
@@ -403,11 +407,11 @@ def infer_dtype(object value):
             return 'datetime'
 
     elif is_date(val):
-        if is_date_array(values):
+        if is_date_array(values, skipna=skipna):
             return 'date'
 
     elif is_time(val):
-        if is_time_array(values):
+        if is_time_array(values, skipna=skipna):
             return 'time'
 
     elif is_decimal(val):
@@ -420,19 +424,19 @@ def infer_dtype(object value):
             return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
-        if is_bool_array(values):
+        if is_bool_array(values, skipna=skipna):
             return 'boolean'
 
     elif PyString_Check(val):
-        if is_string_array(values):
+        if is_string_array(values, skipna=skipna):
             return 'string'
 
     elif PyUnicode_Check(val):
-        if is_unicode_array(values):
+        if is_unicode_array(values, skipna=skipna):
             return 'unicode'
 
     elif PyBytes_Check(val):
-        if is_bytes_array(values):
+        if is_bytes_array(values, skipna=skipna):
             return 'bytes'
 
     elif is_period(val):
@@ -593,10 +597,11 @@ cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 
-cpdef bint is_bool_array(ndarray values):
+cpdef bint is_bool_array(ndarray values, bint skipna=False):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
+        object val
 
     if issubclass(values.dtype.type, np.bool_):
         return True
@@ -606,9 +611,16 @@ cpdef bint is_bool_array(ndarray values):
         if n == 0:
             return False
 
-        for i in range(n):
-            if not util.is_bool_object(objbuf[i]):
-                return False
+        if skipna:
+            for i in range(n):
+                val = objbuf[i]
+                if not util._checknull(val) and not util.is_bool_object(val):
+                    return False
+        else:
+            for i in range(n):
+                val = objbuf[i]
+                if not util.is_bool_object(val):
+                    return False
         return True
     else:
         return False
@@ -639,6 +651,7 @@ cpdef bint is_integer_float_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
+        object value
 
     if issubclass(values.dtype.type, np.integer):
         return True
@@ -649,9 +662,8 @@ cpdef bint is_integer_float_array(ndarray values):
             return False
 
         for i in range(n):
-            if not (util.is_integer_object(objbuf[i]) or
-                    util.is_float_object(objbuf[i])):
-
+            val = objbuf[i]
+            if not (util.is_integer_object(val) or util.is_float_object(val)):
                 return False
         return True
     else:
@@ -679,10 +691,11 @@ cpdef bint is_float_array(ndarray values):
         return False
 
 
-cpdef bint is_string_array(ndarray values):
+cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
+        object val
 
     if ((PY2 and issubclass(values.dtype.type, np.string_)) or
         not PY2 and issubclass(values.dtype.type, np.unicode_)):
@@ -693,18 +706,26 @@ cpdef bint is_string_array(ndarray values):
         if n == 0:
             return False
 
-        for i in range(n):
-            if not PyString_Check(objbuf[i]):
-                return False
+        if skipna:
+            for i in range(n):
+                val = objbuf[i]
+                if not util._checknull(val) and not PyString_Check(val):
+                    return False
+        else:
+            for i in range(n):
+                val = objbuf[i]
+                if not PyString_Check(val):
+                    return False
         return True
     else:
         return False
 
 
-cpdef bint is_unicode_array(ndarray values):
+cpdef bint is_unicode_array(ndarray values, bint skipna=False):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
+        object val
 
     if issubclass(values.dtype.type, np.unicode_):
         return True
@@ -714,18 +735,26 @@ cpdef bint is_unicode_array(ndarray values):
         if n == 0:
             return False
 
-        for i in range(n):
-            if not PyUnicode_Check(objbuf[i]):
-                return False
+        if skipna:
+            for i in range(n):
+                val = objbuf[i]
+                if not util._checknull(val) and not PyUnicode_Check(val):
+                    return False
+        else:
+            for i in range(n):
+                val = objbuf[i]
+                if not PyUnicode_Check(val):
+                    return False
         return True
     else:
         return False
 
 
-cpdef bint is_bytes_array(ndarray values):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] objbuf
+        object val
 
     if issubclass(values.dtype.type, np.bytes_):
         return True
@@ -735,9 +764,16 @@ cpdef bint is_bytes_array(ndarray values):
         if n == 0:
             return False
 
-        for i in range(n):
-            if not PyBytes_Check(objbuf[i]):
-                return False
+        if skipna:
+            for i in range(n):
+                val = objbuf[i]
+                if not util._checknull(val) and not PyBytes_Check(val):
+                    return False
+        else:
+            for i in range(n):
+                val = objbuf[i]
+                if not PyBytes_Check(val):
+                    return False
         return True
     else:
         return False
@@ -856,23 +892,45 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     return null_count != n
 
 
-cpdef bint is_date_array(ndarray[object] values):
-    cdef Py_ssize_t i, n = len(values)
+cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
     if n == 0:
         return False
-    for i in range(n):
-        if not is_date(values[i]):
-            return False
+
+    if skipna:
+        for i in range(n):
+            val = values[i]
+            if not util._checknull(val) and not is_date(val):
+                return False
+    else:
+        for i in range(n):
+            val = values[i]
+            if not is_date(val):
+                return False
     return True
 
 
-cpdef bint is_time_array(ndarray[object] values):
-    cdef Py_ssize_t i, n = len(values)
+cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
     if n == 0:
         return False
-    for i in range(n):
-        if not is_time(values[i]):
-            return False
+
+    if skipna:
+        for i in range(n):
+            val = values[i]
+            if not util._checknull(val) and not is_time(val):
+                return False
+    else:
+        for i in range(n):
+            val = values[i]
+            if not is_time(val):
+                return False
     return True
 
 
