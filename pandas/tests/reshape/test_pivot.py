@@ -267,7 +267,7 @@ class TestPivotTable(object):
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
         pv = df.pivot('a', 'b', 'c')
-        assert pv.notnull().values.sum() == len(df)
+        assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row['a'], row['b']] == row['c']

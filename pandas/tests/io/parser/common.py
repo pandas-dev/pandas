@@ -704,7 +704,7 @@ bar"""
 1,3,3,
 1,4,5"""
         result = self.read_csv(StringIO(data))
-        assert result['D'].isnull()[1:].all()
+        assert result['D'].isna()[1:].all()
 
     def test_skipinitialspace(self):
         s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -718,7 +718,7 @@ bar"""
         # it's 33 columns
         result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
-        assert pd.isnull(result.iloc[0, 29])
+        assert pd.isna(result.iloc[0, 29])
 
     def test_utf16_bom_skiprows(self):
         # #2298

@@ -11,7 +11,7 @@ import pandas as pd
 
 from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.missing import remove_na_arraylike
-from pandas import (Series, DataFrame, Index, date_range, isnull, notnull,
+from pandas import (Series, DataFrame, Index, date_range, isna, notna,
                     pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
@@ -79,7 +79,7 @@ class SafeForLongAndSparse(object):
         tm.equalContents(list(self.panel), self.panel.items)
 
     def test_count(self):
-        f = lambda s: notnull(s).sum()
+        f = lambda s: notna(s).sum()
         self._check_stat_op('count', f, obj=self.panel, has_skipna=False)
 
     def test_sum(self):
@@ -93,7 +93,7 @@ class SafeForLongAndSparse(object):
 
     def test_median(self):
         def wrapper(x):
-            if isnull(x).any():
+            if isna(x).any():
                 return np.nan
             return np.median(x)
 
@@ -540,12 +540,12 @@ class CheckIndexing(object):
             df2 = DataFrame([1.0, np.nan, 1.0, np.nan, 1.0, 1.0])
             panel = Panel({'Item1': df1, 'Item2': df2})
 
-            newminor = notnull(panel.iloc[:, :, 0])
+            newminor = notna(panel.iloc[:, :, 0])
             panel.loc[:, :, 'NewMinor'] = newminor
             assert_frame_equal(panel.loc[:, :, 'NewMinor'],
                                newminor.astype(object))
 
-            newmajor = notnull(panel.iloc[:, 0, :])
+            newmajor = notna(panel.iloc[:, 0, :])
             panel.loc[:, 'NewMajor', :] = newmajor
             assert_frame_equal(panel.loc[:, 'NewMajor', :],
                                newmajor.astype(object))
@@ -1694,7 +1694,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(result, expected)
 
             panel.values[0, 1, 1] = np.nan
-            assert notnull(result.values[1, 0, 1])
+            assert notna(result.values[1, 0, 1])
 
     def test_to_frame(self):
         with catch_warnings(record=True):
@@ -1863,7 +1863,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                                   [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
 
             panel = df.to_panel()
-            assert isnull(panel[0].loc[1, [0, 1]]).all()
+            assert isna(panel[0].loc[1, [0, 1]]).all()
 
     def test_to_panel_duplicates(self):
         # #2441

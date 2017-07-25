@@ -33,7 +33,7 @@ from datetime import datetime, date, time
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype)
-from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
+from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
@@ -1530,7 +1530,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypea, sqlalchemy.TEXT)
         assert isinstance(sqltypeb, sqlalchemy.TEXT)
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
                 'Int': Series([1, None], dtype='object'),
@@ -1538,7 +1538,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
         returned_df = sql.read_sql_table(tbl, self.conn)  # noqa
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
@@ -2005,7 +2005,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         assert self._get_sqlite_column_type(
             'single_dtype_test', 'B') == 'STRING'
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
 
@@ -2016,7 +2016,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
 
         assert self._get_sqlite_column_type(tbl, 'Bool') == 'INTEGER'
@@ -2069,7 +2069,7 @@ def format_query(sql, *args):
     """
     processed_args = []
     for arg in args:
-        if isinstance(arg, float) and isnull(arg):
+        if isinstance(arg, float) and isna(arg):
             arg = None
 
         formatter = _formatters[type(arg)]

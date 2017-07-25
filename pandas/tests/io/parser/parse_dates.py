@@ -461,7 +461,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = "Date, test\n2012-01-01, 1\n,2"
         result = self.read_csv(StringIO(data), parse_dates=["Date"],
                                na_filter=False)
-        assert result['Date'].isnull()[1]
+        assert result['Date'].isna()[1]
 
     def test_parse_dates_noconvert_thousands(self):
         # see gh-14066

@@ -13,7 +13,7 @@ import pandas as pd
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
-from pandas import (Index, Series, isnull, date_range,
+from pandas import (Index, Series, isna, date_range,
                     NaT, period_range, MultiIndex, IntervalIndex)
 from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
 
@@ -348,22 +348,22 @@ class TestSeriesConstructors(TestData):
     def test_constructor_dtype_datetime64(self):
 
         s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
-        assert isnull(s).all()
+        assert isna(s).all()
 
         # in theory this should be all nulls, but since
         # we are not specifying a dtype is ambiguous
         s = Series(iNaT, index=lrange(5))
-        assert not isnull(s).all()
+        assert not isna(s).all()
 
         s = Series(nan, dtype='M8[ns]', index=lrange(5))
-        assert isnull(s).all()
+        assert isna(s).all()
 
         s = Series([datetime(2001, 1, 2, 0, 0), iNaT], dtype='M8[ns]')
-        assert isnull(s[1])
+        assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
         s = Series([datetime(2001, 1, 2, 0, 0), nan], dtype='M8[ns]')
-        assert isnull(s[1])
+        assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
         # GH3416
@@ -760,10 +760,10 @@ class TestSeriesConstructors(TestData):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         val = series[3]
-        assert isnull(val)
+        assert isna(val)
 
         series[2] = val
-        assert isnull(series[2])
+        assert isna(series[2])
 
     def test_NaT_cast(self):
         # GH10747

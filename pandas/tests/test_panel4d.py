@@ -6,9 +6,9 @@ import pytest
 from warnings import catch_warnings
 import numpy as np
 
+from pandas import Series, Index, isna, notna
 from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.missing import remove_na_arraylike
-from pandas import Series, Index, isnull, notnull
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.tseries.offsets import BDay
@@ -33,7 +33,7 @@ class SafeForLongAndSparse(object):
         tm.equalContents(list(self.panel4d), self.panel4d.labels)
 
     def test_count(self):
-        f = lambda s: notnull(s).sum()
+        f = lambda s: notna(s).sum()
         self._check_stat_op('count', f, obj=self.panel4d, has_skipna=False)
 
     def test_sum(self):
@@ -47,7 +47,7 @@ class SafeForLongAndSparse(object):
 
     def test_median(self):
         def wrapper(x):
-            if isnull(x).any():
+            if isna(x).any():
                 return np.nan
             return np.median(x)
 

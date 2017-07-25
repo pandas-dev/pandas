@@ -3,8 +3,8 @@
 import pytest
 
 import numpy as np
-from pandas import (offsets, Series, notnull,
-                    isnull, date_range, Timestamp)
+from pandas import (offsets, Series, notna,
+                    isna, date_range, Timestamp)
 
 import pandas.util.testing as tm
 
@@ -23,12 +23,12 @@ class TestSeriesAsof(TestData):
         dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = ts.asof(dates)
-        assert notnull(result).all()
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        assert notnull(result).all()
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
@@ -98,12 +98,12 @@ class TestSeriesAsof(TestData):
         dates = date_range('1/1/1990', periods=N * 3, freq='37min')
 
         result = ts.asof(dates)
-        assert notnull(result).all()
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        assert notnull(result).all()
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
@@ -130,7 +130,7 @@ class TestSeriesAsof(TestData):
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
-        assert isnull(ts.asof(d))
+        assert isna(ts.asof(d))
 
     def test_errors(self):
 
@@ -170,7 +170,7 @@ class TestSeriesAsof(TestData):
         # testing scalar input
         date = date_range('1/1/1990', periods=N * 3, freq='25s')[0]
         result = Series(np.nan, index=rng).asof(date)
-        assert isnull(result)
+        assert isna(result)
 
         # test name is propagated
         result = Series(np.nan, index=[1, 2, 3, 4], name='test').asof([4, 5])

@@ -305,9 +305,9 @@ class TestMerge(object):
         out = DataFrame(vals, columns=list('ABCDEFG') + ['left', 'right'])
         out = align(out)
 
-        jmask = {'left': out['left'].notnull(),
-                 'right': out['right'].notnull(),
-                 'inner': out['left'].notnull() & out['right'].notnull(),
+        jmask = {'left': out['left'].notna(),
+                 'right': out['right'].notna(),
+                 'inner': out['left'].notna() & out['right'].notna(),
                  'outer': np.ones(len(out), dtype='bool')}
 
         for how in 'left', 'right', 'outer', 'inner':

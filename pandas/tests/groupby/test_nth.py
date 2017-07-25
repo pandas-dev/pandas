@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Index, Series, isnull
+from pandas import DataFrame, MultiIndex, Index, Series, isna
 from pandas.compat import lrange
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -41,9 +41,9 @@ class TestNth(MixIn):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        assert isnull(grouped['B'].first()['foo'])
-        assert isnull(grouped['B'].last()['foo'])
-        assert isnull(grouped['B'].nth(0)['foo'])
+        assert isna(grouped['B'].first()['foo'])
+        assert isna(grouped['B'].last()['foo'])
+        assert isna(grouped['B'].nth(0)['foo'])
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])

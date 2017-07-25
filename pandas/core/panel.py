@@ -13,7 +13,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_integer, is_list_like,
     is_string_like, is_scalar)
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 
 import pandas.core.computation.expressions as expressions
 import pandas.core.common as com
@@ -685,7 +685,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
 
         values = self.values
-        mask = notnull(values)
+        mask = notna(values)
 
         for ax in reversed(sorted(set(range(self._AXIS_LEN)) - set([axis]))):
             mask = mask.sum(ax)
@@ -907,7 +907,7 @@ class Panel(NDFrame):
 
         if filter_observations:
             # shaped like the return DataFrame
-            mask = notnull(self.values).all(axis=0)
+            mask = notna(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
         else:

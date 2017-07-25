@@ -9,7 +9,7 @@ from datetime import datetime
 import warnings
 import numpy as np
 
-from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
+from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
 import pandas as pd
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -278,7 +278,7 @@ class TestDataFrameApply(TestData):
             return row
 
         def transform2(row):
-            if (notnull(row['C']) and row['C'].startswith('shin') and
+            if (notna(row['C']) and row['C'].startswith('shin') and
                     row['A'] == 'foo'):
                 row['D'] = 7
             return row

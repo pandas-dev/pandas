@@ -638,8 +638,8 @@ class TestTimedeltas(object):
         s[1] = np.nan
 
         result = s.dt.components
-        assert not result.iloc[0].isnull().all()
-        assert result.iloc[1].isnull().all()
+        assert not result.iloc[0].isna().all()
+        assert result.iloc[1].isna().all()
 
     def test_isoformat(self):
         td = Timedelta(days=6, minutes=50, seconds=3,

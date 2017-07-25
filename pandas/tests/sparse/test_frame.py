@@ -1105,12 +1105,12 @@ class TestSparseDataFrame(SharedWithSparse):
         nan_colname_sparse = nan_colname.to_sparse()
         assert np.isnan(nan_colname_sparse.columns[0])
 
-    def test_isnull(self):
+    def test_isna(self):
         # GH 8276
         df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
                                  'B': [0, np.nan, np.nan, 2, np.nan]})
 
-        res = df.isnull()
+        res = df.isna()
         exp = pd.SparseDataFrame({'A': [True, True, False, False, True],
                                   'B': [False, True, True, False, True]},
                                  default_fill_value=True)
@@ -1121,18 +1121,18 @@ class TestSparseDataFrame(SharedWithSparse):
         df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
-        res = df.isnull()
+        res = df.isna()
         assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [False, False, False, False, True],
                             'B': [False, True, False, False, True]})
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    def test_isnotnull(self):
+    def test_notna(self):
         # GH 8276
         df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
                                  'B': [0, np.nan, np.nan, 2, np.nan]})
 
-        res = df.isnotnull()
+        res = df.notna()
         exp = pd.SparseDataFrame({'A': [False, False, True, True, False],
                                   'B': [True, False, False, True, False]},
                                  default_fill_value=False)
@@ -1143,7 +1143,7 @@ class TestSparseDataFrame(SharedWithSparse):
         df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
-        res = df.isnotnull()
+        res = df.notna()
         assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [True, True, True, True, False],
                             'B': [True, False, True, True, False]})

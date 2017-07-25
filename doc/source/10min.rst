@@ -373,7 +373,7 @@ To get the boolean mask where values are ``nan``
 
 .. ipython:: python
 
-   pd.isnull(df1)
+   pd.isna(df1)
 
 
 Operations

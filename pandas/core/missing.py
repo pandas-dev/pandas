@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 
 def mask_missing(arr, values_to_mask):
@@ -36,7 +36,7 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
-    na_mask = isnull(values_to_mask)
+    na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
     mask = None
@@ -63,9 +63,9 @@ def mask_missing(arr, values_to_mask):
 
     if na_mask.any():
         if mask is None:
-            mask = isnull(arr)
+            mask = isna(arr)
         else:
-            mask |= isnull(arr)
+            mask |= isna(arr)
 
     return mask
 
@@ -122,7 +122,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     """
     # Treat the original, non-scipy methods first.
 
-    invalid = isnull(yvalues)
+    invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -479,7 +479,7 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
     return values
@@ -503,7 +503,7 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
@@ -528,7 +528,7 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -557,7 +557,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):

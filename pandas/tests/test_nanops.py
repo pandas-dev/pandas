@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import Series, isnull, _np_version_under1p9
+from pandas import Series, isna, _np_version_under1p9
 from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -408,7 +408,7 @@ class TestnanopsDataFrame(object):
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
         nans = np.min(value, axis)
-        nullnan = isnull(nans)
+        nullnan = isna(nans)
         if res.ndim:
             res[nullnan] = -1
         elif (hasattr(nullnan, 'all') and nullnan.all() or

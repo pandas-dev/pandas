@@ -202,7 +202,7 @@ For many reasons we chose the latter. After years of production use it has
 proven, at least in my opinion, to be the best decision given the state of
 affairs in NumPy and Python in general. The special value ``NaN``
 (Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions ``isnull`` and ``notnull`` which can be used across the dtypes to
+functions ``isna`` and ``notna`` which can be used across the dtypes to
 detect NA values.
 
 However, it comes with it a couple of trade-offs which I most certainly have

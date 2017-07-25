@@ -175,7 +175,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         if dropna:
-            data = data[data.notnull().all(axis=1)]
+            data = data[data.notna().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
                              margins_name=margins_name)

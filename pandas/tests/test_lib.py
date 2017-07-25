@@ -201,20 +201,20 @@ class TestIndexing(object):
         assert np.array_equal(result, expected)
 
 
-class TestNullObj(object):
+class TestNAObj(object):
 
-    _1d_methods = ['isnullobj', 'isnullobj_old']
-    _2d_methods = ['isnullobj2d', 'isnullobj2d_old']
+    _1d_methods = ['isnaobj', 'isnaobj_old']
+    _2d_methods = ['isnaobj2d', 'isnaobj2d_old']
 
     def _check_behavior(self, arr, expected):
-        for method in TestNullObj._1d_methods:
+        for method in TestNAObj._1d_methods:
             result = getattr(lib, method)(arr)
             tm.assert_numpy_array_equal(result, expected)
 
         arr = np.atleast_2d(arr)
         expected = np.atleast_2d(expected)
 
-        for method in TestNullObj._2d_methods:
+        for method in TestNAObj._2d_methods:
             result = getattr(lib, method)(arr)
             tm.assert_numpy_array_equal(result, expected)
 
@@ -237,7 +237,7 @@ class TestNullObj(object):
         self._check_behavior(arr, expected)
 
     def test_empty_str_inp(self):
-        arr = np.array([""])  # empty but not null
+        arr = np.array([""])  # empty but not na
         expected = np.array([False])
 
         self._check_behavior(arr, expected)

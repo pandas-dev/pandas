@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
-from pandas import (Series, Index, isnull,
+from pandas import (Series, Index, isna,
                     to_datetime, DatetimeIndex, Timestamp,
                     Interval, IntervalIndex, Categorical,
                     cut, qcut, date_range)
@@ -140,12 +140,12 @@ class TestCut(object):
 
         result_arr = np.asarray(result)
 
-        ex_arr = np.where(isnull(arr), np.nan, result_arr)
+        ex_arr = np.where(isna(arr), np.nan, result_arr)
 
         tm.assert_almost_equal(result_arr, ex_arr)
 
         result = cut(arr, 4, labels=False)
-        ex_result = np.where(isnull(arr), np.nan, result)
+        ex_result = np.where(isna(arr), np.nan, result)
         tm.assert_almost_equal(result, ex_result)
 
     def test_inf_handling(self):
@@ -200,7 +200,7 @@ class TestCut(object):
 
         result = cut(arr, [-1, 0, 1])
 
-        mask = isnull(result)
+        mask = isna(result)
         ex_mask = (arr < -1) | (arr > 1)
         tm.assert_numpy_array_equal(mask, ex_mask)
 
@@ -244,7 +244,7 @@ class TestCut(object):
         arr[:20] = np.nan
 
         result = qcut(arr, 4)
-        assert isnull(result[:20]).all()
+        assert isna(result[:20]).all()
 
     def test_qcut_index(self):
         result = qcut([0, 2], 2)
@@ -502,9 +502,9 @@ class TestCut(object):
 
         result = cut(date_range('20130102', periods=5),
                      bins=date_range('20130101', periods=2))
-        mask = result.categories.isnull()
+        mask = result.categories.isna()
         tm.assert_numpy_array_equal(mask, np.array([False]))
-        mask = result.isnull()
+        mask = result.isna()
         tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
 

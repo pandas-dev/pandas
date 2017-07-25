@@ -177,7 +177,7 @@ class TestFactorize(object):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
             assert len(set(key)) == len(set(expected))
-            tm.assert_numpy_array_equal(pd.isnull(key),
+            tm.assert_numpy_array_equal(pd.isna(key),
                                         expected == na_sentinel)
 
         # nan still maps to na_sentinel when sort=False
@@ -189,7 +189,7 @@ class TestFactorize(object):
 
         expected = np.array([2, -1, 0], dtype='int32')
         assert len(set(key)) == len(set(expected))
-        tm.assert_numpy_array_equal(pd.isnull(key), expected == na_sentinel)
+        tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
 
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
@@ -1150,7 +1150,7 @@ class TestTseriesUtil(object):
     def test_reindex(self):
         pass
 
-    def test_isnull(self):
+    def test_isna(self):
         pass
 
     def test_groupby(self):

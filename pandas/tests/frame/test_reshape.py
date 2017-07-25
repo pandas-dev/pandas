@@ -528,7 +528,7 @@ class TestDataFrameReshape(TestData):
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
-            rows, cols = df.notnull().values.nonzero()
+            rows, cols = df.notna().values.nonzero()
             for i, j in zip(rows, cols):
                 left = sorted(df.iloc[i, j].split('.'))
                 right = mk_list(df.index[i]) + mk_list(df.columns[j])
@@ -547,7 +547,7 @@ class TestDataFrameReshape(TestData):
             mi = df.set_index(list(idx))
             for lev in range(2):
                 udf = mi.unstack(level=lev)
-                assert udf.notnull().values.sum() == len(df)
+                assert udf.notna().values.sum() == len(df)
                 verify(udf['jolie'])
 
         df = DataFrame({'1st': ['d'] * 3 + [nan] * 5 + ['a'] * 2 +
@@ -565,7 +565,7 @@ class TestDataFrameReshape(TestData):
             mi = df.set_index(list(idx))
             for lev in range(3):
                 udf = mi.unstack(level=lev)
-                assert udf.notnull().values.sum() == 2 * len(df)
+                assert udf.notna().values.sum() == 2 * len(df)
                 for col in ['4th', '5th']:
                     verify(udf[col])
 
@@ -670,7 +670,7 @@ class TestDataFrameReshape(TestData):
         df.loc[1, '3rd'] = df.loc[4, '3rd'] = nan
 
         left = df.set_index(['1st', '2nd', '3rd']).unstack(['2nd', '3rd'])
-        assert left.notnull().values.sum() == 2 * len(df)
+        assert left.notna().values.sum() == 2 * len(df)
 
         for col in ['jim', 'joe']:
             for _, r in df.iterrows():

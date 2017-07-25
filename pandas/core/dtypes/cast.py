@@ -27,7 +27,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
 from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
-from .missing import isnull, notnull
+from .missing import isna, notna
 from .inference import is_list_like
 
 _int8_max = np.iinfo(np.int8).max
@@ -121,7 +121,7 @@ def maybe_downcast_to_dtype(result, dtype):
             arr = np.array([r[0]])
 
             # if we have any nulls, then we are done
-            if (isnull(arr).any() or
+            if (isna(arr).any() or
                     not np.allclose(arr, trans(arr).astype(dtype), rtol=0)):
                 return result
 
@@ -131,7 +131,7 @@ def maybe_downcast_to_dtype(result, dtype):
                 return result
 
             if (issubclass(result.dtype.type, (np.object_, np.number)) and
-                    notnull(result).all()):
+                    notna(result).all()):
                 new_result = trans(result).astype(dtype)
                 try:
                     if np.allclose(new_result, result, rtol=0):
@@ -191,7 +191,7 @@ def maybe_upcast_putmask(result, mask, other):
         #   integer or integer array -> date-like array
         if is_datetimelike(result.dtype):
             if is_scalar(other):
-                if isnull(other):
+                if isna(other):
                     other = result.dtype.type('nat')
                 elif is_integer(other):
                     other = np.array(other, dtype=result.dtype)
@@ -232,13 +232,13 @@ def maybe_upcast_putmask(result, mask, other):
             # and its nan and we are changing some values
             if (is_scalar(other) or
                     (isinstance(other, np.ndarray) and other.ndim < 1)):
-                if isnull(other):
+                if isna(other):
                     return changeit()
 
             # we have an ndarray and the masking has nans in it
             else:
 
-                if isnull(other[mask]).any():
+                if isna(other[mask]).any():
                     return changeit()
 
         try:
@@ -268,7 +268,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         # for now: refuse to upcast datetime64
         # (this is because datetime64 will not implicitly upconvert
         #  to object correctly as of numpy 1.6.1)
-        if isnull(fill_value):
+        if isna(fill_value):
             fill_value = iNaT
         else:
             if issubclass(dtype.type, np.datetime64):
@@ -287,7 +287,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             else:
                 fill_value = iNaT
     elif is_datetimetz(dtype):
-        if isnull(fill_value):
+        if isna(fill_value):
             fill_value = iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -580,7 +580,7 @@ def coerce_to_dtypes(result, dtypes):
 
     def conv(r, dtype):
         try:
-            if isnull(r):
+            if isna(r):
                 pass
             elif dtype == _NS_DTYPE:
                 r = tslib.Timestamp(r)
@@ -635,7 +635,7 @@ def astype_nansafe(arr, dtype, copy=True):
 
             # allow frequency conversions
             if dtype.kind == 'm':
-                mask = isnull(arr)
+                mask = isna(arr)
                 result = arr.astype(dtype).astype(np.float64)
                 result[mask] = np.nan
                 return result
@@ -687,7 +687,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                 values, 'M8[ns]', errors='coerce')
 
             # if we are all nans then leave me alone
-            if not isnull(new_values).all():
+            if not isna(new_values).all():
                 values = new_values
 
         else:
@@ -702,7 +702,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
             new_values = to_timedelta(values, errors='coerce')
 
             # if we are all nans then leave me alone
-            if not isnull(new_values).all():
+            if not isna(new_values).all():
                 values = new_values
 
         else:
@@ -717,7 +717,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                                                        coerce_numeric=True)
 
                 # if we are all nans then leave me alone
-                if not isnull(new_values).all():
+                if not isna(new_values).all():
                     values = new_values
 
             except:
@@ -779,7 +779,7 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
             converted = lib.maybe_convert_numeric(values, set(),
                                                   coerce_numeric=True)
             # If all NaNs, then do not-alter
-            values = converted if not isnull(converted).all() else values
+            values = converted if not isna(converted).all() else values
             values = values.copy() if copy else values
         except:
             pass
@@ -881,7 +881,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     elif inferred_type == 'nat':
 
         # if all NaT, return as datetime
-        if isnull(v).all():
+        if isna(v).all():
             value = try_datetime(v)
         else:
 
@@ -932,7 +932,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                 # our NaT doesn't support tz's
                 # this will coerce to DatetimeIndex with
                 # a matching dtype below
-                if is_scalar(value) and isnull(value):
+                if is_scalar(value) and isna(value):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
@@ -946,7 +946,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                     "dtype [%s]" % dtype)
 
             if is_scalar(value):
-                if value == iNaT or isnull(value):
+                if value == iNaT or isna(value):
                     value = iNaT
             else:
                 value = np.array(value, copy=False)

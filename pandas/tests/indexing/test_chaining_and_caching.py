@@ -321,7 +321,7 @@ class TestChaining(object):
         df = pd.DataFrame({'a': list(range(4)),
                            'b': list('ab..'),
                            'c': ['a', 'b', np.nan, 'd']})
-        mask = pd.isnull(df.c)
+        mask = pd.isna(df.c)
 
         def f():
             df[['c']][mask] = df[['b']][mask]

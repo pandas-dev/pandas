@@ -18,7 +18,7 @@ import pandas as pd
 from pandas._libs import tslib, lib
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
-                    Panel, Period, Categorical)
+                    Panel, Period, Categorical, isna)
 from pandas.compat import u, PY2, PY3, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_scipy_sparse,
     _ensure_int32,
     _ensure_categorical)
-from pandas.core.dtypes.missing import isnull
 from pandas.util import testing as tm
 
 
@@ -1014,7 +1013,7 @@ def test_nan_to_nat_conversions():
 
     s = df['B'].copy()
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
-    assert (isnull(s[8]))
+    assert (isna(s[8]))
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion

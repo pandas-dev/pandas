@@ -14,7 +14,7 @@ from pandas import compat
 
 
 from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
-from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -42,8 +42,8 @@ from pandas.core.common import (is_bool_indexer,
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
-from pandas.util._decorators import (Appender, Substitution,
-                                     cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import (
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
@@ -216,7 +216,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         if inferred == 'integer':
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
-                            if isnull(data).any():
+                            if isna(data).any():
                                 raise ValueError('cannot convert float '
                                                  'NaN to integer')
 
@@ -624,7 +624,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         values = np.where(cond, values, other)
 
-        if self._is_numeric_dtype and np.any(isnull(values)):
+        if self._is_numeric_dtype and np.any(isna(values)):
             # We can't coerce to the numeric dtype of "self" (unless
             # it's float) if there are NaN values in our output.
             dtype = None
@@ -735,7 +735,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         dtype = self.dtype
 
-        if self._is_numeric_dtype and isnull(item):
+        if self._is_numeric_dtype and isna(item):
             # We can't coerce to the numeric dtype of "self" (unless
             # it's float) if there are NaN values in our output.
             dtype = None
@@ -1821,7 +1821,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _isnan(self):
         """ return if each value is nan"""
         if self._can_hold_na:
-            return isnull(self)
+            return isna(self)
         else:
             # shouldn't reach to this condition by checking hasnans beforehand
             values = np.empty(len(self), dtype=np.bool_)
@@ -1844,7 +1844,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             return False
 
-    def isnull(self):
+    def isna(self):
         """
         Detect missing values
 
@@ -1852,29 +1852,33 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        a boolean array of whether my values are null
+        a boolean array of whether my values are na
 
         See also
         --------
-        pandas.isnull : pandas version
+        isnull : alias of isna
+        pandas.isna : top-level isna
         """
         return self._isnan
+    isnull = isna
 
-    def notnull(self):
+    def notna(self):
         """
-        Reverse of isnull
+        Inverse of isna
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        a boolean array of whether my values are not null
+        a boolean array of whether my values are not na
 
         See also
         --------
-        pandas.notnull : pandas version
+        notnull : alias of notna
+        pandas.notna : top-level notna
         """
-        return ~self.isnull()
+        return ~self.isna()
+    notnull = notna
 
     def putmask(self, mask, value):
         """
@@ -1922,7 +1926,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                       for x in values]
 
             # could have nans
-            mask = isnull(values)
+            mask = isna(values)
             if mask.any():
                 result = np.array(result)
                 result[mask] = na_rep
@@ -1960,7 +1964,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
-        mask = isnull(self)
+        mask = isna(self)
         if not self.is_object() and not quoting:
             values = np.asarray(self).astype(str)
         else:
@@ -2411,7 +2415,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if dropna:
             try:
                 if self.hasnans:
-                    values = values[~isnull(values)]
+                    values = values[~isna(values)]
             except NotImplementedError:
                 pass
 

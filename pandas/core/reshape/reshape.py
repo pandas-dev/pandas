@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_bool_dtype,
     needs_i8_conversion)
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 import pandas.core.dtypes.concat as _concat
 
 from pandas.core.series import Series
@@ -547,7 +547,7 @@ def stack(frame, level=-1, dropna=True):
 
     new_values = frame.values.ravel()
     if dropna:
-        mask = notnull(new_values)
+        mask = notna(new_values)
         new_values = new_values[mask]
         new_index = new_index[mask]
     return Series(new_values, index=new_index)
@@ -835,7 +835,7 @@ def lreshape(data, groups, dropna=True, label=None):
     if dropna:
         mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
         for c in pivot_cols:
-            mask &= notnull(mdata[c])
+            mask &= notna(mdata[c])
         if not mask.all():
             mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
 

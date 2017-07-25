@@ -166,8 +166,8 @@ class TestSeriesQuantile(TestData):
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
-        assert pd.isnull(Series([], dtype='M8[ns]').quantile(.5))
-        assert pd.isnull(Series([], dtype='m8[ns]').quantile(.5))
+        assert pd.isna(Series([], dtype='M8[ns]').quantile(.5))
+        assert pd.isna(Series([], dtype='m8[ns]').quantile(.5))
 
     def test_quantile_nat(self):
         res = Series([pd.NaT, pd.NaT]).quantile(0.5)

@@ -8,7 +8,7 @@ from collections import Counter, defaultdict, OrderedDict
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull)
+from pandas import (Index, Series, DataFrame, isna)
 from pandas.compat import lrange
 from pandas import compat
 from pandas.util.testing import assert_series_equal, assert_frame_equal
@@ -393,8 +393,8 @@ class TestSeriesMap(TestData):
 
         merged = left.map(right)
         assert merged.dtype == np.float_
-        assert isnull(merged['d'])
-        assert not isnull(merged['c'])
+        assert isna(merged['d'])
+        assert not isna(merged['c'])
 
     def test_map_type_inference(self):
         s = Series(lrange(3))

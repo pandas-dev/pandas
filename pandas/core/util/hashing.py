@@ -12,7 +12,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_list_like)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 
 
@@ -215,7 +215,7 @@ def _hash_categorical(c, encoding, hash_key):
     #
     # TODO: GH 15362
 
-    mask = c.isnull()
+    mask = c.isna()
     if len(hashed):
         result = hashed.take(c.codes)
     else:
@@ -313,7 +313,7 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
     1d uint64 numpy array of hash value, of length 1
     """
 
-    if isnull(val):
+    if isna(val):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype='u8')
 

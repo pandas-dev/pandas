@@ -249,7 +249,7 @@ nan,B
 
         result = self.read_csv(StringIO(data))
         assert result['Date'][1] == '2012-05-12'
-        assert result['UnitPrice'].isnull().all()
+        assert result['UnitPrice'].isna().all()
 
     def test_na_values_scalar(self):
         # see gh-12224
