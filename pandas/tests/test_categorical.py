@@ -4256,10 +4256,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_cat_accessor_api(self):
         # GH 9322
-        from pandas.core.categorical import CategoricalAccessor
-        assert Series.cat is CategoricalAccessor
+        from pandas.core.categorical import CategoricalDelegate
+        assert Series.cat is CategoricalDelegate
         s = Series(list('aabbcde')).astype('category')
-        assert isinstance(s.cat, CategoricalAccessor)
+        assert isinstance(s.cat, CategoricalDelegate)
 
         invalid = Series([1])
         with tm.assert_raises_regex(AttributeError,
@@ -4276,11 +4276,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_str_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.strings import StringAccessor
+        from pandas.core.strings import StringDelegate
         s = Series(list('aabb'))
         s = s + " " + s
         c = s.astype('category')
-        assert isinstance(c.str, StringAccessor)
+        assert isinstance(c.str, StringDelegate)
 
         # str functions, which need special arguments
         special_func_defs = [
@@ -4352,7 +4352,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_dt_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.indexes.accessors import BaseDatetimeAccessor
+        from pandas.core.indexes.accessors import BaseDatetimeDelegate
 
         s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
         c_dr = s_dr.astype("category")
@@ -4372,7 +4372,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ("Period", get_ops(PeriodIndex), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
-        assert isinstance(c_dr.dt, BaseDatetimeAccessor)
+        assert isinstance(c_dr.dt, BaseDatetimeDelegate)
 
         special_func_defs = [
             ('strftime', ("%Y-%m-%d",), {}),

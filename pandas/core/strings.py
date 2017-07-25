@@ -1426,7 +1426,7 @@ def copy_doc(source):
     return do_copy
 
 
-class StringMethods(NoNewAttributesMixin):
+class StringMethods(accessors.PandasDelegate, NoNewAttributesMixin):
     """
     Vectorized string functions for Series and Index. NAs stay NA unless
     handled otherwise by a particular method. Patterned after Python's string
@@ -1942,7 +1942,7 @@ class StringMethods(NoNewAttributesMixin):
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringAccessor(data)
+        return StringDelegate(data)
 
     # TODO: Should we explicitly subclass PandasDelegate to clarify its
     # role, even though it isn't actually needed?
@@ -1951,7 +1951,8 @@ class StringMethods(NoNewAttributesMixin):
     # possibly wrapped in an Index.
 
 
-StringAccessor = StringMethods  # Alias to mirror CategoricalAccessor
+StringDelegate = StringMethods
+# Alias to mirror CategoricalDelegate and CombinedDatetimelikeDelegate
 
 
 # TODO: This is only mixed in to Index (this PR takes it out of Series)
@@ -1961,7 +1962,7 @@ StringAccessor = StringMethods  # Alias to mirror CategoricalAccessor
 class StringAccessorMixin(object):
     """ Mixin to add a `.str` acessor to the class."""
 
-    str = accessors.AccessorProperty(StringAccessor)
+    str = accessors.AccessorProperty(StringDelegate)
 
     def _dir_additions(self):
         return set()

@@ -63,14 +63,14 @@ def maybe_to_datetimelike(data, copy=False):
         data = orig.values.categories
 
     if is_datetime64_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'),
+        return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer'),
                                   index, name=name, orig=orig)
     elif is_datetime64tz_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer',
+        return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer',
                                                 ambiguous='infer'),
                                   index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy,
+        return TimedeltaDelegate(TimedeltaIndex(data, copy=copy,
                                                   freq='infer'), index,
                                    name=name, orig=orig)
     else:
@@ -78,7 +78,7 @@ def maybe_to_datetimelike(data, copy=False):
             return PeriodProperties(PeriodIndex(data, copy=copy), index,
                                     name=name, orig=orig)
         if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy,
+            return DatetimeDelegate(DatetimeIndex(data, copy=copy,
                                                     freq='infer'), index,
                                       name=name, orig=orig)
 
@@ -86,7 +86,7 @@ def maybe_to_datetimelike(data, copy=False):
                     "datetimelike index".format(type(data)))
 
 
-class BaseDatetimeAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
+class BaseDatetimeDelegate(accessors.PandasDelegate, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
         self.values = values
@@ -107,7 +107,7 @@ class BaseDatetimeAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
         elif not is_list_like(result):
             return result
         elif isinstance(result, DataFrame):
-            # e.g. TimedeltaProperties.components
+            # e.g. TimedeltaDelegate.components
             return result.set_index(self.index)
 
         result = np.asarray(result)
@@ -161,7 +161,7 @@ class BaseDatetimeAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
 @accessors.wrap_delegate_names(delegate=DatetimeIndex,
                                accessors=DatetimeIndex._datetimelike_methods,
                                typ='method')
-class DatetimeProperties(BaseDatetimeAccessor):
+class DatetimeDelegate(BaseDatetimeDelegate):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -185,7 +185,7 @@ class DatetimeProperties(BaseDatetimeAccessor):
 @accessors.wrap_delegate_names(delegate=TimedeltaIndex,
                                accessors=TimedeltaIndex._datetimelike_methods,
                                typ='method')
-class TimedeltaProperties(BaseDatetimeAccessor):
+class TimedeltaDelegate(BaseDatetimeDelegate):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -222,7 +222,7 @@ class TimedeltaProperties(BaseDatetimeAccessor):
 @accessors.wrap_delegate_names(delegate=PeriodIndex,
                                accessors=PeriodIndex._datetimelike_methods,
                                typ='method')
-class PeriodProperties(BaseDatetimeAccessor):
+class PeriodProperties(BaseDatetimeDelegate):
     """
     Accessor object for datetimelike properties of the Series values.
 
@@ -237,11 +237,11 @@ class PeriodProperties(BaseDatetimeAccessor):
     """
 
 
-class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+class CombinedDatetimelikeDelegate(DatetimeDelegate, TimedeltaDelegate):
     # This class is never instantiated, and exists solely for the benefit of
     # the Series.dt class property. For Series objects, .dt will always be one
     # of the more specific classes above.
-    __doc__ = DatetimeProperties.__doc__
+    __doc__ = DatetimeDelegate.__doc__
 
     @classmethod
     def _make_accessor(cls, values):
@@ -252,5 +252,5 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
             raise AttributeError(msg)
 
 
-DatetimeAccessor = CombinedDatetimelikeProperties
+DatetimeAccessor = CombinedDatetimelikeDelegate
 # Alias to mirror CategoricalAccessor

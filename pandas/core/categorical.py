@@ -2027,7 +2027,7 @@ class Categorical(PandasObject):
 @accessors.wrap_delegate_names(delegate=Categorical,
                                accessors=["categories", "ordered"],
                                typ="property")
-class CategoricalAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
+class CategoricalDelegate(accessors.PandasDelegate, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
@@ -2055,7 +2055,7 @@ class CategoricalAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
         if not is_categorical_dtype(values.dtype):
             msg = "Can only use .cat accessor with a 'category' dtype"
             raise AttributeError(msg)
-        return CategoricalAccessor(values)
+        return CategoricalDelegate(values)
 
     def __init__(self, values):
         self.categorical = values.values
@@ -2075,8 +2075,6 @@ class CategoricalAccessor(accessors.PandasDelegate, NoNewAttributesMixin):
         if res is not None:
             return Series(res, index=self.index)
 
-    # TODO: Can we get this from _delegate_property_get?
-    # Would need to get self.index into the result
     @property
     def codes(self):
         from pandas import Series
