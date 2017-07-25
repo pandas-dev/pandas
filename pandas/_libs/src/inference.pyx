@@ -612,7 +612,7 @@ cdef class Validator:
         self.dtype = dtype if dtype is not None else np.dtype(np.object_)
         self.skipna = skipna
 
-    cdef inline bint validate(self, object[:] values):
+    cdef bint validate(self, object[:] values):
         if not self.n:
             return False
 
@@ -628,7 +628,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef inline bint _validate(self, object[:] values):
+    cdef bint _validate(self, object[:] values):
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -641,7 +641,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef inline bint _validate_skipna(self, object[:] values):
+    cdef bint _validate_skipna(self, object[:] values):
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
