@@ -1002,12 +1002,14 @@ class TestSparseDataFrame(SharedWithSparse):
 
             shifted = frame.shift(2, freq='B')
             exp = orig.shift(2, freq='B')
-            exp = exp.to_sparse(frame.default_fill_value)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
             shifted = frame.shift(2, freq=BDay())
             exp = orig.shift(2, freq=BDay())
-            exp = exp.to_sparse(frame.default_fill_value)
+            exp = exp.to_sparse(frame.default_fill_value,
+                                kind=frame.default_kind)
             tm.assert_frame_equal(shifted, exp)
 
         self._check_all(_check)
@@ -1103,12 +1105,12 @@ class TestSparseDataFrame(SharedWithSparse):
         nan_colname_sparse = nan_colname.to_sparse()
         assert np.isnan(nan_colname_sparse.columns[0])
 
-    def test_isnull(self):
+    def test_isna(self):
         # GH 8276
         df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
                                  'B': [0, np.nan, np.nan, 2, np.nan]})
 
-        res = df.isnull()
+        res = df.isna()
         exp = pd.SparseDataFrame({'A': [True, True, False, False, True],
                                   'B': [False, True, True, False, True]},
                                  default_fill_value=True)
@@ -1119,18 +1121,18 @@ class TestSparseDataFrame(SharedWithSparse):
         df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
-        res = df.isnull()
+        res = df.isna()
         assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [False, False, False, False, True],
                             'B': [False, True, False, False, True]})
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    def test_isnotnull(self):
+    def test_notna(self):
         # GH 8276
         df = pd.SparseDataFrame({'A': [np.nan, np.nan, 1, 2, np.nan],
                                  'B': [0, np.nan, np.nan, 2, np.nan]})
 
-        res = df.isnotnull()
+        res = df.notna()
         exp = pd.SparseDataFrame({'A': [False, False, True, True, False],
                                   'B': [True, False, False, True, False]},
                                  default_fill_value=False)
@@ -1141,7 +1143,7 @@ class TestSparseDataFrame(SharedWithSparse):
         df = pd.SparseDataFrame({'A': [0, 0, 1, 2, np.nan],
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
-        res = df.isnotnull()
+        res = df.notna()
         assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [True, True, True, True, False],
                             'B': [True, False, True, True, False]})
@@ -1267,6 +1269,41 @@ def test_from_scipy_correct_ordering(spmatrix):
     expected = pd.SparseDataFrame(arr)
     tm.assert_sp_frame_equal(sdf, expected)
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
+
+
+def test_from_scipy_fillna(spmatrix):
+    # GH 16112
+    tm.skip_if_no_package('scipy')
+
+    arr = np.eye(3)
+    arr[1:, 0] = np.nan
+
+    try:
+        spm = spmatrix(arr)
+        assert spm.dtype == arr.dtype
+    except (TypeError, AssertionError):
+        # If conversion to sparse fails for this spmatrix type and arr.dtype,
+        # then the combination is not currently supported in NumPy, so we
+        # can just skip testing it thoroughly
+        return
+
+    sdf = pd.SparseDataFrame(spm).fillna(-1.0)
+
+    # Returning frame should fill all nan values with -1.0
+    expected = pd.SparseDataFrame({
+        0: pd.SparseSeries([1., -1, -1]),
+        1: pd.SparseSeries([np.nan, 1, np.nan]),
+        2: pd.SparseSeries([np.nan, np.nan, 1]),
+    }, default_fill_value=-1)
+
+    # fill_value is expected to be what .fillna() above was called with
+    # We don't use -1 as initial fill_value in expected SparseSeries
+    # construction because this way we obtain "compressed" SparseArrays,
+    # avoiding having to construct them ourselves
+    for col in expected:
+        expected[col].fill_value = -1
+
+    tm.assert_sp_frame_equal(sdf, expected)
 
 
 class TestSparseDataFrameArithmetic(object):

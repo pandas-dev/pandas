@@ -10,7 +10,7 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Series, Categorical, DataFrame, isnull, notnull,
+from pandas import (Series, Categorical, DataFrame, isna, notna,
                     bdate_range, date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
@@ -130,7 +130,7 @@ class TestSeriesAnalytics(TestData):
         arr = np.random.randn(100, 100).astype('f4')
         arr[:, 2] = np.inf
 
-        with cf.option_context("mode.use_inf_as_null", True):
+        with cf.option_context("mode.use_inf_as_na", True):
             assert_almost_equal(s.sum(), s2.sum())
 
         res = nanops.nansum(arr, axis=1)
@@ -269,10 +269,10 @@ class TestSeriesAnalytics(TestData):
         # 1 - element series with ddof=1
         s = self.ts.iloc[[0]]
         result = s.var(ddof=1)
-        assert isnull(result)
+        assert isna(result)
 
         result = s.std(ddof=1)
-        assert isnull(result)
+        assert isna(result)
 
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
@@ -286,7 +286,7 @@ class TestSeriesAnalytics(TestData):
         # 1 - element series with ddof=1
         s = self.ts.iloc[[0]]
         result = s.sem(ddof=1)
-        assert isnull(result)
+        assert isna(result)
 
     def test_skew(self):
         tm._skip_if_no_scipy()
@@ -365,7 +365,7 @@ class TestSeriesAnalytics(TestData):
         assert s.dtype == 'datetime64[ns]'
         shifted = s.shift(-1)
         assert shifted.dtype == 'datetime64[ns]'
-        assert isnull(shifted[4])
+        assert isna(shifted[4])
 
         result = s.argsort()
         expected = Series(lrange(5), dtype='int64')
@@ -524,8 +524,8 @@ class TestSeriesAnalytics(TestData):
                 pytest.raises(TypeError, f, ds)
 
             # skipna or no
-            assert notnull(f(self.series))
-            assert isnull(f(self.series, skipna=False))
+            assert notna(f(self.series))
+            assert isna(f(self.series, skipna=False))
 
             # check the result is correct
             nona = self.series.dropna()
@@ -743,10 +743,10 @@ class TestSeriesAnalytics(TestData):
         assert result == 0
 
         result = Series(dtype=float).mean()
-        assert isnull(result)
+        assert isna(result)
 
         result = Series(dtype=float).median()
-        assert isnull(result)
+        assert isna(result)
 
         # timedelta64[ns]
         result = Series(dtype='m8[ns]').sum()
@@ -769,11 +769,11 @@ class TestSeriesAnalytics(TestData):
         # partial overlap
         tm.assert_almost_equal(self.ts[:15].corr(self.ts[5:]), 1)
 
-        assert isnull(self.ts[:15].corr(self.ts[5:], min_periods=12))
+        assert isna(self.ts[:15].corr(self.ts[5:], min_periods=12))
 
         ts1 = self.ts[:15].reindex(self.ts.index)
         ts2 = self.ts[5:].reindex(self.ts.index)
-        assert isnull(ts1.corr(ts2, min_periods=12))
+        assert isna(ts1.corr(ts2, min_periods=12))
 
         # No overlap
         assert np.isnan(self.ts[::2].corr(self.ts[1::2]))
@@ -781,7 +781,7 @@ class TestSeriesAnalytics(TestData):
         # all NA
         cp = self.ts[:10].copy()
         cp[:] = np.nan
-        assert isnull(cp.corr(cp))
+        assert isna(cp.corr(cp))
 
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
@@ -838,14 +838,14 @@ class TestSeriesAnalytics(TestData):
         # all NA
         cp = self.ts[:10].copy()
         cp[:] = np.nan
-        assert isnull(cp.cov(cp))
+        assert isna(cp.cov(cp))
 
         # min_periods
-        assert isnull(self.ts[:15].cov(self.ts[5:], min_periods=12))
+        assert isna(self.ts[:15].cov(self.ts[5:], min_periods=12))
 
         ts1 = self.ts[:15].reindex(self.ts.index)
         ts2 = self.ts[5:].reindex(self.ts.index)
-        assert isnull(ts1.cov(ts2, min_periods=12))
+        assert isna(ts1.cov(ts2, min_periods=12))
 
     def test_count(self):
         assert self.ts.count() == len(self.ts)
@@ -995,10 +995,10 @@ class TestSeriesAnalytics(TestData):
             thresh = s[2]
             l = s.clip_lower(thresh)
             u = s.clip_upper(thresh)
-            assert l[notnull(l)].min() == thresh
-            assert u[notnull(u)].max() == thresh
-            assert list(isnull(s)) == list(isnull(l))
-            assert list(isnull(s)) == list(isnull(u))
+            assert l[notna(l)].min() == thresh
+            assert u[notna(u)].max() == thresh
+            assert list(isna(s)) == list(isna(l))
+            assert list(isna(s)) == list(isna(u))
 
     def test_clip_against_series(self):
         # GH #6966
@@ -1033,11 +1033,11 @@ class TestSeriesAnalytics(TestData):
         # naive and tz-aware datetimes
 
         t = Timestamp('2015-12-01 09:30:30')
-        s = Series([Timestamp('2015-12-01 09:30:00'), Timestamp(
-            '2015-12-01 09:31:00')])
+        s = Series([Timestamp('2015-12-01 09:30:00'),
+                    Timestamp('2015-12-01 09:31:00')])
         result = s.clip(upper=t)
-        expected = Series([Timestamp('2015-12-01 09:30:00'), Timestamp(
-            '2015-12-01 09:30:30')])
+        expected = Series([Timestamp('2015-12-01 09:30:00'),
+                           Timestamp('2015-12-01 09:30:30')])
         assert_series_equal(result, expected)
 
         t = Timestamp('2015-12-01 09:30:30', tz='US/Eastern')
@@ -1202,14 +1202,14 @@ class TestSeriesAnalytics(TestData):
 
     def test_idxmin(self):
         # test idxmin
-        # _check_stat_op approach can not be used here because of isnull check.
+        # _check_stat_op approach can not be used here because of isna check.
 
         # add some NaNs
         self.series[5:15] = np.NaN
 
         # skipna or no
         assert self.series[self.series.idxmin()] == self.series.min()
-        assert isnull(self.series.idxmin(skipna=False))
+        assert isna(self.series.idxmin(skipna=False))
 
         # no NaNs
         nona = self.series.dropna()
@@ -1219,7 +1219,7 @@ class TestSeriesAnalytics(TestData):
 
         # all NaNs
         allna = self.series * nan
-        assert isnull(allna.idxmin())
+        assert isna(allna.idxmin())
 
         # datetime64[ns]
         from pandas import date_range
@@ -1244,14 +1244,14 @@ class TestSeriesAnalytics(TestData):
 
     def test_idxmax(self):
         # test idxmax
-        # _check_stat_op approach can not be used here because of isnull check.
+        # _check_stat_op approach can not be used here because of isna check.
 
         # add some NaNs
         self.series[5:15] = np.NaN
 
         # skipna or no
         assert self.series[self.series.idxmax()] == self.series.max()
-        assert isnull(self.series.idxmax(skipna=False))
+        assert isna(self.series.idxmax(skipna=False))
 
         # no NaNs
         nona = self.series.dropna()
@@ -1261,7 +1261,7 @@ class TestSeriesAnalytics(TestData):
 
         # all NaNs
         allna = self.series * nan
-        assert isnull(allna.idxmax())
+        assert isna(allna.idxmax())
 
         from pandas import date_range
         s = Series(date_range('20130102', periods=6))
@@ -1307,7 +1307,7 @@ class TestSeriesAnalytics(TestData):
         # GH11163
         s = Series([3, 5, np.nan, -3, 10])
         assert s.ptp() == 13
-        assert pd.isnull(s.ptp(skipna=False))
+        assert pd.isna(s.ptp(skipna=False))
 
         mi = pd.MultiIndex.from_product([['a', 'b'], [1, 2, 3]])
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)

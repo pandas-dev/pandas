@@ -3,12 +3,16 @@ from __future__ import print_function
 import glob
 import os
 import re
+import threading
 import warnings
 
+
+# imports needed for Python 3.x but will fail under Python 2.x
 try:
-    from importlib import import_module
+    from importlib import import_module, reload
 except ImportError:
     import_module = __import__
+
 
 from distutils.version import LooseVersion
 
@@ -22,6 +26,7 @@ from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
 from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows, PY3)
 from pandas.io.common import URLError, urlopen, file_path_to_url
+import pandas.io.html
 from pandas.io.html import read_html
 from pandas._libs.parsers import ParserError
 
@@ -380,7 +385,7 @@ class TestReadHtml(ReadHtmlMixin):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self):
@@ -389,7 +394,7 @@ class TestReadHtml(ReadHtmlMixin):
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
@@ -931,3 +936,32 @@ def test_same_ordering():
     dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
+
+
+class ErrorThread(threading.Thread):
+    def run(self):
+        try:
+            super(ErrorThread, self).run()
+        except Exception as e:
+            self.err = e
+        else:
+            self.err = None
+
+
+@pytest.mark.slow
+def test_importcheck_thread_safety():
+    # see gh-16928
+
+    # force import check by reinitalising global vars in html.py
+    reload(pandas.io.html)
+
+    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
+    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+
+    helper_thread1.start()
+    helper_thread2.start()
+
+    while helper_thread1.is_alive() or helper_thread2.is_alive():
+        pass
+    assert None is helper_thread1.err is helper_thread2.err

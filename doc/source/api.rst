@@ -187,7 +187,9 @@ Top-level missing data
 .. autosummary::
    :toctree: generated/
 
+   isna
    isnull
+   notna
    notnull
 
 Top-level conversions
@@ -272,8 +274,8 @@ Conversion
    Series.astype
    Series.infer_objects
    Series.copy
-   Series.isnull
-   Series.notnull
+   Series.isna
+   Series.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -410,6 +412,7 @@ Reindexing / Selection / Label manipulation
    Series.reset_index
    Series.sample
    Series.select
+   Series.set_axis
    Series.take
    Series.tail
    Series.truncate
@@ -780,8 +783,8 @@ Conversion
    DataFrame.convert_objects
    DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.isnull
-   DataFrame.notnull
+   DataFrame.isna
+   DataFrame.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -1098,8 +1101,8 @@ Conversion
 
    Panel.astype
    Panel.copy
-   Panel.isnull
-   Panel.notnull
+   Panel.isna
+   Panel.notna
 
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
@@ -1342,8 +1345,8 @@ Missing Values
 
    Index.fillna
    Index.dropna
-   Index.isnull
-   Index.notnull
+   Index.isna
+   Index.notna
 
 Conversion
 ~~~~~~~~~~

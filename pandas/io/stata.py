@@ -24,7 +24,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 import datetime
-from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
+from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
 from pandas.util._decorators import Appender
@@ -402,7 +402,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
         return DataFrame(d, index=index)
 
-    bad_loc = isnull(dates)
+    bad_loc = isna(dates)
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)

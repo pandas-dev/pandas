@@ -121,30 +121,30 @@ cdef extern from "parser/tokenizer.h":
         io_callback cb_io
         io_cleanup cb_cleanup
 
-        int chunksize  # Number of bytes to prepare for each chunk
-        char *data     # pointer to data to be processed
-        int datalen    # amount of data available
-        int datapos
+        int64_t chunksize  # Number of bytes to prepare for each chunk
+        char *data         # pointer to data to be processed
+        int64_t datalen    # amount of data available
+        int64_t datapos
 
         # where to write out tokenized data
         char *stream
-        int stream_len
-        int stream_cap
+        int64_t stream_len
+        int64_t stream_cap
 
         # Store words in (potentially ragged) matrix for now, hmm
         char **words
-        int *word_starts # where we are in the stream
-        int words_len
-        int words_cap
+        int64_t *word_starts # where we are in the stream
+        int64_t words_len
+        int64_t words_cap
 
-        char *pword_start    # pointer to stream start of current field
-        int word_start       # position start of current field
+        char *pword_start        # pointer to stream start of current field
+        int64_t word_start       # position start of current field
 
-        int *line_start      # position in words for start of line
-        int *line_fields     # Number of fields in each line
-        int lines            # Number of lines observed
-        int file_lines       # Number of file lines observed (with bad/skipped)
-        int lines_cap        # Vector capacity
+        int64_t *line_start      # position in words for start of line
+        int64_t *line_fields     # Number of fields in each line
+        int64_t lines            # Number of lines observed
+        int64_t file_lines       # Number of lines observed (with bad/skipped)
+        int64_t lines_cap        # Vector capacity
 
         # Tokenizing stuff
         ParserState state
@@ -177,14 +177,14 @@ cdef extern from "parser/tokenizer.h":
         # thousands separator (comma, period)
         char thousands
 
-        int header # Boolean: 1: has header, 0: no header
-        int header_start # header row start
-        int header_end # header row end
+        int header                  # Boolean: 1: has header, 0: no header
+        int64_t header_start        # header row start
+        int64_t header_end          # header row end
 
         void *skipset
         PyObject *skipfunc
         int64_t skip_first_N_rows
-        int skipfooter
+        int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         double (*double_converter_nogil)(const char *, char **,
                                          char, char, char, int) nogil
@@ -195,12 +195,12 @@ cdef extern from "parser/tokenizer.h":
         char *warn_msg
         char *error_msg
 
-        int skip_empty_lines
+        int64_t skip_empty_lines
 
     ctypedef struct coliter_t:
         char **words
-        int *line_start
-        int col
+        int64_t *line_start
+        int64_t col
 
     ctypedef struct uint_state:
         int seen_sint
@@ -210,7 +210,8 @@ cdef extern from "parser/tokenizer.h":
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
 
-    void coliter_setup(coliter_t *it, parser_t *parser, int i, int start) nogil
+    void coliter_setup(coliter_t *it, parser_t *parser,
+                       int64_t i, int64_t start) nogil
     void COLITER_NEXT(coliter_t, const char *) nogil
 
     parser_t* parser_new()
@@ -289,14 +290,14 @@ cdef class TextReader:
         object true_values, false_values
         object handle
         bint na_filter, verbose, has_usecols, has_mi_columns
-        int parser_start
+        int64_t parser_start
         list clocks
         char *c_encoding
         kh_str_t *false_set
         kh_str_t *true_set
 
     cdef public:
-        int leading_cols, table_width, skipfooter, buffer_lines
+        int64_t leading_cols, table_width, skipfooter, buffer_lines
         object allow_leading_cols
         object delimiter, converters, delim_whitespace
         object na_values
@@ -565,7 +566,7 @@ cdef class TextReader:
         while self.buffer_lines * 2< heuristic:
             self.buffer_lines *= 2
 
-    def __init__(self, *args, **kwards):
+    def __init__(self, *args, **kwargs):
         pass
 
     def __dealloc__(self):
@@ -730,7 +731,8 @@ cdef class TextReader:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
             object name
-            int status, hr, data_line
+            int status
+            int64_t hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
@@ -786,11 +788,14 @@ cdef class TextReader:
                         unnamed_count += 1
 
                     count = counts.get(name, 0)
-                    if (count > 0 and self.mangle_dupe_cols
-                        and not self.has_mi_columns):
-                        this_header.append('%s.%d' % (name, count))
-                    else:
-                        this_header.append(name)
+
+                    if not self.has_mi_columns and self.mangle_dupe_cols:
+                        while count > 0:
+                            counts[name] = count + 1
+                            name = '%s.%d' % (name, count)
+                            count = counts.get(name, 0)
+
+                    this_header.append(name)
                     counts[name] = count + 1
 
                 if self.has_mi_columns:
@@ -949,8 +954,8 @@ cdef class TextReader:
 
     cdef _read_rows(self, rows, bint trim):
         cdef:
-            int buffered_lines
-            int irows, footer = 0
+            int64_t buffered_lines
+            int64_t irows, footer = 0
 
         self._start_clock()
 
@@ -1018,12 +1023,13 @@ cdef class TextReader:
 
     def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
-            Py_ssize_t i, nused
+            int64_t i
+            int nused
             kh_str_t *na_hashset = NULL
-            int start, end
+            int64_t start, end
             object name, na_flist, col_dtype = None
             bint na_filter = 0
-            Py_ssize_t num_cols
+            int64_t num_cols
 
         start = self.parser_start
 
@@ -1195,7 +1201,7 @@ cdef class TextReader:
         return col_res, na_count
 
     cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
-                             int start, int end,
+                             int64_t start, int64_t end,
                              bint na_filter,
                              bint user_dtype,
                              kh_str_t *na_hashset,
@@ -1275,7 +1281,7 @@ cdef class TextReader:
             raise TypeError("the dtype %s is not "
                             "supported for parsing" % dtype)
 
-    cdef _string_convert(self, Py_ssize_t i, int start, int end,
+    cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
                          bint na_filter, kh_str_t *na_hashset):
 
         cdef StringPath path = _string_path(self.c_encoding)
@@ -1336,6 +1342,7 @@ cdef class TextReader:
         kh_destroy_str(table)
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
+        cdef int64_t j
         if self.has_usecols and self.names is not None:
             if (not callable(self.usecols) and
                     len(self.names) == len(self.usecols)):
@@ -1427,8 +1434,8 @@ cdef inline StringPath _string_path(char *encoding):
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
 
-cdef _string_box_factorize(parser_t *parser, int col,
-                           int line_start, int line_end,
+cdef _string_box_factorize(parser_t *parser, int64_t col,
+                           int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
@@ -1480,8 +1487,8 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
     return result, na_count
 
-cdef _string_box_utf8(parser_t *parser, int col,
-                      int line_start, int line_end,
+cdef _string_box_utf8(parser_t *parser, int64_t col,
+                      int64_t line_start, int64_t line_end,
                       bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
@@ -1533,8 +1540,8 @@ cdef _string_box_utf8(parser_t *parser, int col,
 
     return result, na_count
 
-cdef _string_box_decode(parser_t *parser, int col,
-                        int line_start, int line_end,
+cdef _string_box_decode(parser_t *parser, int64_t col,
+                        int64_t line_start, int64_t line_end,
                         bint na_filter, kh_str_t *na_hashset,
                         char *encoding):
     cdef:
@@ -1592,8 +1599,8 @@ cdef _string_box_decode(parser_t *parser, int col,
 
 
 @cython.boundscheck(False)
-cdef _categorical_convert(parser_t *parser, int col,
-                          int line_start, int line_end,
+cdef _categorical_convert(parser_t *parser, int64_t col,
+                          int64_t line_start, int64_t line_end,
                           bint na_filter, kh_str_t *na_hashset,
                           char *encoding):
     "Convert column data into codes, categories"
@@ -1663,8 +1670,8 @@ cdef _categorical_convert(parser_t *parser, int col,
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count
 
-cdef _to_fw_string(parser_t *parser, int col, int line_start,
-                   int line_end, size_t width):
+cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
+                   int64_t line_end, int64_t width):
     cdef:
         Py_ssize_t i
         coliter_t it
@@ -1680,11 +1687,11 @@ cdef _to_fw_string(parser_t *parser, int col, int line_start,
 
     return result
 
-cdef inline void _to_fw_string_nogil(parser_t *parser, int col,
-                                     int line_start, int line_end,
+cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
+                                     int64_t line_start, int64_t line_end,
                                      size_t width, char *data) nogil:
     cdef:
-        Py_ssize_t i
+        int64_t i
         coliter_t it
         const char *word = NULL
 
@@ -1699,7 +1706,8 @@ cdef char* cinf = b'inf'
 cdef char* cposinf = b'+inf'
 cdef char* cneginf = b'-inf'
 
-cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
+cdef _try_double(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
@@ -1808,7 +1816,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
 
     return 0
 
-cdef _try_uint64(parser_t *parser, int col, int line_start, int line_end,
+cdef _try_uint64(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error
@@ -1842,8 +1851,9 @@ cdef _try_uint64(parser_t *parser, int col, int line_start, int line_end,
 
     return result
 
-cdef inline int _try_uint64_nogil(parser_t *parser, int col, int line_start,
-                                  int line_end, bint na_filter,
+cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
+                                  int64_t line_start,
+                                  int64_t line_end, bint na_filter,
                                   const kh_str_t *na_hashset,
                                   uint64_t *data, uint_state *state) nogil:
     cdef:
@@ -1879,7 +1889,8 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int col, int line_start,
 
     return 0
 
-cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
+cdef _try_int64(parser_t *parser, int64_t col,
+                int64_t line_start, int64_t line_end,
                 bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
@@ -1906,8 +1917,9 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
 
     return result, na_count
 
-cdef inline int _try_int64_nogil(parser_t *parser, int col, int line_start,
-                                 int line_end, bint na_filter,
+cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
+                                 int64_t line_start,
+                                 int64_t line_end, bint na_filter,
                                  const kh_str_t *na_hashset, int64_t NA,
                                  int64_t *data, int *na_count) nogil:
     cdef:
@@ -1944,7 +1956,8 @@ cdef inline int _try_int64_nogil(parser_t *parser, int col, int line_start,
 
     return 0
 
-cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
+cdef _try_bool(parser_t *parser, int64_t col,
+               int64_t line_start, int64_t line_end,
                bint na_filter, kh_str_t *na_hashset):
     cdef:
         int na_count
@@ -1966,8 +1979,9 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         return None, None
     return result.view(np.bool_), na_count
 
-cdef inline int _try_bool_nogil(parser_t *parser, int col, int line_start,
-                                int line_end, bint na_filter,
+cdef inline int _try_bool_nogil(parser_t *parser, int64_t col,
+                                int64_t line_start,
+                                int64_t line_end, bint na_filter,
                                 const kh_str_t *na_hashset, uint8_t NA,
                                 uint8_t *data, int *na_count) nogil:
     cdef:
@@ -2006,7 +2020,8 @@ cdef inline int _try_bool_nogil(parser_t *parser, int col, int line_start,
             data += 1
     return 0
 
-cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
+cdef _try_bool_flex(parser_t *parser, int64_t col,
+                    int64_t line_start, int64_t line_end,
                     bint na_filter, const kh_str_t *na_hashset,
                     const kh_str_t *true_hashset,
                     const kh_str_t *false_hashset):
@@ -2032,8 +2047,9 @@ cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
         return None, None
     return result.view(np.bool_), na_count
 
-cdef inline int _try_bool_flex_nogil(parser_t *parser, int col, int line_start,
-                                     int line_end, bint na_filter,
+cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
+                                     int64_t line_start,
+                                     int64_t line_end, bint na_filter,
                                      const kh_str_t *na_hashset,
                                      const kh_str_t *true_hashset,
                                      const kh_str_t *false_hashset,
@@ -2251,8 +2267,8 @@ for k in list(na_values):
     na_values[np.dtype(k)] = na_values[k]
 
 
-cdef _apply_converter(object f, parser_t *parser, int col,
-                      int line_start, int line_end,
+cdef _apply_converter(object f, parser_t *parser, int64_t col,
+                      int64_t line_start, int64_t line_end,
                       char* c_encoding):
     cdef:
         int error
@@ -2296,7 +2312,7 @@ def _to_structured_array(dict columns, object names, object usecols):
 
         object name, fnames, field_type
         Py_ssize_t i, offset, nfields, length
-        int stride, elsize
+        int64_t stride, elsize
         char *buf
 
     if names is None:
@@ -2344,10 +2360,10 @@ def _to_structured_array(dict columns, object names, object usecols):
 
     return recs
 
-cdef _fill_structured_column(char *dst, char* src, int elsize,
-                             int stride, int length, bint incref):
+cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
+                             int64_t stride, int64_t length, bint incref):
     cdef:
-        Py_ssize_t i
+        int64_t i
 
     if incref:
         util.transfer_object_column(dst, src, stride, length)

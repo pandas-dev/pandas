@@ -10,7 +10,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notna
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -236,13 +236,13 @@ class TestCategoricalIndex(Base):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
-        result = i.where(notnull(i2))
+        result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
 

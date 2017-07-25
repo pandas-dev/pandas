@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, Panel, Index, isnull,
-                    notnull, Timestamp)
+from pandas import (Series, DataFrame, Panel, Index, isna,
+                    notna, Timestamp)
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
@@ -103,7 +103,7 @@ class TestResampleAPI(object):
             tm.assert_frame_equal(result, expected)
 
         # compat for pandas-like methods
-        for how in ['sort_values', 'isnull']:
+        for how in ['sort_values', 'isna']:
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 getattr(r, how)()
@@ -891,7 +891,7 @@ class TestDatetimeIndex(Base):
             g._cython_agg_general(f)
 
         assert g.ngroups == 2593
-        assert notnull(g.mean()).all()
+        assert notna(g.mean()).all()
 
         # construct expected val
         arr = [1] + [5] * 2592
@@ -948,7 +948,7 @@ class TestDatetimeIndex(Base):
         args = downsample_methods
 
         def _ohlc(group):
-            if isnull(group).all():
+            if isna(group).all():
                 return np.repeat(np.nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
@@ -1445,7 +1445,7 @@ class TestDatetimeIndex(Base):
 
     def test_ohlc_5min(self):
         def _ohlc(group):
-            if isnull(group).all():
+            if isna(group).all():
                 return np.repeat(np.nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
@@ -2606,7 +2606,7 @@ class TestPeriodIndex(Base):
 
         result = ts.resample('W-THU').asfreq()
 
-        assert result.isnull().all()
+        assert result.isna().all()
 
         result = ts.resample('W-THU').asfreq().ffill()[:-1]
         expected = ts.asfreq('W-THU').ffill()

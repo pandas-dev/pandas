@@ -1,7 +1,7 @@
 # pylint: disable=E1103
 
 import pytest
-from datetime import datetime
+from datetime import datetime, date
 from numpy.random import randn
 from numpy import nan
 import numpy as np
@@ -229,8 +229,8 @@ class TestMerge(object):
         merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
 
         assert_series_equal(merged['key'], merged2['key'])
-        assert merged['key'].notnull().all()
-        assert merged2['key'].notnull().all()
+        assert merged['key'].notna().all()
+        assert merged2['key'].notna().all()
 
         left = DataFrame({'value': lrange(5)}, columns=['value'])
         right = DataFrame({'rvalue': lrange(6)})
@@ -926,8 +926,8 @@ class TestMergeMulti(object):
                 res = left.join(right, on=icols, how='left', sort=sort)
 
                 assert len(left) < len(res) + 1
-                assert not res['4th'].isnull().any()
-                assert not res['5th'].isnull().any()
+                assert not res['4th'].isna().any()
+                assert not res['5th'].isna().any()
 
                 tm.assert_series_equal(
                     res['4th'], - res['5th'], check_names=False)
@@ -1514,6 +1514,40 @@ class TestMergeCategorical(object):
         result = pd.merge(df, df, on=list(df.columns))
 
         assert_frame_equal(result, df)
+
+    def test_dtype_on_categorical_dates(self):
+        # GH 16900
+        # dates should not be coerced to ints
+
+        df = pd.DataFrame(
+            [[date(2001, 1, 1), 1.1],
+             [date(2001, 1, 2), 1.3]],
+            columns=['date', 'num2']
+        )
+        df['date'] = df['date'].astype('category')
+
+        df2 = pd.DataFrame(
+            [[date(2001, 1, 1), 1.3],
+             [date(2001, 1, 3), 1.4]],
+            columns=['date', 'num4']
+        )
+        df2['date'] = df2['date'].astype('category')
+
+        expected_outer = pd.DataFrame([
+            [pd.Timestamp('2001-01-01'), 1.1, 1.3],
+            [pd.Timestamp('2001-01-02'), 1.3, np.nan],
+            [pd.Timestamp('2001-01-03'), np.nan, 1.4]],
+            columns=['date', 'num2', 'num4']
+        )
+        result_outer = pd.merge(df, df2, how='outer', on=['date'])
+        assert_frame_equal(result_outer, expected_outer)
+
+        expected_inner = pd.DataFrame(
+            [[pd.Timestamp('2001-01-01'), 1.1, 1.3]],
+            columns=['date', 'num2', 'num4']
+        )
+        result_inner = pd.merge(df, df2, how='inner', on=['date'])
+        assert_frame_equal(result_inner, expected_inner)
 
 
 @pytest.fixture

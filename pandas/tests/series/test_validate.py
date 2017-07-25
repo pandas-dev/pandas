@@ -24,9 +24,6 @@ class TestSeriesValidate(object):
                 self.s.sort_index(inplace=value)
 
             with pytest.raises(ValueError):
-                self.s.sort_index(inplace=value)
-
-            with pytest.raises(ValueError):
                 self.s.rename(inplace=value)
 
             with pytest.raises(ValueError):

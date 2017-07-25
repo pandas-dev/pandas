@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
@@ -1532,7 +1532,7 @@ class ParserBase(object):
         if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isnull(result).sum()
+                na_count = isna(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
@@ -2331,10 +2331,16 @@ class PythonParser(ParserBase):
 
                 if not have_mi_columns and self.mangle_dupe_cols:
                     counts = {}
+
                     for i, col in enumerate(this_columns):
                         cur_count = counts.get(col, 0)
-                        if cur_count > 0:
-                            this_columns[i] = '%s.%d' % (col, cur_count)
+
+                        while cur_count > 0:
+                            counts[col] = cur_count + 1
+                            col = "%s.%d" % (col, cur_count)
+                            cur_count = counts.get(col, 0)
+
+                        this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
 

@@ -10,7 +10,7 @@ import numpy as np
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notnull, isnull)
+                    notna, isna)
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas._libs.tslib import iNaT
@@ -514,7 +514,7 @@ class Base(object):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -884,7 +884,7 @@ class Base(object):
                 pass
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
                     idx.fillna(idx[0])
             else:
@@ -924,23 +924,23 @@ class Base(object):
         for name, index in self.indices.items():
             if len(index) == 0:
                 tm.assert_numpy_array_equal(
-                    index.isnull(), np.array([], dtype=bool))
+                    index.isna(), np.array([], dtype=bool))
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
-                    idx.isnull()
+                    idx.isna()
             else:
 
                 if not index.hasnans:
                     tm.assert_numpy_array_equal(
-                        index.isnull(), np.zeros(len(index), dtype=bool))
+                        index.isna(), np.zeros(len(index), dtype=bool))
                     tm.assert_numpy_array_equal(
-                        index.notnull(), np.ones(len(index), dtype=bool))
+                        index.notna(), np.ones(len(index), dtype=bool))
                 else:
-                    result = isnull(index)
-                    tm.assert_numpy_array_equal(index.isnull(), result)
-                    tm.assert_numpy_array_equal(index.notnull(), ~result)
+                    result = isna(index)
+                    tm.assert_numpy_array_equal(index.isna(), result)
+                    tm.assert_numpy_array_equal(index.notna(), ~result)
 
     def test_empty(self):
         # GH 15270

@@ -6,12 +6,30 @@ from textwrap import dedent
 from functools import wraps, update_wrapper
 
 
-def deprecate(name, alternative, alt_name=None):
+def deprecate(name, alternative, alt_name=None, klass=None,
+              stacklevel=2):
+    """
+
+    Return a new function that emits a deprecation warning on use
+
+    Parameters
+    ----------
+    name : str
+        Name of function to deprecate
+    alternative : str
+        Name of function to use instead
+    alt_name : str, optional
+        Name to use in preference of alternative.__name__
+    klass : Warning, default FutureWarning
+    stacklevel : int, default 2
+
+    """
     alt_name = alt_name or alternative.__name__
+    klass = klass or FutureWarning
 
     def wrapper(*args, **kwargs):
         warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
-                      FutureWarning, stacklevel=2)
+                      klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
     return wrapper
 

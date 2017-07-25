@@ -18,7 +18,7 @@ from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
-from pandas import (Index, Series, DataFrame, isnull, Timestamp, NaT,
+from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  set_timezone)
@@ -931,7 +931,7 @@ class TestTimeZoneSupportPytz(object):
         idx = to_datetime([Timestamp("2013-1-1", tz=self.tzstr('US/Eastern')),
                            NaT])
 
-        assert isnull(idx[1])
+        assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
 

@@ -267,7 +267,7 @@ class TestPivotTable(object):
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
         pv = df.pivot('a', 'b', 'c')
-        assert pv.notnull().values.sum() == len(df)
+        assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row['a'], row['b']] == row['c']
@@ -1057,6 +1057,22 @@ class TestCrosstab(object):
         result = crosstab(self.df['A'].values, self.df['C'].values)
         assert result.index.name == 'row_0'
         assert result.columns.name == 'col_0'
+
+    def test_crosstab_non_aligned(self):
+        # GH 17005
+        a = pd.Series([0, 1, 1], index=['a', 'b', 'c'])
+        b = pd.Series([3, 4, 3, 4, 3], index=['a', 'b', 'c', 'd', 'f'])
+        c = np.array([3, 4, 3])
+
+        expected = pd.DataFrame([[1, 0], [1, 1]],
+                                index=Index([0, 1], name='row_0'),
+                                columns=Index([3, 4], name='col_0'))
+
+        result = crosstab(a, b)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab(a, c)
+        tm.assert_frame_equal(result, expected)
 
     def test_crosstab_margins(self):
         a = np.random.randint(0, 7, size=100)
