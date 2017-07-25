@@ -56,25 +56,25 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
                                 standardize_mapping)
-from pandas.core.config import get_option
-from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical, CategoricalAccessor
-
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 
+from pandas.core.internals import SingleBlockManager
+from pandas.core.categorical import Categorical, CategoricalDelegate
+
+from pandas.core.indexes.accessors import CombinedDatetimelikeDelegate
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+
 from pandas.io.formats.terminal import get_terminal_size
 import pandas.io.formats.format as fmt
-
 from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
+from pandas.core.config import get_option
 
 __all__ = ['Series']
 
@@ -148,13 +148,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _accessors = frozenset(['dt', 'cat', 'str'])
 
     # Datetimelike delegation methods
-    dt = accessors.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = accessors.AccessorProperty(CombinedDatetimelikeDelegate)
 
     # Categorical methods
-    cat = accessors.AccessorProperty(CategoricalAccessor)
+    cat = accessors.AccessorProperty(CategoricalDelegate)
 
     # string methods
-    str = accessors.AccessorProperty(strings.StringAccessor)
+    str = accessors.AccessorProperty(strings.StringDelegate)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
