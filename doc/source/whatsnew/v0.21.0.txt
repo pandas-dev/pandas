@@ -24,6 +24,8 @@ New features
   <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
 - Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
+- Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
+  support type inference in the presence of missing values (:issue:`17059`).
 
 
 .. _whatsnew_0210.enhancements.infer_objects:
