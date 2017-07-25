@@ -277,11 +277,11 @@ Indexing
 I/O
 ^^^
 
+- Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 - Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696, :issue:`16798`).
 - Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
-
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 
 Plotting

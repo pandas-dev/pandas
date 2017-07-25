@@ -788,11 +788,14 @@ cdef class TextReader:
                         unnamed_count += 1
 
                     count = counts.get(name, 0)
-                    if (count > 0 and self.mangle_dupe_cols
-                        and not self.has_mi_columns):
-                        this_header.append('%s.%d' % (name, count))
-                    else:
-                        this_header.append(name)
+
+                    if not self.has_mi_columns and self.mangle_dupe_cols:
+                        while count > 0:
+                            counts[name] = count + 1
+                            name = '%s.%d' % (name, count)
+                            count = counts.get(name, 0)
+
+                    this_header.append(name)
                     counts[name] = count + 1
 
                 if self.has_mi_columns:
