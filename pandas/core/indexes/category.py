@@ -705,6 +705,7 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
+
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()

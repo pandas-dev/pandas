@@ -64,23 +64,23 @@ def maybe_to_datetimelike(data, copy=False):
 
     if is_datetime64_dtype(data.dtype):
         return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer'),
-                                  index, name=name, orig=orig)
+                                index, name=name, orig=orig)
     elif is_datetime64tz_dtype(data.dtype):
         return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer',
-                                                ambiguous='infer'),
-                                  index, data.name, orig=orig)
+                                              ambiguous='infer'),
+                                index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
         return TimedeltaDelegate(TimedeltaIndex(data, copy=copy,
-                                                  freq='infer'), index,
-                                   name=name, orig=orig)
+                                                freq='infer'), index,
+                                 name=name, orig=orig)
     else:
         if is_period_arraylike(data):
-            return PeriodProperties(PeriodIndex(data, copy=copy), index,
-                                    name=name, orig=orig)
+            return PeriodDelegate(PeriodIndex(data, copy=copy), index,
+                                  name=name, orig=orig)
         if is_datetime_arraylike(data):
             return DatetimeDelegate(DatetimeIndex(data, copy=copy,
-                                                    freq='infer'), index,
-                                      name=name, orig=orig)
+                                                  freq='infer'), index,
+                                    name=name, orig=orig)
 
     raise TypeError("cannot convert an object of type {0} to a "
                     "datetimelike index".format(type(data)))
@@ -222,7 +222,7 @@ class TimedeltaDelegate(BaseDatetimeDelegate):
 @accessors.wrap_delegate_names(delegate=PeriodIndex,
                                accessors=PeriodIndex._datetimelike_methods,
                                typ='method')
-class PeriodProperties(BaseDatetimeDelegate):
+class PeriodDelegate(BaseDatetimeDelegate):
     """
     Accessor object for datetimelike properties of the Series values.
 
