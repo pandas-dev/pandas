@@ -481,7 +481,8 @@ static int end_line(parser_t *self) {
                 msg = (char *)malloc(bufsize);
                 snprintf(msg, bufsize,
                         "Skipping line %lld: expected %d fields, saw %lld\n",
-                         (long long)self->file_lines, ex_fields, (long long)fields);
+                         (long long)self->file_lines, ex_fields,
+                         (long long)fields);
                 append_warning(self, msg);
                 free(msg);
             }
@@ -1147,7 +1148,8 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at line %lld", (long long)self->file_lines);
+                    "EOF inside string starting at line %lld",
+                    (long long)self->file_lines);
             return -1;
 
         case ESCAPED_CHAR:
