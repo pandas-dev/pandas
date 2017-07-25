@@ -612,7 +612,7 @@ cdef class Validator:
         self.dtype = dtype if dtype is not None else np.dtype(np.object_)
         self.skipna = skipna
 
-    cdef bint validate(self, object[:] values):
+    cdef inline bint validate(self, object[:] values):
         if not self.n:
             return False
 
@@ -628,7 +628,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate(self, object[:] values):
+    cdef inline bint _validate(self, object[:] values):
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -641,7 +641,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate_skipna(self, object[:] values):
+    cdef inline bint _validate_skipna(self, object[:] values):
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -675,10 +675,10 @@ cdef class Validator:
 
 cdef class BoolValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_bool_object(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bool_)
 
 
@@ -694,10 +694,10 @@ cpdef bint is_bool_array(ndarray values, bint skipna=False):
 
 cdef class IntegerValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.integer)
 
 
@@ -712,10 +712,10 @@ cpdef bint is_integer_array(ndarray values):
 
 cdef class IntegerFloatValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value) or util.is_float_object(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.integer)
 
 
@@ -730,10 +730,10 @@ cpdef bint is_integer_float_array(ndarray values):
 
 cdef class FloatValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_float_object(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.floating)
 
 
@@ -744,10 +744,10 @@ cpdef bint is_float_array(ndarray values):
 
 cdef class StringValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return PyString_Check(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return (
             PY2 and issubclass(self.dtype.type, np.string_)
         ) or not PY2 and issubclass(self.dtype.type, np.unicode_)
@@ -765,10 +765,10 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
 
 cdef class UnicodeValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return PyUnicode_Check(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.unicode_)
 
 
@@ -784,10 +784,10 @@ cpdef bint is_unicode_array(ndarray values, bint skipna=False):
 
 cdef class BytesValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return PyBytes_Check(value)
 
-    cdef bint is_array_typed(self) except -1:
+    cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bytes_)
 
 
@@ -811,7 +811,7 @@ cdef class TemporalValidator(Validator):
         self.skipna = skipna
         self.generic_null_count = 0
 
-    cdef bint is_valid(self, object value) except -1:
+    cdef inline bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
 
     cdef bint is_value_typed(self, object value) except -1:
@@ -820,14 +820,14 @@ cdef class TemporalValidator(Validator):
     cdef bint is_valid_null(self, object value) except -1:
         raise NotImplementedError()
 
-    cdef bint is_valid_skipna(self, object value) except -1:
+    cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
             bint is_generic_null = util._checknull(value)
         self.generic_null_count += is_typed_null and is_generic_null
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
-    cdef bint finalize(self):
+    cdef inline bint finalize(self):
         return self.generic_null_count != self.n
 
 
@@ -836,7 +836,7 @@ cdef class DatetimeValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return is_datetime(value)
 
-    cdef bint is_valid_null(self, object value) except -1:
+    cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_datetime64(value)
 
 
@@ -851,7 +851,7 @@ cpdef bint is_datetime_array(ndarray[object] values):
 
 cdef class Datetime64Validator(DatetimeValidator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value)
 
 
@@ -897,7 +897,7 @@ cdef class TimedeltaValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDelta_Check(value)
 
-    cdef bint is_valid_null(self, object value) except -1:
+    cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
 
 
@@ -912,7 +912,7 @@ cpdef bint is_timedelta_array(ndarray values):
 
 cdef class Timedelta64Validator(TimedeltaValidator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_timedelta64_object(value)
 
 
@@ -927,7 +927,7 @@ cpdef bint is_timedelta64_array(ndarray values):
 
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return is_timedelta(value)
 
 
@@ -943,7 +943,7 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
 
 cdef class DateValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return is_date(value)
 
 
@@ -954,7 +954,7 @@ cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
 
 cdef class TimeValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return is_time(value)
 
 
@@ -965,10 +965,10 @@ cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return is_period(value)
 
-    cdef bint is_valid_null(self, object value) except -1:
+    cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_period(value)
 
 
@@ -979,7 +979,7 @@ cpdef bint is_period_array(ndarray[object] values):
 
 cdef class IntervalValidator(Validator):
 
-    cdef bint is_value_typed(self, object value) except -1:
+    cdef inline bint is_value_typed(self, object value) except -1:
         return is_interval(value)
 
 
