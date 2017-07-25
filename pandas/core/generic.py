@@ -25,9 +25,8 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_re_compilable,
     pandas_dtype)
-from pandas.core.dtypes.cast import (
-    maybe_promote, maybe_upcast_putmask)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel
 
 from pandas.core.common import (_values_from_object,
@@ -54,7 +53,8 @@ from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import (Appender, Substitution,
+                                     deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
@@ -4000,7 +4000,7 @@ it is assumed to be aliases for the column names.')
                                              inplace=inplace,
                                              downcast=downcast)
             elif isinstance(value, DataFrame) and self.ndim == 2:
-                new_data = self.where(self.notnull(), value)
+                new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
 
@@ -4398,7 +4398,7 @@ it is assumed to be aliases for the column names.')
         else:
             index = _maybe_transposed_self._get_axis(alt_ax)
 
-        if pd.isnull(index).any():
+        if isna(index).any():
             raise NotImplementedError("Interpolation with NaNs in the index "
                                       "has not been implemented. Try filling "
                                       "those NaNs before interpolating.")
@@ -4503,14 +4503,14 @@ it is assumed to be aliases for the column names.')
                     loc -= 1
 
                 values = self._values
-                while loc > 0 and isnull(values[loc]):
+                while loc > 0 and isna(values[loc]):
                     loc -= 1
                 return values[loc]
 
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        nulls = self.isna() if is_series else self[subset].isna().any(1)
         if nulls.all():
             if is_series:
                 return self._constructor(np.nan, index=where, name=self.name)
@@ -4533,38 +4533,50 @@ it is assumed to be aliases for the column names.')
     # ----------------------------------------------------------------------
     # Action Methods
 
-    _shared_docs['isnull'] = """
-        Return a boolean same-sized object indicating if the values are null.
+    _shared_docs['isna'] = """
+        Return a boolean same-sized object indicating if the values are na.
 
         See Also
         --------
-        notnull : boolean inverse of isnull
+        %(klass)s.notna : boolean inverse of isna
+        %(klass)s.isnull : alias of isna
+        isna : top-level isna
         """
 
-    @Appender(_shared_docs['isnull'])
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return isna(self).__finalize__(self)
+
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
     def isnull(self):
-        return isnull(self).__finalize__(self)
+        return isna(self).__finalize__(self)
 
-    _shared_docs['isnotnull'] = """
+    _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
-        not null.
+        not na.
 
         See Also
         --------
-        isnull : boolean inverse of notnull
+        %(klass)s.isna : boolean inverse of notna
+        %(klass)s.notnull : alias of notna
+        notna : top-level notna
         """
 
-    @Appender(_shared_docs['isnotnull'])
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    def notna(self):
+        return notna(self).__finalize__(self)
+
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notnull(self):
-        return notnull(self).__finalize__(self)
+        return notna(self).__finalize__(self)
 
     def _clip_with_scalar(self, lower, upper, inplace=False):
-        if ((lower is not None and np.any(isnull(lower))) or
-                (upper is not None and np.any(isnull(upper)))):
+        if ((lower is not None and np.any(isna(lower))) or
+                (upper is not None and np.any(isna(upper)))):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self.values
-        mask = isnull(result)
+        mask = isna(result)
 
         with np.errstate(all='ignore'):
             if upper is not None:
@@ -4588,7 +4600,7 @@ it is assumed to be aliases for the column names.')
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        if np.any(isnull(threshold)):
+        if np.any(isna(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         # method is self.le for upper bound and self.ge for lower bound
@@ -4597,7 +4609,7 @@ it is assumed to be aliases for the column names.')
                 return self._clip_with_scalar(None, threshold, inplace=inplace)
             return self._clip_with_scalar(threshold, None, inplace=inplace)
 
-        subset = method(threshold, axis=axis) | isnull(self)
+        subset = method(threshold, axis=axis) | isna(self)
 
         # GH #15390
         # In order for where method to work, the threshold must
@@ -5472,7 +5484,7 @@ it is assumed to be aliases for the column names.')
                 right = other.reindex(join_index, level=level)
 
         # fill
-        fill_na = notnull(fill_value) or (method is not None)
+        fill_na = notna(fill_value) or (method is not None)
         if fill_na:
             left = left.fillna(fill_value, method=method, limit=limit,
                                axis=fill_axis)
@@ -6405,7 +6417,7 @@ it is assumed to be aliases for the column names.')
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = isnull(_values_from_object(self))
+            mask = isna(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -6767,10 +6779,10 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
-            mask = isnull(self)
+            mask = isna(self)
             np.putmask(result, mask, tslib.iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-            mask = isnull(self)
+            mask = isna(self)
             np.putmask(y, mask, mask_a)
             result = accum_func(y, axis)
             np.putmask(result, mask, mask_b)

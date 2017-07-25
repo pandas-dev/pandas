@@ -10,7 +10,7 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
 from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
 
@@ -565,7 +565,7 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
-        if isnull(other.fill_value) or isnull(self.default_fill_value):
+        if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
             fill_value = func(np.float64(self.default_fill_value),
@@ -651,7 +651,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
-        if notnull(fill_value):
+        if notna(fill_value):
             raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:
@@ -785,13 +785,15 @@ class SparseDataFrame(DataFrame):
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    @Appender(generic._shared_docs['isnull'])
-    def isnull(self):
-        return self._apply_columns(lambda x: x.isnull())
+    @Appender(generic._shared_docs['isna'])
+    def isna(self):
+        return self._apply_columns(lambda x: x.isna())
+    isnull = isna
 
-    @Appender(generic._shared_docs['isnotnull'])
-    def isnotnull(self):
-        return self._apply_columns(lambda x: x.isnotnull())
+    @Appender(generic._shared_docs['notna'])
+    def notna(self):
+        return self._apply_columns(lambda x: x.notna())
+    notnull = notna
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):
         """

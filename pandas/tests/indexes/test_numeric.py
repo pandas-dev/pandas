@@ -7,7 +7,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import (date_range, notnull, Series, Index, Float64Index,
+from pandas import (date_range, notna, Series, Index, Float64Index,
                     Int64Index, UInt64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -228,11 +228,11 @@ class TestFloat64Index(Numeric):
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -717,7 +717,7 @@ class TestInt64Index(NumericInt):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 

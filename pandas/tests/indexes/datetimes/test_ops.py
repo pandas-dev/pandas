@@ -116,13 +116,13 @@ class TestDatetimeIndexOps(Ops):
         for op in ['min', 'max']:
             # Return NaT
             obj = DatetimeIndex([])
-            assert pd.isnull(getattr(obj, op)())
+            assert pd.isna(getattr(obj, op)())
 
             obj = DatetimeIndex([pd.NaT])
-            assert pd.isnull(getattr(obj, op)())
+            assert pd.isna(getattr(obj, op)())
 
             obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
-            assert pd.isnull(getattr(obj, op)())
+            assert pd.isna(getattr(obj, op)())
 
     def test_numpy_minmax(self):
         dr = pd.date_range(start='2016-01-15', end='2016-01-20')

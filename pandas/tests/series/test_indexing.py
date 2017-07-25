@@ -11,7 +11,7 @@ import pandas as pd
 
 import pandas._libs.index as _index
 from pandas.core.dtypes.common import is_integer, is_scalar
-from pandas import (Index, Series, DataFrame, isnull,
+from pandas import (Index, Series, DataFrame, isna,
                     date_range, NaT, MultiIndex,
                     Timestamp, DatetimeIndex, Timedelta)
 from pandas.core.indexing import IndexingError
@@ -254,7 +254,7 @@ class TestSeriesIndexing(TestData):
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)
         s.index.name = 'index_name'
-        s = s[s.isnull()]
+        s = s[s.isna()]
         assert s.index.name == 'index_name'
         assert s.dtype == np.int64
 
@@ -1190,11 +1190,11 @@ class TestSeriesIndexing(TestData):
         s = Series(range(10)).astype(float)
         s[8] = None
         result = s[8]
-        assert isnull(result)
+        assert isna(result)
 
         s = Series(range(10)).astype(float)
         s[s > 8] = None
-        result = s[isnull(s)]
+        result = s[isna(s)]
         expected = Series(np.nan, index=[9])
         assert_series_equal(result, expected)
 
@@ -1988,7 +1988,7 @@ class TestSeriesIndexing(TestData):
         result = series.reindex(lrange(15))
         assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
-        mask = result.isnull()
+        mask = result.isna()
         assert mask[-5:].all()
         assert not mask[:-5].any()
 
@@ -2114,7 +2114,7 @@ class TestSeriesIndexing(TestData):
         ts = self.ts[5:]
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
         filled_bool = bool_ts.reindex(self.ts.index, method='pad')
-        assert isnull(filled_bool[:5]).all()
+        assert isna(filled_bool[:5]).all()
 
     def test_reindex_like(self):
         other = self.ts[::2]

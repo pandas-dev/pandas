@@ -57,7 +57,7 @@ class TestOrderedMerge(object):
         assert_frame_equal(result, result2.loc[:, result.columns])
 
         result = merge_ordered(left, self.right, on='key', left_by='group')
-        assert result['group'].notnull().all()
+        assert result['group'].notna().all()
 
     def test_merge_type(self):
         class NotADataFrame(DataFrame):

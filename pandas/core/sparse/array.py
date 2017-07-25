@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
     astype_nansafe, find_common_type)
-from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
+from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
@@ -579,12 +579,12 @@ class SparseArray(PandasObject, np.ndarray):
 
     @property
     def _null_fill_value(self):
-        return isnull(self.fill_value)
+        return isna(self.fill_value)
 
     @property
     def _valid_sp_values(self):
         sp_vals = self.sp_values
-        mask = notnull(sp_vals)
+        mask = notna(sp_vals)
         return sp_vals[mask]
 
     @Appender(_index_shared_docs['fillna'] % _sparray_doc_kwargs)
@@ -595,7 +595,7 @@ class SparseArray(PandasObject, np.ndarray):
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
 
-        new_values = np.where(isnull(self.sp_values), value, self.sp_values)
+        new_values = np.where(isna(self.sp_values), value, self.sp_values)
         fill_value = value if self._null_fill_value else self.fill_value
 
         return self._simple_new(new_values, self.sp_index,
@@ -687,7 +687,7 @@ class SparseArray(PandasObject, np.ndarray):
                 pass
             else:
                 if self._null_fill_value:
-                    mask = pd.isnull(keys)
+                    mask = pd.isna(keys)
                 else:
                     mask = keys == self.fill_value
 
@@ -767,8 +767,8 @@ def make_sparse(arr, kind='block', fill_value=None):
     if fill_value is None:
         fill_value = na_value_for_dtype(arr.dtype)
 
-    if isnull(fill_value):
-        mask = notnull(arr)
+    if isna(fill_value):
+        mask = notna(arr)
     else:
         # For str arrays in NumPy 1.12.0, operator!= below isn't
         # element-wise but just returns False if fill_value is not str,

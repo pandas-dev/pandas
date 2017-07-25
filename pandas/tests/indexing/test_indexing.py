@@ -363,7 +363,7 @@ class TestFancy(Base):
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
-        mask = ~df2.FC.isnull()
+        mask = ~df2.FC.isna()
         cols = ['col1', 'col2']
 
         dft = df2 * 2

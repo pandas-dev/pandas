@@ -392,9 +392,14 @@ with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
 use_inf_as_null_doc = """
+use_inf_as_null had been deprecated and will be removed in a future version.
+Use `use_inf_as_na` instead.
+"""
+
+use_inf_as_na_doc = """
 : boolean
-    True means treat None, NaN, INF, -INF as null (old way),
-    False means None and NaN are null, but INF, -INF are not null
+    True means treat None, NaN, INF, -INF as na (old way),
+    False means None and NaN are null, but INF, -INF are not na
     (new way).
 """
 
@@ -402,14 +407,17 @@ use_inf_as_null_doc = """
 # or we'll hit circular deps.
 
 
-def use_inf_as_null_cb(key):
-    from pandas.core.dtypes.missing import _use_inf_as_null
-    _use_inf_as_null(key)
+def use_inf_as_na_cb(key):
+    from pandas.core.dtypes.missing import _use_inf_as_na
+    _use_inf_as_na(key)
 
 
-with cf.config_prefix('mode'):
-    cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
-                       cb=use_inf_as_null_cb)
+cf.register_option('mode.use_inf_as_na', False, use_inf_as_na_doc,
+                   cb=use_inf_as_na_cb)
+
+cf.deprecate_option('mode.use_inf_as_null', msg=use_inf_as_null_doc,
+                    rkey='mode.use_inf_as_na')
+
 
 # user warnings
 chained_assignment = """

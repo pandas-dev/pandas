@@ -33,12 +33,12 @@ class TestSeriesPeriod(object):
         tm.assert_series_equal(result, exp)
         assert result.dtype == 'object'
 
-    def test_isnull(self):
+    def test_isna(self):
         # GH 13737
         s = Series([pd.Period('2011-01', freq='M'),
                     pd.Period('NaT', freq='M')])
-        tm.assert_series_equal(s.isnull(), Series([False, True]))
-        tm.assert_series_equal(s.notnull(), Series([True, False]))
+        tm.assert_series_equal(s.isna(), Series([False, True]))
+        tm.assert_series_equal(s.notna(), Series([True, False]))
 
     def test_fillna(self):
         # GH 13737
@@ -89,10 +89,10 @@ class TestSeriesPeriod(object):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
         val = series[3]
-        assert isnull(val)
+        assert isna(val)
 
         series[2] = val
-        assert isnull(series[2])
+        assert isna(series[2])
 
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')

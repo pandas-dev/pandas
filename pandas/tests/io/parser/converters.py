@@ -133,7 +133,7 @@ c,4,5,01/03/2009
         result = self.read_csv(fh, converters={'score': convert_score,
                                                'days': convert_days},
                                na_values=['', None])
-        assert pd.isnull(result['days'][1])
+        assert pd.isna(result['days'][1])
 
         fh = StringIO(data)
         result2 = self.read_csv(fh, converters={'score': convert_score,
