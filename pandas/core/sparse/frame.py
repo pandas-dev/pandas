@@ -10,7 +10,7 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
 from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
 
@@ -500,7 +500,8 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None, level=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None,
+                       try_cast=True):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -543,7 +544,8 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=new_fill_value
                                  ).__finalize__(self)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None):
+    def _combine_match_index(self, other, func, level=None, fill_value=None,
+                             try_cast=True):
         new_data = {}
 
         if fill_value is not None:
@@ -563,7 +565,7 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
-        if isnull(other.fill_value) or isnull(self.default_fill_value):
+        if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
             fill_value = func(np.float64(self.default_fill_value),
@@ -573,7 +575,8 @@ class SparseDataFrame(DataFrame):
             new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+    def _combine_match_columns(self, other, func, level=None, fill_value=None,
+                               try_cast=True):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -599,7 +602,7 @@ class SparseDataFrame(DataFrame):
             new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func, raise_on_error=True):
+    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
         return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
@@ -648,7 +651,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
-        if notnull(fill_value):
+        if notna(fill_value):
             raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:
@@ -782,13 +785,15 @@ class SparseDataFrame(DataFrame):
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    @Appender(generic._shared_docs['isnull'])
-    def isnull(self):
-        return self._apply_columns(lambda x: x.isnull())
+    @Appender(generic._shared_docs['isna'])
+    def isna(self):
+        return self._apply_columns(lambda x: x.isna())
+    isnull = isna
 
-    @Appender(generic._shared_docs['isnotnull'])
-    def isnotnull(self):
-        return self._apply_columns(lambda x: x.isnotnull())
+    @Appender(generic._shared_docs['notna'])
+    def notna(self):
+        return self._apply_columns(lambda x: x.notna())
+    notnull = notna
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):
         """

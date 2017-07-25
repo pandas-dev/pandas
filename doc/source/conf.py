@@ -238,8 +238,8 @@ html_static_path = ['_static']
 # https://github.com/pandas-dev/pandas/issues/16186
 
 moved_api_pages = [
-    ('pandas.core.common.isnull', 'pandas.isnull'),
-    ('pandas.core.common.notnull', 'pandas.notnull'),
+    ('pandas.core.common.isnull', 'pandas.isna'),
+    ('pandas.core.common.notnull', 'pandas.notna'),
     ('pandas.core.reshape.get_dummies', 'pandas.get_dummies'),
     ('pandas.tools.merge.concat', 'pandas.concat'),
     ('pandas.tools.merge.merge', 'pandas.merge'),

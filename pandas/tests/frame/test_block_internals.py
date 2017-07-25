@@ -533,7 +533,7 @@ starting,ending,measure
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y['g'].sum()  # noqa
-            assert pd.isnull(Y['g']['c'])
+            assert pd.isna(Y['g']['c'])
 
     def test_get_X_columns(self):
         # numeric and object columns
@@ -566,6 +566,6 @@ starting,ending,measure
 
         myid = 100
 
-        first = len(df.loc[pd.isnull(df[myid]), [myid]])
-        second = len(df.loc[pd.isnull(df[myid]), [myid]])
+        first = len(df.loc[pd.isna(df[myid]), [myid]])
+        second = len(df.loc[pd.isna(df[myid]), [myid]])
         assert first == second == 0

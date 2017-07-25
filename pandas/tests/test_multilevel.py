@@ -10,7 +10,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
+from pandas import Panel, DataFrame, Series, notna, isna, Timestamp
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -287,12 +287,12 @@ class TestMultiLevel(Base):
         s = self.ymd['A']
 
         s[2000, 3] = np.nan
-        assert isnull(s.values[42:65]).all()
-        assert notnull(s.values[:42]).all()
-        assert notnull(s.values[65:]).all()
+        assert isna(s.values[42:65]).all()
+        assert notna(s.values[:42]).all()
+        assert notna(s.values[65:]).all()
 
         s[2000, 3, 10] = np.nan
-        assert isnull(s[49])
+        assert isna(s[49])
 
     def test_series_slice_partial(self):
         pass
@@ -1902,7 +1902,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
         s = Series({(1, 1): 1, (1, 2): 2})
         df['new'] = s
-        assert df['new'].isnull().all()
+        assert df['new'].isna().all()
 
     def test_join_segfault(self):
         # 1532
@@ -2014,8 +2014,8 @@ Thur,Lunch,Yes,51.51,17"""
                            labels=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
                                                                1, 2, 3]])
 
-        assert isnull(index[4][0])
-        assert isnull(index.values[4][0])
+        assert isna(index[4][0])
+        assert isna(index.values[4][0])
 
     def test_duplicate_groupby_issues(self):
         idx_tp = [('600809', '20061231'), ('600809', '20070331'),

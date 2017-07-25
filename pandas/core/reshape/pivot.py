@@ -6,6 +6,7 @@ from pandas.core.reshape.concat import concat
 from pandas import Series, DataFrame, MultiIndex, Index
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
+from pandas.core.index import _get_combined_index
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -174,7 +175,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         if dropna:
-            data = data[data.notnull().all(axis=1)]
+            data = data[data.notna().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
                              margins_name=margins_name)
@@ -311,8 +312,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(
-                        cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(piece._get_axis(
+                                   cat_axis)._to_safe_for_reshape(),
+                                   axis=cat_axis, inplace=True)
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -493,6 +495,13 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
+    obs_idxes = [obj.index for objs in (index, columns) for obj in objs
+                 if hasattr(obj, 'index')]
+    if obs_idxes:
+        common_idx = _get_combined_index(obs_idxes, intersect=True)
+    else:
+        common_idx = None
+
     data = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
@@ -503,20 +512,21 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    df = DataFrame(data, index=common_idx)
     if values is None:
-        df = DataFrame(data)
         df['__dummy__'] = 0
-        table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=len, margins=margins,
-                               margins_name=margins_name, dropna=dropna)
-        table = table.fillna(0).astype(np.int64)
-
+        kwargs = {'aggfunc': len, 'fill_value': 0}
     else:
-        data['__dummy__'] = values
-        df = DataFrame(data)
-        table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=aggfunc, margins=margins,
-                               margins_name=margins_name, dropna=dropna)
+        df['__dummy__'] = values
+        kwargs = {'aggfunc': aggfunc}
+
+    table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
+                           margins=margins, margins_name=margins_name,
+                           dropna=dropna, **kwargs)
+
+    # GH 17013:
+    if values is None and margins:
+        table = table.fillna(0).astype(np.int64)
 
     # Post-process
     if normalize is not False:

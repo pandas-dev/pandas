@@ -1,18 +1,18 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+from datetime import datetime
+
 import pytest
 
 from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, bdate_range
-from pandas.core.common import isnull
+from pandas import Series, DataFrame, bdate_range, isna, compat
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
-from pandas import compat
 from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
@@ -57,6 +57,10 @@ def _test_data2_zero():
 
 
 class TestSparseSeries(SharedWithSparse):
+
+    series_klass = SparseSeries
+    # SharedWithSparse tests use generic, series_klass-agnostic assertion
+    _assert_series_equal = staticmethod(tm.assert_sp_series_equal)
 
     def setup_method(self, method):
         arr, index = _test_data1()
@@ -308,7 +312,7 @@ class TestSparseSeries(SharedWithSparse):
         sp = SparseSeries(data, np.arange(100))
         sp = sp.reindex(np.arange(200))
         assert (sp.loc[:99] == data).all()
-        assert isnull(sp.loc[100:]).all()
+        assert isna(sp.loc[100:]).all()
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))
@@ -1286,11 +1290,11 @@ class TestSparseSeriesScipyInteraction(object):
         tm.assert_series_equal(sparse.value_counts(dropna=False),
                                dense.value_counts(dropna=False))
 
-    def test_isnull(self):
+    def test_isna(self):
         # GH 8276
         s = pd.SparseSeries([np.nan, np.nan, 1, 2, np.nan], name='xxx')
 
-        res = s.isnull()
+        res = s.isna()
         exp = pd.SparseSeries([True, True, False, False, True], name='xxx',
                               fill_value=True)
         tm.assert_sp_series_equal(res, exp)
@@ -1298,16 +1302,16 @@ class TestSparseSeriesScipyInteraction(object):
         # if fill_value is not nan, True can be included in sp_values
         s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
                             fill_value=0.)
-        res = s.isnull()
+        res = s.isna()
         assert isinstance(res, pd.SparseSeries)
         exp = pd.Series([True, False, False, False, False], name='xxx')
         tm.assert_series_equal(res.to_dense(), exp)
 
-    def test_isnotnull(self):
+    def test_notna(self):
         # GH 8276
         s = pd.SparseSeries([np.nan, np.nan, 1, 2, np.nan], name='xxx')
 
-        res = s.isnotnull()
+        res = s.notna()
         exp = pd.SparseSeries([False, False, True, True, False], name='xxx',
                               fill_value=False)
         tm.assert_sp_series_equal(res, exp)
@@ -1315,7 +1319,7 @@ class TestSparseSeriesScipyInteraction(object):
         # if fill_value is not nan, True can be included in sp_values
         s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
                             fill_value=0.)
-        res = s.isnotnull()
+        res = s.notna()
         assert isinstance(res, pd.SparseSeries)
         exp = pd.Series([False, True, True, True, True], name='xxx')
         tm.assert_series_equal(res.to_dense(), exp)
@@ -1379,3 +1383,18 @@ class TestSparseSeriesAnalytics(object):
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+
+@pytest.mark.parametrize(
+    'datetime_type', (np.datetime64,
+                      pd.Timestamp,
+                      lambda x: datetime.strptime(x, '%Y-%m-%d')))
+def test_constructor_dict_datetime64_index(datetime_type):
+    # GH 9456
+    dates = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
+    values = [42544017.198965244, 1234565, 40512335.181958228, -1]
+
+    result = SparseSeries(dict(zip(map(datetime_type, dates), values)))
+    expected = SparseSeries(values, map(pd.Timestamp, dates))
+
+    tm.assert_sp_series_equal(result, expected)
