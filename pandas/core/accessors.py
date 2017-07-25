@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from pandas.core.base import PandasObject
+from pandas.core.common import AbstractMethodError
 
 
 class PandasDelegate(PandasObject):
@@ -48,7 +49,7 @@ class PandasDelegate(PandasObject):
         Delegate : instance of PandasDelegate or subclass
 
         """
-        raise NotImplementedError(
+        raise AbstractMethodError(
             'It is up to subclasses to implement '
             '_make_accessor.  This does input validation on the object to '
             'which the accessor is being pinned.  '
@@ -151,12 +152,10 @@ class Delegator(object):
                 [...]
 
 
-        This replaces the older usage in which following a class definition
-        we would use `Foo._add_delegate_accessors(...)`.  The motivation
-        is that we would like to keep as much of a class's internals inside
-        the class definition.  For things that we cannot keep directly
-        in the class definition, a decorator is more directly tied to
-        the definition than a method call outside the definition.
+        The motivation is that we would like to keep as much of a class's
+        internals inside the class definition.  For things that we cannot
+        keep directly in the class definition, a decorator is more directly
+        tied to the definition than a method call outside the definition.
 
         """
         # Note: we really only need the `delegate` here for the docstring

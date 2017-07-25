@@ -40,18 +40,15 @@ from pandas.core.common import (is_bool_indexer,
                                 _asarray_tuplesafe)
 
 from pandas.core.base import PandasObject, IndexOpsMixin
-import pandas.core.base as base
+from pandas.core import base, accessors, missing, sorting, strings
 from pandas.util._decorators import (Appender, Substitution,
                                      cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
 
 
@@ -97,7 +94,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
-class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
+class Index(IndexOpsMixin, PandasObject):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -149,6 +146,22 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+
+    _accessors = frozenset(['dt', 'cat', 'str'])
+    str = accessors.AccessorProperty(strings.StringDelegate)
+
+    def _dir_deletions(self):
+        return self._accessors
+
+    def _dir_additions(self):
+        rv = set()
+        for accessor in self._accessors:
+            try:
+                getattr(self, accessor)
+                rv.add(accessor)
+            except AttributeError:
+                pass
+        return rv
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
