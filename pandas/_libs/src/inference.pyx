@@ -765,9 +765,7 @@ cdef class StringValidator(Validator):
         return PyString_Check(value)
 
     cdef inline bint is_array_typed(self) except -1:
-        return (
-            PY2 and issubclass(self.dtype.type, np.string_)
-        ) or not PY2 and issubclass(self.dtype.type, np.unicode_)
+        return issubclass(self.dtype.type, np.str_)
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
