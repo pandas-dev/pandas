@@ -254,6 +254,19 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
 
 def _check_margins_name(margins_name, table):
+    """
+    Checks if margins_name is a correct input argument for pivot_table
+    or crosstab.
+
+    Parameters
+    ----------
+
+    margins_name : string, default 'All'
+        Name of the row / column that will contain the totals
+        when margins is True.
+    table : DataFrame
+    """
+
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
@@ -261,6 +274,7 @@ def _check_margins_name(margins_name, table):
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(exception_msg)
+
     # could be passed a Series object with no 'columns'
     if hasattr(table, 'columns'):
         for level in table.columns.names[1:]:
@@ -541,10 +555,13 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
         if normalize != 'columns':
             # add margin row
-            if type(table.index) is MultiIndex:
-                table = table.transpose()
-                table[margins_name] = table.sum(axis=1)
-                table = table.transpose()
+            if isinstance(table.index, MultiIndex):
+                # workaround for adding a margins row to a MultiIndex object
+                # to be removed when GH 17024 is fixed
+                new_index = _add_margins_to_multiindex(table.index,
+                                                       margins_name)
+                table.loc[margins_name] = table.sum(axis=0)
+                table.index = new_index
             else:
                 table.loc[margins_name] = table.sum(axis=0)
     # Post-process
@@ -553,6 +570,25 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
                            margins_name=margins_name)
 
     return table
+
+
+def _add_margins_to_multiindex(index, margins_name):
+    # workaround for adding a margins row to a MultiIndex object
+    # to be removed when GH 17024 is fixed
+    levels = list(index.levels)
+    labels = list(index.labels)
+
+    levels[0] = levels[0].append(Index([margins_name]))
+    for i in range(1, len(levels)):
+        levels[i] = levels[i].append(Index(['']))
+    for i in range(len(labels)):
+        lbl = list(labels[i])
+        lbl.append(max(labels[i] + 1))
+        labels[i] = lbl
+
+    return MultiIndex(levels=levels,
+                      labels=labels,
+                      names=index.names)
 
 
 def _normalize(table, normalize, margins, margins_name='All'):
@@ -585,11 +621,7 @@ def _normalize(table, normalize, margins, margins_name='All'):
 
     normalizers[True] = normalizers['all']
 
-    try:
-        f = normalizers[normalize]
-    except KeyError:
-        raise ValueError(
-            "Not a valid normalize argument: {!r}".format(normalize))
+    f = normalizers[normalize]
 
     table = f(table)
     table = table.fillna(0)

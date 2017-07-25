@@ -1477,8 +1477,8 @@ class TestCrosstab(object):
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, aggfunc=np.mean)
 
-        error = "Not a valid normalize argument: '42'"
-        with tm.assert_raises_regex(ValueError, error):
+        error = "'42'"
+        with tm.assert_raises_regex(KeyError, error):
             pd.crosstab(df.a, df.b, normalize='42')
 
         error = "Not a valid normalize argument: 42"
