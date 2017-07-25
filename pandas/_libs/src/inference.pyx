@@ -232,7 +232,8 @@ def infer_dtype(object value, bint skipna=False):
     ----------
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default False
-        Ignore NaN values when inferring the type.
+        Ignore NaN values when inferring the type. The default of ``False``
+        will be deprecated in a later version of pandas.
 
         .. versionadded:: 0.21.0
 
@@ -280,6 +281,9 @@ def infer_dtype(object value, bint skipna=False):
     >>> infer_dtype(['a', np.nan, 'b'], skipna=True)
     'string'
 
+    >>> infer_dtype(['a', np.nan, 'b'], skipna=False)
+    'mixed'
+
     >>> infer_dtype([b'foo', b'bar'])
     'bytes'
 
@@ -323,7 +327,8 @@ def infer_dtype(object value, bint skipna=False):
         Py_ssize_t i, n
         object val
         ndarray values
-        bint seen_pdnat = False, seen_val = False
+        bint seen_pdnat = False
+        bint seen_val = False
 
     if isinstance(value, np.ndarray):
         values = value
@@ -604,21 +609,26 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        object dtype
+        np.dtype dtype
         bint skipna
 
-    def __cinit__(self, Py_ssize_t n, object dtype=None, bint skipna=False):
+    def __cinit__(
+        self,
+        Py_ssize_t n,
+        np.dtype dtype=np.dtype(np.object_),
+        bint skipna=False
+    ):
         self.n = n
-        self.dtype = dtype if dtype is not None else np.dtype(np.object_)
+        self.dtype = dtype
         self.skipna = skipna
 
-    cdef bint validate(self, object[:] values):
+    cdef bint validate(self, object[:] values) except -1:
         if not self.n:
             return False
 
         if self.is_array_typed():
             return True
-        elif self.dtype.type == np.object_:
+        elif self.dtype.type_num == NPY_OBJECT:
             if self.skipna:
                 return self._validate_skipna(values)
             else:
@@ -628,7 +638,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate(self, object[:] values):
+    cdef bint _validate(self, object[:] values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -637,11 +647,11 @@ cdef class Validator:
             if not self.is_valid(values[i]):
                 return False
 
-        return self.finalize()
+        return self.finalize_validate()
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate_skipna(self, object[:] values):
+    cdef bint _validate_skipna(self, object[:] values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -650,7 +660,7 @@ cdef class Validator:
             if not self.is_valid_skipna(values[i]):
                 return False
 
-        return self.finalize()
+        return self.finalize_validate_skipna()
 
     cdef bint is_valid(self, object value) except -1:
         return self.is_value_typed(value)
@@ -660,7 +670,9 @@ cdef class Validator:
 
     cdef bint is_value_typed(self, object value) except -1:
         raise NotImplementedError(
-            'is_value_typed must be implemented in subclasses'
+            '{} child class must define is_value_typed'.format(
+                type(self).__name__
+            )
         )
 
     cdef bint is_valid_null(self, object value) except -1:
@@ -669,7 +681,12 @@ cdef class Validator:
     cdef bint is_array_typed(self) except -1:
         return False
 
-    cdef bint finalize(self):
+    cdef inline bint finalize_validate(self):
+        return True
+
+    cdef bint finalize_validate_skipna(self):
+        # TODO(phillipc): Remove the existing validate methods and replace them
+        # with the skipna versions upon full deprecation of skipna=False
         return True
 
 
@@ -805,20 +822,26 @@ cdef class TemporalValidator(Validator):
 
     cdef Py_ssize_t generic_null_count
 
-    def __cinit__(self, Py_ssize_t n, object dtype=None, bint skipna=False):
+    def __cinit__(
+        self,
+        Py_ssize_t n,
+        np.dtype dtype=np.dtype(np.object_),
+        bint skipna=False
+    ):
         self.n = n
-        self.dtype = dtype if dtype is not None else np.dtype(np.object_)
+        self.dtype = dtype
         self.skipna = skipna
         self.generic_null_count = 0
 
     cdef inline bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
 
-    cdef bint is_value_typed(self, object value) except -1:
-        raise NotImplementedError()
-
     cdef bint is_valid_null(self, object value) except -1:
-        raise NotImplementedError()
+        raise NotImplementedError(
+            '{} child class must define is_valid_null'.format(
+                type(self).__name__
+            )
+        )
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
@@ -827,7 +850,7 @@ cdef class TemporalValidator(Validator):
         self.generic_null_count += is_typed_null and is_generic_null
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
-    cdef inline bint finalize(self):
+    cdef inline bint finalize_validate_skipna(self):
         return self.generic_null_count != self.n
 
 
