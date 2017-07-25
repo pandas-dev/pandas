@@ -191,13 +191,11 @@ NA naming Changes
 ^^^^^^^^^^^^^^^^^
 
 In orde to promote more consistency among the pandas API, we have added additional top-level
-functions :func:`isna` and :func:`notna` that are the same as :func:`isnull` and :func:`notnull`.
-The naming scheme is now more consistent with methods ``.dropna()`` and ``.fillna()``. Furthermore
+functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
+The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
 in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
-named ``.isna()`` and ``.notna()``, these include for classes `Categorical`,
-`Index`, `Series`, and `DataFrame`. (:issue:`15001`).
-
-Using :func:`isnull` and :func:`notnull` will now issue a ``DeprecationWarning`` and recommend using :func:`isna` and :func`notnull` respectively.
+named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
+``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
 
 The configuration option ``mode.use_inf_as_null``is deprecated, and ``mode.use_inf_as_na`` is added as a replacement.
 
