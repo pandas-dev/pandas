@@ -234,6 +234,8 @@ def infer_dtype(object value, bint skipna=False):
     skipna : bool, default False
         Ignore NaN values when inferring the type.
 
+        .. versionadded:: 0.21.0
+
     Returns
     -------
     string describing the common type of the input data.
