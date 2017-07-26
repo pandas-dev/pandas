@@ -10,7 +10,6 @@ import types
 import warnings
 from textwrap import dedent
 
-from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
@@ -210,13 +209,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                             data = np.nan
                     # GH #12169
                     elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
-                        data = ([data.get(i, nan) for i in index]
+                        data = ([data.get(i, np.nan) for i in index]
                                 if data else np.nan)
                     else:
                         data = lib.fast_multiget(data, index.values,
                                                  default=np.nan)
                 except TypeError:
-                    data = ([data.get(i, nan) for i in index]
+                    data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)
 
             elif isinstance(data, SingleBlockManager):
@@ -1686,7 +1685,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=nan):
+    def combine(self, other, func, fill_value=np.nan):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
@@ -2952,7 +2951,7 @@ Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
-_INDEX_TYPES = ndarray, Index, list, tuple
+_INDEX_TYPES = np.ndarray, Index, list, tuple
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
