@@ -69,6 +69,7 @@ def show_versions(as_json=False):
         ("Cython", lambda mod: mod.__version__),
         ("numpy", lambda mod: mod.version.version),
         ("scipy", lambda mod: mod.version.version),
+        ("pyarrow", lambda mod: mod.__version__),
         ("xarray", lambda mod: mod.__version__),
         ("IPython", lambda mod: mod.__version__),
         ("sphinx", lambda mod: mod.__version__),
@@ -95,7 +96,6 @@ def show_versions(as_json=False):
         ("s3fs", lambda mod: mod.__version__),
         ("pandas_gbq", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__),
-        ("pyarrow", lambda mod: mod.__version__),
     ]
 
     deps_blob = list()
