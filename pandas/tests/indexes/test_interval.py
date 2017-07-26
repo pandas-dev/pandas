@@ -592,7 +592,7 @@ class TestIntervalIndex(Base):
                     (Int64Index([2], dtype='int64'), array([]))
                     (Int64Index([2], dtype='int64'), array([]))
                     (Int64Index([], dtype='int64'), array([0]))
-                    (Int64Index([], dtype='int64'), array([0])) ]
+                    (Int64Index([], dtype='int64'), array([0]))]
 
         for query, expected_result in zip(queries, expected):
             result = index.get_indexer_non_unique([query])
@@ -601,9 +601,12 @@ class TestIntervalIndex(Base):
         # multiple queries
         queries = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
         expected = [(Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
-                    (Int64Index([0, 1, 0, 1, 2, 2], dtype='int64'), np.array([]))
-                    (Int64Index([0, 1, 0, 1, 2, 2, -1], dtype='int64'), np.array([3]))
-                    (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], dtype='int64'), np.array([3])) ]
+                    (Int64Index([0, 1, 0, 1, 2, 2],
+                                dtype='int64'), np.array([]))
+                    (Int64Index([0, 1, 0, 1, 2, 2, -1],
+                                dtype='int64'), np.array([3]))
+                    (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2],
+                                dtype='int64'), np.array([3]))]
 
         for query, expected_result in zip(queries, expected):
             result = index.get_indexer_non_unique(query)
@@ -878,6 +881,7 @@ class TestIntervalRange(object):
             interval_range(0, 10, freq=Timedelta('1day'))
 
         pytest.raises(ValueError, f)
+
 
 class TestIntervalTree(object):
 
