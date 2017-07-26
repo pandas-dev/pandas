@@ -633,6 +633,118 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         res = self.read_html(out, index_col=0)[0]
         tm.assert_frame_equal(expected, res)
 
+    def test_colspan_rowspan_are_1(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                   <thead>
+                       <tr>
+                       <th colspan="1">X</th>
+                       <th>Y</th>
+                       <th rowspan="1">Z</th>
+                       <th>W</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                   </tbody>
+               </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_colspan_rowspan_are_more_than_1(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                            <tr>
+                            <th>1</th>
+                            <th>2</th>
+                            <th>2</th>
+                            <th></th>
+                            <th>3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                   <thead>
+                       <tr>
+                       <th colspan="2">X</th>
+                       <th>Y</th>
+                       <th rowspan="2">Z</th>
+                       <th>W</th>
+                       </tr>
+                       <tr>
+                       <th>1</th>
+                       <th colspan="2">2</th>
+                       <th>3</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                   </tbody>
+               </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_header_should_be_inferred_from_th_elements(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>4</td>
+                            <td>5</td>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                            <tr>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>4</td>
+                            <td>5</td>
+                    </table>"""
+        expected = self.read_html(expected)[0]  # header is explicit
+        res = self.read_html(out)[0]            # infer header
+        tm.assert_frame_equal(expected, res)
+        res2 = self.read_html(out, header=0)[0]  # manually set header
+        tm.assert_frame_equal(expected, res2)
+
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()
@@ -649,13 +761,6 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                              index_col=1)
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assertRaisesRegexp(ParserError, r"Passed header=\[0,1\] are "
-                                   "too many rows for this multi_index "
-                                   "of columns"):
-            self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):
         data = os.path.join(DATA_PATH, 'wikipedia_states.html')
@@ -872,8 +977,15 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
 
 def test_invalid_flavor():
     url = 'google.com'
+<< << << < HEAD:
+    pandas / io / tests / test_html.py
     with tm.assertRaises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flaver')
+== == == =
+    with pytest.raises(ValueError):
+        read_html(url, 'google', flavor='not a* valid**++ flavor')
+>>>>>> > 5818f804b... added rowspan / colspan / infer - header tests. removed test_computer_sales_page, which now appears to parse correctly.:
+    pandas / tests / io / test_html.py
 
 
 def get_elements_from_file(url, element='table'):
@@ -919,6 +1031,41 @@ def test_same_ordering():
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
 
+<< << << < HEAD:
+    pandas / io / tests / test_html.py
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
+== == == =
+
+
+class ErrorThread(threading.Thread):
+
+    def run(self):
+        try:
+            super(ErrorThread, self).run()
+        except Exception as e:
+            self.err = e
+        else:
+            self.err = None
+
+
+@pytest.mark.slow
+def test_importcheck_thread_safety():
+    # see gh-16928
+
+    # force import check by reinitalising global vars in html.py
+    reload(pandas.io.html)
+
+    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
+    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+
+    helper_thread1.start()
+    helper_thread2.start()
+
+    while helper_thread1.is_alive() or helper_thread2.is_alive():
+        pass
+    assert None is helper_thread1.err is helper_thread2.err
+>>>>>> > 5818f804b... added rowspan / colspan / infer - header tests. removed test_computer_sales_page, which now appears to parse correctly.:
+    pandas / tests / io / test_html.py
