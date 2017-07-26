@@ -19,13 +19,8 @@ from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, lfilter, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
-<< << << < HEAD
-from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
-== == == =
 from pandas.core.common import (AbstractMethodError, flatten)
 from pandas.io.formats.printing import pprint_thing
->>>>>> > b922af71b... read_html handles rowspan and colspan in tables, infers headers if < thead > is not specified
 
 _IMPORTS = False
 _HAS_BS4 = False

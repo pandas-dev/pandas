@@ -977,14 +977,8 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
 
 def test_invalid_flavor():
     url = 'google.com'
-<< << << < HEAD:
-    pandas / io / tests / test_html.py
-    with tm.assertRaises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
-== == == =
     with pytest.raises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flavor')
->>>>>> > 5818f804b... added rowspan / colspan / infer - header tests. removed test_computer_sales_page, which now appears to parse correctly.:
     pandas / tests / io / test_html.py
 
 
@@ -1031,12 +1025,9 @@ def test_same_ordering():
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
 
-<< << << < HEAD:
-    pandas / io / tests / test_html.py
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-== == == =
 
 
 class ErrorThread(threading.Thread):
@@ -1067,5 +1058,3 @@ def test_importcheck_thread_safety():
     while helper_thread1.is_alive() or helper_thread2.is_alive():
         pass
     assert None is helper_thread1.err is helper_thread2.err
->>>>>> > 5818f804b... added rowspan / colspan / infer - header tests. removed test_computer_sales_page, which now appears to parse correctly.:
-    pandas / tests / io / test_html.py
