@@ -1193,8 +1193,11 @@ class ParserBase(object):
 
         # validate header options for mi
         self.header = kwds.get('header')
-        if PY3 and isinstance(self.header, range):
-            self.header = list(self.header)
+        if PY3:
+            if isinstance(self.header, range):
+                self.header = list(self.header)
+            if isinstance(self.index_col, range):
+                self.index_col = list(self.index_col)
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
