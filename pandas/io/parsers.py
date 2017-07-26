@@ -943,6 +943,8 @@ class TextFileReader(BaseIterator):
         if _is_index_col(index_col):
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]
+        if PY3 and isinstance(index_col, range):
+            index_col = list(index_col)
         result['index_col'] = index_col
 
         names = list(names) if names is not None else names
@@ -1191,6 +1193,11 @@ class ParserBase(object):
 
         # validate header options for mi
         self.header = kwds.get('header')
+        if PY3:
+            if isinstance(self.header, range):
+                self.header = list(self.header)
+            if isinstance(self.index_col, range):
+                self.index_col = list(self.index_col)
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
@@ -1213,7 +1220,6 @@ class ParserBase(object):
                         is_integer(self.index_col)):
                     raise ValueError("index_col must only contain row numbers "
                                      "when specifying a multi-index header")
-
         # GH 16338
         elif self.header is not None and not is_integer(self.header):
             raise ValueError("header must be integer or list of integers")
