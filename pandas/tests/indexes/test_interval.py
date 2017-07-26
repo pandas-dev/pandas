@@ -3,9 +3,8 @@ from __future__ import division
 import pytest
 import numpy as np
 
-from pandas import (Interval, IntervalIndex, Index, isnull,
-                    interval_range, Timestamp, Timedelta,
-                    compat)
+from pandas import (Interval, IntervalIndex, Int64Index, Index, isnull,
+                    interval_range, Timestamp, Timedelta, compat)
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
@@ -576,30 +575,39 @@ class TestIntervalIndex(Base):
             tm.assert_numpy_array_equal(result, expect)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def get_indexer_nonunique_for_ints_and_floats_updated_behavior(self):
+    def get_indexer_non_unique_for_ints_and_floats_updated_behavior(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='left')
 
         # single queries
         queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-        expected = [[-1], [0], [0], [0, 1], [0, 1],
-                    [0, 1, 2], [1, 2], [2], [2], [-1], [-1]]
+        expected = [(Int64Index([], dtype='int64'), array([0]))
+                    (Int64Index([0], dtype='int64'), array([]))
+                    (Int64Index([0], dtype='int64'), array([]))
+                    (Int64Index([0, 1], dtype='int64'), array([]))
+                    (Int64Index([0, 1], dtype='int64'), array([]))
+                    (Int64Index([0, 1, 2], dtype='int64'), array([]))
+                    (Int64Index([1, 2], dtype='int64'), array([]))
+                    (Int64Index([2], dtype='int64'), array([]))
+                    (Int64Index([2], dtype='int64'), array([]))
+                    (Int64Index([], dtype='int64'), array([0]))
+                    (Int64Index([], dtype='int64'), array([0])) ]
 
         for query, expected_result in zip(queries, expected):
-            result = index.get_indexer_nonunique([query])
-            expect = np.array(expected_result, dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
-
-        queries = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
-        expected = [[0, 1, 0, 1, 2], [0, 1, 0, 1, 2, 2],
-                    [0, 1, 0, 1, 2, 2, -1], [0, 1, 0, 1, 2, 2, -1, 0, 1, 2]]  # should we use tuples here, e.g. [(0, 1), (0, 1, 2)]?
+            result = index.get_indexer_non_unique([query])
+            tm.assert_numpy_array_equal(result, expected_result)
 
         # multiple queries
+        queries = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
+        expected = [(Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
+                    (Int64Index([0, 1, 0, 1, 2, 2], dtype='int64'), np.array([]))
+                    (Int64Index([0, 1, 0, 1, 2, 2, -1], dtype='int64'), np.array([3]))
+                    (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], dtype='int64'), np.array([3])) ]
+
         for query, expected_result in zip(queries, expected):
-            result = index.get_indexer_nonunique(query)
-            expect = np.array(expected_result, dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
+            result = index.get_indexer_non_unique(query)
+            tm.assert_numpy_array_equal(result, expected_result)
 
         # we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
@@ -871,7 +879,6 @@ class TestIntervalRange(object):
 
         pytest.raises(ValueError, f)
 
-
 class TestIntervalTree(object):
 
     def setup_method(self, method):
@@ -899,6 +906,7 @@ class TestIntervalTree(object):
                 tree.get_indexer(np.array([3.0]))
 
     def test_get_indexer_non_unique(self):
+        # this might not be consistent with the new behavior anymore...
         indexer, missing = self.tree.get_indexer_non_unique(
             np.array([1.0, 2.0, 6.5]))
         tm.assert_numpy_array_equal(indexer[:1],
