@@ -122,7 +122,6 @@ class TestScalar(Base):
         tm.assert_series_equal(result, expected)
 
         result = df.iat[2, 0]
-        expected = 2
         assert result == 2
 
     def test_at_to_fail(self):
