@@ -459,6 +459,41 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
 
+    def test_margins_dtype(self):
+        # GH 17013
+
+        df = self.data.copy()
+        df[['D', 'E', 'F']] = np.arange(len(df) * 3).reshape(len(df), 3)
+
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [12, 21, 3, 9, 45],
+                              'shiny': [33, 0, 36, 51, 120]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = df.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=np.sum, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.xfail(reason='GH 17035 (len of floats is casted back to '
+                              'floats)')
+    def test_margins_dtype_len(self):
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [1, 1, 2, 1, 5],
+                              'shiny': [2, 0, 2, 2, 6]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = self.data.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=len, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
+
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
 
@@ -894,6 +929,8 @@ class TestPivotTable(object):
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
     def test_categorical_margins(self):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -904,14 +941,23 @@ class TestPivotTable(object):
         expected.index = Index([0, 1, 'All'], name='y')
         expected.columns = Index([0, 1, 'All'], name='z')
 
-        data = df.copy()
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
-        data = df.copy()
-        data.y = data.y.astype('category')
-        data.z = data.z.astype('category')
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
+    def test_categorical_margins_category(self):
+        df = pd.DataFrame({'x': np.arange(8),
+                           'y': np.arange(8) // 4,
+                           'z': np.arange(8) % 2})
+
+        expected = pd.DataFrame([[1.0, 2.0, 1.5], [5, 6, 5.5], [3, 4, 3.5]])
+        expected.index = Index([0, 1, 'All'], name='y')
+        expected.columns = Index([0, 1, 'All'], name='z')
+
+        df.y = df.y.astype('category')
+        df.z = df.z.astype('category')
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
     def test_categorical_aggfunc(self):
