@@ -10,7 +10,7 @@ import pytest
 
 import pandas.util.testing as tm
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, date_range
 from pandas.compat import StringIO
 
 
@@ -141,3 +141,20 @@ baz,7,8,9
         result = self.read_csv(StringIO(data), index_col=False)
         expected = DataFrame([], columns=['x', 'y'])
         tm.assert_frame_equal(result, expected)
+
+    def test_range_index_col(self):
+        cols = MultiIndex.from_arrays([['A', 'B', 'C'], ['foo', 'bar', 'baz']])
+        index = date_range('2016-01-02', periods=3, freq='D')
+        data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        df = DataFrame(data, index=index, columns=cols)
+
+        data = (",A,B,C\n"
+                ",foo,bar,baz\n"
+                "2016-01-02,1,2,3\n"
+                "2016-01-03,4,5,6\n"
+                "2016-01-04,7,8,9"
+                )
+        res = self.read_csv(StringIO(df.to_csv()),
+                            index_col=range(1),
+                            header=range(2))
+        tm.assert_frame_equal(df, res)
