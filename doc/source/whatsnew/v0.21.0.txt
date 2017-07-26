@@ -134,72 +134,70 @@ Dtype Conversions
 ^^^^^^^^^^^^^^^^^
 
 - Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to
-  same type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
+  same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s = Series([1, 2, 3])
+     s = Series([1, 2, 3])
 
-   .. code-block:: python
+  .. code-block:: python
 
-      In [5]: s[1] = True
+     In [5]: s[1] = True
 
-      In [6]: s
-      Out[6]:
-      0    1
-      1    1
-      2    3
-      dtype: int64
+     In [6]: s
+     Out[6]:
+     0    1
+     1    1
+     2    3
+     dtype: int64
 
-   New Behavior
+  New Behavior
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s[1] = True
-      s
+     s[1] = True
+     s
 
-- Previously as assignment to a datetimelike with a non-datetimelike would coerce the
+- Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
   non-datetime-like item being assigned (:issue:`14145`).
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+     s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
 
-   .. code-block:: python
+  .. code-block:: python
 
-      In [1]: s[1] = 1
+     In [1]: s[1] = 1
 
-      In [2]: s
-      Out[2]:
-      0   2011-01-01 00:00:00.000000000
-      1   1970-01-01 00:00:00.000000001
-      dtype: datetime64[ns]
+     In [2]: s
+     Out[2]:
+     0   2011-01-01 00:00:00.000000000
+     1   1970-01-01 00:00:00.000000001
+     dtype: datetime64[ns]
 
-   These now coerce to ``object`` dtype.
+  These now coerce to ``object`` dtype.
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s[1] = 1
-      s
+     s[1] = 1
+     s
 
-- Additional bug fixes w.r.t. dtype conversions.
-
-  - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
-   - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+- Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
 .. _whatsnew_0210.api.na_changes:
 
 NA naming Changes
 ^^^^^^^^^^^^^^^^^
 
-In orde to promote more consistency among the pandas API, we have added additional top-level
+In order to promote more consistency among the pandas API, we have added additional top-level
 functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
 The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
 in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
 named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
 ``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
 
-The configuration option ``mode.use_inf_as_null``is deprecated, and ``mode.use_inf_as_na`` is added as a replacement.
+The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
 
 .. _whatsnew_0210.api:
 
@@ -281,7 +279,7 @@ I/O
 
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
-- Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696, :issue:`16798`).
+- Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696`, :issue:`16798`).
 - Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
