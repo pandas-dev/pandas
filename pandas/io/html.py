@@ -16,11 +16,16 @@ from pandas.types.common import is_list_like
 from pandas.io.common import (EmptyDataError, _is_url, urlopen,
                               parse_url, _validate_header_arg)
 from pandas.io.parsers import TextParser
-from pandas.compat import (lrange, lmap, u, string_types, iteritems,
+from pandas.compat import (lrange, lmap, lfilter, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
+<< << << < HEAD
 from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
+== == == =
+from pandas.core.common import (AbstractMethodError, flatten)
+from pandas.io.formats.printing import pprint_thing
+>>>>>> > b922af71b... read_html handles rowspan and colspan in tables, infers headers if < thead > is not specified
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -175,13 +180,15 @@ class _HtmlFrameParser(object):
     -----
     To subclass this class effectively you must override the following methods:
         * :func:`_build_doc`
-        * :func:`_text_getter`
-        * :func:`_parse_td`
         * :func:`_parse_tables`
-        * :func:`_parse_tr`
-        * :func:`_parse_thead`
-        * :func:`_parse_tbody`
-        * :func:`_parse_tfoot`
+        * :func:`_text_getter`
+        * :func:`_equals_tag`
+        * :func:`_has_tag`
+        * :func:`_extract_td`
+        * :func:`_extract_tr`
+        * :func:`_extract_thead`
+        * :func:`_extract_tbody`
+        * :func:`_extract_tfoot`
     See each method's respective documentation for details on their
     functionality.
     """
@@ -195,59 +202,6 @@ class _HtmlFrameParser(object):
     def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
         return (self._build_table(table) for table in tables)
-
-    def _parse_raw_data(self, rows):
-        """Parse the raw data into a list of lists.
-
-        Parameters
-        ----------
-        rows : iterable of node-like
-            A list of row elements.
-
-        text_getter : callable
-            A callable that gets the text from an individual node. This must be
-            defined by subclasses.
-
-        column_finder : callable
-            A callable that takes a row node as input and returns a list of the
-            column node in that row. This must be defined by subclasses.
-
-        Returns
-        -------
-        data : list of list of strings
-        """
-        data = [[_remove_whitespace(self._text_getter(col)) for col in
-                 self._parse_td(row)] for row in rows]
-        return data
-
-    def _text_getter(self, obj):
-        """Return the text of an individual DOM node.
-
-        Parameters
-        ----------
-        obj : node-like
-            A DOM node.
-
-        Returns
-        -------
-        text : str or unicode
-            The text from an individual DOM node.
-        """
-        raise AbstractMethodError(self)
-
-    def _parse_td(self, obj):
-        """Return the td elements from a row element.
-
-        Parameters
-        ----------
-        obj : node-like
-
-        Returns
-        -------
-        columns : list of node-like
-            These are the elements of each row, i.e., the columns.
-        """
-        raise AbstractMethodError(self)
 
     def _parse_tables(self, doc, match, attrs):
         """Return all tables from the parsed DOM.
@@ -276,7 +230,73 @@ class _HtmlFrameParser(object):
         """
         raise AbstractMethodError(self)
 
-    def _parse_tr(self, table):
+    def _text_getter(self, obj):
+        """Return the text of an individual DOM node.
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        Returns
+        -------
+        text : str or unicode
+            The text from an individual DOM node.
+        """
+        raise AbstractMethodError(self)
+
+    def _equals_tag(self, obj, tag):
+        """Returns whether an individual DOM node matches a tag
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        tag : string
+            Tag to be checked for equality
+
+        Returns
+        -------
+        boolean
+            Does the object match tag 'tag'?
+        """
+        raise AbstractMethodError(self)
+
+    def _contains_tag(self, obj, tag):
+        """Returns whether an individual DOM node has a particular tag
+        contained within it
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        tag : string
+            Tag to be found in this DOM
+
+        Returns
+        -------
+        boolean
+            Does the object contain tag 'tag'?
+        """
+        raise AbstractMethodError(self)
+
+    def _extract_td(self, obj):
+        """Return the td elements from a row element.
+
+        Parameters
+        ----------
+        obj : node-like
+
+        Returns
+        -------
+        columns : list of node-like
+            These are the elements of each row, i.e., the columns.
+        """
+        raise AbstractMethodError(self)
+
+    def _extract_tr(self, table):
         """Return the list of row elements from the parsed table element.
 
         Parameters
@@ -291,7 +311,7 @@ class _HtmlFrameParser(object):
         """
         raise AbstractMethodError(self)
 
-    def _parse_thead(self, table):
+    def _extract_thead(self, table):
         """Return the header of a table.
 
         Parameters
@@ -306,7 +326,7 @@ class _HtmlFrameParser(object):
         """
         raise AbstractMethodError(self)
 
-    def _parse_tbody(self, table):
+    def _extract_tbody(self, table):
         """Return the body of the table.
 
         Parameters
@@ -321,7 +341,7 @@ class _HtmlFrameParser(object):
         """
         raise AbstractMethodError(self)
 
-    def _parse_tfoot(self, table):
+    def _extract_tfoot(self, table):
         """Return the footer of the table if any.
 
         Parameters
@@ -345,36 +365,148 @@ class _HtmlFrameParser(object):
         """
         raise AbstractMethodError(self)
 
-    def _build_table(self, table):
-        header = self._parse_raw_thead(table)
-        body = self._parse_raw_tbody(table)
-        footer = self._parse_raw_tfoot(table)
+    def _build_table(self, table_html):
+        header, body, footer = self._parse_raw_thead_tbody_tfoot(table_html)
+        # the above "footer" actually produces a footer. The below "footer"
+        # rarely does. The below "footer" is the legacy behavior and so I'm
+        # leaving it for the time being.
+        footer = self._parse_raw_tfoot(table_html)
         return header, body, footer
 
-    def _parse_raw_thead(self, table):
-        thead = self._parse_thead(table)
-        res = []
-        if thead:
-            res = lmap(self._text_getter, self._parse_th(thead[0]))
-        return np.atleast_1d(
-            np.array(res).squeeze()) if res and len(res) == 1 else res
+    def _parse_raw_thead_tbody_tfoot(self, table_html):
+        """Given a table, return parsed header, body, and foot.
+           Header and body are lists-of-lists. Top level list is a list of
+           rows. Each row is a list of parsed elements.
 
-    def _parse_raw_tfoot(self, table):
-        tfoot = self._parse_tfoot(table)
+           Logic: Use <thead>, <tbody>, <tfoot> elements to identify
+                  header, body, and footer, otherwise:
+                  - Put all rows into body
+                  - Move rows from top of body to header only if
+                    all elements inside row are <th>
+                  - Move rows from bottom of body to footer only if
+                    all elements inside row are <th>
+
+        Parameters
+        ----------
+        table_html : node-like
+            A single table element
+
+        Returns
+        -------
+        header, body, footer
+        header : list of list of node-like
+             List of rows, each of which is a list of parsed header elements
+        body : list of list of node-like
+             List of rows, each of which is a list of parsed body elements
+        footer : list of list of node-like
+             List of rows, each of which is a list of parsed footer elements
+        """
+        header_rows = []
+        body_rows = []
+        footer_rows = []
+        # first, are there thead and tbody elements in the table?
+        if (self._contains_tag(table_html, 'thead') and
+                self._contains_tag(table_html, 'tbody')):
+            header_rows = self._extract_tr(self._extract_thead(table_html)[0])
+            body_rows = self._extract_tr(self._extract_tbody(table_html)[0])
+            if self._contains_tag(table_html, 'tfoot'):
+                footer_rows = self._extract_tr(
+                    self._extract_tfoot(table_html)[0])
+        else:
+            # otherwise we need to split the body into header/body/foot
+            body_rows = self._extract_tr(table_html)
+            if body_rows == []:
+                # empty table, just return nothing
+                return [], [], []
+            # splitting criterion: if all tags within a row are th, it's part
+            # of the header/footer
+            while all(self._equals_tag(t, 'th') for t in
+                      self._extract_td(body_rows[0])):
+                # this row should be a header row, move it from body to header
+                header_rows.append(body_rows.pop(0))
+            while all(self._equals_tag(t, 'th') for t in
+                      self._extract_td(body_rows[-1])):
+                # this row should be a footer row, move it from body to footer
+                footer_rows.insert(0, body_rows.pop())
+        header = self._expand_colspan_rowspan(header_rows, fill_rowspan=False)
+        body = self._expand_colspan_rowspan(body_rows, fill_rowspan=True)
+        footer = self._expand_colspan_rowspan(footer_rows, fill_rowspan=False)
+        # the below line is lifted from _parse_raw_tfoot. Not sure what it
+        # does.
+        footer = np.atleast_1d(np.array(footer).squeeze(
+        )) if footer and len(footer) == 1 else footer
+        return header, body, footer
+
+    def _expand_colspan_rowspan(self, rows, fill_rowspan=True):
+        """Given a list of rows, return a list of rows that properly handle
+           colspan/rowspan
+
+        Discussion on behavior of fill_rowspan in #17073
+
+        Parameters
+        ----------
+        rows : list of list of node-like
+            List of rows, each of which is a list of nodes
+
+        fill_rowspan : boolean
+            Should a rowspan fill every item in the rowspan (True) or only the
+            bottommost element (False)?
+
+        Returns
+        -------
+        res : list of list of node-like
+            List of rows, each of which is a list of nodes, respecting
+            colspan/rowspan
+        """
+        res = []
+        saved_span = []
+        for row in rows:
+            extracted_row = self._extract_td(row)
+            cols_text = [_remove_whitespace(
+                self._text_getter(col)) for col in extracted_row]
+            col_colspans = [int(col.get('colspan', 1))
+                            for col in extracted_row]
+            col_rowspans = [int(col.get('rowspan', 1))
+                            for col in extracted_row]
+            # expand cols using col_colspans
+            # maybe this can be done with a list comprehension, dunno
+            cols = zip(
+                list(flatten(
+                    lmap(lambda (text, nc): [text] * nc,
+                         zip(cols_text, col_colspans)))),
+                list(flatten(
+                    lmap(lambda (nc, nr): [nr] * nc,
+                         zip(col_colspans, col_rowspans))))
+            )
+            # cols is now a list of (text, number of rows)
+            # now insert any previous rowspans
+            for (col, (text, nr)) in saved_span:
+                cols.insert(col, (text, nr))
+
+            # save next saved_span
+            def advance_item_to_next_row(item):
+                (col, (text, nr)) = item
+                if nr == 1:
+                    return None
+                else:
+                    # only keep the text around if fill_rowspan is set
+                    return (col, (text if fill_rowspan else '', nr - 1))
+            saved_span = lfilter(lambda i: i is not None,
+                                 lmap(advance_item_to_next_row,
+                                      list(enumerate(cols))))
+            cols = [text for (text, nr) in cols]
+            # generate cols with text only
+            if any([col != '' for col in cols]):
+                res.append(cols)
+        return res
+
+    def _parse_raw_tfoot(self, table_html):
+        tfoot = self._extract_tfoot(table_html)
         res = []
         if tfoot:
-            res = lmap(self._text_getter, self._parse_td(tfoot[0]))
+            res = lmap(self._text_getter, self._extract_td(tfoot[0]))
         return np.atleast_1d(
             np.array(res).squeeze()) if res and len(res) == 1 else res
-
-    def _parse_raw_tbody(self, table):
-        tbody = self._parse_tbody(table)
-
-        try:
-            res = self._parse_tr(tbody[0])
-        except IndexError:
-            res = self._parse_tr(table)
-        return self._parse_raw_data(res)
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
@@ -397,27 +529,6 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         from bs4 import SoupStrainer
         self._strainer = SoupStrainer('table')
 
-    def _text_getter(self, obj):
-        return obj.text
-
-    def _parse_td(self, row):
-        return row.find_all(('td', 'th'))
-
-    def _parse_tr(self, element):
-        return element.find_all('tr')
-
-    def _parse_th(self, element):
-        return element.find_all('th')
-
-    def _parse_thead(self, table):
-        return table.find_all('thead')
-
-    def _parse_tbody(self, table):
-        return table.find_all('tbody')
-
-    def _parse_tfoot(self, table):
-        return table.find_all('tfoot')
-
     def _parse_tables(self, doc, match, attrs):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
@@ -438,6 +549,33 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found matching pattern %r" %
                              match.pattern)
         return result
+
+    def _text_getter(self, obj):
+        return obj.text
+
+    def _equals_tag(self, obj, tag):
+        return obj.name == tag
+
+    def _contains_tag(self, obj, tag):
+        return obj.find(tag) is not None
+
+    def _extract_td(self, row):
+        return row.find_all(('td', 'th'))
+
+    def _extract_tr(self, element):
+        return element.find_all('tr')
+
+    def _extract_th(self, element):
+        return element.find_all('th')
+
+    def _extract_thead(self, table):
+        return table.find_all('thead')
+
+    def _extract_tbody(self, table):
+        return table.find_all('tbody')
+
+    def _extract_tfoot(self, table):
+        return table.find_all('tfoot')
 
     def _setup_build_doc(self):
         raw_text = _read(self.io)
@@ -498,16 +636,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def __init__(self, *args, **kwargs):
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
 
-    def _text_getter(self, obj):
-        return obj.text_content()
-
-    def _parse_td(self, row):
-        return row.xpath('.//td|.//th')
-
-    def _parse_tr(self, table):
-        expr = './/tr[normalize-space()]'
-        return table.xpath(expr)
-
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
 
@@ -526,6 +654,22 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if not tables:
             raise ValueError("No tables found matching regex %r" % pattern)
         return tables
+
+    def _equals_tag(self, obj, tag):
+        return obj.tag == tag
+
+    def _contains_tag(self, obj, tag):
+        return obj.find(tag) is not None
+
+    def _text_getter(self, obj):
+        return obj.text_content()
+
+    def _extract_td(self, row):
+        return row.xpath('.//td|.//th')
+
+    def _extract_tr(self, table):
+        expr = './/tr[normalize-space()]'
+        return table.xpath(expr)
 
     def _build_doc(self):
         """
@@ -581,19 +725,27 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
         return r
 
-    def _parse_tbody(self, table):
+    def _extract_tbody(self, table):
         return table.xpath('.//tbody')
 
-    def _parse_thead(self, table):
+    def _extract_thead(self, table):
         return table.xpath('.//thead')
 
-    def _parse_tfoot(self, table):
+    def _extract_tfoot(self, table):
         return table.xpath('.//tfoot')
 
     def _parse_raw_thead(self, table):
-        expr = './/thead//th'
-        return [_remove_whitespace(x.text_content()) for x in
-                table.xpath(expr)]
+        expr = './/thead'
+        thead = table.xpath(expr)
+        res = []
+        if thead:
+            trs = self._extract_tr(thead[0])
+            for tr in trs:
+                cols = [_remove_whitespace(x.text_content()) for x in
+                        self._extract_td(tr)]
+                if any([col != '' for col in cols]):
+                    res.append(cols)
+        return res
 
     def _parse_raw_tfoot(self, table):
         expr = './/tfoot//th|//tfoot//td'
