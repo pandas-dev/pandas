@@ -200,21 +200,10 @@ DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
                  margins_name='All'):
-    if not isinstance(margins_name, compat.string_types):
-        raise ValueError('margins_name argument must be a string')
 
-    exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
-    for level in table.index.names:
-        if margins_name in table.index.get_level_values(level):
-            raise ValueError(exception_msg)
+    _check_margins_name(margins_name, table)
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
-
-    # could be passed a Series object with no 'columns'
-    if hasattr(table, 'columns'):
-        for level in table.columns.names[1:]:
-            if margins_name in table.columns.get_level_values(level):
-                raise ValueError(exception_msg)
 
     if len(rows) > 1:
         key = (margins_name,) + ('',) * (len(rows) - 1)
@@ -262,6 +251,35 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     result.index.names = row_names
 
     return result
+
+
+def _check_margins_name(margins_name, table):
+    """
+    Checks if margins_name is a correct input argument for pivot_table
+    or crosstab.
+
+    Parameters
+    ----------
+
+    margins_name : string, default 'All'
+        Name of the row / column that will contain the totals
+        when margins is True.
+    table : DataFrame
+    """
+
+    if not isinstance(margins_name, compat.string_types):
+        raise ValueError('margins_name argument must be a string')
+
+    exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
+    for level in table.index.names:
+        if margins_name in table.index.get_level_values(level):
+            raise ValueError(exception_msg)
+
+    # could be passed a Series object with no 'columns'
+    if hasattr(table, 'columns'):
+        for level in table.columns.names[1:]:
+            if margins_name in table.columns.get_level_values(level):
+                raise ValueError(exception_msg)
 
 
 def _compute_grand_margin(data, values, aggfunc,
@@ -521,19 +539,56 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         kwargs = {'aggfunc': aggfunc}
 
     table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                           margins=margins, margins_name=margins_name,
+                           margins=False, margins_name=margins_name,
                            dropna=dropna, **kwargs)
 
     # GH 17013:
     if values is None and margins:
         table = table.fillna(0).astype(np.int64)
 
+    if margins:
+        _check_margins_name(margins_name, table)
+
+        if normalize != 'index':
+            # add margin column
+            table[margins_name] = table.sum(axis=1)
+
+        if normalize != 'columns':
+            # add margin row
+            if isinstance(table.index, MultiIndex):
+                # workaround for adding a margins row to a MultiIndex object
+                # to be removed when GH 17024 is fixed
+                new_index = _add_margins_to_multiindex(table.index,
+                                                       margins_name)
+                table.loc[margins_name] = table.sum(axis=0)
+                table.index = new_index
+            else:
+                table.loc[margins_name] = table.sum(axis=0)
     # Post-process
     if normalize is not False:
         table = _normalize(table, normalize=normalize, margins=margins,
                            margins_name=margins_name)
 
     return table
+
+
+def _add_margins_to_multiindex(index, margins_name):
+    # workaround for adding a margins row to a MultiIndex object
+    # to be removed when GH 17024 is fixed
+    levels = list(index.levels)
+    labels = list(index.labels)
+
+    levels[0] = levels[0].append(Index([margins_name]))
+    for i in range(1, len(levels)):
+        levels[i] = levels[i].append(Index(['']))
+    for i in range(len(labels)):
+        lbl = list(labels[i])
+        lbl.append(max(labels[i] + 1))
+        labels[i] = lbl
+
+    return MultiIndex(levels=levels,
+                      labels=labels,
+                      names=index.names)
 
 
 def _normalize(table, normalize, margins, margins_name='All'):
@@ -544,67 +599,32 @@ def _normalize(table, normalize, margins, margins_name='All'):
         try:
             normalize = axis_subs[normalize]
         except KeyError:
-            raise ValueError("Not a valid normalize argument")
+            raise ValueError(
+                "Not a valid normalize argument: {!r}".format(normalize))
+
+    # Actual Normalizations
+    normalizers = {
+        'columns': lambda x: x / x.sum(),
+        'index': lambda x: x.div(x.sum(axis=1), axis=0)
+    }
 
     if margins is False:
-
-        # Actual Normalizations
-        normalizers = {
-            'all': lambda x: x / x.sum(axis=1).sum(axis=0),
-            'columns': lambda x: x / x.sum(),
-            'index': lambda x: x.div(x.sum(axis=1), axis=0)
-        }
-
-        normalizers[True] = normalizers['all']
-
-        try:
-            f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
-
-        table = f(table)
-        table = table.fillna(0)
+        normalizers['all'] = lambda x: x / x.sum(axis=1).sum(axis=0)
 
     elif margins is True:
-
-        column_margin = table.loc[:, margins_name].drop(margins_name)
-        index_margin = table.loc[margins_name, :].drop(margins_name)
-        table = table.drop(margins_name, axis=1).drop(margins_name)
-        # to keep index and columns names
-        table_index_names = table.index.names
-        table_columns_names = table.columns.names
-
-        # Normalize core
-        table = _normalize(table, normalize=normalize, margins=False)
-
-        # Fix Margins
-        if normalize == 'columns':
-            column_margin = column_margin / column_margin.sum()
-            table = concat([table, column_margin], axis=1)
-            table = table.fillna(0)
-
-        elif normalize == 'index':
-            index_margin = index_margin / index_margin.sum()
-            table = table.append(index_margin)
-            table = table.fillna(0)
-
-        elif normalize == "all" or normalize is True:
-            column_margin = column_margin / column_margin.sum()
-            index_margin = index_margin / index_margin.sum()
-            index_margin.loc[margins_name] = 1
-            table = concat([table, column_margin], axis=1)
-            table = table.append(index_margin)
-
-            table = table.fillna(0)
-
-        else:
-            raise ValueError("Not a valid normalize argument")
-
-        table.index.names = table_index_names
-        table.columns.names = table_columns_names
+        # skip margin rows and cols for normalization
+        normalizers['all'] = lambda x: x / x.iloc[:-1, :-1].sum(axis=1)\
+                                                           .sum(axis=0)
 
     else:
-        raise ValueError("Not a valid margins argument")
+        raise ValueError("Not a valid margins argument: {!r}".format(margins))
+
+    normalizers[True] = normalizers['all']
+
+    f = normalizers[normalize]
+
+    table = f(table)
+    table = table.fillna(0)
 
     return table
 
