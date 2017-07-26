@@ -78,6 +78,7 @@ Other Enhancements
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+- :func:`read_html` handles colspan and rowspan arguments and attempts to infer a header if the header is not explicitly specified (:issue:`17054`)
 
 .. _whatsnew_0210.api_breaking:
 

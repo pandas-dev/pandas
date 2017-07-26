@@ -385,7 +385,7 @@ class TestReadHtml(ReadHtmlMixin):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isnull().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self):
@@ -394,7 +394,7 @@ class TestReadHtml(ReadHtmlMixin):
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isna().any() for _, s in df.iteritems())
+        assert not any(s.isnull().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
@@ -640,6 +640,118 @@ class TestReadHtml(ReadHtmlMixin):
         res = self.read_html(out, index_col=0)[0]
         tm.assert_frame_equal(expected, res)
 
+    def test_colspan_rowspan_are_1(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                   <thead>
+                       <tr>
+                       <th colspan="1">X</th>
+                       <th>Y</th>
+                       <th rowspan="1">Z</th>
+                       <th>W</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                   </tbody>
+               </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_colspan_rowspan_are_more_than_1(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                            <tr>
+                            <th>1</th>
+                            <th>2</th>
+                            <th>2</th>
+                            <th></th>
+                            <th>3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                   <thead>
+                       <tr>
+                       <th colspan="2">X</th>
+                       <th>Y</th>
+                       <th rowspan="2">Z</th>
+                       <th>W</th>
+                       </tr>
+                       <tr>
+                       <th>1</th>
+                       <th colspan="2">2</th>
+                       <th>3</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                   </tbody>
+               </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_header_should_be_inferred_from_th_elements(self):
+        expected = """<table>
+                        <thead>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>4</td>
+                            <td>5</td>
+                        </tbody>
+                    </table>"""
+        out = """<table>
+                            <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>W</th>
+                            </tr>
+                            <tr>
+                            <td>1</td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>4</td>
+                            <td>5</td>
+                    </table>"""
+        expected = self.read_html(expected)[0]  # header is explicit
+        res = self.read_html(out)[0]            # infer header
+        tm.assert_frame_equal(expected, res)
+        res2 = self.read_html(out, header=0)[0]  # manually set header
+        tm.assert_frame_equal(expected, res2)
+
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()
@@ -656,14 +768,6 @@ class TestReadHtml(ReadHtmlMixin):
                              index_col=1)
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assert_raises_regex(ParserError,
-                                    r"Passed header=\[0,1\] are "
-                                    r"too many rows for this "
-                                    r"multi_index of columns"):
-            self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):
         data = os.path.join(DATA_PATH, 'wikipedia_states.html')
@@ -891,7 +995,7 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 def test_invalid_flavor():
     url = 'google.com'
     with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
+        read_html(url, 'google', flavor='not a* valid**++ flavor')
 
 
 def get_elements_from_file(url, element='table'):
@@ -939,6 +1043,7 @@ def test_same_ordering():
 
 
 class ErrorThread(threading.Thread):
+
     def run(self):
         try:
             super(ErrorThread, self).run()
