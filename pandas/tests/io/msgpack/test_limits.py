@@ -1,10 +1,10 @@
 # coding: utf-8
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from pandas.io.msgpack import packb, unpackb, Packer, Unpacker, ExtType
 
 import pytest
-
-from pandas.io.msgpack import packb, unpackb, Packer, Unpacker, ExtType
+import pandas.util.testing as tm
 
 
 class TestLimits(object):
@@ -39,7 +39,10 @@ class TestLimits(object):
 
         unpacker = Unpacker(max_str_len=2, encoding='utf-8')
         unpacker.feed(packed)
-        pytest.raises(ValueError, unpacker.unpack)
+
+        msg = "3 exceeds max_str_len"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpacker.unpack()
 
     def test_max_bin_len(self):
         d = b'x' * 3
@@ -51,7 +54,10 @@ class TestLimits(object):
 
         unpacker = Unpacker(max_bin_len=2)
         unpacker.feed(packed)
-        pytest.raises(ValueError, unpacker.unpack)
+
+        msg = "3 exceeds max_bin_len"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpacker.unpack()
 
     def test_max_array_len(self):
         d = [1, 2, 3]
@@ -63,7 +69,10 @@ class TestLimits(object):
 
         unpacker = Unpacker(max_array_len=2)
         unpacker.feed(packed)
-        pytest.raises(ValueError, unpacker.unpack)
+
+        msg = "3 exceeds max_array_len"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpacker.unpack()
 
     def test_max_map_len(self):
         d = {1: 2, 3: 4, 5: 6}
@@ -75,7 +84,10 @@ class TestLimits(object):
 
         unpacker = Unpacker(max_map_len=2)
         unpacker.feed(packed)
-        pytest.raises(ValueError, unpacker.unpack)
+
+        msg = "3 exceeds max_map_len"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpacker.unpack()
 
     def test_max_ext_len(self):
         d = ExtType(42, b"abc")
@@ -87,4 +99,7 @@ class TestLimits(object):
 
         unpacker = Unpacker(max_ext_len=2)
         unpacker.feed(packed)
-        pytest.raises(ValueError, unpacker.unpack)
+
+        msg = "4 exceeds max_ext_len"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpacker.unpack()
