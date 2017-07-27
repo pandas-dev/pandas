@@ -3,12 +3,16 @@ from __future__ import print_function
 import glob
 import os
 import re
+import threading
 import warnings
 
+
+# imports needed for Python 3.x but will fail under Python 2.x
 try:
-    from importlib import import_module
+    from importlib import import_module, reload
 except ImportError:
     import_module = __import__
+
 
 from distutils.version import LooseVersion
 
@@ -22,6 +26,7 @@ from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
 from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows, PY3)
 from pandas.io.common import URLError, urlopen, file_path_to_url
+import pandas.io.html
 from pandas.io.html import read_html
 from pandas._libs.parsers import ParserError
 
@@ -130,7 +135,7 @@ class TestReadHtml(ReadHtmlMixin):
 
         assert_framelist_equal(df1, df2)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_banklist(self):
         df1 = self.read_html(self.banklist_data, '.*Florida.*',
                              attrs={'id': 'table'})
@@ -292,7 +297,7 @@ class TestReadHtml(ReadHtmlMixin):
         except ValueError as e:
             assert str(e) == 'No tables found'
 
-    @tm.slow
+    @pytest.mark.slow
     def test_file_url(self):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url), 'First',
@@ -301,7 +306,7 @@ class TestReadHtml(ReadHtmlMixin):
         for df in dfs:
             assert isinstance(df, DataFrame)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_invalid_table_attrs(self):
         url = self.banklist_data
         with tm.assert_raises_regex(ValueError, 'No tables found'):
@@ -312,39 +317,39 @@ class TestReadHtml(ReadHtmlMixin):
         return self.read_html(self.banklist_data, 'Metcalf',
                               attrs={'id': 'table'}, *args, **kwargs)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
         assert isinstance(df.columns, MultiIndex)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
         assert isinstance(df.index, MultiIndex)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
         assert isinstance(df.columns, MultiIndex)
         assert isinstance(df.index, MultiIndex)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_header_skiprows_tuples(self):
         df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
         assert isinstance(df.columns, Index)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_header_skiprows(self):
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
         assert isinstance(df.columns, MultiIndex)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
         assert isinstance(df.index, MultiIndex)
         assert isinstance(df.columns, MultiIndex)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_regex_idempotency(self):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url),
@@ -372,7 +377,7 @@ class TestReadHtml(ReadHtmlMixin):
         zz = [df.iloc[0, 0][0:4] for df in dfs]
         assert sorted(zz) == sorted(['Repo', 'What'])
 
-    @tm.slow
+    @pytest.mark.slow
     def test_thousands_macau_stats(self):
         all_non_nan_table_index = -2
         macau_data = os.path.join(DATA_PATH, 'macau.html')
@@ -380,16 +385,16 @@ class TestReadHtml(ReadHtmlMixin):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
-    @tm.slow
+    @pytest.mark.slow
     def test_thousands_macau_index_col(self):
         all_non_nan_table_index = -2
         macau_data = os.path.join(DATA_PATH, 'macau.html')
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
@@ -523,7 +528,7 @@ class TestReadHtml(ReadHtmlMixin):
         assert df.shape[0] == nrows
         tm.assert_index_equal(df.columns, columns)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_banklist_header(self):
         from pandas.io.html import _remove_whitespace
 
@@ -562,7 +567,7 @@ class TestReadHtml(ReadHtmlMixin):
                                                              coerce=True)
         tm.assert_frame_equal(converted, gtnew)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_gold_canyon(self):
         gc = 'Gold Canyon'
         with open(self.banklist_data, 'r') as f:
@@ -855,7 +860,7 @@ class TestReadHtmlLxml(ReadHtmlMixin):
         assert isinstance(dfs, list)
         assert isinstance(dfs[0], DataFrame)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_fallback_success(self):
         _skip_if_none_of(('bs4', 'html5lib'))
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
@@ -898,7 +903,7 @@ def get_elements_from_file(url, element='table'):
     return soup.find_all(element)
 
 
-@tm.slow
+@pytest.mark.slow
 def test_bs4_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     with warnings.catch_warnings():
@@ -913,13 +918,13 @@ def get_lxml_elements(url, element):
     return doc.xpath('.//{0}'.format(element))
 
 
-@tm.slow
+@pytest.mark.slow
 def test_lxml_finds_tables():
     filepath = os.path.join(DATA_PATH, "spam.html")
     assert get_lxml_elements(filepath, 'table')
 
 
-@tm.slow
+@pytest.mark.slow
 def test_lxml_finds_tbody():
     filepath = os.path.join(DATA_PATH, "spam.html")
     assert get_lxml_elements(filepath, 'tbody')
@@ -931,3 +936,32 @@ def test_same_ordering():
     dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
+
+
+class ErrorThread(threading.Thread):
+    def run(self):
+        try:
+            super(ErrorThread, self).run()
+        except Exception as e:
+            self.err = e
+        else:
+            self.err = None
+
+
+@pytest.mark.slow
+def test_importcheck_thread_safety():
+    # see gh-16928
+
+    # force import check by reinitalising global vars in html.py
+    reload(pandas.io.html)
+
+    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
+    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+
+    helper_thread1.start()
+    helper_thread2.start()
+
+    while helper_thread1.is_alive() or helper_thread2.is_alive():
+        pass
+    assert None is helper_thread1.err is helper_thread2.err

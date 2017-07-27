@@ -863,14 +863,14 @@ a code of ``-1``.
     s.cat.codes
 
 
-Methods for working with missing data, e.g. :meth:`~Series.isnull`, :meth:`~Series.fillna`,
+Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series.fillna`,
 :meth:`~Series.dropna`, all work normally:
 
 .. ipython:: python
 
     s = pd.Series(["a", "b", np.nan], dtype="category")
     s
-    pd.isnull(s)
+    pd.isna(s)
     s.fillna("a")
 
 Differences to R's `factor`

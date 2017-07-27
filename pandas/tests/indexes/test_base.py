@@ -16,7 +16,7 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, isnull)
+                    PeriodIndex, isna)
 from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
@@ -504,7 +504,7 @@ class TestIndex(Base):
     def test_asof(self):
         d = self.dateIndex[0]
         assert self.dateIndex.asof(d) == d
-        assert isnull(self.dateIndex.asof(d - timedelta(1)))
+        assert isna(self.dateIndex.asof(d - timedelta(1)))
 
         d = self.dateIndex[-1]
         assert self.dateIndex.asof(d + timedelta(1)) == d
@@ -1131,17 +1131,6 @@ class TestIndex(Base):
         with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
-    def test_get_indexer_consistency(self):
-        # See GH 16819
-        for name, index in self.indices.items():
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-
-            indexer, _ = index.get_indexer_non_unique(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
@@ -1417,6 +1406,15 @@ class TestIndex(Base):
         check_idx(Index(['qux', 'baz', 'foo', 'bar']))
         # Float64Index overrides isin, so must be checked separately
         check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
+
+    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    def test_isin_empty(self, empty):
+        # see gh-16991
+        idx = Index(["a", "b"])
+        expected = np.array([False, False])
+
+        result = idx.isin(empty)
+        tm.assert_numpy_array_equal(expected, result)
 
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
@@ -1848,7 +1846,7 @@ class TestMixedIntIndex(Base):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = idx.argsort()
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -1861,7 +1859,7 @@ class TestMixedIntIndex(Base):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = np.argsort(idx)
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):

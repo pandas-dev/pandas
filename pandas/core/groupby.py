@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     _ensure_categorical,
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.missing import isnull, notnull, _maybe_fill
+from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index)
@@ -530,10 +530,11 @@ class _GroupBy(PandasObject, SelectionMixin):
         if not self.grouper.is_monotonic:
             index = Index(np.concatenate(
                 self._get_indices(self.grouper.result_index)))
-            result.set_axis(self.axis, index)
+            result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        result.set_axis(self.axis, self.obj._get_axis(self.axis))
+        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis,
+                        inplace=True)
         return result
 
     def _dir_additions(self):
@@ -1167,7 +1168,7 @@ class GroupBy(_GroupBy):
             def first(x):
 
                 x = np.asarray(x)
-                x = x[notnull(x)]
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[0]
@@ -1182,7 +1183,7 @@ class GroupBy(_GroupBy):
             def last(x):
 
                 x = np.asarray(x)
-                x = x[notnull(x)]
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[-1]
@@ -2356,7 +2357,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def result_index(self):
-        if len(self.binlabels) != 0 and isnull(self.binlabels[0]):
+        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 
         return self.binlabels
@@ -3114,13 +3115,13 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notnull(x, *args, **kwargs):
+        def true_and_notna(x, *args, **kwargs):
             b = wrapper(x, *args, **kwargs)
-            return b and notnull(b)
+            return b and notna(b)
 
         try:
             indices = [self._get_index(name) for name, group in self
-                       if true_and_notnull(group)]
+                       if true_and_notna(group)]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
         except TypeError:
@@ -3142,9 +3143,9 @@ class SeriesGroupBy(GroupBy):
                 'val.dtype must be object, got %s' % val.dtype
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
-            _isnull = lambda a: a == -1
+            _isna = lambda a: a == -1
         else:
-            _isnull = isnull
+            _isna = isna
 
         ids, val = ids[sorter], val[sorter]
 
@@ -3154,7 +3155,7 @@ class SeriesGroupBy(GroupBy):
         inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = _isnull(val)
+        mask = _isna(val)
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -3316,7 +3317,7 @@ class SeriesGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
-        mask = (ids != -1) & ~isnull(val)
+        mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or None)
 
@@ -3870,7 +3871,7 @@ class NDFrameGroupBy(GroupBy):
             if res.shape == res_fast.shape:
                 res_r = res.values.ravel()
                 res_fast_r = res_fast.values.ravel()
-                mask = notnull(res_r)
+                mask = notna(res_r)
             if (res_r[mask] == res_fast_r[mask]).all():
                 path = fast_path
 
@@ -3950,8 +3951,8 @@ class NDFrameGroupBy(GroupBy):
                 pass
 
             # interpret the result of the filter
-            if is_bool(res) or (is_scalar(res) and isnull(res)):
-                if res and notnull(res):
+            if is_bool(res) or (is_scalar(res) and isna(res)):
+                if res and notna(res):
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -4204,13 +4205,13 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.core.dtypes.missing import _isnull_ndarraylike as isnull
+        from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = ((mask & ~isnull(blk.get_values())) for blk in data.blocks)
+        val = ((mask & ~isna(blk.get_values())) for blk in data.blocks)
         loc = (blk.mgr_locs for blk in data.blocks)
 
         counter = partial(count_level_2d, labels=ids, max_bin=ngroups, axis=1)

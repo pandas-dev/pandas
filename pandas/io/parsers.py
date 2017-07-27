@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
@@ -63,8 +63,6 @@ object with a read() method (such as a file handle or StringIO)
     file. For file URLs, a host is expected. For instance, a local file could
     be file ://localhost/path/to/table.csv
 %s
-delimiter : str, default ``None``
-    Alternative argument name for sep.
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\s+'``. If this option
@@ -316,7 +314,9 @@ _sep_doc = r"""sep : str, default {default}
     be used automatically. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``"""
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
+delimiter : str, default ``None``
+    Alternative argument name for sep."""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -341,15 +341,16 @@ colspecs : list of pairs (int, int) or 'infer'. optional
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
+delimiter : str, default ``'\t' + ' '``
+    Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 """
 
 _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame
 
 %s
-
-Also, 'delimiter' is used to specify the filler character of the
-fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
@@ -1531,7 +1532,7 @@ class ParserBase(object):
         if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isnull(result).sum()
+                na_count = isna(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
@@ -2330,10 +2331,16 @@ class PythonParser(ParserBase):
 
                 if not have_mi_columns and self.mangle_dupe_cols:
                     counts = {}
+
                     for i, col in enumerate(this_columns):
                         cur_count = counts.get(col, 0)
-                        if cur_count > 0:
-                            this_columns[i] = '%s.%d' % (col, cur_count)
+
+                        while cur_count > 0:
+                            counts[col] = cur_count + 1
+                            col = "%s.%d" % (col, cur_count)
+                            cur_count = counts.get(col, 0)
+
+                        this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
 

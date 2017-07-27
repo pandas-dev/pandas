@@ -8,7 +8,7 @@ with float64 data
 import numpy as np
 import warnings
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.common import _values_from_object, _maybe_match_name
 
@@ -146,10 +146,9 @@ class SparseSeries(Series):
                 data = data._data
 
             elif isinstance(data, (Series, dict)):
-                if index is None:
-                    index = data.index.view()
+                data = Series(data, index=index)
+                index = data.index.view()
 
-                data = Series(data)
                 res = make_sparse(data, kind=kind, fill_value=fill_value)
                 data, sparse_index, fill_value = res
 
@@ -173,7 +172,7 @@ class SparseSeries(Series):
             else:
                 length = len(index)
 
-                if data == fill_value or (isnull(data) and isnull(fill_value)):
+                if data == fill_value or (isna(data) and isna(fill_value)):
                     if kind == 'block':
                         sparse_index = BlockIndex(length, [], [])
                     else:
@@ -642,19 +641,21 @@ class SparseSeries(Series):
             new_array, index=self.index,
             sparse_index=new_array.sp_index).__finalize__(self)
 
-    @Appender(generic._shared_docs['isnull'])
-    def isnull(self):
-        arr = SparseArray(isnull(self.values.sp_values),
+    @Appender(generic._shared_docs['isna'])
+    def isna(self):
+        arr = SparseArray(isna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
-                          fill_value=isnull(self.fill_value))
+                          fill_value=isna(self.fill_value))
         return self._constructor(arr, index=self.index).__finalize__(self)
+    isnull = isna
 
-    @Appender(generic._shared_docs['isnotnull'])
-    def isnotnull(self):
-        arr = SparseArray(notnull(self.values.sp_values),
+    @Appender(generic._shared_docs['notna'])
+    def notna(self):
+        arr = SparseArray(notna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
-                          fill_value=notnull(self.fill_value))
+                          fill_value=notna(self.fill_value))
         return self._constructor(arr, index=self.index).__finalize__(self)
+    notnull = notna
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
@@ -666,7 +667,7 @@ class SparseSeries(Series):
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"
                                       " operations on a SparseSeries")
-        if isnull(self.fill_value):
+        if isna(self.fill_value):
             return dense_valid
         else:
             dense_valid = dense_valid[dense_valid != self.fill_value]
@@ -678,7 +679,7 @@ class SparseSeries(Series):
             return self.copy()
 
         # no special handling of fill values yet
-        if not isnull(self.fill_value):
+        if not isna(self.fill_value):
             shifted = self.to_dense().shift(periods, freq=freq,
                                             axis=axis)
             return shifted.to_sparse(fill_value=self.fill_value,
