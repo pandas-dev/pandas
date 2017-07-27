@@ -1702,7 +1702,7 @@ Reshaping
 - Bug in ``DataFrame.pivot_table()`` where ``dropna=True`` would not drop all-NaN columns when the columns was a ``category`` dtype (:issue:`15193`)
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
-- Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
+- Bug in ``pd.concat()`` in which concatenating with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
 - Bug in ``DataFrame.nsmallest`` and ``DataFrame.nlargest`` where identical values resulted in duplicated rows (:issue:`15297`)
 
