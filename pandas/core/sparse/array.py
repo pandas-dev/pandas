@@ -27,15 +27,15 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
     astype_nansafe, find_common_type)
-from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
+from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
-from pandas.core.sparse import libsparse as splib
-from pandas.core.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+import pandas._libs.sparse as splib
+from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
 
@@ -125,7 +125,7 @@ def _sparse_array_op(left, right, op, name, series=False):
             name = name[1:]
 
         if name in ('and', 'or') and dtype == 'bool':
-            opname = 'sparse_{name}_uint8'.format(name=name, dtype=dtype)
+            opname = 'sparse_{name}_uint8'.format(name=name)
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
@@ -391,8 +391,8 @@ class SparseArray(PandasObject, np.ndarray):
         Parameters
         ----------
         fill: float, default None
-            DEPRECATED: this argument will be removed in a future version
-            because it is not respected by this function.
+            .. deprecated:: 0.20.0
+               This argument is not respected by this function.
 
         Returns
         -------
@@ -579,12 +579,12 @@ class SparseArray(PandasObject, np.ndarray):
 
     @property
     def _null_fill_value(self):
-        return isnull(self.fill_value)
+        return isna(self.fill_value)
 
     @property
     def _valid_sp_values(self):
         sp_vals = self.sp_values
-        mask = notnull(sp_vals)
+        mask = notna(sp_vals)
         return sp_vals[mask]
 
     @Appender(_index_shared_docs['fillna'] % _sparray_doc_kwargs)
@@ -595,14 +595,11 @@ class SparseArray(PandasObject, np.ndarray):
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
 
-        if self._null_fill_value:
-            return self._simple_new(self.sp_values, self.sp_index,
-                                    fill_value=value)
-        else:
-            new_values = self.sp_values.copy()
-            new_values[isnull(new_values)] = value
-            return self._simple_new(new_values, self.sp_index,
-                                    fill_value=self.fill_value)
+        new_values = np.where(isna(self.sp_values), value, self.sp_values)
+        fill_value = value if self._null_fill_value else self.fill_value
+
+        return self._simple_new(new_values, self.sp_index,
+                                fill_value=fill_value)
 
     def sum(self, axis=0, *args, **kwargs):
         """
@@ -690,7 +687,7 @@ class SparseArray(PandasObject, np.ndarray):
                 pass
             else:
                 if self._null_fill_value:
-                    mask = pd.isnull(keys)
+                    mask = pd.isna(keys)
                 else:
                     mask = keys == self.fill_value
 
@@ -770,8 +767,8 @@ def make_sparse(arr, kind='block', fill_value=None):
     if fill_value is None:
         fill_value = na_value_for_dtype(arr.dtype)
 
-    if isnull(fill_value):
-        mask = notnull(arr)
+    if isna(fill_value):
+        mask = notna(arr)
     else:
         # For str arrays in NumPy 1.12.0, operator!= below isn't
         # element-wise but just returns False if fill_value is not str,

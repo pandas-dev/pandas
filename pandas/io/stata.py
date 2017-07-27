@@ -24,13 +24,14 @@ from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 import datetime
-from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
+from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
+from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
+                              _stringify_path)
 from pandas._libs.lib import max_len_string_array, infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
 
@@ -109,9 +110,11 @@ Read a Stata dta file in 10,000 line chunks:
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
 
-_data_method_doc = """Reads observations from Stata file, converting them into a dataframe
+_data_method_doc = """\
+Reads observations from Stata file, converting them into a dataframe
 
-This is a legacy method.  Use `read` in new code.
+    .. deprecated::
+       This is a legacy method.  Use `read` in new code.
 
 Parameters
 ----------
@@ -399,7 +402,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
         return DataFrame(d, index=index)
 
-    bad_loc = isnull(dates)
+    bad_loc = isna(dates)
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
@@ -976,6 +979,7 @@ class StataReader(StataParser, BaseIterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
+        path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _ = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
@@ -993,6 +997,7 @@ class StataReader(StataParser, BaseIterator):
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
+        self._setup_dtype()
 
     def __enter__(self):
         """ enter context manager """
@@ -1295,6 +1300,23 @@ class StataReader(StataParser, BaseIterator):
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
 
+    def _setup_dtype(self):
+        """Map between numpy and state dtypes"""
+        if self._dtype is not None:
+            return self._dtype
+
+        dtype = []  # Convert struct data types to numpy data type
+        for i, typ in enumerate(self.typlist):
+            if typ in self.NUMPY_TYPE_MAP:
+                dtype.append(('s' + str(i), self.byteorder +
+                              self.NUMPY_TYPE_MAP[typ]))
+            else:
+                dtype.append(('s' + str(i), 'S' + str(typ)))
+        dtype = np.dtype(dtype)
+        self._dtype = dtype
+
+        return self._dtype
+
     def _calcsize(self, fmt):
         return (type(fmt) is int and fmt or
                 struct.calcsize(self.byteorder + fmt))
@@ -1405,7 +1427,7 @@ class StataReader(StataParser, BaseIterator):
             self.GSO[str(v_o)] = va
 
     # legacy
-    @Appender('DEPRECATED: ' + _data_method_doc)
+    @Appender(_data_method_doc)
     def data(self, **kwargs):
 
         import warnings
@@ -1468,21 +1490,9 @@ class StataReader(StataParser, BaseIterator):
         if nrows is None:
             nrows = self.nobs
 
-        if (self.format_version >= 117) and (self._dtype is None):
+        if (self.format_version >= 117) and (not self._value_labels_read):
             self._can_read_value_labels = True
             self._read_strls()
-
-        # Setup the dtype.
-        if self._dtype is None:
-            dtype = []  # Convert struct data types to numpy data type
-            for i, typ in enumerate(self.typlist):
-                if typ in self.NUMPY_TYPE_MAP:
-                    dtype.append(('s' + str(i), self.byteorder +
-                                  self.NUMPY_TYPE_MAP[typ]))
-                else:
-                    dtype.append(('s' + str(i), 'S' + str(typ)))
-            dtype = np.dtype(dtype)
-            self._dtype = dtype
 
         # Read data
         dtype = self._dtype
@@ -1930,7 +1940,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = fname
+        self._fname = _stringify_path(fname)
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
 
     def _write(self, to_write):
@@ -1954,7 +1964,6 @@ class StataWriter(StataParser):
             return data
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
-        index = data.index
         data_formatted = []
         for col, col_is_cat in zip(data, is_cat):
             if col_is_cat:
@@ -1977,8 +1986,7 @@ class StataWriter(StataParser):
 
                 # Replace missing values with Stata missing value for type
                 values[values == -1] = get_base_missing_value(dtype)
-                data_formatted.append((col, values, index))
-
+                data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
         return DataFrame.from_items(data_formatted)

@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestDataFrameDataTypes(tm.TestCase, TestData):
+class TestDataFrameDataTypes(TestData):
 
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
@@ -28,14 +28,14 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df['c'] = df['c'].astype(np.float64)
 
         result = pd.concat([df, df])
-        self.assertEqual(result['a'].dtype, np.bool_)
-        self.assertEqual(result['b'].dtype, np.int32)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.bool_
+        assert result['b'].dtype == np.int32
+        assert result['c'].dtype == np.float64
 
         result = pd.concat([df, df.astype(np.float64)])
-        self.assertEqual(result['a'].dtype, np.object_)
-        self.assertEqual(result['b'].dtype, np.float64)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.object_
+        assert result['b'].dtype == np.float64
+        assert result['c'].dtype == np.float64
 
     def test_empty_frame_dtypes_ftypes(self):
         empty_df = pd.DataFrame()
@@ -104,7 +104,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                                              ('b', np.float_),
                                              ('c', np.float_)])))
 
-    def test_select_dtypes_include(self):
+    def test_select_dtypes_include_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -145,14 +145,10 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         ei = df[['h', 'i']]
         assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=['timedelta'])
-        ei = df[['k']]
-        assert_frame_equal(ri, ei)
-
         pytest.raises(NotImplementedError,
                       lambda: df.select_dtypes(include=['period']))
 
-    def test_select_dtypes_exclude(self):
+    def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -162,7 +158,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         ee = df[['a', 'e']]
         assert_frame_equal(re, ee)
 
-    def test_select_dtypes_exclude_include(self):
+    def test_select_dtypes_exclude_include_using_list_like(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
@@ -180,6 +176,114 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[['b', 'e']]
         assert_frame_equal(r, e)
+
+    def test_select_dtypes_include_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number)
+        ei = df[['b', 'c', 'd', 'k']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='datetime')
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='datetime64')
+        ei = df[['g']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include='category')
+        ei = df[['f']]
+        assert_frame_equal(ri, ei)
+
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(include='period'))
+
+    def test_select_dtypes_exclude_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(exclude=np.number)
+        ei = df[['a', 'e', 'f', 'g', 'h', 'i', 'j']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(exclude='category')
+        ei = df[['a', 'b', 'c', 'd', 'e', 'g', 'h', 'i', 'j', 'k']]
+        assert_frame_equal(ri, ei)
+
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(exclude='period'))
+
+    def test_select_dtypes_include_exclude_using_scalars(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number, exclude='floating')
+        ei = df[['b', 'c', 'k']]
+        assert_frame_equal(ri, ei)
+
+    def test_select_dtypes_include_exclude_mixed_scalars_lists(self):
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'i': pd.date_range('20130101', periods=3,
+                                           tz='CET'),
+                        'j': pd.period_range('2013-01', periods=3,
+                                             freq='M'),
+                        'k': pd.timedelta_range('1 day', periods=3)})
+
+        ri = df.select_dtypes(include=np.number,
+                              exclude=['floating', 'timedelta'])
+        ei = df[['b', 'c']]
+        assert_frame_equal(ri, ei)
+
+        ri = df.select_dtypes(include=[np.number, 'category'],
+                              exclude='floating')
+        ei = df[['b', 'c', 'f', 'k']]
+        assert_frame_equal(ri, ei)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
         df = DataFrame({'a': list('abc'),
@@ -200,18 +304,10 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(ValueError, 'at least one of include or '
-                                   'exclude must be nonempty'):
+        with tm.assert_raises_regex(ValueError, 'at least one of '
+                                    'include or exclude '
+                                    'must be nonempty'):
             df.select_dtypes()
-
-    def test_select_dtypes_raises_on_string(self):
-        df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
-            df.select_dtypes(include='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
-            df.select_dtypes(exclude='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
-            df.select_dtypes(include=int, exclude='object')
 
     def test_select_dtypes_bad_datetime64(self):
         df = DataFrame({'a': list('abc'),
@@ -220,10 +316,10 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(include=['datetime64[D]'])
 
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(exclude=['datetime64[as]'])
 
     def test_select_dtypes_datetime_with_tz(self):
@@ -251,11 +347,11 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         except NameError:
             pass
         for dt in string_dtypes:
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(include=[dt])
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(exclude=[dt])
 
     def test_select_dtypes_bad_arg_raises(self):
@@ -266,7 +362,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
+        with tm.assert_raises_regex(TypeError, 'data type.'
+                                    '*not understood'):
             df.select_dtypes(['blargy, blarg, blarg'])
 
     def test_select_dtypes_typecodes(self):
@@ -285,7 +382,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         assert_series_equal(result, expected)
 
         # compat, GH 8722
-        with option_context('use_inf_as_null', True):
+        with option_context('use_inf_as_na', True):
             df = DataFrame([[1]])
             result = df.dtypes
             assert_series_equal(result, Series({0: np.dtype('int64')}))
@@ -321,9 +418,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            self.assertEqual(
-                list(set([s.dtype.name
-                          for _, s in compat.iteritems(df)]))[0], v)
+            assert (list(set([s.dtype.name for
+                              _, s in compat.iteritems(df)]))[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
@@ -396,7 +492,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         for this_type in types:
             for this_val in values:
                 df = DataFrame([this_val])
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     df.astype(this_type)
 
     def test_astype_str(self):
@@ -438,8 +534,9 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
             expected = DataFrame(['1.12345678901'])
             assert_frame_equal(result, expected)
 
-    def test_astype_dict(self):
-        # GH7271
+    @pytest.mark.parametrize("dtype_class", [dict, Series])
+    def test_astype_dict_like(self, dtype_class):
+        # GH7271 & GH16717
         a = Series(date_range('2010-01-04', periods=5))
         b = Series(range(5))
         c = Series([0.0, 0.2, 0.4, 0.6, 0.8])
@@ -448,7 +545,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         original = df.copy(deep=True)
 
         # change type of a subset of columns
-        result = df.astype({'b': 'str', 'd': 'float32'})
+        dt1 = dtype_class({'b': 'str', 'd': 'float32'})
+        result = df.astype(dt1)
         expected = DataFrame({
             'a': a,
             'b': Series(['0', '1', '2', '3', '4']),
@@ -457,7 +555,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
         assert_frame_equal(df, original)
 
-        result = df.astype({'b': np.float32, 'c': 'float32', 'd': np.float64})
+        dt2 = dtype_class({'b': np.float32, 'c': 'float32', 'd': np.float64})
+        result = df.astype(dt2)
         expected = DataFrame({
             'a': a,
             'b': Series([0.0, 1.0, 2.0, 3.0, 4.0], dtype='float32'),
@@ -467,19 +566,31 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         assert_frame_equal(df, original)
 
         # change all columns
-        assert_frame_equal(df.astype({'a': str, 'b': str, 'c': str, 'd': str}),
+        dt3 = dtype_class({'a': str, 'b': str, 'c': str, 'd': str})
+        assert_frame_equal(df.astype(dt3),
                            df.astype(str))
         assert_frame_equal(df, original)
 
         # error should be raised when using something other than column labels
         # in the keys of the dtype dict
-        pytest.raises(KeyError, df.astype, {'b': str, 2: str})
-        pytest.raises(KeyError, df.astype, {'e': str})
+        dt4 = dtype_class({'b': str, 2: str})
+        dt5 = dtype_class({'e': str})
+        pytest.raises(KeyError, df.astype, dt4)
+        pytest.raises(KeyError, df.astype, dt5)
         assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the
         # resulting DataFrame should be the same as the original DataFrame
-        equiv = df.astype({col: df[col].dtype for col in df.columns})
+        dt6 = dtype_class({col: df[col].dtype for col in df.columns})
+        equiv = df.astype(dt6)
+        assert_frame_equal(df, equiv)
+        assert_frame_equal(df, original)
+
+        # GH 16717
+        # if dtypes provided is empty, the resulting DataFrame
+        # should be the same as the original DataFrame
+        dt7 = dtype_class({})
+        result = df.astype(dt7)
         assert_frame_equal(df, equiv)
         assert_frame_equal(df, original)
 
@@ -538,7 +649,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df.astype(np.int8, errors='ignore')
 
 
-class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
+class TestDataFrameDatetimeWithTZ(TestData):
 
     def test_interleave(self):
 
@@ -619,9 +730,9 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
 
         result = str(self.tzframe)
-        self.assertTrue('0 2013-01-01 2013-01-01 00:00:00-05:00 '
-                        '2013-01-01 00:00:00+01:00' in result)
-        self.assertTrue('1 2013-01-02                       '
-                        'NaT                       NaT' in result)
-        self.assertTrue('2 2013-01-03 2013-01-03 00:00:00-05:00 '
-                        '2013-01-03 00:00:00+01:00' in result)
+        assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                '2013-01-01 00:00:00+01:00') in result
+        assert ('1 2013-01-02                       '
+                'NaT                       NaT') in result
+        assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                '2013-01-03 00:00:00+01:00') in result

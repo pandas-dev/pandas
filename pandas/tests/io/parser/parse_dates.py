@@ -361,15 +361,15 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         # it works
         result = self.read_csv(data, index_col=0, parse_dates=True)
         stamp = result.index[0]
-        self.assertEqual(stamp.minute, 39)
+        assert stamp.minute == 39
         try:
             assert result.index.tz is pytz.utc
         except AssertionError:  # hello Yaroslav
             arr = result.index.to_pydatetime()
             result = tools.to_datetime(arr, utc=True)[0]
-            self.assertEqual(stamp.minute, result.minute)
-            self.assertEqual(stamp.hour, result.hour)
-            self.assertEqual(stamp.day, result.day)
+            assert stamp.minute == result.minute
+            assert stamp.hour == result.hour
+            assert stamp.day == result.day
 
     def test_multiple_date_cols_index(self):
         data = """
@@ -435,11 +435,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = """A,B,C
         1,2,2003-11-1"""
 
-        tm.assertRaisesRegexp(TypeError, errmsg, self.read_csv,
-                              StringIO(data), parse_dates="C")
-        tm.assertRaisesRegexp(TypeError, errmsg, self.read_csv,
-                              StringIO(data), parse_dates="C",
-                              index_col="C")
+        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
+                               StringIO(data), parse_dates="C")
+        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
+                               StringIO(data), parse_dates="C",
+                               index_col="C")
 
     def test_read_with_parse_dates_invalid_type(self):
         errmsg = ("Only booleans, lists, and "
@@ -448,19 +448,20 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = """A,B,C
         1,2,2003-11-1"""
 
-        tm.assertRaisesRegexp(TypeError, errmsg, self.read_csv,
-                              StringIO(data), parse_dates=(1,))
-        tm.assertRaisesRegexp(TypeError, errmsg, self.read_csv,
-                              StringIO(data), parse_dates=np.array([4, 5]))
-        tm.assertRaisesRegexp(TypeError, errmsg, self.read_csv,
-                              StringIO(data), parse_dates=set([1, 3, 3]))
+        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
+                               StringIO(data), parse_dates=(1,))
+        tm.assert_raises_regex(TypeError, errmsg,
+                               self.read_csv, StringIO(data),
+                               parse_dates=np.array([4, 5]))
+        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
+                               StringIO(data), parse_dates=set([1, 3, 3]))
 
     def test_parse_dates_empty_string(self):
         # see gh-2263
         data = "Date, test\n2012-01-01, 1\n,2"
         result = self.read_csv(StringIO(data), parse_dates=["Date"],
                                na_filter=False)
-        self.assertTrue(result['Date'].isnull()[1])
+        assert result['Date'].isna()[1]
 
     def test_parse_dates_noconvert_thousands(self):
         # see gh-14066
@@ -519,7 +520,7 @@ date, time,a,b
                              datetime(2008, 2, 4, 6, 8, 0)])
 
         result = conv.parse_date_time(dates, times)
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = """\
 date, time, a, b
@@ -531,7 +532,7 @@ date, time, a, b
                            parse_dates=datecols,
                            date_parser=conv.parse_date_time)
         assert 'date_time' in df
-        self.assertEqual(df.date_time.loc[0], datetime(2001, 1, 5, 10, 0, 0))
+        assert df.date_time.loc[0] == datetime(2001, 1, 5, 10, 0, 0)
 
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
                 "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
@@ -550,7 +551,7 @@ date, time, a, b
         days = np.array([3, 4])
         result = conv.parse_date_fields(years, months, days)
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = ("year, month, day, a\n 2001 , 01 , 10 , 10.\n"
                 "2001 , 02 , 1 , 11.")
@@ -559,7 +560,7 @@ date, time, a, b
                            parse_dates=datecols,
                            date_parser=conv.parse_date_fields)
         assert 'ymd' in df
-        self.assertEqual(df.ymd.loc[0], datetime(2001, 1, 10))
+        assert df.ymd.loc[0] == datetime(2001, 1, 10)
 
     def test_datetime_six_col(self):
         years = np.array([2007, 2008])
@@ -574,7 +575,7 @@ date, time, a, b
         result = conv.parse_all_fields(years, months, days,
                                        hours, minutes, seconds)
 
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = """\
 year, month, day, hour, minute, second, a, b
@@ -586,7 +587,7 @@ year, month, day, hour, minute, second, a, b
                            parse_dates=datecols,
                            date_parser=conv.parse_all_fields)
         assert 'ymdHMS' in df
-        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0))
+        assert df.ymdHMS.loc[0] == datetime(2001, 1, 5, 10, 0, 0)
 
     def test_datetime_fractional_seconds(self):
         data = """\
@@ -599,10 +600,10 @@ year, month, day, hour, minute, second, a, b
                            parse_dates=datecols,
                            date_parser=conv.parse_all_fields)
         assert 'ymdHMS' in df
-        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0,
-                                                    microsecond=123456))
-        self.assertEqual(df.ymdHMS.loc[1], datetime(2001, 1, 5, 10, 0, 0,
-                                                    microsecond=500000))
+        assert df.ymdHMS.loc[0] == datetime(2001, 1, 5, 10, 0, 0,
+                                            microsecond=123456)
+        assert df.ymdHMS.loc[1] == datetime(2001, 1, 5, 10, 0, 0,
+                                            microsecond=500000)
 
     def test_generic(self):
         data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
@@ -612,7 +613,7 @@ year, month, day, hour, minute, second, a, b
                            parse_dates=datecols,
                            date_parser=dateconverter)
         assert 'ym' in df
-        self.assertEqual(df.ym.loc[0], date(2001, 1, 1))
+        assert df.ym.loc[0] == date(2001, 1, 1)
 
     def test_dateparser_resolution_if_not_ns(self):
         # GH 10245

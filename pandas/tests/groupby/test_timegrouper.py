@@ -1,6 +1,7 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 import pytest
+import pytz
 
 from datetime import datetime
 import numpy as np
@@ -14,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(tm.TestCase):
+class TestGroupBy(object):
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -80,11 +81,11 @@ class TestGroupBy(tm.TestCase):
         for df in [df_original, df_sorted]:
             df = df.set_index('Date', drop=False)
             g = df.groupby(pd.TimeGrouper('6M'))
-            self.assertTrue(g.group_keys)
-            self.assertTrue(isinstance(g.grouper, pd.core.groupby.BinGrouper))
+            assert g.group_keys
+            assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
             groups = g.groups
-            self.assertTrue(isinstance(groups, dict))
-            self.assertTrue(len(groups) == 3)
+            assert isinstance(groups, dict)
+            assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
 
@@ -444,7 +445,7 @@ class TestGroupBy(tm.TestCase):
                         (3, np.datetime64('2012-07-04'))],
                        columns=['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3], Timestamp('2012-07-03'))
+        assert result['date'][3] == Timestamp('2012-07-03')
 
     def test_groupby_multi_timezone(self):
 
@@ -528,15 +529,15 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
 
-        self.assertTrue(issubclass(df[1].dtype.type, np.datetime64))
+        assert issubclass(df[1].dtype.type, np.datetime64)
 
         result = df.groupby(level=0).first()
         got_dt = result[1].dtype
-        self.assertTrue(issubclass(got_dt.type, np.datetime64))
+        assert issubclass(got_dt.type, np.datetime64)
 
         result = df[1].groupby(level=0).first()
         got_dt = result.dtype
-        self.assertTrue(issubclass(got_dt.type, np.datetime64))
+        assert issubclass(got_dt.type, np.datetime64)
 
     def test_groupby_max_datetime64(self):
         # GH 5869
@@ -569,16 +570,14 @@ class TestGroupBy(tm.TestCase):
         tm.assert_series_equal(df1, df2)
 
     def test_timezone_info(self):
-        # GH 11682
-        # Timezone info lost when broadcasting scalar datetime to DataFrame
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-11682: Timezone info lost when broadcasting
+        # scalar datetime to DataFrame
 
         df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
         df = pd.DataFrame({'a': [1, 2, 3]})
         df['b'] = datetime.now(pytz.utc)
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,
@@ -600,7 +599,7 @@ class TestGroupBy(tm.TestCase):
              'td': [nan, td(days=1), td(days=2), td(days=3), nan]})
         df_test.dt = pd.to_datetime(df_test.dt)
         df_test['group'] = 'A'
-        df_ref = df_test[df_test.dt.notnull()]
+        df_ref = df_test[df_test.dt.notna()]
 
         grouped_test = df_test.groupby('group')
         grouped_ref = df_ref.groupby('group')

@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries,
     ABCPeriodIndex, ABCIndexClass)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
@@ -28,7 +28,7 @@ from pandas._libs import (tslib as libts, lib,
 from pandas._libs.period import Period
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
 
@@ -857,7 +857,7 @@ class DatetimeIndexOpsMixin(object):
 
 def _ensure_datetimelike_to_i8(other):
     """ helper for coercing an input scalar or array to i8 """
-    if lib.isscalar(other) and isnull(other):
+    if lib.isscalar(other) and isna(other):
         other = iNaT
     elif isinstance(other, ABCIndexClass):
         # convert tz if needed

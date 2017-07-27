@@ -4,8 +4,8 @@ from __future__ import division
 
 import numpy as np
 
-from pandas.util.decorators import deprecate_kwarg
-from pandas.core.dtypes.missing import notnull
+from pandas.util._decorators import deprecate_kwarg
+from pandas.core.dtypes.missing import notna
 from pandas.compat import range, lrange, lmap, zip
 from pandas.io.formats.printing import pprint_thing
 
@@ -62,7 +62,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
-    mask = notnull(df)
+    mask = notna(df)
 
     marker = _get_marker_compat(marker)
 

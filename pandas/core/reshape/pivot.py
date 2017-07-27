@@ -6,6 +6,7 @@ from pandas.core.reshape.concat import concat
 from pandas import Series, DataFrame, MultiIndex, Index
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
+from pandas.core.index import _get_combined_index
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -50,26 +51,36 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     Examples
     --------
+    >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+    ...                          "bar", "bar", "bar", "bar"],
+    ...                    "B": ["one", "one", "one", "two", "two",
+    ...                          "one", "one", "two", "two"],
+    ...                    "C": ["small", "large", "large", "small",
+    ...                          "small", "large", "small", "small",
+    ...                          "large"],
+    ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
     >>> df
-       A   B   C      D
-    0  foo one small  1
-    1  foo one large  2
-    2  foo one large  2
-    3  foo two small  3
-    4  foo two small  3
-    5  bar one large  4
-    6  bar one small  5
-    7  bar two small  6
-    8  bar two large  7
+         A    B      C  D
+    0  foo  one  small  1
+    1  foo  one  large  2
+    2  foo  one  large  2
+    3  foo  two  small  3
+    4  foo  two  small  3
+    5  bar  one  large  4
+    6  bar  one  small  5
+    7  bar  two  small  6
+    8  bar  two  large  7
 
     >>> table = pivot_table(df, values='D', index=['A', 'B'],
     ...                     columns=['C'], aggfunc=np.sum)
     >>> table
-              small  large
-    foo  one  1      4
-         two  6      NaN
-    bar  one  5      4
-         two  6      7
+    ... # doctest: +NORMALIZE_WHITESPACE
+    C        large  small
+    A   B
+    bar one    4.0    5.0
+        two    7.0    6.0
+    foo one    4.0    1.0
+        two    NaN    6.0
 
     Returns
     -------
@@ -164,10 +175,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         if dropna:
-            data = data[data.notnull().all(axis=1)]
+            data = data[data.notna().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
-                             margins_name=margins_name)
+                             margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
     if values_passed and not values_multi and not table.empty and \
@@ -188,7 +199,7 @@ DataFrame.pivot_table = pivot_table
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
-                 margins_name='All'):
+                 margins_name='All', fill_value=None):
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
@@ -229,8 +240,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
-
-    row_margin = row_margin.reindex(result.columns)
+    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
         if isinstance(k, compat.string_types):
@@ -242,6 +252,9 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     row_names = result.index.names
     try:
+        for dtype in set(result.dtypes):
+            cols = result.select_dtypes([dtype]).columns
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
         result = result.append(margin_dummy)
     except TypeError:
 
@@ -301,8 +314,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(
-                        cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(piece._get_axis(
+                                   cat_axis)._to_safe_for_reshape(),
+                                   axis=cat_axis, inplace=True)
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -388,7 +402,8 @@ def _convert_by(by):
 
 
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
-             aggfunc=None, margins=False, dropna=True, normalize=False):
+             aggfunc=None, margins=False, margins_name='All', dropna=True,
+             normalize=False):
     """
     Compute a simple cross-tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -411,6 +426,12 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         If passed, must match number of column arrays passed
     margins : boolean, default False
         Add row/column margins (subtotals)
+    margins_name : string, default 'All'
+        Name of the row / column that will contain the totals
+        when margins is True.
+
+        .. versionadded:: 0.21.0
+
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
     normalize : boolean, {'all', 'index', 'columns'}, or {0,1}, default False
@@ -438,27 +459,27 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
     Examples
     --------
-    >>> a
-    array([foo, foo, foo, foo, bar, bar,
-           bar, bar, foo, foo, foo], dtype=object)
-    >>> b
-    array([one, one, one, two, one, one,
-           one, two, two, two, one], dtype=object)
-    >>> c
-    array([dull, dull, shiny, dull, dull, shiny,
-           shiny, dull, shiny, shiny, shiny], dtype=object)
+    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
+    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
+    >>> b = np.array(["one", "one", "one", "two", "one", "one",
+    ...               "one", "two", "two", "two", "one"], dtype=object)
+    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
+    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
+    ...               dtype=object)
 
-    >>> crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
-    b    one          two
-    c    dull  shiny  dull  shiny
+    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    ... # doctest: +NORMALIZE_WHITESPACE
+    b   one        two
+    c   dull shiny dull shiny
     a
-    bar  1     2      1     0
-    foo  2     2      1     2
+    bar    1     2    1     0
+    foo    2     2    1     2
 
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-                            # but they still will be counted in the output
+    ...                     # but they still will be counted in the output
+    ... # doctest: +SKIP
     col_0  d  e  f
     row_0
     a      1  0  0
@@ -476,6 +497,13 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
+    obs_idxes = [obj.index for objs in (index, columns) for obj in objs
+                 if hasattr(obj, 'index')]
+    if obs_idxes:
+        common_idx = _get_combined_index(obs_idxes, intersect=True)
+    else:
+        common_idx = None
+
     data = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
@@ -486,27 +514,27 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    df = DataFrame(data, index=common_idx)
     if values is None:
-        df = DataFrame(data)
         df['__dummy__'] = 0
-        table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=len, margins=margins, dropna=dropna)
-        table = table.fillna(0).astype(np.int64)
-
+        kwargs = {'aggfunc': len, 'fill_value': 0}
     else:
-        data['__dummy__'] = values
-        df = DataFrame(data)
-        table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=aggfunc, margins=margins, dropna=dropna)
+        df['__dummy__'] = values
+        kwargs = {'aggfunc': aggfunc}
+
+    table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
+                           margins=margins, margins_name=margins_name,
+                           dropna=dropna, **kwargs)
 
     # Post-process
     if normalize is not False:
-        table = _normalize(table, normalize=normalize, margins=margins)
+        table = _normalize(table, normalize=normalize, margins=margins,
+                           margins_name=margins_name)
 
     return table
 
 
-def _normalize(table, normalize, margins):
+def _normalize(table, normalize, margins, margins_name='All'):
 
     if not isinstance(normalize, bool) and not isinstance(normalize,
                                                           compat.string_types):
@@ -537,9 +565,9 @@ def _normalize(table, normalize, margins):
 
     elif margins is True:
 
-        column_margin = table.loc[:, 'All'].drop('All')
-        index_margin = table.loc['All', :].drop('All')
-        table = table.drop('All', axis=1).drop('All')
+        column_margin = table.loc[:, margins_name].drop(margins_name)
+        index_margin = table.loc[margins_name, :].drop(margins_name)
+        table = table.drop(margins_name, axis=1).drop(margins_name)
         # to keep index and columns names
         table_index_names = table.index.names
         table_columns_names = table.columns.names
@@ -561,7 +589,7 @@ def _normalize(table, normalize, margins):
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
             index_margin = index_margin / index_margin.sum()
-            index_margin.loc['All'] = 1
+            index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
             table = table.append(index_margin)
 

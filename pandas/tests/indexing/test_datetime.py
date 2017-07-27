@@ -1,12 +1,37 @@
-import pytest
-
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
 from pandas.util import testing as tm
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
+
+    def test_setitem_with_datetime_tz(self):
+        # 16889
+        # support .loc with alignment and tz-aware DatetimeIndex
+        mask = np.array([True, False, True, False])
+
+        idx = pd.date_range('20010101', periods=4, tz='UTC')
+        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+
+        result = df.copy()
+        result.loc[mask, :] = df.loc[mask, :]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[mask] = df.loc[mask]
+        tm.assert_frame_equal(result, df)
+
+        idx = pd.date_range('20010101', periods=4)
+        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+
+        result = df.copy()
+        result.loc[mask, :] = df.loc[mask, :]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[mask] = df.loc[mask]
+        tm.assert_frame_equal(result, df)
 
     def test_indexing_with_datetime_tz(self):
 
@@ -37,10 +62,10 @@ class TestDatetimeIndex(tm.TestCase):
         df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
         result = df.iloc[5]
         expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', freq='D')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.loc[5]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # indexing - boolean
         result = df[df.a > df.a[3]]
@@ -56,10 +81,12 @@ class TestDatetimeIndex(tm.TestCase):
             'US/Pacific')
 
         # trying to set a single element on a part of a different timezone
-        def f():
-            df.loc[df.new_col == 'new', 'time'] = v
+        # this converts to object
+        df2 = df.copy()
+        df2.loc[df2.new_col == 'new', 'time'] = v
 
-        pytest.raises(ValueError, f)
+        expected = Series([v[0], df.loc[1, 'time']], name='time')
+        tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v
@@ -129,7 +156,7 @@ class TestDatetimeIndex(tm.TestCase):
         # single element indexing
 
         # getitem
-        self.assertEqual(ser[index[1]], 1)
+        assert ser[index[1]] == 1
 
         # setitem
         result = ser.copy()
@@ -138,7 +165,7 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # .loc getitem
-        self.assertEqual(ser.loc[index[1]], 1)
+        assert ser.loc[index[1]] == 1
 
         # .loc setitem
         result = ser.copy()

@@ -9,7 +9,9 @@ def pytest_addoption(parser):
     parser.addoption("--skip-slow", action="store_true",
                      help="skip slow tests")
     parser.addoption("--skip-network", action="store_true",
-                     help="run network tests")
+                     help="skip network tests")
+    parser.addoption("--run-high-memory", action="store_true",
+                     help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
 
@@ -23,6 +25,18 @@ def pytest_runtest_setup(item):
 
     if 'network' in item.keywords and item.config.getoption("--skip-network"):
         pytest.skip("skipping due to --skip-network")
+
+    if 'high_memory' in item.keywords and not item.config.getoption(
+            "--run-high-memory"):
+        pytest.skip(
+            "skipping high memory test since --run-high-memory was not set")
+
+
+# Configurations for all tests and all test modules
+
+@pytest.fixture(autouse=True)
+def configure_tests():
+    pandas.set_option('chained_assignment', 'raise')
 
 
 # For running doctests: make np and pd names available
@@ -38,3 +52,13 @@ def spmatrix(request):
     tm._skip_if_no_scipy()
     from scipy import sparse
     return getattr(sparse, request.param + '_matrix')
+
+
+@pytest.fixture
+def ip():
+    """An instance of IPython.InteractiveShell.
+    Will raise a skip if IPython is not installed.
+    """
+    pytest.importorskip('IPython', minversion="6.0.0")
+    from IPython.core.interactiveshell import InteractiveShell
+    return InteractiveShell()

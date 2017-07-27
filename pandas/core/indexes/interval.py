@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pandas.core.dtypes.missing import notnull, isnull
+from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.generic import ABCPeriodIndex
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.common import (
@@ -28,7 +28,7 @@ from pandas._libs.interval import (
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
-from pandas.util.decorators import cache_readonly, Appender
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 
 import pandas.core.indexes.base as ibase
@@ -99,7 +99,10 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Properties
+    Warning: the indexing behaviors are provisional and may change in
+    a future version of pandas.
+
+    Attributes
     ----------
     left, right : array-like (1-dimensional)
         Left and right bounds for each interval.
@@ -110,6 +113,10 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+
+    See Also
+    --------
+    Index
     """
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -215,8 +222,8 @@ class IntervalIndex(IntervalMixin, Index):
             raise ValueError("invalid options for 'closed': %s" % self.closed)
         if len(self.left) != len(self.right):
             raise ValueError('left and right must have the same length')
-        left_mask = notnull(self.left)
-        right_mask = notnull(self.right)
+        left_mask = notna(self.left)
+        right_mask = notna(self.right)
         if not (left_mask == right_mask).all():
             raise ValueError('missing values must be missing in the same '
                              'location both left and right sides')
@@ -233,7 +240,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _isnan(self):
         """ return if each value is nan"""
         if self._mask is None:
-            self._mask = isnull(self.left)
+            self._mask = isna(self.left)
         return self._mask
 
     @cache_readonly
@@ -408,7 +415,7 @@ class IntervalIndex(IntervalMixin, Index):
         right = []
         for d in data:
 
-            if isnull(d):
+            if isna(d):
                 left.append(np.nan)
                 right.append(np.nan)
                 continue
@@ -1046,11 +1053,11 @@ def interval_range(start=None, end=None, freq=None, periods=None,
         if periods is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         start = end - periods * freq
-    elif end is None:
+    if end is None:
         if periods is None or start is None:
             raise ValueError("must specify 2 of start, end, periods")
         end = start + periods * freq
-    elif periods is None:
+    if periods is None:
         if start is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         pass

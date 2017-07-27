@@ -137,8 +137,10 @@ usecols : array-like or callable, default ``None``
 
   Using this parameter results in much faster parsing time and lower memory usage.
 as_recarray : boolean, default ``False``
-  DEPRECATED: this argument will be removed in a future version. Please call
-  ``pd.read_csv(...).to_records()`` instead.
+
+  .. deprecated:: 0.18.2
+
+     Please call ``pd.read_csv(...).to_records()`` instead.
 
   Return a NumPy recarray instead of a DataFrame after parsing the data. If
   set to ``True``, this option takes precedence over the ``squeeze`` parameter.
@@ -191,7 +193,11 @@ skiprows : list-like or integer, default ``None``
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 skip_footer : int, default ``0``
-  DEPRECATED: use the ``skipfooter`` parameter instead, as they are identical
+
+  .. deprecated:: 0.19.0
+
+     Use the ``skipfooter`` parameter instead, as they are identical
+
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
 low_memory : boolean, default ``True``
@@ -202,16 +208,25 @@ low_memory : boolean, default ``True``
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
 buffer_lines : int, default None
-    DEPRECATED: this argument will be removed in a future version because its
-    value is not respected by the parser
+
+  .. deprecated:: 0.19.0
+
+     Argument removed because its value is not respected by the parser
+     
 compact_ints : boolean, default False
-  DEPRECATED: this argument will be removed in a future version
+
+  .. deprecated:: 0.19.0
+
+     Argument moved to ``pd.to_numeric``
 
   If ``compact_ints`` is ``True``, then for any column that is of integer dtype, the
   parser will attempt to cast it as the smallest integer ``dtype`` possible, either
   signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
 use_unsigned : boolean, default False
-  DEPRECATED: this argument will be removed in a future version
+
+  .. deprecated:: 0.18.2
+
+     Argument moved to ``pd.to_numeric``
 
   If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
   the column should be compacted to the smallest signed or unsigned integer dtype.
@@ -225,9 +240,9 @@ NA and Missing Data Handling
 
 na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
-  NA values. By default the following values are interpreted as NaN:
-  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
-  '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''``.
+  NA values. See :ref:`na values const <io.navaluesconst>` below
+  for a list of the values interpreted as NaN by default.
+
 keep_default_na : boolean, default ``True``
   If na_values are specified and keep_default_na is ``False`` the default NaN
   values are overridden, otherwise they're appended to.
@@ -712,6 +727,16 @@ index column inference and discard the last column, pass ``index_col=False``:
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
 
+If a subset of data is being parsed using the ``usecols`` option, the
+``index_col`` specification is based on that subset, not the original data.
+
+.. ipython:: python
+
+    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    print(data)
+    pd.read_csv(StringIO(data), usecols=['b', 'c'])
+    pd.read_csv(StringIO(data), usecols=['b', 'c'], index_col=0)
+
 .. _io.parse_dates:
 
 Date Handling
@@ -1020,10 +1045,11 @@ the corresponding equivalent values will also imply a missing value (in this cas
 ``[5.0,5]`` are recognized as ``NaN``.
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
-The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A','N/A', 'NA',
-'#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan']``. Although a 0-length string
-``''`` is not included in the default ``NaN`` values list, it is still treated
-as a missing value.
+
+.. _io.navaluesconst:
+
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
+'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
 
 .. code-block:: python
 
@@ -1232,7 +1258,8 @@ Files with Fixed Width Columns
 
 While ``read_csv`` reads delimited data, the :func:`read_fwf` function works
 with data files that have known and fixed column widths. The function parameters
-to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
+to ``read_fwf`` are largely the same as `read_csv` with two extra parameters, and
+a different usage of the ``delimiter`` parameter:
 
   - ``colspecs``: A list of pairs (tuples) giving the extents of the
     fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -1241,6 +1268,9 @@ to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
     behaviour, if not specified, is to infer.
   - ``widths``: A list of field widths which can be used instead of 'colspecs'
     if the intervals are contiguous.
+  - ``delimiter``: Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 
 .. ipython:: python
    :suppress:
@@ -1438,6 +1468,14 @@ class of the csv module. For this, you have to specify ``sep=None``.
 
     print(open('tmp2.sv').read())
     pd.read_csv('tmp2.sv', sep=None, engine='python')
+
+.. _io.multiple_files:
+
+Reading multiple files to create a single DataFrame
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+It's best to use :func:`~pandas.concat` to combine multiple files.
+See the :ref:`cookbook<cookbook.csv.multiple_files>` for an example.
 
 .. _io.chunking:
 
@@ -2553,12 +2591,12 @@ Reading Excel Files
 '''''''''''''''''''
 
 In the most basic use-case, ``read_excel`` takes a path to an Excel
-file, and the ``sheetname`` indicating which sheet to parse.
+file, and the ``sheet_name`` indicating which sheet to parse.
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheetname='Sheet1')
+   read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2626,12 +2664,12 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
 Specifying Sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``
 
 .. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
-- The arguments ``sheetname`` allows specifying the sheet or sheets to read.
-- The default value for ``sheetname`` is 0, indicating to read the first sheet
+- The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
+- The default value for ``sheet_name`` is 0, indicating to read the first sheet
 - Pass a string to refer to the name of a particular sheet in the workbook.
 - Pass an integer to refer to the index of a sheet. Indices follow Python
   convention, beginning at 0.
@@ -2662,18 +2700,18 @@ Using None to get all sheets:
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls',sheetname=None)
+   read_excel('path_to_file.xls',sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+   read_excel('path_to_file.xls',sheet_name=['Sheet1',3])
 
 .. versionadded:: 0.16
 
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
 
 .. versionadded:: 0.13
@@ -2730,11 +2768,6 @@ should be passed to ``index_col`` and ``header``
 
    import os
    os.remove('path_to_file.xlsx')
-
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
 
 
 Parsing Specific Columns
@@ -3165,7 +3198,7 @@ You can pass ``iterator=True`` to iterate over the unpacked results
 .. ipython:: python
 
    for o in pd.read_msgpack('foo.msg',iterator=True):
-       print o
+       print(o)
 
 You can pass ``append=True`` to the writer to append to an existing pack
 
@@ -3393,7 +3426,7 @@ Fixed Format
    This was prior to 0.13.0 the ``Storer`` format.
 
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
-the ``fixed`` format. These types of stores are are **not** appendable once written (though you can simply
+the ``fixed`` format. These types of stores are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety. They also do not support dataframes with non-unique column names.
 The ``fixed`` format stores offer very fast writing and slightly faster reading than ``table`` stores.
@@ -3883,7 +3916,7 @@ chunks.
    evens = [2,4,6,8,10]
    coordinates = store.select_as_coordinates('dfeq','number=evens')
    for c in chunks(coordinates, 2):
-        print store.select('dfeq',where=c)
+        print(store.select('dfeq',where=c))
 
 Advanced Queries
 ++++++++++++++++
@@ -4053,26 +4086,64 @@ Compression
 +++++++++++
 
 ``PyTables`` allows the stored data to be compressed. This applies to
-all kinds of stores, not just tables.
+all kinds of stores, not just tables. Two parameters are used to
+control compression: ``complevel`` and ``complib``.
 
-- Pass ``complevel=int`` for a compression level (1-9, with 0 being no
-  compression, and the default)
-- Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for
-  whichever compression library you prefer.
+``complevel`` specifies if and how hard data is to be compressed.
+              ``complevel=0`` and ``complevel=None`` disables
+              compression and ``0<complevel<10`` enables compression.
+              
+``complib`` specifies which compression library to use. If nothing is
+            specified the default library ``zlib`` is used. A
+            compression library usually optimizes for either good
+            compression rates or speed and the results will depend on
+            the type of data. Which type of
+            compression to choose depends on your specific needs and
+            data. The list of supported compression libraries:
 
-``HDFStore`` will use the file based compression scheme if no overriding
-``complib`` or ``complevel`` options are provided. ``blosc`` offers very
-fast compression, and is my most used. Note that ``lzo`` and ``bzip2``
-may not be installed (by Python) by default.
+             - `zlib <http://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
+             - `lzo <http://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
+             - `bzip2 <http://bzip.org/>`_: Good compression rates.
+             - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
-Compression for all objects within the file
+             .. versionadded:: 0.20.2
+                               
+                Support for alternative blosc compressors:
+                  
+                - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+                  default compressor for ``blosc``
+                - `blosc:lz4
+                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+                  A compact, very popular and fast compressor.
+                - `blosc:lz4hc
+                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+                  A tweaked version of LZ4, produces better
+                  compression ratios at the expense of speed.
+                - `blosc:snappy <https://google.github.io/snappy/>`_:
+                  A popular compressor used in many places.
+                - `blosc:zlib <http://zlib.net/>`_: A classic;
+                  somewhat slower than the previous ones, but
+                  achieving better compression ratios.
+                - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
+                  extremely well balanced codec; it provides the best
+                  compression ratios among the others above, and at
+                  reasonably fast speed.
+
+             If ``complib`` is defined as something other than the
+             listed libraries a ``ValueError`` exception is issued.
+
+.. note::
+
+   If the library specified with the ``complib`` option is missing on your platform,
+   compression defaults to ``zlib`` without further ado.
+
+Enable compression for all objects within the file:
 
 .. code-block:: python
 
-   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc')
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc:blosclz')
 
-Or on-the-fly compression (this only applies to tables). You can turn
-off file compression for a specific table by passing ``complevel=0``
+Or on-the-fly compression (this only applies to tables) in stores where compression is not enabled:
 
 .. code-block:: python
 
@@ -4407,34 +4478,6 @@ Performance
   `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
   for more information and some solutions.
 
-Experimental
-''''''''''''
-
-HDFStore supports ``Panel4D`` storage.
-
-.. ipython:: python
-   :okwarning:
-
-   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
-   p4d = pd.Panel4D({ 'l1' : wp })
-   p4d
-   store.append('p4d', p4d)
-   store
-
-These, by default, index the three axes ``items, major_axis,
-minor_axis``. On an ``AppendableTable`` it is possible to setup with the
-first append a different indexing scheme, depending on how you want to
-store your data. Pass the ``axes`` keyword with a list of dimensions
-(currently must by exactly 1 less than the total dimensions of the
-object). This cannot be changed after table creation.
-
-.. ipython:: python
-   :okwarning:
-
-   store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:
@@ -4849,7 +4892,7 @@ pandas integrates with this external package. if ``pandas-gbq`` is installed, yo
 use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
 respective functions from ``pandas-gbq``.
 
-Full cocumentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
+Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _io.stata:
 

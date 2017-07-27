@@ -12,9 +12,9 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_joins(self):
@@ -24,7 +24,7 @@ class TestPeriodIndex(tm.TestCase):
             joined = index.join(index[:-5], how=kind)
 
             assert isinstance(joined, PeriodIndex)
-            self.assertEqual(joined.freq, index.freq)
+            assert joined.freq == index.freq
 
     def test_join_self(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
@@ -112,7 +112,7 @@ class TestPeriodIndex(tm.TestCase):
             index.union(index2)
 
         msg = 'can only call with other PeriodIndex-ed objects'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
@@ -172,8 +172,8 @@ class TestPeriodIndex(tm.TestCase):
                                 (rng4, expected4)]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         # non-monotonic
         base = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-02',
@@ -198,16 +198,16 @@ class TestPeriodIndex(tm.TestCase):
                                 (rng4, expected4)]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, 'D')
+            assert result.name == expected.name
+            assert result.freq == 'D'
 
         # empty same freq
         rng = date_range('6/1/2000', '6/15/2000', freq='T')
         result = rng[0:0].intersection(rng)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         result = rng.intersection(rng[0:0])
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_difference(self):
         # diff

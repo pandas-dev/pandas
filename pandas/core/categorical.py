@@ -10,7 +10,7 @@ from pandas._libs import lib, algos as libalgos
 
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     coerce_indexer_dtype)
@@ -34,11 +34,11 @@ from pandas.core.base import (PandasObject, PandasDelegate,
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (
+    Appender, cache_readonly, deprecate_kwarg, Substitution)
 
-from pandas.util.terminal import get_terminal_size
-from pandas.util.validators import validate_bool_kwarg
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core.config import get_option
 
 
@@ -55,17 +55,31 @@ def _cat_compare_op(op):
                                 "equality or not")
         if isinstance(other, Categorical):
             # Two Categoricals can only be be compared if the categories are
-            # the same
-            if ((len(self.categories) != len(other.categories)) or
-                    not ((self.categories == other.categories).all())):
-                raise TypeError("Categoricals can only be compared if "
-                                "'categories' are the same")
+            # the same (maybe up to ordering, depending on ordered)
+
+            msg = ("Categoricals can only be compared if "
+                   "'categories' are the same.")
+            if len(self.categories) != len(other.categories):
+                raise TypeError(msg + " Categories are different lengths")
+            elif (self.ordered and not (self.categories ==
+                                        other.categories).all()):
+                raise TypeError(msg)
+            elif not set(self.categories) == set(other.categories):
+                raise TypeError(msg)
+
             if not (self.ordered == other.ordered):
                 raise TypeError("Categoricals can only be compared if "
                                 "'ordered' is the same")
-            na_mask = (self._codes == -1) | (other._codes == -1)
+            if not self.ordered and not self.categories.equals(
+                    other.categories):
+                # both unordered and different order
+                other_codes = _get_codes_for_values(other, self.categories)
+            else:
+                other_codes = other._codes
+
+            na_mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
-            ret = f(other._codes)
+            ret = f(other_codes)
             if na_mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[na_mask] = False
@@ -276,7 +290,7 @@ class Categorical(PandasObject):
                 # On list with NaNs, int values will be converted to float. Use
                 # "object" dtype to prevent this. In the end objects will be
                 # casted to int/... in the category assignment step.
-                dtype = 'object' if isnull(values).any() else None
+                dtype = 'object' if isna(values).any() else None
                 values = _sanitize_array(values, None, dtype=dtype)
 
         if categories is None:
@@ -328,6 +342,13 @@ class Categorical(PandasObject):
         self._categories = categories
         self._codes = coerce_indexer_dtype(codes, categories)
 
+    def __dir__(self):
+        # Avoid IPython warnings for deprecated properties
+        # https://github.com/pandas-dev/pandas/issues/16409
+        rv = set(dir(type(self)))
+        rv.discard("labels")
+        return sorted(rv)
+
     @property
     def _constructor(self):
         return Categorical
@@ -377,8 +398,8 @@ class Categorical(PandasObject):
 
     def reshape(self, new_shape, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error in a future release.
 
         An ndarray-compatible method that returns `self` because
         `Categorical` instances cannot actually be reshaped.
@@ -409,7 +430,8 @@ class Categorical(PandasObject):
     @classmethod
     def from_array(cls, data, **kwargs):
         """
-        DEPRECATED: Use ``Categorical`` instead.
+        .. deprecated:: 0.19.0
+           Use ``Categorical`` instead.
 
         Make a Categorical type from a single array-like object.
 
@@ -533,12 +555,15 @@ class Categorical(PandasObject):
         if not isinstance(categories, ABCIndexClass):
             dtype = None
             if not hasattr(categories, "dtype"):
+                if not is_list_like(categories):
+                    raise TypeError("`categories` must be list-like. "
+                                    "Got {} instead".format(repr(categories)))
                 categories = _convert_to_list_like(categories)
                 # On categories with NaNs, int values would be converted to
                 # float. Use "object" dtype to prevent this.
-                if isnull(categories).any():
+                if isna(categories).any():
                     without_na = np.array([x for x in categories
-                                           if notnull(x)])
+                                           if notna(x)])
                     with_na = np.array(categories)
                     if with_na.dtype != without_na.dtype:
                         dtype = "object"
@@ -916,9 +941,9 @@ class Categorical(PandasObject):
         new_categories = [c for c in self._categories if c not in removal_set]
 
         # GH 10156
-        if any(isnull(removals)):
-            not_included = [x for x in not_included if notnull(x)]
-            new_categories = [x for x in new_categories if notnull(x)]
+        if any(isna(removals)):
+            not_included = [x for x in not_included if notna(x)]
+            new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
             raise ValueError("removals must all be in old categories: %s" %
@@ -1128,7 +1153,7 @@ class Categorical(PandasObject):
         return self.codes.searchsorted(values_as_codes, side=side,
                                        sorter=sorter)
 
-    def isnull(self):
+    def isna(self):
         """
         Detect missing values
 
@@ -1140,8 +1165,9 @@ class Categorical(PandasObject):
 
         See also
         --------
-        isnull : pandas version
-        Categorical.notnull : boolean inverse of Categorical.isnull
+        isna : top-level isna
+        isnull : alias of isna
+        Categorical.notna : boolean inverse of Categorical.isna
 
         """
 
@@ -1150,14 +1176,15 @@ class Categorical(PandasObject):
         # String/object and float categories can hold np.nan
         if self.categories.dtype.kind in ['S', 'O', 'f']:
             if np.nan in self.categories:
-                nan_pos = np.where(isnull(self.categories))[0]
+                nan_pos = np.where(isna(self.categories))[0]
                 # we only have one NA in categories
                 ret = np.logical_or(ret, self._codes == nan_pos)
         return ret
+    isnull = isna
 
-    def notnull(self):
+    def notna(self):
         """
-        Reverse of isnull
+        Inverse of isna
 
         Both missing values (-1 in .codes) and NA as a category are detected as
         null.
@@ -1168,11 +1195,13 @@ class Categorical(PandasObject):
 
         See also
         --------
-        notnull : pandas version
-        Categorical.isnull : boolean inverse of Categorical.notnull
+        notna : top-level notna
+        notnull : alias of notna
+        Categorical.isna : boolean inverse of Categorical.notna
 
         """
-        return ~self.isnull()
+        return ~self.isna()
+    notnull = notna
 
     def put(self, *args, **kwargs):
         """
@@ -1192,8 +1221,8 @@ class Categorical(PandasObject):
         -------
         valid : Categorical
         """
-        result = self[self.notnull()]
-        if isnull(result.categories).any():
+        result = self[self.notna()]
+        if isna(result.categories).any():
             result = result.remove_categories([np.nan])
         return result
 
@@ -1218,12 +1247,10 @@ class Categorical(PandasObject):
 
         """
         from numpy import bincount
-        from pandas.core.dtypes.missing import isnull
-        from pandas.core.series import Series
-        from pandas.core.index import CategoricalIndex
+        from pandas import isna, Series, CategoricalIndex
 
         obj = (self.remove_categories([np.nan]) if dropna and
-               isnull(self.categories).any() else self)
+               isna(self.categories).any() else self)
         code, cat = obj._codes, obj.categories
         ncat, mask = len(cat), 0 <= code
         ix, clean = np.arange(ncat), mask.all()
@@ -1263,7 +1290,7 @@ class Categorical(PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def argsort(self, ascending=True, *args, **kwargs):
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Returns the indices that would sort the Categorical instance if
         'sort_values' was called. This function is implemented to provide
@@ -1284,7 +1311,7 @@ class Categorical(PandasObject):
         numpy.ndarray.argsort
         """
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        result = np.argsort(self._codes.copy(), **kwargs)
+        result = np.argsort(self._codes.copy(), kind=kind, **kwargs)
         if not ascending:
             result = result[::-1]
         return result
@@ -1423,37 +1450,6 @@ class Categorical(PandasObject):
             )
         return values
 
-    def order(self, inplace=False, ascending=True, na_position='last'):
-        """
-        DEPRECATED: use :meth:`Categorical.sort_values`. That function
-        is entirely equivalent to this one.
-
-        See Also
-        --------
-        Categorical.sort_values
-        """
-        warn("order is deprecated, use sort_values(...)", FutureWarning,
-             stacklevel=2)
-        return self.sort_values(inplace=inplace, ascending=ascending,
-                                na_position=na_position)
-
-    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
-        """
-        DEPRECATED: use :meth:`Categorical.sort_values`. That function
-        is just like this one, except that a new Categorical is returned
-        by default, so make sure to pass in 'inplace=True' to get
-        inplace sorting.
-
-        See Also
-        --------
-        Categorical.sort_values
-        """
-        warn("sort is deprecated, use sort_values(...)", FutureWarning,
-             stacklevel=2)
-        nv.validate_sort(tuple(), kwargs)
-        return self.sort_values(inplace=inplace, ascending=ascending,
-                                na_position=na_position)
-
     def ravel(self, order='C'):
         """ Return a flattened (numpy) array.
 
@@ -1526,7 +1522,7 @@ class Categorical(PandasObject):
         if self.categories.dtype.kind in ['S', 'O', 'f']:
             if np.nan in self.categories:
                 values = values.copy()
-                nan_pos = np.where(isnull(self.categories))[0]
+                nan_pos = np.where(isna(self.categories))[0]
                 # we only have one NA in categories
                 values[values == nan_pos] = -1
 
@@ -1540,13 +1536,13 @@ class Categorical(PandasObject):
 
         else:
 
-            if not isnull(value) and value not in self.categories:
+            if not isna(value) and value not in self.categories:
                 raise ValueError("fill value must be in categories")
 
             mask = values == -1
             if mask.any():
                 values = values.copy()
-                if isnull(value):
+                if isna(value):
                     values[mask] = -1
                 else:
                     values[mask] = self.categories.get_loc(value)
@@ -1562,7 +1558,7 @@ class Categorical(PandasObject):
 
         # filling must always be None/nan here
         # but is passed thru internally
-        assert isnull(fill_value)
+        assert isna(fill_value)
 
         codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
         result = self._constructor(codes, categories=self.categories,
@@ -1726,7 +1722,7 @@ class Categorical(PandasObject):
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
-        if len(to_add) and not isnull(to_add).all():
+        if len(to_add) and not isna(to_add).all():
             raise ValueError("Cannot setitem on a Categorical with a new "
                              "category, set the categories first")
 
@@ -1769,8 +1765,8 @@ class Categorical(PandasObject):
         # https://github.com/pandas-dev/pandas/issues/7820
         # float categories do currently return -1 for np.nan, even if np.nan is
         # included in the index -> "repair" this here
-        if isnull(rvalue).any() and isnull(self.categories).any():
-            nan_pos = np.where(isnull(self.categories))[0]
+        if isna(rvalue).any() and isna(self.categories).any():
+            nan_pos = np.where(isna(self.categories))[0]
             lindexer[lindexer == -1] = nan_pos
 
         lindexer = self._maybe_coerce_indexer(lindexer)

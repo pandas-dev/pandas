@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
-from pandas.util.decorators import cache_readonly, deprecate_kwarg
+from pandas.util._decorators import cache_readonly, deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
 from pandas._libs import lib, tslib
@@ -399,10 +399,14 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
-    'M': 'M'
+    'M': 'M',
+    'Y': 'A',
+    'BY': 'A',
+    'YS': 'A',
+    'BYS': 'A',
 }
 
-need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
+need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 for __prefix in need_suffix:
     for _m in tslib._MONTHS:
         _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
@@ -427,9 +431,13 @@ _lite_rule_alias = {
     'Q': 'Q-DEC',
 
     'A': 'A-DEC',  # YearEnd(month=12),
+    'Y': 'A-DEC',
     'AS': 'AS-JAN',  # YearBegin(month=1),
+    'YS': 'AS-JAN',
     'BA': 'BA-DEC',  # BYearEnd(month=12),
+    'BY': 'BA-DEC',
     'BAS': 'BAS-JAN',  # BYearBegin(month=1),
+    'BYS': 'BAS-JAN',
 
     'Min': 'T',
     'min': 'T',
@@ -637,20 +645,6 @@ def get_offset(name):
 getOffset = get_offset
 
 
-def get_offset_name(offset):
-    """
-    Return rule name associated with a DateOffset object
-
-    Examples
-    --------
-    get_offset_name(BMonthEnd(1)) --> 'EOM'
-    """
-
-    msg = "get_offset_name(offset) is deprecated. Use offset.freqstr instead"
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    return offset.freqstr
-
-
 def get_standard_freq(freq):
     """
     Return the standardized frequency string
@@ -722,7 +716,17 @@ _reverse_period_code_map = {}
 for _k, _v in compat.iteritems(_period_code_map):
     _reverse_period_code_map[_v] = _k
 
-# Additional aliases
+# Yearly aliases
+year_aliases = {}
+
+for k, v in compat.iteritems(_period_code_map):
+    if k.startswith("A-"):
+        alias = "Y" + k[1:]
+        year_aliases[alias] = v
+
+_period_code_map.update(**year_aliases)
+del year_aliases
+
 _period_code_map.update({
     "Q": 2000,  # Quarterly - December year end (default quarterly)
     "A": 1000,  # Annual
@@ -975,8 +979,7 @@ class _FrequencyInferer(object):
             else:
                 return _maybe_add_count('D', days)
 
-        # Business daily. Maybe
-        if self.day_deltas == [1, 3]:
+        if self._is_business_daily():
             return 'B'
 
         wom_rule = self._get_wom_rule()
@@ -1011,6 +1014,19 @@ class _FrequencyInferer(object):
         pos_check = self.month_position_check()
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
+
+    def _is_business_daily(self):
+        # quick check: cannot be business daily
+        if self.day_deltas != [1, 3]:
+            return False
+
+        # probably business daily, but need to confirm
+        first_weekday = self.index[0].weekday()
+        shifts = np.diff(self.index.asi8)
+        shifts = np.floor_divide(shifts, _ONE_DAY)
+        weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
+        return np.all(((weekdays == 0) & (shifts == 3)) |
+                      ((weekdays > 0) & (weekdays <= 4) & (shifts == 1)))
 
     def _get_wom_rule(self):
         #         wdiffs = unique(np.diff(self.index.week))

@@ -1,14 +1,8 @@
 import itertools
 import functools
-import numpy as np
 import operator
 
-try:
-    import bottleneck as bn
-    _USE_BOTTLENECK = True
-except ImportError:  # pragma: no cover
-    _USE_BOTTLENECK = False
-
+import numpy as np
 from pandas import compat
 from pandas._libs import tslib, algos, lib
 from pandas.core.dtypes.common import (
@@ -22,9 +16,27 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_int_or_datetime_dtype, is_any_int_dtype)
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
-from pandas.core.dtypes.missing import isnull, notnull
-
+from pandas.core.dtypes.missing import isna, notna
+from pandas.core.config import get_option
 from pandas.core.common import _values_from_object
+
+try:
+    import bottleneck as bn
+    _BOTTLENECK_INSTALLED = True
+except ImportError:  # pragma: no cover
+    _BOTTLENECK_INSTALLED = False
+
+_USE_BOTTLENECK = False
+
+
+def set_use_bottleneck(v=True):
+    # set/unset to use bottleneck
+    global _USE_BOTTLENECK
+    if _BOTTLENECK_INSTALLED:
+        _USE_BOTTLENECK = v
+
+
+set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
 class disallow(object):
@@ -183,7 +195,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if isfinite:
         mask = _isfinite(values)
     else:
-        mask = isnull(values)
+        mask = isna(values)
 
     dtype = values.dtype
     dtype_ok = _na_ok_dtype(dtype)
@@ -220,7 +232,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
 def _isfinite(values):
     if is_datetime_or_timedelta_dtype(values):
-        return isnull(values)
+        return isna(values)
     if (is_complex_dtype(values) or is_float_dtype(values) or
             is_integer_dtype(values) or is_bool_dtype(values)):
         return ~np.isfinite(values)
@@ -317,7 +329,7 @@ def nanmedian(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna)
 
     def get_median(x):
-        mask = notnull(x)
+        mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
         return algos.median(_values_from_object(x[mask]))
@@ -383,7 +395,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
     values = _values_from_object(values)
     dtype = values.dtype
-    mask = isnull(values)
+    mask = isna(values)
     if is_any_int_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -422,7 +434,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
-    mask = isnull(values)
+    mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
     count, _ = _get_counts_nanvar(mask, axis, ddof, values.dtype)
@@ -491,7 +503,7 @@ def nanskew(values, axis=None, skipna=True):
     """
 
     values = _values_from_object(values)
-    mask = isnull(values)
+    mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
         count = _get_counts(mask, axis)
@@ -546,7 +558,7 @@ def nankurt(values, axis=None, skipna=True):
 
     """
     values = _values_from_object(values)
-    mask = isnull(values)
+    mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
         count = _get_counts(mask, axis)
@@ -603,7 +615,7 @@ def nankurt(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nanprod(values, axis=None, skipna=True):
-    mask = isnull(values)
+    mask = isna(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
@@ -684,7 +696,7 @@ def nancorr(a, b, method='pearson', min_periods=None):
     if min_periods is None:
         min_periods = 1
 
-    valid = notnull(a) & notnull(b)
+    valid = notna(a) & notna(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
@@ -728,7 +740,7 @@ def nancov(a, b, min_periods=None):
     if min_periods is None:
         min_periods = 1
 
-    valid = notnull(a) & notnull(b)
+    valid = notna(a) & notna(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
@@ -766,8 +778,8 @@ def _ensure_numeric(x):
 
 def make_nancomp(op):
     def f(x, y):
-        xmask = isnull(x)
-        ymask = isnull(y)
+        xmask = isna(x)
+        ymask = isna(y)
         mask = xmask | ymask
 
         with np.errstate(all='ignore'):

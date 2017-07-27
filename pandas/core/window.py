@@ -33,16 +33,17 @@ import pandas as pd
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
-import pandas.core.libwindow as _window
+import pandas._libs.window as _window
 from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Substitution, Appender,
-                                    cache_readonly)
+from pandas.util._decorators import (Substitution, Appender,
+                                     cache_readonly)
+from pandas.core.generic import _shared_docs
 from textwrap import dedent
 
 
-_shared_docs = dict()
+_shared_docs = dict(**_shared_docs)
 _doc_template = """
 
 Returns
@@ -80,6 +81,7 @@ class _Window(PandasObject, SelectionMixin):
         self.freq = freq
         self.center = center
         self.win_type = win_type
+        self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
 
@@ -340,21 +342,23 @@ class _Window(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    how : string, default None (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default None
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     _shared_docs['mean'] = dedent("""
     %(name)s mean
 
     Parameters
     ----------
-    how : string, default None (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default None
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
 
 class Window(_Window):
     """
-    Provides rolling window calculcations.
+    Provides rolling window calculations.
 
     .. versionadded:: 0.18.0
 
@@ -372,9 +376,10 @@ class Window(_Window):
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
         this will default to 1.
-    freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic.
-        Specified as a frequency string or DateOffset object.
+    freq : string or DateOffset object, optional (default None)
+        .. deprecated:: 0.18.0
+           Frequency to conform the data to before computing the statistic.
+           Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -569,8 +574,9 @@ class Window(_Window):
         ----------
         mean : boolean, default True
             If True computes weighted mean, else weighted sum
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
@@ -611,9 +617,48 @@ class Window(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
-    @Substitution(name='rolling')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.004295  0.905829 -0.954544
+    2  0.735167 -0.165272 -1.619346
+    3 -0.702657 -1.340923 -0.706334
+    4 -0.246845  0.211596 -0.901819
+    5  2.463718  3.157577 -1.380906
+    6 -1.142255  2.340594 -0.039875
+    7  1.396598 -1.647453  1.677227
+    8 -0.543425  1.761277 -0.220481
+    9 -0.640505  0.289374 -1.550670
+
+    >>> df.rolling(3, win_type='boxcar').agg('mean')
+              A         B         C
+    0       NaN       NaN       NaN
+    1       NaN       NaN       NaN
+    2 -0.885035  0.212600 -0.711689
+    3 -0.323928 -0.200122 -1.093408
+    4 -0.071445 -0.431533 -1.075833
+    5  0.504739  0.676083 -0.996353
+    6  0.358206  1.903256 -0.774200
+    7  0.906020  1.283573  0.085482
+    8 -0.096361  0.818139  0.472290
+    9  0.070889  0.134399 -0.031308
+
+    See also
+    --------
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='',
+        klass='Series/DataFrame'))
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -695,8 +740,9 @@ class _Rolling(_Window):
         window : int/array, default to _get_window()
         center : boolean, default to self.center
         check_minp : function, default to _use_window
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
@@ -782,7 +828,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         results = []
         for b in blocks:
-            result = b.notnull().astype(int)
+            result = b.notna().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
                                        center=self.center,
                                        closed=self.closed).sum()
@@ -790,7 +836,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         return self._wrap_results(results, blocks, obj)
 
-    _shared_docs['apply'] = dedent("""
+    _shared_docs['apply'] = dedent(r"""
     %(name)s function apply
 
     Parameters
@@ -823,8 +869,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'max' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'max'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def max(self, how=None, *args, **kwargs):
         nv.validate_window_func('max', args, kwargs)
@@ -837,8 +884,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'min' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'min'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def min(self, how=None, *args, **kwargs):
         nv.validate_window_func('min', args, kwargs)
@@ -855,8 +903,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default 'median' (DEPRECATED)
-        Method for down- or re-sampling""")
+    how : string, default 'median'
+        .. deprecated:: 0.18.0
+           Method for down- or re-sampling""")
 
     def median(self, how=None, **kwargs):
         if self.freq is not None and how is None:
@@ -926,8 +975,15 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
-            return _window.roll_quantile(arg, window, minp, indexi,
-                                         self.closed, quantile)
+            if quantile == 1.0:
+                return _window.roll_max(arg, window, minp, indexi,
+                                        self.closed)
+            elif quantile == 0.0:
+                return _window.roll_min(arg, window, minp, indexi,
+                                        self.closed)
+            else:
+                return _window.roll_quantile(arg, window, minp, indexi,
+                                             self.closed, quantile)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -956,7 +1012,12 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other)
+
+        # GH 16058: offset window
+        if self.is_freq_type:
+            window = self.win_freq
+        else:
+            window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1034,7 +1095,7 @@ class Rolling(_Rolling_and_Expanding):
         super(Rolling, self).validate()
 
         # we allow rolling on a datetimelike index
-        if (self.is_datetimelike and
+        if ((self.obj.empty or self.is_datetimelike) and
                 isinstance(self.window, (compat.string_types, DateOffset,
                                          timedelta))):
 
@@ -1048,6 +1109,7 @@ class Rolling(_Rolling_and_Expanding):
                                           "based windows")
 
             # this will raise ValueError on non-fixed freqs
+            self.win_freq = self.window
             self.window = freq.nanos
             self.win_type = 'freq'
 
@@ -1081,9 +1143,62 @@ class Rolling(_Rolling_and_Expanding):
                              "compat with a datetimelike "
                              "index".format(self.window))
 
-    @Substitution(name='rolling')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.004295  0.905829 -0.954544
+    2  0.735167 -0.165272 -1.619346
+    3 -0.702657 -1.340923 -0.706334
+    4 -0.246845  0.211596 -0.901819
+    5  2.463718  3.157577 -1.380906
+    6 -1.142255  2.340594 -0.039875
+    7  1.396598 -1.647453  1.677227
+    8 -0.543425  1.761277 -0.220481
+    9 -0.640505  0.289374 -1.550670
+
+    >>> df.rolling(3).sum()
+              A         B         C
+    0       NaN       NaN       NaN
+    1       NaN       NaN       NaN
+    2 -2.655105  0.637799 -2.135068
+    3 -0.971785 -0.600366 -3.280224
+    4 -0.214334 -1.294599 -3.227500
+    5  1.514216  2.028250 -2.989060
+    6  1.074618  5.709767 -2.322600
+    7  2.718061  3.850718  0.256446
+    8 -0.289082  2.454418  1.416871
+    9  0.212668  0.403198 -0.093924
+
+
+    >>> df.rolling(3).agg({'A':'sum', 'B':'min'})
+              A         B
+    0       NaN       NaN
+    1       NaN       NaN
+    2 -2.655105 -0.165272
+    3 -0.971785 -1.340923
+    4 -0.214334 -1.340923
+    5  1.514216 -1.340923
+    6  1.074618  0.211596
+    7  2.718061 -1.647453
+    8 -0.289082 -1.647453
+    9  0.212668 -1.647453
+
+    See also
+    --------
+    pandas.Series.rolling
+    pandas.DataFrame.rolling
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='',
+        klass='Series/DataFrame'))
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1229,9 +1344,10 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic.
-        Specified as a frequency string or DateOffset object.
+    freq : string or DateOffset object, optional (default None)
+        .. deprecated:: 0.18.0
+           Frequency to conform the data to before computing the statistic.
+           Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     axis : int or string, default 0
@@ -1288,9 +1404,49 @@ class Expanding(_Rolling_and_Expanding):
         return (max((len(obj) + len(obj)), self.min_periods)
                 if self.min_periods else (len(obj) + len(obj)))
 
-    @Substitution(name='expanding')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.004295  0.905829 -0.954544
+    2  0.735167 -0.165272 -1.619346
+    3 -0.702657 -1.340923 -0.706334
+    4 -0.246845  0.211596 -0.901819
+    5  2.463718  3.157577 -1.380906
+    6 -1.142255  2.340594 -0.039875
+    7  1.396598 -1.647453  1.677227
+    8 -0.543425  1.761277 -0.220481
+    9 -0.640505  0.289374 -1.550670
+
+    >>> df.ewm(alpha=0.5).mean()
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.464856  0.569633 -0.490089
+    2 -0.207700  0.149687 -1.135379
+    3 -0.471677 -0.645305 -0.906555
+    4 -0.355635 -0.203033 -0.904111
+    5  1.076417  1.503943 -1.146293
+    6 -0.041654  1.925562 -0.588728
+    7  0.680292  0.132049  0.548693
+    8  0.067236  0.948257  0.163353
+    9 -0.286980  0.618493 -0.694496
+
+    See also
+    --------
+    pandas.DataFrame.expanding.aggregate
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='',
+        klass='Series/DataFrame'))
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -1453,8 +1609,9 @@ class EWM(_Rolling):
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : None or string alias / date offset object, default=None (DEPRECATED)
-        Frequency to conform to before computing statistic
+    freq : None or string alias / date offset object, default=None
+        .. deprecated:: 0.18.0
+           Frequency to conform to before computing statistic
     adjust : boolean, default True
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average)
@@ -1534,9 +1691,47 @@ class EWM(_Rolling):
     def _constructor(self):
         return EWM
 
-    @Substitution(name='ewm')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.004295  0.905829 -0.954544
+    2  0.735167 -0.165272 -1.619346
+    3 -0.702657 -1.340923 -0.706334
+    4 -0.246845  0.211596 -0.901819
+    5  2.463718  3.157577 -1.380906
+    6 -1.142255  2.340594 -0.039875
+    7  1.396598 -1.647453  1.677227
+    8 -0.543425  1.761277 -0.220481
+    9 -0.640505  0.289374 -1.550670
+
+    >>> df.ewm(alpha=0.5).mean()
+              A         B         C
+    0 -2.385977 -0.102758  0.438822
+    1 -1.464856  0.569633 -0.490089
+    2 -0.207700  0.149687 -1.135379
+    3 -0.471677 -0.645305 -0.906555
+    4 -0.355635 -0.203033 -0.904111
+    5  1.076417  1.503943 -1.146293
+    6 -0.041654  1.925562 -0.588728
+    7  0.680292  0.132049  0.548693
+    8  0.067236  0.948257  0.163353
+    9 -0.286980  0.618493 -0.694496
+
+    See also
+    --------
+    pandas.DataFrame.rolling.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='',
+        klass='Series/DataFrame'))
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 
@@ -1549,8 +1744,9 @@ class EWM(_Rolling):
         Parameters
         ----------
         func : string/callable to apply
-        how : string, default to None (DEPRECATED)
-            how to resample
+        how : string, default to None
+            .. deprecated:: 0.18.0
+               how to resample
 
         Returns
         -------
@@ -1733,7 +1929,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                 # TODO: not the most efficient (perf-wise)
                 # though not bad code-wise
-                from pandas import Panel, MultiIndex, Index
+                from pandas import Panel, MultiIndex
+
                 with warnings.catch_warnings(record=True):
                     p = Panel.from_dict(results).swapaxes('items', 'major')
                     if len(p.major_axis) > 0:
@@ -1756,10 +1953,10 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 # reset our index names to arg1 names
                 # reset our column names to arg2 names
                 # careful not to mutate the original names
-                result.columns = Index(result.columns).set_names(
-                    arg2.columns.name)
+                result.columns = result.columns.set_names(
+                    arg2.columns.names)
                 result.index = result.index.set_names(
-                    [arg1.index.name, arg1.columns.name])
+                    arg1.index.names + arg1.columns.names)
 
                 return result
 

@@ -19,9 +19,9 @@ from pandas.tests.reshape.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
-class TestJoin(tm.TestCase):
+class TestJoin(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
                              'key2': get_test_data(),
@@ -190,8 +190,8 @@ class TestJoin(tm.TestCase):
                          columns=['three'])
         joined = df_a.join(df_b, on='one')
         joined = joined.join(df_c, on='one')
-        self.assertTrue(np.isnan(joined['two']['c']))
-        self.assertTrue(np.isnan(joined['three']['c']))
+        assert np.isnan(joined['two']['c'])
+        assert np.isnan(joined['three']['c'])
 
         # merge column not p resent
         pytest.raises(KeyError, target.join, source, on='E')
@@ -234,9 +234,9 @@ class TestJoin(tm.TestCase):
         df = DataFrame({'a': [1, 1]})
 
         for obj in wrongly_typed:
-            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+            with tm.assert_raises_regex(ValueError, str(type(obj))):
                 merge(obj, df, left_on='a', right_on='a')
-            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+            with tm.assert_raises_regex(ValueError, str(type(obj))):
                 merge(df, obj, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
@@ -252,12 +252,12 @@ class TestJoin(tm.TestCase):
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
             assert col in merged
-            self.assertTrue(merged[col].isnull().all())
+            assert merged[col].isna().all()
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
         tm.assert_index_equal(merged2.columns, merged.columns)
-        self.assertEqual(len(merged2), 0)
+        assert len(merged2) == 0
 
     def test_join_on_inner(self):
         df = DataFrame({'key': ['a', 'a', 'd', 'b', 'b', 'c']})
@@ -266,7 +266,7 @@ class TestJoin(tm.TestCase):
         joined = df.join(df2, on='key', how='inner')
 
         expected = df.join(df2, on='key')
-        expected = expected[expected['value'].notnull()]
+        expected = expected[expected['value'].notna()]
         tm.assert_series_equal(joined['key'], expected['key'],
                                check_dtype=False)
         tm.assert_series_equal(joined['value'], expected['value'],
@@ -301,8 +301,8 @@ class TestJoin(tm.TestCase):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assertEqual(df1['B'].dtype, np.int64)
-        self.assertEqual(df1['D'].dtype, np.bool_)
+        assert df1['B'].dtype == np.int64
+        assert df1['D'].dtype == np.bool_
 
         df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(0, 10, 2),
@@ -374,7 +374,7 @@ class TestJoin(tm.TestCase):
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
         assert_frame_equal(joined, expected)
-        self.assertEqual(joined.index.names, index1.names)
+        assert joined.index.names == index1.names
 
         df1 = df1.sort_index(level=1)
         df2 = df2.sort_index(level=1)
@@ -385,7 +385,7 @@ class TestJoin(tm.TestCase):
         expected.index.names = index1.names
 
         assert_frame_equal(joined, expected)
-        self.assertEqual(joined.index.names, index1.names)
+        assert joined.index.names == index1.names
 
     def test_join_inner_multiindex(self):
         key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
@@ -422,7 +422,7 @@ class TestJoin(tm.TestCase):
         expected = expected.drop(['first', 'second'], axis=1)
         expected.index = joined.index
 
-        self.assertTrue(joined.index.is_monotonic)
+        assert joined.index.is_monotonic
         assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
@@ -437,17 +437,17 @@ class TestJoin(tm.TestCase):
         # GH 9455, 12219
         with tm.assert_produces_warning(UserWarning):
             result = merge(new_df, other_df, left_index=True, right_index=True)
-        self.assertTrue(('b', 'mean') in result)
-        self.assertTrue('b' in result)
+        assert ('b', 'mean') in result
+        assert 'b' in result
 
     def test_join_float64_float32(self):
 
         a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype=np.float64)
         b = DataFrame(randn(10, 1), columns=['c'], dtype=np.float32)
         joined = a.join(b)
-        self.assertEqual(joined.dtypes['a'], 'float64')
-        self.assertEqual(joined.dtypes['b'], 'float64')
-        self.assertEqual(joined.dtypes['c'], 'float32')
+        assert joined.dtypes['a'] == 'float64'
+        assert joined.dtypes['b'] == 'float64'
+        assert joined.dtypes['c'] == 'float32'
 
         a = np.random.randint(0, 5, 100).astype('int64')
         b = np.random.random(100).astype('float64')
@@ -456,10 +456,10 @@ class TestJoin(tm.TestCase):
         xpdf = DataFrame({'a': a, 'b': b, 'c': c})
         s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
-        self.assertEqual(rs.dtypes['a'], 'int64')
-        self.assertEqual(rs.dtypes['b'], 'float64')
-        self.assertEqual(rs.dtypes['c'], 'float32')
-        self.assertEqual(rs.dtypes['md'], 'float32')
+        assert rs.dtypes['a'] == 'int64'
+        assert rs.dtypes['b'] == 'float64'
+        assert rs.dtypes['c'] == 'float32'
+        assert rs.dtypes['md'] == 'float32'
 
         xp = xpdf.merge(s, left_on='a', right_index=True)
         assert_frame_equal(rs, xp)
@@ -548,6 +548,18 @@ class TestJoin(tm.TestCase):
         result = df3.join(df4)
         expected = DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 6, np.nan]},
                              index=[1, 2, 2, 'a'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_join_non_unique_period_index(self):
+        # GH #16871
+        index = pd.period_range('2016-01-01', periods=16, freq='M')
+        df = DataFrame([i for i in range(len(index))],
+                       index=index, columns=['pnum'])
+        df2 = concat([df, df])
+        result = df.join(df2, how='inner', rsuffix='_df2')
+        expected = DataFrame(
+            np.tile(np.arange(16, dtype=np.int64).repeat(2).reshape(-1, 1), 2),
+            columns=['pnum', 'pnum_df2'], index=df2.sort_index().index)
         tm.assert_frame_equal(result, expected)
 
     def test_mixed_type_join_with_suffix(self):
@@ -722,7 +734,7 @@ def _check_join(left, right, result, join_col, how='left',
 
     # some smoke tests
     for c in join_col:
-        assert(result[c].notnull().all())
+        assert(result[c].notna().all())
 
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
@@ -785,7 +797,7 @@ def _assert_all_na(join_chunk, source_columns, join_col):
     for c in source_columns:
         if c in join_col:
             continue
-        assert(join_chunk[c].isnull().all())
+        assert(join_chunk[c].isna().all())
 
 
 def _join_by_hand(a, b, how='left'):

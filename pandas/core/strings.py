@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -17,7 +17,7 @@ from pandas.core.common import _values_from_object
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
 import warnings
@@ -101,7 +101,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arrays = _get_array_list(arr, others)
 
         n = _length_check(arrays)
-        masks = np.array([isnull(x) for x in arrays])
+        masks = np.array([isna(x) for x in arrays])
         cats = None
 
         if na_rep is None:
@@ -129,12 +129,12 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         return result
     else:
         arr = np.asarray(arr, dtype=object)
-        mask = isnull(arr)
+        mask = isna(arr)
         if na_rep is None and mask.any():
             if sep == '':
                 na_rep = ''
             else:
-                return sep.join(arr[notnull(arr)])
+                return sep.join(arr[notna(arr)])
         return sep.join(np.where(mask, na_rep, arr))
 
 
@@ -165,7 +165,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
-        mask = isnull(arr)
+        mask = isna(arr)
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
@@ -478,7 +478,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : DEPRECATED
+    as_indexer : DEPRECATED - Keyword is ignored.
 
     Returns
     -------
@@ -611,10 +611,11 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    .. versionadded:: 0.18.0
     expand : bool, default False
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -1390,7 +1391,7 @@ class StringMethods(NoNewAttributesMixin):
     def __iter__(self):
         i = 0
         g = self.get(i)
-        while g.notnull().any():
+        while g.notna().any():
             yield g
             i += 1
             g = self.get(i)

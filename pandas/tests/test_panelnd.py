@@ -9,9 +9,9 @@ from pandas.util.testing import assert_panel_equal
 import pandas.util.testing as tm
 
 
-class TestPanelnd(tm.TestCase):
+class TestPanelnd(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_4d_construction(self):

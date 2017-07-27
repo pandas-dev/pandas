@@ -7,7 +7,6 @@ import pytest
 from pandas import Series, DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
-from pandas.util.testing import slow
 
 import numpy as np
 from numpy import random
@@ -17,19 +16,20 @@ import pandas.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
+tm._skip_if_no_mpl()
 
-@tm.mplskip
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
 
-    @slow
+    @pytest.mark.slow
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
         _check_plot_works(autocorrelation_plot, series=self.ts)
@@ -38,22 +38,21 @@ class TestSeriesPlots(TestPlotBase):
         ax = autocorrelation_plot(self.ts, label='Test')
         self._check_legend_labels(ax, labels=['Test'])
 
-    @slow
+    @pytest.mark.slow
     def test_lag_plot(self):
         from pandas.plotting import lag_plot
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
-    @slow
+    @pytest.mark.slow
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
-    @slow
+    @pytest.mark.slow
     def test_scatter_plot_legacy(self):
         tm._skip_if_no_scipy()
 
@@ -130,7 +129,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @slow
+    @pytest.mark.slow
     def test_andrews_curves(self):
         from pandas.plotting import andrews_curves
         from matplotlib import cm
@@ -195,7 +194,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             andrews_curves(data=df, class_column='Name')
 
-    @slow
+    @pytest.mark.slow
     def test_parallel_coordinates(self):
         from pandas.plotting import parallel_coordinates
         from matplotlib import cm
@@ -263,7 +262,7 @@ class TestDataFramePlots(TestPlotBase):
             # lables and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
-    @slow
+    @pytest.mark.slow
     def test_radviz(self):
         from pandas.plotting import radviz
         from matplotlib import cm
@@ -301,7 +300,7 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, facecolors=colors)
 
-    @slow
+    @pytest.mark.slow
     def test_subplot_titles(self):
         df = self.iris.drop('Name', axis=1).head()
         # Use the column names as the subplot titles
@@ -309,7 +308,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) == len(df)
         plot = df.plot(subplots=True, title=title)
-        self.assertEqual([p.get_title() for p in plot], title)
+        assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
         pytest.raises(ValueError, df.plot, subplots=True,
@@ -325,4 +324,4 @@ class TestDataFramePlots(TestPlotBase):
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        self.assertEqual(title_list, title[:3] + [''])
+        assert title_list == title[:3] + ['']

@@ -8,10 +8,9 @@ from __future__ import print_function
 from distutils.version import LooseVersion
 # pylint: disable=W0141
 
-import sys
 from textwrap import dedent
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_float_dtype,
@@ -31,9 +30,10 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
                            OrderedDict, unichr)
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
-from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
+from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
+                              _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
 import pandas.core.common as com
@@ -369,7 +369,10 @@ class DataFrameFormatter(TableFormatter):
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.', **kwds):
         self.frame = frame
-        self.buf = _expand_user(buf) if buf is not None else StringIO()
+        if buf is not None:
+            self.buf = _expand_user(_stringify_path(buf))
+        else:
+            self.buf = StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -842,6 +845,7 @@ class LatexFormatter(TableFormatter):
                  multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
@@ -940,6 +944,11 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if self.bold_rows and self.fmt.index:
+                # bold row labels
+                crow = ['\\textbf{%s}' % x
+                        if j < ilevels and x.strip() not in ['', '{}'] else x
+                        for j, x in enumerate(crow)]
             if i < clevels and self.fmt.header and self.multicolumn:
                 # sum up columns to multicolumns
                 crow = self._format_multicolumn(crow, ilevels)
@@ -1055,7 +1064,7 @@ class HTMLFormatter(TableFormatter):
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
-            border = get_option('html.border')
+            border = get_option('display.html.border')
         self.border = border
 
     def write(self, s, indent=0):
@@ -1289,7 +1298,9 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if self.fmt.has_index_names and self.fmt.index:
+        if all((self.fmt.has_index_names,
+                self.fmt.index,
+                self.fmt.show_index_names)):
             row = ([x if x is not None else ''
                     for x in self.frame.index.names] +
                    [''] * min(len(self.columns), self.max_cols))
@@ -1476,7 +1487,7 @@ class CSVFormatter(object):
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf = _expand_user(path_or_buf)
+        self.path_or_buf = _expand_user(_stringify_path(path_or_buf))
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -1551,7 +1562,7 @@ class CSVFormatter(object):
         self.data_index = obj.index
         if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
                 date_format is not None):
-            self.data_index = Index([x.strftime(date_format) if notnull(x) else
+            self.data_index = Index([x.strftime(date_format) if notna(x) else
                                      '' for x in self.data_index])
 
         self.nlevels = getattr(self.data_index, 'nlevels', 1)
@@ -1805,7 +1816,7 @@ class GenericArrayFormatter(object):
         elif isinstance(vals, ABCSparseArray):
             vals = vals.values
 
-        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = is_float_type.any()
 
         fmt_values = []
@@ -1851,10 +1862,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
             def base_formatter(v):
-                return (float_format % v) if notnull(v) else self.na_rep
+                return (float_format % v) if notna(v) else self.na_rep
         else:
             def base_formatter(v):
-                return str(v) if notnull(v) else self.na_rep
+                return str(v) if notna(v) else self.na_rep
 
         if self.decimal != '.':
             def decimal_formatter(v):
@@ -1866,7 +1877,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             return decimal_formatter
 
         def formatter(value):
-            if notnull(value):
+            if notna(value):
                 if abs(value) > threshold:
                     return decimal_formatter(value)
                 else:
@@ -1896,7 +1907,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
-            mask = isnull(values)
+            mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
             values = np.array(values, dtype='object')
@@ -2288,82 +2299,6 @@ def _has_names(index):
         return any([x is not None for x in index.names])
     else:
         return index.name is not None
-
-
-# -----------------------------------------------------------------------------
-# Global formatting options
-_initial_defencoding = None
-
-
-def detect_console_encoding():
-    """
-    Try to find the most capable encoding supported by the console.
-    slighly modified from the way IPython handles the same issue.
-    """
-    import locale
-    global _initial_defencoding
-
-    encoding = None
-    try:
-        encoding = sys.stdout.encoding or sys.stdin.encoding
-    except AttributeError:
-        pass
-
-    # try again for something better
-    if not encoding or 'ascii' in encoding.lower():
-        try:
-            encoding = locale.getpreferredencoding()
-        except Exception:
-            pass
-
-    # when all else fails. this will usually be "ascii"
-    if not encoding or 'ascii' in encoding.lower():
-        encoding = sys.getdefaultencoding()
-
-    # GH3360, save the reported defencoding at import time
-    # MPL backends may change it. Make available for debugging.
-    if not _initial_defencoding:
-        _initial_defencoding = sys.getdefaultencoding()
-
-    return encoding
-
-
-def get_console_size():
-    """Return console size as tuple = (width, height).
-
-    Returns (None,None) in non-interactive session.
-    """
-    display_width = get_option('display.width')
-    # deprecated.
-    display_height = get_option('display.height', silent=True)
-
-    # Consider
-    # interactive shell terminal, can detect term size
-    # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term
-    # size non-interactive script, should disregard term size
-
-    # in addition
-    # width,height have default values, but setting to 'None' signals
-    # should use Auto-Detection, But only in interactive shell-terminal.
-    # Simple. yeah.
-
-    if com.in_interactive_session():
-        if com.in_ipython_frontend():
-            # sane defaults for interactive non-shell terminal
-            # match default for width,height in config_init
-            from pandas.core.config import get_default_val
-            terminal_width = get_default_val('display.width')
-            terminal_height = get_default_val('display.height')
-        else:
-            # pure terminal
-            terminal_width, terminal_height = get_terminal_size()
-    else:
-        terminal_width, terminal_height = None, None
-
-    # Note if the User sets width/Height to None (auto-detection)
-    # and we're in a script (non-inter), this will return (None,None)
-    # caller needs to deal.
-    return (display_width or terminal_width, display_height or terminal_height)
 
 
 class EngFormatter(object):

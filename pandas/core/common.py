@@ -6,6 +6,8 @@ import sys
 import warnings
 from datetime import datetime, timedelta
 from functools import partial
+import inspect
+import collections
 
 import numpy as np
 from pandas._libs import lib, tslib
@@ -16,7 +18,7 @@ from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
 from pandas.core.dtypes import common
 
@@ -185,7 +187,7 @@ def is_bool_indexer(key):
             key = np.asarray(_values_from_object(key))
 
             if not lib.is_bool_array(key):
-                if isnull(key).any():
+                if isna(key).any():
                     raise ValueError('cannot index with vector containing '
                                      'NA / NaN values')
                 return False
@@ -409,6 +411,13 @@ def is_null_slice(obj):
             obj.stop is None and obj.step is None)
 
 
+def is_true_slices(l):
+    """
+    Find non-trivial slices in "l": return a list of booleans with same length.
+    """
+    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+
+
 def is_full_slice(obj, l):
     """ we have a full length slice """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
@@ -479,6 +488,42 @@ def _dict_compat(d):
                 for key, value in iteritems(d))
 
 
+def standardize_mapping(into):
+    """
+    Helper function to standardize a supplied mapping.
+
+    .. versionadded:: 0.21.0
+
+    Parameters
+    ----------
+    into : instance or subclass of collections.Mapping
+        Must be a class, an initialized collections.defaultdict,
+        or an instance of a collections.Mapping subclass.
+
+    Returns
+    -------
+    mapping : a collections.Mapping subclass or other constructor
+        a callable object that can accept an iterator to create
+        the desired Mapping.
+
+    See Also
+    --------
+    DataFrame.to_dict
+    Series.to_dict
+    """
+    if not inspect.isclass(into):
+        if isinstance(into, collections.defaultdict):
+            return partial(
+                collections.defaultdict, into.default_factory)
+        into = type(into)
+    if not issubclass(into, collections.Mapping):
+        raise TypeError('unsupported type: {}'.format(into))
+    elif into == collections.defaultdict:
+        raise TypeError(
+            'to_dict() only accepts initialized defaultdicts')
+    return into
+
+
 def sentinel_factory():
     class Sentinel(object):
         pass
@@ -510,7 +555,8 @@ def in_qtconsole():
     """
     check if we're inside an IPython qtconsole
 
-    DEPRECATED: This is no longer needed, or working, in IPython 3 and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -528,8 +574,8 @@ def in_ipnb():
     """
     check if we're inside an IPython Notebook
 
-    DEPRECATED: This is no longer used in pandas, and won't work in IPython 3
-    and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa

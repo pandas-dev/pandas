@@ -31,7 +31,7 @@ class Base(object):
     _typs = set(['ints', 'uints', 'labels', 'mixed',
                  'ts', 'floats', 'empty', 'ts_rev'])
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.series_ints = Series(np.random.rand(4), index=lrange(0, 8, 2))
         self.frame_ints = DataFrame(np.random.randn(4, 4),
@@ -201,7 +201,7 @@ class Base(object):
 
                 try:
                     if is_scalar(rs) and is_scalar(xp):
-                        self.assertEqual(rs, xp)
+                        assert rs == xp
                     elif xp.ndim == 1:
                         tm.assert_series_equal(rs, xp)
                     elif xp.ndim == 2:

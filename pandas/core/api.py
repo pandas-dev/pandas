@@ -5,7 +5,7 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize, unique, value_counts
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
 from pandas.io.formats.format import set_eng_float_format
@@ -35,7 +35,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 from pandas.core.resample import TimeGrouper
 
 # see gh-14094.
-from pandas.util.depr_module import _DeprecatedModule
+from pandas.util._depr_module import _DeprecatedModule
 
 _removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
              'customBusinessMonthEnd', 'customBusinessMonthBegin',

@@ -6,7 +6,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.dtypes.common import _ensure_int64
-from pandas import Index, isnull
+from pandas import Index, isna
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas._libs import lib, groupby
@@ -46,9 +46,9 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-class TestBinGroupers(tm.TestCase):
+class TestBinGroupers(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
         self.bins = np.array([3, 6], dtype=np.int64)
@@ -97,7 +97,7 @@ def test_group_ohlc():
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
-            if isnull(group).all():
+            if isna(group).all():
                 return np.repeat(nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
@@ -117,11 +117,11 @@ def test_group_ohlc():
     _check('float64')
 
 
-class TestMoments(tm.TestCase):
+class TestMoments(object):
     pass
 
 
-class TestReducer(tm.TestCase):
+class TestReducer(object):
 
     def test_int_index(self):
         from pandas.core.series import Series

@@ -15,7 +15,7 @@ def load_reduce(self):
     args = stack.pop()
     func = stack[-1]
 
-    if type(args[0]) is type:
+    if len(args) and type(args[0]) is type:
         n = args[0].__name__  # noqa
 
     try:
@@ -71,7 +71,7 @@ _class_locations_map = {
 
     # 12588, extensions moving
     ('pandas._sparse', 'BlockIndex'):
-        ('pandas.core.sparse.libsparse', 'BlockIndex'),
+        ('pandas._libs.sparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
     ('pandas.tslib', '__nat_unpickle'):

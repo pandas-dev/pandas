@@ -444,13 +444,13 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isnull`` or ``pd.notnull`` functions
+Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python
 
-   outer_join[pd.isnull(outer_join['value_x'])]
-   outer_join[pd.notnull(outer_join['value_x'])]
+   outer_join[pd.isna(outer_join['value_x'])]
+   outer_join[pd.notna(outer_join['value_x'])]
 
 pandas also provides a variety of methods to work with missing data - some of
 which would be challenging to express in SAS. For example, there are methods to
@@ -570,15 +570,14 @@ machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
 `dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
-library (currently in development) which 
+library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
 Data Interop
 ~~~~~~~~~~~~
 
 pandas provides a :func:`read_sas` method that can read SAS data saved in
-the XPORT format.  The ability to read SAS's binary format is planned for a
-future release.
+the XPORT or SAS7BDAT binary format.
 
 .. code-block:: none
 
@@ -591,6 +590,15 @@ future release.
 .. code-block:: python
 
    df = pd.read_sas('transport-file.xpt')
+   df = pd.read_sas('binary-file.sas7bdat')
+
+You can also specify the file format directly. By default, pandas will try
+to infer the file format based on its extension.
+
+.. code-block:: python
+
+   df = pd.read_sas('transport-file.xpt', format='xport')
+   df = pd.read_sas('binary-file.sas7bdat', format='sas7bdat')
 
 XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way

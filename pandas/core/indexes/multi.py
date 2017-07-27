@@ -19,15 +19,16 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_scalar)
-from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
-                                is_null_slice)
+                                is_null_slice,
+                                is_true_slices)
 
 import pandas.core.base as base
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -75,7 +76,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -415,6 +415,12 @@ class MultiIndex(Index):
         return result
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
+        # On equal MultiIndexes the difference is empty.
+        # Therefore, an empty MultiIndex is returned GH13490
+        if len(values) == 0:
+            return MultiIndex(levels=[[] for _ in range(self.nlevels)],
+                              labels=[[] for _ in range(self.nlevels)],
+                              **kwargs)
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs['_shallow_copy'])
@@ -629,7 +635,16 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+
+        # choose our engine based on our size
+        # the hashing based MultiIndex for larger
+        # sizes, and the MultiIndexOjbect for smaller
+        # xref: https://github.com/pandas-dev/pandas/pull/16324
+        l = len(self)
+        if l > 10000:
+            return libindex.MultiIndexHashEngine(lambda: self, l)
+
+        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
 
     @property
     def values(self):
@@ -718,7 +733,7 @@ class MultiIndex(Index):
     @cache_readonly
     def _hashed_values(self):
         """ return a uint64 ndarray of my hashed values """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples
         return hash_tuples(self)
 
     def _hashed_indexing_key(self, key):
@@ -740,7 +755,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples, hash_tuple
 
         if not isinstance(key, tuple):
             return hash_tuples(key)
@@ -754,7 +769,7 @@ class MultiIndex(Index):
             return k
         key = tuple([f(k, stringify)
                      for k, stringify in zip(key, self._have_mixed_levels)])
-        return hash_tuples(key)
+        return hash_tuple(key)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
@@ -768,8 +783,8 @@ class MultiIndex(Index):
 
     @Appender(ibase._index_shared_docs['fillna'])
     def fillna(self, value=None, downcast=None):
-        # isnull is not implemented for MultiIndex
-        raise NotImplementedError('isnull is not defined for MultiIndex')
+        # isna is not implemented for MultiIndex
+        raise NotImplementedError('isna is not defined for MultiIndex')
 
     @Appender(_index_shared_docs['dropna'])
     def dropna(self, how='any'):
@@ -905,7 +920,7 @@ class MultiIndex(Index):
 
             else:
                 # weird all NA case
-                formatted = [pprint_thing(na if isnull(x) else x,
+                formatted = [pprint_thing(na if isna(x) else x,
                                           escape_chars=('\t', '\r', '\n'))
                              for x in algos.take_1d(lev._values, lab)]
             stringified_levels.append(formatted)
@@ -1021,12 +1036,6 @@ class MultiIndex(Index):
         """
         return self.lexsort_depth == self.nlevels
 
-    def is_lexsorted_for_tuple(self, tup):
-        """
-        Return True if we are correctly lexsorted given the passed tuple
-        """
-        return len(tup) <= self.lexsort_depth
-
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
@@ -1120,10 +1129,11 @@ class MultiIndex(Index):
                                   of iterables
         """
         if len(tuples) == 0:
-            # I think this is right? Not quite sure...
-            raise TypeError('Cannot infer number of levels from empty list')
-
-        if isinstance(tuples, (np.ndarray, Index)):
+            if names is None:
+                msg = 'Cannot infer number of levels from empty list'
+                raise TypeError(msg)
+            arrays = [[]] * len(names)
+        elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
 
@@ -1276,8 +1286,8 @@ class MultiIndex(Index):
         new_levels = []
         new_labels = []
 
-        changed = np.ones(self.nlevels, dtype=bool)
-        for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+        changed = False
+        for lev, lab in zip(self.levels, self.labels):
 
             uniques = algos.unique(lab)
 
@@ -1285,33 +1295,29 @@ class MultiIndex(Index):
             if len(uniques) == len(lev):
                 new_levels.append(lev)
                 new_labels.append(lab)
-                changed[i] = False
                 continue
 
-            # set difference, then reverse sort
-            diff = Index(np.arange(len(lev))).difference(uniques)
-            unused = diff.sort_values(ascending=False)
+            changed = True
+
+            # labels get mapped from uniques to 0:len(uniques)
+            label_mapping = np.zeros(len(lev))
+            label_mapping[uniques] = np.arange(len(uniques))
+            lab = label_mapping[lab]
 
             # new levels are simple
             lev = lev.take(uniques)
 
-            # new labels, we remove the unsued
-            # by decrementing the labels for that value
-            # prob a better way
-            for u in unused:
-
-                lab = np.where(lab > u, lab - 1, lab)
-
             new_levels.append(lev)
             new_labels.append(lab)
 
-        # nothing changed
-        if not changed.any():
-            return self
+        result = self._shallow_copy()
 
-        return MultiIndex(new_levels, new_labels,
-                          names=self.names, sortorder=self.sortorder,
-                          verify_integrity=False)
+        if changed:
+            result._reset_identity()
+            result._set_levels(new_levels, validate=False)
+            result._set_labels(new_labels, validate=False)
+
+        return result
 
     @property
     def nlevels(self):
@@ -1377,6 +1383,9 @@ class MultiIndex(Index):
             else:
                 # cannot be sure whether the result will be sorted
                 sortorder = None
+
+                if isinstance(key, Index):
+                    key = np.asarray(key)
 
             new_labels = [lab[key] for lab in self.labels]
 
@@ -1688,7 +1697,8 @@ class MultiIndex(Index):
                 raise ValueError("level must have same length as ascending")
 
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(self.labels, orders=ascending)
+            indexer = lexsort_indexer([self.labels[lev] for lev in level],
+                                      orders=ascending)
 
         # level ordering
         else:
@@ -2252,12 +2262,12 @@ class MultiIndex(Index):
         """
 
         # must be lexsorted to at least as many levels
-        if not self.is_lexsorted_for_tuple(tup):
-            raise UnsortedIndexError('MultiIndex Slicing requires the index '
-                                     'to be fully lexsorted tuple len ({0}), '
-                                     'lexsort depth ({1})'
-                                     .format(len(tup), self.lexsort_depth))
-
+        true_slices = [i for (i, s) in enumerate(is_true_slices(tup)) if s]
+        if true_slices and true_slices[-1] >= self.lexsort_depth:
+            raise UnsortedIndexError('MultiIndex slicing requires the index '
+                                     'to be lexsorted: slicing on levels {0}, '
+                                     'lexsort depth {1}'
+                                     .format(true_slices, self.lexsort_depth))
         # indexer
         # this is the list of all values that we want to select
         n = len(self)
@@ -2613,8 +2623,9 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return algos.isin(self.values,
-                              MultiIndex.from_tuples(values).values)
+            values = MultiIndex.from_tuples(values,
+                                            names=self.names).values
+            return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]

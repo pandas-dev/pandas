@@ -2,20 +2,21 @@
 import os
 import numpy as np
 
-from pandas.io.json import libjson
+import pandas._libs.json as json
 from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
-from pandas import compat, isnull
+from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
-from pandas.io.common import get_filepath_or_buffer, _get_handle
+from pandas.io.common import (get_filepath_or_buffer, _get_handle,
+                              _stringify_path)
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
 from pandas.core.dtypes.common import is_period_dtype
 
-loads = libjson.loads
-dumps = libjson.dumps
+loads = json.loads
+dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = '0.20.0'
 
@@ -25,6 +26,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
             default_handler=None, lines=False):
 
+    path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")
@@ -533,7 +535,7 @@ class Parser(object):
 
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
-            in_range = (isnull(new_data.values) | (new_data > self.min_stamp) |
+            in_range = (isna(new_data.values) | (new_data > self.min_stamp) |
                         (new_data.values == iNaT))
             if not in_range.all():
                 return data, False

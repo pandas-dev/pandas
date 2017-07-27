@@ -19,6 +19,7 @@ cimport tslib
 from hashtable cimport *
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
+from datetime import datetime, timedelta
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
@@ -152,7 +153,7 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -470,7 +471,7 @@ cdef class DatetimeEngine(Int64Engine):
         try:
             val = _to_i8(val)
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             self._date_check_type(val)
             raise KeyError(val)
 
@@ -507,24 +508,37 @@ cdef class TimedeltaEngine(DatetimeEngine):
         return 'm8[ns]'
 
 cpdef convert_scalar(ndarray arr, object value):
+    # we don't turn integers
+    # into datetimes/timedeltas
+
+    # we don't turn bools into int/float/complex
+
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timestamp):
-            return value.value
+        elif isinstance(value, datetime):
+            return Timestamp(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timestamp(value).value
+        raise ValueError("cannot set a Timestamp with a non-timestamp")
+
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timedelta):
-            return value.value
+        elif isinstance(value, timedelta):
+            return Timedelta(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timedelta(value).value
+        raise ValueError("cannot set a Timedelta with a non-timedelta")
+
+    if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
+            not issubclass(arr.dtype.type, np.bool_)):
+        if util.is_bool_object(value):
+            raise ValueError('Cannot assign bool to float/integer series')
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
@@ -553,7 +567,34 @@ cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
 
-cdef class MultiIndexEngine(IndexEngine):
+cdef class MultiIndexObjectEngine(ObjectEngine):
+    """
+    provide the same interface as the MultiIndexEngine
+    but use the IndexEngine for computation
+
+    This provides good performance with samller MI's
+    """
+    def get_indexer(self, values):
+        # convert a MI to an ndarray
+        if hasattr(values, 'values'):
+            values = values.values
+        return super(MultiIndexObjectEngine, self).get_indexer(values)
+
+    cpdef get_loc(self, object val):
+
+        # convert a MI to an ndarray
+        if hasattr(val, 'values'):
+            val = val.values
+        return super(MultiIndexObjectEngine, self).get_loc(val)
+
+
+cdef class MultiIndexHashEngine(ObjectEngine):
+    """
+    Use a hashing based MultiIndex impl
+    but use the IndexEngine for computation
+
+    This provides good performance with larger MI's
+    """
 
     def _call_monotonic(self, object mi):
         # defer these back to the mi iteself
@@ -583,6 +624,10 @@ cdef class MultiIndexEngine(IndexEngine):
             return self.mapping.get_item(val)
         except TypeError:
             raise KeyError(val)
+
+    def get_indexer(self, values):
+        self._ensure_mapping_populated()
+        return self.mapping.lookup(values)
 
     cdef _make_hash_table(self, n):
         return _hash.MultiIndexHashTable(n)

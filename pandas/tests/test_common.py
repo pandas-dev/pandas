@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import collections
+from functools import partial
 
 import numpy as np
 
@@ -12,10 +14,11 @@ import pandas.util.testing as tm
 
 def test_mut_exclusive():
     msg = "mutually exclusive arguments: '[ab]' and '[ab]'"
-    with tm.assertRaisesRegexp(TypeError, msg):
+    with tm.assert_raises_regex(TypeError, msg):
         com._mut_exclusive(a=1, b=2)
     assert com._mut_exclusive(a=1, b=None) == 1
     assert com._mut_exclusive(major=None, major_axis=None) is None
+    assert com._mut_exclusive(a=None, b=2) == 2
 
 
 def test_get_callable_name():
@@ -195,3 +198,26 @@ def test_dict_compat():
     assert (com._dict_compat(data_datetime64) == expected)
     assert (com._dict_compat(expected) == expected)
     assert (com._dict_compat(data_unchanged) == data_unchanged)
+
+
+def test_standardize_mapping():
+    # No uninitialized defaultdicts
+    with pytest.raises(TypeError):
+        com.standardize_mapping(collections.defaultdict)
+
+    # No non-mapping subtypes, instance
+    with pytest.raises(TypeError):
+        com.standardize_mapping([])
+
+    # No non-mapping subtypes, class
+    with pytest.raises(TypeError):
+        com.standardize_mapping(list)
+
+    fill = {'bad': 'data'}
+    assert (com.standardize_mapping(fill) == dict)
+
+    # Convert instance to type
+    assert (com.standardize_mapping({}) == dict)
+
+    dd = collections.defaultdict(list)
+    assert isinstance(com.standardize_mapping(dd), partial)

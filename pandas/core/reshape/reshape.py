@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_bool_dtype,
     needs_i8_conversion)
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 import pandas.core.dtypes.concat as _concat
 
 from pandas.core.series import Series
@@ -20,7 +20,7 @@ from pandas.core.frame import DataFrame
 
 from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 from pandas.core.sparse.array import SparseArray
-from pandas.core.sparse.libsparse import IntIndex
+from pandas._libs.sparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,
@@ -30,7 +30,7 @@ import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.index import MultiIndex, _get_na_value
 
 
@@ -48,23 +48,23 @@ class _Unstacker(object):
     >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
-    >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
+    >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
     >>> s
-    one  a   1
-         b   2
-    two  a   3
-         b   4
-    dtype: float64
+    one  a    1
+         b    2
+    two  a    3
+         b    4
+    dtype: int64
 
     >>> s.unstack(level=-1)
-         a   b
+         a  b
     one  1  2
     two  3  4
 
     >>> s.unstack(level=0)
        one  two
-    a  1   2
-    b  3   4
+    a    1    3
+    b    2    4
 
     Returns
     -------
@@ -547,7 +547,7 @@ def stack(frame, level=-1, dropna=True):
 
     new_values = frame.values.ravel()
     if dropna:
-        mask = notnull(new_values)
+        mask = notna(new_values)
         new_values = new_values[mask]
         new_index = new_index[mask]
     return Series(new_values, index=new_index)
@@ -689,7 +689,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(frame.columns.levels[level_num])
+    new_levels.append(level_vals)
     new_labels.append(np.tile(level_labels, N))
     new_names.append(frame.columns.names[level_num])
 
@@ -789,18 +789,18 @@ def lreshape(data, groups, dropna=True, label=None):
     >>> import pandas as pd
     >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
     ...                      'team': ['Red Sox', 'Yankees'],
-    ...                      'year1': [2007, 2008], 'year2': [2008, 2008]})
+    ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
     >>> data
        hr1  hr2     team  year1  year2
     0  514  545  Red Sox   2007   2008
     1  573  526  Yankees   2007   2008
 
     >>> pd.lreshape(data, {'year': ['year1', 'year2'], 'hr': ['hr1', 'hr2']})
-          team   hr  year
-    0  Red Sox  514  2007
-    1  Yankees  573  2007
-    2  Red Sox  545  2008
-    3  Yankees  526  2008
+          team  year   hr
+    0  Red Sox  2007  514
+    1  Yankees  2007  573
+    2  Red Sox  2008  545
+    3  Yankees  2008  526
 
     Returns
     -------
@@ -835,7 +835,7 @@ def lreshape(data, groups, dropna=True, label=None):
     if dropna:
         mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
         for c in pivot_cols:
-            mask &= notnull(mdata[c])
+            mask &= notna(mdata[c])
         if not mask.all():
             mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
 
@@ -905,11 +905,12 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ...                   })
     >>> df["id"] = df.index
     >>> df
-    A1970 A1980  B1970  B1980         X  id
+      A1970 A1980  B1970  B1980         X  id
     0     a     d    2.5    3.2 -1.085631   0
     1     b     e    1.2    1.3  0.997345   1
     2     c     f    0.7    0.1  0.282978   2
     >>> pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+    ... # doctest: +NORMALIZE_WHITESPACE
                     X  A    B
     id year
     0  1970 -1.085631  a  2.5
@@ -940,6 +941,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     8      3      3  2.1  2.9
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
     >>> l
+    ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
     1     1     1    2.8
@@ -979,41 +981,44 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
 
     Less wieldy column names are also handled
 
+    >>> np.random.seed(0)
     >>> df = pd.DataFrame({'A(quarterly)-2010': np.random.rand(3),
     ...                    'A(quarterly)-2011': np.random.rand(3),
     ...                    'B(quarterly)-2010': np.random.rand(3),
     ...                    'B(quarterly)-2011': np.random.rand(3),
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
-    >>> df
-      A(quarterly)-2010 A(quarterly)-2011 B(quarterly)-2010 B(quarterly)-2011
-    0          0.531828          0.724455          0.322959          0.293714
-    1          0.634401          0.611024          0.361789          0.630976
-    2          0.849432          0.722443          0.228263          0.092105
-    \
+    >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  ...
+    0           0.548814           0.544883           0.437587  ...
+    1           0.715189           0.423655           0.891773  ...
+    2           0.602763           0.645894           0.963663  ...
        X  id
     0  0   0
     1  1   1
-    2  2   2
-    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'],
-                        i='id', j='year', sep='-')
-             X     A(quarterly)  B(quarterly)
+    2  1   2
+
+    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id',
+    ...                 j='year', sep='-')
+    ... # doctest: +NORMALIZE_WHITESPACE
+             X  A(quarterly)  B(quarterly)
     id year
-    0  2010  0       0.531828       0.322959
-    1  2010  2       0.634401       0.361789
-    2  2010  2       0.849432       0.228263
-    0  2011  0       0.724455       0.293714
-    1  2011  2       0.611024       0.630976
-    2  2011  2       0.722443       0.092105
+    0  2010  0      0.548814     0.437587
+    1  2010  1      0.715189     0.891773
+    2  2010  1      0.602763     0.963663
+    0  2011  0      0.544883     0.383442
+    1  2011  1      0.423655     0.791725
+    2  2011  1      0.645894     0.528895
 
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
 
-    >>> stubnames = set([match[0] for match in
-                        df.columns.str.findall('[A-B]\(.*\)').values
-                        if match != [] ])
+    >>> stubnames = sorted(
+    ...     set([match[0] for match in df.columns.str.findall(
+    ...         r'[A-B]\(.*\)').values if match != [] ])
+    ... )
     >>> list(stubnames)
-    ['B(quarterly)', 'A(quarterly)']
+    ['A(quarterly)', 'B(quarterly)']
 
     Notes
     -----
@@ -1045,6 +1050,9 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
         i = [i]
     else:
         i = list(i)
+
+    if df[i].duplicated().any():
+        raise ValueError("the id variables need to uniquely identify each row")
 
     value_vars = list(map(lambda stub:
                           get_var_names(df, stub, sep, suffix), stubnames))
@@ -1130,7 +1138,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     2  0  0    1
 
     >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
-                        'C': [1, 2, 3]})
+    ...                    'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
@@ -1146,7 +1154,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     3  1  0  0
     4  1  0  0
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True))
+    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
        b  c
     0  0  0
     1  1  0

@@ -19,7 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
-                     _coerce_to_dtype,
+                     pandas_dtype,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
@@ -27,7 +27,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
 from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
-from .missing import isnull, notnull
+from .missing import isna, notna
 from .inference import is_list_like
 
 _int8_max = np.iinfo(np.int8).max
@@ -110,9 +110,7 @@ def maybe_downcast_to_dtype(result, dtype):
                     np.prod(result.shape)):
                 return result
 
-        if issubclass(dtype.type, np.floating):
-            return result.astype(dtype)
-        elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
+        if is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
             # if we don't have any elements, just astype it
             if not np.prod(result.shape):
@@ -123,7 +121,7 @@ def maybe_downcast_to_dtype(result, dtype):
             arr = np.array([r[0]])
 
             # if we have any nulls, then we are done
-            if (isnull(arr).any() or
+            if (isna(arr).any() or
                     not np.allclose(arr, trans(arr).astype(dtype), rtol=0)):
                 return result
 
@@ -133,7 +131,7 @@ def maybe_downcast_to_dtype(result, dtype):
                 return result
 
             if (issubclass(result.dtype.type, (np.object_, np.number)) and
-                    notnull(result).all()):
+                    notna(result).all()):
                 new_result = trans(result).astype(dtype)
                 try:
                     if np.allclose(new_result, result, rtol=0):
@@ -144,6 +142,9 @@ def maybe_downcast_to_dtype(result, dtype):
                     # hit here
                     if (new_result == result).all():
                         return new_result
+        elif (issubclass(dtype.type, np.floating) and
+                not is_bool_dtype(result.dtype)):
+            return result.astype(dtype)
 
         # a datetimelike
         # GH12821, iNaT is casted to float
@@ -190,7 +191,7 @@ def maybe_upcast_putmask(result, mask, other):
         #   integer or integer array -> date-like array
         if is_datetimelike(result.dtype):
             if is_scalar(other):
-                if isnull(other):
+                if isna(other):
                     other = result.dtype.type('nat')
                 elif is_integer(other):
                     other = np.array(other, dtype=result.dtype)
@@ -231,13 +232,13 @@ def maybe_upcast_putmask(result, mask, other):
             # and its nan and we are changing some values
             if (is_scalar(other) or
                     (isinstance(other, np.ndarray) and other.ndim < 1)):
-                if isnull(other):
+                if isna(other):
                     return changeit()
 
             # we have an ndarray and the masking has nans in it
             else:
 
-                if isnull(other[mask]).any():
+                if isna(other[mask]).any():
                     return changeit()
 
         try:
@@ -267,12 +268,12 @@ def maybe_promote(dtype, fill_value=np.nan):
         # for now: refuse to upcast datetime64
         # (this is because datetime64 will not implicitly upconvert
         #  to object correctly as of numpy 1.6.1)
-        if isnull(fill_value):
+        if isna(fill_value):
             fill_value = iNaT
         else:
             if issubclass(dtype.type, np.datetime64):
                 try:
-                    fill_value = lib.Timestamp(fill_value).value
+                    fill_value = tslib.Timestamp(fill_value).value
                 except:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
@@ -286,7 +287,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             else:
                 fill_value = iNaT
     elif is_datetimetz(dtype):
-        if isnull(fill_value):
+        if isna(fill_value):
             fill_value = iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -333,6 +334,23 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
+def infer_dtype_from(val, pandas_dtype=False):
+    """
+    interpret the dtype from a scalar or array. This is a convenience
+    routines to infer dtype from a scalar or an array
+
+    Parameters
+    ----------
+    pandas_dtype : bool, default False
+        whether to infer dtype including pandas extension types.
+        If False, scalar/array belongs to pandas extension types is inferred as
+        object
+    """
+    if is_scalar(val):
+        return infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
+    return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
+
+
 def infer_dtype_from_scalar(val, pandas_dtype=False):
     """
     interpret the dtype from a scalar
@@ -349,9 +367,9 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
+        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
         if val.ndim != 0:
-            raise ValueError(
-                "invalid ndarray passed to _infer_dtype_from_scalar")
+            raise ValueError(msg)
 
         dtype = val.dtype
         val = val.item()
@@ -408,23 +426,30 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
     return dtype, val
 
 
-def infer_dtype_from_array(arr):
+def infer_dtype_from_array(arr, pandas_dtype=False):
     """
     infer the dtype from a scalar or array
 
     Parameters
     ----------
     arr : scalar or array
+    pandas_dtype : bool, default False
+        whether to infer dtype including pandas extension types.
+        If False, array belongs to pandas extension types
+        is inferred as object
 
     Returns
     -------
-    tuple (numpy-compat dtype, array)
+    tuple (numpy-compat/pandas-compat dtype, array)
 
     Notes
     -----
-    These infer to numpy dtypes exactly
-    with the exception that mixed / object dtypes
+    if pandas_dtype=False. these infer to numpy dtypes
+    exactly with the exception that mixed / object dtypes
     are not coerced by stringifying or conversion
+
+    if pandas_dtype=True. datetime64tz-aware/categorical
+    types will retain there character.
 
     Examples
     --------
@@ -441,6 +466,12 @@ def infer_dtype_from_array(arr):
 
     if not is_list_like(arr):
         arr = [arr]
+
+    if pandas_dtype and is_extension_type(arr):
+        return arr.dtype, arr
+
+    elif isinstance(arr, ABCSeries):
+        return arr.dtype, np.asarray(arr)
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr)
@@ -549,10 +580,10 @@ def coerce_to_dtypes(result, dtypes):
 
     def conv(r, dtype):
         try:
-            if isnull(r):
+            if isna(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = lib.Timestamp(r)
+                r = tslib.Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
@@ -576,7 +607,7 @@ def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
-        dtype = _coerce_to_dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
@@ -604,7 +635,7 @@ def astype_nansafe(arr, dtype, copy=True):
 
             # allow frequency conversions
             if dtype.kind == 'm':
-                mask = isnull(arr)
+                mask = isna(arr)
                 result = arr.astype(dtype).astype(np.float64)
                 result[mask] = np.nan
                 return result
@@ -656,7 +687,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                 values, 'M8[ns]', errors='coerce')
 
             # if we are all nans then leave me alone
-            if not isnull(new_values).all():
+            if not isna(new_values).all():
                 values = new_values
 
         else:
@@ -668,10 +699,10 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
 
         if convert_timedeltas == 'coerce':
             from pandas.core.tools.timedeltas import to_timedelta
-            new_values = to_timedelta(values, coerce=True)
+            new_values = to_timedelta(values, errors='coerce')
 
             # if we are all nans then leave me alone
-            if not isnull(new_values).all():
+            if not isna(new_values).all():
                 values = new_values
 
         else:
@@ -686,7 +717,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                                                        coerce_numeric=True)
 
                 # if we are all nans then leave me alone
-                if not isnull(new_values).all():
+                if not isna(new_values).all():
                     values = new_values
 
             except:
@@ -748,7 +779,7 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
             converted = lib.maybe_convert_numeric(values, set(),
                                                   coerce_numeric=True)
             # If all NaNs, then do not-alter
-            values = converted if not isnull(converted).all() else values
+            values = converted if not isna(converted).all() else values
             values = values.copy() if copy else values
         except:
             pass
@@ -837,7 +868,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         try:
             return to_timedelta(v)._values.reshape(shape)
         except:
-            return v
+            return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
@@ -850,7 +881,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     elif inferred_type == 'nat':
 
         # if all NaT, return as datetime
-        if isnull(v).all():
+        if isna(v).all():
             value = try_datetime(v)
         else:
 
@@ -901,7 +932,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                 # our NaT doesn't support tz's
                 # this will coerce to DatetimeIndex with
                 # a matching dtype below
-                if is_scalar(value) and isnull(value):
+                if is_scalar(value) and isna(value):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
@@ -915,7 +946,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                     "dtype [%s]" % dtype)
 
             if is_scalar(value):
-                if value == iNaT or isnull(value):
+                if value == iNaT or isna(value):
                     value = iNaT
             else:
                 value = np.array(value, copy=False)
@@ -1026,3 +1057,31 @@ def find_common_type(types):
             return np.object
 
     return np.find_common_type(types, [])
+
+
+def cast_scalar_to_array(shape, value, dtype=None):
+    """
+    create np.ndarray of specified shape and dtype, filled with values
+
+    Parameters
+    ----------
+    shape : tuple
+    value : scalar value
+    dtype : np.dtype, optional
+        dtype to coerce
+
+    Returns
+    -------
+    ndarray of shape, filled with value, of specified / inferred dtype
+
+    """
+
+    if dtype is None:
+        dtype, fill_value = infer_dtype_from_scalar(value)
+    else:
+        fill_value = value
+
+    values = np.empty(shape, dtype=dtype)
+    values.fill(fill_value)
+
+    return values

@@ -34,32 +34,32 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
-from pandas.util.decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
+import pandas.core.sorting as sorting
 import pandas.core.common as com
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas.errors import MergeError
 
 
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False,
-          suffixes=('_x', '_y'), copy=True, indicator=False):
+          suffixes=('_x', '_y'), copy=True, indicator=False,
+          validate=None):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
-                         copy=copy, indicator=indicator)
+                         copy=copy, indicator=indicator,
+                         validate=validate)
     return op.get_result()
 
 
 if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
-
-
-class MergeError(ValueError):
-    pass
 
 
 def _groupby_and_merge(by, on, left, right, _merge_pieces,
@@ -341,18 +341,22 @@ def merge_asof(left, right, on=None,
 
         .. versionadded:: 0.20.0
 
+
     Returns
     -------
     merged : DataFrame
 
     Examples
     --------
+    >>> left = pd.DataFrame({'a': [1, 5, 10], 'left_val': ['a', 'b', 'c']})
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
+    >>> right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
+    ...                       'right_val': [1, 2, 3, 6, 7]})
     >>> right
        a  right_val
     0  1          1
@@ -387,12 +391,15 @@ def merge_asof(left, right, on=None,
 
     We can use indexed DataFrames as well.
 
+    >>> left = pd.DataFrame({'left_val': ['a', 'b', 'c']}, index=[1, 5, 10])
     >>> left
        left_val
     1         a
     5         b
     10        c
 
+    >>> right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7]},
+    ...                      index=[1, 2, 3, 6, 7])
     >>> right
        right_val
     1          1
@@ -498,7 +505,8 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('_x', '_y'), copy=True, indicator=False):
+                 suffixes=('_x', '_y'), copy=True, indicator=False,
+                 validate=None):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -560,6 +568,12 @@ class _MergeOperation(object):
         # validate the merge keys dtypes. We may need to coerce
         # to avoid incompat dtypes
         self._maybe_coerce_merge_keys()
+
+        # If argument passed to validate,
+        # check if columns specified as unique
+        # are in fact unique.
+        if validate is not None:
+            self._validate(validate)
 
     def get_result(self):
         if self.indicator:
@@ -864,7 +878,7 @@ class _MergeOperation(object):
         return left_keys, right_keys, join_names
 
     def _maybe_coerce_merge_keys(self):
-        # we have valid mergee's but we may have to further
+        # we have valid mergees but we may have to further
         # coerce these if they are originally incompatible types
         #
         # for example if these are categorical, but are not dtype_equal
@@ -876,12 +890,16 @@ class _MergeOperation(object):
             if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
                 continue
 
+            lk_is_cat = is_categorical_dtype(lk)
+            rk_is_cat = is_categorical_dtype(rk)
+
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
-            if is_categorical_dtype(lk) and is_categorical_dtype(rk):
+            if lk_is_cat and rk_is_cat:
                 if lk.is_dtype_equal(rk):
                     continue
-            elif is_categorical_dtype(lk) or is_categorical_dtype(rk):
+
+            elif lk_is_cat or rk_is_cat:
                 pass
 
             elif is_dtype_equal(lk.dtype, rk.dtype):
@@ -891,7 +909,7 @@ class _MergeOperation(object):
             # kinds to proceed, eg. int64 and int8
             # further if we are object, but we infer to
             # the same, then proceed
-            if (is_numeric_dtype(lk) and is_numeric_dtype(rk)):
+            if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
@@ -900,13 +918,20 @@ class _MergeOperation(object):
                     continue
 
             # Houston, we have a problem!
-            # let's coerce to object
+            # let's coerce to object if the dtypes aren't
+            # categorical, otherwise coerce to the category
+            # dtype. If we coerced categories to object,
+            # then we would lose type information on some
+            # columns, and end up trying to merge
+            # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
+                typ = lk.categories.dtype if lk_is_cat else object
                 self.left = self.left.assign(
-                    **{name: self.left[name].astype(object)})
+                    **{name: self.left[name].astype(typ)})
             if name in self.right.columns:
+                typ = rk.categories.dtype if rk_is_cat else object
                 self.right = self.right.assign(
-                    **{name: self.right[name].astype(object)})
+                    **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
@@ -951,6 +976,49 @@ class _MergeOperation(object):
                 self.left_on = [None] * n
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+    def _validate(self, validate):
+
+        # Check uniqueness of each
+        if self.left_index:
+            left_unique = self.orig_left.index.is_unique
+        else:
+            left_unique = MultiIndex.from_arrays(self.left_join_keys
+                                                 ).is_unique
+
+        if self.right_index:
+            right_unique = self.orig_right.index.is_unique
+        else:
+            right_unique = MultiIndex.from_arrays(self.right_join_keys
+                                                  ).is_unique
+
+        # Check data integrity
+        if validate in ["one_to_one", "1:1"]:
+            if not left_unique and not right_unique:
+                raise MergeError("Merge keys are not unique in either left"
+                                 " or right dataset; not a one-to-one merge")
+            elif not left_unique:
+                raise MergeError("Merge keys are not unique in left dataset;"
+                                 " not a one-to-one merge")
+            elif not right_unique:
+                raise MergeError("Merge keys are not unique in right dataset;"
+                                 " not a one-to-one merge")
+
+        elif validate in ["one_to_many", "1:m"]:
+            if not left_unique:
+                raise MergeError("Merge keys are not unique in left dataset;"
+                                 "not a one-to-many merge")
+
+        elif validate in ["many_to_one", "m:1"]:
+            if not right_unique:
+                raise MergeError("Merge keys are not unique in right dataset;"
+                                 " not a many-to-one merge")
+
+        elif validate in ['many_to_many', 'm:m']:
+            pass
+
+        else:
+            raise ValueError("Not a valid argument for validate")
 
 
 def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
@@ -1384,13 +1452,14 @@ def _factorize_keys(lk, rk, sort=True):
         lk = lk.values
         rk = rk.values
 
-    # if we exactly match in categories, allow us to use codes
+    # if we exactly match in categories, allow us to factorize on codes
     if (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
-        return lk.codes, rk.codes, len(lk.categories)
-
-    if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
+        klass = libhashtable.Int64Factorizer
+        lk = _ensure_int64(lk.codes)
+        rk = _ensure_int64(rk.codes)
+    elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))
         rk = _ensure_int64(com._values_from_object(rk))
@@ -1434,7 +1503,7 @@ def _sort_labels(uniques, left, right):
     l = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = _ensure_int64(new_labels)
     new_left, new_right = new_labels[:l], new_labels[l:]
 

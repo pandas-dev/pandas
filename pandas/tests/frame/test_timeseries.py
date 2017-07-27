@@ -16,9 +16,7 @@ from pandas import (DataFrame, Series, Index,
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 from pandas.compat import product
@@ -26,7 +24,7 @@ from pandas.compat import product
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
+class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_diff(self):
         the_diff = self.tsframe.diff(1)
@@ -40,7 +38,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         s = Series([a, b])
 
         rs = DataFrame({'s': s}).diff()
-        self.assertEqual(rs.s[1], 1)
+        assert rs.s[1] == 1
 
         # mixed numeric
         tf = self.tsframe.astype('float32')
@@ -73,7 +71,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         df['A'] = np.array([1, 2, 3, 4, 5], dtype=object)
 
         result = df.diff()
-        self.assertEqual(result[0].dtype, np.float64)
+        assert result[0].dtype == np.float64
 
     def test_diff_neg_n(self):
         rs = self.tsframe.diff(-1)
@@ -124,14 +122,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         dates = np.asarray(rng)
 
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
-        self.assertTrue(np.issubdtype(df['B'].dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(df['B'].dtype, np.dtype('M8[ns]'))
 
     def test_frame_add_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         df = DataFrame(index=np.arange(len(rng)))
 
         df['A'] = rng
-        self.assertTrue(np.issubdtype(df['A'].dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(df['A'].dtype, np.dtype('M8[ns]'))
 
     def test_frame_datetime64_pre1900_repr(self):
         df = DataFrame({'year': date_range('1/1/1700', periods=50,
@@ -155,8 +153,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
             ex_vals = to_datetime(vals.astype('O')).values
 
-            self.assertEqual(df[unit].dtype, ns_dtype)
-            self.assertTrue((df[unit].values == ex_vals).all())
+            assert df[unit].dtype == ns_dtype
+            assert (df[unit].values == ex_vals).all()
 
         # Test insertion into existing datetime64 column
         df = DataFrame({'ints': np.arange(n)}, index=np.arange(n))
@@ -171,7 +169,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             tmp['dates'] = vals
             ex_vals = to_datetime(vals.astype('O')).values
 
-            self.assertTrue((tmp['dates'].values == ex_vals).all())
+            assert (tmp['dates'].values == ex_vals).all()
 
     def test_shift(self):
         # naive shift
@@ -193,7 +191,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         # shift by DateOffset
         shiftedFrame = self.tsframe.shift(5, freq=offsets.BDay())
-        self.assertEqual(len(shiftedFrame), len(self.tsframe))
+        assert len(shiftedFrame) == len(self.tsframe)
 
         shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
@@ -220,8 +218,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        assertRaisesRegexp(ValueError, 'does not match PeriodIndex freq',
-                           ps.shift, freq='D')
+        tm.assert_raises_regex(ValueError,
+                               'does not match PeriodIndex freq',
+                               ps.shift, freq='D')
 
         # shift other axis
         # GH 6371
@@ -267,6 +266,28 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         assert_frame_equal(df, rs)
 
+    def test_shift_duplicate_columns(self):
+        # GH 9092; verify that position-based shifting works
+        # in the presence of duplicate columns
+        column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
+        data = np.random.randn(20, 5)
+
+        shifted = []
+        for columns in column_lists:
+            df = pd.DataFrame(data.copy(), columns=columns)
+            for s in range(5):
+                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+            df.columns = range(5)
+            shifted.append(df)
+
+        # sanity check the base case
+        nulls = shifted[0].isna().sum()
+        assert_series_equal(nulls, Series(range(1, 6), dtype='int64'))
+
+        # check all answers are the same
+        assert_frame_equal(shifted[0], shifted[1])
+        assert_frame_equal(shifted[0], shifted[2])
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodFrame()
@@ -281,7 +302,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         shifted3 = ps.tshift(freq=offsets.BDay())
         assert_frame_equal(shifted, shifted3)
 
-        assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')
+        tm.assert_raises_regex(
+            ValueError, 'does not match', ps.tshift, freq='M')
 
         # DatetimeIndex
         shifted = self.tsframe.tshift(1)
@@ -350,7 +372,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         index = self.tsframe.index
         truncated = self.tsframe.truncate(index[5], index[10])
         truncated.values[:] = 5.
-        self.assertFalse((self.tsframe.values[5:11] == 5).any())
+        assert not (self.tsframe.values[5:11] == 5).any()
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
@@ -408,10 +430,10 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         index = frame.first_valid_index()
 
-        self.assertEqual(index, frame.index[5])
+        assert index == frame.index[5]
 
         index = frame.last_valid_index()
-        self.assertEqual(index, frame.index[-6])
+        assert index == frame.index[-6]
 
         # GH12800
         empty = DataFrame()
@@ -422,9 +444,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         rs = ts.at_time(rng[1])
-        self.assertTrue((rs.index.hour == rng[1].hour).all())
-        self.assertTrue((rs.index.minute == rng[1].minute).all())
-        self.assertTrue((rs.index.second == rng[1].second).all())
+        assert (rs.index.hour == rng[1].hour).all()
+        assert (rs.index.minute == rng[1].minute).all()
+        assert (rs.index.second == rng[1].second).all()
 
         result = ts.at_time('9:30')
         expected = ts.at_time(time(9, 30))
@@ -446,7 +468,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         rng = date_range('1/1/2012', freq='23Min', periods=384)
         ts = DataFrame(np.random.randn(len(rng), 2), rng)
         rs = ts.at_time('16:00')
-        self.assertEqual(len(rs), 0)
+        assert len(rs) == 0
 
     def test_between_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -463,18 +485,18 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue(t >= stime)
+                    assert t >= stime
                 else:
-                    self.assertTrue(t > stime)
+                    assert t > stime
 
                 if inc_end:
-                    self.assertTrue(t <= etime)
+                    assert t <= etime
                 else:
-                    self.assertTrue(t < etime)
+                    assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -495,18 +517,18 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue((t >= stime) or (t <= etime))
+                    assert (t >= stime) or (t <= etime)
                 else:
-                    self.assertTrue((t > stime) or (t <= etime))
+                    assert (t > stime) or (t <= etime)
 
                 if inc_end:
-                    self.assertTrue((t <= etime) or (t >= stime))
+                    assert (t <= etime) or (t >= stime)
                 else:
-                    self.assertTrue((t < etime) or (t >= stime))
+                    assert (t < etime) or (t >= stime)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

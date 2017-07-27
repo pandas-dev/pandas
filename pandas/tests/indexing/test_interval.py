@@ -6,9 +6,9 @@ from pandas import Series, DataFrame, IntervalIndex, Interval
 import pandas.util.testing as tm
 
 
-class TestIntervalIndex(tm.TestCase):
+class TestIntervalIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
     def test_loc_with_scalar(self):
@@ -109,10 +109,10 @@ class TestIntervalIndex(tm.TestCase):
 
         # slice of interval
         with pytest.raises(NotImplementedError):
-            result = s.loc[Interval(3, 6):]
+            s.loc[Interval(3, 6):]
 
         with pytest.raises(NotImplementedError):
-            result = s[Interval(3, 6):]
+            s[Interval(3, 6):]
 
         expected = s.iloc[3:5]
         result = s[[Interval(3, 6)]]

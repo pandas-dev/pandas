@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table
@@ -20,6 +19,7 @@ from .converters import ConverterTests
 from .c_parser_only import CParserTests
 from .parse_dates import ParseDatesTests
 from .compression import CompressionTests
+from .mangle_dupes import DupeColumnTests
 from .multithread import MultithreadTests
 from .python_parser_only import PythonParserTests
 from .dtypes import DtypeTests
@@ -27,11 +27,12 @@ from .dtypes import DtypeTests
 
 class BaseParser(CommentTests, CompressionTests,
                  ConverterTests, DialectTests,
+                 DtypeTests, DupeColumnTests,
                  HeaderTests, IndexColTests,
                  MultithreadTests, NAvaluesTests,
                  ParseDatesTests, ParserTests,
                  SkipRowsTests, UsecolsTests,
-                 QuotingTests, DtypeTests):
+                 QuotingTests):
 
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
@@ -42,7 +43,7 @@ class BaseParser(CommentTests, CompressionTests,
     def float_precision_choices(self):
         raise AbstractMethodError(self)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
@@ -50,7 +51,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
-class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):
+class TestCParserHighMemory(BaseParser, CParserTests):
     engine = 'c'
     low_memory = False
     float_precision_choices = [None, 'high', 'round_trip']
@@ -68,7 +69,7 @@ class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
 
-class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
+class TestCParserLowMemory(BaseParser, CParserTests):
     engine = 'c'
     low_memory = True
     float_precision_choices = [None, 'high', 'round_trip']
@@ -86,7 +87,7 @@ class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
 
-class TestPythonParser(BaseParser, PythonParserTests, tm.TestCase):
+class TestPythonParser(BaseParser, PythonParserTests):
     engine = 'python'
     float_precision_choices = [None]
 

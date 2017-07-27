@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 from pandas import Panel, date_range, DataFrame
 
 
-class TestPanel(tm.TestCase):
+class TestPanel(object):
 
     def test_iloc_getitem_panel(self):
 
@@ -27,7 +27,7 @@ class TestPanel(tm.TestCase):
 
             result = p.iloc[1, 1, 1]
             expected = p.loc['B', 'b', 'two']
-            self.assertEqual(result, expected)
+            assert result == expected
 
             # slice
             result = p.iloc[1:3]
@@ -99,16 +99,16 @@ class TestPanel(tm.TestCase):
     def test_iloc_panel_issue(self):
 
         with catch_warnings(record=True):
-            # GH 3617
+            # see gh-3617
             p = Panel(np.random.randn(4, 4, 4))
 
-            self.assertEqual(p.iloc[:3, :3, :3].shape, (3, 3, 3))
-            self.assertEqual(p.iloc[1, :3, :3].shape, (3, 3))
-            self.assertEqual(p.iloc[:3, 1, :3].shape, (3, 3))
-            self.assertEqual(p.iloc[:3, :3, 1].shape, (3, 3))
-            self.assertEqual(p.iloc[1, 1, :3].shape, (3, ))
-            self.assertEqual(p.iloc[1, :3, 1].shape, (3, ))
-            self.assertEqual(p.iloc[:3, 1, 1].shape, (3, ))
+            assert p.iloc[:3, :3, :3].shape == (3, 3, 3)
+            assert p.iloc[1, :3, :3].shape == (3, 3)
+            assert p.iloc[:3, 1, :3].shape == (3, 3)
+            assert p.iloc[:3, :3, 1].shape == (3, 3)
+            assert p.iloc[1, 1, :3].shape == (3, )
+            assert p.iloc[1, :3, 1].shape == (3, )
+            assert p.iloc[:3, 1, 1].shape == (3, )
 
     def test_panel_getitem(self):
 

@@ -57,9 +57,9 @@ class ParserWarning(Warning):
     """
 
 
-class UnserializableWarning(Warning):
+class MergeError(ValueError):
     """
-    Warnng that is raised when a DataFrame cannot be serialzed.
+    Error raised when problems arise during merging due to problems
+    with input data. Subclass of `ValueError`.
 
-    .. versionadded:: 0.20.0
     """

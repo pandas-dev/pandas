@@ -1,13 +1,14 @@
 import pytest
 
+import pytz
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas import notnull, Index, DatetimeIndex, datetime, date_range
+from pandas import notna, Index, DatetimeIndex, datetime, date_range
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_where_other(self):
 
@@ -15,29 +16,29 @@ class TestDatetimeIndex(tm.TestCase):
         i = pd.date_range('20130101', periods=3, tz='US/Eastern')
 
         for arr in [np.nan, pd.NaT]:
-            result = i.where(notnull(i), other=np.nan)
+            result = i.where(notna(i), other=np.nan)
             expected = i
             tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notnull(i2), i2)
+        result = i.where(notna(i2), i2)
         tm.assert_index_equal(result, i2)
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notnull(i2), i2.values)
+        result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
 
     def test_where_tz(self):
         i = pd.date_range('20130101', periods=3, tz='US/Eastern')
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notnull(i2))
+        result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
 
@@ -97,10 +98,7 @@ class TestDatetimeIndex(tm.TestCase):
         assert result.name == expected.name
         assert result.freq is None
 
-        # GH 7299
-        tm._skip_if_no_pytz()
-        import pytz
-
+        # see gh-7299
         idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo',
                          name='idx')
         with pytest.raises(ValueError):
@@ -164,8 +162,8 @@ class TestDatetimeIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         with pytest.raises((IndexError, ValueError)):
             # either depeidnig on numpy version
@@ -179,17 +177,17 @@ class TestDatetimeIndex(tm.TestCase):
                                   freq='H', name='idx', tz=tz)
             result = idx.delete(0)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freqstr, 'H')
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freqstr == 'H'
+            assert result.tz == expected.tz
 
             expected = date_range(start='2000-01-01 09:00', periods=9,
                                   freq='H', name='idx', tz=tz)
             result = idx.delete(-1)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freqstr, 'H')
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freqstr == 'H'
+            assert result.tz == expected.tz
 
     def test_delete_slice(self):
         idx = date_range(start='2000-01-01', periods=10, freq='D', name='idx')
@@ -211,13 +209,13 @@ class TestDatetimeIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
             result = idx.delete(slice(n[0], n[-1] + 1))
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         for tz in [None, 'Asia/Tokyo', 'US/Pacific']:
             ts = pd.Series(1, index=pd.date_range(
@@ -227,9 +225,9 @@ class TestDatetimeIndex(tm.TestCase):
             expected = pd.date_range('2000-01-01 14:00', periods=5, freq='H',
                                      name='idx', tz=tz)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
+            assert result.tz == expected.tz
 
             # reset freq to None
             result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
@@ -238,6 +236,6 @@ class TestDatetimeIndex(tm.TestCase):
                                       '2000-01-01 15:00', '2000-01-01 17:00'],
                                      freq=None, name='idx', tz=tz)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.tz, expected.tz)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
+            assert result.tz == expected.tz

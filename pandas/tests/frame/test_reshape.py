@@ -17,16 +17,14 @@ from pandas import (DataFrame, Index, Series, MultiIndex, date_range,
                     Timedelta, Period)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameReshape(tm.TestCase, TestData):
+class TestDataFrameReshape(TestData):
 
     def test_pivot(self):
         data = {
@@ -43,38 +41,38 @@ class TestDataFrameReshape(tm.TestCase, TestData):
             'One': {'A': 1., 'B': 2., 'C': 3.},
             'Two': {'A': 1., 'B': 2., 'C': 3.}
         })
-        expected.index.name, expected.columns.name = 'index', 'columns'
 
-        assert_frame_equal(pivoted, expected)
+        expected.index.name, expected.columns.name = 'index', 'columns'
+        tm.assert_frame_equal(pivoted, expected)
 
         # name tracking
-        self.assertEqual(pivoted.index.name, 'index')
-        self.assertEqual(pivoted.columns.name, 'columns')
+        assert pivoted.index.name == 'index'
+        assert pivoted.columns.name == 'columns'
 
         # don't specify values
         pivoted = frame.pivot(index='index', columns='columns')
-        self.assertEqual(pivoted.index.name, 'index')
-        self.assertEqual(pivoted.columns.names, (None, 'columns'))
+        assert pivoted.index.name == 'index'
+        assert pivoted.columns.names == (None, 'columns')
 
         with catch_warnings(record=True):
             # pivot multiple columns
             wp = tm.makePanel()
             lp = wp.to_frame()
             df = lp.reset_index()
-            assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
+            tm.assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_pivot_duplicates(self):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
                           'c': [1., 2., 3., 3., 4.]})
-        with assertRaisesRegexp(ValueError, 'duplicate entries'):
+        with tm.assert_raises_regex(ValueError, 'duplicate entries'):
             data.pivot('a', 'b', 'c')
 
     def test_pivot_empty(self):
         df = DataFrame({}, columns=['a', 'b', 'c'])
         result = df.pivot('a', 'b', 'c')
         expected = DataFrame({})
-        assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):
         df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
@@ -108,21 +106,14 @@ class TestDataFrameReshape(tm.TestCase, TestData):
                                                       ('values', 'Two')],
                                                      names=[None, 'columns'])
         expected.index.name = 'index'
-        assert_frame_equal(result, expected, check_names=False)
-        self.assertEqual(result.index.name, 'index',)
-        self.assertEqual(result.columns.names, (None, 'columns'))
+        tm.assert_frame_equal(result, expected, check_names=False)
+        assert result.index.name == 'index'
+        assert result.columns.names == (None, 'columns')
         expected.columns = expected.columns.droplevel(0)
-
-        data = {
-            'index': range(7),
-            'columns': ['One', 'One', 'One', 'Two', 'Two', 'Two'],
-            'values': [1., 2., 3., 3., 2., 1.]
-        }
-
         result = frame.pivot(columns='columns', values='values')
 
         expected.columns.name = 'columns'
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_stack_unstack(self):
         f = self.frame.copy()
@@ -447,7 +438,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         # check reversibility
         data = self.frame.unstack()
 
-        self.assertTrue(isinstance(data, Series))
+        assert isinstance(data, Series)
         undo = data.unstack().T
         assert_frame_equal(undo, self.frame)
 
@@ -518,8 +509,8 @@ class TestDataFrameReshape(tm.TestCase, TestData):
             right = right.set_index(['A', 'B']).unstack(0)
             right[('D', 'a')] = right[('D', 'a')].astype('int64')
 
-            self.assertEqual(left.shape, (3, 2))
-            assert_frame_equal(left, right)
+            assert left.shape == (3, 2)
+            tm.assert_frame_equal(left, right)
 
     def test_unstack_non_unique_index_names(self):
         idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
@@ -537,12 +528,12 @@ class TestDataFrameReshape(tm.TestCase, TestData):
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
-            rows, cols = df.notnull().values.nonzero()
+            rows, cols = df.notna().values.nonzero()
             for i, j in zip(rows, cols):
                 left = sorted(df.iloc[i, j].split('.'))
                 right = mk_list(df.index[i]) + mk_list(df.columns[j])
                 right = sorted(list(map(cast, right)))
-                self.assertEqual(left, right)
+                assert left == right
 
         df = DataFrame({'jim': ['a', 'b', nan, 'd'],
                         'joe': ['w', 'x', 'y', 'z'],
@@ -556,7 +547,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
             mi = df.set_index(list(idx))
             for lev in range(2):
                 udf = mi.unstack(level=lev)
-                self.assertEqual(udf.notnull().values.sum(), len(df))
+                assert udf.notna().values.sum() == len(df)
                 verify(udf['jolie'])
 
         df = DataFrame({'1st': ['d'] * 3 + [nan] * 5 + ['a'] * 2 +
@@ -574,7 +565,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
             mi = df.set_index(list(idx))
             for lev in range(3):
                 udf = mi.unstack(level=lev)
-                self.assertEqual(udf.notnull().values.sum(), 2 * len(df))
+                assert udf.notna().values.sum() == 2 * len(df)
                 for col in ['4th', '5th']:
                     verify(udf[col])
 
@@ -679,12 +670,12 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         df.loc[1, '3rd'] = df.loc[4, '3rd'] = nan
 
         left = df.set_index(['1st', '2nd', '3rd']).unstack(['2nd', '3rd'])
-        self.assertEqual(left.notnull().values.sum(), 2 * len(df))
+        assert left.notna().values.sum() == 2 * len(df)
 
         for col in ['jim', 'joe']:
             for _, r in df.iterrows():
                 key = r['1st'], (col, r['2nd'], r['3rd'])
-                self.assertEqual(r[col], left.loc[key])
+                assert r[col] == left.loc[key]
 
     def test_stack_datetime_column_multiIndex(self):
         # GH 8039

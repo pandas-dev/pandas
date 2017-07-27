@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex
 
-from pandas.util.testing import assert_frame_equal, assertRaisesRegexp
+from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -17,7 +17,7 @@ from pandas.tests.frame.common import TestData
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns(tm.TestCase, TestData):
+class TestDataFrameMutateColumns(TestData):
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -91,7 +91,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -99,7 +99,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
@@ -132,25 +132,25 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # new item
         df['x'] = df['a'].astype('float32')
         result = Series(dict(float64=5, float32=1))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
         result = Series(dict(float64=4, float32=2))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
         df['y'] = df['a'].astype('int32')
         result = Series(dict(float64=4, float32=2, int32=1))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
-        with assertRaisesRegexp(ValueError, 'already exists'):
+        with tm.assert_raises_regex(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
         pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
         df.insert(0, 'baz', df['c'])
-        self.assertEqual(df.columns.name, 'some_name')
+        assert df.columns.name == 'some_name'
 
         # GH 13522
         df = DataFrame(index=['A', 'B', 'C'])
@@ -197,7 +197,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
         assert 'foo' not in self.frame
-        # TODO self.assertEqual(self.frame.columns.name, 'baz')
+        # TODO assert self.frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[
@@ -219,12 +219,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         df.columns = ["a", "b", "a"]
 
         res = df.pop("a")
-        self.assertEqual(type(res), DataFrame)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(len(df.columns), 1)
-        self.assertTrue("b" in df.columns)
-        self.assertFalse("a" in df.columns)
-        self.assertEqual(len(df.index), 2)
+        assert type(res) == DataFrame
+        assert len(res) == 2
+        assert len(df.columns) == 1
+        assert "b" in df.columns
+        assert "a" not in df.columns
+        assert len(df.index) == 2
 
     def test_insert_column_bug_4032(self):
 
