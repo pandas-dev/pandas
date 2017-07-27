@@ -10,7 +10,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
+from pandas import Panel, DataFrame, Series, notna, isna, Timestamp
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -287,12 +287,12 @@ class TestMultiLevel(Base):
         s = self.ymd['A']
 
         s[2000, 3] = np.nan
-        assert isnull(s.values[42:65]).all()
-        assert notnull(s.values[:42]).all()
-        assert notnull(s.values[65:]).all()
+        assert isna(s.values[42:65]).all()
+        assert notna(s.values[:42]).all()
+        assert notna(s.values[65:]).all()
 
         s[2000, 3, 10] = np.nan
-        assert isnull(s[49])
+        assert isna(s[49])
 
     def test_series_slice_partial(self):
         pass
@@ -1902,7 +1902,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
         s = Series({(1, 1): 1, (1, 2): 2})
         df['new'] = s
-        assert df['new'].isnull().all()
+        assert df['new'].isna().all()
 
     def test_join_segfault(self):
         # 1532
@@ -2014,8 +2014,8 @@ Thur,Lunch,Yes,51.51,17"""
                            labels=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
                                                                1, 2, 3]])
 
-        assert isnull(index[4][0])
-        assert isnull(index.values[4][0])
+        assert isna(index[4][0])
+        assert isna(index.values[4][0])
 
     def test_duplicate_groupby_issues(self):
         idx_tp = [('600809', '20061231'), ('600809', '20070331'),
@@ -2780,4 +2780,27 @@ class TestSorted(Base):
         # sorting series, nan position first
         result = s.sort_index(na_position='first')
         expected = s.iloc[[1, 2, 3, 0]]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_ascending_list(self):
+        # GH: 16934
+
+        # Set up a Series with a three level MultiIndex
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'],
+                  [4, 3, 2, 1, 4, 3, 2, 1]]
+        tuples = list(zip(*arrays))
+        index = pd.MultiIndex.from_tuples(tuples,
+                                          names=['first', 'second', 'third'])
+        s = pd.Series(range(8), index=index)
+
+        # Sort with boolean ascending
+        result = s.sort_index(level=['third', 'first'], ascending=False)
+        expected = s.iloc[[4, 0, 5, 1, 6, 2, 7, 3]]
+        tm.assert_series_equal(result, expected)
+
+        # Sort with list of boolean ascending
+        result = s.sort_index(level=['third', 'first'],
+                              ascending=[False, True])
+        expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)

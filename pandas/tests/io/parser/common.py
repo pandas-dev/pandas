@@ -224,25 +224,6 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
                               Index(['A', 'B', 'C', 'Unnamed: 3',
                                      'Unnamed: 4']))
 
-    def test_duplicate_columns(self):
-        # TODO: add test for condition 'mangle_dupe_cols=False'
-        # once it is actually supported (gh-12935)
-        data = """A,A,B,B,B
-1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
-"""
-
-        for method in ('read_csv', 'read_table'):
-
-            # check default behavior
-            df = getattr(self, method)(StringIO(data), sep=',')
-            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
-
-            df = getattr(self, method)(StringIO(data), sep=',',
-                                       mangle_dupe_cols=True)
-            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
-
     def test_csv_mixed_type(self):
         data = """A,B,C
 a,1,2
@@ -664,7 +645,7 @@ bar"""
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
-    @tm.slow
+    @pytest.mark.slow
     def test_file(self):
         dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salaries.csv')
@@ -704,7 +685,7 @@ bar"""
 1,3,3,
 1,4,5"""
         result = self.read_csv(StringIO(data))
-        assert result['D'].isnull()[1:].all()
+        assert result['D'].isna()[1:].all()
 
     def test_skipinitialspace(self):
         s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -718,7 +699,7 @@ bar"""
         # it's 33 columns
         result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
-        assert pd.isnull(result.iloc[0, 29])
+        assert pd.isna(result.iloc[0, 29])
 
     def test_utf16_bom_skiprows(self):
         # #2298
@@ -1676,6 +1657,16 @@ j,-inF"""
 
             result = self.read_csv(path)
             tm.assert_frame_equal(result, expected)
+
+    def test_sub_character(self):
+        # see gh-16893
+        dirpath = tm.get_data_path()
+        filename = os.path.join(dirpath, "sub_char.csv")
+
+        expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
+        result = self.read_csv(filename)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_file_handles(self):
         # GH 14418 - don't close user provided file handles

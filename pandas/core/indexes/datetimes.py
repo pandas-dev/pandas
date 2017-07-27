@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
@@ -109,7 +109,7 @@ def _dt_index_cmp(opname, nat_result=False):
                 isinstance(other, compat.string_types)):
             other = _to_m8(other, tz=self.tz)
             result = func(other)
-            if isnull(other):
+            if isna(other):
                 result.fill(nat_result)
         else:
             if isinstance(other, list):
@@ -1882,7 +1882,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Select values between particular times of day (e.g., 9:00-9:30AM).
 
         Return values of the index between two times.  If start_time or
-        end_time are strings then tseres.tools.to_time is used to convert to
+        end_time are strings then tseries.tools.to_time is used to convert to
         a time object.
 
         Parameters

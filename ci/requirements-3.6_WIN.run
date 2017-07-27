@@ -8,6 +8,7 @@ xlrd
 xlwt
 scipy
 feather-format
+pyarrow
 numexpr
 pytables
 matplotlib

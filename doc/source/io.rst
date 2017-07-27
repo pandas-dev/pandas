@@ -1258,7 +1258,8 @@ Files with Fixed Width Columns
 
 While ``read_csv`` reads delimited data, the :func:`read_fwf` function works
 with data files that have known and fixed column widths. The function parameters
-to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
+to ``read_fwf`` are largely the same as `read_csv` with two extra parameters, and
+a different usage of the ``delimiter`` parameter:
 
   - ``colspecs``: A list of pairs (tuples) giving the extents of the
     fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -1267,6 +1268,9 @@ to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
     behaviour, if not specified, is to infer.
   - ``widths``: A list of field widths which can be used instead of 'colspecs'
     if the intervals are contiguous.
+  - ``delimiter``: Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 
 .. ipython:: python
    :suppress:
@@ -3194,7 +3198,7 @@ You can pass ``iterator=True`` to iterate over the unpacked results
 .. ipython:: python
 
    for o in pd.read_msgpack('foo.msg',iterator=True):
-       print o
+       print(o)
 
 You can pass ``append=True`` to the writer to append to an existing pack
 
@@ -3912,7 +3916,7 @@ chunks.
    evens = [2,4,6,8,10]
    coordinates = store.select_as_coordinates('dfeq','number=evens')
    for c in chunks(coordinates, 2):
-        print store.select('dfeq',where=c)
+        print(store.select('dfeq',where=c))
 
 Advanced Queries
 ++++++++++++++++
@@ -4888,7 +4892,7 @@ pandas integrates with this external package. if ``pandas-gbq`` is installed, yo
 use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
 respective functions from ``pandas-gbq``.
 
-Full cocumentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
+Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _io.stata:
 

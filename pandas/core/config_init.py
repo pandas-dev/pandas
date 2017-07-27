@@ -202,14 +202,17 @@ pc_table_schema_doc = """
     (default: False)
 """
 
-pc_line_width_deprecation_warning = """\
-line_width has been deprecated, use display.width instead (currently both are
-identical)
+pc_html_border_doc = """
+: int
+    A ``border=value`` attribute is inserted in the ``<table>`` tag
+    for the DataFrame HTML repr.
 """
 
-pc_height_deprecation_warning = """\
-height has been deprecated.
+pc_html_border_deprecation_warning = """\
+html.border has been deprecated, use display.html.border instead
+(currently both are identical)
 """
+
 
 pc_width_doc = """
 : int
@@ -253,18 +256,6 @@ pc_large_repr_doc = """
     For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
     show a truncated table (the default from 0.13), or switch to the view from
     df.info() (the behaviour in earlier versions of pandas).
-"""
-
-pc_mpl_style_doc = """
-: bool
-    Setting this to 'default' will modify the rcParams used by matplotlib
-    to give plots a more pleasing visual style by default.
-    Setting this to None/False restores the values to their initial value.
-"""
-
-pc_mpl_style_deprecation_warning = """
-mpl_style had been deprecated and will be removed in a future version.
-Use `matplotlib.pyplot.style.use` instead.
 """
 
 pc_memory_usage_doc = """
@@ -381,24 +372,15 @@ with cf.config_prefix('display'):
                        validator=is_bool)
     cf.register_option('html.table_schema', False, pc_table_schema_doc,
                        validator=is_bool, cb=table_schema_cb)
-
-
-cf.deprecate_option('display.line_width',
-                    msg=pc_line_width_deprecation_warning,
-                    rkey='display.width')
-
-cf.deprecate_option('display.height', msg=pc_height_deprecation_warning,
-                    rkey='display.max_rows')
-
-pc_html_border_doc = """
-: int
-    A ``border=value`` attribute is inserted in the ``<table>`` tag
-    for the DataFrame HTML repr.
-"""
+    cf.register_option('html.border', 1, pc_html_border_doc,
+                       validator=is_int)
 
 with cf.config_prefix('html'):
     cf.register_option('border', 1, pc_html_border_doc,
                        validator=is_int)
+
+cf.deprecate_option('html.border', msg=pc_html_border_deprecation_warning,
+                    rkey='display.html.border')
 
 
 tc_sim_interactive_doc = """
@@ -410,9 +392,14 @@ with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
 use_inf_as_null_doc = """
+use_inf_as_null had been deprecated and will be removed in a future version.
+Use `use_inf_as_na` instead.
+"""
+
+use_inf_as_na_doc = """
 : boolean
-    True means treat None, NaN, INF, -INF as null (old way),
-    False means None and NaN are null, but INF, -INF are not null
+    True means treat None, NaN, INF, -INF as na (old way),
+    False means None and NaN are null, but INF, -INF are not na
     (new way).
 """
 
@@ -420,14 +407,17 @@ use_inf_as_null_doc = """
 # or we'll hit circular deps.
 
 
-def use_inf_as_null_cb(key):
-    from pandas.core.dtypes.missing import _use_inf_as_null
-    _use_inf_as_null(key)
+def use_inf_as_na_cb(key):
+    from pandas.core.dtypes.missing import _use_inf_as_na
+    _use_inf_as_na(key)
 
 
-with cf.config_prefix('mode'):
-    cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
-                       cb=use_inf_as_null_cb)
+cf.register_option('mode.use_inf_as_na', False, use_inf_as_na_doc,
+                   cb=use_inf_as_na_cb)
+
+cf.deprecate_option('mode.use_inf_as_null', msg=use_inf_as_null_doc,
+                    rkey='mode.use_inf_as_na')
+
 
 # user warnings
 chained_assignment = """

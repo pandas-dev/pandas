@@ -10,7 +10,7 @@ import numpy as np
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notnull, isnull)
+                    notna, isna)
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas._libs.tslib import iNaT
@@ -131,6 +131,20 @@ class Base(object):
 
         with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
+
+    def test_get_indexer_consistency(self):
+        # See GH 16819
+        for name, index in self.indices.items():
+            if isinstance(index, IntervalIndex):
+                continue
+
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+
+            indexer, _ = index.get_indexer_non_unique(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
 
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
@@ -500,7 +514,7 @@ class Base(object):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -870,7 +884,7 @@ class Base(object):
                 pass
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
                     idx.fillna(idx[0])
             else:
@@ -905,31 +919,38 @@ class Base(object):
 
     def test_nulls(self):
         # this is really a smoke test for the methods
-        # as these are adequantely tested for function elsewhere
+        # as these are adequately tested for function elsewhere
 
         for name, index in self.indices.items():
             if len(index) == 0:
                 tm.assert_numpy_array_equal(
-                    index.isnull(), np.array([], dtype=bool))
+                    index.isna(), np.array([], dtype=bool))
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
-                    idx.isnull()
+                    idx.isna()
             else:
 
                 if not index.hasnans:
                     tm.assert_numpy_array_equal(
-                        index.isnull(), np.zeros(len(index), dtype=bool))
+                        index.isna(), np.zeros(len(index), dtype=bool))
                     tm.assert_numpy_array_equal(
-                        index.notnull(), np.ones(len(index), dtype=bool))
+                        index.notna(), np.ones(len(index), dtype=bool))
                 else:
-                    result = isnull(index)
-                    tm.assert_numpy_array_equal(index.isnull(), result)
-                    tm.assert_numpy_array_equal(index.notnull(), ~result)
+                    result = isna(index)
+                    tm.assert_numpy_array_equal(index.isna(), result)
+                    tm.assert_numpy_array_equal(index.notna(), ~result)
 
     def test_empty(self):
         # GH 15270
         index = self.create_index()
         assert not index.empty
         assert index[:0].empty
+
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self_unique(self, how):
+        index = self.create_index()
+        if index.is_unique:
+            joined = index.join(index, how=how)
+            assert (index == joined).all()

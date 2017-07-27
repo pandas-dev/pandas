@@ -419,7 +419,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
             raise ValueError("cannot reindex with a non-unique indexer")
 
         indexer, missing = self.get_indexer_non_unique(np.array(target))
-        new_target = self.take(indexer)
+
+        if len(self.codes):
+            new_target = self.take(indexer)
+        else:
+            new_target = target
 
         # filling in missing if needed
         if len(missing):
@@ -430,7 +434,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(
                     np.array(target))
-
             else:
 
                 codes = new_target.codes.copy()
@@ -497,7 +500,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-
         return _ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -508,7 +510,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
             target = target.categories
 
         codes = self.categories.get_indexer(target)
-        return self._engine.get_indexer_non_unique(codes)
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return _ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
