@@ -3213,7 +3213,7 @@ it is assumed to be aliases for the column names')
     def isnull(self):
         return super(DataFrame, self).isnull()
 
-    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return super(DataFrame, self).notna()
 

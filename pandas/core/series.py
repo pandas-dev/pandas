@@ -2792,7 +2792,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def isnull(self):
         return super(Series, self).isnull()
 
-    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return super(Series, self).notna()
 

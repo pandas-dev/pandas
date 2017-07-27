@@ -4534,7 +4534,7 @@ it is assumed to be aliases for the column names.')
     # Action Methods
 
     _shared_docs['isna'] = """
-        Return a boolean same-sized object indicating if the values are na.
+        Return a boolean same-sized object indicating if the values are NA.
 
         See Also
         --------
@@ -4553,7 +4553,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
-        not na.
+        not NA.
 
         See Also
         --------
