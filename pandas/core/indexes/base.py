@@ -1852,7 +1852,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        a boolean array of whether my values are na
+        a boolean array of whether my values are NA
 
         See also
         --------
@@ -1870,7 +1870,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        a boolean array of whether my values are not na
+        a boolean array of whether my values are not NA
 
         See also
         --------

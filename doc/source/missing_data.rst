@@ -36,7 +36,7 @@ When / why does data become missing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some might quibble over our usage of *missing*. By "missing" we simply mean
-**na** or "not present for whatever reason". Many data sets simply arrive with
+**NA** or "not present for whatever reason". Many data sets simply arrive with
 missing data, either because it exists and was not collected or it never
 existed. For example, in a collection of financial time series, some of the time
 series might start on different dates. Thus, values prior to the start date
@@ -63,12 +63,12 @@ to handling missing data. While ``NaN`` is the default missing value marker for
 reasons of computational speed and convenience, we need to be able to easily
 detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
-arise and we wish to also consider that "missing" or "na".
+arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
    Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-   considered to be "na" in computations. This is no longer the case by
+   considered to be "NA" in computations. This is no longer the case by
    default; use the ``mode.use_inf_as_na`` option to recover it.
 
 .. _missing.isna:
@@ -206,7 +206,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **fillna** function can "fill in" NA values with non-na data in a couple
+The **fillna** function can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -220,7 +220,7 @@ of ways, which we illustrate:
 **Fill gaps forward or backward**
 
 Using the same filling arguments as :ref:`reindexing <basics.reindexing>`, we
-can propagate non-na values forward or backward:
+can propagate non-NA values forward or backward:
 
 .. ipython:: python
 
@@ -540,7 +540,7 @@ String/Regular Expression Replacement
    <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
-Replace the '.' with ``nan`` (str -> str)
+Replace the '.' with ``NaN`` (str -> str)
 
 .. ipython:: python
 
