@@ -563,7 +563,7 @@ cdef class TextReader:
         # compute buffer_lines as function of table width
         heuristic = 2**20 // self.table_width
         self.buffer_lines = 1
-        while self.buffer_lines * 2< heuristic:
+        while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2
 
     def __init__(self, *args, **kwargs):
