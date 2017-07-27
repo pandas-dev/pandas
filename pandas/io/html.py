@@ -468,10 +468,10 @@ class _HtmlFrameParser(object):
             # maybe this can be done with a list comprehension, dunno
             cols = zip(
                 list(flatten(
-                    lmap(lambda (text, nc): [text] * nc,
+                    lmap(lambda text_nc: [text_nc[0]] * text_nc[1],
                          zip(cols_text, col_colspans)))),
                 list(flatten(
-                    lmap(lambda (nc, nr): [nr] * nc,
+                    lmap(lambda nc_nr: [nc_nr[1]] * nc_nr[0],
                          zip(col_colspans, col_rowspans))))
             )
             # cols is now a list of (text, number of rows)
