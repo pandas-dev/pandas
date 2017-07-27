@@ -28,7 +28,6 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
 from pandas.io.common import URLError, urlopen, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
-from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
