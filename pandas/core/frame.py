@@ -2112,8 +2112,9 @@ it is assumed to be aliases for the column names')
                 result = result.__finalize__(self)
             if len(result.columns) == 1:
                 top = result.columns[0]
-                if ((type(top) == str and top == '') or
-                        (type(top) == tuple and top[0] == '')):
+                if isinstance(top, tuple):
+                    top = top[0]
+                if top == '':
                     result = result['']
                     if isinstance(result, Series):
                         result = self._constructor_sliced(result,
