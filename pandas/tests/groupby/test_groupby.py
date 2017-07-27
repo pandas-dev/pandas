@@ -3893,8 +3893,8 @@ class TestGroupBy(MixIn):
 
     def test_gb_key_len_equal_axis_len(self):
             # GH16843
-            #test ensures that index and column keys are recognized correctly 
-            #when number of keys equals axis length of groupby
+            # test ensures that index and column keys are recognized correctly
+            # when number of keys equals axis length of groupby
             df = pd.DataFrame([['foo', 'bar', 'B', 1],
                                ['foo', 'bar', 'B', 2],
                                ['foo', 'baz', 'C', 3]],
