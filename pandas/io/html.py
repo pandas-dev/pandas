@@ -466,13 +466,13 @@ class _HtmlFrameParser(object):
                             for col in extracted_row]
             # expand cols using col_colspans
             # maybe this can be done with a list comprehension, dunno
-            cols = zip(
+            cols = list(zip(
                 list(flatten(
                     lmap(lambda text_nc: [text_nc[0]] * text_nc[1],
-                         zip(cols_text, col_colspans)))),
+                         list(zip(cols_text, col_colspans))))),
                 list(flatten(
                     lmap(lambda nc_nr: [nc_nr[1]] * nc_nr[0],
-                         zip(col_colspans, col_rowspans))))
+                         list(zip(col_colspans, col_rowspans))))))
             )
             # cols is now a list of (text, number of rows)
             # now insert any previous rowspans
