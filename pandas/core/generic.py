@@ -1207,7 +1207,7 @@ class NDFrame(PandasObject, SelectionMixin):
     columns : sequence, optional
         Columns to write
     header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
+        Write out the column names. If a list of strings is given it is
         assumed to be aliases for the column names
     index : boolean, default True
         Write row names (index)
@@ -1702,9 +1702,9 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
             """
 
-    @Substitution(header='Write out column names. If a list of string is '
-                         'given, it is assumed to be aliases for the column '
-                         'names.')
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names.')
     @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
