@@ -1013,7 +1013,7 @@ cdef class TextReader:
     cdef _end_clock(self, what):
         if self.verbose:
             elapsed = time.time() - self.clocks.pop(-1)
-            print '%s took: %.2f ms' % (what, elapsed * 1000)
+            print('%s took: %.2f ms' % (what, elapsed * 1000))
 
     def set_noconvert(self, i):
         self.noconvert.add(i)
