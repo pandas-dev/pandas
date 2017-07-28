@@ -1682,20 +1682,20 @@ Thur,Lunch,Yes,51.51,17"""
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
 
         result = df['a']
-        expected = df['a', '', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == 'a'
+        expected = df['a', '', ''].rename('a')
+        tm.assert_series_equal(result, expected)
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == ('routine1', 'result1')
+        expected = expected.rename(('routine1', 'result1'))
+        tm.assert_series_equal(result, expected)
 
     def test_mixed_depth_get_unicode_placeholders_py2(self):
-        # Note this is only different to test_mixed_depth_get() on Python 2
+        # Pull request #17099. This is only different to
+        # test_mixed_depth_get() on Python 2
         arrays = [[u('a'), u('top'), u('top'),
                    u('routine1'), u('routine1'), u('routine2')],
                   [u(''), u('OD'), u('OD'),
@@ -1704,17 +1704,16 @@ Thur,Lunch,Yes,51.51,17"""
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
 
         result = df['a']
-        expected = df['a', '', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == 'a'
+        expected = df['a', '', ''].rename('a')
+        tm.assert_series_equal(result, expected)
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == ('routine1', 'result1')
+        expected = expected.rename(('routine1', 'result1'))
+        tm.assert_series_equal(result, expected)
 
     def test_mixed_depth_insert(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],

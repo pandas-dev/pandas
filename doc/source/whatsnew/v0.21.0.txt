@@ -273,6 +273,7 @@ Indexing
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
+- Fixes getting a column by name when unicode empty strings are used as placeholders in multilevel columns in Python 2 (:issue:`17099`)
 
 I/O
 ^^^
