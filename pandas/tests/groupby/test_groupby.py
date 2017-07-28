@@ -3899,7 +3899,7 @@ class TestGroupBy(MixIn):
                                ['foo', 'bar', 'B', 2],
                                ['foo', 'baz', 'C', 3]],
                               columns=['first', 'second', 'third', 'one'])
-            df.set_index(['first', 'second'], inplace=True)
+            df = df.set_index(['first', 'second'])
             df = df.groupby(['first', 'second', 'third']).size()
             assert df.loc[('foo', 'bar', 'B')] == 2
             assert df.loc[('foo', 'baz', 'C')] == 1
