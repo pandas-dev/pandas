@@ -36,7 +36,7 @@ When / why does data become missing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some might quibble over our usage of *missing*. By "missing" we simply mean
-**NA** or "not present for whatever reason". Many data sets simply arrive with
+**NA** ("not available") or "not present for whatever reason". Many data sets simply arrive with
 missing data, either because it exists and was not collected or it never
 existed. For example, in a collection of financial time series, some of the time
 series might start on different dates. Thus, values prior to the start date
