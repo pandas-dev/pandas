@@ -1675,10 +1675,17 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.reindex(s.index[5:])
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_depth_get(self):
+    def test_mixed_depth_get(self, unicode_strings_py2=False):
+        # If unicode_strings_py2 is True, then the column labels in dataframe
+        # construction will use unicode strings in Python 2. In Python 3 they
+        # are unicode strings regardless.
+
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
+
+        if unicode_strings_py2:
+            arrays = [[u(s) for s in arr] for arr in arrays]
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
@@ -1694,26 +1701,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
 
     def test_mixed_depth_get_unicode_placeholders_py2(self):
-        # Pull request #17099. This is only different to
-        # test_mixed_depth_get() on Python 2
-        arrays = [[u('a'), u('top'), u('top'),
-                   u('routine1'), u('routine1'), u('routine2')],
-                  [u(''), u('OD'), u('OD'),
-                   u('result1'), u('result2'), u('result1')],
-                  [u(''), u('wx'), u('wy'), u(''), u(''), u('')]]
-
-        tuples = sorted(zip(*arrays))
-        index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
-
-        result = df['a']
-        expected = df['a', '', ''].rename('a')
-        tm.assert_series_equal(result, expected)
-
-        result = df['routine1', 'result1']
-        expected = df['routine1', 'result1', '']
-        expected = expected.rename(('routine1', 'result1'))
-        tm.assert_series_equal(result, expected)
+        # Pull request #17099.
+        self.test_mixed_depth_get(unicode_strings_py2=True)
 
     def test_mixed_depth_insert(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],

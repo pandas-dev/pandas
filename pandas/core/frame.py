@@ -2110,6 +2110,13 @@ it is assumed to be aliases for the column names')
                 result = self._constructor(new_values, index=self.index,
                                            columns=result_columns)
                 result = result.__finalize__(self)
+
+            # If there is only one column being returned, and its name is
+            # either an empty string, or a tuple with an empty string as its
+            # first element, then treat the empty string as a placeholder
+            # and return the column as if the user had provided that empty
+            # string in the key. If the result is a Series, exclude the
+            # implied empty string from its name.
             if len(result.columns) == 1:
                 top = result.columns[0]
                 if isinstance(top, tuple):
