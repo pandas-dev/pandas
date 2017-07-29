@@ -511,7 +511,7 @@ optional ``level`` parameter which applies only if the object has a
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``count``, Number of non-na observations
+    ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
     ``mad``, Mean absolute deviation
@@ -541,7 +541,7 @@ will exclude NAs on Series input by default:
    np.mean(df['one'].values)
 
 ``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-na values:
+number of unique non-NA values:
 
 .. ipython:: python
 
