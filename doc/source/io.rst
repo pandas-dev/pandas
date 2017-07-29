@@ -137,7 +137,6 @@ usecols : array-like or callable, default ``None``
 
   Using this parameter results in much faster parsing time and lower memory usage.
 as_recarray : boolean, default ``False``
-
   .. deprecated:: 0.18.2
 
      Please call ``pd.read_csv(...).to_records()`` instead.
@@ -193,7 +192,6 @@ skiprows : list-like or integer, default ``None``
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
 skip_footer : int, default ``0``
-
   .. deprecated:: 0.19.0
 
      Use the ``skipfooter`` parameter instead, as they are identical
@@ -208,13 +206,11 @@ low_memory : boolean, default ``True``
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
 buffer_lines : int, default None
-
   .. deprecated:: 0.19.0
 
      Argument removed because its value is not respected by the parser
      
 compact_ints : boolean, default False
-
   .. deprecated:: 0.19.0
 
      Argument moved to ``pd.to_numeric``
@@ -223,7 +219,6 @@ compact_ints : boolean, default False
   parser will attempt to cast it as the smallest integer ``dtype`` possible, either
   signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
 use_unsigned : boolean, default False
-
   .. deprecated:: 0.18.2
 
      Argument moved to ``pd.to_numeric``
