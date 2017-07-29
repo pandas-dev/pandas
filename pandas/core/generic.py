@@ -193,7 +193,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _dir_additions(self):
         """ add the string-like attributes from the info_axis """
         additions = set([c for c in self._info_axis
-                    if isinstance(c, string_types) and isidentifier(c)])
+                         if isinstance(c, string_types) and isidentifier(c)])
         return PandasObject._dir_additions(self).union(additions)
 
     @property

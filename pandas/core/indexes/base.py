@@ -157,7 +157,6 @@ class Index(IndexOpsMixin, PandasObject):
     str = base.AccessorProperty(strings.StringMethods,
                                 strings.StringMethods._make_accessor)
 
-
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
 
