@@ -248,9 +248,10 @@ class TestToOffset(object):
 
         # ensure invalid cases fail as expected
         invalid_anchors = ['SM-0', 'SM-28', 'SM-29',
-                           'SM-FOO', 'BSM', 'SM--1'
+                           'SM-FOO', 'BSM', 'SM--1',
                            'SMS-1', 'SMS-28', 'SMS-30',
-                           'SMS-BAR', 'BSMS', 'SMS--2']
+                           'SMS-BAR', 'SMS-BYR' 'BSMS',
+                           'SMS--2']
         for invalid_anchor in invalid_anchors:
             with tm.assert_raises_regex(ValueError,
                                         'Invalid frequency: '):
@@ -292,10 +293,14 @@ def test_get_rule_month():
 
     result = frequencies._get_rule_month('A-DEC')
     assert (result == 'DEC')
+    result = frequencies._get_rule_month('Y-DEC')
+    assert (result == 'DEC')
     result = frequencies._get_rule_month(offsets.YearEnd())
     assert (result == 'DEC')
 
     result = frequencies._get_rule_month('A-MAY')
+    assert (result == 'MAY')
+    result = frequencies._get_rule_month('Y-MAY')
     assert (result == 'MAY')
     result = frequencies._get_rule_month(offsets.YearEnd(month=5))
     assert (result == 'MAY')
@@ -305,6 +310,10 @@ def test_period_str_to_code():
     assert (frequencies._period_str_to_code('A') == 1000)
     assert (frequencies._period_str_to_code('A-DEC') == 1000)
     assert (frequencies._period_str_to_code('A-JAN') == 1001)
+    assert (frequencies._period_str_to_code('Y') == 1000)
+    assert (frequencies._period_str_to_code('Y-DEC') == 1000)
+    assert (frequencies._period_str_to_code('Y-JAN') == 1001)
+
     assert (frequencies._period_str_to_code('Q') == 2000)
     assert (frequencies._period_str_to_code('Q-DEC') == 2000)
     assert (frequencies._period_str_to_code('Q-FEB') == 2002)
@@ -349,6 +358,10 @@ class TestFrequencyCode(object):
         assert frequencies.get_freq('3A') == 1000
         assert frequencies.get_freq('-1A') == 1000
 
+        assert frequencies.get_freq('Y') == 1000
+        assert frequencies.get_freq('3Y') == 1000
+        assert frequencies.get_freq('-1Y') == 1000
+
         assert frequencies.get_freq('W') == 4000
         assert frequencies.get_freq('W-MON') == 4001
         assert frequencies.get_freq('W-FRI') == 4005
@@ -369,6 +382,13 @@ class TestFrequencyCode(object):
         assert frequencies.get_freq_group('-1A') == 1000
         assert frequencies.get_freq_group('A-JAN') == 1000
         assert frequencies.get_freq_group('A-MAY') == 1000
+
+        assert frequencies.get_freq_group('Y') == 1000
+        assert frequencies.get_freq_group('3Y') == 1000
+        assert frequencies.get_freq_group('-1Y') == 1000
+        assert frequencies.get_freq_group('Y-JAN') == 1000
+        assert frequencies.get_freq_group('Y-MAY') == 1000
+
         assert frequencies.get_freq_group(offsets.YearEnd()) == 1000
         assert frequencies.get_freq_group(offsets.YearEnd(month=1)) == 1000
         assert frequencies.get_freq_group(offsets.YearEnd(month=5)) == 1000
@@ -504,8 +524,13 @@ class TestFrequencyInference(object):
         pytest.raises(ValueError, frequencies.infer_freq, index)
 
     def test_business_daily(self):
-        index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
+        index = _dti(['01/01/1999', '1/4/1999', '1/5/1999'])
         assert frequencies.infer_freq(index) == 'B'
+
+    def test_business_daily_look_alike(self):
+        # GH 16624, do not infer 'B' when 'weekend' (2-day gap) in wrong place
+        index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
+        assert frequencies.infer_freq(index) is None
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
@@ -785,12 +810,6 @@ class TestFrequencyInference(object):
         for freq in [None, 'L']:
             s = Series(period_range('2013', periods=10, freq=freq))
             pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
-        for freq in ['Y']:
-
-            msg = frequencies._INVALID_FREQ_ERROR
-            with tm.assert_raises_regex(ValueError, msg):
-                s = Series(period_range('2013', periods=10, freq=freq))
-            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # DateTimeIndex
         for freq in ['M', 'L', 'S']:
@@ -807,11 +826,12 @@ class TestFrequencyInference(object):
                  'W@FRI', 'W@SAT', 'W@SUN', 'Q@JAN', 'Q@FEB', 'Q@MAR',
                  'A@JAN', 'A@FEB', 'A@MAR', 'A@APR', 'A@MAY', 'A@JUN',
                  'A@JUL', 'A@AUG', 'A@SEP', 'A@OCT', 'A@NOV', 'A@DEC',
-                 'WOM@1MON', 'WOM@2MON', 'WOM@3MON', 'WOM@4MON',
-                 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE', 'WOM@4TUE',
-                 'WOM@1WED', 'WOM@2WED', 'WOM@3WED', 'WOM@4WED',
-                 'WOM@1THU', 'WOM@2THU', 'WOM@3THU', 'WOM@4THU'
-                 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI', 'WOM@4FRI']
+                 'Y@JAN', 'WOM@1MON', 'WOM@2MON', 'WOM@3MON',
+                 'WOM@4MON', 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE',
+                 'WOM@4TUE', 'WOM@1WED', 'WOM@2WED', 'WOM@3WED',
+                 'WOM@4WED', 'WOM@1THU', 'WOM@2THU', 'WOM@3THU',
+                 'WOM@4THU', 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI',
+                 'WOM@4FRI']
 
         msg = frequencies._INVALID_FREQ_ERROR
         for freq in freqs:

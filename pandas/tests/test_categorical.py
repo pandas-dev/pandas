@@ -19,7 +19,7 @@ import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame,
-                    Timestamp, CategoricalIndex, isnull,
+                    Timestamp, CategoricalIndex, isna,
                     date_range, DatetimeIndex,
                     period_range, PeriodIndex,
                     timedelta_range, TimedeltaIndex, NaT,
@@ -233,7 +233,7 @@ class TestCategorical(object):
         # the original type" feature to try to cast the array interface result
         # to...
 
-        # vals = np.asarray(cat[cat.notnull()])
+        # vals = np.asarray(cat[cat.notna()])
         # assert is_integer_dtype(vals)
 
         # corner cases
@@ -309,7 +309,7 @@ class TestCategorical(object):
                                                 categories=ci.categories))
 
     def test_constructor_with_generator(self):
-        # This was raising an Error in isnull(single_val).any() because isnull
+        # This was raising an Error in isna(single_val).any() because isna
         # returned a scalar for a generator
         xrange = range
 
@@ -585,9 +585,8 @@ class TestCategorical(object):
         tm.assert_numpy_array_equal(np.argsort(c), expected,
                                     check_dtype=False)
 
-        msg = "the 'kind' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               c, kind='mergesort')
+        tm.assert_numpy_array_equal(np.argsort(c, kind='mergesort'), expected,
+                                    check_dtype=False)
 
         msg = "the 'axis' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.argsort,
@@ -607,7 +606,7 @@ class TestCategorical(object):
         cat = Categorical(labels, categories, fastpath=True)
         repr(cat)
 
-        tm.assert_numpy_array_equal(isnull(cat), labels == -1)
+        tm.assert_numpy_array_equal(isna(cat), labels == -1)
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -1119,10 +1118,10 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0],
                                                        dtype=np.int8))
 
-    def test_isnull(self):
+    def test_isna(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])
-        res = c.isnull()
+        res = c.isna()
 
         tm.assert_numpy_array_equal(res, exp)
 
@@ -2781,7 +2780,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'int64': np.random.randint(100, size=n)})
         df['category'] = Series(np.array(list('abcdefghij')).take(
             np.random.randint(0, 10, size=n))).astype('category')
-        df.isnull()
+        df.isna()
         buf = compat.StringIO()
         df.info(buf=buf)
 
@@ -3066,12 +3065,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         c = Categorical(["a", "b", "b", "a"], ordered=False)
         cat = Series(c.copy())
-
-        # 'order' was deprecated in gh-10726
-        # 'sort' was deprecated in gh-12882
-        for func in ('order', 'sort'):
-            with tm.assert_produces_warning(FutureWarning):
-                getattr(c, func)()
 
         # sort in the categories order
         expected = Series(

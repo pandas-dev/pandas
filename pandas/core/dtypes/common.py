@@ -11,7 +11,8 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries)
+                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
+                      ABCIndexClass)
 from .inference import is_string_like
 from .inference import *  # noqa
 
@@ -392,11 +393,16 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     >>> is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
     True
+    >>> is_timedelta64_dtype('0 days')
+    False
     """
 
     if arr_or_dtype is None:
         return False
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except:
+        return False
     return issubclass(tipo, np.timedelta64)
 
 
@@ -1540,6 +1546,16 @@ def is_bool_dtype(arr_or_dtype):
     except ValueError:
         # this isn't even a dtype
         return False
+
+    if isinstance(arr_or_dtype, ABCIndexClass):
+
+        # TODO(jreback)
+        # we don't have a boolean Index class
+        # so its object, we need to infer to
+        # guess this
+        return (arr_or_dtype.is_object and
+                arr_or_dtype.inferred_type == 'boolean')
+
     return issubclass(tipo, np.bool_)
 
 
@@ -1710,6 +1726,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype

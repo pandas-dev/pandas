@@ -16,7 +16,7 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, isnull)
+                    PeriodIndex, isna)
 from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
@@ -504,7 +504,7 @@ class TestIndex(Base):
     def test_asof(self):
         d = self.dateIndex[0]
         assert self.dateIndex.asof(d) == d
-        assert isnull(self.dateIndex.asof(d - timedelta(1)))
+        assert isna(self.dateIndex.asof(d - timedelta(1)))
 
         d = self.dateIndex[-1]
         assert self.dateIndex.asof(d + timedelta(1)) == d
@@ -1330,8 +1330,8 @@ class TestIndex(Base):
         index = Index([5, datetime.now(), 7])
         assert not index.is_monotonic_increasing
         assert not index.is_monotonic_decreasing
-        assert not index.is_strictly_monotonic_increasing
-        assert not index.is_strictly_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -1406,6 +1406,15 @@ class TestIndex(Base):
         check_idx(Index(['qux', 'baz', 'foo', 'bar']))
         # Float64Index overrides isin, so must be checked separately
         check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
+
+    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    def test_isin_empty(self, empty):
+        # see gh-16991
+        idx = Index(["a", "b"])
+        expected = np.array([False, False])
+
+        result = idx.isin(empty)
+        tm.assert_numpy_array_equal(expected, result)
 
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
@@ -1800,6 +1809,25 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
                 assert coerce(idx) == expected
 
+    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
+    @pytest.mark.parametrize('delta', [1, 0, -1])
+    def test_addsub_arithmetic(self, dtype, delta):
+        # GH 8142
+        delta = dtype(delta)
+        idx = pd.Index([10, 11, 12], dtype=dtype)
+        result = idx + delta
+        expected = pd.Index(idx.values + delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        # this subtraction used to fail
+        result = idx - delta
+        expected = pd.Index(idx.values - delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(idx + idx, 2 * idx)
+        tm.assert_index_equal(idx - idx, 0 * idx)
+        assert not (idx - idx).empty
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -1818,7 +1846,7 @@ class TestMixedIntIndex(Base):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = idx.argsort()
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -1831,7 +1859,7 @@ class TestMixedIntIndex(Base):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = np.argsort(idx)
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -2030,8 +2058,8 @@ class TestMixedIntIndex(Base):
         for index in examples:
             assert not index.is_monotonic_increasing
             assert not index.is_monotonic_decreasing
-            assert not index.is_strictly_monotonic_increasing
-            assert not index.is_strictly_monotonic_decreasing
+            assert not index._is_strictly_monotonic_increasing
+            assert not index._is_strictly_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):

@@ -1172,6 +1172,14 @@ class TestMultiIndex(Base):
         assert result == expected
         assert new_index.equals(index.droplevel(0))
 
+    def test_get_loc_missing_nan(self):
+        # GH 8569
+        idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
+        assert isinstance(idx.get_loc(1), slice)
+        pytest.raises(KeyError, idx.get_loc, 3)
+        pytest.raises(KeyError, idx.get_loc, np.nan)
+        pytest.raises(KeyError, idx.get_loc, [np.nan])
+
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()
@@ -1711,6 +1719,13 @@ class TestMultiIndex(Base):
 
         idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         assert len(idx) == 2
+
+    def test_from_tuples_empty(self):
+        # GH 16777
+        result = MultiIndex.from_tuples([], names=['a', 'b'])
+        expected = MultiIndex.from_arrays(arrays=[[], []],
+                                          names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
 
     def test_argsort(self):
         result = self.index.argsort()
@@ -2351,12 +2366,12 @@ class TestMultiIndex(Base):
                                    names=['x', 'y'])
         assert x[1:].names == x.names
 
-    def test_isnull_behavior(self):
+    def test_isna_behavior(self):
         # should not segfault GH5123
         # NOTE: if MI representation changes, may make sense to allow
-        # isnull(MI)
+        # isna(MI)
         with pytest.raises(NotImplementedError):
-            pd.isnull(self.index)
+            pd.isna(self.index)
 
     def test_level_setting_resets_attributes(self):
         ind = MultiIndex.from_arrays([
@@ -2373,30 +2388,30 @@ class TestMultiIndex(Base):
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10)], names=['one', 'two'])
         assert i.is_monotonic
-        assert i.is_strictly_monotonic_increasing
+        assert i._is_strictly_monotonic_increasing
         assert Index(i.values).is_monotonic
-        assert i.is_strictly_monotonic_increasing
+        assert i._is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([np.arange(10, 0, -1),
                                      np.arange(10)], names=['one', 'two'])
         assert not i.is_monotonic
-        assert not i.is_strictly_monotonic_increasing
+        assert not i._is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
-        assert not Index(i.values).is_strictly_monotonic_increasing
+        assert not Index(i.values)._is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10, 0, -1)],
                                     names=['one', 'two'])
         assert not i.is_monotonic
-        assert not i.is_strictly_monotonic_increasing
+        assert not i._is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
-        assert not Index(i.values).is_strictly_monotonic_increasing
+        assert not Index(i.values)._is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([[1.0, np.nan, 2.0], ['a', 'b', 'c']])
         assert not i.is_monotonic
-        assert not i.is_strictly_monotonic_increasing
+        assert not i._is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
-        assert not Index(i.values).is_strictly_monotonic_increasing
+        assert not Index(i.values)._is_strictly_monotonic_increasing
 
         # string ordering
         i = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -2406,8 +2421,8 @@ class TestMultiIndex(Base):
                        names=['first', 'second'])
         assert not i.is_monotonic
         assert not Index(i.values).is_monotonic
-        assert not i.is_strictly_monotonic_increasing
-        assert not Index(i.values).is_strictly_monotonic_increasing
+        assert not i._is_strictly_monotonic_increasing
+        assert not Index(i.values)._is_strictly_monotonic_increasing
 
         i = MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'],
                                ['mom', 'next', 'zenith']],
@@ -2416,8 +2431,8 @@ class TestMultiIndex(Base):
                        names=['first', 'second'])
         assert i.is_monotonic
         assert Index(i.values).is_monotonic
-        assert i.is_strictly_monotonic_increasing
-        assert Index(i.values).is_strictly_monotonic_increasing
+        assert i._is_strictly_monotonic_increasing
+        assert Index(i.values)._is_strictly_monotonic_increasing
 
         # mixed levels, hits the TypeError
         i = MultiIndex(
@@ -2428,19 +2443,20 @@ class TestMultiIndex(Base):
             names=['household_id', 'asset_id'])
 
         assert not i.is_monotonic
-        assert not i.is_strictly_monotonic_increasing
+        assert not i._is_strictly_monotonic_increasing
 
     def test_is_strictly_monotonic(self):
         idx = pd.MultiIndex(levels=[['bar', 'baz'], ['mom', 'next']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_increasing
-        assert not idx.is_strictly_monotonic_increasing
+        assert not idx._is_strictly_monotonic_increasing
 
-    def test_is_strictly_monotonic_decreasing(self):
+    @pytest.mark.xfail(reason="buggy MultiIndex.is_monotonic_decresaing.")
+    def test__is_strictly_monotonic_decreasing(self):
         idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_decreasing
-        assert not idx.is_strictly_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
 
     def test_reconstruct_sort(self):
 
@@ -2514,7 +2530,34 @@ class TestMultiIndex(Base):
         # idempotent
         result2 = result.remove_unused_levels()
         tm.assert_index_equal(result2, expected)
-        assert result2 is result
+        assert result2.is_(result)
+
+    @pytest.mark.parametrize('first_type,second_type', [
+        ('int64', 'int64'),
+        ('datetime64[D]', 'str')])
+    def test_remove_unused_levels_large(self, first_type, second_type):
+        # GH16556
+
+        # because tests should be deterministic (and this test in particular
+        # checks that levels are removed, which is not the case for every
+        # random input):
+        rng = np.random.RandomState(4)  # seed is arbitrary value that works
+
+        size = 1 << 16
+        df = DataFrame(dict(
+            first=rng.randint(0, 1 << 13, size).astype(first_type),
+            second=rng.randint(0, 1 << 10, size).astype(second_type),
+            third=rng.rand(size)))
+        df = df.groupby(['first', 'second']).sum()
+        df = df[df.third < 0.1]
+
+        result = df.index.remove_unused_levels()
+        assert len(result.levels[0]) < len(df.index.levels[0])
+        assert len(result.levels[1]) < len(df.index.levels[1])
+        assert result.equals(df.index)
+
+        expected = df.reset_index().set_index(['first', 'second']).index
+        tm.assert_index_equal(result, expected)
 
     def test_isin(self):
         values = [('foo', 2), ('bar', 3), ('quux', 4)]
@@ -2790,8 +2833,13 @@ class TestMultiIndex(Base):
         df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
                           columns=['one', 'two'])
 
+        # GH 16734: not sorted, but no real slicing
+        result = df.loc(axis=0)['z', 'a']
+        expected = df.iloc[0]
+        tm.assert_series_equal(result, expected)
+
         with pytest.raises(UnsortedIndexError):
-            df.loc(axis=0)['z', :]
+            df.loc(axis=0)['z', slice('a')]
         df.sort_index(inplace=True)
         assert len(df.loc(axis=0)['z', :]) == 2
 
@@ -2830,3 +2878,24 @@ class TestMultiIndex(Base):
             pd.Index(li, name='abc')
         with pytest.raises(ValueError):
             pd.Index(li, name='a')
+
+    def test_nan_stays_float(self):
+
+        # GH 7031
+        idx0 = pd.MultiIndex(levels=[["A", "B"], []],
+                             labels=[[1, 0], [-1, -1]],
+                             names=[0, 1])
+        idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
+                             labels=[[0], [0]],
+                             names=[0, 1])
+        idxm = idx0.join(idx1, how='outer')
+        assert pd.isna(idx0.get_level_values(1)).all()
+        # the following failed in 0.14.1
+        assert pd.isna(idxm.get_level_values(1)[:-1]).all()
+
+        df0 = pd.DataFrame([[1, 2]], index=idx0)
+        df1 = pd.DataFrame([[3, 4]], index=idx1)
+        dfm = df0 - df1
+        assert pd.isna(df0.index.get_level_values(1)).all()
+        # the following failed in 0.14.1
+        assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()

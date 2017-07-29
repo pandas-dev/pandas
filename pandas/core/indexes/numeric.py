@@ -2,9 +2,14 @@ import numpy as np
 from pandas._libs import (index as libindex,
                           algos as libalgos, join as libjoin)
 from pandas.core.dtypes.common import (
-    is_dtype_equal, pandas_dtype,
-    is_float_dtype, is_object_dtype,
-    is_integer_dtype, is_scalar)
+    is_dtype_equal,
+    pandas_dtype,
+    is_float_dtype,
+    is_object_dtype,
+    is_integer_dtype,
+    is_bool,
+    is_bool_dtype,
+    is_scalar)
 from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
@@ -55,6 +60,16 @@ class NumericIndex(Index):
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+
+        if is_bool(value) or is_bool_dtype(value):
+            # force conversion to object
+            # so we don't lose the bools
+            raise TypeError
+
+        return value
 
     def _convert_tolerance(self, tolerance):
         try:
@@ -369,6 +384,8 @@ class Float64Index(NumericIndex):
                 except (ValueError, IndexError):
                     # should only need to catch ValueError here but on numpy
                     # 1.7 .item() can raise IndexError when NaNs are present
+                    if not len(nan_idxs):
+                        raise KeyError(key)
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass

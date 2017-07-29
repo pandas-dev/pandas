@@ -2562,7 +2562,7 @@ class TestGroupBy(MixIn):
         inds = np.tile(lrange(10), 10)
 
         result = obj.groupby(inds).agg(Series.median)
-        assert result.isnull().all()
+        assert result.isna().all()
 
     def test_series_grouper_noncontig_index(self):
         index = Index(tm.rands_array(10, 100))
@@ -3399,60 +3399,6 @@ class TestGroupBy(MixIn):
         res = grouped.get_group((pd.Timestamp('2014-08-31'), 'start'))
         tm.assert_frame_equal(res, df.iloc[[2], :])
 
-    def test_cumcount(self):
-        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
-        g = df.groupby('A')
-        sg = g.A
-
-        expected = Series([0, 1, 2, 0, 3])
-
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
-
-    def test_cumcount_empty(self):
-        ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
-
-        # edge case, as this is usually considered float
-        e = Series(dtype='int64')
-
-        assert_series_equal(e, ge.cumcount())
-        assert_series_equal(e, se.cumcount())
-
-    def test_cumcount_dupe_index(self):
-        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'],
-                       index=[0] * 5)
-        g = df.groupby('A')
-        sg = g.A
-
-        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
-
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
-
-    def test_cumcount_mi(self):
-        mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
-        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'],
-                       index=mi)
-        g = df.groupby('A')
-        sg = g.A
-
-        expected = Series([0, 1, 2, 0, 3], index=mi)
-
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
-
-    def test_cumcount_groupby_not_col(self):
-        df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'],
-                       index=[0] * 5)
-        g = df.groupby([0, 0, 0, 1, 0])
-        sg = g.A
-
-        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
-
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
-
     def test_fill_constistency(self):
 
         # GH9221
@@ -3594,7 +3540,7 @@ class TestGroupBy(MixIn):
         r = gb[['File']].max()
         e = gb['File'].max().to_frame()
         tm.assert_frame_equal(r, e)
-        assert not r['File'].isnull().any()
+        assert not r['File'].isna().any()
 
     def test_nlargest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])

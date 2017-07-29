@@ -63,6 +63,34 @@ class TestFancy(Base):
 
         pytest.raises(ValueError, f)
 
+    def test_inf_upcast(self):
+        # GH 16957
+        # We should be able to use np.inf as a key
+        # np.inf should cause an index to convert to float
+
+        # Test with np.inf in rows
+        df = pd.DataFrame(columns=[0])
+        df.loc[1] = 1
+        df.loc[2] = 2
+        df.loc[np.inf] = 3
+
+        # make sure we can look up the value
+        assert df.loc[np.inf, 0] == 3
+
+        result = df.index
+        expected = pd.Float64Index([1, 2, np.inf])
+        tm.assert_index_equal(result, expected)
+
+        # Test with np.inf in columns
+        df = pd.DataFrame()
+        df.loc[0, 0] = 1
+        df.loc[1, 1] = 2
+        df.loc[0, np.inf] = 3
+
+        result = df.columns
+        expected = pd.Float64Index([0, 1, np.inf])
+        tm.assert_index_equal(result, expected)
+
     def test_setitem_dtype_upcast(self):
 
         # GH3216
@@ -335,7 +363,7 @@ class TestFancy(Base):
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
-        mask = ~df2.FC.isnull()
+        mask = ~df2.FC.isna()
         cols = ['col1', 'col2']
 
         dft = df2 * 2
@@ -354,6 +382,12 @@ class TestFancy(Base):
         tm.assert_frame_equal(df2, expected)
 
         # with an ndarray on rhs
+        # coerces to float64 because values has float64 dtype
+        # GH 14001
+        expected = DataFrame({'FC': ['a', np.nan, 'a', 'b', 'a', 'b'],
+                              'PF': [0, 0, 0, 0, 1, 1],
+                              'col1': [0., 1., 4., 6., 8., 10.],
+                              'col2': [12, 7, 16, np.nan, 20, 22]})
         df2 = df.copy()
         df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
@@ -541,6 +575,34 @@ class TestFancy(Base):
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), 2),
+        (pd.Index([0, 1, '2']), '2'),
+        (pd.Index([0, 1, 2, np.inf, 4]), 4),
+        (pd.Index([0, 1, 2, np.nan, 4]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.inf),
+        (pd.Index([0, 1, 2, np.nan]), np.nan),
+    ])
+    def test_index_contains(self, index, val):
+        assert val in index
+
+    @pytest.mark.parametrize("index,val", [
+        (pd.Index([0, 1, 2]), '2'),
+        (pd.Index([0, 1, '2']), 2),
+        (pd.Index([0, 1, 2, np.inf]), 4),
+        (pd.Index([0, 1, 2, np.nan]), 4),
+        (pd.Index([0, 1, 2, np.inf]), np.nan),
+        (pd.Index([0, 1, 2, np.nan]), np.inf),
+        # Checking if np.inf in Int64Index should not cause an OverflowError
+        # Related to GH 16957
+        (pd.Int64Index([0, 1, 2]), np.inf),
+        (pd.Int64Index([0, 1, 2]), np.nan),
+        (pd.UInt64Index([0, 1, 2]), np.inf),
+        (pd.UInt64Index([0, 1, 2]), np.nan),
+    ])
+    def test_index_not_contains(self, index, val):
+        assert val not in index
 
     def test_index_type_coercion(self):
 

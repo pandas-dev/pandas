@@ -17,6 +17,11 @@ import inspect
 import importlib
 from pandas.compat import u, PY3
 
+try:
+    raw_input          # Python 2
+except NameError:
+    raw_input = input  # Python 3
+
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
 # pickle.dump(doctree, f, pickle.HIGHEST_PROTOCOL)
@@ -233,8 +238,8 @@ html_static_path = ['_static']
 # https://github.com/pandas-dev/pandas/issues/16186
 
 moved_api_pages = [
-    ('pandas.core.common.isnull', 'pandas.isnull'),
-    ('pandas.core.common.notnull', 'pandas.notnull'),
+    ('pandas.core.common.isnull', 'pandas.isna'),
+    ('pandas.core.common.notnull', 'pandas.notna'),
     ('pandas.core.reshape.get_dummies', 'pandas.get_dummies'),
     ('pandas.tools.merge.concat', 'pandas.concat'),
     ('pandas.tools.merge.merge', 'pandas.merge'),

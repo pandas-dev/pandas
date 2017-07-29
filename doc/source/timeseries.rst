@@ -1092,10 +1092,10 @@ frequencies. We will refer to these aliases as *offset aliases*
     "BQ", "business quarter endfrequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
-    "A", "year end frequency"
-    "BA", "business year end frequency"
-    "AS", "year start frequency"
-    "BAS", "business year start frequency"
+    "A, Y", "year end frequency"
+    "BA, BY", "business year end frequency"
+    "AS, YS", "year start frequency"
+    "BAS, BYS", "business year start frequency"
     "BH", "business hour frequency"
     "H", "hourly frequency"
     "T, min", "minutely frequency"
@@ -1922,7 +1922,7 @@ then you can use a ``PeriodIndex`` and/or ``Series`` of ``Periods`` to do comput
    span = pd.period_range('1215-01-01', '1381-01-01', freq='D')
    span
 
-To convert from a ``int64`` based YYYYMMDD representation.
+To convert from an ``int64`` based YYYYMMDD representation.
 
 .. ipython:: python
 

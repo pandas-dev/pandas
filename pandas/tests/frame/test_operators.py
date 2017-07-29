@@ -137,12 +137,12 @@ class TestDataFrameOperators(TestData):
             filled = df.fillna(np.nan)
             result = op(df, 3)
             expected = op(filled, 3).astype(object)
-            expected[com.isnull(expected)] = None
+            expected[com.isna(expected)] = None
             assert_frame_equal(result, expected)
 
             result = op(df, df)
             expected = op(filled, filled).astype(object)
-            expected[com.isnull(expected)] = None
+            expected[com.isna(expected)] = None
             assert_frame_equal(result, expected)
 
             result = op(df, df.fillna(7))
@@ -188,6 +188,7 @@ class TestDataFrameOperators(TestData):
         df.loc[np.random.rand(len(df)) > 0.5, 'dates2'] = pd.NaT
         ops = {'gt': 'lt', 'lt': 'gt', 'ge': 'le', 'le': 'ge', 'eq': 'eq',
                'ne': 'ne'}
+
         for left, right in ops.items():
             left_f = getattr(operator, left)
             right_f = getattr(operator, right)
@@ -315,14 +316,12 @@ class TestDataFrameOperators(TestData):
         # operator.neg is deprecated in numpy >= 1.9
         _check_unary_op(operator.inv)
 
-    def test_logical_typeerror(self):
-        if not compat.PY3:
-            pytest.raises(TypeError, self.frame.__eq__, 'foo')
-            pytest.raises(TypeError, self.frame.__lt__, 'foo')
-            pytest.raises(TypeError, self.frame.__gt__, 'foo')
-            pytest.raises(TypeError, self.frame.__ne__, 'foo')
-        else:
-            pytest.skip('test_logical_typeerror not tested on PY3')
+    @pytest.mark.parametrize('op,res', [('__eq__', False),
+                                        ('__ne__', True)])
+    def test_logical_typeerror_with_non_valid(self, op, res):
+        # we are comparing floats vs a string
+        result = getattr(self.frame, op)('foo')
+        assert bool(result.all().all()) is res
 
     def test_logical_with_nas(self):
         d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
@@ -832,9 +831,11 @@ class TestDataFrameOperators(TestData):
         assert 'E' in larger_added
         assert np.isnan(larger_added['E']).all()
 
-        # vs mix (upcast) as needed
+        # no upcast needed
         added = self.mixed_float + series
-        _check_mixed_float(added, dtype='float64')
+        _check_mixed_float(added)
+
+        # vs mix (upcast) as needed
         added = self.mixed_float + series.astype('float32')
         _check_mixed_float(added, dtype=dict(C=None))
         added = self.mixed_float + series.astype('float16')
@@ -1044,8 +1045,8 @@ class TestDataFrameOperators(TestData):
 
         combined = df1.combine(df2, np.add)
         combined2 = df2.combine(df1, np.add)
-        assert combined['D'].isnull().all()
-        assert combined2['D'].isnull().all()
+        assert combined['D'].isna().all()
+        assert combined2['D'].isna().all()
 
         chunk = combined.loc[combined.index[:-5], ['A', 'B', 'C']]
         chunk2 = combined2.loc[combined2.index[:-5], ['A', 'B', 'C']]

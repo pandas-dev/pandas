@@ -13,7 +13,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.compat import lrange, product
-from pandas import (compat, isnull, notnull, DataFrame, Series,
+from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp)
 import pandas as pd
 import pandas.core.nanops as nanops
@@ -81,11 +81,11 @@ class TestDataFrameAnalytics(TestData):
                             'C': [np.nan, np.nan, np.nan, np.nan,
                                   np.nan, np.nan]})
             rs = df.corr(meth)
-            assert isnull(rs.loc['A', 'B'])
-            assert isnull(rs.loc['B', 'A'])
+            assert isna(rs.loc['A', 'B'])
+            assert isna(rs.loc['B', 'A'])
             assert rs.loc['A', 'A'] == 1
             assert rs.loc['B', 'B'] == 1
-            assert isnull(rs.loc['C', 'C'])
+            assert isna(rs.loc['C', 'C'])
 
     def test_corr_constant(self):
         tm._skip_if_no_scipy()
@@ -96,7 +96,7 @@ class TestDataFrameAnalytics(TestData):
             df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
                             'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
             rs = df.corr(meth)
-            assert isnull(rs.values).all()
+            assert isna(rs.values).all()
 
     def test_corr_int(self):
         # dtypes other than float64 #1761
@@ -136,7 +136,7 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_frame_equal(expected, result)
 
         result = self.frame.cov(min_periods=len(self.frame) + 1)
-        assert isnull(result.values).all()
+        assert isna(result.values).all()
 
         # with NAs
         frame = self.frame.copy()
@@ -389,7 +389,7 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_series_equal(test, df.T.sum(axis=1))
 
     def test_count(self):
-        f = lambda s: notnull(s).sum()
+        f = lambda s: notna(s).sum()
         self._check_stat_op('count', f,
                             has_skipna=False,
                             has_numeric_only=True,
@@ -477,7 +477,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_median(self):
         def wrapper(x):
-            if isnull(x).any():
+            if isna(x).any():
                 return np.nan
             return np.median(x)
 
@@ -974,7 +974,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_median_corner(self):
         def wrapper(x):
-            if isnull(x).any():
+            if isna(x).any():
                 return np.nan
             return np.median(x)
 
@@ -998,7 +998,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_sum_bools(self):
         df = DataFrame(index=lrange(1), columns=lrange(10))
-        bools = isnull(df)
+        bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
     # Index of max / min
@@ -1151,10 +1151,13 @@ class TestDataFrameAnalytics(TestData):
         expected = DataFrame([df.loc[s].isin(other) for s in df.index])
         tm.assert_frame_equal(result, expected)
 
-    def test_isin_empty(self):
+    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    def test_isin_empty(self, empty):
+        # see gh-16991
         df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
-        result = df.isin([])
-        expected = pd.DataFrame(False, df.index, df.columns)
+        expected = DataFrame(False, df.index, df.columns)
+
+        result = df.isin(empty)
         tm.assert_frame_equal(result, expected)
 
     def test_isin_dict(self):
@@ -1892,12 +1895,33 @@ class TestDataFrameAnalytics(TestData):
 
             tm.assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
 
-    def test_clip_against_frame(self):
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("lower", [[2, 3, 4], np.asarray([2, 3, 4])])
+    @pytest.mark.parametrize("axis,res", [
+        (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
+        (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
+    ])
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
+        # GH #15390
+        original = self.simple.copy(deep=True)
+
+        result = original.clip(lower=lower, upper=[5, 6, 7],
+                               axis=axis, inplace=inplace)
+
+        expected = pd.DataFrame(res,
+                                columns=original.columns,
+                                index=original.index)
+        if inplace:
+            result = original
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
         lb = DataFrame(np.random.randn(1000, 2))
         ub = lb + 1
 
-        clipped_df = df.clip(lb, ub)
+        clipped_df = df.clip(lb, ub, axis=axis)
 
         lb_mask = df <= lb
         ub_mask = df >= ub

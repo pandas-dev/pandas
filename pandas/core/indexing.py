@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     _is_unorderable_exception,
     _ensure_platform_int)
-from pandas.core.dtypes.missing import isnull, _infer_fill_value
+from pandas.core.dtypes.missing import isna, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
 
@@ -760,10 +760,12 @@ class _NDFrameIndexer(object):
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
+                    if isinstance(ix, np.ndarray):
+                        ix = ix.ravel()
                     if idx is None:
-                        idx = ax[ix].ravel()
+                        idx = ax[ix]
                     elif cols is None:
-                        cols = ax[ix].ravel()
+                        cols = ax[ix]
                     else:
                         break
                 else:
@@ -988,6 +990,10 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
+                # Slices should return views, but calling iloc/loc with a null
+                # slice returns a new object.
+                if is_null_slice(new_key):
+                    return section
                 # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
 
@@ -1250,7 +1256,7 @@ class _NDFrameIndexer(object):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
         indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
@@ -1288,7 +1294,7 @@ class _IXIndexer(_NDFrameIndexer):
 .iloc for positional indexing
 
 See the documentation here:
-http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix"""
+http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated"""  # noqa
 
         warnings.warn(_ix_deprecation_warning,
                       DeprecationWarning, stacklevel=3)
@@ -1349,7 +1355,7 @@ class _LocationIndexer(_NDFrameIndexer):
         """ this is pretty simple as we just have to deal with labels """
         obj = self.obj
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
@@ -1422,7 +1428,7 @@ class _LocIndexer(_LocationIndexer):
         else:
 
             def error():
-                if isnull(key):
+                if isna(key):
                     raise TypeError("cannot use label indexing with a null "
                                     "key")
                 raise KeyError("the label [%s] is not in the [%s]" %
@@ -1690,7 +1696,7 @@ class _iLocIndexer(_LocationIndexer):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj
+            return obj.copy(deep=False)
 
         slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
@@ -1934,7 +1940,7 @@ def check_bool_indexer(ax, key):
     result = key
     if isinstance(key, ABCSeries) and not key.index.equals(ax):
         result = result.reindex(ax)
-        mask = isnull(result._values)
+        mask = isna(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series provided as '
                                 'indexer (index of the boolean Series and of '

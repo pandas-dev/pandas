@@ -12,7 +12,7 @@ import re
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.common import (
     is_list_like, is_dict_like,
@@ -432,7 +432,9 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           'sqlite' is the only supported option if SQLAlchemy is not
+           used.
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
@@ -484,7 +486,9 @@ def has_table(table_name, con, flavor=None, schema=None):
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           'sqlite' is the only supported option if SQLAlchemy is not
+           installed.
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor supports
         this). If None, use default schema (default).
@@ -628,7 +632,7 @@ class SQLTable(PandasObject):
 
             # replace NaN with None
             if b._can_hold_na:
-                mask = isnull(d)
+                mask = isna(d)
                 d[mask] = None
 
             for col_loc, col in zip(b.mgr_locs, d):
@@ -841,7 +845,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _get_notnull_col_dtype(self, col):
+    def _get_notna_col_dtype(self, col):
         """
         Infer datatype of the Series col.  In case the dtype of col is 'object'
         and it contains NA values, this infers the datatype of the not-NA
@@ -849,9 +853,9 @@ class SQLTable(PandasObject):
         """
         col_for_inference = col
         if col.dtype == 'object':
-            notnulldata = col[~isnull(col)]
-            if len(notnulldata):
-                col_for_inference = notnulldata
+            notnadata = col[~isna(col)]
+            if len(notnadata):
+                col_for_inference = notnadata
 
         return lib.infer_dtype(col_for_inference)
 
@@ -861,7 +865,7 @@ class SQLTable(PandasObject):
         if col.name in dtype:
             return self.dtype[col.name]
 
-        col_type = self._get_notnull_col_dtype(col)
+        col_type = self._get_notna_col_dtype(col)
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
@@ -1341,7 +1345,7 @@ class SQLiteTable(SQLTable):
         if col.name in dtype:
             return dtype[col.name]
 
-        col_type = self._get_notnull_col_dtype(col)
+        col_type = self._get_notna_col_dtype(col)
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
@@ -1545,7 +1549,9 @@ def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
         library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           'sqlite' is the only supported option if SQLAlchemy is not
+           installed.
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.

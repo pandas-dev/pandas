@@ -36,7 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
@@ -86,6 +86,17 @@ _shared_doc_kwargs = dict(
     unique='np.ndarray', duplicated='Series',
     optional_by='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
+
+
+# see gh-16971
+def remove_na(arr):
+    """
+    DEPRECATED : this function will be removed in a future version.
+    """
+
+    warnings.warn("remove_na is deprecated and is a private "
+                  "function. Do not use.", FutureWarning, stacklevel=2)
+    return remove_na_arraylike(arr)
 
 
 def _coerce_method(converter):
@@ -735,7 +746,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isnull(value):
+                    if isna(value):
                         value = iNaT
 
                         try:
@@ -850,8 +861,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def reshape(self, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release. Please call ``.values.reshape(...)`` instead.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error. Please call
+           ``.values.reshape(...)`` instead.
 
         return an ndarray with the values shape
         if the specified shape matches exactly the current shape, then
@@ -947,6 +959,37 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Returns
         ----------
         resetted : DataFrame, or Series if drop == True
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
+        >>> s.reset_index()
+           index  0
+        0      0  1
+        1      1  2
+        2      2  3
+        3      3  4
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
+        ...                     'foo', 'qux', 'qux']),
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
+        >>> s2 = pd.Series(
+        ...     np.random.randn(8),
+        ...     index=pd.MultiIndex.from_arrays(arrays,
+        ...                                     names=['a', 'b']))
+        >>> s2.reset_index(level='a')
+               a         0
+        b
+        one  bar -0.286320
+        two  bar -0.587934
+        one  baz  0.710491
+        two  baz -1.429006
+        one  foo  0.790700
+        two  foo  0.824863
+        one  qux -0.718963
+        two  qux -0.055028
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -1184,7 +1227,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         from pandas.core.index import _get_na_value
 
         if level is None:
-            return notnull(_values_from_object(self)).sum()
+            return notna(_values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1197,7 +1240,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             lab[mask] = cnt = len(lev)
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        obs = lab[notnull(self.values)]
+        obs = lab[notna(self.values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
@@ -1521,6 +1564,18 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
+        Notes
+        -----
+        Iteratively appending to a Series can be more computationally intensive
+        than a single concatenate. A better solution is to append values to a
+        list and then concatenate the list with the original Series all at
+        once.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
         Returns
         -------
         appended : Series
@@ -1611,8 +1666,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other_vals = other.values
 
         if fill_value is not None:
-            this_mask = isnull(this_vals)
-            other_mask = isnull(other_vals)
+            this_mask = isna(this_vals)
+            other_mask = isna(other_vals)
             this_vals = this_vals.copy()
             other_vals = other_vals.copy()
 
@@ -1681,7 +1736,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
         name = _maybe_match_name(self, other)  # noqa
-        rs_vals = com._where_compat(isnull(this), other._values, this._values)
+        rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
     def update(self, other):
@@ -1694,7 +1749,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other : Series
         """
         other = other.reindex_like(self)
-        mask = notnull(other)
+        mask = notna(other)
 
         self._data = self._data.putmask(mask=mask, new=other, inplace=True)
         self._maybe_update_cacher()
@@ -1727,7 +1782,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         arr = self._values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
-        bad = isnull(arr)
+        bad = isna(arr)
 
         good = ~bad
         idx = _default_index(len(self))
@@ -1832,7 +1887,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         numpy.ndarray.argsort
         """
         values = self._values
-        mask = isnull(values)
+        mask = isna(values)
 
         if mask.any():
             result = Series(-1, index=self.index, name=self.name,
@@ -1847,7 +1902,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 dtype='int64').__finalize__(self)
 
     def nlargest(self, n=5, keep='first'):
-        """Return the largest `n` elements.
+        """
+        Return the largest `n` elements.
 
         Parameters
         ----------
@@ -1893,7 +1949,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
-        """Return the smallest `n` elements.
+        """
+        Return the smallest `n` elements.
 
         Parameters
         ----------
@@ -2159,7 +2216,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if na_action == 'ignore':
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f,
-                                              isnull(values).view(np.uint8))
+                                              isna(values).view(np.uint8))
             else:
                 map_f = lib.map_infer
 
@@ -2727,6 +2784,22 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     merge_cells=merge_cells, encoding=encoding,
                     inf_rep=inf_rep, verbose=verbose)
 
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return super(Series, self).isna()
+
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isnull(self):
+        return super(Series, self).isnull()
+
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    def notna(self):
+        return super(Series, self).notna()
+
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    def notnull(self):
+        return super(Series, self).notnull()
+
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
         Return Series without null values
@@ -2746,7 +2819,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         axis = self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
-            result = remove_na(self)
+            result = remove_na_arraylike(self)
             if inplace:
                 self._update_inplace(result)
             else:
@@ -2768,7 +2841,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values)
+        mask = isna(self._values)
         i = mask.argmin()
         if mask[i]:
             return None
@@ -2782,7 +2855,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values[::-1])
+        mask = isna(self._values[::-1])
         i = mask.argmin()
         if mask[i]:
             return None
@@ -2885,13 +2958,6 @@ _INDEX_TYPES = ndarray, Index, list, tuple
 # Supplementary functions
 
 
-def remove_na(series):
-    """
-    Return series containing only true/non-NaN values, possibly empty.
-    """
-    return series[notnull(_values_from_object(series))]
-
-
 def _sanitize_index(data, index, copy=False):
     """ sanitize an index type to return an ndarray of the underlying, pass
     thru a non-Index
@@ -2961,7 +3027,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                if not isnull(data).any():
+                if not isna(data).any():
                     subarr = _try_cast(data, True)
                 elif copy:
                     subarr = data.copy()

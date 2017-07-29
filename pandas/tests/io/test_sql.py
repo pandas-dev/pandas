@@ -33,7 +33,7 @@ from datetime import datetime, date, time
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype)
-from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
+from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
@@ -816,6 +816,16 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
+    def test_escaped_table_name(self):
+        # GH 13206
+        df = DataFrame({'A': [0, 1, 2], 'B': [0.2, np.nan, 5.6]})
+        df.to_sql('d1187b08-4943-4c8d-a7f6', self.conn, index=False)
+
+        res = sql.read_sql_query('SELECT * FROM `d1187b08-4943-4c8d-a7f6`',
+                                 self.conn)
+
+        tm.assert_frame_equal(res, df)
+
 
 @pytest.mark.single
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
@@ -938,6 +948,13 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
+        try:
+            # the rest of this test depends on pg8000's being absent
+            import pg8000  # noqa
+            pytest.skip("pg8000 is installed")
+        except ImportError:
+            pass
+
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)
@@ -1513,7 +1530,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypea, sqlalchemy.TEXT)
         assert isinstance(sqltypeb, sqlalchemy.TEXT)
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
                 'Int': Series([1, None], dtype='object'),
@@ -1521,7 +1538,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
         returned_df = sql.read_sql_table(tbl, self.conn)  # noqa
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
@@ -1988,7 +2005,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         assert self._get_sqlite_column_type(
             'single_dtype_test', 'B') == 'STRING'
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
 
@@ -1999,7 +2016,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
 
         assert self._get_sqlite_column_type(tbl, 'Bool') == 'INTEGER'
@@ -2052,7 +2069,7 @@ def format_query(sql, *args):
     """
     processed_args = []
     for arg in args:
-        if isinstance(arg, float) and isnull(arg):
+        if isinstance(arg, float) and isna(arg):
             arg = None
 
         formatter = _formatters[type(arg)]

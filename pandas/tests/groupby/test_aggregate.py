@@ -234,6 +234,27 @@ class TestGroupByAggregate(object):
         expected = grouped.mean()
         tm.assert_frame_equal(result, expected)
 
+    def test_aggregate_float64_no_int64(self):
+        # see gh-11199
+        df = DataFrame({"a": [1, 2, 3, 4, 5],
+                        "b": [1, 2, 2, 4, 5],
+                        "c": [1, 2, 3, 4, 5]})
+
+        expected = DataFrame({"a": [1, 2.5, 4, 5]},
+                             index=[1, 2, 4, 5])
+        expected.index.name = "b"
+
+        result = df.groupby("b")[["a"]].mean()
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame({"a": [1, 2.5, 4, 5],
+                              "c": [1, 2.5, 4, 5]},
+                             index=[1, 2, 4, 5])
+        expected.index.name = "b"
+
+        result = df.groupby("b")[["a", "c"]].mean()
+        tm.assert_frame_equal(result, expected)
+
     def test_aggregate_api_consistency(self):
         # GH 9052
         # make sure that the aggregates via dict
@@ -590,6 +611,16 @@ class TestGroupByAggregate(object):
         df.groupby(level=0, axis='columns').mean()
         df.groupby(level=0, axis='columns').mean()
 
+    def test_cython_agg_return_dict(self):
+        # GH 16741
+        ts = self.df.groupby('A')['B'].agg(
+            lambda x: x.value_counts().to_dict())
+        expected = Series([{'two': 1, 'one': 1, 'three': 1},
+                           {'two': 2, 'one': 2, 'three': 1}],
+                          index=Index(['bar', 'foo'], name='A'),
+                          name='B')
+        assert_series_equal(ts, expected)
+
     def test_cython_fail_agg(self):
         dr = bdate_range('1/1/2000', periods=50)
         ts = Series(['A', 'B', 'C', 'D', 'E'] * 10, index=dr)
@@ -844,3 +875,20 @@ class TestGroupByAggregate(object):
         ts = df['B'].iloc[2]
         assert ts == grouped.last()['B'].iloc[0]
         assert ts == grouped.apply(lambda x: x.iloc[-1])[0]
+
+    def test_sum_uint64_overflow(self):
+        # see gh-14758
+
+        # Convert to uint64 and don't overflow
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                          dtype=object) + 9223372036854775807
+
+        index = pd.Index([9223372036854775808, 9223372036854775810,
+                          9223372036854775812], dtype=np.uint64)
+        expected = pd.DataFrame({1: [9223372036854775809,
+                                     9223372036854775811,
+                                     9223372036854775813]}, index=index)
+
+        expected.index.name = 0
+        result = df.groupby(0).sum()
+        tm.assert_frame_equal(result, expected)

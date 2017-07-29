@@ -13,9 +13,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     _ensure_int64)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
+from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
@@ -51,7 +51,7 @@ def _td_index_cmp(opname, nat_result=False):
                 # failed to parse as timedelta
                 raise TypeError(msg.format(type(other)))
             result = func(other)
-            if isnull(other):
+            if isna(other):
                 result.fill(nat_result)
         else:
             if not is_list_like(other):
@@ -331,7 +331,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
             if _is_convertible_to_td(other):
                 other = Timedelta(other)
-                if isnull(other):
+                if isna(other):
                     raise NotImplementedError(
                         "division by pd.NaT not implemented")
 
@@ -430,7 +430,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         hasnans = self.hasnans
         if hasnans:
             def f(x):
-                if isnull(x):
+                if isna(x):
                     return [np.nan] * len(columns)
                 return x.components
         else:
@@ -516,7 +516,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                     result.freq = to_offset(result.inferred_freq)
             return result
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
@@ -527,7 +528,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 pass
 
         return Index.join(self, other, how=how, level=level,
-                          return_indexers=return_indexers)
+                          return_indexers=return_indexers,
+                          sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -680,11 +682,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
-
-        if is_bool_indexer(key):
+        if is_list_like(key):
             raise TypeError
 
-        if isnull(key):
+        if isna(key):
             key = NaT
 
         if tolerance is not None:

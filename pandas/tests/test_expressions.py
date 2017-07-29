@@ -13,10 +13,10 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p11
+from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal, slow)
+                                 assert_panel4d_equal)
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
@@ -196,7 +196,7 @@ class TestExpressions(object):
     def test_integer_arithmetic_series(self):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
     def test_integer_panel(self):
         self.run_panel(_integer2_panel, np.random.randint(1, 100))
 
@@ -206,11 +206,11 @@ class TestExpressions(object):
     def test_float_arithmetic_series(self):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
     def test_float_panel(self):
         self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
 
-    @slow
+    @pytest.mark.slow
     def test_panel4d(self):
         with catch_warnings(record=True):
             self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
@@ -226,7 +226,7 @@ class TestExpressions(object):
         for col in self.mixed2.columns:
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
 
-    @slow
+    @pytest.mark.slow
     def test_mixed_panel(self):
         self.run_panel(_mixed2_panel, np.random.randint(1, 100),
                        binary_comp=-2)
@@ -419,6 +419,10 @@ class TestExpressions(object):
         for op, name in zip(ops, names):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
+
+            # >= 1.13.0 these are now TypeErrors
+            if op == '-' and not _np_version_under1p13:
+                continue
 
             with tm.use_numexpr(True, min_elements=5):
                 with tm.assert_produces_warning(check_stacklevel=False):
