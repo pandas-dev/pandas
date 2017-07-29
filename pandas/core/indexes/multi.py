@@ -1774,7 +1774,7 @@ class MultiIndex(Index):
         if is_list_like(target) and not len(target):
             return _ensure_platform_int(np.array([]))
 
-        if not isinstance(target, MultiIndex):
+        if not target._is_multi:
             try:
                 target = MultiIndex.from_tuples(target)
             except (TypeError, ValueError):
@@ -1859,7 +1859,7 @@ class MultiIndex(Index):
                 else:
                     raise Exception("cannot handle a non-unique multi-index!")
 
-        if not isinstance(target, MultiIndex):
+        if not target._is_multi:
             if indexer is None:
                 target = self
             elif (indexer >= 0).all():
@@ -2393,7 +2393,7 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
             return False
 
-        if not isinstance(other, MultiIndex):
+        if not other._is_multi:
             return array_equivalent(self._values,
                                     _values_from_object(_ensure_index(other)))
 

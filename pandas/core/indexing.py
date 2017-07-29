@@ -539,7 +539,7 @@ class _NDFrameIndexer(object):
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
                     sub_indexer = list(indexer)
-                    multiindex_indexer = isinstance(labels, MultiIndex)
+                    multiindex_indexer = labels._is_multi
 
                     for item in labels:
                         if item in value:
@@ -1411,7 +1411,7 @@ class _LocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
 
             # mi is just a passthru
-            if isinstance(key, tuple) and isinstance(ax, MultiIndex):
+            if isinstance(key, tuple) and ax._is_multi:
                 return True
 
             # TODO: don't check the entire key unless necessary

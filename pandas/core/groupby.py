@@ -301,7 +301,7 @@ class Grouper(object):
 
                 # if a level is given it must be a mi level or
                 # equivalent to the axis name
-                if isinstance(ax, MultiIndex):
+                if ax._is_multi:
                     level = ax._get_level_number(level)
                     ax = Index(ax._get_level_values(level),
                                name=ax.names[level])
@@ -896,7 +896,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                 # and we have a result which is duplicated
                 # we can't reindex, so we resort to this
                 # GH 14776
-                if isinstance(ax, MultiIndex) and not ax.is_unique:
+                if ax._is_multi and not ax.is_unique:
                     indexer = algorithms.unique1d(
                         result.index.get_indexer_for(ax.values))
                     result = result.take(indexer, axis=self.axis)
@@ -2577,7 +2577,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     # validate that the passed level is compatible with the passed
     # axis of the object
     if level is not None:
-        if not isinstance(group_axis, MultiIndex):
+        if not group_axis._is_multi:
             # allow level to be a length-one list-like object
             # (e.g., level=[0])
             # GH 13901

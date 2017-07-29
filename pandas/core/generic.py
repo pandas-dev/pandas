@@ -2029,7 +2029,7 @@ it is assumed to be aliases for the column names.')
         deleted = False
 
         maybe_shortcut = False
-        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
+        if hasattr(self, 'columns') and self.columns._is_multi:
             try:
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
@@ -2175,7 +2175,7 @@ it is assumed to be aliases for the column names.')
         self._consolidate_inplace()
 
         index = self.index
-        if isinstance(index, MultiIndex):
+        if index._is_multi:
             loc, new_index = self.index.get_loc_level(key,
                                                       drop_level=drop_level)
         else:
@@ -2334,7 +2334,7 @@ it is assumed to be aliases for the column names.')
 
         if axis.is_unique:
             if level is not None:
-                if not isinstance(axis, MultiIndex):
+                if not axis._is_multi:
                     raise AssertionError('axis must be a MultiIndex')
                 new_axis = axis.drop(labels, level=level, errors=errors)
             else:
@@ -2349,7 +2349,7 @@ it is assumed to be aliases for the column names.')
         else:
             labels = _ensure_object(com._index_labels_to_array(labels))
             if level is not None:
-                if not isinstance(axis, MultiIndex):
+                if not axis._is_multi:
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
             else:
@@ -4382,7 +4382,7 @@ it is assumed to be aliases for the column names.')
         else:
             alt_ax = ax
 
-        if (isinstance(_maybe_transposed_self.index, MultiIndex) and
+        if (_maybe_transposed_self.index._is_multi and
                 method != 'linear'):
             raise ValueError("Only `method=linear` interpolation is supported "
                              "on MultiIndexes.")
@@ -5917,7 +5917,7 @@ it is assumed to be aliases for the column names.')
         slicer[axis] = slice(before, after)
         result = self.loc[tuple(slicer)]
 
-        if isinstance(ax, MultiIndex):
+        if ax._is_multi:
             setattr(result, self._get_axis_name(axis),
                     ax.truncate(before, after))
 
@@ -5965,7 +5965,7 @@ it is assumed to be aliases for the column names.')
 
         # if a level is given it must be a MultiIndex level or
         # equivalent to the axis name
-        if isinstance(ax, MultiIndex):
+        if ax._is_multi:
             level = ax._get_level_number(level)
             new_level = _tz_convert(ax.levels[level], tz)
             ax = ax.set_levels(new_level, level=level)
@@ -6033,7 +6033,7 @@ it is assumed to be aliases for the column names.')
 
         # if a level is given it must be a MultiIndex level or
         # equivalent to the axis name
-        if isinstance(ax, MultiIndex):
+        if ax._is_multi:
             level = ax._get_level_number(level)
             new_level = _tz_localize(ax.levels[level], tz, ambiguous)
             ax = ax.set_levels(new_level, level=level)

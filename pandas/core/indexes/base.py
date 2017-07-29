@@ -1319,7 +1319,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if kind == 'iloc':
             return self._validate_indexer('positional', key, kind)
 
-        if len(self) and not isinstance(self, ABCMultiIndex,):
+        if len(self) and not self._is_multi:
 
             # we can raise here if we are definitive that this
             # is positional indexing (eg. .ix on with a float)
@@ -2994,7 +2994,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
         from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
+        self_is_mi = self._is_multi
         other_is_mi = isinstance(other, MultiIndex)
 
         # try to figure out the join level
@@ -3091,7 +3091,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
+        self_is_mi = self._is_multi
         other_is_mi = isinstance(other, MultiIndex)
 
         # figure out join names
@@ -3187,13 +3187,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             lab = _ensure_int64(labels[-1])
             return lib.get_level_sorter(lab, _ensure_int64(starts))
 
-        if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
+        if self._is_multi and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
                             'is ambiguous')
 
         left, right = self, other
 
-        flip_order = not isinstance(self, MultiIndex)
+        flip_order = not self._is_multi
         if flip_order:
             left, right = right, left
             how = {'right': 'left', 'left': 'right'}.get(how, how)

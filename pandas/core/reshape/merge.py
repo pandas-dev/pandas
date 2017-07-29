@@ -848,7 +848,7 @@ class _MergeOperation(object):
                 else:
                     left_keys.append(left[k]._values)
                     join_names.append(k)
-            if isinstance(self.right.index, MultiIndex):
+            if self.right.index._is_multi:
                 right_keys = [lev._values.take(lab)
                               for lev, lab in zip(self.right.index.levels,
                                                   self.right.index.labels)]
@@ -862,7 +862,7 @@ class _MergeOperation(object):
                 else:
                     right_keys.append(right[k]._values)
                     join_names.append(k)
-            if isinstance(self.left.index, MultiIndex):
+            if self.left.index._is_multi:
                 left_keys = [lev._values.take(lab)
                              for lev, lab in zip(self.left.index.levels,
                                                  self.left.index.labels)]
@@ -1202,10 +1202,10 @@ class _AsOfMerge(_OrderedMerge):
         if len(self.right_on) != 1 and not self.right_index:
             raise MergeError("can only asof on a key for right")
 
-        if self.left_index and isinstance(self.left.index, MultiIndex):
+        if self.left_index and self.left.index._is_multi:
             raise MergeError("left can only have one index")
 
-        if self.right_index and isinstance(self.right.index, MultiIndex):
+        if self.right_index and self.right.index._is_multi:
             raise MergeError("right can only have one index")
 
         # set 'by' columns

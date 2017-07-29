@@ -460,7 +460,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not self.data.columns._is_multi:
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -591,7 +591,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if self.data.index._is_multi:
             name = self.data.index.names
             if any(x is not None for x in name):
                 name = ','.join([pprint_thing(x) for x in name])
