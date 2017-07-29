@@ -1198,7 +1198,7 @@ class DataFrame(NDFrame):
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
                 ix_vals = [self.index.to_pydatetime()]
             else:
-                if isinstance(self.index, MultiIndex):
+                if self.index._is_multi:
                     # array of tuples to numpy cols. copy copy copy
                     ix_vals = lmap(np.array, zip(*self.index.values))
                 else:
@@ -1208,7 +1208,7 @@ class DataFrame(NDFrame):
 
             count = 0
             index_names = list(self.index.names)
-            if isinstance(self.index, MultiIndex):
+            if self.index._is_multi:
                 for i, n in enumerate(index_names):
                     if n is None:
                         index_names[i] = 'level_%d' % count
@@ -1376,7 +1376,7 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         # only support this kind for now
-        if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
+        if (not self.index._is_multi or  # pragma: no cover
                 len(self.index.levels) != 2):
             raise NotImplementedError('Only 2-level MultiIndex are supported.')
 
@@ -2036,7 +2036,7 @@ it is assumed to be aliases for the column names')
         key = com._apply_if_callable(key, self)
 
         # shortcut if we are an actual column
-        is_mi_columns = isinstance(self.columns, MultiIndex)
+        is_mi_columns = self.columns._is_multi
         try:
             if key in self.columns and not is_mi_columns:
                 return self._getitem_column(key)
@@ -2651,7 +2651,7 @@ it is assumed to be aliases for the column names')
         elif isinstance(value, DataFrame):
             # align right-hand-side columns if self.columns
             # is multi-index and self[key] is a sub-frame
-            if isinstance(self.columns, MultiIndex) and key in self.columns:
+            if self.columns._is_multi and key in self.columns:
                 loc = self.columns.get_loc(key)
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
@@ -2695,8 +2695,7 @@ it is assumed to be aliases for the column names')
 
         # broadcast across multiple columns if necessary
         if broadcast and key in self.columns and value.ndim == 1:
-            if (not self.columns.is_unique or
-                    isinstance(self.columns, MultiIndex)):
+            if not self.columns.is_unique or self.columns._is_multi:
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
@@ -2937,7 +2936,7 @@ it is assumed to be aliases for the column names')
         names = []
         if append:
             names = [x for x in self.index.names]
-            if isinstance(self.index, MultiIndex):
+            if self.index._is_multi:
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -3159,12 +3158,12 @@ it is assumed to be aliases for the column names')
             if not isinstance(level, (tuple, list)):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
-            if isinstance(self.index, MultiIndex):
+            if self.index._is_multi:
                 if len(level) < self.index.nlevels:
                     new_index = self.index.droplevel(level)
 
         if not drop:
-            if isinstance(self.index, MultiIndex):
+            if self.index._is_multi:
                 names = [n if n is not None else ('level_%d' % i)
                          for (i, n) in enumerate(self.index.names)]
                 to_insert = lzip(self.index.levels, self.index.labels)
@@ -3174,7 +3173,7 @@ it is assumed to be aliases for the column names')
                          else [self.index.name])
                 to_insert = ((self.index, None),)
 
-            multi_col = isinstance(self.columns, MultiIndex)
+            multi_col = self.columns._is_multi
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 if not (level is None or i in level):
                     continue
@@ -3444,7 +3443,7 @@ it is assumed to be aliases for the column names')
             if k.ndim == 2:
 
                 # try to be helpful
-                if isinstance(self.columns, MultiIndex):
+                if self.columns._is_multi:
                     raise ValueError('Cannot sort by column %s in a '
                                      'multi-index you need to explicitly '
                                      'provide all the levels' % str(by))
@@ -3493,7 +3492,7 @@ it is assumed to be aliases for the column names')
             new_axis, indexer = labels.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
 
-        elif isinstance(labels, MultiIndex):
+        elif labels._is_multi:
             from pandas.core.sorting import lexsort_indexer
 
             # make sure that the axis is lexsorted to start
@@ -5313,7 +5312,7 @@ it is assumed to be aliases for the column names')
         count_axis = frame._get_axis(axis)
         agg_axis = frame._get_agg_axis(axis)
 
-        if not isinstance(count_axis, MultiIndex):
+        if not count_axis._is_multi:
             raise TypeError("Can only count levels on hierarchical %s." %
                             self._get_axis_name(axis))
 

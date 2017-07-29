@@ -77,6 +77,7 @@ class MultiIndex(Index):
     _labels = FrozenList()
     _comparables = ['names']
     rename = Index.set_names
+    _is_multi = True
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 copy=False, verify_integrity=True, _set_identity=True,

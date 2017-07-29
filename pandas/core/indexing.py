@@ -146,7 +146,7 @@ class _NDFrameIndexer(object):
             return self._convert_tuple(key, is_setter=True)
 
         axis = self.obj._get_axis(0)
-        if isinstance(axis, MultiIndex):
+        if axis._is_multi:
             try:
                 return axis.get_loc(key)
             except Exception:
@@ -195,7 +195,7 @@ class _NDFrameIndexer(object):
         iterable
         """
         ax = self.obj._get_axis(axis)
-        if isinstance(ax, MultiIndex):
+        if ax._is_multi:
             return False
         elif ax.is_floating():
             return False
@@ -203,7 +203,7 @@ class _NDFrameIndexer(object):
         return True
 
     def _is_nested_tuple_indexer(self, tup):
-        if any([isinstance(ax, MultiIndex) for ax in self.obj.axes]):
+        if any([ax._is_multi for ax in self.obj.axes]):
             return any([is_nested_tuple(tup, ax) for ax in self.obj.axes])
         return False
 
@@ -297,7 +297,7 @@ class _NDFrameIndexer(object):
                 # if we have any multi-indexes that have non-trivial slices
                 # (not null slices) then we must take the split path, xref
                 # GH 10360
-                if (isinstance(ax, MultiIndex) and
+                if (ax._is_multi and
                         not (is_integer(i) or is_null_slice(i))):
                     take_split_path = True
                     break
@@ -449,8 +449,7 @@ class _NDFrameIndexer(object):
 
             # if we have a partial multiindex, then need to adjust the plane
             # indexer here
-            if (len(labels) == 1 and
-                    isinstance(self.obj[labels[0]].axes[0], MultiIndex)):
+            if len(labels) == 1 and self.obj[labels[0]].axes[0]._is_multi:
                 item = labels[0]
                 obj = self.obj[item]
                 index = obj.index
@@ -803,8 +802,8 @@ class _NDFrameIndexer(object):
 
                 # we have a multi-index and are trying to align
                 # with a particular, level GH3738
-                if (isinstance(ax, MultiIndex) and
-                        isinstance(df.index, MultiIndex) and
+                if (ax._is_multi and
+                        df.index._is_multi and
                         ax.nlevels != df.index.nlevels):
                     raise TypeError("cannot align on a multi-index with out "
                                     "specifying the join levels")
@@ -871,7 +870,7 @@ class _NDFrameIndexer(object):
 
         # just too complicated
         for indexer, ax in zip(tup, self.obj._data.axes):
-            if isinstance(ax, MultiIndex):
+            if ax._is_multi:
                 return False
             elif is_bool_indexer(indexer):
                 return False
@@ -953,7 +952,7 @@ class _NDFrameIndexer(object):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, MultiIndex) and self.name != 'iloc':
+        if ax0._is_multi and self.name != 'iloc':
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
@@ -1057,7 +1056,7 @@ class _NDFrameIndexer(object):
             return self._get_slice_axis(key, axis=axis)
         elif (is_list_like_indexer(key) and
               not (isinstance(key, tuple) and
-                   isinstance(labels, MultiIndex))):
+                   labels._is_multi)):
 
             if hasattr(key, 'ndim') and key.ndim > 1:
                 raise ValueError('Cannot index with multidimensional key')
@@ -1069,7 +1068,7 @@ class _NDFrameIndexer(object):
             key = labels._maybe_cast_indexer(key)
 
             if is_integer(key):
-                if axis == 0 and isinstance(labels, MultiIndex):
+                if axis == 0 and labels._is_multi:
                     try:
                         return self._get_label(key, axis=axis)
                     except (KeyError, TypeError):
@@ -1173,7 +1172,7 @@ class _NDFrameIndexer(object):
         try:
             return labels.get_loc(obj)
         except LookupError:
-            if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
+            if isinstance(obj, tuple) and labels._is_multi:
                 if is_setter and len(obj) == labels.nlevels:
                     return {'key': obj}
                 raise
@@ -1195,8 +1194,7 @@ class _NDFrameIndexer(object):
                     return {'key': obj}
 
                 # a positional
-                if (obj >= self.obj.shape[axis] and
-                        not isinstance(labels, MultiIndex)):
+                if obj >= self.obj.shape[axis] and not labels._is_multi:
                     raise ValueError("cannot set by positional indexing with "
                                      "enlargement")
 
@@ -1465,7 +1463,7 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
             ax = self.obj.axes[i]
-            if isinstance(ax, MultiIndex):
+            if ax._is_multi:
                 return False
 
             if not ax.is_unique:
@@ -1518,7 +1516,7 @@ class _LocIndexer(_LocationIndexer):
             # to a list of keys
             # we will use the *values* of the object
             # and NOT the index if its a PandasObject
-            if isinstance(labels, MultiIndex):
+            if labels._is_multi:
 
                 if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
                     # Series, or 0,1 ndim ndarray
@@ -1539,7 +1537,7 @@ class _LocIndexer(_LocationIndexer):
                     key = tuple([key])
 
             # an iterable multi-selection
-            if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
+            if not (isinstance(key, tuple) and labels._is_multi):
 
                 if hasattr(key, 'ndim') and key.ndim > 1:
                     raise ValueError('Cannot index with multidimensional key')

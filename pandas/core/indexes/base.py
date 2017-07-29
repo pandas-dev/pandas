@@ -141,6 +141,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _allow_period_index_ops = False
     _is_numeric_dtype = False
     _can_hold_na = True
+    _is_multi = False
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
