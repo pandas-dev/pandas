@@ -327,3 +327,4 @@ Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
+- Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError``
