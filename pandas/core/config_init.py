@@ -398,8 +398,8 @@ Use `use_inf_as_na` instead.
 
 use_inf_as_na_doc = """
 : boolean
-    True means treat None, NaN, INF, -INF as na (old way),
-    False means None and NaN are null, but INF, -INF are not na
+    True means treat None, NaN, INF, -INF as NA (old way),
+    False means None and NaN are null, but INF, -INF are not NA
     (new way).
 """
 
