@@ -114,8 +114,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
-             generic.NDFrame,):
+class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -2934,18 +2933,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
 
-    def _dir_deletions(self):
-        return self._accessors
+    # String Methods
+    str = base.AccessorProperty(strings.StringMethods,
+                                strings.StringMethods._make_accessor)
 
-    def _dir_additions(self):
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})

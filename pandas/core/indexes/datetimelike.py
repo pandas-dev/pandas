@@ -125,6 +125,15 @@ class TimelikeOps(object):
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
 
+    @property
+    def dt(self):
+        """
+        For a datetime-like Index object, `self.dt` returns `self` so that
+        datetime-like attributes can be accessed symmetrically for Index
+        and Series objects.
+        """
+        return self
+
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.

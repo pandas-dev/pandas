@@ -52,7 +52,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core.strings import StringAccessorMixin
+from pandas.core import strings
 from pandas.core.config import get_option
 
 
@@ -98,7 +98,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
-class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
+class Index(IndexOpsMixin, PandasObject):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -150,6 +150,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+
+    _accessors = frozenset(['dt', 'str', 'cat'])
+
+    # String Methods
+    str = base.AccessorProperty(strings.StringMethods,
+                                strings.StringMethods._make_accessor)
+
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
