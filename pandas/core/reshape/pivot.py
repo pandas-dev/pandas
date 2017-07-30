@@ -148,6 +148,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     table = agged
     if table.index.nlevels > 1:
+        # If index_names are integers, determine whether the integers refer
+        # to the level position or name
         index_names = agged.index.names[:len(index)]
         to_unstack = []
         for i in range(len(index), len(keys)):
