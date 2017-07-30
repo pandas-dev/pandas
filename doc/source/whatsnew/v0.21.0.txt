@@ -312,6 +312,7 @@ Reshaping
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 - Fixes dtype of result with integer dtype input, from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
+- Bug in ``pd.crosstab()`` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
 
 Numeric
 ^^^^^^^
