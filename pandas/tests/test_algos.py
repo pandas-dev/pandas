@@ -420,6 +420,7 @@ class TestUnique(object):
         (('foo',), np.array(['foo'], dtype=object))
     ])
     def test_tuple_with_strings(self, arg, expected):
+        # see GH 17108
         result = pd.unique(arg)
         tm.assert_numpy_array_equal(result, expected)
 
