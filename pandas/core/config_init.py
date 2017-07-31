@@ -412,8 +412,11 @@ def use_inf_as_na_cb(key):
     _use_inf_as_na(key)
 
 
-cf.register_option('mode.use_inf_as_na', False, use_inf_as_na_doc,
-                   cb=use_inf_as_na_cb)
+with cf.config_prefix('mode'):
+    cf.register_option('use_inf_as_na', False, use_inf_as_na_doc,
+                       cb=use_inf_as_na_cb)
+    cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
+                       cb=use_inf_as_na_cb)
 
 cf.deprecate_option('mode.use_inf_as_null', msg=use_inf_as_null_doc,
                     rkey='mode.use_inf_as_na')
