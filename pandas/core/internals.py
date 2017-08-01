@@ -159,6 +159,10 @@ class Block(PandasObject):
         """
         return self.values
 
+    def formatting_values(self):
+        """Return the internal format used by the DataFrame/SeriesFormatter"""
+        return self.internal_values()
+
     def get_values(self, dtype=None):
         """
         return an internal format, currently just the ndarray
