@@ -968,6 +968,19 @@ class NDFrame(PandasObject, SelectionMixin):
         return all([self._get_axis(a).equals(other._get_axis(a))
                     for a in self._AXIS_ORDERS])
 
+    def __pos__(self):
+        values = _values_from_object(self)
+        if values.dtype == np.bool_:
+            arr = values 
+        else:
+            if (len(values) > 0):
+                try:
+                    -values[0]
+                except TypeError:
+                    raise TypeError("`+` only works on data types that support `-`")
+            arr = operator.pos(values)
+        return self.__array_wrap__(arr)    
+
     def __neg__(self):
         values = _values_from_object(self)
         if values.dtype == np.bool_:

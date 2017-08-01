@@ -211,8 +211,7 @@ See :ref:`the docs here. <io.pickle.compression>`
 
 Using an explicit compression type
 
-.. ipython:: python
-
+.. ipython:: python 
    df.to_pickle("data.pkl.compress", compression="gzip")
    rt = pd.read_pickle("data.pkl.compress", compression="gzip")
    rt.head()
@@ -1184,6 +1183,8 @@ Other API Changes
 - ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``PandasError``, if called with scalar inputs and not axes (:issue:`15541`)
 - ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
 - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
+
+- ``Series`` and ``DataFrame`` now have unary plus operators (:issue:`16073`). The plus operator behaves consistently with the unary minus operator. 
 
 
 .. _whatsnew_0200.privacy:
