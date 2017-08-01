@@ -152,7 +152,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
-                                          "in the {0} constructor"
+                                          " in the {0} constructor"
                                           .format(self.__class__.__name__))
 
         return dtype
