@@ -1318,14 +1318,18 @@ class ParserBase(object):
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = {}
+            counts = defaultdict(int)
 
             for i, col in enumerate(names):
-                cur_count = counts.get(col, 0)
+                cur_count = counts[col]
 
-                if cur_count > 0:
-                    names[i] = '%s.%d' % (col, cur_count)
+                while cur_count > 0:
+                    counts[col] = cur_count + 1
 
+                    col = '%s.%d' % (col, cur_count)
+                    cur_count = counts[col]
+
+                names[i] = col
                 counts[col] = cur_count + 1
 
         return names
@@ -2330,15 +2334,15 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = {}
+                    counts = defaultdict(int)
 
                     for i, col in enumerate(this_columns):
-                        cur_count = counts.get(col, 0)
+                        cur_count = counts[col]
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
                             col = "%s.%d" % (col, cur_count)
-                            cur_count = counts.get(col, 0)
+                            cur_count = counts[col]
 
                         this_columns[i] = col
                         counts[col] = cur_count + 1

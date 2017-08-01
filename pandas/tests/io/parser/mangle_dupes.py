@@ -25,7 +25,7 @@ class DupeColumnTests(object):
                                        mangle_dupe_cols=True)
             assert list(df.columns) == expected
 
-    def test_thorough_mangle(self):
+    def test_thorough_mangle_columns(self):
         # see gh-17060
         data = "a,a,a.1\n1,2,3"
         df = self.read_csv(StringIO(data), sep=",", mangle_dupe_cols=True)
@@ -38,5 +38,27 @@ class DupeColumnTests(object):
 
         data = "a,a,a.3,a.1,a.2,a,a\n1,2,3,4,5,6,7"
         df = self.read_csv(StringIO(data), sep=",", mangle_dupe_cols=True)
+        assert list(df.columns) == ["a", "a.1", "a.3", "a.1.1",
+                                    "a.2", "a.2.1", "a.3.1"]
+
+    def test_thorough_mangle_names(self):
+        # see gh-17095
+        data = "a,b,b\n1,2,3"
+        names = ["a.1", "a.1", "a.1.1"]
+        df = self.read_csv(StringIO(data), sep=",", names=names,
+                           mangle_dupe_cols=True)
+        assert list(df.columns) == ["a.1", "a.1.1", "a.1.1.1"]
+
+        data = "a,b,c,d,e,f\n1,2,3,4,5,6"
+        names = ["a", "a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1"]
+        df = self.read_csv(StringIO(data), sep=",", names=names,
+                           mangle_dupe_cols=True)
+        assert list(df.columns) == ["a", "a.1", "a.1.1", "a.1.1.1",
+                                    "a.1.1.1.1", "a.1.1.1.1.1"]
+
+        data = "a,b,c,d,e,f,g\n1,2,3,4,5,6,7"
+        names = ["a", "a", "a.3", "a.1", "a.2", "a", "a"]
+        df = self.read_csv(StringIO(data), sep=",", names=names,
+                           mangle_dupe_cols=True)
         assert list(df.columns) == ["a", "a.1", "a.3", "a.1.1",
                                     "a.2", "a.2.1", "a.3.1"]
