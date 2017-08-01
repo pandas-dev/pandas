@@ -1427,16 +1427,18 @@ def roll_generic(ndarray[float64_t, cast=True] input,
     n = len(input)
     if n == 0:
         return input
-
+    
+    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
+                                      np.array([0.] * offset)]),
+                      win, minp, index, closed)[offset:]
+    
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
                                                                closed,
                                                                floor=0)
     output = np.empty(N, dtype=float)
 
-    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
-                                      np.array([0.] * offset)]),
-                      win, minp, index, closed)[offset:]
+
 
     if is_variable:
 
