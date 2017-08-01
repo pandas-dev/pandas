@@ -52,9 +52,6 @@ conda update -q conda
 
 echo
 echo "[add channels]"
-# add the pandas channel to take priority
-# to add extra packages
-conda config --add channels pandas || exit 1
 conda config --remove channels defaults || exit 1
 conda config --add channels defaults || exit 1
 
