@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index
 from pandas.core.series import Series
 from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types

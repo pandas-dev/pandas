@@ -13,7 +13,7 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 
-from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCSeries, ABCPeriodIndex
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
     _ensure_int64,
