@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     _ensure_float,
     _ensure_float64,
     _ensure_int64,
-    _ensure_platform_int,
     is_list_like,
     is_iterator,
     is_sequence,
@@ -3418,48 +3417,48 @@ it is assumed to be aliases for the column names')
         if is_sequence(ascending) and len(by) != len(ascending):
             raise ValueError('Length of ascending (%d) != length of by (%d)' %
                              (len(ascending), len(by)))
+        if not isinstance(ascending, (tuple, list)):
+            ascending = [ascending] * len(by)
+        ascending = ascending[::-1]
+
+        new_data = None
+
+        from pandas.core.sorting import nargsort
+
         if len(by) > 1:
-            from pandas.core.sorting import lexsort_indexer
+            kind = 'mergesort'
 
-            def trans(v):
-                if needs_i8_conversion(v):
-                    return v.view('i8')
-                return v
+        for i, by_step in enumerate(by[::-1]):
 
-            keys = []
-            for x in by:
-                k = self.xs(x, axis=other_axis).values
-                if k.ndim == 2:
-                    raise ValueError('Cannot sort by duplicate column %s' %
-                                     str(x))
-                keys.append(trans(k))
-            indexer = lexsort_indexer(keys, orders=ascending,
-                                      na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
-        else:
-            from pandas.core.sorting import nargsort
-
-            by = by[0]
-            k = self.xs(by, axis=other_axis).values
+            if new_data is None:
+                k = self.xs(by_step, axis=other_axis).values
+            else:
+                k = new_data.xs(by_step, axis=other_axis).values
             if k.ndim == 2:
 
                 # try to be helpful
                 if isinstance(self.columns, MultiIndex):
                     raise ValueError('Cannot sort by column %s in a '
                                      'multi-index you need to explicitly '
-                                     'provide all the levels' % str(by))
+                                     'provide all the levels' % str(by_step))
 
                 raise ValueError('Cannot sort by duplicate column %s' %
-                                 str(by))
-            if isinstance(ascending, (tuple, list)):
-                ascending = ascending[0]
+                                 str(by_step))
 
-            indexer = nargsort(k, kind=kind, ascending=ascending,
+            indexer = nargsort(k, kind=kind, ascending=ascending[i],
                                na_position=na_position)
 
-        new_data = self._data.take(indexer,
-                                   axis=self._get_block_manager_axis(axis),
-                                   convert=False, verify=False)
+            if new_data is None:
+                new_data = self._data.take(
+                    indexer, axis=self._get_block_manager_axis(axis),
+                    convert=False, verify=False)
+            else:
+                new_data = new_data._data.take(
+                    indexer,
+                    axis=self._get_block_manager_axis(axis),
+                    convert=False, verify=False)
+
+            new_data = self._constructor(new_data).__finalize__(self)
 
         if inplace:
             return self._update_inplace(new_data)
