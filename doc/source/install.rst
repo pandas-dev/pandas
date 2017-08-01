@@ -217,7 +217,8 @@ Recommended Dependencies
   If installed, must be Version 2.4.6 or higher.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
-  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
+  must be Version 1.0.0 or higher.
 
 .. note::
 
