@@ -831,3 +831,10 @@ def is_callable(obj):
     if not callable(obj):
         raise ValueError("Value must be a callable")
     return True
+
+
+def is_nonnegative_int(x):
+
+    if type(x) != int or x < 0:
+        raise ValueError("Value must be a non-negative integer")
+    return True

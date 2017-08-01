@@ -12,7 +12,7 @@ module is imported, register them here rather then in the module.
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
-                                is_callable)
+                                is_callable, is_nonnegative_int)
 from pandas.io.formats.console import detect_console_encoding
 
 # compute
@@ -308,23 +308,24 @@ def table_schema_cb(key):
 
 
 with cf.config_prefix('display'):
-    cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
+    cf.register_option('precision', 6, pc_precision_doc, validator=is_nonnegative_int)
     cf.register_option('float_format', None, float_format_doc,
                        validator=is_one_of_factory([None, is_callable]))
-    cf.register_option('column_space', 12, validator=is_int)
+    cf.register_option('column_space', 12, validator=is_nonnegative_int)
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
-                       validator=is_instance_factory((int, type(None))))
+                       validator=is_nonnegative_int)
     cf.register_option('max_rows', 60, pc_max_rows_doc,
-                       validator=is_instance_factory([type(None), int]))
+                       validator=is_nonnegative_int)
     cf.register_option('max_categories', 8, pc_max_categories_doc,
-                       validator=is_int)
-    cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
+                       validator=is_nonnegative_int)
+    cf.register_option('max_colwidth', 50, max_colwidth_doc,
+                       validator=is_nonnegative_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
-                       validator=is_instance_factory([type(None), int]))
+                       validator=is_nonnegative_int)
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))
     cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
-                       validator=is_int)
+                       validator=is_nonnegative_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
@@ -334,7 +335,7 @@ with cf.config_prefix('display'):
     cf.register_option('date_yearfirst', False, pc_date_yearfirst_doc,
                        validator=is_bool)
     cf.register_option('pprint_nest_depth', 3, pc_pprint_nest_depth,
-                       validator=is_int)
+                       validator=is_nonnegative_int)
     cf.register_option('multi_sparse', True, pc_multi_sparse_doc,
                        validator=is_bool)
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
@@ -345,9 +346,9 @@ with cf.config_prefix('display'):
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
     cf.register_option('height', 60, pc_height_doc,
-                       validator=is_instance_factory([type(None), int]))
+                       validator=is_nonnegative_int)
     cf.register_option('width', 80, pc_width_doc,
-                       validator=is_instance_factory([type(None), int]))
+                       validator=is_nonnegative_int)
     # redirected to width, make defval identical
     cf.register_option('line_width', get_default_val('display.width'),
                        pc_line_width_doc)
