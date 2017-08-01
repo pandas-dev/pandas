@@ -1,6 +1,8 @@
 import itertools
 import functools
 import operator
+import warnings
+from distutils.version import LooseVersion
 
 import numpy as np
 from pandas import compat
@@ -20,11 +22,24 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.config import get_option
 from pandas.core.common import _values_from_object
 
+_BOTTLENECK_INSTALLED = False
+_MIN_BOTTLENECK_VERSION = '1.0.0'
+
 try:
     import bottleneck as bn
-    _BOTTLENECK_INSTALLED = True
+    ver = bn.__version__
+    _BOTTLENCK_INSTALLED = ver >= LooseVersion(_MIN_BOTTLENECK_VERSION)
+
+    if not _BOTTLENECK_INSTALLED:
+        warnings.warn(
+            "The installed version of bottleneck {ver} is not supported "
+            "in pandas and will be not be used\nThe minimum supported "
+            "version is {min_ver}\n".format(
+                ver=ver, min_ver=_MIN_BOTTLENECK_VERSION), UserWarning)
+
 except ImportError:  # pragma: no cover
-    _BOTTLENECK_INSTALLED = False
+    pass
+
 
 _USE_BOTTLENECK = False
 

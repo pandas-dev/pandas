@@ -13,7 +13,6 @@ pytables
 sqlalchemy
 lxml
 s3fs
-bottleneck
 psycopg2
 pymysql
 html5lib
