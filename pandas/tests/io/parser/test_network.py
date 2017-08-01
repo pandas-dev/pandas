@@ -179,14 +179,14 @@ class TestS3(object):
             read_csv('s3://cant_get_it/')
 
     @tm.network
-    def boto3_client_s3(self):
+    def test_boto3_client_s3(self):
         # see gh-16135
 
         # boto3 is a dependency of s3fs
         import boto3
         client = boto3.client("s3")
 
-        key = "/tips.csv"
+        key = "tips.csv"
         bucket = "pandas-test"
         s3_object = client.get_object(Bucket=bucket, Key=key)
 
