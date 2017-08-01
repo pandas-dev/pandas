@@ -247,7 +247,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
-
+- Improved performance of :function:`sort_values` function of :class:`DataFrame` when sorting by multiple columns (:issue:`16995`)
 
 .. _whatsnew_0210.bug_fixes:
 
