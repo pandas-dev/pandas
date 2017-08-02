@@ -852,6 +852,16 @@ class Base(object):
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
 
+    def test_apply_to_empty_series(self):
+        # GH 14313
+        series = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            result = series.resample(freq).apply(lambda x: 1)
+            expected = series.resample(freq).apply(np.sum)
+
+            assert_series_equal(result, expected, check_dtype=False)
+
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
@@ -2192,17 +2202,6 @@ class TestDatetimeIndex(Base):
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
 
-    def test_apply_to_empty_series(self):
-        # GH 14313
-        series = self.create_series()[:0]
-
-        for freq in ['M', 'D', 'H']:
-            result = series.resample(freq).apply(lambda x: 1)
-            expected = series.resample(freq).apply(np.sum)
-
-            assert result.name == expected.name
-            assert_series_equal(result, expected, check_dtype=False)
-
 
 class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
@@ -2804,6 +2803,14 @@ class TestPeriodIndex(Base):
             index=index)
         result = df.resample('7D').sum()
         assert_frame_equal(result, expected)
+
+    def test_apply_to_empty_series(self):
+        # GH 14313
+        series = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            with pytest.raises(TypeError):
+                series.resample(freq).apply(lambda x: 1)
 
 
 class TestTimedeltaIndex(Base):

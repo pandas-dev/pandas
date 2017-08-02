@@ -17,7 +17,7 @@ from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -439,6 +439,11 @@ class Resampler(_GroupBy):
         if isinstance(result, com.ABCSeries) and self._selection is not None:
             result.name = self._selection
 
+        if isinstance(result, ABCSeries) and result.empty:
+            obj = self.obj
+            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
+            result.name = getattr(obj, 'name', None)
+
         return result
 
     def pad(self, limit=None):
@@ -778,11 +783,6 @@ class DatetimeIndexResampler(Resampler):
         # convert if needed
         if self.kind == 'period' and not isinstance(result.index, PeriodIndex):
             result.index = result.index.to_period(self.freq)
-
-        if isinstance(result, com.ABCSeries) and result.empty:
-            obj = self.obj
-            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
-            result.name = getattr(obj, 'name', None)
         return result
 
 
