@@ -1934,6 +1934,7 @@ bar2,12,13,14,15
         c = pd.Series(3, index=pd.CategoricalIndex([1, 2],
                                                    categories=categories))
 
+        import pdb; pdb.set_trace()
         result = pd.concat([a, b, c], axis=1)
 
         exp_idx = pd.CategoricalIndex([0, 1, 2, 9])
