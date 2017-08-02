@@ -1747,6 +1747,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = Timedelta64Formatter
     else:
         fmt_klass = GenericArrayFormatter
+        if hasattr(values, "values"):
+            values = values.values
 
     if space is None:
         space = get_option("display.column_space")

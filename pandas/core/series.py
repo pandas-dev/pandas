@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_dimensionedFloat_dtype,
     is_list_like,
     is_hashable,
     is_iterator,
@@ -54,6 +55,7 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.dimensioned import Dimensional
 import pandas.core.strings as strings
 from pandas.core.indexes.accessors import (
     maybe_to_datetimelike, CombinedDatetimelikeProperties)
@@ -2990,7 +2992,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-
+    print("In sanitize array: dtype done")
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
         if mask.any():
@@ -3005,22 +3007,34 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         if take_fast_path:
             if maybe_castable(arr) and not copy and dtype is None:
                 return arr
+        print("In _try_cast")
 
         try:
             subarr = maybe_cast_to_datetime(arr, dtype)
-            if not is_extension_type(subarr):
+            print("In _try_cast: testing extention type")
+            if not is_extension_type(subarr) and not is_extension_type(dtype):
+                print("In _try_cast: not extention type")
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
-        except (ValueError, TypeError):
+            else:
+                if is_dimensionedFloat_dtype(dtype):
+                    subarr = Dimensional(np.asarray(subarr, dtype = "float64"), dtype = dtype)
+                print("In _try_cast: is extension type")
+        except (ValueError, TypeError) as e:
+            print("In _try_cast: exception", e)
+
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)
             elif dtype is not None and raise_cast_failure:
+                print("In _try_cast: raise")
                 raise
             else:
                 subarr = np.array(arr, dtype=object, copy=copy)
+        print("try_cast returning")
         return subarr
 
     # GH #846
     if isinstance(data, (np.ndarray, Index, Series)):
+        print("In sanitize array: is array-like")
 
         if dtype is not None:
             subarr = np.array(data, copy=False)
@@ -3053,9 +3067,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
+        print("In sanitize array: is list-like")
         if dtype is not None:
             try:
+                print("In sanitize array: before _try_cast")
                 subarr = _try_cast(data, False)
+                print("In sanitize array: after _try_cast")
+
             except Exception:
                 if raise_cast_failure:  # pragma: no cover
                     raise
@@ -3084,7 +3102,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr.fill(value)
 
         return subarr
-
+    print("subarr has type ", type(subarr))
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
         if isinstance(data, list):  # pragma: no cover
@@ -3118,12 +3136,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             raise Exception('Data must be 1-dimensional')
         else:
             subarr = _asarray_tuplesafe(data, dtype=dtype)
+    print("subarr has type ", type(subarr), subarr.dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
     if issubclass(subarr.dtype.type, compat.string_types):
         subarr = np.array(data, dtype=object, copy=copy)
 
+    print("returning subarr of dtype ", subarr.dtype)
     return subarr
 
 

@@ -24,7 +24,7 @@ import pandas.core.missing as missing
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.units import unit_registry
+from pandas.core.dtypes.units import unit_registry, DimensionedFloatDtype
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_datetimelike_v_numeric,
@@ -346,31 +346,40 @@ class _Op(object):
 
 class _DimFloatOp(_Op):
     def __init__(self, left, right, name, na_op):
+        print("DIMFLOATOP")
         super(_DimFloatOp, self).__init__(left, right, name, na_op)
         # Get the type of the calculation's result.
-        self.dtype = self._get_target_unit(left, right)
+        self.dtype = self._get_target_dtype(left, right, name)
+        print("target_dtype", self.dtype)
         #
-        self.lvalues = self._with_unit(data)
-        self.rvalues = self._with_unit(data)
-
-    @staticmethod
-    def _get_target_dtype(left, right, name):
+        self.lvalues = self._with_unit(left.values)
+        self.rvalues = self._with_unit(right.values)
+        print ("lvals, rvals", type(self.lvalues), type(self.rvalues))
+    @classmethod
+    def _get_target_dtype(cls, left, right, name):
         # Perform the operation on 1* the unit, to quickly get the resulting unit
         # Raises an Error, if the units are incompatible
-        left_unit = self._get_unit(left)
-        right_unit = self._get_unit(right)
-        calc_result = (getattr(1*left.unit, name)(1*right.unit))
+        left_unit = cls._get_unit(left.values)
+        right_unit = cls._get_unit(right.values)
+        print("Units: l,r:", left_unit, right_unit)
+        calc_result = (getattr(1*left_unit, name)(1*right_unit))
         if isinstance( calc_result, bool):
             return bool
         else:
-            return DimensionedFloatDtype(str(calc_result.unit))
+            return DimensionedFloatDtype(str(calc_result.units))
         print("Target dtype", target_unit)
         return target_unit
     @staticmethod
     def _with_unit(data):
-        if hasattr(data, "unit"):
-            return data.unit*data
-        return data
+        print("with_unit: ", type(data))
+        if hasattr(data.dtype, "unit"):
+            return data.dtype.unit*data.values
+        return data.values
+    @staticmethod
+    def _get_unit(data):
+        if hasattr(data.dtype, "unit"):
+            return data.dtype.unit
+        return unit_registry.dimensionless
 
 
 

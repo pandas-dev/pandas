@@ -511,6 +511,8 @@ def is_categorical_dtype(arr_or_dtype):
 def is_dimensionedFloat_dtype(arr_or_dtype):
     if arr_or_dtype is None:
         return False
+    print("is dimensioned Float dtype: ", type(arr_or_dtype))
+    print (DimensionedFloatDtype.is_dtype(arr_or_dtype))
     return DimensionedFloatDtype.is_dtype(arr_or_dtype)
 
 def is_string_dtype(arr_or_dtype):
@@ -1621,6 +1623,8 @@ def is_extension_type(arr):
     elif is_sparse(arr):
         return True
     elif is_datetimetz(arr):
+        return True
+    elif is_dimensionedFloat_dtype(arr):
         return True
     return False
 
