@@ -14,7 +14,7 @@ class CustomBlock(Block):
 
 
 def test_custom_repr():
-    values = np.arange(3)
+    values = np.arange(3, dtype='int64')
 
     # series
     block = CustomBlock(values, placement=slice(0, 3))
