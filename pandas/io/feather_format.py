@@ -19,7 +19,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge\n"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     try:
         feather.__version__ >= LooseVersion('0.3.1')
@@ -29,7 +29,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     return feather
 
