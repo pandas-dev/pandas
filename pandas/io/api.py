@@ -13,6 +13,7 @@ from pandas.io.html import read_html
 from pandas.io.sql import read_sql, read_sql_table, read_sql_query
 from pandas.io.sas import read_sas
 from pandas.io.feather_format import read_feather
+from pandas.io.parquet import read_parquet
 from pandas.io.stata import read_stata
 from pandas.io.pickle import read_pickle, to_pickle
 from pandas.io.packers import read_msgpack, to_msgpack

@@ -465,3 +465,15 @@ with cf.config_prefix('io.excel'):
     except ImportError:
         # fallback
         _register_xlsx('openpyxl', 'xlsxwriter')
+
+# Set up the io.parquet specific configuration.
+parquet_engine_doc = """
+: string
+    The default parquet reader/writer engine. Available options:
+    'auto', 'pyarrow', 'fastparquet', the default is 'auto'
+"""
+
+with cf.config_prefix('io.parquet'):
+    cf.register_option(
+        'engine', 'auto', parquet_engine_doc,
+        validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
