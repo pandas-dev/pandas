@@ -350,9 +350,10 @@ class _DimFloatOp(_Op):
         super(_DimFloatOp, self).__init__(left, right, name, na_op)
         # Get the type of the calculation's result.
         self.dtype = self._get_target_dtype(left, right, name)
-        #
-        self.lvalues = self._with_unit(left.values)
-        self.rvalues = self._with_unit(right.values)
+
+        print("left, right", type(left), type(right))
+        self.lvalues = self._with_unit(left)
+        self.rvalues = self._with_unit(right)
         print ("lvals, rvals", type(self.lvalues), type(self.rvalues))
 
     @classmethod
@@ -360,8 +361,8 @@ class _DimFloatOp(_Op):
         # Perform the operation on 1* the unit,
         # to quickly get the resulting unit
         # Raises an Error, if the units are incompatible
-        left_unit = cls._get_unit(left.values)
-        right_unit = cls._get_unit(right.values)
+        left_unit = cls._get_unit(left)
+        right_unit = cls._get_unit(right)
         calc_result = (getattr(1 * left_unit, name)(1 * right_unit))
         if isinstance(calc_result, bool):
             return bool
@@ -370,15 +371,20 @@ class _DimFloatOp(_Op):
 
     @staticmethod
     def _with_unit(data):
+        print("with unit: ", data.dtype, type(data.dtype))
         if hasattr(data.dtype, "unit"):
             return data.dtype.unit * data.values
-        return data.values
+        return data
 
     @staticmethod
     def _get_unit(data):
-        if hasattr(data.dtype, "unit"):
-            return data.dtype.unit
+        try:
+            if hasattr(data.dtype, "unit"):
+                return data.dtype.unit
+        except AttributeError:
+            pass
         return unit_registry.dimensionless
+
 
 
 class _TimeOp(_Op):

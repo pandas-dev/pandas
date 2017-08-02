@@ -26,22 +26,35 @@ def test_equality():
     assert a == a
 
 
-def test_with_series():
+def test_series_construction():
+    a = pd.Series([1, 2, 3, 4, 5], dtype=DimensionedFloatDtype("meter"))
+    assert a.dtype == DimensionedFloatDtype("meter")
 
-    a = pd.Series([1, 2, 3, 4, 5], dtype="datetime64[ns]")
+def test_series_addition_same_unit():
     a = pd.Series([1, 2, 3, 4, 5], dtype=DimensionedFloatDtype("meter"))
     b = a + a
     assert b[0] == 2
     assert b.dtype == DimensionedFloatDtype("meter")
+    assert_allclose(b, pd.Series([2, 4, 6, 8, 10.],
+              dtype=DimensionedFloatDtype("meter")))
+
+def test_series_addition_compatible_units():
+    a = pd.Series([1, 2, 3, 4, 5], dtype=DimensionedFloatDtype("meter"))
     c = pd.Series([5, 10, 50, 100, 500],
                   dtype=DimensionedFloatDtype("centimeter"))
     assert_allclose(a + c,
                     pd.Series([1.05, 2.1, 3.5, 5, 10.],
                               dtype=DimensionedFloatDtype("meter")))
-    assert_allclose(a * c,
+                              
+def test_series_addition_compatible_units():
+    a = pd.Series([1, 2, 3, 4, 5], dtype=DimensionedFloatDtype("meter"))
+    c = pd.Series([5, 10, 50, 100, 500],
+                  dtype=DimensionedFloatDtype("centimeter"))
+    product = a * c
+    assert_allclose(product,
                     pd.Series([5, 20, 150, 400, 2500.],
                               dtype=DimensionedFloatDtype("meter*centimeter")))
-
+    assert product.dtype == DimensionedFloatDtype("meter*centimeter")
 
 class TestUnitDtype(Base):
     def create(self):

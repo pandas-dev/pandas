@@ -55,7 +55,6 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
-from pandas.core.dimensioned import Dimensional
 import pandas.core.strings as strings
 from pandas.core.indexes.accessors import (
     maybe_to_datetimelike, CombinedDatetimelikeProperties)
@@ -152,6 +151,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
+        print("__init__: data = {}, dtype = {}".format(repr(data), repr(dtype)))
 
         # we are called internally, so short-circuit
         if fastpath:
@@ -264,7 +264,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 data = SingleBlockManager(data, index, fastpath=True)
 
         generic.NDFrame.__init__(self, data, fastpath=True)
-
+        if is_dimensionedFloat_dtype(dtype):
+            self._extension_dtype = dtype
+        else:
+            self._extension_dtype = None
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -345,7 +348,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     @property
     def dtype(self):
         """ return the dtype object of the underlying data """
-        return self._data.dtype
+        if self._extension_dtype is None:
+            return self._data.dtype
+        else:
+            return self._extension_dtype
 
     @property
     def dtypes(self):
@@ -3012,8 +3018,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
             else:
                 if is_dimensionedFloat_dtype(dtype):
-                    subarr = Dimensional(np.asarray(subarr, dtype="float64"),
-                                         dtype=dtype)
+                    subarr = np.asarray(subarr, dtype=dtype.base)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)
@@ -3082,6 +3087,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = DatetimeIndex([value] * len(index), dtype=dtype)
         elif is_categorical_dtype(dtype):
             subarr = Categorical([value] * len(index))
+        elif is_dimensionedFloat_dtype(dtype):
+            subarr = np.empty(len(index), dtype=dtype.base)
+            subarr.fill(value)
         else:
             if not isinstance(dtype, (np.dtype, type(np.dtype))):
                 dtype = dtype.dtype
@@ -3090,7 +3098,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         return subarr
     # scalar like, GH
+    print(type(subarr), dir(subarr))
     if getattr(subarr, 'ndim', 0) == 0:
+        print("subarr", type(subarr), subarr)
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
         elif index is not None:
