@@ -65,7 +65,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Returns
     -------
-    concatenated : type of objects
+    concatenated : object, type of objs
 
     Notes
     -----

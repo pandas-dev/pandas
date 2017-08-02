@@ -9,6 +9,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`pd.read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
 .. contents:: What's new in v0.21.0
@@ -78,6 +80,7 @@ Other Enhancements
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`pd.read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 
 .. _whatsnew_0210.api_breaking:
 
@@ -205,6 +208,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
+- Support has been dropped for bottleneck < 1.0.0 (:issue:`15214`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
@@ -278,6 +282,7 @@ I/O
 ^^^
 
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
+- Bug in :func:`read_csv` in which specified column names were not being thoroughly de-duplicated (:issue:`17095`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 - Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696`, :issue:`16798`).
 - Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
