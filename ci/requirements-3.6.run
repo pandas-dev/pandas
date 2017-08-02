@@ -17,6 +17,8 @@ pymysql
 feather-format
 pyarrow
 psycopg2
+python-snappy
+fastparquet
 beautifulsoup4
 s3fs
 xarray

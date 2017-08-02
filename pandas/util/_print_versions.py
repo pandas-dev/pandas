@@ -94,6 +94,7 @@ def show_versions(as_json=False):
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
         ("s3fs", lambda mod: mod.__version__),
+        ("fastparquet", lambda mod: mod.__version__),
         ("pandas_gbq", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__),
     ]

@@ -414,6 +414,9 @@ io.hdf.default_format               None         default format writing format, 
                                                  'table'
 io.hdf.dropna_table                 True         drop ALL nan rows when appending
                                                  to a table
+io.parquet.engine                   None         The engine to use as a default for
+                                                 parquet reading and writing. If None
+                                                 then try 'pyarrow' and 'fastparquet'
 mode.chained_assignment             warn         Raise an exception, warn, or no
                                                  action if trying to use chained
                                                  assignment, The default is warn
