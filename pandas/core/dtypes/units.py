@@ -9,11 +9,13 @@ from .dtypes import ExtensionDtype
 
 unit_registry = pint.UnitRegistry()
 
+
 class DimensionedFloatDtypeType(type):
     """
     The type of UnitDtype.
     """
     pass
+
 
 class DimensionedFloatDtype(ExtensionDtype):
 
@@ -26,7 +28,7 @@ class DimensionedFloatDtype(ExtensionDtype):
     _metadata = ['unit']
     _cache = {}
     kind = "f"
-    str="f8"
+    str = "f8"
     base = np.dtype('f8')
 
     def __new__(cls, unit=None):
@@ -42,7 +44,7 @@ class DimensionedFloatDtype(ExtensionDtype):
             return object.__new__(cls)
 
         # Assume unit is a string.
-        unit_object = getattr(unit_registry, unit) #Raises TypeError if Unit is not a string.
+        unit_object = getattr(unit_registry, unit)  # TypeError if unit!=string
 
         # set/retrieve from cache
         try:
@@ -52,6 +54,7 @@ class DimensionedFloatDtype(ExtensionDtype):
             u.unit = unit_object
             cls._cache[unit] = u
             return u
+
     def __hash__(self):
         return hash(str(self))
 
@@ -63,13 +66,12 @@ class DimensionedFloatDtype(ExtensionDtype):
         # Mixing units from different registries causes errors.
         self.unit = getattr(unit_registry, str(state["unit"]))
 
-
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             return other == str(self)
         if not isinstance(other, DimensionedFloatDtype):
             return NotImplemented
-        return self.unit==other.unit
+        return self.unit == other.unit
 
     @classmethod
     def construct_from_string(cls, string):
@@ -77,7 +79,7 @@ class DimensionedFloatDtype(ExtensionDtype):
         it's not possible """
         try:
             typename, unit = string.split("[")
-            if unit[-1]=="]" and typename == "dimensionedFloat":
+            if unit[-1] == "]" and typename == "dimensionedFloat":
                 return cls(unit[:-1])
         except:
             pass

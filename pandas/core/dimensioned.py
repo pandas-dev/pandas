@@ -1,7 +1,11 @@
+import numpy as np
+
 from pandas.core.base import (PandasObject)
 from pandas.util._decorators import cache_readonly
 from pandas import compat
-import numpy as np
+from pandas.core.common import is_null_slice
+
+
 class Dimensional(PandasObject):
     """
     """
@@ -9,12 +13,11 @@ class Dimensional(PandasObject):
     __array_priority__ = 10
     _typ = 'dimensional'
 
-    #def __add__(self, other):
-    #    return self.values+other.values
     def __init__(self, values, dtype):
         # TODO: Sanitize
         self.values = values
         self.dtype = dtype
+
     @property
     def _constructor(self):
         return Dimensional
@@ -26,17 +29,6 @@ class Dimensional(PandasObject):
     def astype(self, dtype, copy=True):
         """
         Coerce this type to another dtype
-
-        Parameters
-        ----------
-        dtype : numpy dtype or pandas type
-        copy : bool, default True
-            By default, astype always returns a newly allocated object.
-            If copy is set to False and dtype is categorical, the original
-            object is returned.
-
-            .. versionadded:: 0.19.0
-
         """
         return np.array(self, dtype=dtype, copy=copy)
 
@@ -66,10 +58,7 @@ class Dimensional(PandasObject):
         -------
         shape : tuple
         """
-
         return tuple([len(self.values)])
-
-
 
     def __array__(self, dtype=None):
         """
@@ -89,7 +78,6 @@ class Dimensional(PandasObject):
     @property
     def T(self):
         return self
-
 
     def isna(self):
         raise NotImplementedError
@@ -125,9 +113,6 @@ class Dimensional(PandasObject):
 
     def dropna(self):
         raise NotImplementedError
-
-
-
 
     def get_values(self):
         """ Return the values.
@@ -202,7 +187,6 @@ class Dimensional(PandasObject):
         """
         raise NotImplementedError
 
-
     def _slice(self, slicer):
         """ Return a slice of myself.
 
@@ -242,7 +226,6 @@ class Dimensional(PandasObject):
         return compat.text_type(result)
 
     def _repr_footer(self):
-
         return 'Length: %d' % (len(self))
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
@@ -254,10 +237,9 @@ class Dimensional(PandasObject):
         # TODO: implement
         return self._tidy_repr()
 
-
     def __getitem__(self, key):
         """ Return an item. """
-        return Dimensional(values=self.values[key], dtype = self.dtype)
+        return Dimensional(values=self.values[key], dtype=self.dtype)
 
     def __setitem__(self, key, value):
         raise NotImplementedError

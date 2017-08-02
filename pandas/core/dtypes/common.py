@@ -508,10 +508,12 @@ def is_categorical_dtype(arr_or_dtype):
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
+
 def is_dimensionedFloat_dtype(arr_or_dtype):
     if arr_or_dtype is None:
         return False
     return DimensionedFloatDtype.is_dtype(arr_or_dtype)
+
 
 def is_string_dtype(arr_or_dtype):
     """

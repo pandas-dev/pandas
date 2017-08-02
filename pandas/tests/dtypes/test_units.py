@@ -3,16 +3,14 @@
 import pytest
 
 import numpy as np
-import numpy.testing
+from numpy.testing import assert_allclose
 
-import pint
-import numpy as np
-from pandas.util import testing as tm
 import pandas as pd
 from pandas.core.dtypes.units import DimensionedFloatDtype
 from pandas.core.dtypes.common import is_dtype_equal
 
 from .test_dtypes import Base
+
 
 def test_construction_string():
     """
@@ -21,22 +19,29 @@ def test_construction_string():
     a = DimensionedFloatDtype("meter")
     assert isinstance(a, DimensionedFloatDtype)
 
+
 def test_equality():
-    assert  DimensionedFloatDtype("meter")== DimensionedFloatDtype("meter")
+    assert DimensionedFloatDtype("meter") == DimensionedFloatDtype("meter")
     a = DimensionedFloatDtype("meter")
     assert a == a
 
 
 def test_with_series():
 
-    a = pd.Series([1,2,3,4,5], dtype="datetime64[ns]")
-    a = pd.Series([1,2,3,4,5], dtype=DimensionedFloatDtype("meter"))
-    b = a+a
-    assert b[0]==2
-    assert  b.dtype == DimensionedFloatDtype("meter")
-    c = pd.Series([5, 10, 50, 100, 500], dtype=DimensionedFloatDtype("centimeter"))
-    numpy.testing.assert_allclose(a+c, pd.Series([1.05, 2.1, 3.5, 5, 10.], dtype=DimensionedFloatDtype("meter")))
-    numpy.testing.assert_allclose(a*c, pd.Series([5, 20, 150, 400, 2500.], dtype=DimensionedFloatDtype("meter*centimeter")))
+    a = pd.Series([1, 2, 3, 4, 5], dtype="datetime64[ns]")
+    a = pd.Series([1, 2, 3, 4, 5], dtype=DimensionedFloatDtype("meter"))
+    b = a + a
+    assert b[0] == 2
+    assert b.dtype == DimensionedFloatDtype("meter")
+    c = pd.Series([5, 10, 50, 100, 500],
+                  dtype=DimensionedFloatDtype("centimeter"))
+    assert_allclose(a + c,
+                    pd.Series([1.05, 2.1, 3.5, 5, 10.],
+                              dtype=DimensionedFloatDtype("meter")))
+    assert_allclose(a * c,
+                    pd.Series([5, 20, 150, 400, 2500.],
+                              dtype=DimensionedFloatDtype("meter*centimeter")))
+
 
 class TestUnitDtype(Base):
     def create(self):
@@ -53,16 +58,15 @@ class TestUnitDtype(Base):
         assert hash(dtype) == hash(dtype2)
 
     def test_construction(self):
-        pytest.raises(Exception, #pint.UndefinedUnitError
+        pytest.raises(Exception,  # pint.UndefinedUnitError
                       lambda: DimensionedFloatDtype('thisIsNotAUnit'))
-
 
     def test_construction_from_string(self):
         result = DimensionedFloatDtype.construct_from_string(
             'dimensionedFloat[meter]')
         assert is_dtype_equal(self.dtype, result)
         pytest.raises(TypeError,
-                      lambda: DimensionedFloatDtype.construct_from_string('foo'))
+                    lambda: DimensionedFloatDtype.construct_from_string('foo'))
 
     def test_is_dtype(self):
         assert not DimensionedFloatDtype.is_dtype(None)

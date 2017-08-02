@@ -9,7 +9,9 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
-from pandas.core.dtypes.units import DimensionedFloatDtype, DimensionedFloatDtypeType
+from pandas.core.dtypes.units import (DimensionedFloatDtype,
+                                      DimensionedFloatDtypeType)
+
 
 class TestPandasDtype(object):
 

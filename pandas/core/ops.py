@@ -332,14 +332,17 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
-        if is_dimensionedFloat_dtype(left.dtype) or is_dimensionedFloat_dtype(right.dtype):
+        if (is_dimensionedFloat_dtype(left.dtype) or
+                is_dimensionedFloat_dtype(right.dtype)):
             if (is_datetime_lhs or is_timedelta_lhs):
-                raise TypeError("Cannot mix DimensionedFloat and Time for operations")
+                raise TypeError("Cannot mix DimensionedFloat and "
+                                "Time for operations")
             return _DimFloatOp(left, right, name, na_op)
         if not (is_datetime_lhs or is_timedelta_lhs):
             return _Op(left, right, name, na_op)
         else:
             return _TimeOp(left, right, name, na_op)
+
 
 class _DimFloatOp(_Op):
     def __init__(self, left, right, name, na_op):
@@ -351,31 +354,31 @@ class _DimFloatOp(_Op):
         self.lvalues = self._with_unit(left.values)
         self.rvalues = self._with_unit(right.values)
         print ("lvals, rvals", type(self.lvalues), type(self.rvalues))
+
     @classmethod
     def _get_target_dtype(cls, left, right, name):
-        # Perform the operation on 1* the unit, to quickly get the resulting unit
+        # Perform the operation on 1* the unit,
+        # to quickly get the resulting unit
         # Raises an Error, if the units are incompatible
         left_unit = cls._get_unit(left.values)
         right_unit = cls._get_unit(right.values)
-        calc_result = (getattr(1*left_unit, name)(1*right_unit))
-        if isinstance( calc_result, bool):
+        calc_result = (getattr(1 * left_unit, name)(1 * right_unit))
+        if isinstance(calc_result, bool):
             return bool
         else:
             return DimensionedFloatDtype(str(calc_result.units))
 
-        return target_unit
     @staticmethod
     def _with_unit(data):
-
         if hasattr(data.dtype, "unit"):
-            return data.dtype.unit*data.values
+            return data.dtype.unit * data.values
         return data.values
+
     @staticmethod
     def _get_unit(data):
         if hasattr(data.dtype, "unit"):
             return data.dtype.unit
         return unit_registry.dimensionless
-
 
 
 class _TimeOp(_Op):

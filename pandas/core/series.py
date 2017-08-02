@@ -3012,8 +3012,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
             else:
                 if is_dimensionedFloat_dtype(dtype):
-                    subarr = Dimensional(np.asarray(subarr, dtype = "float64"), dtype = dtype)
-        except (ValueError, TypeError) as e:
+                    subarr = Dimensional(np.asarray(subarr, dtype="float64"),
+                                         dtype=dtype)
+        except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)
             elif dtype is not None and raise_cast_failure:
