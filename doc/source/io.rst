@@ -4554,7 +4554,7 @@ Parquet
 
 .. versionadded:: 0.21.0
 
-`Parquet <https://parquet.apache.org/`__ provides a partitioned binary columnar serialization for data frames. It is designed to
+`Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
 languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
 while still maintaining good read performance.
@@ -4575,7 +4575,7 @@ You can specifiy an ``engine`` to direct the serialization. This can be one of `
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, then
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
-See the documentation for `pyarrow <http://arrow.apache.org/docs/python/`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__
+See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__
 
 .. note::
 
