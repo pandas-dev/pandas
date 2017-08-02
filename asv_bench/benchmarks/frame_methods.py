@@ -517,13 +517,26 @@ class frame_sort_values(object):
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(randn(1000000, 5), columns=list('ABCDE'))
+        N = 1000000
+
+        self.df = pd.DataFrame(
+            {'A': pd.Series(tm.makeStringIndex(100).take(
+                np.random.randint(0, 100, size=N))),
+             'B': pd.Series(tm.makeStringIndex(10000).take(
+                 np.random.randint(0, 10000, size=N))),
+             'D': np.random.randn(N),
+             'E': np.arange(N),
+             'F': pd.date_range('20110101', freq='s', periods=N),
+             'G': pd.timedelta_range('1 day', freq='s', periods=N),
+             })
+        # self.df['C'] = self.df['B'].astype('category')
+        # self.df.iloc[10:20] = np.nan
 
     def time_frame_sort_values_by_two_columns(self):
-        self.df.sort_values(by=['A', 'B'])
+        self.df.sort_values(by=['D', 'E'])
 
-    def time_frame_sort_values_by_five_columns(self):
-        self.df.sort_values(by=['A', 'B', 'C', 'D', 'E'])
+    def time_frame_sort_values_by_six_columns(self):
+        self.df.sort_values(by=['A', 'B', 'D', 'E'])
 
 
 class frame_sort_index_by_columns(object):
