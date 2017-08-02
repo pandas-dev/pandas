@@ -399,10 +399,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self._data.internal_values()
 
     def _formatting_values(self):
-        """Return the values that can be formatted (used by Series and
-        DataFrameFormatter)
+        """Return the values that can be formatted (used by SeriesFormatter
+        and DataFrameFormatter)
         """
-        return self._data._block.formatting_values()
+        return self._data.formatting_values()
 
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
