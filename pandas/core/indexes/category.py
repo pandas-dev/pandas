@@ -322,10 +322,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
         return not self.duplicated().any()
 
     @property
-    def is_monotonic(self):
-        return self.is_monotonic_increasing
-
-    @property
     def is_monotonic_increasing(self):
         return Index(self.codes).is_monotonic_increasing
 
