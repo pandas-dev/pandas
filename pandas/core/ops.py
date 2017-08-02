@@ -332,25 +332,21 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
-        print("dtypes l,r:", left.dtype, right.dtype)
         if is_dimensionedFloat_dtype(left.dtype) or is_dimensionedFloat_dtype(right.dtype):
             if (is_datetime_lhs or is_timedelta_lhs):
                 raise TypeError("Cannot mix DimensionedFloat and Time for operations")
-            print("getDimFloatOP")
             return _DimFloatOp(left, right, name, na_op)
         if not (is_datetime_lhs or is_timedelta_lhs):
-            print("Get normal OP")
             return _Op(left, right, name, na_op)
         else:
             return _TimeOp(left, right, name, na_op)
 
 class _DimFloatOp(_Op):
     def __init__(self, left, right, name, na_op):
-        print("DIMFLOATOP")
+
         super(_DimFloatOp, self).__init__(left, right, name, na_op)
         # Get the type of the calculation's result.
         self.dtype = self._get_target_dtype(left, right, name)
-        print("target_dtype", self.dtype)
         #
         self.lvalues = self._with_unit(left.values)
         self.rvalues = self._with_unit(right.values)
@@ -361,17 +357,16 @@ class _DimFloatOp(_Op):
         # Raises an Error, if the units are incompatible
         left_unit = cls._get_unit(left.values)
         right_unit = cls._get_unit(right.values)
-        print("Units: l,r:", left_unit, right_unit)
         calc_result = (getattr(1*left_unit, name)(1*right_unit))
         if isinstance( calc_result, bool):
             return bool
         else:
             return DimensionedFloatDtype(str(calc_result.units))
-        print("Target dtype", target_unit)
+
         return target_unit
     @staticmethod
     def _with_unit(data):
-        print("with_unit: ", type(data))
+
         if hasattr(data.dtype, "unit"):
             return data.dtype.unit*data.values
         return data.values

@@ -910,9 +910,9 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
-        print("in maybe_cast_to_datetime.")
+
         if is_datetime64 or is_datetime64tz or is_timedelta64:
-            print("in maybe_cast_to_datetime: is time")
+
             # force the dtype if needed
             msg = ("Passing in '{dtype}' dtype with no frequency is "
                    "deprecated and will raise in a future version. "
@@ -975,7 +975,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
-            print("in maybe_cast_to_datetime: Is datetimevalue")
+            
 
             if is_object_dtype(dtype):
                 if value.dtype != _NS_DTYPE:

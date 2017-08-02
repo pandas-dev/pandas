@@ -28,32 +28,15 @@ def test_equality():
 
 
 def test_with_series():
-    print("=== constructing timezone")
-    a = pd.Series([1,2,3,4,5], dtype="datetime64[ns]")
 
-    print("=== constructing series")
+    a = pd.Series([1,2,3,4,5], dtype="datetime64[ns]")
     a = pd.Series([1,2,3,4,5], dtype=DimensionedFloatDtype("meter"))
-    print("=== sum")
     b = a+a
-    print("=== print b")
-    print(b)
-    print("=== assert b[0]==2")
     assert b[0]==2
-    print("=== b.dtype")
-    print b.dtype
-    print("=== assert dtype==....")
     assert  b.dtype == DimensionedFloatDtype("meter")
     c = pd.Series([5, 10, 50, 100, 500], dtype=DimensionedFloatDtype("centimeter"))
-    print("=== equality ")
-    print(a==a, type(a==a))
-    print("== print")
-    print(a+c == pd.Series([1.05, 2.1, 3.5, 5, 10.], dtype=DimensionedFloatDtype("meter")))
-    print("a+c", a+c, (a+c).dtype)
-    print("=== final asserts")
     numpy.testing.assert_allclose(a+c, pd.Series([1.05, 2.1, 3.5, 5, 10.], dtype=DimensionedFloatDtype("meter")))
     numpy.testing.assert_allclose(a*c, pd.Series([5, 20, 150, 400, 2500.], dtype=DimensionedFloatDtype("meter*centimeter")))
-
-    #== DimensionedFloatDtype("meter*meter")
 
 class TestUnitDtype(Base):
     def create(self):
