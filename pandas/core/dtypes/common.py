@@ -9,6 +9,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      PeriodDtype, PeriodDtypeType,
                      IntervalDtype, IntervalDtypeType,
                      ExtensionDtype)
+from .units import DimensionedFloatDtype, DimensionedFloatDtypeType
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
@@ -507,6 +508,10 @@ def is_categorical_dtype(arr_or_dtype):
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
+def is_dimensionedFloat_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
+    return DimensionedFloatDtype.is_dtype(arr_or_dtype)
 
 def is_string_dtype(arr_or_dtype):
     """
@@ -682,11 +687,13 @@ def is_dtype_equal(source, target):
     """
 
     try:
+        print("Comparing {} and {}".format(source, target))
         source = _get_dtype(source)
         target = _get_dtype(target)
+        print("Comparing {} and {}".format(source, target))
         return source == target
-    except (TypeError, AttributeError):
-
+    except (TypeError, AttributeError) as e:
+        print(e)
         # invalid comparison
         # object == category will hit this
         return False
@@ -1717,6 +1724,9 @@ def _get_dtype(arr_or_dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, IntervalDtype):
         return arr_or_dtype
+    elif isinstance(arr_or_dtype, DimensionedFloatDtype):
+        return arr_or_dtype
+
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtype.construct_from_string(arr_or_dtype)
@@ -1726,6 +1736,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+        elif arr_or_dtype.startswith("dimensionedFloat"):
+            return DimensionedFloatDtype.construct_from_string(arr_or_dtype)
     elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
         return arr_or_dtype.dtype
 
@@ -1762,6 +1774,8 @@ def _get_dtype_type(arr_or_dtype):
         return IntervalDtypeType
     elif isinstance(arr_or_dtype, PeriodDtype):
         return PeriodDtypeType
+    elif isinstance(arr_or_dtype, DimensionedFloatDtype):
+        return DimensionedFloatDtypeType
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
@@ -1771,6 +1785,8 @@ def _get_dtype_type(arr_or_dtype):
             return PeriodDtypeType
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtypeType
+        elif arr_or_dtype.startswith("dimensionedFloat"):
+            return DimensionedFloatDtypeType
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type
@@ -1879,6 +1895,8 @@ def pandas_dtype(dtype):
 
     if isinstance(dtype, DatetimeTZDtype):
         return dtype
+    elif isinstance(dtype, DimensionedFloatDtype):
+        return dtype
     elif isinstance(dtype, PeriodDtype):
         return dtype
     elif isinstance(dtype, CategoricalDtype):
@@ -1904,6 +1922,11 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
+        elif dtype.startswith('dimensionedFloat['):
+            try:
+                return DimensionedFloatDtype.construct_from_string(dtype)
+            except TypeError:
+                pass
         try:
             return CategoricalDtype.construct_from_string(dtype)
         except TypeError:

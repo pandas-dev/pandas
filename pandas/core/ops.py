@@ -24,11 +24,13 @@ import pandas.core.missing as missing
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
+from pandas.core.dtypes.units import unit_registry
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
+    is_dimensionedFloat_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype, is_datetimetz,
     is_list_like,
@@ -330,10 +332,46 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
+        print("dtypes l,r:", left.dtype, right.dtype)
+        if is_dimensionedFloat_dtype(left.dtype) or is_dimensionedFloat_dtype(right.dtype):
+            if (is_datetime_lhs or is_timedelta_lhs):
+                raise TypeError("Cannot mix DimensionedFloat and Time for operations")
+            print("getDimFloatOP")
+            return _DimFloatOp(left, right, name, na_op)
         if not (is_datetime_lhs or is_timedelta_lhs):
+            print("Get normal OP")
             return _Op(left, right, name, na_op)
         else:
             return _TimeOp(left, right, name, na_op)
+
+class _DimFloatOp(_Op):
+    def __init__(self, left, right, name, na_op):
+        super(_DimFloatOp, self).__init__(left, right, name, na_op)
+        # Get the type of the calculation's result.
+        self.dtype = self._get_target_unit(left, right)
+        #
+        self.lvalues = self._with_unit(data)
+        self.rvalues = self._with_unit(data)
+
+    @staticmethod
+    def _get_target_dtype(left, right, name):
+        # Perform the operation on 1* the unit, to quickly get the resulting unit
+        # Raises an Error, if the units are incompatible
+        left_unit = self._get_unit(left)
+        right_unit = self._get_unit(right)
+        calc_result = (getattr(1*left.unit, name)(1*right.unit))
+        if isinstance( calc_result, bool):
+            return bool
+        else:
+            return DimensionedFloatDtype(str(calc_result.unit))
+        print("Target dtype", target_unit)
+        return target_unit
+    @staticmethod
+    def _with_unit(data):
+        if hasattr(data, "unit"):
+            return data.unit*data
+        return data
+
 
 
 class _TimeOp(_Op):

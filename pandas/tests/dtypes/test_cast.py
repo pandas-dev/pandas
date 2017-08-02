@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     PeriodDtype)
+from pandas.core.dtypes.units import DimensionedFloatDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal)
 from pandas.util import testing as tm
@@ -395,6 +396,15 @@ class TestCommonTypes(object):
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
+            assert find_common_type([dtype, dtype2]) == np.object
+            assert find_common_type([dtype2, dtype]) == np.object
+
+    def test_dimensionedFloat_dtype(self):
+        dtype = DimensionedFloatDtype('meter')
+        assert find_common_type([dtype, dtype]) == 'dimensionedFloat[meter]'
+
+        for dtype2 in [DimensionedFloatDtype(unit='seconds'),
+                       np.object, np.int64]:
             assert find_common_type([dtype, dtype2]) == np.object
             assert find_common_type([dtype2, dtype]) == np.object
 

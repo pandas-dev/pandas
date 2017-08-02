@@ -9,7 +9,7 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
-
+from pandas.core.dtypes.units import DimensionedFloatDtype, DimensionedFloatDtypeType
 
 class TestPandasDtype(object):
 
@@ -62,7 +62,8 @@ dtypes = dict(datetime_tz=com.pandas_dtype('datetime64[ns, US/Eastern]'),
               integer=np.dtype(np.int64),
               float=np.dtype(np.float64),
               object=np.dtype(np.object),
-              category=com.pandas_dtype('category'))
+              category=com.pandas_dtype('category'),
+              dimensionedDT=DimensionedFloatDtype("meter"))
 
 
 @pytest.mark.parametrize('name1,dtype1',
@@ -558,6 +559,8 @@ def test_is_complex_dtype():
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),
+    ('dimensionedFloat[second]', DimensionedFloatDtype("second")),
+    (DimensionedFloatDtype("hour"), DimensionedFloatDtype("hour")),
 ])
 def test__get_dtype(input_param, result):
     assert com._get_dtype(input_param) == result
@@ -604,6 +607,9 @@ def test__get_dtype_fails(input_param):
     (1, type(None)),
     (1.2, type(None)),
     (pd.DataFrame([1, 2]), type(None)),  # composite dtype
+    ('dimensionedFloat[second]', DimensionedFloatDtypeType),
+    (DimensionedFloatDtype("hour"), DimensionedFloatDtypeType),
+
 ])
 def test__get_dtype_type(input_param, result):
     assert com._get_dtype_type(input_param) == result
