@@ -316,9 +316,22 @@ class CategoricalIndex(Index, base.PandasDelegate):
         # we are going to look things up with the codes themselves
         return self._engine_type(lambda: self.codes.astype('i8'), len(self))
 
+    # introspection
     @cache_readonly
     def is_unique(self):
         return not self.duplicated().any()
+
+    @property
+    def is_monotonic(self):
+        return self.is_monotonic_increasing
+
+    @property
+    def is_monotonic_increasing(self):
+        return Index(self.codes).is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        return Index(self.codes).is_monotonic_decreasing
 
     @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
     def unique(self):
