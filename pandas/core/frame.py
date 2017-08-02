@@ -3417,11 +3417,11 @@ it is assumed to be aliases for the column names')
         if is_sequence(ascending) and len(by) != len(ascending):
             raise ValueError('Length of ascending (%d) != length of by (%d)' %
                              (len(ascending), len(by)))
-        if not isinstance(ascending, (tuple, list)):
+        if not is_list_like(ascending):
             ascending = [ascending] * len(by)
         ascending = ascending[::-1]
 
-        new_data = None
+        new_data = self
 
         from pandas.core.sorting import nargsort
 
@@ -3430,10 +3430,7 @@ it is assumed to be aliases for the column names')
 
         for i, by_step in enumerate(by[::-1]):
 
-            if new_data is None:
-                k = self.xs(by_step, axis=other_axis).values
-            else:
-                k = new_data.xs(by_step, axis=other_axis).values
+            k = new_data.xs(by_step, axis=other_axis).values
             if k.ndim == 2:
 
                 # try to be helpful
@@ -3448,15 +3445,10 @@ it is assumed to be aliases for the column names')
             indexer = nargsort(k, kind=kind, ascending=ascending[i],
                                na_position=na_position)
 
-            if new_data is None:
-                new_data = self._data.take(
-                    indexer, axis=self._get_block_manager_axis(axis),
-                    convert=False, verify=False)
-            else:
-                new_data = new_data._data.take(
-                    indexer,
-                    axis=self._get_block_manager_axis(axis),
-                    convert=False, verify=False)
+            new_data = new_data._data.take(
+                indexer,
+                axis=self._get_block_manager_axis(axis),
+                convert=False, verify=False)
 
             new_data = self._constructor(new_data).__finalize__(self)
 

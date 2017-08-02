@@ -513,6 +513,19 @@ class frame_sort_index(object):
         self.df.sort_index()
 
 
+class frame_sort_values(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(randn(1000000, 5), columns=list('ABCDE'))
+
+    def time_frame_sort_values_by_two_columns(self):
+        self.df.sort_values(by=['A', 'B'])
+
+    def time_frame_sort_values_by_five_columns(self):
+        self.df.sort_values(by=['A', 'B', 'C', 'D', 'E'])
+
+
 class frame_sort_index_by_columns(object):
     goal_time = 0.2
 
