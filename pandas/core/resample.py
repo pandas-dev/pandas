@@ -778,6 +778,11 @@ class DatetimeIndexResampler(Resampler):
         # convert if needed
         if self.kind == 'period' and not isinstance(result.index, PeriodIndex):
             result.index = result.index.to_period(self.freq)
+
+        if isinstance(result, com.ABCSeries) and result.empty:
+            obj = self.obj
+            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
+            result.name = getattr(obj, 'name', None)
         return result
 
 

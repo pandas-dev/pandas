@@ -2192,6 +2192,17 @@ class TestDatetimeIndex(Base):
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
 
+    def test_apply_to_empty_series(self):
+        # GH 14313
+        series = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            result = series.resample(freq).apply(lambda x: 1)
+            expected = series.resample(freq).apply(np.sum)
+
+            assert result.name == expected.name
+            assert_series_equal(result, expected, check_dtype=False)
+
 
 class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
