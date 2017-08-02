@@ -104,7 +104,7 @@ before_install:
   - git tag
   - ci/before_install_travis.sh
   - export DISPLAY=":99.0"
-
+  - pip install pint
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
