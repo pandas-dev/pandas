@@ -144,7 +144,7 @@ To evaluate single-element pandas objects in a boolean context, use the method `
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
-Bitwise boolean operators like ``==`` and ``!=`` will return a boolean ``Series``,
+Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
 which is almost always what you want anyways.
 
 .. code-block:: python
@@ -194,7 +194,7 @@ For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
 general, we were given the difficult choice between either
 
 - A *masked array* solution: an array of data and an array of boolean values
-  indicating whether a value
+  indicating whether a value is there or is missing
 - Using a special sentinel value, bit pattern, or set of sentinel values to
   denote ``NA`` across the dtypes
 
@@ -247,16 +247,16 @@ dtype in order to store the NAs. These are summarized by this table:
    ``integer``, cast to ``float64``
    ``boolean``, cast to ``object``
 
-While this may seem like a heavy trade-off, I have found very few
-cases where this is an issue in practice. Some explanation for the motivation
-here in the next section.
+While this may seem like a heavy trade-off, I have found very few cases where
+this is an issue in practice i.e. storing values greater than 2**53. Some
+explanation for the motivation is in the next section.
 
 Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<http://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
+<https://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
    :header: "Typeclass","Dtypes"
@@ -305,7 +305,7 @@ the ``DataFrame.copy`` method. If you are doing a lot of copying of DataFrame
 objects shared among threads, we recommend holding locks inside the threads
 where the data copying occurs.
 
-See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
+See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
 
 
@@ -332,5 +332,5 @@ using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+<https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
 details.
