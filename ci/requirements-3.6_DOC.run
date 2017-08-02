@@ -12,6 +12,7 @@ lxml
 beautifulsoup4
 html5lib
 pytables
+python-snappy
 openpyxl
 xlrd
 xlwt
