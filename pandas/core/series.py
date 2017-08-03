@@ -55,8 +55,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.core.indexes.accessors import (
-    maybe_to_datetimelike, CombinedDatetimelikeProperties)
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -2912,27 +2911,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-
-    def _make_dt_accessor(self):
-        try:
-            return maybe_to_datetimelike(self)
-        except Exception:
-            raise AttributeError("Can only use .dt accessor with datetimelike "
-                                 "values")
-
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties,
-                               _make_dt_accessor)
+    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-
-    def _make_cat_accessor(self):
-        if not is_categorical_dtype(self.dtype):
-            raise AttributeError("Can only use .cat accessor with a "
-                                 "'category' dtype")
-        return CategoricalAccessor(self.values, self.index)
-
-    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
+    cat = base.AccessorProperty(CategoricalAccessor)
 
     def _dir_deletions(self):
         return self._accessors

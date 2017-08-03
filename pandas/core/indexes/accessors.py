@@ -243,3 +243,11 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
     # the Series.dt class property. For Series objects, .dt will always be one
     # of the more specific classes above.
     __doc__ = DatetimeProperties.__doc__
+
+    @classmethod
+    def _make_accessor(cls, data):
+        try:
+            return maybe_to_datetimelike(data)
+        except Exception:
+            raise AttributeError("Can only use .dt accessor with datetimelike "
+                                 "values")

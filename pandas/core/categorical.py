@@ -2061,6 +2061,13 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         if res is not None:
             return Series(res, index=self.index)
 
+    @classmethod
+    def _make_accessor(cls, data):
+        if not is_categorical_dtype(data.dtype):
+            raise AttributeError("Can only use .cat accessor with a "
+                                 "'category' dtype")
+        return CategoricalAccessor(data.values, data.index)
+
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
                                             accessors=["categories",
