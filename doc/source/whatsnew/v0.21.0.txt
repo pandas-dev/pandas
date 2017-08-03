@@ -9,7 +9,7 @@ users upgrade to this version.
 
 Highlights include:
 
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`pd.read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
