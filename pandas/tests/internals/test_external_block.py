@@ -18,7 +18,7 @@ def test_custom_repr():
 
     # series
     block = CustomBlock(values, placement=slice(0, 3))
-    
+
     s = pd.Series(SingleBlockManager(block, pd.RangeIndex(3)))
     assert repr(s) == '0    Val: 0\n1    Val: 1\n2    Val: 2\ndtype: int64'
 
