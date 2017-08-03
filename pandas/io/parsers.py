@@ -2283,10 +2283,11 @@ class PythonParser(ParserBase):
         if self.header is not None:
             header = self.header
 
-            # we have a mi columns, so read an extra line
             if isinstance(header, (list, tuple, np.ndarray)):
-                have_mi_columns = True
-                header = list(header) + [header[-1] + 1]
+                have_mi_columns = len(header) > 1
+                # we have a mi columns, so read an extra line
+                if have_mi_columns:
+                    header = list(header) + [header[-1] + 1]
             else:
                 have_mi_columns = False
                 header = [header]
