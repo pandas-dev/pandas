@@ -81,7 +81,8 @@ Other Enhancements
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
 - :func:`read_html` handles colspan and rowspan arguments and attempts to infer a header if the header is not explicitly specified (:issue:`17054`)
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`pd.read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 
 .. _whatsnew_0210.api_breaking:
 

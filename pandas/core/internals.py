@@ -5,6 +5,7 @@ import re
 import operator
 from datetime import datetime, timedelta, date
 from collections import defaultdict
+from functools import partial
 
 import numpy as np
 
@@ -2959,11 +2960,11 @@ class BlockManager(PandasObject):
         return obj
 
     def add_prefix(self, prefix):
-        f = (str(prefix) + '%s').__mod__
+        f = partial('{prefix}{}'.format, prefix=prefix)
         return self.rename_axis(f, axis=0)
 
     def add_suffix(self, suffix):
-        f = ('%s' + str(suffix)).__mod__
+        f = partial('{}{suffix}'.format, suffix=suffix)
         return self.rename_axis(f, axis=0)
 
     @property
