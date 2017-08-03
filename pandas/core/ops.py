@@ -24,13 +24,12 @@ import pandas.core.missing as missing
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.units import unit_registry, DimensionedFloatDtype
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
-    is_dimensionedFloat_dtype,
+    is_numpy_dtype_with_metadata,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype, is_datetimetz,
     is_list_like,
@@ -332,60 +331,36 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
-        if (is_dimensionedFloat_dtype(left.dtype) or
-                is_dimensionedFloat_dtype(right.dtype)):
-            if (is_datetime_lhs or is_timedelta_lhs):
-                raise TypeError("Cannot mix DimensionedFloat and "
-                                "Time for operations")
-            return _DimFloatOp(left, right, name, na_op)
+        if is_numpy_dtype_with_metadata(left):
+            left_compatible = left.dtype.operation_typecompatible(name, right.dtype, is_left=True)
+            if left_compatible is not NotImplemented:
+                if left_compatible:
+                    op_class = left.dtype.get_operation_wrapper()
+                    if op_class is not None:
+                        return op_class(left, right, name, na_op)
+                    else:
+                        return _Op(left, right, name, na_op)
+                else:
+                    raise TypeError("Operation {} not permitted between "
+                                    "dtype {} and type {}".format(name, left.dtype,
+                                                                  right.dtype))
+        # left is either not a NumpyDtypeWithMetadata or did not implement the Operation.
+        if is_numpy_dtype_with_metadata(right):
+            if right.dtype.operation_typecompatible(name, left.dtype, is_left=False):
+                op_class = right.dtype.get_operation_wrapper()
+                if op_class is not None:
+                    return op_class(left, right, name, na_op)
+                else:
+                    return _Op(left, right, name, na_op)
+            else:
+                raise TypeError("Operation {} not permitted between "
+                                "dtype {} and type {}".format(left.dtype,
+                                                              right.dtype))
+        # No NumpyDtypeWithMetadata involved.
         if not (is_datetime_lhs or is_timedelta_lhs):
             return _Op(left, right, name, na_op)
         else:
             return _TimeOp(left, right, name, na_op)
-
-
-class _DimFloatOp(_Op):
-    def __init__(self, left, right, name, na_op):
-
-        super(_DimFloatOp, self).__init__(left, right, name, na_op)
-        # Get the type of the calculation's result.
-        self.dtype = self._get_target_dtype(left, right, name)
-
-        print("left, right", type(left), type(right))
-        self.lvalues = self._with_unit(left)
-        self.rvalues = self._with_unit(right)
-        print ("lvals, rvals", type(self.lvalues), type(self.rvalues))
-
-    @classmethod
-    def _get_target_dtype(cls, left, right, name):
-        # Perform the operation on 1* the unit,
-        # to quickly get the resulting unit
-        # Raises an Error, if the units are incompatible
-        left_unit = cls._get_unit(left)
-        right_unit = cls._get_unit(right)
-        calc_result = (getattr(1 * left_unit, name)(1 * right_unit))
-        if isinstance(calc_result, bool):
-            return bool
-        else:
-            return DimensionedFloatDtype(str(calc_result.units))
-
-    @staticmethod
-    def _with_unit(data):
-        print("with unit: ", data.dtype, type(data.dtype))
-        if hasattr(data.dtype, "unit"):
-            return data.dtype.unit * data.values
-        return data
-
-    @staticmethod
-    def _get_unit(data):
-        try:
-            if hasattr(data.dtype, "unit"):
-                return data.dtype.unit
-        except AttributeError:
-            pass
-        return unit_registry.dimensionless
-
-
 
 class _TimeOp(_Op):
     """

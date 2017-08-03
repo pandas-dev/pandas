@@ -249,6 +249,7 @@ class Categorical(PandasObject):
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=False, fastpath=False):
+
         self._validate_ordered(ordered)
 
         if fastpath:
