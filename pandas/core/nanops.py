@@ -28,7 +28,8 @@ _MIN_BOTTLENECK_VERSION = '1.0.0'
 try:
     import bottleneck as bn
     ver = bn.__version__
-    _BOTTLENCK_INSTALLED = ver >= LooseVersion(_MIN_BOTTLENECK_VERSION)
+    _BOTTLENECK_INSTALLED = (LooseVersion(ver) >=
+                             LooseVersion(_MIN_BOTTLENECK_VERSION))
 
     if not _BOTTLENECK_INSTALLED:
         warnings.warn(

@@ -1195,7 +1195,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @property
     def is_monotonic(self):
         """ alias for is_monotonic_increasing (deprecated) """
-        return self._engine.is_monotonic_increasing
+        return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self):
