@@ -427,6 +427,38 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
 
+    def test_is_monotonic(self):
+        c = CategoricalIndex([1, 2, 3])
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], ordered=True)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # non lexsorted categories
+        categories = [9, 0, 1, 2, 3]
+
+        c = CategoricalIndex([9, 0], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([0, 1], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
     def test_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
