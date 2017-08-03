@@ -68,6 +68,14 @@ class SharedWithSparse(object):
         expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
         tm.assert_index_equal(with_suffix.columns, expected)
 
+        with_pct_prefix = self.frame.add_prefix('%')
+        expected = pd.Index(['%{}'.format(c) for c in self.frame.columns])
+        tm.assert_index_equal(with_pct_prefix.columns, expected)
+
+        with_pct_suffix = self.frame.add_suffix('%')
+        expected = pd.Index(['{}%'.format(c) for c in self.frame.columns])
+        tm.assert_index_equal(with_pct_suffix.columns, expected)
+
 
 class TestDataFrameMisc(SharedWithSparse, TestData):
 
