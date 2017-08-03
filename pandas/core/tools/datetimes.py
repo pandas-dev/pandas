@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
-    ABCDataFrame)
+    ABCDataFrame, ABCDateOffset)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
 
@@ -720,8 +720,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, compat.string_types):
         return arg
 
-    from pandas.tseries.offsets import DateOffset
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
 
     if dayfirst is None:

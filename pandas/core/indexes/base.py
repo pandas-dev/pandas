@@ -13,7 +13,11 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 
-from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCMultiIndex,
+    ABCPeriodIndex,
+    ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
     _ensure_int64,
@@ -3814,8 +3818,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         internal method called by ops
         """
-        from pandas.tseries.offsets import DateOffset
-
         # if we are an inheritor of numeric,
         # but not actually numeric (e.g. DatetimeIndex/PeriodInde)
         if not self._is_numeric_dtype:
@@ -3843,7 +3845,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
-        elif isinstance(other, (DateOffset, np.timedelta64,
+        elif isinstance(other, (ABCDateOffset, np.timedelta64,
                                 Timedelta, datetime.timedelta)):
             # higher up to handle
             pass
@@ -3862,12 +3864,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
-
-                from pandas.tseries.offsets import DateOffset
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
                 # handle time-based others
-                if isinstance(other, (DateOffset, np.timedelta64,
+                if isinstance(other, (ABCDateOffset, np.timedelta64,
                                       Timedelta, datetime.timedelta)):
                     return self._evaluate_with_timedelta_like(other, op, opstr)
                 elif isinstance(other, (Timestamp, np.datetime64)):
