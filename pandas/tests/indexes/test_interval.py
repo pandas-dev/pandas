@@ -339,7 +339,8 @@ class TestIntervalIndex(Base):
 
             idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-            for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
+            for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
+                          [0, 2], [2.5, 3], [-1, 4]]:
                 for side in ['right', 'left, both, neither']:
 
                     if idx_side == side:
