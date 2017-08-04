@@ -11,6 +11,7 @@ from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _stringify_path)
+from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
@@ -335,6 +336,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
+
+    if chunksize is not None:
+        _validate_integer("chunksize", chunksize, 1)
 
     def _read_json_as_lines(fh, chunksize):
         """
