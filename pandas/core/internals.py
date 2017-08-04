@@ -160,6 +160,10 @@ class Block(PandasObject):
         """
         return self.values
 
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self.internal_values()
+
     def get_values(self, dtype=None):
         """
         return an internal format, currently just the ndarray
@@ -4316,6 +4320,10 @@ class SingleBlockManager(BlockManager):
 
     def internal_values(self):
         return self._block.internal_values()
+
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self._block.formatting_values()
 
     def get_values(self):
         """ return a dense type view """
