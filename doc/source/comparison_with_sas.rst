@@ -444,13 +444,13 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isnull`` or ``pd.notnull`` functions
+Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python
 
-   outer_join[pd.isnull(outer_join['value_x'])]
-   outer_join[pd.notnull(outer_join['value_x'])]
+   outer_join[pd.isna(outer_join['value_x'])]
+   outer_join[pd.notna(outer_join['value_x'])]
 
 pandas also provides a variety of methods to work with missing data - some of
 which would be challenging to express in SAS. For example, there are methods to
@@ -570,7 +570,7 @@ machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
 `dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
-library (currently in development) which 
+library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
 Data Interop
@@ -578,7 +578,7 @@ Data Interop
 
 pandas provides a :func:`read_sas` method that can read SAS data saved in
 the XPORT or SAS7BDAT binary format.
- 
+
 .. code-block:: none
 
    libname xportout xport 'transport-file.xpt';
@@ -613,4 +613,3 @@ to interop data between SAS and pandas is to serialize to csv.
 
    In [9]: %time df = pd.read_csv('big.csv')
    Wall time: 4.86 s
- 

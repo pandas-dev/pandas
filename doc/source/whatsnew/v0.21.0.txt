@@ -9,6 +9,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
 .. contents:: What's new in v0.21.0
@@ -24,6 +26,8 @@ New features
   <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
 - Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
+- Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
+  support type inference in the presence of missing values (:issue:`17059`).
 
 
 .. _whatsnew_0210.enhancements.infer_objects:
@@ -67,6 +71,7 @@ Other Enhancements
 - :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 - :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
 - :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`Series.set_axis` and :func:`DataFrame.set_axis` now support the ``inplace`` parameter. (:issue:`14636`)
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
@@ -75,6 +80,8 @@ Other Enhancements
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -127,64 +134,74 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
-.. _whatsnew_0210.dtype_conversions:
-
 Dtype Conversions
 ^^^^^^^^^^^^^^^^^
 
 - Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to
-  same type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
+  same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s = Series([1, 2, 3])
+     s = Series([1, 2, 3])
 
-   .. code-block:: python
+  .. code-block:: python
 
-      In [5]: s[1] = True
+     In [5]: s[1] = True
 
-      In [6]: s
-      Out[6]:
-      0    1
-      1    1
-      2    3
-      dtype: int64
+     In [6]: s
+     Out[6]:
+     0    1
+     1    1
+     2    3
+     dtype: int64
 
-   New Behavior
+  New Behavior
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s[1] = True
-      s
+     s[1] = True
+     s
 
-- Previously as assignment to a datetimelike with a non-datetimelike would coerce the
+- Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
   non-datetime-like item being assigned (:issue:`14145`).
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+     s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
 
-   .. code-block:: python
+  .. code-block:: python
 
-      In [1]: s[1] = 1
+     In [1]: s[1] = 1
 
-      In [2]: s
-      Out[2]:
-      0   2011-01-01 00:00:00.000000000
-      1   1970-01-01 00:00:00.000000001
-      dtype: datetime64[ns]
+     In [2]: s
+     Out[2]:
+     0   2011-01-01 00:00:00.000000000
+     1   1970-01-01 00:00:00.000000001
+     dtype: datetime64[ns]
 
-   These now coerce to ``object`` dtype.
+  These now coerce to ``object`` dtype.
 
-   .. ipython:: python
+  .. ipython:: python
 
-      s[1] = 1
-      s
+     s[1] = 1
+     s
 
-- Additional bug fixes w.r.t. dtype conversions.
+- Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
+- Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
-  - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
-   - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+.. _whatsnew_0210.api.na_changes:
+
+NA naming Changes
+^^^^^^^^^^^^^^^^^
+
+In order to promote more consistency among the pandas API, we have added additional top-level
+functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
+The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
+in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
+named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
+``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
+
+The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
 
 .. _whatsnew_0210.api:
 
@@ -192,6 +209,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
+- Support has been dropped for bottleneck < 1.0.0 (:issue:`15214`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
@@ -202,6 +220,7 @@ Other API Changes
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
+- The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is deprecated and will show a ``FutureWarning`` (:issue:`14636`)
 
 
 .. _whatsnew_0210.deprecations:
@@ -259,13 +278,18 @@ Indexing
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
- 
+
 I/O
 ^^^
 
+- Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
+- Bug in :func:`read_csv` in which specified column names were not being thoroughly de-duplicated (:issue:`17095`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
-
+- Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696`, :issue:`16798`).
+- Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
+- Bug in :func:`read_csv` when called with a single-element list ``header`` would return a ``DataFrame`` of all NaN values (:issue:`7757`)
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
+- Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 
 Plotting
 ^^^^^^^^
@@ -283,7 +307,9 @@ Groupby/Resample/Rolling
 
 Sparse
 ^^^^^^
-- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16777`)
+
+- Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16905`)
+- Bug in :func:`SparseDataFrame.fillna` not filling all NaNs when frame was instantiated from SciPy sparse matrix (:issue:`16112`)
 
 
 Reshaping
@@ -293,6 +319,8 @@ Reshaping
 - Bug in merging with categorical dtypes with datetimelikes incorrectly raised a ``TypeError`` (:issue:`16900`)
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
+- Fixes dtype of result with integer dtype input, from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
+- Bug in :func:`crosstab` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
 
 Numeric
 ^^^^^^^
@@ -308,3 +336,4 @@ Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
+- Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)

@@ -10,7 +10,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notna
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -236,13 +236,13 @@ class TestCategoricalIndex(Base):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
-        result = i.where(notnull(i2))
+        result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
 
@@ -426,6 +426,38 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(res, Index(['a', 'b']), exact=True)
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
+
+    def test_is_monotonic(self):
+        c = CategoricalIndex([1, 2, 3])
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], ordered=True)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # non lexsorted categories
+        categories = [9, 0, 1, 2, 3]
+
+        c = CategoricalIndex([9, 0], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([0, 1], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
 
     def test_duplicates(self):
 

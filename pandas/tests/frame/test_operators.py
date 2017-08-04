@@ -137,12 +137,12 @@ class TestDataFrameOperators(TestData):
             filled = df.fillna(np.nan)
             result = op(df, 3)
             expected = op(filled, 3).astype(object)
-            expected[com.isnull(expected)] = None
+            expected[com.isna(expected)] = None
             assert_frame_equal(result, expected)
 
             result = op(df, df)
             expected = op(filled, filled).astype(object)
-            expected[com.isnull(expected)] = None
+            expected[com.isna(expected)] = None
             assert_frame_equal(result, expected)
 
             result = op(df, df.fillna(7))
@@ -1045,8 +1045,8 @@ class TestDataFrameOperators(TestData):
 
         combined = df1.combine(df2, np.add)
         combined2 = df2.combine(df1, np.add)
-        assert combined['D'].isnull().all()
-        assert combined2['D'].isnull().all()
+        assert combined['D'].isna().all()
+        assert combined2['D'].isna().all()
 
         chunk = combined.loc[combined.index[:-5], ['A', 'B', 'C']]
         chunk2 = combined2.loc[combined2.index[:-5], ['A', 'B', 'C']]

@@ -414,15 +414,18 @@ io.hdf.default_format               None         default format writing format, 
                                                  'table'
 io.hdf.dropna_table                 True         drop ALL nan rows when appending
                                                  to a table
+io.parquet.engine                   None         The engine to use as a default for
+                                                 parquet reading and writing. If None
+                                                 then try 'pyarrow' and 'fastparquet'
 mode.chained_assignment             warn         Raise an exception, warn, or no
                                                  action if trying to use chained
                                                  assignment, The default is warn
 mode.sim_interactive                False        Whether to simulate interactive mode
                                                  for purposes of testing.
-mode.use_inf_as_null                False        True means treat None, NaN, -INF,
-                                                 INF as null (old way), False means
+mode.use_inf_as_na                  False        True means treat None, NaN, -INF,
+                                                 INF as NA (old way), False means
                                                  None and NaN are null, but INF, -INF
-                                                 are not null (new way).
+                                                 are not NA (new way).
 compute.use_bottleneck              True         Use the bottleneck library to accelerate
                                                  computation if it is installed.
 compute.use_numexpr                 True         Use the numexpr library to accelerate

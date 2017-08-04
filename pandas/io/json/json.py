@@ -5,7 +5,7 @@ import numpy as np
 import pandas._libs.json as json
 from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
-from pandas import compat, isnull
+from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _stringify_path)
@@ -535,7 +535,7 @@ class Parser(object):
 
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
-            in_range = (isnull(new_data.values) | (new_data > self.min_stamp) |
+            in_range = (isna(new_data.values) | (new_data > self.min_stamp) |
                         (new_data.values == iNaT))
             if not in_range.all():
                 return data, False

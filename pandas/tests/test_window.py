@@ -10,8 +10,8 @@ import numpy as np
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range, isnull,
-                    notnull, concat, Timestamp, Index)
+from pandas import (Series, DataFrame, bdate_range, isna,
+                    notna, concat, Timestamp, Index)
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
@@ -249,7 +249,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.rolling(1).count()
-        expected = df.notnull().astype(float)
+        expected = df.notna().astype(float)
         tm.assert_frame_equal(result, expected)
 
     def test_window_with_args(self):
@@ -1223,7 +1223,7 @@ class TestMoments(Base):
         # it works!
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
-        assert isnull(result).all()
+        assert isna(result).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
@@ -1384,8 +1384,8 @@ class TestMoments(Base):
 
             arr2 = randn(20)
             result = get_result(arr2, 10, min_periods=5)
-            assert isnull(result[3])
-            assert notnull(result[4])
+            assert isna(result[3])
+            assert notna(result[4])
 
             # min_periods=0
             result0 = get_result(arr, 20, min_periods=0)
@@ -1974,10 +1974,10 @@ def _create_consistency_data():
 
     def is_constant(x):
         values = x.values.ravel()
-        return len(set(values[notnull(values)])) == 1
+        return len(set(values[notna(values)])) == 1
 
     def no_nans(x):
-        return x.notnull().all().all()
+        return x.notna().all().all()
 
     # data is a tuple(object, is_contant, no_nans)
     data = create_series() + create_dataframes()
@@ -2047,7 +2047,7 @@ class TestMomentsConsistency(Base):
                                   var_debiasing_factors=None):
         def _non_null_values(x):
             values = x.values.ravel()
-            return set(values[notnull(values)].tolist())
+            return set(values[notna(values)].tolist())
 
         for (x, is_constant, no_nans) in self.data:
             count_x = count(x)
@@ -2119,7 +2119,7 @@ class TestMomentsConsistency(Base):
 
                 if isinstance(x, Series):
                     for (y, is_constant, no_nans) in self.data:
-                        if not x.isnull().equals(y.isnull()):
+                        if not x.isna().equals(y.isna()):
                             # can only easily test two Series with similar
                             # structure
                             continue
@@ -2172,8 +2172,8 @@ class TestMomentsConsistency(Base):
             w = Series(np.nan, index=s.index)
             alpha = 1. / (1. + com)
             if ignore_na:
-                w[s.notnull()] = _weights(s[s.notnull()], com=com,
-                                          adjust=adjust, ignore_na=False)
+                w[s.notna()] = _weights(s[s.notna()], com=com,
+                                        adjust=adjust, ignore_na=False)
             elif adjust:
                 for i in range(len(s)):
                     if s.iat[i] == s.iat[i]:
@@ -2975,8 +2975,8 @@ class TestMomentsConsistency(Base):
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
-            assert isnull(result[3])
-            assert notnull(result[4])
+            assert isna(result[3])
+            assert notna(result[4])
 
             # min_periods=0
             result0 = func(arr, min_periods=0)

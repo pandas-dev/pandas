@@ -18,7 +18,7 @@ import pandas as pd
 from pandas._libs import tslib, lib
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
-                    Panel, Period, Categorical)
+                    Panel, Period, Categorical, isna)
 from pandas.compat import u, PY2, PY3, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_scipy_sparse,
     _ensure_int32,
     _ensure_categorical)
-from pandas.core.dtypes.missing import isnull
 from pandas.util import testing as tm
 
 
@@ -239,6 +238,9 @@ class TestInference(object):
         # object array of bytes
         arr = arr.astype(object)
         assert lib.infer_dtype(arr) == compare
+
+        # object array of bytes with missing values
+        assert lib.infer_dtype([b'a', np.nan, b'c'], skipna=True) == compare
 
     def test_isinf_scalar(self):
         # GH 11352
@@ -445,6 +447,10 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr)
         assert result == 'boolean'
 
+        arr = np.array([True, np.nan, False], dtype='O')
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'boolean'
+
     def test_floats(self):
         arr = np.array([1., 2., 3., np.float64(4), np.float32(5)], dtype='O')
         result = lib.infer_dtype(arr)
@@ -473,11 +479,26 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr)
         assert result == 'mixed'
 
+        arr = np.array([Decimal(1), Decimal('NaN'), Decimal(3)])
+        result = lib.infer_dtype(arr)
+        assert result == 'decimal'
+
+        arr = np.array([Decimal(1), np.nan, Decimal(3)], dtype='O')
+        result = lib.infer_dtype(arr)
+        assert result == 'decimal'
+
     def test_string(self):
         pass
 
     def test_unicode(self):
-        pass
+        arr = [u'a', np.nan, u'c']
+        result = lib.infer_dtype(arr)
+        assert result == 'mixed'
+
+        arr = [u'a', np.nan, u'c']
+        result = lib.infer_dtype(arr, skipna=True)
+        expected = 'unicode' if PY2 else 'string'
+        assert result == expected
 
     def test_datetime(self):
 
@@ -715,9 +736,16 @@ class TestTypeInference(object):
 
     def test_date(self):
 
-        dates = [date(2012, 1, x) for x in range(1, 20)]
+        dates = [date(2012, 1, day) for day in range(1, 20)]
         index = Index(dates)
         assert index.inferred_type == 'date'
+
+        dates = [date(2012, 1, day) for day in range(1, 20)] + [np.nan]
+        result = lib.infer_dtype(dates)
+        assert result == 'mixed'
+
+        result = lib.infer_dtype(dates, skipna=True)
+        assert result == 'date'
 
     def test_to_object_array_tuples(self):
         r = (5, 6)
@@ -1014,7 +1042,7 @@ def test_nan_to_nat_conversions():
 
     s = df['B'].copy()
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
-    assert (isnull(s[8]))
+    assert (isna(s[8]))
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion

@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import pandas as pd
 from pandas.util import testing as tm
-from pandas import (PeriodIndex, period_range, notnull, DatetimeIndex, NaT,
+from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
                     offsets, compat)
 
@@ -92,13 +92,13 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
         i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
                             freq='D')
-        result = i.where(notnull(i2))
+        result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
 
@@ -116,20 +116,20 @@ class TestPeriodIndex(DatetimeLike):
 
         i = self.create_index()
         for arr in [np.nan, pd.NaT]:
-            result = i.where(notnull(i), other=np.nan)
+            result = i.where(notna(i), other=np.nan)
             expected = i
             tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
         i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
                             freq='D')
-        result = i.where(notnull(i2), i2)
+        result = i.where(notna(i2), i2)
         tm.assert_index_equal(result, i2)
 
         i2 = i.copy()
         i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
                             freq='D')
-        result = i.where(notnull(i2), i2.values)
+        result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
 
     def test_get_indexer(self):

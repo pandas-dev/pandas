@@ -252,7 +252,7 @@ class TestJoin(object):
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
             assert col in merged
-            assert merged[col].isnull().all()
+            assert merged[col].isna().all()
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
@@ -266,7 +266,7 @@ class TestJoin(object):
         joined = df.join(df2, on='key', how='inner')
 
         expected = df.join(df2, on='key')
-        expected = expected[expected['value'].notnull()]
+        expected = expected[expected['value'].notna()]
         tm.assert_series_equal(joined['key'], expected['key'],
                                check_dtype=False)
         tm.assert_series_equal(joined['value'], expected['value'],
@@ -734,7 +734,7 @@ def _check_join(left, right, result, join_col, how='left',
 
     # some smoke tests
     for c in join_col:
-        assert(result[c].notnull().all())
+        assert(result[c].notna().all())
 
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
@@ -797,7 +797,7 @@ def _assert_all_na(join_chunk, source_columns, join_col):
     for c in source_columns:
         if c in join_col:
             continue
-        assert(join_chunk[c].isnull().all())
+        assert(join_chunk[c].isna().all())
 
 
 def _join_by_hand(a, b, how='left'):

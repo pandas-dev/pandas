@@ -771,7 +771,7 @@ class Styler(object):
 
     @staticmethod
     def _highlight_null(v, null_color):
-        return 'background-color: %s' % null_color if pd.isnull(v) else ''
+        return 'background-color: %s' % null_color if pd.isna(v) else ''
 
     def highlight_null(self, null_color='red'):
         """

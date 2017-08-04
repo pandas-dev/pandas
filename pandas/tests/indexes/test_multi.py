@@ -2366,12 +2366,12 @@ class TestMultiIndex(Base):
                                    names=['x', 'y'])
         assert x[1:].names == x.names
 
-    def test_isnull_behavior(self):
+    def test_isna_behavior(self):
         # should not segfault GH5123
         # NOTE: if MI representation changes, may make sense to allow
-        # isnull(MI)
+        # isna(MI)
         with pytest.raises(NotImplementedError):
-            pd.isnull(self.index)
+            pd.isna(self.index)
 
     def test_level_setting_resets_attributes(self):
         ind = MultiIndex.from_arrays([
@@ -2889,13 +2889,13 @@ class TestMultiIndex(Base):
                              labels=[[0], [0]],
                              names=[0, 1])
         idxm = idx0.join(idx1, how='outer')
-        assert pd.isnull(idx0.get_level_values(1)).all()
+        assert pd.isna(idx0.get_level_values(1)).all()
         # the following failed in 0.14.1
-        assert pd.isnull(idxm.get_level_values(1)[:-1]).all()
+        assert pd.isna(idxm.get_level_values(1)[:-1]).all()
 
         df0 = pd.DataFrame([[1, 2]], index=idx0)
         df1 = pd.DataFrame([[3, 4]], index=idx1)
         dfm = df0 - df1
-        assert pd.isnull(df0.index.get_level_values(1)).all()
+        assert pd.isna(df0.index.get_level_values(1)).all()
         # the following failed in 0.14.1
-        assert pd.isnull(dfm.index.get_level_values(1)[:-1]).all()
+        assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()

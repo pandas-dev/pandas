@@ -148,8 +148,17 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     table = agged
     if table.index.nlevels > 1:
-        to_unstack = [agged.index.names[i] or i
-                      for i in range(len(index), len(keys))]
+        # Related GH #17123
+        # If index_names are integers, determine whether the integers refer
+        # to the level position or name.
+        index_names = agged.index.names[:len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
         table = agged.unstack(to_unstack)
 
     if not dropna:
@@ -175,10 +184,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         if dropna:
-            data = data[data.notnull().all(axis=1)]
+            data = data[data.notna().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
-                             margins_name=margins_name)
+                             margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
     if values_passed and not values_multi and not table.empty and \
@@ -199,7 +208,7 @@ DataFrame.pivot_table = pivot_table
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
-                 margins_name='All'):
+                 margins_name='All', fill_value=None):
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
@@ -240,8 +249,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
-
-    row_margin = row_margin.reindex(result.columns)
+    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
         if isinstance(k, compat.string_types):
@@ -253,6 +261,9 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     row_names = result.index.names
     try:
+        for dtype in set(result.dtypes):
+            cols = result.select_dtypes([dtype]).columns
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
         result = result.append(margin_dummy)
     except TypeError:
 
@@ -312,8 +323,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(
-                        cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(piece._get_axis(
+                                   cat_axis)._to_safe_for_reshape(),
+                                   axis=cat_axis, inplace=True)
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -522,10 +534,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
                            margins=margins, margins_name=margins_name,
                            dropna=dropna, **kwargs)
-
-    # GH 17013:
-    if values is None and margins:
-        table = table.fillna(0).astype(np.int64)
 
     # Post-process
     if normalize is not False:

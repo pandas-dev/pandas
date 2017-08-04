@@ -1,5 +1,5 @@
 # pylint: disable=W0223
-
+import textwrap
 import warnings
 import numpy as np
 from pandas.compat import range, zip
@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     _is_unorderable_exception,
     _ensure_platform_int)
-from pandas.core.dtypes.missing import isnull, _infer_fill_value
+from pandas.core.dtypes.missing import isna, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
 
@@ -1288,13 +1288,13 @@ class _IXIndexer(_NDFrameIndexer):
 
     def __init__(self, obj, name):
 
-        _ix_deprecation_warning = """
-.ix is deprecated. Please use
-.loc for label based indexing or
-.iloc for positional indexing
+        _ix_deprecation_warning = textwrap.dedent("""
+            .ix is deprecated. Please use
+            .loc for label based indexing or
+            .iloc for positional indexing
 
-See the documentation here:
-http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated"""  # noqa
+            See the documentation here:
+            http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
 
         warnings.warn(_ix_deprecation_warning,
                       DeprecationWarning, stacklevel=3)
@@ -1428,7 +1428,7 @@ class _LocIndexer(_LocationIndexer):
         else:
 
             def error():
-                if isnull(key):
+                if isna(key):
                     raise TypeError("cannot use label indexing with a null "
                                     "key")
                 raise KeyError("the label [%s] is not in the [%s]" %
@@ -1940,7 +1940,7 @@ def check_bool_indexer(ax, key):
     result = key
     if isinstance(key, ABCSeries) and not key.index.equals(ax):
         result = result.reindex(ax)
-        mask = isnull(result._values)
+        mask = isna(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series provided as '
                                 'indexer (index of the boolean Series and of '

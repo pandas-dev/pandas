@@ -286,7 +286,7 @@ def item_from_zerodim(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj(ndarray arr):
+def isnaobj(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
@@ -303,7 +303,7 @@ def isnullobj(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj_old(ndarray arr):
+def isnaobj_old(ndarray arr):
     cdef Py_ssize_t i, n
     cdef object val
     cdef ndarray[uint8_t] result
@@ -320,7 +320,7 @@ def isnullobj_old(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d(ndarray arr):
+def isnaobj2d(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result
@@ -339,7 +339,7 @@ def isnullobj2d(ndarray arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnullobj2d_old(ndarray arr):
+def isnaobj2d_old(ndarray arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
     cdef ndarray[uint8_t, ndim=2] result

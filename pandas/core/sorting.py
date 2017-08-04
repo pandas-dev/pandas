@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_categorical_dtype)
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algorithms
 from pandas._libs import lib, algos, hashtable
 from pandas._libs.hashtable import unique_label_indices
@@ -239,7 +239,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
-    mask = isnull(items)
+    mask = isna(items)
     non_nans = items[~mask]
     non_nan_idx = idx[~mask]
     nan_idx = np.nonzero(mask)[0]

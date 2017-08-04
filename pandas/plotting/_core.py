@@ -11,14 +11,14 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
-from pandas.core.dtypes.missing import notnull, remove_na_arraylike
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
     is_integer,
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.common import AbstractMethodError, isnull, _try_sort
+from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
@@ -554,7 +554,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
-                self.data = self.data[notnull(self.data.index)]
+                self.data = self.data[notna(self.data.index)]
                 self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
             else:
@@ -567,7 +567,7 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
-        mask = isnull(y)
+        mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
@@ -1290,7 +1290,7 @@ class HistPlot(LinePlot):
             # create common bin edge
             values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
-            values = values[~isnull(values)]
+            values = values[~isna(values)]
 
             hist, self.bins = np.histogram(
                 values, bins=self.bins,
@@ -1305,7 +1305,7 @@ class HistPlot(LinePlot):
               stacking_id=None, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isnull(y)]
+        y = y[~isna(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + \

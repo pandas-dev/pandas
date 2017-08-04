@@ -6,7 +6,7 @@ from pandas import compat
 from pandas.compat import builtins
 import numpy as np
 
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
 from pandas.util._validators import validate_bool_kwarg
@@ -894,7 +894,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return isnull(self).any()
+        return isna(self).any()
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -990,7 +990,7 @@ class IndexOpsMixin(object):
         """
         uniqs = self.unique()
         n = len(uniqs)
-        if dropna and isnull(uniqs).any():
+        if dropna and isna(uniqs).any():
             n -= 1
         return n
 

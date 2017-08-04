@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isnull
+from pandas import Series, DataFrame, date_range, concat, isna
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -191,7 +191,7 @@ class TestiLoc(Base):
 
         # cross-sectional indexing
         result = df.iloc[0, 0]
-        assert isnull(result)
+        assert isna(result)
 
         result = df.iloc[0, :]
         expected = Series([np.nan, 1, 3, 3], index=['A', 'B', 'A', 'B'],

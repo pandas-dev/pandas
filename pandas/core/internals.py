@@ -5,6 +5,7 @@ import re
 import operator
 from datetime import datetime, timedelta, date
 from collections import defaultdict
+from functools import partial
 
 import numpy as np
 
@@ -44,8 +45,8 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     find_common_type)
 from pandas.core.dtypes.missing import (
-    isnull, notnull, array_equivalent,
-    _is_na_compat,
+    isna, notna, array_equivalent,
+    _isna_compat,
     is_null_datelike_scalar)
 import pandas.core.dtypes.concat as _concat
 
@@ -158,6 +159,10 @@ class Block(PandasObject):
         this should be the pure internal API format
         """
         return self.values
+
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self.internal_values()
 
     def get_values(self, dtype=None):
         """
@@ -371,7 +376,7 @@ class Block(PandasObject):
             else:
                 return self.copy()
 
-        mask = isnull(self.values)
+        mask = isna(self.values)
         if limit is not None:
             if not is_integer(limit):
                 raise ValueError('Limit must be an integer')
@@ -633,7 +638,7 @@ class Block(PandasObject):
                 dtype = dtype.type
             if issubclass(dtype, (np.bool_, np.object_)):
                 if issubclass(dtype, np.bool_):
-                    if isnull(result).all():
+                    if isna(result).all():
                         return result.astype(np.bool_)
                     else:
                         result = result.astype(np.object_)
@@ -651,7 +656,7 @@ class Block(PandasObject):
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """
 
-        if np.any(notnull(other)) and not self._can_hold_element(other):
+        if np.any(notna(other)) and not self._can_hold_element(other):
             # coercion issues
             # let higher levels handle
             raise TypeError("cannot convert {} to an {}".format(
@@ -676,7 +681,7 @@ class Block(PandasObject):
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        mask = isnull(values)
+        mask = isna(values)
 
         if not self.is_object and not quoting:
             values = values.astype(str)
@@ -764,7 +769,7 @@ class Block(PandasObject):
                 find_dtype = True
 
             elif is_scalar(value):
-                if isnull(value):
+                if isna(value):
                     # NaN promotion is handled in latter path
                     dtype = False
                 else:
@@ -894,7 +899,7 @@ class Block(PandasObject):
             mask = mask.values
 
         # if we are passed a scalar None, convert it here
-        if not is_list_like(new) and isnull(new) and not self.is_object:
+        if not is_list_like(new) and isna(new) and not self.is_object:
             new = self.fill_value
 
         if self._can_hold_element(new):
@@ -1504,7 +1509,7 @@ class Block(PandasObject):
 
         def _nanpercentile(values, q, axis, **kw):
 
-            mask = isnull(self.values)
+            mask = isna(self.values)
             if not is_scalar(mask) and mask.any():
                 if self.ndim == 1:
                     return _nanpercentile1D(values, mask, q, **kw)
@@ -1750,7 +1755,7 @@ class FloatBlock(FloatOrComplexBlock):
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
         if float_format is None and decimal == '.':
-            mask = isnull(values)
+            mask = isna(values)
 
             if not quoting:
                 values = values.astype(str)
@@ -1869,7 +1874,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         base-type values, values mask, base-type other, other mask
         """
 
-        values_mask = isnull(values)
+        values_mask = isna(values)
         values = values.view('i8')
         other_mask = False
 
@@ -1879,15 +1884,15 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             other = tslib.iNaT
             other_mask = True
         elif isinstance(other, Timedelta):
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = other.value
         elif isinstance(other, timedelta):
             other = Timedelta(other).value
         elif isinstance(other, np.timedelta64):
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = Timedelta(other).value
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
@@ -1899,7 +1904,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
-            mask = isnull(result)
+            mask = isna(result)
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('m8[ns]')
             result[mask] = tslib.iNaT
@@ -1917,7 +1922,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
-        mask = isnull(values)
+        mask = isna(values)
 
         rvalues = np.empty(values.shape, dtype=object)
         if na_rep is None:
@@ -2178,7 +2183,7 @@ class ObjectBlock(Block):
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
-        if isnull(value) or not isinstance(value, compat.string_types):
+        if isna(value) or not isinstance(value, compat.string_types):
 
             def re_replacer(s):
                 try:
@@ -2333,7 +2338,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         if slicer is not None:
             # Categorical is always one dimension
             values = values[slicer]
-        mask = isnull(values)
+        mask = isna(values)
         values = np.array(values, dtype='object')
         values[mask] = na_rep
 
@@ -2377,7 +2382,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             element = np.array(element)
             return element.dtype == _NS_DTYPE or element.dtype == np.int64
         return (is_integer(element) or isinstance(element, datetime) or
-                isnull(element))
+                isna(element))
 
     def _try_coerce_args(self, values, other):
         """
@@ -2396,7 +2401,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         base-type values, values mask, base-type other, other mask
         """
 
-        values_mask = isnull(values)
+        values_mask = isna(values)
         values = values.view('i8')
         other_mask = False
 
@@ -2410,10 +2415,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             if getattr(other, 'tz') is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a "
                                 "naive Block")
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = other.asm8.view('i8')
         elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
@@ -2540,26 +2545,26 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         -------
         base-type values, values mask, base-type other, other mask
         """
-        values_mask = _block_shape(isnull(values), ndim=self.ndim)
+        values_mask = _block_shape(isna(values), ndim=self.ndim)
         # asi8 is a view, needs copy
         values = _block_shape(values.asi8, ndim=self.ndim)
         other_mask = False
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
-            other_mask = isnull(other)
+            other_mask = isna(other)
 
         if isinstance(other, bool):
             raise TypeError
         elif (is_null_datelike_scalar(other) or
-              (is_scalar(other) and isnull(other))):
+              (is_scalar(other) and isna(other))):
             other = tslib.iNaT
             other_mask = True
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = other.asi8
-            other_mask = isnull(other)
+            other_mask = isna(other)
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = lib.Timestamp(other)
             tz = getattr(other, 'tz', None)
@@ -2567,7 +2572,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # test we can have an equal time zone
             if tz is None or str(tz) != str(self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
-            other_mask = isnull(other)
+            other_mask = isna(other)
             other = other.value
         else:
             raise TypeError
@@ -2959,11 +2964,11 @@ class BlockManager(PandasObject):
         return obj
 
     def add_prefix(self, prefix):
-        f = (str(prefix) + '%s').__mod__
+        f = partial('{prefix}{}'.format, prefix=prefix)
         return self.rename_axis(f, axis=0)
 
     def add_suffix(self, suffix):
-        f = ('%s' + str(suffix)).__mod__
+        f = partial('{}{suffix}'.format, suffix=suffix)
         return self.rename_axis(f, axis=0)
 
     @property
@@ -3292,7 +3297,7 @@ class BlockManager(PandasObject):
                         placement=np.arange(len(values)))],
             axes[0])
 
-    def isnull(self, **kwargs):
+    def isna(self, **kwargs):
         return self.apply('apply', **kwargs)
 
     def where(self, **kwargs):
@@ -3347,8 +3352,8 @@ class BlockManager(PandasObject):
         values = self.as_matrix()
 
         def comp(s):
-            if isnull(s):
-                return isnull(values)
+            if isna(s):
+                return isna(values)
             return _maybe_compare(values, getattr(s, 'asm8', s), operator.eq)
 
         masks = [comp(s) for i, s in enumerate(src_list)]
@@ -3681,10 +3686,10 @@ class BlockManager(PandasObject):
         """
         if self.items.is_unique:
 
-            if not isnull(item):
+            if not isna(item):
                 loc = self.items.get_loc(item)
             else:
-                indexer = np.arange(len(self.items))[isnull(self.items)]
+                indexer = np.arange(len(self.items))[isna(self.items)]
 
                 # allow a single nan location indexer
                 if not is_scalar(indexer):
@@ -3696,7 +3701,7 @@ class BlockManager(PandasObject):
             return self.iget(loc, fastpath=fastpath)
         else:
 
-            if isnull(item):
+            if isna(item):
                 raise TypeError("cannot label index with a null key")
 
             indexer = self.items.get_indexer_for([item])
@@ -4316,6 +4321,10 @@ class SingleBlockManager(BlockManager):
     def internal_values(self):
         return self._block.internal_values()
 
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self._block.formatting_values()
+
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
@@ -4886,7 +4895,7 @@ def _putmask_smart(v, m, n):
 
         # make sure that we have a nullable type
         # if we have nulls
-        if not _is_na_compat(v, nn[0]):
+        if not _isna_compat(v, nn[0]):
             raise ValueError
 
         # we ignore ComplexWarning here
@@ -5010,7 +5019,7 @@ def get_empty_dtype_and_na(join_units):
         # Null blocks should not influence upcast class selection, unless there
         # are only null blocks, when same upcasting rules must be applied to
         # null upcast classes.
-        if unit.is_null:
+        if unit.is_na:
             null_upcast_classes[upcast_cls].append(dtype)
         else:
             upcast_classes[upcast_cls].append(dtype)
@@ -5280,7 +5289,7 @@ class JoinUnit(object):
                                             self.block.fill_value)[0])
 
     @cache_readonly
-    def is_null(self):
+    def is_na(self):
         if self.block is None:
             return True
 
@@ -5303,7 +5312,7 @@ class JoinUnit(object):
         total_len = values_flat.shape[0]
         chunk_len = max(total_len // 40, 1000)
         for i in range(0, total_len, chunk_len):
-            if not isnull(values_flat[i:i + chunk_len]).all():
+            if not isna(values_flat[i:i + chunk_len]).all():
                 return False
 
         return True
@@ -5316,7 +5325,7 @@ class JoinUnit(object):
         else:
             fill_value = upcasted_na
 
-            if self.is_null:
+            if self.is_na:
                 if getattr(self.block, 'is_object', False):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all

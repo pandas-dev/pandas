@@ -3,7 +3,7 @@ from __future__ import division
 import pytest
 import numpy as np
 
-from pandas import (Interval, IntervalIndex, Index, isnull,
+from pandas import (Interval, IntervalIndex, Index, isna,
                     interval_range, Timestamp, Timedelta,
                     compat)
 from pandas._libs.interval import IntervalTree
@@ -152,16 +152,16 @@ class TestIntervalIndex(Base):
     def test_with_nans(self):
         index = self.index
         assert not index.hasnans
-        tm.assert_numpy_array_equal(index.isnull(),
+        tm.assert_numpy_array_equal(index.isna(),
                                     np.array([False, False]))
-        tm.assert_numpy_array_equal(index.notnull(),
+        tm.assert_numpy_array_equal(index.notna(),
                                     np.array([True, True]))
 
         index = self.index_with_nan
         assert index.hasnans
-        tm.assert_numpy_array_equal(index.notnull(),
+        tm.assert_numpy_array_equal(index.notna(),
                                     np.array([True, False, True]))
-        tm.assert_numpy_array_equal(index.isnull(),
+        tm.assert_numpy_array_equal(index.isna(),
                                     np.array([False, True, False]))
 
     def test_copy(self):
@@ -228,7 +228,7 @@ class TestIntervalIndex(Base):
 
     def test_where(self):
         expected = self.index
-        result = self.index.where(self.index.notnull())
+        result = self.index.where(self.index.notna())
         tm.assert_index_equal(result, expected)
 
         idx = IntervalIndex.from_breaks([1, 2])
@@ -311,7 +311,7 @@ class TestIntervalIndex(Base):
                                       closed='right')
         assert i[0] == Interval(0.0, 1.0)
         assert i[1] == Interval(1.0, 2.0)
-        assert isnull(i[2])
+        assert isna(i[2])
 
         result = i[0:1]
         expected = IntervalIndex.from_arrays((0.,), (1.,), closed='right')
@@ -620,7 +620,7 @@ class TestIntervalIndex(Base):
         with pytest.raises(ValueError):
             IntervalIndex.from_arrays([np.nan, 0, 1], np.array([0, 1, 2]))
 
-        tm.assert_numpy_array_equal(isnull(idx),
+        tm.assert_numpy_array_equal(isna(idx),
                                     np.array([True, False, False]))
 
     def test_sort_values(self):
@@ -631,15 +631,15 @@ class TestIntervalIndex(Base):
 
         # nan
         idx = self.index_with_nan
-        mask = idx.isnull()
+        mask = idx.isna()
         tm.assert_numpy_array_equal(mask, np.array([False, True, False]))
 
         result = idx.sort_values()
-        mask = result.isnull()
+        mask = result.isna()
         tm.assert_numpy_array_equal(mask, np.array([False, False, True]))
 
         result = idx.sort_values(ascending=False)
-        mask = result.isnull()
+        mask = result.isna()
         tm.assert_numpy_array_equal(mask, np.array([True, False, False]))
 
     def test_datetime(self):

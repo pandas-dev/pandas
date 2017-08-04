@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isnull, concat,
+                    MultiIndex, Int64Index, isna, concat,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
@@ -2136,7 +2136,7 @@ class DataCol(IndexCol):
                 # if we have stored a NaN in the categories
                 # then strip it; in theory we could have BOTH
                 # -1s in the codes and nulls :<
-                mask = isnull(categories)
+                mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
                     codes[codes != -1] -= mask.astype(int).cumsum().values
@@ -3941,7 +3941,7 @@ class AppendableTable(LegacyTable):
 
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
-                mask = isnull(a.data).all(axis=0)
+                mask = isna(a.data).all(axis=0)
                 if isinstance(mask, np.ndarray):
                     masks.append(mask.astype('u1', copy=False))
 
