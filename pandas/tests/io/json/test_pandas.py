@@ -1041,6 +1041,23 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert_frame_equal(chunked, unchunked)
 
+        chunked_float = pd.read_json(strio, lines=True, chunksize=1.0)
+        assert_frame_equal(chunked_float, unchunked)
+
+        msg = r"'chunksize' must be an integer >=1"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(strio, lines=True, chunksize=0)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(strio, lines=True, chunksize=-1)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(strio, lines=True, chunksize=2.2)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(strio, lines=True, chunksize='foo')
+
     def test_latin_encoding(self):
         if compat.PY2:
             tm.assert_raises_regex(
