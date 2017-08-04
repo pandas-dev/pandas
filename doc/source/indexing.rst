@@ -271,7 +271,7 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
 
     In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
     In[2]: df.two = [4, 5, 6]
-    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute-access
+    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
     In[3]: df
     Out[3]:
        one
