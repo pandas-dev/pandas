@@ -337,6 +337,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
                                                       encoding=encoding)
 
     def _read_json_as_lines(fh, chunksize):
+        """
+        Read json lines from fh in chunks, then concatenate the resulting
+        pandas objects.
+
+        Parameters
+        ----------
+        fh : a file-like object
+        chunksize : integer
+        """
         return_val = None
         while True:
             lines = list(islice(fh, chunksize))
