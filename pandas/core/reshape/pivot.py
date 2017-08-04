@@ -2,8 +2,10 @@
 
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+
 from pandas.core.reshape.concat import concat
-from pandas import Series, DataFrame, MultiIndex, Index
+from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import _get_combined_index
@@ -16,6 +18,7 @@ import numpy as np
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 fill_value=None, margins=False, dropna=True,
                 margins_name='All'):
+    """ See DataFrame.pivot_table.__doc__ """
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -87,6 +90,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         table = agged.unstack(to_unstack)
 
     if not dropna:
+        from pandas import MultiIndex
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
@@ -101,7 +105,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         except AttributeError:
             pass  # it's a single level or a series
 
-    if isinstance(table, DataFrame):
+    if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
@@ -123,11 +127,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         table = table.T
 
     # GH 15193 Makse sure empty columns are removed if dropna=True
-    if isinstance(table, DataFrame) and dropna:
+    if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how='all', axis=1)
 
     return table
-pivot_table.__doc__ = DataFrame.pivot_table.__doc__
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
@@ -153,7 +156,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     else:
         key = margins_name
 
-    if not values and isinstance(table, Series):
+    if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
         return table.append(Series({key: grand_margin[margins_name]}))
@@ -180,6 +183,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         else:
             row_margin[k] = grand_margin[k[0]]
 
+    from pandas import DataFrame
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
@@ -325,7 +329,7 @@ def _convert_by(by):
     if by is None:
         by = []
     elif (is_scalar(by) or
-          isinstance(by, (np.ndarray, Index, Series, Grouper)) or
+          isinstance(by, (np.ndarray, ABCIndex, ABCSeries, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]
     else:
@@ -446,6 +450,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    from pandas import DataFrame
     df = DataFrame(data, index=common_idx)
     if values is None:
         df['__dummy__'] = 0
@@ -543,7 +548,7 @@ def _get_names(arrs, names, prefix='row'):
     if names is None:
         names = []
         for i, arr in enumerate(arrs):
-            if isinstance(arr, Series) and arr.name is not None:
+            if isinstance(arr, ABCSeries) and arr.name is not None:
                 names.append(arr.name)
             else:
                 names.append('%s_%d' % (prefix, i))
