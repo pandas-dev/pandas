@@ -249,5 +249,5 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
         try:
             return maybe_to_datetimelike(data)
         except Exception:
-            raise AttributeError("Can only use .dt accessor with datetimelike "
-                                 "values")
+            raise AttributeError("Can only use .dt accessor with "
+                                 "datetimelike values")
