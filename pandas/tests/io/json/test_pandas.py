@@ -1032,6 +1032,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
+    def test_read_jsonchunks(self):
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        strio = df.to_json(lines=True, orient="records")
+
+        unchunked = pd.read_json(strio, lines=True)
+        chunked = pd.read_json(strio, lines=True, chunksize=1)
+
+        assert_frame_equal(chunked, unchunked)
+
     def test_latin_encoding(self):
         if compat.PY2:
             tm.assert_raises_regex(
