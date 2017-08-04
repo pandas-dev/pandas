@@ -274,6 +274,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             `read_csv`, which returns a FileTextReader.
         If the JSON input is a string, this argument has no effect.
 
+        .. versionadded:: 0.21.0
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
