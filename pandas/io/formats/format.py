@@ -237,7 +237,8 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.tr_series._values, None,
+        values_to_format = self.tr_series._formatting_values()
+        return format_array(values_to_format, None,
                             float_format=self.float_format, na_rep=self.na_rep)
 
     def to_string(self):
@@ -694,7 +695,8 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
-        return format_array(frame.iloc[:, i]._values, formatter,
+        values_to_format = frame.iloc[:, i]._formatting_values()
+        return format_array(values_to_format, formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
