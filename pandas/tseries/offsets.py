@@ -10,7 +10,9 @@ from pandas.core.common import AbstractMethodError
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
+
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs.lib import cache_readonly
 
 import functools
 import operator
@@ -132,6 +134,33 @@ class CacheableOffset(object):
     _cacheable = True
 
 
+_kwds_use_relativedelta = (
+    'years', 'months', 'weeks', 'days',
+    'year', 'month', 'week', 'day', 'weekday',
+    'hour', 'minute', 'second', 'microsecond'
+)
+
+
+def _determine_offset(kwds):
+    # timedelta is used for sub-daily plural offsets and all singular
+    # offsets relativedelta is used for plural offsets of daily length or
+    # more nanosecond(s) are handled by apply_wraps
+    kwds_no_nanos = dict(
+        (k, v) for k, v in kwds.items()
+        if k not in ('nanosecond', 'nanoseconds')
+    )
+
+    if len(kwds_no_nanos) > 0:
+        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+                offset = relativedelta(**kwds_no_nanos)
+        else:
+            # sub-daily offset - use timedelta (tz-aware)
+            offset = timedelta(**kwds_no_nanos)
+    else:
+        offset = timedelta(1)
+    return offset
+
+
 class DateOffset(object):
     """
     Standard kind of date increment used for a date range.
@@ -177,43 +206,37 @@ class DateOffset(object):
     """
     _cacheable = False
     _normalize_cache = True
-    _kwds_use_relativedelta = (
-        'years', 'months', 'weeks', 'days',
-        'year', 'month', 'week', 'day', 'weekday',
-        'hour', 'minute', 'second', 'microsecond'
-    )
-    _use_relativedelta = False
     _adjust_dst = False
+    _typ = "dateoffset"
 
-    # default for prior pickles
-    normalize = False
+    def __setattr__(self, name, value):
+        # DateOffset needs to be effectively immutable in order for the
+        # caching in _cached_params to be correct.
+        frozen = ['n', '_offset', 'normalize', '_inc']
+        if name in frozen and hasattr(self, name):
+            msg = '%s cannot change attribute %s' % (self.__class__, name)
+            raise TypeError(msg)
+        object.__setattr__(self, name, value)
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        self.__dict__ = state
+        if 'normalize' not in state and not hasattr(self, 'normalize'):
+            # default for prior pickles
+            self.normalize = False
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self._offset, self._use_relativedelta = self._determine_offset()
+        self._offset = _determine_offset(kwds)
 
-    def _determine_offset(self):
-        # timedelta is used for sub-daily plural offsets and all singular
-        # offsets relativedelta is used for plural offsets of daily length or
-        # more nanosecond(s) are handled by apply_wraps
-        kwds_no_nanos = dict(
-            (k, v) for k, v in self.kwds.items()
-            if k not in ('nanosecond', 'nanoseconds')
-        )
-        use_relativedelta = False
-
-        if len(kwds_no_nanos) > 0:
-            if any(k in self._kwds_use_relativedelta for k in kwds_no_nanos):
-                use_relativedelta = True
-                offset = relativedelta(**kwds_no_nanos)
-            else:
-                # sub-daily offset - use timedelta (tz-aware)
-                offset = timedelta(**kwds_no_nanos)
-        else:
-            offset = timedelta(1)
-        return offset, use_relativedelta
+    @property
+    def _use_relativedelta(self):
+        # We need to check for _offset existence because it may not exist
+        # if we are in the process of unpickling.
+        return (hasattr(self, '_offset') and
+                isinstance(self._offset, relativedelta))
 
     @apply_wraps
     def apply(self, other):
@@ -308,7 +331,24 @@ class DateOffset(object):
     def _should_cache(self):
         return self.isAnchored() and self._cacheable
 
+    @cache_readonly
+    def _cached_params(self):
+        assert len(self.kwds) == 0
+        all_paras = dict(list(vars(self).items()))
+        # equiv: self.__dict__.copy()
+        if 'holidays' in all_paras and not all_paras['holidays']:
+            all_paras.pop('holidays')
+        exclude = ['kwds', 'name', 'normalize', 'calendar']
+        attrs = [(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != '_')]
+        attrs = sorted(set(attrs))
+        params = tuple([str(self.__class__)] + attrs)
+        return params
+
     def _params(self):
+        if len(self.kwds) == 0:
+            return self._cached_params
+
         all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
@@ -578,6 +618,10 @@ class BusinessMixin(object):
             self.kwds['holidays'] = self.holidays = holidays
             self.kwds['weekmask'] = state['weekmask']
 
+        if 'normalize' not in state:
+            # default for prior pickles
+            self.normalize = False
+
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
@@ -591,6 +635,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
+        self._offset = None
 
     @property
     def freqstr(self):
@@ -709,6 +754,7 @@ class BusinessHourMixin(BusinessMixin):
         self.offset = kwds.get('offset', timedelta(0))
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
+        self._offset = None
 
     def _validate_time(self, t_input):
         from datetime import time as dt_time
@@ -986,6 +1032,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
+        self._offset = None
 
     def get_calendar(self, weekmask, holidays, calendar):
         """Generate busdaycalendar"""
@@ -1182,6 +1229,7 @@ class SemiMonthOffset(DateOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.kwds['day_of_month'] = self.day_of_month
+        self._offset = None
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -1580,6 +1628,7 @@ class Week(DateOffset):
 
         self._inc = timedelta(weeks=1)
         self.kwds = kwds
+        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.weekday is not None)
@@ -1702,6 +1751,7 @@ class WeekOfMonth(DateOffset):
                              self.week)
 
         self.kwds = kwds
+        self._offset = None
 
     @apply_wraps
     def apply(self, other):
@@ -1792,6 +1842,7 @@ class LastWeekOfMonth(DateOffset):
                              self.weekday)
 
         self.kwds = kwds
+        self._offset = None
 
     @apply_wraps
     def apply(self, other):
@@ -1857,8 +1908,8 @@ class QuarterOffset(DateOffset):
         self.normalize = normalize
         self.startingMonth = kwds.get('startingMonth',
                                       self._default_startingMonth)
-
         self.kwds = kwds
+        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -1981,6 +2032,7 @@ class QuarterEnd(QuarterOffset):
         self.startingMonth = kwds.get('startingMonth', 3)
 
         self.kwds = kwds
+        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -2306,6 +2358,7 @@ class FY5253(DateOffset):
         self.variation = kwds["variation"]
 
         self.kwds = kwds
+        self._offset = None
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
@@ -2690,6 +2743,7 @@ def _tick_comp(op):
 
 class Tick(SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
+    _typ = "tick"
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
@@ -2741,7 +2795,7 @@ class Tick(SingleConstructorOffset):
         else:
             return DateOffset.__ne__(self, other)
 
-    @property
+    @cache_readonly
     def delta(self):
         return self.n * self._inc
 
