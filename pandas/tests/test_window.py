@@ -424,7 +424,7 @@ class TestRolling(Base):
             tm.assert_frame_equal(result, expected)
 
     def test_constructor_with_timedelta_window_and_minperiods(self):
-        # GH 15440
+        # GH 15305
         n = 10
         df = pd.DataFrame({'value': np.arange(n)},
                           index=pd.date_range('2015-12-24',
