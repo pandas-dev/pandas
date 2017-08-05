@@ -4711,8 +4711,6 @@ def _concat_indexes(indexes):
 
 def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
     """ pivot to the labels shape """
-    from pandas.core.internals import make_block
-
     panel_shape = (len(placement),) + shape
 
     # TODO: lexsort depth needs to be 2!!
