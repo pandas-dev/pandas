@@ -433,7 +433,7 @@ class TestRolling(Base):
         expected_data = np.append([np.NaN, 1.], np.arange(3., 27., 3))
         for window in [timedelta(days=3), pd.Timedelta(days=3)]:
             result_roll_sum = df.rolling(window=window, min_periods=2).sum()
-            result_roll_generic = df.rolling(window=window, 
+            result_roll_generic = df.rolling(window=window,
                                              min_periods=2).apply(sum)
             expected = pd.DataFrame({'value': expected_data},
                                     index=pd.date_range('2015-12-24',

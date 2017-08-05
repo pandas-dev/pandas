@@ -1439,8 +1439,6 @@ def roll_generic(ndarray[float64_t, cast=True] input,
 
     output = np.empty(N, dtype=float)
 
-
-
     if is_variable:
 
         # variable window
