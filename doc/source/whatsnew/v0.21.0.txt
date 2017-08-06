@@ -278,7 +278,6 @@ Indexing
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
-- Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 
 I/O
 ^^^
@@ -300,10 +299,10 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in ``DataFrame.resample().size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 - Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
 - Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
+- Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 - Bug in ``Grouper.aggregate()`` where grouping by a vector of mixed types would raise a ``TypeError`` only if the aggregating function returned a list-like object (:issue:`16916`)
 
 Sparse
