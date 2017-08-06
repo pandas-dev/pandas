@@ -1,5 +1,5 @@
 import types
-from functools import wraps
+from functools import wraps, partial
 import numpy as np
 import datetime
 import collections
@@ -62,6 +62,8 @@ from pandas.util._validators import validate_kwargs
 import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
+
+from pandas.plotting._core import boxplot_frame_groupby
 
 from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
 from pandas._libs.lib import count_level_2d
@@ -950,7 +952,6 @@ class _GroupBy(PandasObject, SelectionMixin):
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data. See aggregate,
     transform, and apply functions on this object.
@@ -2742,6 +2743,17 @@ def _convert_grouper(axis, grouper):
         return grouper
 
 
+def pin_method(cls, target_cls, name):
+    items = list(_whitelist_method_generator(target_cls, [name]))
+    assert len(items) <= 1, items
+    if items:
+        func = items[0]
+        if not isinstance(func, str):
+            # Note: checking `if callable(func)` fails here on `dtype`.
+            setattr(cls, name, func)
+    return
+
+
 def _whitelist_method_generator(klass, whitelist):
     """
     Yields all GroupBy member defs for DataFrame/Series names in _whitelist.
@@ -2762,20 +2774,12 @@ def _whitelist_method_generator(klass, whitelist):
     base class, any such name is skipped.
     """
 
-    method_wrapper_template = \
-        """def %(name)s(%(sig)s) :
+    method_wrapper_template = """def %(name)s(%(sig)s):
     \"""
     %(doc)s
     \"""
     f = %(self)s.__getattr__('%(name)s')
     return f(%(args)s)"""
-    property_wrapper_template = \
-        """@property
-def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
-    return self.__getattr__('%(name)s')"""
     for name in whitelist:
         # don't override anything that was explicitly defined
         # in the base class
@@ -2794,22 +2798,31 @@ def %(name)s(self) :
             args_by_name = ['{0}={0}'.format(arg) for arg in args[1:]]
             params = {'name': name,
                       'doc': doc,
-                      'sig': ','.join(decl),
+                      'sig': ', '.join(decl),
                       'self': args[0],
-                      'args': ','.join(args_by_name)}
+                      'args': ', '.join(args_by_name)}
+
+            yield wrapper_template % params
+
         else:
-            wrapper_template = property_wrapper_template
-            params = {'name': name, 'doc': doc}
-        yield wrapper_template % params
+
+            def getter(self):
+                return self.__getattr__(name)
+
+            getter.__name__ = name
+            getter.__doc__ = doc
+
+            prop = property(getter, doc=doc)
+            yield prop
 
 
 class SeriesGroupBy(GroupBy):
     #
     # Make class defs of attributes on SeriesGroupBy whitelist
     _apply_whitelist = _series_apply_whitelist
-    for _def_str in _whitelist_method_generator(Series,
-                                                _series_apply_whitelist):
-        exec(_def_str)
+    for _def_str in _whitelist_method_generator(Series, _apply_whitelist):
+        if isinstance(_def_str, str):
+            exec(_def_str)
 
     @property
     def _selection_name(self):
@@ -3189,7 +3202,6 @@ class SeriesGroupBy(GroupBy):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
-        from functools import partial
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -3328,6 +3340,10 @@ class SeriesGroupBy(GroupBy):
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
         return func(self)
+
+
+for name in SeriesGroupBy._apply_whitelist:
+    pin_method(SeriesGroupBy, Series, name)
 
 
 class NDFrameGroupBy(GroupBy):
@@ -3967,7 +3983,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     #
     # Make class defs of attributes on DataFrameGroupBy whitelist.
     for _def_str in _whitelist_method_generator(DataFrame, _apply_whitelist):
-        exec(_def_str)
+        if isinstance(_def_str, str):
+            exec(_def_str)
 
     _block_agg_axis = 1
 
@@ -4203,7 +4220,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def count(self):
         """ Compute count of group, excluding missing values """
-        from functools import partial
         from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
@@ -4283,9 +4299,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results.index = _default_index(len(results))
         return results
 
+    boxplot = boxplot_frame_groupby
 
-from pandas.plotting._core import boxplot_frame_groupby  # noqa
-DataFrameGroupBy.boxplot = boxplot_frame_groupby
+
+for name in DataFrameGroupBy._apply_whitelist:
+    pin_method(DataFrameGroupBy, DataFrame, name)
 
 
 class PanelGroupBy(NDFrameGroupBy):
