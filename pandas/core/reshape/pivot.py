@@ -2,13 +2,13 @@
 
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import _get_combined_index
+from pandas.core.index import Index, _get_combined_index
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -126,7 +126,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
-    # GH 15193 Makse sure empty columns are removed if dropna=True
+    # GH 15193 Make sure empty columns are removed if dropna=True
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how='all', axis=1)
 
@@ -329,7 +329,7 @@ def _convert_by(by):
     if by is None:
         by = []
     elif (is_scalar(by) or
-          isinstance(by, (np.ndarray, ABCIndex, ABCSeries, Grouper)) or
+          isinstance(by, (np.ndarray, Index, ABCSeries, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]
     else:
