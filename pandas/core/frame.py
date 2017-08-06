@@ -4224,7 +4224,7 @@ class DataFrame(NDFrame):
         DataFrame.pivot : pivot without aggregation that can handle
             non-numeric data
         """
-        from pandas.core.reshape.reshape import pivot_table
+        from pandas.core.reshape.pivot import pivot_table
         return pivot_table(self, values=values, index=index, columns=columns,
                            aggfunc=aggfunc, fill_value=fill_value,
                            margins=margins, dropna=dropna,
