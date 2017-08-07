@@ -861,6 +861,20 @@ class TestMisc(Base):
         expected = [1]
         assert result == expected
 
+    def test_partial_boolean_frame_indexing(self):
+        # GH 17170
+        df = pd.DataFrame(np.arange(9.).reshape(3, 3),
+                          index=list('abc'),
+                          columns=list('ABC'))
+        index_df = pd.DataFrame(1, index=list('ab'), columns=list('AB'))
+        result = df[index_df.notnull()]
+        expected = pd.DataFrame(np.array([[0., 1., np.nan],
+                                          [3., 4., np.nan],
+                                          [np.nan] * 3]),
+                                index=list('abc'),
+                                columns=list('ABC'))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
