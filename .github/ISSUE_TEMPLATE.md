@@ -8,11 +8,9 @@
 
 [this should explain **why** the current behaviour is a problem and why the expected output is a better solution.]
 
-**Note**: We receive a lot of issues on our GitHub tracker, so it is very possible that your issue has been posted before.
-Please check first before submitting so that we do not have to handle and close duplicates!
+**Note**: We receive a lot of issues on our GitHub tracker, so it is very possible that your issue has been posted before. Please check first before submitting so that we do not have to handle and close duplicates!
 
-**Note**: Many problems can be resolved by simply upgrading `pandas` to the latest version. Before submitting, please check
-if that solution works for you. If possible, you may want to check if `master` addresses this issue, but that is not necessary.
+**Note**: Many problems can be resolved by simply upgrading `pandas` to the latest version. Before submitting, please check if that solution works for you. If possible, you may want to check if `master` addresses this issue, but that is not necessary.
 
 #### Expected Output
 
