@@ -101,7 +101,6 @@ import pandas.plotting._core as gfx
 from pandas._libs import lib, algos as libalgos
 
 from pandas.core.config import get_option
-from pandas.core.reshape import pivot
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -4146,6 +4145,81 @@ class DataFrame(NDFrame):
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
+
+    _shared_docs['pivot_table'] = """
+        Create a spreadsheet-style pivot table as a DataFrame. The levels in
+        the pivot table will be stored in MultiIndex objects (hierarchical
+        indexes) on the index and columns of the result DataFrame
+
+        Parameters
+        ----------%s
+        values : column to aggregate, optional
+        index : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table index.  If an array is passed,
+            it is being used as the same manner as column values.
+        columns : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table column.  If an array is passed,
+            it is being used as the same manner as column values.
+        aggfunc : function or list of functions, default numpy.mean
+            If list of functions passed, the resulting pivot table will have
+            hierarchical columns whose top level are the function names
+            (inferred from the function objects themselves)
+        fill_value : scalar, default None
+            Value to replace missing values with
+        margins : boolean, default False
+            Add all row / columns (e.g. for subtotal / grand totals)
+        dropna : boolean, default True
+            Do not include columns whose entries are all NaN
+        margins_name : string, default 'All'
+            Name of the row / column that will contain the totals
+            when margins is True.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+        ...                          "bar", "bar", "bar", "bar"],
+        ...                    "B": ["one", "one", "one", "two", "two",
+        ...                          "one", "one", "two", "two"],
+        ...                    "C": ["small", "large", "large", "small",
+        ...                          "small", "large", "small", "small",
+        ...                          "large"],
+        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
+        >>> df
+             A    B      C  D
+        0  foo  one  small  1
+        1  foo  one  large  2
+        2  foo  one  large  2
+        3  foo  two  small  3
+        4  foo  two  small  3
+        5  bar  one  large  4
+        6  bar  one  small  5
+        7  bar  two  small  6
+        8  bar  two  large  7
+
+        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        ...                     columns=['C'], aggfunc=np.sum)
+        >>> table
+        ... # doctest: +NORMALIZE_WHITESPACE
+        C        large  small
+        A   B
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
+
+        Returns
+        -------
+        table : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot : pivot without aggregation that can handle
+            non-numeric data
+        """
 
     @Substitution('')
     @Appender(_shared_docs['pivot_table'])
