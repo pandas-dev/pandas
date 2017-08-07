@@ -5,7 +5,6 @@ with float64 data
 from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
 
-from numpy import nan
 from pandas.compat import lmap
 from pandas import compat
 import numpy as np
@@ -156,7 +155,7 @@ class SparseDataFrame(DataFrame):
                 v = v.copy()
             else:
                 if isinstance(v, dict):
-                    v = [v.get(i, nan) for i in index]
+                    v = [v.get(i, np.nan) for i in index]
 
                 v = sp_maker(v)
             sdict[k] = v
