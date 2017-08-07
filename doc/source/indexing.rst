@@ -227,10 +227,6 @@ as an attribute:
    dfa.A
    panel.one
 
-You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
-if you try to use attribute access to create a new column, it fails silently, creating a new attribute rather than a
-new column.
-
 .. ipython:: python
 
    sa.a = 5
@@ -266,6 +262,37 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
    x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
    x.iloc[1] = dict(x=9, y=99)
    x
+
+You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
+if you try to use attribute access to create a new column, it creates a new attribute rather than a
+new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+
+.. code-block:: ipython
+
+    In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+    In[2]: df.two = [4, 5, 6]
+    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
+    In[3]: df
+    Out[3]:
+       one
+    0  1.0
+    1  2.0
+    2  3.0
+
+Similarly, it is possible to create a column with a name which collides with one of Pandas's
+built-in methods or attributes, which can cause confusion later when attempting to access
+that column as an attribute. This behavior now warns:
+
+.. code-block:: ipython
+
+    In[4]: df['sum'] = [5., 7., 9.]
+    UserWarning: Column name 'sum' collides with a built-in method, which will cause unexpected attribute behavior
+    In[5]: df.sum
+    Out[5]:
+    <bound method DataFrame.sum of    one  sum
+    0  1.0  5.0
+    1  2.0  7.0
+    2  3.0  9.0>
 
 Slicing ranges
 --------------
