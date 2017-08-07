@@ -875,6 +875,7 @@ class TestMisc(Base):
                                 columns=list('ABC'))
         tm.assert_frame_equal(result, expected)
 
+
 class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
