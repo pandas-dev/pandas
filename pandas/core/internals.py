@@ -327,10 +327,6 @@ class Block(PandasObject):
                                    fill_value=fill_value, mask_info=mask_info)
         return self.make_block(new_values, fastpath=True)
 
-    def get(self, item):
-        loc = self.items.get_loc(item)
-        return self.values[loc]
-
     def iget(self, i):
         return self.values[i]
 
@@ -1661,13 +1657,6 @@ class NonConsolidatableMixIn(object):
     def set(self, locs, values, check=False):
         assert locs.tolist() == [0]
         self.values = values
-
-    def get(self, item):
-        if self.ndim == 1:
-            loc = self.items.get_loc(item)
-            return self.values[loc]
-        else:
-            return self.values
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0,
                 transpose=False, mgr=None):
@@ -4730,8 +4719,6 @@ def _concat_indexes(indexes):
 
 def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
     """ pivot to the labels shape """
-    from pandas.core.internals import make_block
-
     panel_shape = (len(placement),) + shape
 
     # TODO: lexsort depth needs to be 2!!
