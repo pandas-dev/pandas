@@ -426,7 +426,7 @@ SAS extracts a substring from a string based on its position with the
    put(substr(sex,1,1));
    run;
 
-In Python, you can use ``[]`` notation to extract a substring 
+With pandas you can use ``[]`` notation to extract a substring
 from a string by position locations.  Keep in mind that Python 
 indexes are zero-based.
 
@@ -463,6 +463,7 @@ approaches, but this just shows a simple approach.
    firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
    firstlast['First_Name'] = firstlast['String'].str.split(" ", expand=True)[0]
    firstlast['Last_Name'] = firstlast['String'].str.rsplit(" ", expand=True)[0]
+   firstlast
 
 
 Upcase, Lowcase, and Propcase
@@ -494,7 +495,7 @@ The equivalent Python functions are ``upper``, ``lower``, and ``title``.
    firstlast['string_up'] = firstlast['String'].str.upper()
    firstlast['string_low'] = firstlast['String'].str.lower()
    firstlast['string_prop'] = firstlast['String'].str.title()
-
+   firstlast
 
 Merging
 -------
