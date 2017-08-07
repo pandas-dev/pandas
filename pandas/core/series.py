@@ -631,7 +631,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         except InvalidIndexError:
             pass
         except (KeyError, ValueError):
-            if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+            if isinstance(key, tuple) and self.index._is_multi:
                 # kludge
                 pass
             elif key is Ellipsis:
@@ -713,7 +713,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if any(k is None for k in key):
             return self._get_values(key)
 
-        if not isinstance(self.index, MultiIndex):
+        if not self.index._is_multi:
             raise ValueError('Can only tuple-index with a MultiIndex')
 
         # If key is contained, would have returned by now
@@ -765,8 +765,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 return
 
             except TypeError as e:
-                if (isinstance(key, tuple) and
-                        not isinstance(self.index, MultiIndex)):
+                if isinstance(key, tuple) and not self.index._is_multi:
                     raise ValueError("Can only tuple-index with a MultiIndex")
 
                 # python 3 type errors should be raised
@@ -999,7 +998,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
             new_index = _default_index(len(self))
-            if level is not None and isinstance(self.index, MultiIndex):
+            if level is not None and self.index._is_multi:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
                 level = [self.index._get_level_number(lev) for lev in level]
@@ -1837,7 +1836,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if level:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
-        elif isinstance(index, MultiIndex):
+        elif index._is_multi:
             from pandas.core.sorting import lexsort_indexer
             labels = index._sort_levels_monotonic()
             indexer = lexsort_indexer(labels._get_labels_for_sorting(),
@@ -2065,7 +2064,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         -------
         type of caller (new object)
         """
-        if not isinstance(self.index, MultiIndex):  # pragma: no cover
+        if not self.index._is_multi:  # pragma: no cover
             raise Exception('Can only reorder levels on a hierarchical axis.')
 
         result = self.copy()

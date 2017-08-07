@@ -281,7 +281,7 @@ class Panel(NDFrame):
     def __getitem__(self, key):
         key = com._apply_if_callable(key, self)
 
-        if isinstance(self._info_axis, MultiIndex):
+        if self._info_axis._is_multi:
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
             return super(Panel, self).__getitem__(key)
@@ -854,7 +854,7 @@ class Panel(NDFrame):
         # xs cannot handle a non-scalar key, so just reindex here
         # if we have a multi-index and a single tuple, then its a reduction
         # (GH 7516)
-        if not (isinstance(ax, MultiIndex) and isinstance(key, tuple)):
+        if not (ax._is_multi and isinstance(key, tuple)):
             if is_list_like(key):
                 indexer = {self._get_axis_name(axis): key}
                 return self.reindex(**indexer)
@@ -937,14 +937,14 @@ class Panel(NDFrame):
             names = [names]
             return labels, levels, names
 
-        if isinstance(self.major_axis, MultiIndex):
+        if self.major_axis._is_multi:
             major_labels, major_levels, major_names = construct_multi_parts(
                 self.major_axis, n_repeat=K)
         else:
             major_labels, major_levels, major_names = construct_index_parts(
                 self.major_axis)
 
-        if isinstance(self.minor_axis, MultiIndex):
+        if self.minor_axis._is_multi:
             minor_labels, minor_levels, minor_names = construct_multi_parts(
                 self.minor_axis, n_repeat=N, n_shuffle=K)
         else:

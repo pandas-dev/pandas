@@ -89,7 +89,7 @@ class _Unstacker(object):
 
         self.index = index
 
-        if isinstance(self.index, MultiIndex):
+        if self.index._is_multi:
             if index._reference_duplicate_name(level):
                 msg = ("Ambiguous reference to {0}. The index "
                        "names are not unique.".format(level))
@@ -324,7 +324,7 @@ def _unstack_multiple(data, clocs):
         new_names = cnames
         new_labels = recons_labels
     else:
-        if isinstance(data.columns, MultiIndex):
+        if data.columns._is_multi:
             result = data
             for i in range(len(clocs)):
                 val = clocs[i]
@@ -449,7 +449,7 @@ def unstack(obj, level, fill_value=None):
         return _unstack_multiple(obj, level)
 
     if isinstance(obj, DataFrame):
-        if isinstance(obj.index, MultiIndex):
+        if obj.index._is_multi:
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
@@ -514,7 +514,7 @@ def stack(frame, level=-1, dropna=True):
         return categories, codes
 
     N, K = frame.shape
-    if isinstance(frame.columns, MultiIndex):
+    if frame.columns._is_multi:
         if frame.columns._reference_duplicate_name(level):
             msg = ("Ambiguous reference to {0}. The column "
                    "names are not unique.".format(level))
@@ -523,9 +523,9 @@ def stack(frame, level=-1, dropna=True):
     # Will also convert negative level numbers and check if out of bounds.
     level_num = frame.columns._get_level_number(level)
 
-    if isinstance(frame.columns, MultiIndex):
+    if frame.columns._is_multi:
         return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
-    elif isinstance(frame.index, MultiIndex):
+    elif frame.index._is_multi:
         new_levels = list(frame.index.levels)
         new_labels = [lab.repeat(K) for lab in frame.index.labels]
 
@@ -680,7 +680,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
     N = len(this)
 
-    if isinstance(this.index, MultiIndex):
+    if this.index._is_multi:
         new_levels = list(this.index.levels)
         new_names = list(this.index.names)
         new_labels = [lab.repeat(levsize) for lab in this.index.labels]
@@ -716,7 +716,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif (isinstance(frame.columns, MultiIndex) and
+        elif (frame.columns._is_multi and
               not isinstance(id_vars, list)):
             raise ValueError('id_vars must be a list of tuples when columns'
                              ' are a MultiIndex')
@@ -728,7 +728,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif (isinstance(frame.columns, MultiIndex) and
+        elif (frame.columns._is_multi and
               not isinstance(value_vars, list)):
             raise ValueError('value_vars must be a list of tuples when'
                              ' columns are a MultiIndex')
@@ -743,7 +743,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
-        if isinstance(frame.columns, MultiIndex):
+        if frame.columns._is_multi:
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
