@@ -10,10 +10,10 @@ from pandas.io.common import get_filepath_or_buffer
 def get_engine(engine):
     """ return our implementation """
 
-    if engine is 'auto':
+    if engine == 'auto':
         engine = get_option('io.parquet.engine')
 
-    if engine is 'auto':
+    if engine == 'auto':
         # try engines in this order
         try:
             return PyArrowImpl()
