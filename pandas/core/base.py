@@ -165,6 +165,12 @@ class NoNewAttributesMixin(object):
 class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties """
 
+    @classmethod
+    def _make_accessor(cls, data):
+        raise AbstractMethodError("_make_accessor should be implemented"
+                                  "by subclass and return an instance"
+                                  "of `cls`.")
+
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
                         "property {name}".format(name=name))
@@ -231,9 +237,10 @@ class AccessorProperty(object):
     """Descriptor for implementing accessor properties like Series.str
     """
 
-    def __init__(self, accessor_cls, construct_accessor):
+    def __init__(self, accessor_cls, construct_accessor=None):
         self.accessor_cls = accessor_cls
-        self.construct_accessor = construct_accessor
+        self.construct_accessor = (construct_accessor or
+                                   accessor_cls._make_accessor)
         self.__doc__ = accessor_cls.__doc__
 
     def __get__(self, instance, owner=None):
