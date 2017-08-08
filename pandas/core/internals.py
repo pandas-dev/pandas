@@ -857,6 +857,9 @@ class Block(PandasObject):
 
         # set
         else:
+            if _np_version_under1p9:
+                # Work around GH 6168 to support old numpy
+                indexer = getattr(indexer, 'values', indexer)
             values[indexer] = value
 
         # coerce and try to infer the dtypes of the result
