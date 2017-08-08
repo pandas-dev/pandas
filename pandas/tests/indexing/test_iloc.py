@@ -282,6 +282,19 @@ class TestiLoc(Base):
             index=["A", "B", "C"], columns=["A", "B", "C"])
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_pandas_object(self):
+        # GH 17193, affecting old numpy (1.7 and 1.8)
+        s_orig = Series([0, 1, 2, 3])
+        expected = Series([0, -1, -2, 3])
+
+        s = s_orig.copy()
+        s.iloc[Series([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
+
+        s = s_orig.copy()
+        s.iloc[pd.Index([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
+
     def test_iloc_setitem_dups(self):
 
         # GH 6766
