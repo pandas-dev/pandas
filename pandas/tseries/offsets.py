@@ -11,6 +11,7 @@ from pandas.core.common import AbstractMethodError
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas.util import cache_readonly
 
 import functools
 import operator
@@ -184,9 +185,16 @@ class DateOffset(object):
     )
     _use_relativedelta = False
     _adjust_dst = False
+    _typ = "dateoffset"
 
     # default for prior pickles
     normalize = False
+
+    def __setattr__(self, key, value):
+        if key in ['n', '_offset'] and hasattr(self, key):
+            raise TypeError('%s is intended to be immutable; "%s" '
+                            'cannot be changed.' % (self.__class__, key))
+        object.__setattr__(self, key, value)
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
@@ -308,6 +316,7 @@ class DateOffset(object):
     def _should_cache(self):
         return self.isAnchored() and self._cacheable
 
+    @cache_readonly
     def _params(self):
         all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
         if 'holidays' in all_paras and not all_paras['holidays']:
@@ -369,13 +378,13 @@ class DateOffset(object):
         if not isinstance(other, DateOffset):
             return False
 
-        return self._params() == other._params()
+        return self._params == other._params
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        return hash(self._params())
+        return hash(self._params)
 
     def __call__(self, other):
         return self.apply(other)
@@ -808,7 +817,7 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        # calcurate here because offset is not immutable
+        # calculate here because offset is not immutable
         daytime = self._get_daytime_flag()
         businesshours = self._get_business_hours_by_sec()
         bhdelta = timedelta(seconds=businesshours)
@@ -2728,7 +2737,7 @@ class Tick(SingleConstructorOffset):
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self):
-        return hash(self._params())
+        return hash(self._params)
 
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
