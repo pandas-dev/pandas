@@ -430,9 +430,11 @@ class TestRolling(Base):
                           index=pd.date_range('2017-08-08',
                                               periods=n,
                                               freq="D"))
-        expected = pd.DataFrame(
-                {'value':np.append([np.NaN, 1.], np.arange(3., 27., 3))},
-                index=pd.date_range('2017-08-08', periods=n, freq="D"))
+        expected = pd.DataFrame({'value':np.append([np.NaN, 1.],
+                                                   np.arange(3., 27., 3))},
+                                index=pd.date_range('2017-08-08',
+                                                    periods=n,
+                                                    freq="D"))
         for window in [timedelta(days=3), pd.Timedelta(days=3), '3D']:
             result_roll_sum = df.rolling(window=window, min_periods=2).sum()
             result_roll_generic = df.rolling(window=window,
