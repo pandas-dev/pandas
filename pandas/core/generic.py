@@ -3610,8 +3610,9 @@ class NDFrame(PandasObject, SelectionMixin):
                      mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
+        Cast object to input numpy.dtype.
+
+        Return a copy when ``copy=True`` (be really careful with this!).
 
         Parameters
         ----------
@@ -3636,6 +3637,34 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         casted : type of caller
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2], dtype='int32')
+        >>> ser
+        0    1
+        1    2
+        dtype: int32
+        >>> ser.astype('int64')
+        0    1
+        1    2
+        dtype: int64
+
+        Convert to pd.Categorial:
+
+        >>> ser.astype('category')
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [1, 2]
+
+        Convert to ordered pd.Categorial with custom ordering:
+
+        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [2 < 1]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
