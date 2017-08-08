@@ -430,8 +430,8 @@ class TestRolling(Base):
                           index=pd.date_range('2017-08-08',
                                               periods=n,
                                               freq="D"))
-        expected = pd.DataFrame({'value':np.append([np.NaN, 1.],
-                                                   np.arange(3., 27., 3))},
+        expected = pd.DataFrame({'value': np.append([np.NaN, 1.],
+                                                    np.arange(3., 27., 3))},
                                 index=pd.date_range('2017-08-08',
                                                     periods=n,
                                                     freq="D"))
