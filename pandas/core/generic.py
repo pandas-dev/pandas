@@ -3610,9 +3610,7 @@ class NDFrame(PandasObject, SelectionMixin):
                      mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
-        Cast object to input numpy.dtype.
-
-        Return a copy when ``copy=True`` (be really careful with this!).
+        Cast a pandas object to new dtype ``dtype``.
 
         Parameters
         ----------
@@ -3621,6 +3619,8 @@ class NDFrame(PandasObject, SelectionMixin):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
+        copy : bool, default True.
+            Return a copy when ``copy=True`` (be really careful with this!).
         errors : {'raise', 'ignore'}, default 'raise'.
             Control raising of exceptions on invalid data for provided dtype.
 
