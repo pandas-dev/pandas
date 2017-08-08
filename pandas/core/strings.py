@@ -1890,18 +1890,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
+    @classmethod
+    def _make_accessor(cls, data):
         from pandas.core.index import Index
 
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
             # it's neither a string series not a categorical series with
             # strings inside the categories.
             # this really should exclude all series with any non-string values
@@ -1910,23 +1906,27 @@ class StringAccessorMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index):
+        elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
             # see scc/inferrence.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
+            if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
                 raise AttributeError(message)
-            if self.nlevels > 1:
+            if data.nlevels > 1:
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(self)
+        return StringMethods(data)
 
-    str = AccessorProperty(StringMethods, _make_str_accessor)
+
+class StringAccessorMixin(object):
+    """ Mixin to add a `.str` acessor to the class."""
+
+    str = AccessorProperty(StringMethods)
 
     def _dir_additions(self):
         return set()
