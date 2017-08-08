@@ -8,8 +8,8 @@ from math import ceil
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.index import Index
-from pandas.core.series import Series
 from pandas.compat import range
 
 
@@ -25,8 +25,7 @@ def format_date_labels(ax, rot):
         pass
 
 
-def table(ax, data, rowLabels=None, colLabels=None,
-          **kwargs):
+def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
     Helper function to convert DataFrame and Series to matplotlib.table
 
@@ -45,7 +44,7 @@ def table(ax, data, rowLabels=None, colLabels=None,
     matplotlib table object
     """
     from pandas import DataFrame
-    if isinstance(data, Series):
+    if isinstance(data, ABCSeries):
         data = DataFrame(data, columns=[data.name])
     elif isinstance(data, DataFrame):
         pass
