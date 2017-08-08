@@ -3665,6 +3665,18 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2
         dtype: category
         Categories (2, int64): [2 < 1]
+
+        Note that using ``copy=False`` and changing data on a new
+        pandas object may propagate changes upwards:
+
+        >>> cat1 = pd.Series([1,2], dtype='category')
+        >>> cat2 = cat1.astype('category', copy=False)
+        >>> cat2[0] = 2
+        >>> cat1  # note that cat1[0] is changed too
+        0    2
+        1    2
+        dtype: category
+        Categories (2, int64): [1, 2]
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
