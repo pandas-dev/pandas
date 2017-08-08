@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_period_arraylike,
     is_nested_list_like
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
@@ -25,7 +26,6 @@ import pandas._libs.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
-from pandas.core.series import Series
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
 import pandas.tseries.frequencies as frequencies
@@ -175,7 +175,7 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if (isinstance(dt, (np.ndarray, Index, Series)
+    if (isinstance(dt, (np.ndarray, Index, ABCSeries)
                    ) and is_datetime64_ns_dtype(dt)):
         base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
