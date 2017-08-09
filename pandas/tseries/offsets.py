@@ -184,6 +184,7 @@ class DateOffset(object):
     )
     _use_relativedelta = False
     _adjust_dst = False
+    _typ = "dateoffset"
 
     # default for prior pickles
     normalize = False

@@ -35,7 +35,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     _ensure_object)
 from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCIndex,
+    ABCPeriodIndex,
+    ABCDateOffset)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -605,10 +609,10 @@ class _TimeOp(_Op):
 
     def _is_offset(self, arr_or_obj):
         """ check if obj or all elements of list-like is DateOffset """
-        if isinstance(arr_or_obj, pd.DateOffset):
+        if isinstance(arr_or_obj, ABCDateOffset):
             return True
         elif is_list_like(arr_or_obj) and len(arr_or_obj):
-            return all(isinstance(x, pd.DateOffset) for x in arr_or_obj)
+            return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
         return False
 
 
