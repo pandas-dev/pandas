@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 class DirNamesMixin(object):
     _accessors = frozenset([])
 

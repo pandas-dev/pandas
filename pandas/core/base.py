@@ -73,9 +73,6 @@ class StringMixin(object):
         return str(self)
 
 
-
-
-
 class PandasObject(StringMixin, DirNamesMixin):
 
     """baseclass for various pandas objects"""
