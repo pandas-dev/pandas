@@ -56,9 +56,12 @@ def spmatrix(request):
 
 @pytest.fixture
 def ip():
-    """An instance of IPython.InteractiveShell.
+    """
+    Get an instance of IPython.InteractiveShell.
+
     Will raise a skip if IPython is not installed.
     """
+
     pytest.importorskip('IPython', minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
     return InteractiveShell()

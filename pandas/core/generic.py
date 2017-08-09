@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -1907,6 +1907,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
+        if isinstance(key, str) and callable(getattr(self, key, None)):
+            warnings.warn("Column name '{key}' collides with a built-in "
+                          "method, which will cause unexpected attribute "
+                          "behavior".format(key=key), stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -3357,6 +3361,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
+                    warnings.warn("Pandas doesn't allow Series to be assigned "
+                                  "into nonexistent columns - see "
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
