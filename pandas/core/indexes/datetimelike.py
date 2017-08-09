@@ -125,6 +125,21 @@ class TimelikeOps(object):
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
 
+    @cache_readonly
+    def dt(self):
+        """
+        For a datetime-like Index object, `self.dt` returns `self` so that
+        datetime-like attributes can be accessed symmetrically for Index
+        and Series objects.
+
+        For Index objects that are not datetime-like, `self.dt` will raise
+        and AttributeError.
+        """
+        # Note: we use a `cache_readonly` instead of AccessorProperty
+        # to avoid circular imports.
+        from pandas.core.indexes import accessors
+        return accessors.CombinedDatetimelikeProperties._make_accessor(self)
+
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.

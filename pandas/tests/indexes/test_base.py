@@ -1444,6 +1444,47 @@ class TestIndex(Base):
                 joined = res.join(res, how=kind)
                 assert res is joined
 
+    def test_dt_accessor(self):
+        # index.dt should raise AttributeError for all index classes other
+        # than DatetimeIndex, PeriodIndex, and TimedeltaIndex
+        no_dt_examples = [pd.Index([np.nan]),
+                          pd.Index([np.nan, 1]),
+                          pd.Index([1, 2, np.nan]),
+                          pd.Index(['foo', 'bar']),
+                          pd.RangeIndex(12),
+                          pd.CategoricalIndex(['a', 'b', np.nan])]
+
+        dr = pd.date_range('1994-10-06', periods=4, freq='D')
+        mi = pd.MultiIndex.from_product([[1, 2], ['foo', 'bar'], dr])
+        no_dt_examples.append(mi)
+        mi2 = pd.MultiIndex.from_product([range(3), dr])
+        no_dt_examples.append(mi2)
+
+        for index in no_dt_examples:
+            # Note: in py2, `hasattr` will return False when attempting
+            # to access the attribute raises.
+            assert not hasattr(index, 'dt')
+
+        dt_examples = [dr,
+                       pd.to_datetime(['NaT']),
+                       pd.to_datetime(['NaT', '2000-01-01']),
+                       pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
+                       pd.to_timedelta(['1 day', 'NaT'])
+                       ]
+
+        for index in dt_examples:
+            assert hasattr(index, 'dt')
+            # Note: index.dt.day returns a Series that has index as its
+            # index, whereas index.day is just a index containing the day
+            # values.
+            dt = index.dt
+            if isinstance(index, pd.TimedeltaIndex):
+                tm.assert_almost_equal(dt.days.values, index.days.values)
+                tm.assert_almost_equal(dt.seconds.values, index.seconds.values)
+            else:
+                tm.assert_almost_equal(dt.day.values, index.day.values)
+                tm.assert_almost_equal(dt.year.values, index.year.values)
+
     def test_str_attribute(self):
         # GH9068
         methods = ['strip', 'rstrip', 'lstrip']
