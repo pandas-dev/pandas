@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+
 from pandas.core.dtypes.common import (
     is_scalar,
     is_numeric_dtype,
@@ -158,12 +158,13 @@ def to_numeric(arg, errors='raise', downcast=None):
                     if values.dtype == dtype:
                         break
 
+    from pandas import Series, Index
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return Series(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy_with_infer
-        return pd.Index(values, name=arg.name)
+        return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]
     else:
