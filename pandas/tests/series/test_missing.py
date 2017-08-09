@@ -410,6 +410,22 @@ class TestSeriesMissingData(TestData):
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
+    @tm.capture_stdout
+    def test_isnull_for_inf_deprecated(self):
+        # gh-17115
+        s = Series(['a', np.inf, np.nan, 1.0])
+        with tm.assert_produces_warning(DeprecationWarning,
+                                        check_stacklevel=False):
+            pd.set_option('mode.use_inf_as_null', True)
+            r = s.isna()
+            dr = s.dropna()
+            pd.reset_option('mode.use_inf_as_null')
+
+        e = Series([False, True, True, False])
+        de = Series(['a', 1.0], index=[0, 3])
+        tm.assert_series_equal(r, e)
+        tm.assert_series_equal(dr, de)
+
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 

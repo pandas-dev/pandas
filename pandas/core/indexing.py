@@ -1,5 +1,5 @@
 # pylint: disable=W0223
-
+import textwrap
 import warnings
 import numpy as np
 from pandas.compat import range, zip
@@ -1288,13 +1288,13 @@ class _IXIndexer(_NDFrameIndexer):
 
     def __init__(self, obj, name):
 
-        _ix_deprecation_warning = """
-.ix is deprecated. Please use
-.loc for label based indexing or
-.iloc for positional indexing
+        _ix_deprecation_warning = textwrap.dedent("""
+            .ix is deprecated. Please use
+            .loc for label based indexing or
+            .iloc for positional indexing
 
-See the documentation here:
-http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated"""  # noqa
+            See the documentation here:
+            http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
 
         warnings.warn(_ix_deprecation_warning,
                       DeprecationWarning, stacklevel=3)

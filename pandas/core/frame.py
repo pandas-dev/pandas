@@ -20,7 +20,6 @@ import types
 import warnings
 from textwrap import dedent
 
-from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
@@ -436,7 +435,7 @@ class DataFrame(NDFrame):
                     else:
                         v = np.empty(len(index), dtype=dtype)
 
-                    v.fill(NA)
+                    v.fill(np.nan)
                 else:
                     v = data[k]
                 data_names.append(k)
@@ -1437,8 +1436,8 @@ class DataFrame(NDFrame):
         columns : sequence, optional
             Columns to write
         header : boolean or list of string, default True
-            Write out column names. If a list of string is given it is assumed
-            to be aliases for the column names
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, or False, default None
@@ -1598,8 +1597,33 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names')
+    def to_parquet(self, fname, engine='auto', compression='snappy',
+                   **kwargs):
+        """
+        Write a DataFrame to the binary parquet format.
+
+        .. versionadded:: 0.21.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+            Parquet reader library to use. If 'auto', then the option
+            'io.parquet.engine' is used. If 'auto', then the first
+            library to be installed is used.
+        compression : str, optional, default 'snappy'
+            compression method, includes {'gzip', 'snappy', 'brotli'}
+        kwargs
+            Additional keyword arguments passed to the engine
+        """
+        from pandas.io.parquet import to_parquet
+        to_parquet(self, fname, engine,
+                   compression=compression, **kwargs)
+
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2789,7 +2813,7 @@ it is assumed to be aliases for the column names')
 
         return frame
 
-    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
                        limit=None, tolerance=None):
         new_index, indexer = self.index.reindex(new_index, method=method,
                                                 level=level, limit=limit,
@@ -2798,8 +2822,8 @@ it is assumed to be aliases for the column names')
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
-    def _reindex_columns(self, new_columns, method, copy, level, fill_value=NA,
-                         limit=None, tolerance=None):
+    def _reindex_columns(self, new_columns, method, copy, level,
+                         fill_value=np.nan, limit=None, tolerance=None):
         new_columns, indexer = self.columns.reindex(new_columns, method=method,
                                                     level=level, limit=limit,
                                                     tolerance=tolerance)
@@ -3778,7 +3802,7 @@ it is assumed to be aliases for the column names')
     def _combine_series_infer(self, other, func, level=None,
                               fill_value=None, try_cast=True):
         if len(other) == 0:
-            return self * NA
+            return self * np.nan
 
         if len(self) == 0:
             # Ambiguous case, use _series so works with DataFrame
@@ -3932,7 +3956,7 @@ it is assumed to be aliases for the column names')
 
             if do_fill:
                 arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = NA
+                arr[this_mask & other_mask] = np.nan
 
             # try to downcast back to the original dtype
             if needs_i8_conversion_i:
@@ -4551,7 +4575,7 @@ it is assumed to be aliases for the column names')
                 pass
 
         if reduce:
-            return Series(NA, index=self._get_agg_axis(axis))
+            return Series(np.nan, index=self._get_agg_axis(axis))
         else:
             return self.copy()
 
@@ -5169,7 +5193,7 @@ it is assumed to be aliases for the column names')
 
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
-                        c = NA
+                        c = np.nan
                     elif i == j:
                         c = 1.
                     elif not valid.all():
@@ -5493,7 +5517,7 @@ it is assumed to be aliases for the column names')
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else NA for i in indices]
+        result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True):
@@ -5524,7 +5548,7 @@ it is assumed to be aliases for the column names')
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else NA for i in indices]
+        result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
@@ -5762,9 +5786,8 @@ it is assumed to be aliases for the column names')
         2   True   True
         """
         if isinstance(values, dict):
-            from collections import defaultdict
             from pandas.core.reshape.concat import concat
-            values = defaultdict(list, values)
+            values = collections.defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)
         elif isinstance(values, Series):
@@ -6127,7 +6150,7 @@ def _homogenize(data, index, dtype=None):
                     v = _dict_compat(v)
                 else:
                     v = dict(v)
-                v = lib.fast_multiget(v, oindex.values, default=NA)
+                v = lib.fast_multiget(v, oindex.values, default=np.nan)
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)
 

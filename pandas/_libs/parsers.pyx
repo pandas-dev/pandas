@@ -535,23 +535,26 @@ cdef class TextReader:
             self.parser_start = 0
             self.header = []
         else:
-            if isinstance(header, list) and len(header):
-                # need to artifically skip the final line
-                # which is still a header line
-                header = list(header)
-                header.append(header[-1] + 1)
+            if isinstance(header, list):
+                if len(header) > 1:
+                    # need to artifically skip the final line
+                    # which is still a header line
+                    header = list(header)
+                    header.append(header[-1] + 1)
+                    self.parser.header_end = header[-1]
+                    self.has_mi_columns = 1
+                else:
+                    self.parser.header_end = header[0]
 
-                self.parser.header_start = header[0]
-                self.parser.header_end = header[-1]
-                self.parser.header = header[0]
                 self.parser_start = header[-1] + 1
-                self.has_mi_columns = 1
+                self.parser.header_start = header[0]
+                self.parser.header = header[0]
                 self.header = header
             else:
                 self.parser.header_start = header
                 self.parser.header_end = header
-                self.parser.header = header
                 self.parser_start = header + 1
+                self.parser.header = header
                 self.header = [ header ]
 
         self.names = names
