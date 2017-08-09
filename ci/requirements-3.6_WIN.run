@@ -13,3 +13,5 @@ numexpr
 pytables
 matplotlib
 blosc
+fastparquet
+pyarrow
