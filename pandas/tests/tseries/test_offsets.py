@@ -173,7 +173,7 @@ class Base(object):
             cached_params = offset._params()
             assert '_cached_params' in offset._cache
 
-            offset.n  = offset.n + 3
+            offset.n = offset.n + 3
             # Setting offset.n should clear the cache
             assert len(offset._cache) == 0
 
