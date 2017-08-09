@@ -1,4 +1,4 @@
 - [ ] closes #xxxx
 - [ ] tests added / passed
-- [ ] passes ``git diff upstream/master -- "*.py" | flake8 --diff``
+- [ ] passes `git diff upstream/master -- "*.py" | flake8 --diff`
 - [ ] whatsnew entry
