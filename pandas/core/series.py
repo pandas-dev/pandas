@@ -2924,8 +2924,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     cat = base.AccessorProperty(CategoricalAccessor)
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods,
-                                strings.StringMethods._make_accessor)
+    str = base.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

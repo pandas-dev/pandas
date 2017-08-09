@@ -18,6 +18,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
+from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -72,32 +73,7 @@ class StringMixin(object):
         return str(self)
 
 
-class DirNamesMixin(object):
-    _accessors = frozenset([])
 
-    def _dir_deletions(self):
-        """ delete unwanted __dir__ for this object """
-        return self._accessors
-
-    def _dir_additions(self):
-        """ add addtional __dir__ for this object """
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
-
-    def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
-        rv = set(dir(type(self)))
-        rv = (rv - self._dir_deletions()) | self._dir_additions()
-        return sorted(rv)
 
 
 class PandasObject(StringMixin, DirNamesMixin):
