@@ -162,26 +162,20 @@ class Base(object):
                 "cannot create out_of_range offset: {0} {1}".format(
                     str(self).split('.')[-1], e))
 
-    def test_immutable(self):
+    def test_cache_invalidation(self):
         if self._offset is None:
             return
         elif not issubclass(self._offset, DateOffset):
             raise TypeError(self._offset)
 
         offset = self._get_offset(self._offset, value=14)
-        with pytest.raises(TypeError):
-            offset.n = 3
-        with pytest.raises(TypeError):
-            offset._offset = timedelta(4)
-        with pytest.raises(TypeError):
-            offset.normalize = True
+        if len(offset.kwds) == 0:
+            cached_params = offset._params()
+            assert '_cached_params' in offset._cache
 
-        if hasattr(offset, '_inc'):
-            with pytest.raises(TypeError):
-                offset._inc = 'foo'
-        if hasattr(offset, 'delta'):
-            with pytest.raises(TypeError):
-                offset.delta = 6 * offset._inc
+            offset.n  = offset.n + 3
+            # Setting offset.n should clear the cache
+            assert len(offset._cache) == 0
 
 
 class TestCommon(Base):

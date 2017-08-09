@@ -134,13 +134,6 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-_kwds_use_relativedelta = (
-    'years', 'months', 'weeks', 'days',
-    'year', 'month', 'week', 'day', 'weekday',
-    'hour', 'minute', 'second', 'microsecond'
-)
-
-
 def _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
@@ -150,6 +143,11 @@ def _determine_offset(kwds):
         if k not in ('nanosecond', 'nanoseconds')
     )
 
+    _kwds_use_relativedelta = (
+        'years', 'months', 'weeks', 'days',
+        'year', 'month', 'week', 'day', 'weekday',
+        'hour', 'minute', 'second', 'microsecond'
+    )
     if len(kwds_no_nanos) > 0:
         if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
                 offset = relativedelta(**kwds_no_nanos)
@@ -209,21 +207,24 @@ class DateOffset(object):
     _adjust_dst = False
     _typ = "dateoffset"
 
+    # default for prior pickles
+    normalize = False
+
     def __setattr__(self, name, value):
         # DateOffset needs to be effectively immutable in order for the
         # caching in _cached_params to be correct.
-        frozen = ['n', '_offset', 'normalize', '_inc']
-        if name in frozen and hasattr(self, name):
-            msg = '%s cannot change attribute %s' % (self.__class__, name)
-            raise TypeError(msg)
+        if hasattr(self, name):
+            # Resetting any existing attribute clears the cache_readonly
+            # cache.
+            try:
+                cache = self._cache
+            except AttributeError:
+                # if the cache_readonly cache has not been accessed yet,
+                # this attribute may not exist
+                pass
+            else:
+                cache.clear()
         object.__setattr__(self, name, value)
-
-    def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
-        self.__dict__ = state
-        if 'normalize' not in state and not hasattr(self, 'normalize'):
-            # default for prior pickles
-            self.normalize = False
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = int(n)
@@ -618,10 +619,6 @@ class BusinessMixin(object):
             self.kwds['holidays'] = self.holidays = holidays
             self.kwds['weekmask'] = state['weekmask']
 
-        if 'normalize' not in state:
-            # default for prior pickles
-            self.normalize = False
-
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
@@ -635,7 +632,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = None
 
     @property
     def freqstr(self):
@@ -754,7 +750,6 @@ class BusinessHourMixin(BusinessMixin):
         self.offset = kwds.get('offset', timedelta(0))
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
-        self._offset = None
 
     def _validate_time(self, t_input):
         from datetime import time as dt_time
@@ -1032,7 +1027,6 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
-        self._offset = None
 
     def get_calendar(self, weekmask, holidays, calendar):
         """Generate busdaycalendar"""
@@ -1229,7 +1223,6 @@ class SemiMonthOffset(DateOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.kwds['day_of_month'] = self.day_of_month
-        self._offset = None
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -1628,7 +1621,6 @@ class Week(DateOffset):
 
         self._inc = timedelta(weeks=1)
         self.kwds = kwds
-        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.weekday is not None)
@@ -1751,7 +1743,6 @@ class WeekOfMonth(DateOffset):
                              self.week)
 
         self.kwds = kwds
-        self._offset = None
 
     @apply_wraps
     def apply(self, other):
@@ -1842,7 +1833,6 @@ class LastWeekOfMonth(DateOffset):
                              self.weekday)
 
         self.kwds = kwds
-        self._offset = None
 
     @apply_wraps
     def apply(self, other):
@@ -1908,8 +1898,8 @@ class QuarterOffset(DateOffset):
         self.normalize = normalize
         self.startingMonth = kwds.get('startingMonth',
                                       self._default_startingMonth)
+        
         self.kwds = kwds
-        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -2032,7 +2022,6 @@ class QuarterEnd(QuarterOffset):
         self.startingMonth = kwds.get('startingMonth', 3)
 
         self.kwds = kwds
-        self._offset = None
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -2358,7 +2347,6 @@ class FY5253(DateOffset):
         self.variation = kwds["variation"]
 
         self.kwds = kwds
-        self._offset = None
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
