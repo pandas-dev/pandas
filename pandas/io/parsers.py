@@ -208,11 +208,11 @@ chunksize : int, default None
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
-    '.zip', or 'xz', respectively, and no decompression otherwise. If using
-    'zip', the ZIP file must contain only one data file to be read in.
-    Set to None for no decompression.
+    For on-the-fly decompression of on-disk data. If 'infer' and
+    `filepath_or_buffer` is path-like, then detect compression from the
+    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+    decompression). If using 'zip', the ZIP file must contain only one data
+    file to be read in. Set to None for no decompression.
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
