@@ -3677,6 +3677,10 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2
         dtype: category
         Categories (2, int64): [1, 2]
+
+        See also
+        --------
+        numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
