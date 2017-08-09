@@ -40,6 +40,12 @@ class TestABCClasses(object):
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
 
+        assert isinstance(pd.DateOffset(), gt.ABCDateOffset)
+        assert isinstance(pd.Period('2012', freq='A-DEC').freq,
+                          gt.ABCDateOffset)
+        assert not isinstance(pd.Period('2012', freq='A-DEC'),
+                              gt.ABCDateOffset)
+
 
 def test_setattr_warnings():
     # GH5904 - Suggestion: Warning for DataFrame colname-methodname clash
