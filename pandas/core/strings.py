@@ -1890,7 +1890,6 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-    # string methods
     @classmethod
     def _make_accessor(cls, data):
         from pandas.core.index import Index
@@ -1922,3 +1921,19 @@ class StringMethods(NoNewAttributesMixin):
                            "MultiIndex")
                 raise AttributeError(message)
         return cls(data)
+
+
+class StringAccessorMixin(object):
+    """ Mixin to add a `.str` acessor to the class."""
+
+    str = AccessorProperty(StringMethods)
+
+    def _dir_additions(self):
+        return set()
+
+    def _dir_deletions(self):
+        try:
+            getattr(self, 'str')
+        except AttributeError:
+            return set(['str'])
+        return set()

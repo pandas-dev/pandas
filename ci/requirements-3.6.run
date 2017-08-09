@@ -16,7 +16,9 @@ sqlalchemy
 pymysql
 feather-format
 pyarrow
-# psycopg2 (not avail on defaults ATM)
+psycopg2
+python-snappy
+fastparquet
 beautifulsoup4
 s3fs
 xarray

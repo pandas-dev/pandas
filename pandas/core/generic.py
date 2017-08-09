@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -152,7 +152,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
-                                          "in the {0} constructor"
+                                          " in the {0} constructor"
                                           .format(self.__class__.__name__))
 
         return dtype
@@ -1208,7 +1208,7 @@ class NDFrame(PandasObject, SelectionMixin):
     columns : sequence, optional
         Columns to write
     header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
+        Write out the column names. If a list of strings is given it is
         assumed to be aliases for the column names
     index : boolean, default True
         Write row names (index)
@@ -1703,8 +1703,9 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
             """
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names.')
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names.')
     @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1907,6 +1908,10 @@ it is assumed to be aliases for the column names.')
         return result
 
     def _set_item(self, key, value):
+        if isinstance(key, str) and callable(getattr(self, key, None)):
+            warnings.warn("Column name '{key}' collides with a built-in "
+                          "method, which will cause unexpected attribute "
+                          "behavior".format(key=key), stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -3357,6 +3362,12 @@ it is assumed to be aliases for the column names.')
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
+                    warnings.warn("Pandas doesn't allow Series to be assigned "
+                                  "into nonexistent columns - see "
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
