@@ -5,9 +5,6 @@ from pandas.core.dtypes.common import is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.reshape.concat import concat
-from pandas.core.frame import _shared_docs
-# Note: We need to make sure `frame` is imported before `pivot`, otherwise
-# _shared_docs['pivot_table'] will not yet exist.
 from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
@@ -16,6 +13,11 @@ from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
 from pandas.util._decorators import Appender, Substitution
+
+from pandas.core.frame import _shared_docs
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
+
 import numpy as np
 
 
