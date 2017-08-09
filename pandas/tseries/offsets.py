@@ -1898,7 +1898,7 @@ class QuarterOffset(DateOffset):
         self.normalize = normalize
         self.startingMonth = kwds.get('startingMonth',
                                       self._default_startingMonth)
-        
+
         self.kwds = kwds
 
     def isAnchored(self):
