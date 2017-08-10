@@ -323,6 +323,7 @@ Indexing
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
+- Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
 
 I/O
 ^^^
