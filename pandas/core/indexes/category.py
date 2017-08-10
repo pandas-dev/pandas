@@ -633,6 +633,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
+    def _concat(self, to_concat, name):
+        # if calling index is category, don't check dtype of others
+        return CategoricalIndex._append_same_dtype(self, to_concat, name)
+
     def _append_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
