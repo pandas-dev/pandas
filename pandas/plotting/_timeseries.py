@@ -3,14 +3,13 @@
 import numpy as np
 
 from matplotlib import pylab
-from pandas.core.indexes.period import Period
-from pandas.tseries.offsets import DateOffset
+
 import pandas.tseries.frequencies as frequencies
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
+
+from pandas.core.dtypes.generic import (ABCPeriodIndex, ABCTimedeltaIndex,
+                                        ABCDatetimeIndex, ABCDateOffset)
 
 from pandas.plotting._converter import (TimeSeries_DateLocator,
                                         TimeSeries_DateFormatter,
@@ -59,7 +58,7 @@ def _maybe_resample(series, ax, kwargs):
         raise ValueError('Cannot use dynamic axis without frequency info')
 
     # Convert DatetimeIndex to PeriodIndex
-    if isinstance(series.index, DatetimeIndex):
+    if isinstance(series.index, ABCDatetimeIndex):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
@@ -197,7 +196,7 @@ def _get_freq(ax, series):
         freq = ax_freq
 
     # get the period frequency
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
     else:
         freq = frequencies.get_base_alias(freq)
@@ -219,7 +218,7 @@ def _use_dynamic_x(ax, data):
     if freq is None:
         return False
 
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
     else:
         freq = frequencies.get_base_alias(freq)
@@ -229,11 +228,13 @@ def _use_dynamic_x(ax, data):
         return False
 
     # hack this for 0.10.1, creating more technical debt...sigh
-    if isinstance(data.index, DatetimeIndex):
+    if isinstance(data.index, ABCDatetimeIndex):
         base = frequencies.get_freq(freq)
         x = data.index
         if (base <= frequencies.FreqGroup.FR_DAY):
             return x[:1].is_normalized
+
+        from pandas import Period
         return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
     return True
 
@@ -252,12 +253,12 @@ def _get_index_freq(data):
 def _maybe_convert_index(ax, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
-    if isinstance(data.index, DatetimeIndex):
+    if isinstance(data.index, ABCDatetimeIndex):
         freq = getattr(data.index, 'freq', None)
 
         if freq is None:
             freq = getattr(data.index, 'inferred_freq', None)
-        if isinstance(freq, DateOffset):
+        if isinstance(freq, ABCDateOffset):
             freq = freq.rule_code
 
         if freq is None:
@@ -306,7 +307,7 @@ def format_dateaxis(subplot, freq, index):
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
     # interface. DatetimeIndex uses matplotlib.date directly
-    if isinstance(index, PeriodIndex):
+    if isinstance(index, ABCPeriodIndex):
 
         majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
                                             minor_locator=False,
@@ -327,10 +328,11 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_minor_formatter(minformatter)
 
         # x and y coord info
+        from pandas import Period
         subplot.format_coord = lambda t, y: (
             "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
 
-    elif isinstance(index, TimedeltaIndex):
+    elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(
             TimeSeries_TimedeltaFormatter())
     else:

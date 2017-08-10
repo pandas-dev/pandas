@@ -783,7 +783,6 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
     -------
     datetime.time
     """
-    from pandas.core.series import Series
 
     def _convert_listlike(arg, format):
 
@@ -846,7 +845,8 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return arg
     elif isinstance(arg, time):
         return arg
-    elif isinstance(arg, Series):
+    elif isinstance(arg, ABCSeries):
+        from pandas.core.series import Series
         values = _convert_listlike(arg._values, format)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):

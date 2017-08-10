@@ -8,7 +8,6 @@ from __future__ import division
 import operator
 import warnings
 import numpy as np
-import pandas as pd
 import datetime
 
 from pandas._libs import (lib, index as libindex,
@@ -37,9 +36,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
 from pandas.core.dtypes.generic import (
     ABCSeries,
+    ABCDataFrame,
+    ABCIndexClass,
     ABCIndex,
-    ABCPeriodIndex,
-    ABCDateOffset)
+    ABCPeriodIndex, ABCDatetimeIndex
+    ABCDateOffset,
+    ABCCategorical)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -458,7 +460,7 @@ class _TimeOp(_Op):
         # if this is a Series that contains relevant dtype info, then use this
         # instead of the inferred type; this avoids coercing Series([NaT],
         # dtype='datetime64[ns]') to Series([NaT], dtype='timedelta64[ns]')
-        elif (isinstance(values, pd.Series) and
+        elif (isinstance(values, ABCSeries) and
               (is_timedelta64_dtype(values) or is_datetime64_dtype(values))):
             supplied_dtype = values.dtype
 
@@ -474,12 +476,13 @@ class _TimeOp(_Op):
                 values[:] = iNaT
 
             # a datelike
-            elif isinstance(values, pd.DatetimeIndex):
+            elif isinstance(values, ABCDatetimeIndex):
                 values = values.to_series()
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tzinfo')):
-                values = pd.DatetimeIndex(values)
+                from pandas import DatetimeIndex
+                values = DatetimeIndex(values)
             # datetime array with tz
             elif is_datetimetz(values):
                 if isinstance(values, ABCSeries):
@@ -494,7 +497,7 @@ class _TimeOp(_Op):
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
                 values = values.astype('timedelta64[ns]')
-            elif isinstance(values, pd.PeriodIndex):
+            elif isinstance(values, ABCPeriodIndex):
                 values = values.to_timestamp().to_series()
             elif name not in ('__truediv__', '__div__', '__mul__', '__rmul__'):
                 raise TypeError("incompatible type for a datetime/timedelta "
@@ -538,7 +541,8 @@ class _TimeOp(_Op):
             # in DatetimeIndex; otherwise elementwise apply
             def _offset(lvalues, rvalues):
                 if len(lvalues) == 1:
-                    rvalues = pd.DatetimeIndex(rvalues)
+                    from pandas import DatetimeIndex
+                    rvalues = DatetimeIndex(rvalues)
                     lvalues = lvalues[0]
                 else:
                     warnings.warn("Adding/subtracting array of DateOffsets to "
@@ -663,7 +667,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
-            if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
+            if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
@@ -700,7 +704,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
     def wrapper(left, right, name=name, na_op=na_op):
 
-        if isinstance(right, pd.DataFrame):
+        if isinstance(right, ABCDataFrame):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
@@ -721,7 +725,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         else:
             name = left.name
             if (hasattr(lvalues, 'values') and
-                    not isinstance(lvalues, pd.DatetimeIndex)):
+                    not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
@@ -824,9 +828,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 raise ValueError(msg)
             return self._constructor(na_op(self.values, other.values),
                                      index=self.index, name=name)
-        elif isinstance(other, pd.DataFrame):  # pragma: no cover
+        elif isinstance(other, ABCDataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (np.ndarray, pd.Index)):
+        elif isinstance(other, (np.ndarray, ABCIndexClass)):
             # do not check length of zerodim array
             # as it will broadcast
             if (not is_scalar(lib.item_from_zerodim(other)) and
@@ -844,7 +848,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
 
-        elif isinstance(other, pd.Categorical):
+        elif isinstance(other, ABCCategorical):
             if not is_categorical_dtype(self):
                 msg = ("Cannot compare a Categorical for op {op} with Series "
                        "of dtype {typ}.\nIf you want to compare values, use "
@@ -872,7 +876,8 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # always return a full value series here
             res = _values_from_object(res)
 
-        res = pd.Series(res, index=self.index, name=self.name, dtype='bool')
+        from pandas import Series
+        res = Series(res, index=self.index, name=self.name, dtype='bool')
         return res
 
     return wrapper
@@ -930,7 +935,7 @@ def _bool_method_SERIES(op, name, str_rep):
             return filler(self._constructor(na_op(self.values, other.values),
                                             index=self.index, name=name))
 
-        elif isinstance(other, pd.DataFrame):
+        elif isinstance(other, ABCDataFrame):
             return NotImplemented
 
         else:
@@ -1236,7 +1241,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
             return self._combine_series(other, na_op, fill_value, axis, level)
@@ -1283,7 +1288,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._flex_compare_frame(other, na_op, str_rep, level,
                                             try_cast=False)
 
@@ -1301,7 +1306,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
 def _comp_method_FRAME(func, name, str_rep, masker=False):
     @Appender('Wrapper for comparison method %s' % name)
     def f(self, other):
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
         elif isinstance(other, ABCSeries):
             return self._combine_series_infer(other, func, try_cast=False)
@@ -1392,7 +1397,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
 
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op, try_cast=False)
-        elif isinstance(other, (self._constructor_sliced, pd.DataFrame,
+        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
                                 ABCSeries)):
             raise Exception("input needs alignment for this object [%s]" %
                             self._constructor)

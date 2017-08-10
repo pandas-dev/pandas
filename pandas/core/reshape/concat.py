@@ -3,8 +3,8 @@ concat routines
 """
 
 import numpy as np
-from pandas import compat, DataFrame, Series, Index, MultiIndex
-from pandas.core.index import (_get_combined_index,
+from pandas import compat
+from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.categorical import (_factorize_from_iterable,
@@ -12,7 +12,10 @@ from pandas.core.categorical import (_factorize_from_iterable,
 from pandas.core.internals import concatenate_block_managers
 from pandas.core import common as com
 from pandas.core.generic import NDFrame
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.dtypes.concat as _concat
+
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -283,7 +286,7 @@ class _Concatenator(object):
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
             non_empties = [obj for obj in objs
-                           if sum(obj.shape) > 0 or isinstance(obj, Series)]
+                           if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)]
 
             if (len(non_empties) and (keys is None and names is None and
                                       levels is None and
@@ -297,17 +300,19 @@ class _Concatenator(object):
         self.objs = objs
 
         # Standardize axis parameter to int
-        if isinstance(sample, Series):
-            axis = DataFrame()._get_axis_number(axis)
+        if isinstance(sample, ABCSeries):
+            frame_cls = sample._constructor_expanddim
+            # Access DataFrame without importing
+            axis = frame_cls()._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError("axis must be between 0 and {0}, "
                                  "input was {1}".format(sample.ndim, axis))
@@ -471,7 +476,7 @@ class _Concatenator(object):
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, Series):
+                    if not isinstance(x, ABCSeries):
                         raise TypeError("Cannot concatenate type 'Series' "
                                         "with object of type "
                                         "%r" % type(x).__name__)

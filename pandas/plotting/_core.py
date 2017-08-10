@@ -9,7 +9,6 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
@@ -18,17 +17,17 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
 
 from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
 
-from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0)
@@ -158,7 +157,8 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
+        if not isinstance(secondary_y,
+                          (bool, tuple, list, np.ndarray, ABCIndexClass)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -462,7 +462,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -544,7 +544,7 @@ class MPLPlot(object):
                                               'datetime64', 'time')
 
         if self.use_index:
-            if convert_period and isinstance(index, PeriodIndex):
+            if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
@@ -574,7 +574,7 @@ class MPLPlot(object):
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, Index):
+        if isinstance(x, ABCIndexClass):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -593,7 +593,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
                 name = ','.join([pprint_thing(x) for x in name])
@@ -631,7 +631,8 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
+        if isinstance(self.secondary_y,
+                      (tuple, list, np.ndarray, ABCIndexClass)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -2147,7 +2148,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, Index)):
+        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
