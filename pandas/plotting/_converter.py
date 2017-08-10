@@ -18,19 +18,18 @@ from pandas.core.dtypes.common import (
     is_period_arraylike,
     is_nested_list_like
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCPeriodIndex
 
 from pandas.compat import lrange
 import pandas.compat as compat
 import pandas._libs.lib as lib
+from pandas._libs.period import Period
 import pandas.core.common as com
-from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
-from pandas.core.indexes.period import Period, PeriodIndex
 
 from pandas.plotting._compat import _mpl_le_2_0_0
 
@@ -79,9 +78,9 @@ class TimeConverter(units.ConversionInterface):
         if (isinstance(value, valid_types) or is_integer(value) or
                 is_float(value)):
             return time2num(value)
-        if isinstance(value, Index):
+        if isinstance(value, ABCIndexClass):
             return value.map(time2num)
-        if isinstance(value, (list, tuple, np.ndarray, Index)):
+        if isinstance(value, (list, tuple, np.ndarray, ABCIndexClass)):
             return [time2num(x) for x in value]
         return value
 
@@ -144,13 +143,14 @@ class PeriodConverter(dates.DateConverter):
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
-        if isinstance(values, PeriodIndex):
+        if isinstance(values, ABCPeriodIndex):
             return values.asfreq(axis.freq)._values
-        if isinstance(values, Index):
+        if isinstance(values, ABCIndexClass):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
+            from pandas import PeriodIndex
             return PeriodIndex(values, freq=axis.freq)._values
-        if isinstance(values, (list, tuple, np.ndarray, Index)):
+        if isinstance(values, (list, tuple, np.ndarray, ABCIndexClass)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
 
@@ -162,7 +162,8 @@ def get_datevalue(date, freq):
                            pydt.date, pydt.time)):
         return Period(date, freq).ordinal
     elif (is_integer(date) or is_float(date) or
-          (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
+          (isinstance(date, (np.ndarray, ABCIndexClass)) and
+           (date.size == 1))):
         return date
     elif date is None:
         return None
@@ -175,7 +176,7 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if (isinstance(dt, (np.ndarray, Index, ABCSeries)
+    if (isinstance(dt, (np.ndarray, ABCIndexClass, ABCSeries)
                    ) and is_datetime64_ns_dtype(dt)):
         base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
@@ -214,8 +215,8 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
-            if isinstance(values, Index):
+        elif isinstance(values, (list, tuple, np.ndarray, ABCIndexClass)):
+            if isinstance(values, ABCIndexClass):
                 values = values.values
             if not isinstance(values, np.ndarray):
                 values = com._asarray_tuplesafe(values)
@@ -225,7 +226,7 @@ class DatetimeConverter(dates.DateConverter):
 
             try:
                 values = tools.to_datetime(values)
-                if isinstance(values, Index):
+                if isinstance(values, ABCIndexClass):
                     values = _dt_to_float_ordinal(values)
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
@@ -527,6 +528,8 @@ def _daily_finder(vmin, vmax, freq):
     (vmin, vmax) = (Period(ordinal=int(vmin), freq=freq),
                     Period(ordinal=int(vmax), freq=freq))
     span = vmax.ordinal - vmin.ordinal + 1
+
+    from pandas import PeriodIndex
     dates_ = PeriodIndex(start=vmin, end=vmax, freq=freq)
     # Initialize the output
     info = np.zeros(span,

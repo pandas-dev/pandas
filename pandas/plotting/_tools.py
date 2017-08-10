@@ -8,8 +8,7 @@ from math import ceil
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.index import Index
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.compat import range
 
 
@@ -340,7 +339,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
 def _flatten(axes):
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, Index)):
+    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
         return axes.ravel()
     return np.array(axes)
 
