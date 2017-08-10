@@ -158,12 +158,13 @@ def to_numeric(arg, errors='raise', downcast=None):
                     if values.dtype == dtype:
                         break
 
-    from pandas import Series, Index
     if is_series:
+        from pandas import Series
         return Series(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy_with_infer
+        from pandas import Index
         return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]
