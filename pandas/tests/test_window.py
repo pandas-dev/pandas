@@ -423,6 +423,26 @@ class TestRolling(Base):
             expected = df.rolling('3D').sum()
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        'window', [timedelta(days=3), pd.Timedelta(days=3), '3D'])
+    def test_constructor_with_timedelta_window_and_minperiods(self, window):
+        # GH 15305
+        n = 10
+        df = pd.DataFrame({'value': np.arange(n)},
+                          index=pd.date_range('2017-08-08',
+                                              periods=n,
+                                              freq="D"))
+        expected = pd.DataFrame({'value': np.append([np.NaN, 1.],
+                                                    np.arange(3., 27., 3))},
+                                index=pd.date_range('2017-08-08',
+                                                    periods=n,
+                                                    freq="D"))
+        result_roll_sum = df.rolling(window=window, min_periods=2).sum()
+        result_roll_generic = df.rolling(window=window,
+                                         min_periods=2).apply(sum)
+        tm.assert_frame_equal(result_roll_sum, expected)
+        tm.assert_frame_equal(result_roll_generic, expected)
+
     def test_numpy_compat(self):
         # see gh-12811
         r = rwindow.Rolling(Series([2, 4, 6]), window=2)
