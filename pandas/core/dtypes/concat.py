@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_bool_dtype,
     is_dtype_equal,
+    is_range,
     _NS_DTYPE,
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
@@ -45,6 +46,8 @@ def get_dtype_kinds(l):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)
+        elif is_range(arr):
+            typ = 'range'
         elif is_datetime64_dtype(dtype):
             typ = 'datetime'
         elif is_timedelta64_dtype(dtype):
@@ -559,3 +562,38 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         # coerce to object if needed
         result = result.astype('object')
     return result
+
+
+def _concat_indexes_same_dtype_rangeindex(indexes):
+
+    start = step = next = None
+
+    for obj in indexes:
+        if not len(obj):
+            continue
+
+        if start is None:
+            # This is set by the first non-empty index
+            start = obj._start
+            if step is None and len(obj) > 1:
+                step = obj._step
+        elif step is None:
+            # First non-empty index had only one element
+            if obj._start == start:
+                return _concat_index_asobject(indexes)
+            step = obj._start - start
+
+        non_consecutive = ((step != obj._step and len(obj) > 1) or
+                           (next is not None and obj._start != next))
+        if non_consecutive:
+            # Not nice... but currently what happens in NumericIndex:
+            return _concat_index_asobject(indexes)
+
+        if step is not None:
+            next = obj[-1] + step
+
+    if start is None:
+        start = obj._start
+        step = obj._step
+    stop = obj._stop if next is None else next
+    return indexes[0].__class__(start, stop, step)
