@@ -4308,7 +4308,6 @@ for name in DataFrameGroupBy._apply_whitelist:
     pin_method(DataFrameGroupBy, DataFrame, name)
 
 
-
 class PanelGroupBy(NDFrameGroupBy):
 
     def aggregate(self, arg, *args, **kwargs):
