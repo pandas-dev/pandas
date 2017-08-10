@@ -174,9 +174,13 @@ class SharedWithSparse(object):
             assert type(v) == self.klass._constructor_sliced
 
     def test_items(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        for k, v in df.items():
+        # issue #17213, #13918
+        cols = ['a', 'b', 'c']
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
+        for c, (k, v) in zip(cols, df.items()):
+            assert c == k
             assert type(v) == Series
+            assert (df[k] == v).all()
 
     def test_iter(self):
         assert tm.equalContents(list(self.frame), self.frame.columns)
