@@ -2744,13 +2744,15 @@ def _convert_grouper(axis, grouper):
 
 
 def pin_method(cls, target_cls, name):
-    items = list(_whitelist_method_generator(target_cls, [name]))
-    assert len(items) <= 1, items
-    if items:
-        func = items[0]
-        if not isinstance(func, str):
-            # Note: checking `if callable(func)` fails here on `dtype`.
-            setattr(cls, name, func)
+    if not hasattr(cls, name):
+        # Avoid over-writing `DataFrameGroupBy.boxplot`
+        items = list(_whitelist_method_generator(target_cls, [name]))
+        assert len(items) <= 1, items
+        if items:
+            func = items[0]
+            if not isinstance(func, str):
+                # Note: checking `if callable(func)` fails here on `dtype`.
+                setattr(cls, name, func)
     return
 
 
@@ -4304,6 +4306,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
 for name in DataFrameGroupBy._apply_whitelist:
     pin_method(DataFrameGroupBy, DataFrame, name)
+
 
 
 class PanelGroupBy(NDFrameGroupBy):
