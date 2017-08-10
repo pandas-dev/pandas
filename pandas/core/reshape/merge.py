@@ -10,9 +10,10 @@ import numpy as np
 from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
-from pandas import (Categorical, Series, DataFrame,
-                    Index, MultiIndex, Timedelta)
+from pandas import Index
 from pandas.core.frame import _merge_doc
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCMultiIndex
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime64_dtype,
@@ -40,7 +41,10 @@ from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 import pandas.core.common as com
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import (
+    hashtable as libhashtable,
+    join as libjoin,
+    lib, Timedelta)
 from pandas.errors import MergeError
 
 
@@ -533,11 +537,11 @@ class _MergeOperation(object):
             raise ValueError(
                 'indicator option can only accept boolean or string arguments')
 
-        if not isinstance(left, DataFrame):
+        if not isinstance(left, ABCDataFrame):
             raise ValueError(
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(left)))
-        if not isinstance(right, DataFrame):
+        if not isinstance(right, ABCDataFrame):
             raise ValueError(
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
@@ -634,6 +638,7 @@ class _MergeOperation(object):
         result['_left_indicator'] = result['_left_indicator'].fillna(0)
         result['_right_indicator'] = result['_right_indicator'].fillna(0)
 
+        from pandas import Categorical
         result[self.indicator_name] = Categorical((result['_left_indicator'] +
                                                    result['_right_indicator']),
                                                   categories=[1, 2, 3])
@@ -788,9 +793,9 @@ class _MergeOperation(object):
         left, right = self.left, self.right
 
         is_lkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(left)
+            x, (np.ndarray, ABCSeries)) and len(x) == len(left)
         is_rkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(right)
+            x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
@@ -848,7 +853,7 @@ class _MergeOperation(object):
                 else:
                     left_keys.append(left[k]._values)
                     join_names.append(k)
-            if isinstance(self.right.index, MultiIndex):
+            if isinstance(self.right.index, ABCMultiIndex):
                 right_keys = [lev._values.take(lab)
                               for lev, lab in zip(self.right.index.levels,
                                                   self.right.index.labels)]
@@ -862,7 +867,7 @@ class _MergeOperation(object):
                 else:
                     right_keys.append(right[k]._values)
                     join_names.append(k)
-            if isinstance(self.left.index, MultiIndex):
+            if isinstance(self.left.index, ABCMultiIndex):
                 left_keys = [lev._values.take(lab)
                              for lev, lab in zip(self.left.index.levels,
                                                  self.left.index.labels)]
@@ -978,7 +983,7 @@ class _MergeOperation(object):
             raise ValueError("len(right_on) must equal len(left_on)")
 
     def _validate(self, validate):
-
+        from pandas import MultiIndex
         # Check uniqueness of each
         if self.left_index:
             left_unique = self.orig_left.index.is_unique
@@ -1202,10 +1207,10 @@ class _AsOfMerge(_OrderedMerge):
         if len(self.right_on) != 1 and not self.right_index:
             raise MergeError("can only asof on a key for right")
 
-        if self.left_index and isinstance(self.left.index, MultiIndex):
+        if self.left_index and isinstance(self.left.index, ABCMultiIndex):
             raise MergeError("left can only have one index")
 
-        if self.right_index and isinstance(self.right.index, MultiIndex):
+        if self.right_index and isinstance(self.right.index, ABCMultiIndex):
             raise MergeError("right can only have one index")
 
         # set 'by' columns
@@ -1410,7 +1415,7 @@ def _get_single_indexer(join_key, index, sort=False):
 
 def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     if len(join_keys) > 1:
-        if not ((isinstance(right_ax, MultiIndex) and
+        if not ((isinstance(right_ax, ABCMultiIndex) and
                  len(join_keys) == right_ax.nlevels)):
             raise AssertionError("If more than one join key is given then "
                                  "'right_ax' must be a MultiIndex and the "
