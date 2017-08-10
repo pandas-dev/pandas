@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -1907,6 +1907,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
+        if isinstance(key, str) and callable(getattr(self, key, None)):
+            warnings.warn("Column name '{key}' collides with a built-in "
+                          "method, which will cause unexpected attribute "
+                          "behavior".format(key=key), stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -3357,6 +3361,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
+                    warnings.warn("Pandas doesn't allow Series to be assigned "
+                                  "into nonexistent columns - see "
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
@@ -3600,8 +3610,7 @@ class NDFrame(PandasObject, SelectionMixin):
                      mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
+        Cast a pandas object to a specified dtype ``dtype``.
 
         Parameters
         ----------
@@ -3610,6 +3619,10 @@ class NDFrame(PandasObject, SelectionMixin):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
+        copy : bool, default True.
+            Return a copy when ``copy=True`` (be very careful setting
+            ``copy=False`` as changes to values then may propagate to other
+            pandas objects).
         errors : {'raise', 'ignore'}, default 'raise'.
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -3626,6 +3639,49 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         casted : type of caller
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2], dtype='int32')
+        >>> ser
+        0    1
+        1    2
+        dtype: int32
+        >>> ser.astype('int64')
+        0    1
+        1    2
+        dtype: int64
+
+        Convert to categorical type:
+
+        >>> ser.astype('category')
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [1, 2]
+
+        Convert to ordered categorical type with custom ordering:
+
+        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [2 < 1]
+
+        Note that using ``copy=False`` and changing data on a new
+        pandas object may propagate changes:
+
+        >>> s1 = pd.Series([1,2])
+        >>> s2 = s1.astype('int', copy=False)
+        >>> s2[0] = 10
+        >>> s1  # note that s1[0] has changed too
+        0    10
+        1     2
+        dtype: int64
+
+        See also
+        --------
+        numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series

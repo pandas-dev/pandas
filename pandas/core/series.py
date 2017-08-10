@@ -54,8 +54,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.core.indexes.accessors import (
-    maybe_to_datetimelike, CombinedDatetimelikeProperties)
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -75,6 +74,8 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+
+import pandas.plotting._core as gfx
 
 __all__ = ['Series']
 
@@ -2917,27 +2918,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-
-    def _make_dt_accessor(self):
-        try:
-            return maybe_to_datetimelike(self)
-        except Exception:
-            raise AttributeError("Can only use .dt accessor with datetimelike "
-                                 "values")
-
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties,
-                               _make_dt_accessor)
+    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-
-    def _make_cat_accessor(self):
-        if not is_categorical_dtype(self.dtype):
-            raise AttributeError("Can only use .cat accessor with a "
-                                 "'category' dtype")
-        return CategoricalAccessor(self.values, self.index)
-
-    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
+    cat = base.AccessorProperty(CategoricalAccessor)
 
     def _dir_deletions(self):
         return self._accessors
@@ -2952,11 +2937,22 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 pass
         return rv
 
+    # ----------------------------------------------------------------------
+    # Add plotting methods to Series
+    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
+                                 gfx.SeriesPlotMethods)
+    hist = gfx.hist_series
+
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
+
+# Add arithmetic!
+ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
+ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
@@ -3129,17 +3125,3 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-# ----------------------------------------------------------------------
-# Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
-
-Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
-                                    _gfx.SeriesPlotMethods)
-Series.hist = _gfx.hist_series
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)

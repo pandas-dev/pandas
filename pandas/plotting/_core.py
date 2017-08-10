@@ -18,10 +18,12 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
+from pandas.core.dtypes.generic import ABCSeries
+
 from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
-from pandas.core.series import Series
+
 from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
@@ -334,7 +336,7 @@ class MPLPlot(object):
     def _compute_plot_data(self):
         data = self.data
 
-        if isinstance(data, Series):
+        if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
                 label = 'None'
@@ -1575,6 +1577,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
+            from pandas.core.series import Series
             self._return_obj = Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
@@ -2338,6 +2341,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
+        from pandas.core.series import Series
         ret = Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
@@ -2409,7 +2413,6 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     _axes = _flatten(axes)
 
-    result = Series()
     ax_values = []
 
     for i, col in enumerate(columns):
@@ -2422,6 +2425,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         ax_values.append(re_plotf)
         ax.grid(grid)
 
+    from pandas.core.series import Series
     result = Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
