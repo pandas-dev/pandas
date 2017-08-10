@@ -182,7 +182,8 @@ _values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray)):
+    from pandas.core.index import Index
+    if isinstance(key, (ABCSeries, np.ndarray, Index)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
