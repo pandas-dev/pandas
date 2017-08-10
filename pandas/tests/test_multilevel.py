@@ -1675,24 +1675,31 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.reindex(s.index[5:])
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_depth_get(self):
+    @pytest.mark.parametrize('unicode_strings', [True, False])
+    def test_mixed_depth_get(self, unicode_strings):
+        # If unicode_strings is True, the column labels in dataframe
+        # construction will use unicode strings in Python 2 (pull request
+        # #17099).
+
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
                   ['', 'wx', 'wy', '', '', '']]
 
+        if unicode_strings:
+            arrays = [[u(s) for s in arr] for arr in arrays]
+
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
 
         result = df['a']
-        expected = df['a', '', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == 'a'
+        expected = df['a', '', ''].rename('a')
+        tm.assert_series_equal(result, expected)
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
-        tm.assert_series_equal(result, expected, check_names=False)
-        assert result.name == ('routine1', 'result1')
+        expected = expected.rename(('routine1', 'result1'))
+        tm.assert_series_equal(result, expected)
 
     def test_mixed_depth_insert(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
