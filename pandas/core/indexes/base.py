@@ -1596,6 +1596,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return False
         return is_datetime_array(_ensure_object(self.values))
 
+    @property
+    def dt(self):
+        # Non-raising versions of the `.dt` attribute are available in
+        # DatetimeIndex, PeriodIndex, and TimedeltaIndex.
+        raise AttributeError("Can only use .dt accessor with datetimelike "
+                             "values")
+
     def __iter__(self):
         return iter(self.values)
 

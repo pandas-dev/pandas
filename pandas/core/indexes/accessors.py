@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
+
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
@@ -48,8 +49,10 @@ def maybe_to_datetimelike(data, copy=False):
     DelegatedClass
 
     """
-    from pandas import Series
+    from pandas import Series, Index
 
+    if isinstance(data, Index):
+        data = data.to_series()
     if not isinstance(data, Series):
         raise TypeError("cannot convert an object of type {0} to a "
                         "datetimelike index".format(type(data)))
