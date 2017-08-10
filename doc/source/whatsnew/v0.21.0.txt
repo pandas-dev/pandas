@@ -323,6 +323,7 @@ Indexing
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
+- Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
 
 I/O
 ^^^
@@ -349,6 +350,8 @@ Groupby/Resample/Rolling
 - Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
 - Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 - Bug in ``Series.resample(...).apply()`` where an empty ``Series`` modified the source index and did not return the name of a ``Series`` (:issue:`14313`)
+- Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1` (:issue:`15305`)
+
 
 Sparse
 ^^^^^^

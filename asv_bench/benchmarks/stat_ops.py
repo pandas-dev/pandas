@@ -1,92 +1,36 @@
 from .pandas_vb_common import *
 
 
-class stat_ops_frame_mean_float_axis_0(object):
+def _set_use_bottleneck_False():
+    try:
+        pd.options.compute.use_bottleneck = False
+    except:
+        from pandas.core import nanops
+        nanops._USE_BOTTLENECK = False
+
+
+class FrameOps(object):
     goal_time = 0.2
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
+    param_names = ['op', 'use_bottleneck', 'dtype', 'axis']
+    params = [['mean', 'sum', 'median'],
+              [True, False],
+              ['float', 'int'],
+              [0, 1]]
 
-    def time_stat_ops_frame_mean_float_axis_0(self):
-        self.df.mean()
+    def setup(self, op, use_bottleneck, dtype, axis):
+        if dtype == 'float':
+            self.df = DataFrame(np.random.randn(100000, 4))
+        elif dtype == 'int':
+            self.df = DataFrame(np.random.randint(1000, size=(100000, 4)))
 
+        if not use_bottleneck:
+            _set_use_bottleneck_False()
 
-class stat_ops_frame_mean_float_axis_1(object):
-    goal_time = 0.2
+        self.func = getattr(self.df, op)
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_mean_float_axis_1(self):
-        self.df.mean(1)
-
-
-class stat_ops_frame_mean_int_axis_0(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_mean_int_axis_0(self):
-        self.dfi.mean()
-
-
-class stat_ops_frame_mean_int_axis_1(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_mean_int_axis_1(self):
-        self.dfi.mean(1)
-
-
-class stat_ops_frame_sum_float_axis_0(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_sum_float_axis_0(self):
-        self.df.sum()
-
-
-class stat_ops_frame_sum_float_axis_1(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_sum_float_axis_1(self):
-        self.df.sum(1)
-
-
-class stat_ops_frame_sum_int_axis_0(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_sum_int_axis_0(self):
-        self.dfi.sum()
-
-
-class stat_ops_frame_sum_int_axis_1(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(100000, 4))
-        self.dfi = DataFrame(np.random.randint(1000, size=self.df.shape))
-
-    def time_stat_ops_frame_sum_int_axis_1(self):
-        self.dfi.sum(1)
+    def time_op(self, op, use_bottleneck, dtype, axis):
+        self.func(axis=axis)
 
 
 class stat_ops_level_frame_sum(object):
