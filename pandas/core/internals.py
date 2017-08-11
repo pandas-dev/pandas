@@ -1484,9 +1484,24 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_t, new_columns):
-        """Return a list of unstacked blocks of self"""
-        unstacker = unstacker_t(self.values.T)
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        unstacker = unstacker_func(self.values.T)
         new_items = unstacker.get_new_columns()
         new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values()
@@ -1726,10 +1741,26 @@ class NonConsolidatableMixIn(object):
     def _try_cast_result(self, result, dtype=None):
         return result
 
-    def _unstack(self, unstacker_t, new_columns):
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
         # NonConsolidatable blocks can have a single item only, so we return
         # one block per item
-        unstacker = unstacker_t(self.values.T)
+        unstacker = unstacker_func(self.values.T)
         new_items = unstacker.get_new_columns()
         new_placement = new_columns.get_indexer(new_items)
         new_values, mask = unstacker.get_new_values()
@@ -4197,15 +4228,19 @@ class BlockManager(PandasObject):
         return all(block.equals(oblock)
                    for block, oblock in zip(self_blocks, other_blocks))
 
-    def unstack(self, unstacker_t):
+    def unstack(self, unstacker_func):
         """Return a blockmanager with all blocks unstacked.
 
         Parameters
         ----------
-        unstacker_t : type
+        unstacker_func : callable
             A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+
+        Returns
+        -------
+        unstacked : BlockManager
         """
-        dummy = unstacker_t(np.empty((0, 0)), value_columns=self.items)
+        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
         new_columns = dummy.get_new_columns()
         new_index = dummy.get_new_index()
         new_blocks = []
@@ -4213,7 +4248,7 @@ class BlockManager(PandasObject):
 
         for blk in self.blocks:
             blocks, mask = blk._unstack(
-                partial(unstacker_t,
+                partial(unstacker_func,
                         value_columns=self.items[blk.mgr_locs.indexer]),
                 new_columns)
 
