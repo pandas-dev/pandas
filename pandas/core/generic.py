@@ -4111,14 +4111,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * dict:
 
-                - Nested dictionaries, e.g., {'a': {'b': nan}}, are read as
-                  follows: look in column 'a' for the value 'b' and replace it
-                  with nan. You can nest regular expressions as well. Note that
-                  column names (the top-level dictionary keys in a nested
-                  dictionary) **cannot** be regular expressions.
-                - Keys map to column names and values map to substitution
-                  values. You can treat this as a special case of passing two
-                  lists except that you are specifying the column to search in.
+                - Dictionaries, e.g., {'a': 'b'}, are read as
+                  follows: look for the value 'a' and replace it
+                  with 'b'.
+                - Keys map to Series values and values map to substitution
+                  values.
 
             * None:
 
@@ -4129,13 +4126,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
-            Value to use to fill holes (e.g. 0), alternately a dict of values
-            specifying which value to use for each column (columns not in the
-            dict will not be filled). Regular expressions, strings and lists or
-            dicts of such objects are also allowed.
+            Value to use to fill holes (e.g. 0). Regular expressions, 
+            strings and lists or dicts of such objects are also allowed.
         inplace : boolean, default False
-            If True, in place. Note: this will modify any
-            other views on this object (e.g. a column form a DataFrame).
+            If True, in place.
             Returns the caller if this is True.
         limit : int, default None
             Maximum size gap to forward or backward fill
@@ -4151,13 +4145,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        NDFrame.reindex
-        NDFrame.asfreq
-        NDFrame.fillna
+        Series.reindex
+        Series.asfreq
+        Series.fillna
 
         Returns
         -------
-        filled : NDFrame
+        filled : Series
 
         Raises
         ------
