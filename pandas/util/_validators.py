@@ -220,7 +220,7 @@ def validate_args_and_kwargs(fname, args, kwargs,
 def validate_bool_kwarg(value, arg_name):
     """ Ensures that argument passed in arg_name is of type bool. """
     if not (is_bool(value) or value is None):
-        raise ValueError('For argument "%s" expected type bool, '
-                         'received type %s.' %
-                         (arg_name, type(value).__name__))
+        raise ValueError('For argument "{arg}" expected type bool, received '
+                         'type {typ}.'.format(arg=arg_name,
+                                              typ=type(value).__name__))
     return value

@@ -27,8 +27,9 @@ def deprecate(name, alternative, alt_name=None, klass=None,
     klass = klass or FutureWarning
 
     def wrapper(*args, **kwargs):
-        warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
-                      klass, stacklevel=stacklevel)
+        msg = "{name} is deprecated. Use {alt_name} instead".format(
+            name=name, alt_name=alt_name)
+        warnings.warn(msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
     return wrapper
 
@@ -90,19 +91,24 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
                                                     old_arg_value)
                     else:
                         new_arg_value = mapping(old_arg_value)
-                    msg = "the %s=%r keyword is deprecated, " \
-                          "use %s=%r instead" % \
-                          (old_arg_name, old_arg_value,
-                           new_arg_name, new_arg_value)
+                    msg = ("the {old_name}={old_val!r} keyword is deprecated, "
+                           "use {new_name}={new_val!r} instead"
+                           ).format(old_name=old_arg_name,
+                                    old_val=old_arg_value,
+                                    new_name=new_arg_name,
+                                    new_val=new_arg_value)
                 else:
                     new_arg_value = old_arg_value
-                    msg = "the '%s' keyword is deprecated, " \
-                          "use '%s' instead" % (old_arg_name, new_arg_name)
+                    msg = ("the '{old_name}' keyword is deprecated, "
+                           "use '{new_name}' instead"
+                           ).format(old_name=old_arg_name,
+                                    new_name=new_arg_name)
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name, None) is not None:
-                    msg = ("Can only specify '%s' or '%s', not both" %
-                           (old_arg_name, new_arg_name))
+                    msg = ("Can only specify '{old_name}' or '{new_name}', "
+                           "not both").format(old_name=old_arg_name,
+                                              new_name=new_arg_name)
                     raise TypeError(msg)
                 else:
                     kwargs[new_arg_name] = new_arg_value

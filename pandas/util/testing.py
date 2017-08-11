@@ -104,7 +104,7 @@ def round_trip_pickle(obj, path=None):
     """
 
     if path is None:
-        path = u('__%s__.pickle' % rands(10))
+        path = u('__{random_bytes}__.pickle'.format(random_bytes=rands(10)))
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
@@ -244,13 +244,15 @@ def _check_isinstance(left, right, cls):
     AssertionError : Either `left` or `right` is not an instance of `cls`.
     """
 
-    err_msg = "{0} Expected type {1}, found {2} instead"
+    err_msg = "{name} Expected type {exp_type}, found {act_type} instead"
     cls_name = cls.__name__
 
     if not isinstance(left, cls):
-        raise AssertionError(err_msg.format(cls_name, cls, type(left)))
+        raise AssertionError(err_msg.format(name=cls_name, exp_type=cls,
+                                            act_type=type(left)))
     if not isinstance(right, cls):
-        raise AssertionError(err_msg.format(cls_name, cls, type(right)))
+        raise AssertionError(err_msg.format(name=cls_name, exp_type=cls,
+                                            act_type=type(right)))
 
 
 def assert_dict_equal(left, right, compare_keys=True):
@@ -371,7 +373,7 @@ def _skip_if_no_xarray():
 
     if v < LooseVersion('0.7.0'):
         import pytest
-        pytest.skip("xarray not version is too low: {0}".format(v))
+        pytest.skip("xarray version is too low: {version}".format(version=v))
 
 
 def _skip_if_windows_python_3():
@@ -436,7 +438,7 @@ def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
         import pytest
-        pytest.skip("Specific locale is set {0}".format(lang))
+        pytest.skip("Specific locale is set {lang}".format(lang=lang))
 
 
 def _skip_if_not_us_locale():
@@ -444,7 +446,7 @@ def _skip_if_not_us_locale():
     lang, _ = locale.getlocale()
     if lang != 'en_US':
         import pytest
-        pytest.skip("Specific locale is set {0}".format(lang))
+        pytest.skip("Specific locale is set {lang}".format(lang=lang))
 
 
 def _skip_if_no_mock():
@@ -505,8 +507,8 @@ def _default_locale_getter():
     try:
         raw_locales = check_output(['locale -a'], shell=True)
     except subprocess.CalledProcessError as e:
-        raise type(e)("%s, the 'locale -a' command cannot be found on your "
-                      "system" % e)
+        raise type(e)("{exception}, the 'locale -a' command cannot be found "
+                      "on your system".format(exception=e))
     return raw_locales
 
 
@@ -563,7 +565,8 @@ def get_locales(prefix=None, normalize=True,
     if prefix is None:
         return _valid_locales(out_locales, normalize)
 
-    found = re.compile('%s.*' % prefix).findall('\n'.join(out_locales))
+    found = re.compile('{prefix}.*'.format(prefix=prefix)) \
+              .findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -818,13 +821,13 @@ def ensure_clean(filename=None, return_filelike=False):
             try:
                 os.close(fd)
             except Exception as e:
-                print("Couldn't close file descriptor: %d (file: %s)" %
-                      (fd, filename))
+                print("Couldn't close file descriptor: {fdesc} (file: {fname})"
+                      .format(fdesc=fd, fname=filename))
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
             except Exception as e:
-                print("Exception on removing file: %s" % e)
+                print("Exception on removing file: {error}".format(error=e))
 
 
 def get_data_path(f=''):
@@ -900,15 +903,17 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     # level comparison
     if left.nlevels != right.nlevels:
-        raise_assert_detail(obj, '{0} levels are different'.format(obj),
-                            '{0}, {1}'.format(left.nlevels, left),
-                            '{0}, {1}'.format(right.nlevels, right))
+        msg1 = '{obj} levels are different'.format(obj=obj)
+        msg2 = '{nlevels}, {left}'.format(nlevels=left.nlevels, left=left)
+        msg3 = '{nlevels}, {right}'.format(nlevels=right.nlevels, right=right)
+        raise_assert_detail(obj, msg1, msg2, msg3)
 
     # length comparison
     if len(left) != len(right):
-        raise_assert_detail(obj, '{0} length are different'.format(obj),
-                            '{0}, {1}'.format(len(left), left),
-                            '{0}, {1}'.format(len(right), right))
+        msg1 = '{obj} length are different'.format(obj=obj)
+        msg2 = '{length}, {left}'.format(length=len(left), left=left)
+        msg3 = '{length}, {right}'.format(length=len(right), right=right)
+        raise_assert_detail(obj, msg1, msg2, msg3)
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -917,7 +922,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             llevel = _get_ilevel_values(left, level)
             rlevel = _get_ilevel_values(right, level)
 
-            lobj = 'MultiIndex level [{0}]'.format(level)
+            lobj = 'MultiIndex level [{level}]'.format(level=level)
             assert_index_equal(llevel, rlevel,
                                exact=exact, check_names=check_names,
                                check_less_precise=check_less_precise,
@@ -929,8 +934,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
-            msg = '{0} values are different ({1} %)'\
-                .format(obj, np.round(diff, 5))
+            msg = '{obj} values are different ({pct} %)'.format(
+                obj=obj, pct=np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
     else:
         _testing.assert_almost_equal(left.values, right.values,
@@ -950,7 +955,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
             assert_categorical_equal(left.values, right.values,
-                                     obj='{0} category'.format(obj))
+                                     obj='{obj} category'.format(obj=obj))
 
 
 def assert_class_equal(left, right, exact=True, obj='Input'):
@@ -971,12 +976,12 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
             # allow equivalence of Int64Index/RangeIndex
             types = set([type(left).__name__, type(right).__name__])
             if len(types - set(['Int64Index', 'RangeIndex'])):
-                msg = '{0} classes are not equivalent'.format(obj)
+                msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
     elif exact:
         if type(left) != type(right):
-            msg = '{0} classes are different'.format(obj)
+            msg = '{obj} classes are different'.format(obj=obj)
             raise_assert_detail(obj, msg, repr_class(left),
                                 repr_class(right))
 
@@ -1016,23 +1021,22 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
     if result:
         return True
     else:
-        raise_assert_detail(obj, 'Attribute "{0}" are different'.format(attr),
-                            left_attr, right_attr)
+        msg = 'Attribute "{attr}" are different'.format(attr=attr)
+        raise_assert_detail(obj, msg, left_attr, right_attr)
 
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
-            msg = ('one of \'objs\' is not a matplotlib Axes instance, '
-                   'type encountered {0!r}')
-            assert isinstance(el, (plt.Axes, dict)), msg.format(
-                el.__class__.__name__)
+            msg = ('one of \'objs\' is not a matplotlib Axes instance, type '
+                   'encountered {name!r}').format(name=el.__class__.__name__)
+            assert isinstance(el, (plt.Axes, dict)), msg
     else:
         assert isinstance(objs, (plt.Artist, tuple, dict)), \
             ('objs is neither an ndarray of Artist instances nor a '
-             'single Artist instance, tuple, or dict, "objs" is a {0!r} '
-             ''.format(objs.__class__.__name__))
+             'single Artist instance, tuple, or dict, "objs" is a {name!r}'
+             ).format(name=objs.__class__.__name__)
 
 
 def isiterable(obj):
@@ -1069,17 +1073,17 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
     if check_category_order:
         assert_index_equal(left.categories, right.categories,
-                           obj='{0}.categories'.format(obj))
+                           obj='{obj}.categories'.format(obj=obj))
         assert_numpy_array_equal(left.codes, right.codes,
                                  check_dtype=check_dtype,
-                                 obj='{0}.codes'.format(obj))
+                                 obj='{obj}.codes'.format(obj=obj))
     else:
         assert_index_equal(left.categories.sort_values(),
                            right.categories.sort_values(),
-                           obj='{0}.categories'.format(obj))
+                           obj='{obj}.categories'.format(obj=obj))
         assert_index_equal(left.categories.take(left.codes),
                            right.categories.take(right.codes),
-                           obj='{0}.values'.format(obj))
+                           obj='{obj}.values'.format(obj=obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
 
@@ -1090,14 +1094,14 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
 
-    msg = """{0} are different
+    msg = """{obj} are different
 
-{1}
-[left]:  {2}
-[right]: {3}""".format(obj, message, left, right)
+{message}
+[left]:  {left}
+[right]: {right}""".format(obj=obj, message=message, left=left, right=right)
 
     if diff is not None:
-        msg = msg + "\n[diff]: {diff}".format(diff=diff)
+        msg += "\n[diff]: {diff}".format(diff=diff)
 
     raise AssertionError(msg)
 
@@ -1138,18 +1142,20 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
 
     if check_same == 'same':
         if left_base is not right_base:
-            msg = "%r is not %r" % (left_base, right_base)
+            msg = "{left!r} is not {right!r}".format(
+                left=left_base, right=right_base)
             raise AssertionError(msg)
     elif check_same == 'copy':
         if left_base is right_base:
-            msg = "%r is %r" % (left_base, right_base)
+            msg = "{left!r} is {right!r}".format(
+                left=left_base, right=right_base)
             raise AssertionError(msg)
 
     def _raise(left, right, err_msg):
         if err_msg is None:
             if left.shape != right.shape:
-                raise_assert_detail(obj, '{0} shapes are different'
-                                    .format(obj), left.shape, right.shape)
+                raise_assert_detail(obj, '{obj} shapes are different'
+                                    .format(obj=obj), left.shape, right.shape)
 
             diff = 0
             for l, r in zip(left, right):
@@ -1158,8 +1164,8 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
                     diff += 1
 
             diff = diff * 100.0 / left.size
-            msg = '{0} values are different ({1} %)'\
-                .format(obj, np.round(diff, 5))
+            msg = '{obj} values are different ({pct} %)'.format(
+                obj=obj, pct=np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
 
         raise AssertionError(err_msg)
@@ -1226,9 +1232,9 @@ def assert_series_equal(left, right, check_dtype=True,
 
     # length comparison
     if len(left) != len(right):
-        raise_assert_detail(obj, 'Series length are different',
-                            '{0}, {1}'.format(len(left), left.index),
-                            '{0}, {1}'.format(len(right), right.index))
+        msg1 = '{len}, {left}'.format(len=len(left), left=left.index)
+        msg2 = '{len}, {right}'.format(len=len(right), right=right.index)
+        raise_assert_detail(obj, 'Series length are different', msg1, msg2)
 
     # index comparison
     assert_index_equal(left.index, right.index, exact=check_index_type,
@@ -1236,7 +1242,7 @@ def assert_series_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{0}.index'.format(obj))
+                       obj='{obj}.index'.format(obj=obj))
 
     if check_dtype:
         assert_attr_equal('dtype', left, right)
@@ -1244,7 +1250,7 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
                                  check_dtype=check_dtype,
-                                 obj='{0}'.format(obj),)
+                                 obj='{obj}'.format(obj=obj),)
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
@@ -1257,8 +1263,9 @@ def assert_series_equal(left, right, check_dtype=True,
             # datetimelike may have different objects (e.g. datetime.datetime
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
-                msg = '[datetimelike_compat=True] {0} is not equal to {1}.'
-                raise AssertionError(msg.format(left.values, right.values))
+                msg = ('[datetimelike_compat=True] {left} is not equal to '
+                       '{right}.').format(left=left.values, right=right.values)
+                raise AssertionError(msg)
         else:
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
@@ -1266,13 +1273,13 @@ def assert_series_equal(left, right, check_dtype=True,
         # TODO: big hack here
         l = pd.IntervalIndex(left)
         r = pd.IntervalIndex(right)
-        assert_index_equal(l, r, obj='{0}.index'.format(obj))
+        assert_index_equal(l, r, obj='{obj}.index'.format(obj=obj))
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
                                      check_dtype=check_dtype,
-                                     obj='{0}'.format(obj))
+                                     obj='{obj}'.format(obj=obj))
 
     # metadata comparison
     if check_names:
@@ -1281,7 +1288,7 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
             assert_categorical_equal(left.values, right.values,
-                                     obj='{0} category'.format(obj))
+                                     obj='{obj} category'.format(obj=obj))
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1348,8 +1355,8 @@ def assert_frame_equal(left, right, check_dtype=True,
     if left.shape != right.shape:
         raise_assert_detail(obj,
                             'DataFrame shape mismatch',
-                            '({0}, {1})'.format(*left.shape),
-                            '({0}, {1})'.format(*right.shape))
+                            '{shape!r}'.format(shape=left.shape),
+                            '{shape!r}'.format(shape=right.shape))
 
     if check_like:
         left, right = left.reindex_like(right), right
@@ -1360,7 +1367,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{0}.index'.format(obj))
+                       obj='{obj}.index'.format(obj=obj))
 
     # column comparison
     assert_index_equal(left.columns, right.columns, exact=check_column_type,
@@ -1368,7 +1375,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{0}.columns'.format(obj))
+                       obj='{obj}.columns'.format(obj=obj))
 
     # compare by blocks
     if by_blocks:
@@ -1393,7 +1400,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_exact=check_exact, check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj='DataFrame.iloc[:, {0}]'.format(i))
+                obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
 def assert_panelnd_equal(left, right,
@@ -1448,13 +1455,15 @@ def assert_panelnd_equal(left, right,
 
         # can potentially be slow
         for i, item in enumerate(left._get_axis(0)):
-            assert item in right, "non-matching item (right) '%s'" % item
+            msg = "non-matching item (right) '{item}'".format(item=item)
+            assert item in right, msg
             litem = left.iloc[i]
             ritem = right.iloc[i]
             assert_func(litem, ritem, check_less_precise=check_less_precise)
 
         for i, item in enumerate(right._get_axis(0)):
-            assert item in left, "non-matching item (left) '%s'" % item
+            msg = "non-matching item (left) '{item}'".format(item=item)
+            assert item in left, msg
 
 
 # TODO: strangely check_names fails in py3 ?
@@ -1526,7 +1535,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
-                       obj='{0}.index'.format(obj))
+                       obj='{obj}.index'.format(obj=obj))
 
     assert_sp_array_equal(left.block.values, right.block.values)
 
@@ -1563,9 +1572,9 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
-                       obj='{0}.index'.format(obj))
+                       obj='{obj}.index'.format(obj=obj))
     assert_index_equal(left.columns, right.columns,
-                       obj='{0}.columns'.format(obj))
+                       obj='{obj}.columns'.format(obj=obj))
 
     for col, series in compat.iteritems(left):
         assert (col in right)
@@ -1599,7 +1608,7 @@ def assert_sp_list_equal(left, right):
 
 def assert_contains_all(iterable, dic):
     for k in iterable:
-        assert k in dic, "Did not contain item: '%r'" % k
+        assert k in dic, "Did not contain item: '{key!r}'".format(key=k)
 
 
 def assert_copy(iter1, iter2, **eql_kwargs):
@@ -1613,10 +1622,10 @@ def assert_copy(iter1, iter2, **eql_kwargs):
     """
     for elem1, elem2 in zip(iter1, iter2):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
-        assert elem1 is not elem2, ("Expected object %r and "
-                                    "object %r to be different "
-                                    "objects, were same."
-                                    % (type(elem1), type(elem2)))
+        msg = ("Expected object {obj1!r} and object {obj2!r} to be "
+               "different objects, but they were the same object."
+               ).format(obj1=type(elem1), obj2=type(elem2))
+        assert elem1 is not elem2, msg
 
 
 def getCols(k):
@@ -1870,8 +1879,9 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
             idx.name = names[0]
         return idx
     elif idx_type is not None:
-        raise ValueError('"%s" is not a legal value for `idx_type`, use  '
-                         '"i"/"f"/"s"/"u"/"dt/"p"/"td".' % idx_type)
+        raise ValueError('"{idx_type}" is not a legal value for `idx_type`, '
+                         'use  "i"/"f"/"s"/"u"/"dt/"p"/"td".'
+                         .format(idx_type=idx_type))
 
     if len(ndupe_l) < nlevels:
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
@@ -1890,7 +1900,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         div_factor = nentries // ndupe_l[i] + 1
         cnt = Counter()
         for j in range(div_factor):
-            label = prefix + '_l%d_g' % i + str(j)
+            label = '{prefix}_l{i}_g{j}'.format(prefix=prefix, i=i, j=j)
             cnt[label] = ndupe_l[i]
         # cute Counter trick
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
@@ -1983,7 +1993,7 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
 
     # by default, generate data based on location
     if data_gen_f is None:
-        data_gen_f = lambda r, c: "R%dC%d" % (r, c)
+        data_gen_f = lambda r, c: "R{rows}C{cols}".format(rows=r, cols=c)
 
     data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
 
@@ -2112,13 +2122,13 @@ def skip_if_no_package(pkg_name, min_version=None, max_version=None,
 
     import pytest
     if app:
-        msg = '%s requires %s' % (app, pkg_name)
+        msg = '{app} requires {pkg_name}'.format(app=app, pkg_name=pkg_name)
     else:
-        msg = 'module requires %s' % pkg_name
+        msg = 'module requires {pkg_name}'.format(pkg_name=pkg_name)
     if min_version:
-        msg += ' with version >= %s' % (min_version,)
+        msg += ' with version >= {min_version}'.format(min_version=min_version)
     if max_version:
-        msg += ' with version < %s' % (max_version,)
+        msg += ' with version < {max_version}'.format(max_version=max_version)
     try:
         mod = __import__(pkg_name)
     except ImportError:
@@ -2126,7 +2136,8 @@ def skip_if_no_package(pkg_name, min_version=None, max_version=None,
     try:
         have_version = mod.__version__
     except AttributeError:
-        pytest.skip('Cannot find version for %s' % pkg_name)
+        pytest.skip('Cannot find version for {pkg_name}'
+                    .format(pkg_name=pkg_name))
     if min_version and checker(have_version) < checker(min_version):
         pytest.skip(msg)
     if max_version and checker(have_version) >= checker(max_version):
@@ -2332,7 +2343,7 @@ def network(t, url="http://www.google.com",
 
             if errno in skip_errnos:
                 skip("Skipping test due to known errno"
-                     " and error %s" % e)
+                     " and error {error}".format(error=e))
 
             try:
                 e_str = traceback.format_exc(e)
@@ -2341,7 +2352,7 @@ def network(t, url="http://www.google.com",
 
             if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
                 skip("Skipping test because exception "
-                     "message is known and error %s" % e)
+                     "message is known and error {error}".format(error=e))
 
             if not isinstance(e, error_classes):
                 raise
@@ -2350,7 +2361,7 @@ def network(t, url="http://www.google.com",
                 raise
             else:
                 skip("Skipping test due to lack of connectivity"
-                     " and error %s" % e)
+                     " and error {error}".format(e))
 
     return wrapper
 
@@ -2488,7 +2499,7 @@ class _AssertRaisesContextmanager(object):
 
         if not exc_type:
             exp_name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{0} not raised.".format(exp_name))
+            raise AssertionError("{name} not raised.".format(name=exp_name))
 
         return self.exception_matches(exc_type, exc_value, trace_back)
 
@@ -2523,8 +2534,9 @@ class _AssertRaisesContextmanager(object):
                 val = str(exc_value)
 
                 if not self.regexp.search(val):
-                    e = AssertionError('"%s" does not match "%s"' %
-                                       (self.regexp.pattern, str(val)))
+                    msg = '"{pat}" does not match "{val}"'.format(
+                        pat=self.regexp.pattern, val=val)
+                    e = AssertionError(msg)
                     raise_with_traceback(e, trace_back)
 
             return True
@@ -2591,18 +2603,20 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     from inspect import getframeinfo, stack
                     caller = getframeinfo(stack()[2][0])
                     msg = ("Warning not set with correct stacklevel. "
-                           "File where warning is raised: {0} != {1}. "
-                           "Warning message: {2}".format(
-                               actual_warning.filename, caller.filename,
-                               actual_warning.message))
+                           "File where warning is raised: {actual} != "
+                           "{caller}. Warning message: {message}"
+                           ).format(actual=actual_warning.filename,
+                                    caller=caller.filename,
+                                    message=actual_warning.message)
                     assert actual_warning.filename == caller.filename, msg
             else:
                 extra_warnings.append(actual_warning.category.__name__)
         if expected_warning:
-            assert saw_warning, ("Did not see expected warning of class %r."
-                                 % expected_warning.__name__)
-        assert not extra_warnings, ("Caused unexpected warning(s): %r."
-                                    % extra_warnings)
+            msg = "Did not see expected warning of class {name!r}.".format(
+                name=expected_warning.__name__)
+            assert saw_warning, msg
+        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
+                                    ).format(extra=extra_warnings)
 
 
 class RNGContext(object):
