@@ -4129,10 +4129,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
+<<<<<<< HEAD
+            Value to use to fill holes (e.g. 0). Regular expressions, strings
+            and lists or dicts of such objects are also allowed.
+=======
             Value to use to fill holes (e.g. 0), alternately a dict of values
             specifying which value to use for each column (columns not in the
             dict will not be filled). Regular expressions, strings and lists or
             dicts of such objects are also allowed.
+>>>>>>> parent of 2b8c5ea88... DOC: Updated pd.Series.replace
         inplace : boolean, default False
             If True, in place. Note: this will modify any
             other views on this object (e.g. a column form a DataFrame).
