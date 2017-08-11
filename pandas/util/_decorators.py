@@ -9,8 +9,7 @@ from functools import wraps, update_wrapper
 def deprecate(name, alternative, alt_name=None, klass=None,
               stacklevel=2):
     """
-
-    Return a new function that emits a deprecation warning on use
+    Return a new function that emits a deprecation warning on use.
 
     Parameters
     ----------
@@ -22,8 +21,8 @@ def deprecate(name, alternative, alt_name=None, klass=None,
         Name to use in preference of alternative.__name__
     klass : Warning, default FutureWarning
     stacklevel : int, default 2
-
     """
+
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
 
@@ -35,7 +34,8 @@ def deprecate(name, alternative, alt_name=None, klass=None,
 
 
 def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
-    """Decorator to deprecate a keyword argument of a function
+    """
+    Decorator to deprecate a keyword argument of a function.
 
     Parameters
     ----------
@@ -72,8 +72,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
-
     """
+
     if mapping is not None and not hasattr(mapping, 'get') and \
             not callable(mapping):
         raise TypeError("mapping from old to new argument values "
@@ -155,7 +155,12 @@ class Substitution(object):
         return func
 
     def update(self, *args, **kwargs):
-        "Assume self.params is a dict and update it with supplied args"
+        """
+        Update self.params with supplied args.
+
+        If called, we assume self.params is a dict.
+        """
+
         self.params.update(*args, **kwargs)
 
     @classmethod
@@ -215,16 +220,16 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults
+    Returns a string repr of the arg list of a func call, with any defaults.
 
     Examples
     --------
-
     >>> def f(a,b,c=2) :
     >>>     return a*b*c
     >>> print(_make_signature(f))
     a,b,c=2
     """
+
     spec = signature(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
@@ -244,8 +249,8 @@ def make_signature(func):
 
 class docstring_wrapper(object):
     """
-    decorator to wrap a function,
-    provide a dynamically evaluated doc-string
+    Decorator to wrap a function and provide
+    a dynamically evaluated doc-string.
 
     Parameters
     ----------
