@@ -48,7 +48,7 @@ class TestSparseDataFrame(SharedWithSparse):
         self.iframe = SparseDataFrame(self.data, index=self.dates,
                                       default_kind='integer')
         self.mixed_frame = self.frame.copy(False)
-        # self.mixed_frame['foo'] = pd.SparseArray(['bar'] * len(self.dates))
+        self.mixed_frame['foo'] = pd.SparseArray(['bar'] * len(self.dates))
 
         values = self.frame.values.copy()
         values[np.isnan(values)] = 0
