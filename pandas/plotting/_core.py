@@ -31,7 +31,8 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0)
+                                     _mpl_ge_1_5_0,
+                                     _mpl_ge_2_0_0)
 from pandas.plotting._style import (mpl_stylesheet, plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -965,7 +966,8 @@ class LinePlot(MPLPlot):
 
             lines = _get_all_lines(ax)
             left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            if not _mpl_ge_2_0_0():
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
