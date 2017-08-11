@@ -98,6 +98,8 @@ import pandas.io.formats.console as console
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
 
+from pandas.core.reshape import pivot as _pivot
+
 from pandas._libs import lib, algos as libalgos
 
 from pandas.core.config import get_option
@@ -4153,6 +4155,16 @@ class DataFrame(NDFrame):
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
+
+    @Substitution('')
+    @Appender(_shared_docs['pivot_table'])
+    def pivot_table(self, values=None, index=None, columns=None,
+                    aggfunc='mean', fill_value=None, margins=False,
+                    dropna=True, margins_name='All'):
+        return _pivot.pivot_table(self, values=values, index=index,
+                                  columns=columns, aggfunc=aggfunc,
+                                  fill_value=fill_value, margins=margins,
+                                  dropna=dropna, margins_name=margins_name)
 
     def stack(self, level=-1, dropna=True):
         """

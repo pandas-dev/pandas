@@ -2,28 +2,29 @@
 
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+
 from pandas.core.reshape.concat import concat
-from pandas import Series, DataFrame, MultiIndex, Index
-from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import _get_combined_index
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
+
+from pandas.util._decorators import Appender, Substitution
+
+from pandas.core.generic import _shared_docs
+
 import numpy as np
 
 
-def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
-                fill_value=None, margins=False, dropna=True,
-                margins_name='All'):
-    """
+_shared_docs['pivot_table'] = """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
     the index and columns of the result DataFrame
 
     Parameters
-    ----------
-    data : DataFrame
+    ----------%s
     values : column to aggregate, optional
     index : column, Grouper, array, or list of the previous
         If an array is passed, it must be the same length as the data. The list
@@ -91,6 +92,13 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     DataFrame.pivot : pivot without aggregation that can handle
         non-numeric data
     """
+
+
+@Substitution('\ndata : DataFrame')
+@Appender(_shared_docs['pivot_table'])
+def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
+                fill_value=None, margins=False, dropna=True,
+                margins_name='All'):
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -123,6 +131,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 raise KeyError(i)
 
         to_filter = []
+        from pandas import Grouper
         for x in keys + values:
             if isinstance(x, Grouper):
                 x = x.key
@@ -162,6 +171,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         table = agged.unstack(to_unstack)
 
     if not dropna:
+        from pandas import MultiIndex
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
@@ -176,7 +186,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         except AttributeError:
             pass  # it's a single level or a series
 
-    if isinstance(table, DataFrame):
+    if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
@@ -198,13 +208,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         table = table.T
 
     # GH 15193 Makse sure empty columns are removed if dropna=True
-    if isinstance(table, DataFrame) and dropna:
+    if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how='all', axis=1)
 
     return table
-
-
-DataFrame.pivot_table = pivot_table
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
@@ -230,9 +237,10 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     else:
         key = margins_name
 
-    if not values and isinstance(table, Series):
+    if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
+        from pandas import Series
         return table.append(Series({key: grand_margin[margins_name]}))
 
     if values:
@@ -257,6 +265,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         else:
             row_margin[k] = grand_margin[k[0]]
 
+    from pandas import DataFrame
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
@@ -333,6 +342,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         else:
             margin = grand_margin
             cat_axis = 0
+            from pandas import Series
             for key, piece in table.groupby(level=0, axis=cat_axis):
                 all_key = _all_key(key)
                 table_pieces.append(piece)
@@ -355,6 +365,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         new_order = [len(cols)] + lrange(len(cols))
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
+        from pandas import Series
         row_margin = Series(np.nan, index=result.columns)
 
     return result, margin_keys, row_margin
@@ -393,16 +404,18 @@ def _generate_marginal_results_without_values(
     if len(cols):
         row_margin = data[cols].groupby(cols).apply(aggfunc)
     else:
+        from pandas import Series
         row_margin = Series(np.nan, index=result.columns)
 
     return result, margin_keys, row_margin
 
 
 def _convert_by(by):
+    from pandas import Grouper
     if by is None:
         by = []
     elif (is_scalar(by) or
-          isinstance(by, (np.ndarray, Index, Series, Grouper)) or
+          isinstance(by, (np.ndarray, ABCIndexClass, ABCSeries, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]
     else:
@@ -523,6 +536,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    from pandas import DataFrame
     df = DataFrame(data, index=common_idx)
     if values is None:
         df['__dummy__'] = 0
@@ -620,7 +634,7 @@ def _get_names(arrs, names, prefix='row'):
     if names is None:
         names = []
         for i, arr in enumerate(arrs):
-            if isinstance(arr, Series) and arr.name is not None:
+            if isinstance(arr, ABCSeries) and arr.name is not None:
                 names.append(arr.name)
             else:
                 names.append('%s_%d' % (prefix, i))
