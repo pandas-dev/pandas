@@ -3681,6 +3681,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See also
         --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to a numeric type.
         numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
