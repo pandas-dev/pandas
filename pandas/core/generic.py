@@ -4123,8 +4123,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
-            Value to use to fill holes (e.g. 0). Regular expressions, strings and lists or
-            dicts of such objects are also allowed.
+            Value to use to fill holes (e.g. 0). Regular expressions, 
+            strings and lists or dicts of such objects are also allowed.
         inplace : boolean, default False
             If True, in place.
             Returns the caller if this is True.
