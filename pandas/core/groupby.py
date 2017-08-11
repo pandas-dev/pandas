@@ -2840,7 +2840,7 @@ class SeriesGroupBy(GroupBy):
     @Appender(Series.tshift.__doc__)
     def tshift(self, periods=1, freq=None, axis=0):
         f = self.__getattr__('tshift')
-        return f(periods=periods, freq=freq,axis=axis)
+        return f(periods=periods, freq=freq, axis=axis)
 
     @Appender(Series.pct_change.__doc__)
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
