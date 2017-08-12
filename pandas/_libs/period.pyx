@@ -3,8 +3,7 @@ import operator
 
 from cpython cimport (
     PyObject_RichCompareBool,
-    Py_EQ, Py_NE,
-)
+    Py_EQ, Py_NE)
 
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
@@ -19,8 +18,11 @@ from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
+# this is _libs.src.datetime, not python stdlib
 from datetime cimport *
+
 cimport util, lib
+
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
@@ -683,12 +685,16 @@ class IncompatibleFrequency(ValueError):
 
 cdef class _Period(object):
 
-    cdef public:
+    cdef readonly:
         int64_t ordinal
         object freq
 
     _comparables = ['name', 'freqstr']
     _typ = 'period'
+
+    def __cinit__(self, ordinal, freq):
+        self.ordinal = ordinal
+        self.freq = freq
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
@@ -713,9 +719,8 @@ cdef class _Period(object):
         if ordinal == iNaT:
             return NaT
         else:
-            self = _Period.__new__(cls)
-            self.ordinal = ordinal
-            self.freq = cls._maybe_convert_freq(freq)
+            freq = cls._maybe_convert_freq(freq)
+            self = _Period.__new__(cls, ordinal, freq)
             return self
 
     def __richcmp__(self, other, op):
@@ -767,7 +772,7 @@ cdef class _Period(object):
     def __add__(self, other):
         if isinstance(self, Period):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
+                                  offsets.DateOffset,
                                   Timedelta)):
                 return self._add_delta(other)
             elif other is NaT:
@@ -785,7 +790,7 @@ cdef class _Period(object):
     def __sub__(self, other):
         if isinstance(self, Period):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
+                                  offsets.DateOffset,
                                   Timedelta)):
                 neg_other = -other
                 return self + neg_other
