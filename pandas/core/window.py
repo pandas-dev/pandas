@@ -291,8 +291,7 @@ class _Window(PandasObject, SelectionMixin):
         # we want to put it back into the results
         # in the same location
         columns = self._selected_obj.columns
-        if self.on is not None \
-           and not self._on.equals(obj.index):
+        if self.on is not None and not self._on.equals(obj.index):
 
             name = self._on.name
             final.append(Series(self._on, index=obj.index, name=name))
@@ -310,8 +309,7 @@ class _Window(PandasObject, SelectionMixin):
 
         if not len(final):
             return obj.astype('float64')
-        return concat(final, axis=1).reindex(columns=columns,
-                                                copy=False)
+        return concat(final, axis=1).reindex(columns=columns, copy=False)
 
     def _center_window(self, result, window):
         """ center the result in the window """
