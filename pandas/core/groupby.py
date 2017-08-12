@@ -54,8 +54,7 @@ from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
-from pandas.util._decorators import (cache_readonly, Substitution,
-                                     Appender, make_signature)
+from pandas.util._decorators import cache_readonly, Substitution, Appender
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_kwargs
 
@@ -3377,7 +3376,6 @@ class SeriesGroupBy(GroupBy):
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
         return func(self)
-
 
 
 class NDFrameGroupBy(GroupBy):
