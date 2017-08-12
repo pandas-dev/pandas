@@ -8,7 +8,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, _get_combined_index
+from pandas.core.index import Index, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -440,12 +440,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
-    obs_idxes = [obj.index for objs in (index, columns) for obj in objs
-                 if hasattr(obj, 'index')]
-    if obs_idxes:
-        common_idx = _get_combined_index(obs_idxes, intersect=True)
-    else:
-        common_idx = None
+    common_idx = _get_objs_combined_axis(index + columns, intersect=True)
 
     data = {}
     data.update(zip(rownames, index))

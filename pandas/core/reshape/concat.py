@@ -4,7 +4,7 @@ concat routines
 
 import numpy as np
 from pandas import compat, DataFrame, Series, Index, MultiIndex
-from pandas.core.index import (_get_combined_index,
+from pandas.core.index import (_get_objs_combined_axis,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.categorical import (_factorize_from_iterable,
@@ -445,16 +445,13 @@ class _Concatenator(object):
         return new_axes
 
     def _get_comb_axis(self, i):
-        if self._is_series:
-            all_indexes = [x.index for x in self.objs]
-        else:
-            try:
-                all_indexes = [x._data.axes[i] for x in self.objs]
-            except IndexError:
-                types = [type(x).__name__ for x in self.objs]
-                raise TypeError("Cannot concatenate list of %s" % types)
-
-        return _get_combined_index(all_indexes, intersect=self.intersect)
+        data_axis = self.objs[0]._get_block_manager_axis(i)
+        try:
+            return _get_objs_combined_axis(self.objs, axis=data_axis,
+                                           intersect=self.intersect)
+        except IndexError:
+            types = [type(x).__name__ for x in self.objs]
+            raise TypeError("Cannot concatenate list of %s" % types)
 
     def _get_concat_axis(self):
         """
