@@ -346,6 +346,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     if chunksize is not None:
         _validate_integer("chunksize", chunksize, 1)
+        if not lines:
+            raise ValueError("chunksize should only be passed if lines=True")
 
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
