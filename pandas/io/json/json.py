@@ -1,6 +1,5 @@
 # pylint: disable-msg=E1101,W0613,W0603
 from itertools import islice
-from pandas import concat
 import os
 import numpy as np
 
@@ -423,7 +422,7 @@ class JsonLineReader(BaseIterator):
                 self.fh.close()
             except:
                 pass
-            return StopIteration
+            raise StopIteration
 
 class Parser(object):
 
