@@ -10,7 +10,7 @@ from pandas.compat import StringIO, long, u
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _stringify_path)
+                              _stringify_path, BaseIterator)
 from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
@@ -337,37 +337,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
 
+    # These kwargs are only needed by the Parsers, so we just wrap them up and
+    # pass them down.
+    kwargs = {"typ": typ, "orient": orient, "dtype": dtype,
+              "convert_axes": convert_axes, "convert_dates": convert_dates,
+              "keep_default_dates": keep_default_dates, "numpy": numpy,
+              "precise_float": precise_float, "date_unit": date_unit}
+
     if chunksize is not None:
         _validate_integer("chunksize", chunksize, 1)
-
-    def _read_json_as_lines(fh, chunksize):
-        """
-        Read json lines from fh in chunks, then concatenate the resulting
-        pandas objects.
-
-        Parameters
-        ----------
-        fh : a file-like object
-        chunksize : integer
-        """
-        return_val = None
-        while True:
-            lines = list(islice(fh, chunksize))
-
-            if lines:
-                lines_json = '[' + ','.join(lines) + ']'
-                obj = _get_obj(typ, lines_json, orient, dtype, convert_axes,
-                               convert_dates, keep_default_dates, numpy,
-                               precise_float, date_unit)
-                if not return_val:
-                    obj = return_val
-                else:
-                    return_val = concat([return_val, obj])
-
-            else:
-                break
-        fh.close()
-        return return_val
 
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
@@ -382,7 +360,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             fh, handles = _get_handle(filepath_or_buffer, 'r',
                                       encoding=encoding)
             if lines and chunksize:
-                return _read_json_as_lines(fh, chunksize)
+                return JsonLineReader(fh, chunksize, **kwargs)
             else:
                 json = fh.read()
                 fh.close()
@@ -390,7 +368,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
         if lines and chunksize:
-            return _read_json_as_lines(fh, chunksize)
+            return JsonLineReader(fh, chunksize, **kwargs)
         else:
             json = filepath_or_buffer.read()
     else:
@@ -402,28 +380,48 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         lines = list(StringIO(json.strip()))
         json = '[' + ','.join(lines) + ']'
 
-    return _get_obj(typ, json, orient, dtype, convert_axes, convert_dates,
-                    keep_default_dates, numpy, precise_float, date_unit)
+    return _get_obj(json, **kwargs)
 
 
-def _get_obj(typ, json, orient, dtype, convert_axes, convert_dates,
-             keep_default_dates, numpy, precise_float,
-             date_unit):
+def _get_obj(json, **kwargs):
+    typ = kwargs['typ']
+    dtype = kwargs['dtype']
+    kwargs = {k: v for k, v in kwargs.items() if k != 'typ'}
     obj = None
     if typ == 'frame':
-        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates,
-                          keep_default_dates, numpy, precise_float,
-                          date_unit).parse()
+        obj = FrameParser(json, **kwargs).parse()
 
     if typ == 'series' or obj is None:
         if not isinstance(dtype, bool):
             dtype = dict(data=dtype)
-        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates,
-                           keep_default_dates, numpy, precise_float,
-                           date_unit).parse()
+        obj = SeriesParser(json, **kwargs).parse()
 
     return obj
 
+
+class JsonLineReader(BaseIterator):
+    """
+    Iterates over a JSON document that is formatted with one JSON record per
+    line. The `chunksize` initialization parameter controls how many lines are
+    read per iteration.
+    """
+    def __init__(self, fh, chunksize, **kwargs):
+        self.fh = fh
+        self.chunksize = chunksize
+        self.kwargs = kwargs
+
+    def __next__(self):
+        lines = list(islice(self.fh, self.chunksize))
+        if lines:
+            lines_json = '[' + ','.join(lines) + ']'
+            return _get_obj(json=lines_json, **self.kwargs)
+
+        else:
+            try:
+                self.fh.close()
+            except:
+                pass
+            return StopIteration
 
 class Parser(object):
 
