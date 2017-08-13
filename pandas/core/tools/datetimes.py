@@ -457,7 +457,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             if is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz=tz, name=name)
             # GH 6415
-            elif arg_is_series:
+            elif arg_is_series and utc:
                 result = _maybe_convert_to_utc(Series(result, name=name), utc)
             return result
 

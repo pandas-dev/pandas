@@ -602,7 +602,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
-        # Test date parsing in read_sq
+        # Test date parsing in read_sql
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -1248,7 +1248,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
+        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
     def test_datetime_with_timezone(self):
         # edge case that converts postgresql datetime with time zone types
@@ -1333,7 +1335,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         df = sql.read_sql_table("types_test_data", self.conn, parse_dates={
             'DateCol': {'format': '%Y-%m-%d %H:%M:%S'}})
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
             "types_test_data", self.conn, parse_dates=['IntDateCol'])
@@ -1355,7 +1357,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
         result = result.drop('index', axis=1)
-        tm.assert_frame_equal(result, df)
+        # After GH 6415, dates outbound from a db will be localized to UTC 
+        # xref GH 7364
+        expected = df.copy()
+        expected['A'] = expected['A'].dt.tz_localize('UTC')
+        tm.assert_frame_equal(result, expected)
 
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
@@ -1375,7 +1381,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
-        tm.assert_frame_equal(result, df)
+        # After GH 6415, dates outbound from a db will be localized to UTC 
+        # xref GH 7364
+        expected = df.copy()
+        expected['A'] = expected['A'].dt.tz_localize('UTC')
+        tm.assert_frame_equal(result, expected)
 
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
@@ -1391,8 +1401,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         df.to_sql('test_date', self.conn, index=False)
         res = read_sql_table('test_date', self.conn)
-        # comes back as datetime64
-        tm.assert_series_equal(res['a'], to_datetime(df['a']))
+        # GH 6415 comes back as datetime64[ns, UTC]
+        tm.assert_series_equal(res['a'], to_datetime(df['a'], utc=True))
 
     def test_datetime_time(self):
         # test support for datetime.time
