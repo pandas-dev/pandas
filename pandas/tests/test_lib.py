@@ -257,4 +257,4 @@ def test_period_immutable():
 
     freq = per.freq
     with pytest.raises(AttributeError, message="is not writable"):
-        per.freq = 2*freq
+        per.freq = 2 * freq
