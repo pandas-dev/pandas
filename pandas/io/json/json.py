@@ -420,7 +420,7 @@ class JsonLineReader(BaseIterator):
         else:
             try:
                 self.fh.close()
-            except:
+            except IOError:
                 pass
             raise StopIteration
 

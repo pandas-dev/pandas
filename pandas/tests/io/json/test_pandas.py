@@ -1059,7 +1059,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_json(strio, lines=True, chunksize='foo')
 
-
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_json(strio, lines=False, chunksize=2)
