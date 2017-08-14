@@ -4012,6 +4012,33 @@ Index._add_logical_methods()
 Index._add_comparison_methods()
 
 
+def _index_from_sequences(sequences, names=None):
+    """Construct an index from sequences of data.
+
+    A single sequence returns an Index.
+    Many sequences returns a MultiIndex.
+
+    Examples
+    --------
+
+    >>> _index_from_sequences([[1, 2, 3]], names=['name'])
+    Int64Index([1, 2, 3], dtype='int64', name='name')
+
+    >>> _index_from_sequences([['a', 'a'], ['a', 'b']], names=['L1', 'L2'])
+    MultiIndex(levels=[['a'], ['a', 'b']],
+               labels=[[0, 0], [0, 1]],
+               names=['L1', 'L2'])
+    """
+    from .multi import MultiIndex
+
+    if len(sequences) == 1:
+        if names is not None:
+            names = names[0]
+        return Index(sequences[0], name=names)
+    else:
+        return MultiIndex.from_arrays(sequences, names=names)
+
+
 def _ensure_index(index_like, copy=False):
     if isinstance(index_like, Index):
         if copy:

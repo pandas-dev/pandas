@@ -1452,7 +1452,10 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
