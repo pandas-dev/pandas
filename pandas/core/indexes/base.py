@@ -2110,7 +2110,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
-        return Index(np.array(self) + other)
+        return Index(np.array(self) + other, name=self.name)
 
     def __radd__(self, other):
         return Index(other + np.array(self))

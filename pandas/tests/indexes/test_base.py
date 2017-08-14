@@ -859,6 +859,17 @@ class TestIndex(Base):
         index += '_x'
         assert 'a_x' in index
 
+    def test_iadd_index_name(self):
+        s = pd.Series([1, 2, 3])
+        s.index.name = 'foo'
+
+        s.index += 1
+        assert s.index.name == 'foo'
+
+    def test_reset_index_name(self):
+        df = pd.DataFrame(index=pd.Index([], name='x'))
+        assert df.reset_index(level=[]).index.name is 'index'
+
     def test_difference(self):
 
         first = self.strIndex[5:20]
