@@ -333,6 +333,11 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
 
+    if chunksize is not None:
+        chunksize = _validate_integer("chunksize", chunksize, 1)
+        if not lines:
+            raise ValueError("chunksize should only be passed if lines=True")
+
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
 
@@ -342,11 +347,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               "convert_axes": convert_axes, "convert_dates": convert_dates,
               "keep_default_dates": keep_default_dates, "numpy": numpy,
               "precise_float": precise_float, "date_unit": date_unit}
-
-    if chunksize is not None:
-        chunksize = _validate_integer("chunksize", chunksize, 1)
-        if not lines:
-            raise ValueError("chunksize should only be passed if lines=True")
 
     if isinstance(filepath_or_buffer, compat.string_types):
         try:

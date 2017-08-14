@@ -1089,8 +1089,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         with ensure_clean('test.json') as path:
             df.to_json(path, lines=True, orient="records")
-            unchunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
-            chunked = pd.read_json(path, lines=True)
+            chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
+            unchunked = pd.read_json(path, lines=True)
             assert_frame_equal(unchunked, chunked)
 
     def test_latin_encoding(self):
