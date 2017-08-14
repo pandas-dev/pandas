@@ -344,7 +344,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               "precise_float": precise_float, "date_unit": date_unit}
 
     if chunksize is not None:
-        _validate_integer("chunksize", chunksize, 1)
+        chunksize = _validate_integer("chunksize", chunksize, 1)
         if not lines:
             raise ValueError("chunksize should only be passed if lines=True")
 
@@ -369,7 +369,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
         if lines and chunksize:
-            return JsonLineReader(fh, chunksize, **kwargs)
+            return JsonLineReader(filepath_or_buffer, chunksize, **kwargs)
         else:
             json = filepath_or_buffer.read()
     else:
@@ -405,17 +405,30 @@ class JsonLineReader(BaseIterator):
     Iterates over a JSON document that is formatted with one JSON record per
     line. The `chunksize` initialization parameter controls how many lines are
     read per iteration.
+
+    We explicitly override the index on the return value so that the index of
+    the resulting object will be like `range(len(obj))`. If we didn't do this,
+    it would have index like `range(chunksize) * number_chunks.`
+    This is so that `read_json(lines=True)` will return an identical object to
+    `read_json(lines=True, chunksize=n)`.
     """
     def __init__(self, fh, chunksize, **kwargs):
         self.fh = fh
         self.chunksize = chunksize
         self.kwargs = kwargs
+        self.nrows_seen = 0
 
     def __next__(self):
         lines = list(islice(self.fh, self.chunksize))
         if lines:
             lines_json = '[' + ','.join(lines) + ']'
-            return _get_obj(json=lines_json, **self.kwargs)
+            obj = _get_obj(json=lines_json, **self.kwargs)
+
+            # Make sure that the returned objects have the right index
+            obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
+            self.nrows_seen += len(obj)
+
+            return obj
 
         else:
             try:

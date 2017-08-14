@@ -1035,33 +1035,52 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_read_jsonchunks(self):
         # GH17048: memory usage when lines=True
         df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-        strio = df.to_json(lines=True, orient="records")
 
-        unchunked = pd.read_json(strio, lines=True)
-        chunked = pd.read_json(strio, lines=True, chunksize=1)
+        def get_strio():
+            return StringIO(df.to_json(lines=True, orient="records"))
+
+        def test_with_chunksize(c):
+            return pd.concat(pd.read_json(get_strio(), lines=True, chunksize=c))
+
+        unchunked = pd.read_json(get_strio(), lines=True)
+
+        chunked = test_with_chunksize(1)
 
         assert_frame_equal(chunked, unchunked)
 
-        chunked_float = pd.read_json(strio, lines=True, chunksize=1.0)
+        chunked_float = test_with_chunksize(1.0)
         assert_frame_equal(chunked_float, unchunked)
 
         msg = r"'chunksize' must be an integer >=1"
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio, lines=True, chunksize=0)
+            test_with_chunksize(0)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio, lines=True, chunksize=-1)
+            test_with_chunksize(-1)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio, lines=True, chunksize=2.2)
+            test_with_chunksize(-2.2)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio, lines=True, chunksize='foo')
+            test_with_chunksize('foo')
 
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio, lines=False, chunksize=2)
+            pd.read_json(get_strio(), lines=False, chunksize=2)
+
+        # Test that reading in Series also works
+        s = pd.Series({'A': 1, 'B': 2})
+
+        strio = StringIO(s.to_json(lines=True, orient="records"))
+        unchunked = pd.read_json(strio, lines=True, typ='Series')
+
+        strio = StringIO(s.to_json(lines=True, orient="records"))
+        chunked = pd.concat(pd.read_json(
+            strio, lines=True, typ='Series', chunksize=1
+        ))
+
+        assert_series_equal(chunked, unchunked)
 
     def test_latin_encoding(self):
         if compat.PY2:
