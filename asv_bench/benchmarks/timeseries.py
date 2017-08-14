@@ -510,3 +510,17 @@ class SemiMonthOffset(object):
 
     def time_begin_decr_rng(self):
         self.rng - self.semi_month_begin
+
+
+class DatetimeAccessor(object):
+    def setup(self):
+        self.N = 100000
+        self.series = pd.Series(
+            pd.date_range(start='1/1/2000', periods=self.N, freq='T')
+        )
+
+    def time_dt_accessor(self):
+        self.series.dt
+
+    def time_dt_accessor_normalize(self):
+        self.series.dt.normalize()
