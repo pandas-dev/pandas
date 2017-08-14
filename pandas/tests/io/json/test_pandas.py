@@ -1040,7 +1040,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             return StringIO(df.to_json(lines=True, orient="records"))
 
         def test_with_chunksize(c):
-            return pd.concat(pd.read_json(get_strio(), lines=True, chunksize=c))
+            iterator = pd.read_json(get_strio(), lines=True, chunksize=c)
+            return pd.concat(iterator)
 
         unchunked = pd.read_json(get_strio(), lines=True)
 

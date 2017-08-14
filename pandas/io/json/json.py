@@ -437,6 +437,7 @@ class JsonLineReader(BaseIterator):
                 pass
             raise StopIteration
 
+
 class Parser(object):
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
