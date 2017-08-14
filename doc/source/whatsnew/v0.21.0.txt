@@ -310,7 +310,8 @@ Conversion
 
 - Bug in assignment against datetime-like data with ``int`` may incorrectly converte to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
-- Bug in the return type of ``IntervalIndex.is_non_overlapping_monotonic``, which returned ``numpy.bool_`` instead of Python ``bool`` (:issue:`17237`)
+- Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
+- Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 
 Indexing
 ^^^^^^^^
@@ -386,4 +387,3 @@ Other
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
 - Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
-- Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)

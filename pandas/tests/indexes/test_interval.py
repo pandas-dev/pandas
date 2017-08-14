@@ -683,11 +683,6 @@ class TestIntervalIndex(Base):
         pytest.raises(ValueError, f)
 
     def test_is_non_overlapping_monotonic(self):
-        # Verify that a Python Boolean is returned (GH17237)
-        for closed in ('left', 'right', 'neither', 'both'):
-            idx = IntervalIndex.from_breaks(range(4), closed=closed)
-            assert type(idx.is_non_overlapping_monotonic) is bool
-
         # Should be True in all cases
         tpls = [(0, 1), (2, 3), (4, 5), (6, 7)]
         for closed in ('left', 'right', 'neither', 'both'):
