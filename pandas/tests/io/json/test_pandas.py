@@ -1082,6 +1082,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert_series_equal(chunked, unchunked)
 
+        chunks = list(pd.read_json(get_strio(), lines=True, chunksize=2))
+        assert chunks[0].shape == (2, 2)
+        assert chunks[1].shape == (1, 2)
+
+        with ensure_clean('test.json') as path:
+            df.to_json(path, lines=True, orient="records")
+            unchunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
+            chunked = pd.read_json(path, lines=True)
+            assert_frame_equal(unchunked, chunked)
+
     def test_latin_encoding(self):
         if compat.PY2:
             tm.assert_raises_regex(
