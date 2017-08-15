@@ -779,10 +779,17 @@ class TestDatetimeIndex(object):
         expected = Timestamp('2017-01-01')
         assert result == expected
 
-    def test_split_date_range_with_timezone(self):
+    def test_split_datetime_index_with_timezone(self):
         # https://github.com/pandas-dev/pandas/issues/14042
-        idx = DatetimeIndex(['2016-01-01 00:00:00', '2016-01-02 00:00:00'],
-                            tz='Asia/Seoul')
-        split = np.split(idx, indices_or_sections=[])
-        assert len(split) == 1
-        assert (idx == split[0]).all()
+        # check if timezone is correctly handled in array_wrapper
+        tz = 'Asia/Seoul'
+        index = date_range('2000-01-01', periods=10, freq='D', tz=tz)
+        series = Series(index, np.arange(10))
+        index_split = np.split(index, indices_or_sections=5)
+        series_split = np.split(series, indices_or_sections=5)
+        for i in range(5):
+            index_expected = date_range('2000-01-{0:02d}'.format(2*i+1),
+                                        periods=2, freq='D', tz=tz)
+            series_expected = Series(index_expected, np.arange(2*i, 2*i+2))
+            tm.assert_index_equal(index_split[i], index_expected)
+            tm.assert_series_equal(series_split[i], series_expected)

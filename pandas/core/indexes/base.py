@@ -550,12 +550,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         attrs = self._get_attributes_dict()
         attrs = self._maybe_update_attributes(attrs)
-        from pandas.core.indexes.datetimes import DatetimeIndex
-        if isinstance(self, DatetimeIndex) and 'tz' in attrs:
-            tz = attrs.pop('tz')
-            index = Index(result, **attrs)
-            index.tz = tz
-            return index
+        from pandas.core.dtypes.generic import ABCDatetimeIndex
+        if issubclass(self, ABCDatetimeIndex) and 'tz' in attrs:
+            from pandas.core.indexes.datetimes import _new_DatetimeIndex
+            attrs['data'] = result
+            return _new_DatetimeIndex(self, attrs)
         else:
             return Index(result, **attrs)
 

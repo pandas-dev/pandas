@@ -325,7 +325,7 @@ Indexing
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
 - Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
-- Fixes bug for ``numpy.split`` on pandas dataframe with non-utc timezone (:issue:`14042`)
+- Fixes bug in ``numpy`` ``array_wrap`` with a pandas ``Series``/``Index`` (:issue:`14042`)
 
 I/O
 ^^^
