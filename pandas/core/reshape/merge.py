@@ -1268,8 +1268,8 @@ class _AsOfMerge(_OrderedMerge):
             else:
                 lt = left_join_keys[-1]
 
-            msg = "incompatible tolerance, must be compat " \
-                  "with type {lt}".format(lt=type(lt))
+            msg = "incompatible tolerance {0}, must be compat " \
+                  "with type {1}".format(type(tolerance), lt.dtype)
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
