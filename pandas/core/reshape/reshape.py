@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, zip
+from pandas.compat import range, text_type, zip
 from pandas import compat
 import itertools
 import re
@@ -91,8 +91,8 @@ class _Unstacker(object):
 
         if isinstance(self.index, MultiIndex):
             if index._reference_duplicate_name(level):
-                msg = ("Ambiguous reference to {0}. The index "
-                       "names are not unique.".format(level))
+                msg = ("Ambiguous reference to {level}. The index "
+                       "names are not unique.".format(level=level))
                 raise ValueError(msg)
 
         self.level = self.index._get_level_number(level)
@@ -229,7 +229,7 @@ class _Unstacker(object):
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(_reshape, "unstack_{}".format(name))
+        f = getattr(_reshape, "unstack_{name}".format(name=name))
         f(sorted_values,
           mask.view('u1'),
           stride,
@@ -516,8 +516,8 @@ def stack(frame, level=-1, dropna=True):
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
         if frame.columns._reference_duplicate_name(level):
-            msg = ("Ambiguous reference to {0}. The column "
-                   "names are not unique.".format(level))
+            msg = ("Ambiguous reference to {level}. The column "
+                   "names are not unique.".format(level=level))
             raise ValueError(msg)
 
     # Will also convert negative level numbers and check if out of bounds.
@@ -747,7 +747,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = ['variable_%s' % i
+                var_name = ['variable_{i}'.format(i=i)
                             for i in range(len(frame.columns.names))]
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
@@ -1027,7 +1027,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     in a typicaly case.
     """
     def get_var_names(df, stub, sep, suffix):
-        regex = "^{0}{1}{2}".format(re.escape(stub), re.escape(sep), suffix)
+        regex = "^{stub}{sep}{suffix}".format(
+            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix)
         return df.filter(regex=regex).columns.tolist()
 
     def melt_stub(df, stub, i, j, value_vars, sep):
@@ -1180,13 +1181,14 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
-            length_msg = ("Length of '{0}' ({1}) did not match the length of "
-                          "the columns being encoded ({2}).")
+            len_msg = ("Length of '{name}' ({len_item}) did not match the "
+                       "length of the columns being encoded ({len_enc}).")
 
             if is_list_like(item):
                 if not len(item) == len(columns_to_encode):
-                    raise ValueError(length_msg.format(name, len(item),
-                                                       len(columns_to_encode)))
+                    len_msg = len_msg.format(name=name, len_item=len(item),
+                                             len_enc=len(columns_to_encode))
+                    raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
@@ -1253,7 +1255,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     number_of_cols = len(levels)
 
     if prefix is not None:
-        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, v) for v in levels]
+        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
+                      else '{prefix}{sep}{level}' for v in levels]
+        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
+                      for dummy_str, v in zip(dummy_strs, levels)]
     else:
         dummy_cols = levels
 
