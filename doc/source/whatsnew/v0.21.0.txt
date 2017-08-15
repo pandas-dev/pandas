@@ -266,7 +266,7 @@ Other API Changes
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 - The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is deprecated and will show a ``FutureWarning`` (:issue:`14636`)
-
+- :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 
 .. _whatsnew_0210.deprecations:
 
@@ -374,6 +374,7 @@ Reshaping
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 - Fixes dtype of result with integer dtype input, from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
 - Bug in :func:`crosstab` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
+- :func:`Series.argmin`, :func:`Series.argmax`, and their counterparts on ``DataFrame`` and groupby objects work correctly with floating point data that contains infinite values (:issue:`13595`).
 
 Numeric
 ^^^^^^^

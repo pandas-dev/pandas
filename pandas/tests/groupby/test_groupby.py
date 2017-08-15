@@ -2339,7 +2339,7 @@ class TestGroupBy(MixIn):
         assert_frame_equal(result, expected)
 
         # idxmax
-        expected = DataFrame([[0], [nan]], columns=['B'], index=[1, 3])
+        expected = DataFrame([[0.0], [nan]], columns=['B'], index=[1, 3])
         expected.index.name = 'A'
         result = g.idxmax()
         assert_frame_equal(result, expected)
