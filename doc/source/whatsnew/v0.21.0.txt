@@ -331,6 +331,8 @@ UTC Localization with Series
 
      pd.to_datetime(s, utc=True)
 
+This new behavior will also localize datetime columns in DataFrames returned from :func:`read_sql` which previously returned datetime columns as naive UTC.
+
 .. _whatsnew_0210.api:
 
 Other API Changes
