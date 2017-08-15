@@ -312,6 +312,8 @@ Conversion
 - Bug in assignment against datetime-like data with ``int`` may incorrectly convert to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
+- Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
+- Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 
 
 Indexing
