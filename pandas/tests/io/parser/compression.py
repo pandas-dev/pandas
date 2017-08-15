@@ -157,18 +157,6 @@ class CompressionTests(object):
 
         inputs[3].close()
 
-    @pytest.mark.parametrize('extension', ['', '.gz', '.bz2'])
-    def test_read_csv_infer_compression_pathlib(self, extension):
-        """
-        Test that compression is inferred from pathlib.Path paths.
-        """
-        pathlib = pytest.importorskip('pathlib')
-        read_csv_kwargs = {'index_col': 0, 'parse_dates': True}
-        expected = self.read_csv(self.csv1, **read_csv_kwargs)
-        path = pathlib.Path(self.csv1 + extension)
-        df = self.read_csv(path, compression='infer', **read_csv_kwargs)
-        tm.assert_frame_equal(expected, df)
-
     def test_invalid_compression(self):
         msg = 'Unrecognized compression type: sfark'
         with tm.assert_raises_regex(ValueError, msg):
