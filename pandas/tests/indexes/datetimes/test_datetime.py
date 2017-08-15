@@ -778,3 +778,11 @@ class TestDatetimeIndex(object):
         result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
         expected = Timestamp('2017-01-01')
         assert result == expected
+
+    def test_split_date_range_with_timezone(self):
+        # https://github.com/pandas-dev/pandas/issues/14042
+        idx = DatetimeIndex(['2016-01-01 00:00:00', '2016-01-02 00:00:00'],
+                            tz='Asia/Seoul')
+        split = np.split(idx, indices_or_sections=[])
+        assert len(split) == 1
+        assert (idx == split[0]).all()
