@@ -1357,7 +1357,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
         result = result.drop('index', axis=1)
-        # After GH 6415, dates outbound from a db will be localized to UTC 
+        # After GH 6415, dates outbound from a db will be localized to UTC
         # xref GH 7364
         expected = df.copy()
         expected['A'] = expected['A'].dt.tz_localize('UTC')
@@ -1381,7 +1381,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
-        # After GH 6415, dates outbound from a db will be localized to UTC 
+        # After GH 6415, dates outbound from a db will be localized to UTC
         # xref GH 7364
         expected = df.copy()
         expected['A'] = expected['A'].dt.tz_localize('UTC')
