@@ -272,13 +272,15 @@ def _infer_compression(filepath_or_buffer, compression):
     if compression is None:
         return None
 
-    # Cannot infer compression of a buffer. Hence assume no compression.
-    is_path = isinstance(filepath_or_buffer, compat.string_types)
-    if compression == 'infer' and not is_path:
-        return None
-
-    # Infer compression from the filename/URL extension
+    # Infer compression
     if compression == 'infer':
+        # Convert all path types (e.g. pathlib.Path) to strings
+        filepath_or_buffer = _stringify_path(filepath_or_buffer)
+        if not isinstance(filepath_or_buffer, compat.string_types):
+            # Cannot infer compression of a buffer, assume no compression
+            return None
+
+        # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
             if filepath_or_buffer.endswith(extension):
                 return compression

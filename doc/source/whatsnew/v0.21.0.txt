@@ -127,6 +127,7 @@ Other Enhancements
 - :func:`read_html` handles colspan and rowspan arguments and attempts to infer a header if the header is not explicitly specified (:issue:`17054`)
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
+- `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 
 .. _whatsnew_0210.api_breaking:
 
