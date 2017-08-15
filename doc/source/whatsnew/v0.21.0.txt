@@ -308,8 +308,9 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
-- Bug in assignment against datetime-like data with ``int`` may incorrectly converte to datetime-like (:issue:`14145`)
+- Bug in assignment against datetime-like data with ``int`` may incorrectly convert to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+- Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
 
 
 Indexing
