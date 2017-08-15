@@ -868,7 +868,7 @@ class TestIndex(Base):
 
     def test_reset_index_name(self):
         df = pd.DataFrame(index=pd.Index([], name='x'))
-        assert df.reset_index(level=[]).index.name is 'index'
+        assert df.reset_index(level=[]).index.name is None
 
     def test_difference(self):
 
