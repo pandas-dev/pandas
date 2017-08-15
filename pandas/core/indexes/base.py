@@ -552,12 +552,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         attrs = self._maybe_update_attributes(attrs)
         from pandas.core.indexes.datetimes import DatetimeIndex
         if isinstance(self, DatetimeIndex) and 'tz' in attrs:
-          tz = attrs.pop('tz')
-          index = Index(result, **attrs)
-          index.tz = tz
-          return index
+            tz = attrs.pop('tz')
+            index = Index(result, **attrs)
+            index.tz = tz
+            return index
         else:
-          return Index(result, **attrs)
+            return Index(result, **attrs)
 
     @cache_readonly
     def dtype(self):
