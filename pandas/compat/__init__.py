@@ -31,6 +31,7 @@ import itertools
 from distutils.version import LooseVersion
 from itertools import product
 import sys
+import platform
 import types
 from unicodedata import east_asian_width
 import struct
@@ -41,6 +42,7 @@ PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
 PY35 = (sys.version_info >= (3, 5))
 PY36 = (sys.version_info >= (3, 6))
+PYPY = (platform.python_implementation() == 'PyPy')
 
 try:
     import __builtin__ as builtins

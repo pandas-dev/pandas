@@ -15,6 +15,7 @@ from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
+from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
@@ -1061,7 +1062,7 @@ class IndexOpsMixin(object):
         Notes
         -----
         Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+        are not components of the array if deep=False or if used on PyPy
 
         See Also
         --------
@@ -1071,9 +1072,8 @@ class IndexOpsMixin(object):
             return self.values.memory_usage(deep=deep)
 
         v = self.values.nbytes
-        if deep and is_object_dtype(self):
+        if deep and is_object_dtype(self) and not PYPY:
             v += lib.memory_usage_of_objects(self.values)
-
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):
