@@ -297,9 +297,13 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
+<<<<<<< e3c4be21243f008348b093903eed3b3590f9edd3
 <<<<<<< 3a8fbc44f143034c6666ce798e917b506217214b
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
 - Improved performance of :function:`sort_values` function of :class:`DataFrame` when sorting by multiple columns (:issue:`16995`)
+=======
+- Improved performance of :func:`DataFrame.sort_values` when sorting by multiple columns (:issue:`16995`)
+>>>>>>> CLN: Fixing reviewer's comment.
 
 .. _whatsnew_0210.bug_fixes:
 
