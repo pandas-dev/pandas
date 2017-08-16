@@ -513,30 +513,55 @@ class frame_sort_index(object):
         self.df.sort_index()
 
 
-class frame_sort_values(object):
-    goal_time = 0.2
+def generate_column_combinations(column_names, r, num):
 
-    def setup(self):
-        N = 1000000
+    def random_combination(iterable, r):
+        """
+        Random selection from itertools.combinations(iterable, r)
+        :param iterable: any iterable to pick random combination from
+        :param r: size of random combination, number of elements
+        """
+        pool = tuple(iterable)
+        n = len(pool)
+        indices = sorted(np.random.choice(range(n), r, replace=False))
+        return tuple(pool[i] for i in indices)
+
+    params = []
+    for i in r:
+        params.extend([random_combination(iterable=column_names, r=i) for _ in range(num)])
+    return ['|'.join(p) for p in params]
+
+
+class frame_sort_values_by_multiple_columns(object):
+    goal_time = 0.1
+
+    param_names = ['columns']
+    params = generate_column_combinations(column_names=['repeated_strings', 'less_repeated_strings',
+                                                        'repeated_category', 'less_repeated_category',
+                                                        'float', 'int_sorted', 'int_random',
+                                                        'date', 'timedelta'], r=[1, 2, 5], num=9)
+
+    def setup(self, columns):
+        N = 10000
 
         self.df = pd.DataFrame(
-            {'A': pd.Series(tm.makeStringIndex(100).take(
+            {'repeated_strings': pd.Series(tm.makeStringIndex(100).take(
                 np.random.randint(0, 100, size=N))),
-             'B': pd.Series(tm.makeStringIndex(10000).take(
+             'less_repeated_strings': pd.Series(tm.makeStringIndex(10000).take(
                  np.random.randint(0, 10000, size=N))),
-             'D': np.random.randn(N),
-             'E': np.arange(N),
-             'F': pd.date_range('20110101', freq='s', periods=N),
-             'G': pd.timedelta_range('1 day', freq='s', periods=N),
+             'float': np.random.randn(N),
+             'int_sorted': np.arange(N),
+             'int_random': np.random.randint(0, 10000000, N),
+             'date': pd.date_range('20110101', freq='s', periods=N),
+             'timedelta': pd.timedelta_range('1 day', freq='s', periods=N),
              })
-        # self.df['C'] = self.df['B'].astype('category')
-        # self.df.iloc[10:20] = np.nan
+        self.df['repeated_category'] = self.df['repeated_strings'].astype('category')
+        self.df['less_repeated_category'] = self.df['less_repeated_strings'].astype('category')
 
-    def time_frame_sort_values_by_two_columns(self):
-        self.df.sort_values(by=['D', 'E'])
 
-    def time_frame_sort_values_by_six_columns(self):
-        self.df.sort_values(by=['A', 'B', 'D', 'E'])
+    def time_frame_sort_values_by_multiple_columns(self, columns):
+        columns_list = columns.split('|')
+        pd.DataFrame(self.df[columns_list]).sort_values(by=columns_list)
 
 
 class frame_sort_index_by_columns(object):
