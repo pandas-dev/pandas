@@ -1,6 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
 
+accessor.py contains base classes for implementing accessor properties
+that can be mixed into or pinned onto other pandas classes.
+
+"""
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
