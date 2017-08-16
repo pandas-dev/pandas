@@ -2,19 +2,22 @@ from .pandas_vb_common import *
 import string
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # lookup
 
 class frame_fancy_lookup(object):
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list('abcdefgh'))
+        self.df = DataFrame(np.random.randn(10000, 8),
+                            columns=list('abcdefgh'))
         self.df['foo'] = 'bar'
         self.row_labels = list(self.df.index[::10])[:900]
         self.col_labels = (list(self.df.columns) * 100)
-        self.row_labels_all = np.array((list(self.df.index) * len(self.df.columns)), dtype='object')
-        self.col_labels_all = np.array((list(self.df.columns) * len(self.df.index)), dtype='object')
+        self.row_labels_all = np.array(
+            (list(self.df.index) * len(self.df.columns)), dtype='object')
+        self.col_labels_all = np.array(
+            (list(self.df.columns) * len(self.df.index)), dtype='object')
 
     def time_frame_fancy_lookup(self):
         self.df.lookup(self.row_labels, self.col_labels)
@@ -23,7 +26,7 @@ class frame_fancy_lookup(object):
         self.df.lookup(self.row_labels_all, self.col_labels_all)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # reindex
 
 class Reindex(object):
@@ -40,7 +43,7 @@ class Reindex(object):
                        2: randint(0, 1000, 1000).astype(
                            np.int32),
                        3: randint(0, 1000, 1000).astype(
-                           np.int64),}[randint(0, 4)]) for c in
+                           np.int64), }[randint(0, 4)]) for c in
                   range(1000)]))
 
     def time_reindex_axis0(self):
@@ -59,7 +62,7 @@ class Reindex(object):
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # iteritems (monitor no-copying behaviour)
 
 class Iteration(object):
@@ -68,8 +71,8 @@ class Iteration(object):
     def setup(self):
         self.df = DataFrame(randn(10000, 1000))
         self.df2 = DataFrame(np.random.randn(50000, 10))
-        self.df3 = pd.DataFrame(np.random.randn(1000,5000),
-                                columns=['C'+str(c) for c in range(5000)])
+        self.df3 = pd.DataFrame(np.random.randn(1000, 5000),
+                                columns=['C' + str(c) for c in range(5000)])
 
     def f(self):
         if hasattr(self.df, '_item_cache'):
@@ -97,7 +100,7 @@ class Iteration(object):
             pass
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # to_string, to_html, repr
 
 class Formatting(object):
@@ -113,7 +116,8 @@ class Formatting(object):
 
         self.nrows = 10000
         self.data = randn(self.nrows, 10)
-        self.idx = MultiIndex.from_arrays(np.tile(randn(3, int(self.nrows / 100)), 100))
+        self.idx = MultiIndex.from_arrays(
+            np.tile(randn(3, int(self.nrows / 100)), 100))
         self.df3 = DataFrame(self.data, index=self.idx)
         self.idx = randn(self.nrows)
         self.df4 = DataFrame(self.data, index=self.idx)
@@ -141,7 +145,7 @@ class Formatting(object):
         repr(self.df_wide)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # nulls/masking
 
 
@@ -182,7 +186,7 @@ class FrameIsnull(object):
                                list(string.ascii_uppercase) +
                                list(string.whitespace))
         self.data = np.random.choice(self.sample, (1000, 1000))
-        self.df_strings= DataFrame(self.data)
+        self.df_strings = DataFrame(self.data)
 
         np.random.seed(1234)
         self.sample = np.array([NaT, np.nan, None, np.datetime64('NaT'),
@@ -217,7 +221,6 @@ class frame_fillna_inplace(object):
         self.df.fillna(0, inplace=True)
 
 
-
 class frame_fillna_many_columns_pad(object):
     goal_time = 0.2
 
@@ -228,7 +231,6 @@ class frame_fillna_many_columns_pad(object):
 
     def time_frame_fillna_many_columns_pad(self):
         self.df.fillna(method='pad')
-
 
 
 class Dropna(object):
@@ -244,12 +246,16 @@ class Dropna(object):
         self.df_mixed['foo'] = 'bar'
 
         self.df_mi = self.df.copy()
-        self.df_mi.index = MultiIndex.from_tuples(self.df_mi.index.map((lambda x: (x, x))))
-        self.df_mi.columns = MultiIndex.from_tuples(self.df_mi.columns.map((lambda x: (x, x))))
+        self.df_mi.index = MultiIndex.from_tuples(
+            self.df_mi.index.map((lambda x: (x, x))))
+        self.df_mi.columns = MultiIndex.from_tuples(
+            self.df_mi.columns.map((lambda x: (x, x))))
 
         self.df_mixed_mi = self.df_mixed.copy()
-        self.df_mixed_mi.index = MultiIndex.from_tuples(self.df_mixed_mi.index.map((lambda x: (x, x))))
-        self.df_mixed_mi.columns = MultiIndex.from_tuples(self.df_mixed_mi.columns.map((lambda x: (x, x))))
+        self.df_mixed_mi.index = MultiIndex.from_tuples(
+            self.df_mixed_mi.index.map((lambda x: (x, x))))
+        self.df_mixed_mi.columns = MultiIndex.from_tuples(
+            self.df_mixed_mi.columns.map((lambda x: (x, x))))
 
     def time_dropna_axis0_all(self):
         self.df.dropna(how='all', axis=0)
@@ -318,7 +324,7 @@ class Apply(object):
         self.df3.apply((lambda x: (x['A'] + x['B'])), axis=1)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # dtypes
 
 class frame_dtypes(object):
@@ -330,7 +336,8 @@ class frame_dtypes(object):
     def time_frame_dtypes(self):
         self.df.dtypes
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # equals
 
 class Equals(object):
@@ -340,7 +347,8 @@ class Equals(object):
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
+        self.nonunique_cols.columns = (
+        ['A'] * len(self.nonunique_cols.columns))
         self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (
             ('float_df', self.float_df), ('object_df', self.object_df),
             ('nonunique_cols', self.nonunique_cols))])
@@ -388,7 +396,7 @@ class Interpolate(object):
 
         self.df2 = DataFrame(
             {'A': np.arange(0, 10000), 'B': np.random.randint(0, 100, 10000),
-             'C': randn(10000), 'D': randn(10000),})
+             'C': randn(10000), 'D': randn(10000), })
         self.df2.loc[1::5, 'A'] = np.nan
         self.df2.loc[1::5, 'C'] = np.nan
 
@@ -416,7 +424,7 @@ class Shift(object):
         self.df.shift(1, axis=1)
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # from_records issue-6700
 
 class frame_from_records_generator(object):
@@ -432,12 +440,10 @@ class frame_from_records_generator(object):
         self.df = DataFrame.from_records(self.get_data(), nrows=1000)
 
 
-
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # nunique
 
 class frame_nunique(object):
-
     def setup(self):
         self.data = np.random.randn(10000, 1000)
         self.df = DataFrame(self.data)
@@ -446,8 +452,7 @@ class frame_nunique(object):
         self.df.nunique()
 
 
-
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # duplicated
 
 class frame_duplicated(object):
@@ -457,7 +462,10 @@ class frame_duplicated(object):
         self.n = (1 << 20)
         self.t = date_range('2015-01-01', freq='S', periods=(self.n // 64))
         self.xs = np.random.randn((self.n // 64)).round(2)
-        self.df = DataFrame({'a': np.random.randint(((-1) << 8), (1 << 8), self.n), 'b': np.random.choice(self.t, self.n), 'c': np.random.choice(self.xs, self.n), })
+        self.df = DataFrame(
+            {'a': np.random.randint(((-1) << 8), (1 << 8), self.n),
+             'b': np.random.choice(self.t, self.n),
+             'c': np.random.choice(self.xs, self.n), })
 
         self.df2 = DataFrame(np.random.randn(1000, 100).astype(str))
 
@@ -466,21 +474,6 @@ class frame_duplicated(object):
 
     def time_frame_duplicated_wide(self):
         self.df2.T.duplicated()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class frame_xs_col(object):
@@ -514,7 +507,6 @@ class frame_sort_index(object):
 
 
 def generate_column_combinations(column_names, r, num):
-
     def random_combination(iterable, r):
         """
         Random selection from itertools.combinations(iterable, r)
@@ -528,7 +520,8 @@ def generate_column_combinations(column_names, r, num):
 
     params = []
     for i in r:
-        params.extend([random_combination(iterable=column_names, r=i) for _ in range(num)])
+        params.extend([random_combination(iterable=column_names, r=i) for _ in
+                       range(num)])
     return ['|'.join(p) for p in params]
 
 
@@ -536,10 +529,11 @@ class frame_sort_values_by_multiple_columns(object):
     goal_time = 0.1
 
     param_names = ['columns']
-    params = generate_column_combinations(column_names=['repeated_strings', 'less_repeated_strings',
-                                                        'repeated_category', 'less_repeated_category',
-                                                        'float', 'int_sorted', 'int_random',
-                                                        'date', 'timedelta'], r=[1, 2, 5], num=9)
+    params = generate_column_combinations(
+        column_names=['repeated_strings', 'less_repeated_strings',
+                      'repeated_category', 'less_repeated_category',
+                      'float', 'int_sorted', 'int_random',
+                      'date', 'timedelta'], r=[1, 2, 5], num=9)
 
     def setup(self, columns):
         N = 10000
@@ -547,17 +541,19 @@ class frame_sort_values_by_multiple_columns(object):
         self.df = pd.DataFrame(
             {'repeated_strings': pd.Series(tm.makeStringIndex(100).take(
                 np.random.randint(0, 100, size=N))),
-             'less_repeated_strings': pd.Series(tm.makeStringIndex(10000).take(
-                 np.random.randint(0, 10000, size=N))),
-             'float': np.random.randn(N),
-             'int_sorted': np.arange(N),
-             'int_random': np.random.randint(0, 10000000, N),
-             'date': pd.date_range('20110101', freq='s', periods=N),
-             'timedelta': pd.timedelta_range('1 day', freq='s', periods=N),
-             })
-        self.df['repeated_category'] = self.df['repeated_strings'].astype('category')
-        self.df['less_repeated_category'] = self.df['less_repeated_strings'].astype('category')
-
+                'less_repeated_strings': pd.Series(
+                    tm.makeStringIndex(10000).take(
+                        np.random.randint(0, 10000, size=N))),
+                'float': np.random.randn(N),
+                'int_sorted': np.arange(N),
+                'int_random': np.random.randint(0, 10000000, N),
+                'date': pd.date_range('20110101', freq='s', periods=N),
+                'timedelta': pd.timedelta_range('1 day', freq='s', periods=N),
+            })
+        self.df['repeated_category'] = self.df['repeated_strings'].astype(
+            'category')
+        self.df['less_repeated_category'] = self.df[
+            'less_repeated_strings'].astype('category')
 
     def time_frame_sort_values_by_multiple_columns(self, columns):
         columns_list = columns.split('|')
@@ -572,7 +568,8 @@ class frame_sort_index_by_columns(object):
         self.K = 10
         self.key1 = tm.makeStringIndex(self.N).values.repeat(self.K)
         self.key2 = tm.makeStringIndex(self.N).values.repeat(self.K)
-        self.df = DataFrame({'key1': self.key1, 'key2': self.key2, 'value': np.random.randn((self.N * self.K)), })
+        self.df = DataFrame({'key1': self.key1, 'key2': self.key2,
+                             'value': np.random.randn((self.N * self.K)), })
         self.col_array_list = list(self.df.values.T)
 
     def time_frame_sort_index_by_columns(self):
@@ -590,7 +587,7 @@ class frame_quantile_axis1(object):
         self.df.quantile([0.1, 0.5], axis=1)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # boolean indexing
 
 class frame_boolean_row_select(object):
@@ -603,6 +600,7 @@ class frame_boolean_row_select(object):
 
     def time_frame_boolean_row_select(self):
         self.df[self.bool_arr]
+
 
 class frame_getitem_single_column(object):
     goal_time = 0.2
@@ -627,7 +625,7 @@ class frame_getitem_single_column(object):
         self.j()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # assignment
 
 class frame_assign_timeseries_index(object):
@@ -643,7 +641,6 @@ class frame_assign_timeseries_index(object):
     def f(self, df):
         self.x = self.df.copy()
         self.x['date'] = self.x.index
-
 
 
 # insert many columns
@@ -673,8 +670,7 @@ class frame_insert_100_columns_begin(object):
         self.g()
 
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # strings methods, #2602
 
 class series_string_vector_slice(object):
@@ -687,7 +683,7 @@ class series_string_vector_slice(object):
         self.s.str[:5]
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # df.info() and get_dtype_counts() # 2807
 
 class frame_get_dtype_counts(object):
