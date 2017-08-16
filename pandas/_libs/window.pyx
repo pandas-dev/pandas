@@ -56,7 +56,13 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-from skiplist cimport *
+from skiplist cimport (
+    skiplist_t,
+    skiplist_init,
+    skiplist_destroy,
+    skiplist_get,
+    skiplist_insert,
+    skiplist_remove)
 
 cdef extern from "../src/headers/math.h":
     double sqrt(double x) nogil
