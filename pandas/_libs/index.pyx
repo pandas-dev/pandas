@@ -32,13 +32,9 @@ cdef extern from "datetime.h":
 
 cdef int64_t iNaT = util.get_nat()
 
-try:
-    from dateutil.tz import tzutc as _du_utc
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except ImportError:
-    have_pytz = False
+from dateutil.tz import tzutc as _du_utc
+import pytz
+UTC = pytz.utc
 
 PyDateTime_IMPORT
 
