@@ -4080,12 +4080,8 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 #----------------------------------------------------------------------
 # time zone conversion helpers
 
-try:
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except:
-    have_pytz = False
+import pytz
+UTC = pytz.utc
 
 
 @cython.boundscheck(False)
@@ -4111,9 +4107,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         ndarray[Py_ssize_t] posn
         int64_t v, offset, delta
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        import pytz
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -4228,9 +4221,6 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        import pytz
 
     if val == NPY_NAT:
         return val
@@ -4443,9 +4433,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     # Vectorized version of DstTzInfo.localize
 
     assert is_coerce or is_raise
-
-    if not have_pytz:
-        raise Exception("Could not find pytz module")
 
     if tz == UTC or tz is None:
         return vals

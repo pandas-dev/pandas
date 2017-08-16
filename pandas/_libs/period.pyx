@@ -3,8 +3,7 @@ import operator
 
 from cpython cimport (
     PyObject_RichCompareBool,
-    Py_EQ, Py_NE,
-)
+    Py_EQ, Py_NE)
 
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
@@ -24,14 +23,13 @@ cimport util, lib
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT, have_pytz, _get_utcoffset)
+                                NaT, _get_utcoffset)
 from tslib cimport (
     maybe_get_tz,
     _is_utc,
     _is_tzlocal,
     _get_dst_info,
-    _nat_scalar_rules,
-)
+    _nat_scalar_rules)
 
 from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
@@ -609,9 +607,6 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        raise Exception('Could not find pytz module')
 
     if _is_utc(tz):
         for i in range(n):
