@@ -860,15 +860,12 @@ class TestIndex(Base):
         assert 'a_x' in index
 
     def test_iadd_index_name(self):
+        # issue `17067`: test Index keeping index name after plus op
         s = pd.Series([1, 2, 3])
         s.index.name = 'foo'
 
         s.index += 1
         assert s.index.name == 'foo'
-
-    def test_reset_index_name(self):
-        df = pd.DataFrame(index=pd.Index([], name='x'))
-        assert df.reset_index(level=[]).index.name is None
 
     def test_difference(self):
 
