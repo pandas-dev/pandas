@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta, IntervalIndex, Interval)
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -144,6 +144,7 @@ class TestPandasDelegate(object):
 
         pytest.raises(TypeError, f)
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
         # Delegate does not implement memory_usage.
         # Check that we fall back to in-built `__sizeof__`
@@ -941,6 +942,7 @@ class TestIndexOps(Ops):
                 # check shallow_copied
                 assert o is not result
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
         for o in self.objs:
             res = o.memory_usage()

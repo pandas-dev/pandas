@@ -9,6 +9,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
 .. contents:: What's new in v0.21.0
@@ -26,7 +28,6 @@ New features
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
-
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -60,6 +61,51 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
    df['C'] = pd.to_numeric(df['C'], errors='coerce')
    df.dtypes
 
+.. _whatsnew_0210.enhancements.attribute_access:
+
+Improved warnings when attempting to create columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+New users are often flummoxed by the relationship between column operations and attribute
+access on ``DataFrame`` instances (:issue:`5904` & :issue:`7175`). Two specific instances
+of this confusion include attempting to create a new column by setting into an attribute:
+
+.. code-block:: ipython
+
+  In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+  In[2]: df.two = [4, 5, 6]
+
+This does not raise any obvious exceptions, but also does not create a new column:
+
+.. code-block:: ipython
+
+  In[3]: df
+  Out[3]:
+      one
+  0  1.0
+  1  2.0
+  2  3.0
+
+The second source of confusion is creating a column whose name collides with a method or
+attribute already in the instance namespace:
+
+.. code-block:: ipython
+
+  In[4]: df['sum'] = [5., 7., 9.]
+
+This does not permit that column to be accessed as an attribute:
+
+.. code-block:: ipython
+
+  In[5]: df.sum
+  Out[5]:
+  <bound method DataFrame.sum of    one  sum
+  0  1.0  5.0
+  1  2.0  7.0
+  2  3.0  9.0>
+
+Both of these now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
@@ -78,6 +124,9 @@ Other Enhancements
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
+- `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 
 .. _whatsnew_0210.api_breaking:
 
@@ -205,6 +254,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
+- Support has been dropped for bottleneck < 1.0.0 (:issue:`15214`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
@@ -215,8 +265,8 @@ Other API Changes
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
 - Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
-- The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is still supported and causes a ``FutureWarning`` to be emitted (:issue:`14636`)
-
+- The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is deprecated and will show a ``FutureWarning`` (:issue:`14636`)
+- :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 
 .. _whatsnew_0210.deprecations:
 
@@ -248,6 +298,9 @@ Performance Improvements
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 - Improved performance of :func:`DataFrame.sort_values` when sorting by multiple columns (:issue:`16995`)
+- :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
+- Improved performance of :function:`sort_values` function of :class:`DataFrame` when sorting by multiple columns (:issue:`16995`)
+- Improved performance of :func:`DataFrame.sort_values` when sorting by multiple columns (:issue:`16995`)
 
 .. _whatsnew_0210.bug_fixes:
 
@@ -258,8 +311,11 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
-- Bug in assignment against datetime-like data with ``int`` may incorrectly converte to datetime-like (:issue:`14145`)
+- Bug in assignment against datetime-like data with ``int`` may incorrectly convert to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+- Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
+- Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
+- Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 
 
 Indexing
@@ -273,14 +329,18 @@ Indexing
 - Fixes bug where indexing with ``np.inf`` caused an ``OverflowError`` to be raised (:issue:`16957`)
 - Bug in reindexing on an empty ``CategoricalIndex`` (:issue:`16770`)
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
+- Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
+- Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
 
 I/O
 ^^^
 
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
+- Bug in :func:`read_csv` in which specified column names were not being thoroughly de-duplicated (:issue:`17095`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 - Bug in :func:`read_csv` in which memory management issues in exception handling, under certain conditions, would cause the interpreter to segfault (:issue:`14696`, :issue:`16798`).
 - Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
+- Bug in :func:`read_csv` when called with a single-element list ``header`` would return a ``DataFrame`` of all NaN values (:issue:`7757`)
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 
@@ -296,6 +356,9 @@ Groupby/Resample/Rolling
 - Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
 - Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
 - Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
+- Bug in ``Series.resample(...).apply()`` where an empty ``Series`` modified the source index and did not return the name of a ``Series`` (:issue:`14313`)
+- Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1` (:issue:`15305`)
+
 
 Sparse
 ^^^^^^
@@ -312,7 +375,8 @@ Reshaping
 - Bug when using :func:`isin` on a large object series and large comparison array (:issue:`16012`)
 - Fixes regression from 0.20, :func:`Series.aggregate` and :func:`DataFrame.aggregate` allow dictionaries as return values again (:issue:`16741`)
 - Fixes dtype of result with integer dtype input, from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
-- Bug in ``pd.crosstab()`` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
+- Bug in :func:`crosstab` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
+- :func:`Series.argmin`, :func:`Series.argmax`, and their counterparts on ``DataFrame`` and groupby objects work correctly with floating point data that contains infinite values (:issue:`13595`).
 
 Numeric
 ^^^^^^^

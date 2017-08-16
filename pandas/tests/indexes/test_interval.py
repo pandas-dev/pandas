@@ -371,8 +371,9 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(1, 1) == (1, 1)
         assert index.slice_locs(1, 2) == (1, 2)
 
-        index = IntervalIndex.from_breaks([0, 1, 2], closed='both')
-        assert index.slice_locs(1, 1) == (0, 2)
+        index = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)],
+                                          closed='both')
+        assert index.slice_locs(1, 1) == (0, 1)
         assert index.slice_locs(1, 2) == (0, 2)
 
     def test_slice_locs_int64(self):
@@ -680,6 +681,42 @@ class TestIntervalIndex(Base):
                                                     closed='both'))
 
         pytest.raises(ValueError, f)
+
+    def test_is_non_overlapping_monotonic(self):
+        # Should be True in all cases
+        tpls = [(0, 1), (2, 3), (4, 5), (6, 7)]
+        for closed in ('left', 'right', 'neither', 'both'):
+            idx = IntervalIndex.from_tuples(tpls, closed=closed)
+            assert idx.is_non_overlapping_monotonic is True
+
+            idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+            assert idx.is_non_overlapping_monotonic is True
+
+        # Should be False in all cases (overlapping)
+        tpls = [(0, 2), (1, 3), (4, 5), (6, 7)]
+        for closed in ('left', 'right', 'neither', 'both'):
+            idx = IntervalIndex.from_tuples(tpls, closed=closed)
+            assert idx.is_non_overlapping_monotonic is False
+
+            idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+            assert idx.is_non_overlapping_monotonic is False
+
+        # Should be False in all cases (non-monotonic)
+        tpls = [(0, 1), (2, 3), (6, 7), (4, 5)]
+        for closed in ('left', 'right', 'neither', 'both'):
+            idx = IntervalIndex.from_tuples(tpls, closed=closed)
+            assert idx.is_non_overlapping_monotonic is False
+
+            idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+            assert idx.is_non_overlapping_monotonic is False
+
+        # Should be False for closed='both', overwise True (GH16560)
+        idx = IntervalIndex.from_breaks(range(4), closed='both')
+        assert idx.is_non_overlapping_monotonic is False
+
+        for closed in ('left', 'right', 'neither'):
+            idx = IntervalIndex.from_breaks(range(4), closed=closed)
+            assert idx.is_non_overlapping_monotonic is True
 
 
 class TestIntervalRange(object):

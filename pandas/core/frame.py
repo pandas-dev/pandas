@@ -20,7 +20,6 @@ import types
 import warnings
 from textwrap import dedent
 
-from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
@@ -435,7 +434,7 @@ class DataFrame(NDFrame):
                     else:
                         v = np.empty(len(index), dtype=dtype)
 
-                    v.fill(NA)
+                    v.fill(np.nan)
                 else:
                     v = data[k]
                 data_names.append(k)
@@ -1436,8 +1435,8 @@ class DataFrame(NDFrame):
         columns : sequence, optional
             Columns to write
         header : boolean or list of string, default True
-            Write out column names. If a list of string is given it is assumed
-            to be aliases for the column names
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, or False, default None
@@ -1597,8 +1596,33 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names')
+    def to_parquet(self, fname, engine='auto', compression='snappy',
+                   **kwargs):
+        """
+        Write a DataFrame to the binary parquet format.
+
+        .. versionadded:: 0.21.0
+
+        Parameters
+        ----------
+        fname : str
+            string file path
+        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+            Parquet reader library to use. If 'auto', then the option
+            'io.parquet.engine' is used. If 'auto', then the first
+            library to be installed is used.
+        compression : str, optional, default 'snappy'
+            compression method, includes {'gzip', 'snappy', 'brotli'}
+        kwargs
+            Additional keyword arguments passed to the engine
+        """
+        from pandas.io.parquet import to_parquet
+        to_parquet(self, fname, engine,
+                   compression=compression, **kwargs)
+
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2109,10 +2133,18 @@ it is assumed to be aliases for the column names')
                 result = self._constructor(new_values, index=self.index,
                                            columns=result_columns)
                 result = result.__finalize__(self)
+
+            # If there is only one column being returned, and its name is
+            # either an empty string, or a tuple with an empty string as its
+            # first element, then treat the empty string as a placeholder
+            # and return the column as if the user had provided that empty
+            # string in the key. If the result is a Series, exclude the
+            # implied empty string from its name.
             if len(result.columns) == 1:
                 top = result.columns[0]
-                if ((type(top) == str and top == '') or
-                        (type(top) == tuple and top[0] == '')):
+                if isinstance(top, tuple):
+                    top = top[0]
+                if top == '':
                     result = result['']
                     if isinstance(result, Series):
                         result = self._constructor_sliced(result,
@@ -2780,7 +2812,7 @@ it is assumed to be aliases for the column names')
 
         return frame
 
-    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
                        limit=None, tolerance=None):
         new_index, indexer = self.index.reindex(new_index, method=method,
                                                 level=level, limit=limit,
@@ -2789,8 +2821,8 @@ it is assumed to be aliases for the column names')
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
-    def _reindex_columns(self, new_columns, method, copy, level, fill_value=NA,
-                         limit=None, tolerance=None):
+    def _reindex_columns(self, new_columns, method, copy, level,
+                         fill_value=np.nan, limit=None, tolerance=None):
         new_columns, indexer = self.columns.reindex(new_columns, method=method,
                                                     level=level, limit=limit,
                                                     tolerance=tolerance)
@@ -3761,7 +3793,7 @@ it is assumed to be aliases for the column names')
     def _combine_series_infer(self, other, func, level=None,
                               fill_value=None, try_cast=True):
         if len(other) == 0:
-            return self * NA
+            return self * np.nan
 
         if len(self) == 0:
             # Ambiguous case, use _series so works with DataFrame
@@ -3915,7 +3947,7 @@ it is assumed to be aliases for the column names')
 
             if do_fill:
                 arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = NA
+                arr[this_mask & other_mask] = np.nan
 
             # try to downcast back to the original dtype
             if needs_i8_conversion_i:
@@ -4112,6 +4144,92 @@ it is assumed to be aliases for the column names')
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
+
+    _shared_docs['pivot_table'] = """
+        Create a spreadsheet-style pivot table as a DataFrame. The levels in
+        the pivot table will be stored in MultiIndex objects (hierarchical
+        indexes) on the index and columns of the result DataFrame
+
+        Parameters
+        ----------%s
+        values : column to aggregate, optional
+        index : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table index.  If an array is passed,
+            it is being used as the same manner as column values.
+        columns : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table column.  If an array is passed,
+            it is being used as the same manner as column values.
+        aggfunc : function or list of functions, default numpy.mean
+            If list of functions passed, the resulting pivot table will have
+            hierarchical columns whose top level are the function names
+            (inferred from the function objects themselves)
+        fill_value : scalar, default None
+            Value to replace missing values with
+        margins : boolean, default False
+            Add all row / columns (e.g. for subtotal / grand totals)
+        dropna : boolean, default True
+            Do not include columns whose entries are all NaN
+        margins_name : string, default 'All'
+            Name of the row / column that will contain the totals
+            when margins is True.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+        ...                          "bar", "bar", "bar", "bar"],
+        ...                    "B": ["one", "one", "one", "two", "two",
+        ...                          "one", "one", "two", "two"],
+        ...                    "C": ["small", "large", "large", "small",
+        ...                          "small", "large", "small", "small",
+        ...                          "large"],
+        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
+        >>> df
+             A    B      C  D
+        0  foo  one  small  1
+        1  foo  one  large  2
+        2  foo  one  large  2
+        3  foo  two  small  3
+        4  foo  two  small  3
+        5  bar  one  large  4
+        6  bar  one  small  5
+        7  bar  two  small  6
+        8  bar  two  large  7
+
+        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        ...                     columns=['C'], aggfunc=np.sum)
+        >>> table
+        ... # doctest: +NORMALIZE_WHITESPACE
+        C        large  small
+        A   B
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
+
+        Returns
+        -------
+        table : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot : pivot without aggregation that can handle
+            non-numeric data
+        """
+
+    @Substitution('')
+    @Appender(_shared_docs['pivot_table'])
+    def pivot_table(self, values=None, index=None, columns=None,
+                    aggfunc='mean', fill_value=None, margins=False,
+                    dropna=True, margins_name='All'):
+        from pandas.core.reshape.pivot import pivot_table
+        return pivot_table(self, values=values, index=index, columns=columns,
+                           aggfunc=aggfunc, fill_value=fill_value,
+                           margins=margins, dropna=dropna,
+                           margins_name=margins_name)
 
     def stack(self, level=-1, dropna=True):
         """
@@ -4534,7 +4652,7 @@ it is assumed to be aliases for the column names')
                 pass
 
         if reduce:
-            return Series(NA, index=self._get_agg_axis(axis))
+            return Series(np.nan, index=self._get_agg_axis(axis))
         else:
             return self.copy()
 
@@ -5152,7 +5270,7 @@ it is assumed to be aliases for the column names')
 
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
-                        c = NA
+                        c = np.nan
                     elif i == j:
                         c = 1.
                     elif not valid.all():
@@ -5476,7 +5594,7 @@ it is assumed to be aliases for the column names')
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else NA for i in indices]
+        result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True):
@@ -5507,7 +5625,7 @@ it is assumed to be aliases for the column names')
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else NA for i in indices]
+        result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
@@ -5745,9 +5863,8 @@ it is assumed to be aliases for the column names')
         2   True   True
         """
         if isinstance(values, dict):
-            from collections import defaultdict
             from pandas.core.reshape.concat import concat
-            values = defaultdict(list, values)
+            values = collections.defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)
         elif isinstance(values, Series):
@@ -6000,12 +6117,10 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
-    from pandas.core.index import _get_combined_index
+    from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_combined_index([
-            s.index for s in data if getattr(s, 'index', None) is not None
-        ])
+        columns = _get_objs_combined_axis(data)
 
     indexer_cache = {}
 
@@ -6110,7 +6225,7 @@ def _homogenize(data, index, dtype=None):
                     v = _dict_compat(v)
                 else:
                     v = dict(v)
-                v = lib.fast_multiget(v, oindex.values, default=NA)
+                v = lib.fast_multiget(v, oindex.values, default=np.nan)
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)
 

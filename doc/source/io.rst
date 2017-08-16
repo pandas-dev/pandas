@@ -43,6 +43,7 @@ object. The corresponding ``writer`` functions are object methods that are acces
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
     binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -209,7 +210,7 @@ buffer_lines : int, default None
   .. deprecated:: 0.19.0
 
      Argument removed because its value is not respected by the parser
-     
+
 compact_ints : boolean, default False
   .. deprecated:: 0.19.0
 
@@ -4087,7 +4088,7 @@ control compression: ``complevel`` and ``complib``.
 ``complevel`` specifies if and how hard data is to be compressed.
               ``complevel=0`` and ``complevel=None`` disables
               compression and ``0<complevel<10`` enables compression.
-              
+
 ``complib`` specifies which compression library to use. If nothing is
             specified the default library ``zlib`` is used. A
             compression library usually optimizes for either good
@@ -4102,9 +4103,9 @@ control compression: ``complevel`` and ``complib``.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
              .. versionadded:: 0.20.2
-                               
+
                 Support for alternative blosc compressors:
-                  
+
                 - `blosc:blosclz <http://www.blosc.org/>`_ This is the
                   default compressor for ``blosc``
                 - `blosc:lz4
@@ -4544,6 +4545,79 @@ Read from a feather file.
 
    import os
    os.remove('example.feather')
+
+
+.. _io.parquet:
+
+Parquet
+-------
+
+.. versionadded:: 0.21.0
+
+`Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
+make reading and writing data frames efficient, and to make sharing data across data analysis
+languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
+while still maintaining good read performance.
+
+Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, supporting all of the pandas
+dtypes, including extension dtypes such as datetime with tz.
+
+Several caveats.
+
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
+  error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
+- Duplicate column names and non-string columns names are not supported
+- Categorical dtypes are currently not-supported (for ``pyarrow``).
+- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+  on an attempt at serialization.
+
+You can specifiy an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
+If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, then
+then ``pyarrow`` is tried, and falling back to ``fastparquet``.
+
+See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__
+
+.. note::
+
+   These engines are very similar and should read/write nearly identical parquet format files.
+   These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': list('abc'),
+                      'b': list(range(1, 4)),
+                      'c': np.arange(3, 6).astype('u1'),
+                      'd': np.arange(4.0, 7.0, dtype='float64'),
+                      'e': [True, False, True],
+                      'f': pd.date_range('20130101', periods=3),
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.date_range('20130101', periods=3, freq='ns')})
+
+   df
+   df.dtypes
+
+Write to a parquet file.
+
+.. ipython:: python
+
+   df.to_parquet('example_pa.parquet', engine='pyarrow')
+   df.to_parquet('example_fp.parquet', engine='fastparquet')
+
+Read from a parquet file.
+
+.. ipython:: python
+
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
+   result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
+
+   result.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('example_pa.parquet')
+   os.remove('example_fp.parquet')
 
 .. _io.sql:
 

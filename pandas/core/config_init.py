@@ -412,8 +412,11 @@ def use_inf_as_na_cb(key):
     _use_inf_as_na(key)
 
 
-cf.register_option('mode.use_inf_as_na', False, use_inf_as_na_doc,
-                   cb=use_inf_as_na_cb)
+with cf.config_prefix('mode'):
+    cf.register_option('use_inf_as_na', False, use_inf_as_na_doc,
+                       cb=use_inf_as_na_cb)
+    cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
+                       cb=use_inf_as_na_cb)
 
 cf.deprecate_option('mode.use_inf_as_null', msg=use_inf_as_null_doc,
                     rkey='mode.use_inf_as_na')
@@ -462,3 +465,15 @@ with cf.config_prefix('io.excel'):
     except ImportError:
         # fallback
         _register_xlsx('openpyxl', 'xlsxwriter')
+
+# Set up the io.parquet specific configuration.
+parquet_engine_doc = """
+: string
+    The default parquet reader/writer engine. Available options:
+    'auto', 'pyarrow', 'fastparquet', the default is 'auto'
+"""
+
+with cf.config_prefix('io.parquet'):
+    cf.register_option(
+        'engine', 'auto', parquet_engine_doc,
+        validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
