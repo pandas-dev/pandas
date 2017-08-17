@@ -1,4 +1,4 @@
-pytest
+pytest>=3.1.0
 pytest-cov
 pytest-xdist
 flake8
