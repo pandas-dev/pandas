@@ -6,10 +6,6 @@
 
 # Cython version: Wes McKinney
 
-cdef extern from "numpy/arrayobject.h":
-
-    void import_array()
-
 cdef extern from "math.h":
     double log(double x)
 
@@ -25,7 +21,7 @@ import numpy as np
 from random import random
 
 # initialize numpy
-import_array()
+np.import_array()
 
 # TODO: optimize this, make less messy
 
