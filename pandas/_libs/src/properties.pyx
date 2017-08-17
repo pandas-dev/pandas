@@ -1,4 +1,5 @@
-from cpython cimport PyDict_Contains, PyDict_GetItem, PyDict_GetItem
+from cpython cimport (
+    PyDict_Contains, PyDict_GetItem, PyDict_GetItem, PyDict_SetItem)
 
 
 cdef class cache_readonly(object):

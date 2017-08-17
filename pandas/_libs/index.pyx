@@ -1,8 +1,6 @@
 # cython: profile=False
 
-from numpy cimport ndarray
-
-from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
+from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
                     NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
@@ -16,7 +14,9 @@ cimport util
 import numpy as np
 
 cimport tslib
-from hashtable cimport *
+
+from hashtable cimport HashTable
+
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta

@@ -2,6 +2,7 @@ from datetime import datetime, date, timedelta
 import operator
 
 from cpython cimport (
+    PyUnicode_Check,
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -18,7 +19,16 @@ from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
-from datetime cimport *
+
+from datetime cimport (
+    is_leapyear,
+    PyDateTime_IMPORT,
+    pandas_datetimestruct,
+    pandas_datetimestruct_to_datetime,
+    pandas_datetime_to_datetimestruct,
+    PANDAS_FR_ns,
+    INT32_MIN)
+
 cimport util, lib
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
