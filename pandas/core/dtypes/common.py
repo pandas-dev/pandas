@@ -1854,10 +1854,10 @@ def _validate_date_like_dtype(dtype):
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError('%s' % e)
+        raise TypeError('{error}'.format(error=e))
     if typ != 'generic' and typ != 'ns':
-        raise ValueError('%r is too specific of a frequency, try passing %r' %
-                         (dtype.name, dtype.type.__name__))
+        msg = '{name!r} is too specific of a frequency, try passing {type!r}'
+        raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
 
 
 _string_dtypes = frozenset(map(_get_dtype_from_object, (binary_type,
@@ -1924,6 +1924,6 @@ def pandas_dtype(dtype):
     if dtype in [object, np.object_, 'object', 'O']:
         return npdtype
     elif npdtype.kind == 'O':
-        raise TypeError('dtype {0} not understood'.format(dtype))
+        raise TypeError('dtype {dtype} not understood'.format(dtype=dtype))
 
     return npdtype

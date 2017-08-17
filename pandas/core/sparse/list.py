@@ -35,7 +35,8 @@ class SparseList(PandasObject):
 
     def __unicode__(self):
         contents = '\n'.join(repr(c) for c in self._chunks)
-        return '%s\n%s' % (object.__repr__(self), pprint_thing(contents))
+        return '{self}\n{contents}'.format(self=object.__repr__(self),
+                                           contents=pprint_thing(contents))
 
     def __len__(self):
         return sum(len(c) for c in self._chunks)
@@ -43,7 +44,7 @@ class SparseList(PandasObject):
     def __getitem__(self, i):
         if i < 0:
             if i + len(self) < 0:  # pragma: no cover
-                raise ValueError('%d out of range' % i)
+                raise ValueError('{index} out of range'.format(index=i))
             i += len(self)
 
         passed = 0

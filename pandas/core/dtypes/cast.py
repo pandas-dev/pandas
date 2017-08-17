@@ -516,7 +516,8 @@ def maybe_cast_item(obj, item, dtype):
         if dtype in (np.object_, np.bool_):
             obj[item] = chunk.astype(np.object_)
         elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
-            raise ValueError("Unexpected dtype encountered: %s" % dtype)
+            raise ValueError("Unexpected dtype encountered: {dtype}"
+                             .format(dtype=dtype))
 
 
 def invalidate_string_dtypes(dtype_set):
@@ -620,8 +621,9 @@ def astype_nansafe(arr, dtype, copy=True):
         elif dtype == np.int64:
             return arr.view(dtype)
         elif dtype != _NS_DTYPE:
-            raise TypeError("cannot astype a datetimelike from [%s] to [%s]" %
-                            (arr.dtype, dtype))
+            raise TypeError("cannot astype a datetimelike from [{from_dtype}] "
+                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                     to_dtype=dtype))
         return arr.astype(_NS_DTYPE)
     elif is_timedelta64_dtype(arr):
         if dtype == np.int64:
@@ -640,8 +642,9 @@ def astype_nansafe(arr, dtype, copy=True):
                 result[mask] = np.nan
                 return result
 
-            raise TypeError("cannot astype a timedelta from [%s] to [%s]" %
-                            (arr.dtype, dtype))
+            raise TypeError("cannot astype a timedelta from [{from_dtype}] "
+                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                     to_dtype=dtype))
 
         return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
@@ -926,7 +929,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError("cannot convert datetimelike to "
-                                    "dtype [%s]" % dtype)
+                                    "dtype [{dtype}]".format(dtype=dtype))
             elif is_datetime64tz:
 
                 # our NaT doesn't support tz's
@@ -943,7 +946,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                     dtype = _TD_DTYPE
                 else:
                     raise TypeError("cannot convert timedeltalike to "
-                                    "dtype [%s]" % dtype)
+                                    "dtype [{dtype}]".format(dtype=dtype))
 
             if is_scalar(value):
                 if value == iNaT or isna(value):
@@ -982,7 +985,8 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                 return tslib.ints_to_pydatetime(ints)
 
             # we have a non-castable dtype that was passed
-            raise TypeError('Cannot cast datetime64 to %s' % dtype)
+            raise TypeError('Cannot cast datetime64 to {dtype}'
+                            .format(dtype=dtype))
 
     else:
 
