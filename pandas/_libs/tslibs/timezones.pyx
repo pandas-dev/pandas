@@ -1,0 +1,316 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# cython: profile=False
+
+try: string_types = basestring
+except NameError: string_types = str
+
+
+cdef extern from "Python.h":
+    Py_ssize_t PY_SSIZE_T_MAX
+
+cdef extern from "datetime.h":
+    void PyDateTime_IMPORT()
+
+# import datetime C API
+PyDateTime_IMPORT
+
+
+import numpy as np
+cimport numpy as np
+from numpy cimport ndarray, int64_t, float64_t
+np.import_array()
+
+
+# dateutil compat
+from dateutil.tz import (tzoffset,
+                         tzlocal as _dateutil_tzlocal,
+                         tzfile as _dateutil_tzfile,
+                         tzutc as _dateutil_tzutc,
+                         tzstr as _dateutil_tzstr)
+
+import sys
+if sys.platform == 'win32' or sys.platform == 'cygwin':
+    # equiv pd.compat.is_platform_windows()
+    from dateutil.zoneinfo import gettz as _dateutil_gettz
+else:
+    from dateutil.tz import gettz as _dateutil_gettz
+
+
+from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+import pytz
+UTC = pytz.utc
+
+
+from cpython cimport PyBool_Check
+cdef extern from "numpy/ndarrayobject.h":
+    bint PyArray_IsIntegerScalar(object)
+
+cdef inline bint is_integer_object(object obj):
+    # Ported from util (which gets it from numpy_helper) to avoid
+    # direct dependency
+    return (not PyBool_Check(obj)) and PyArray_IsIntegerScalar(obj)
+
+
+cdef int64_t NPY_NAT = np.datetime64('nat').astype(np.int64)
+
+
+# TODO: Does this belong somewhere else?
+cdef float64_t total_seconds(object td):
+    # Note: This is marginally faster than the version in datetime_helper.
+    cdef int64_t microseconds, seconds, days, days_in_seconds
+
+    microseconds = getattr(td, "microseconds", 0)
+    seconds = getattr(td, "seconds", 0)
+    days = getattr(td, "days", 0)
+    days_in_seconds = days * 24 * 3600;
+    return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0
+
+
+#----------------------------------------------------------------------
+# time zone conversion helpers
+
+def get_timezone(tz):
+    return _get_zone(tz)
+
+
+cdef bint _is_utc(object tz):
+    return tz is UTC or isinstance(tz, _dateutil_tzutc)
+
+
+cdef bint _is_tzlocal(object tz):
+    return isinstance(tz, _dateutil_tzlocal)
+
+
+cdef bint _treat_tz_as_pytz(object tz):
+    return (hasattr(tz, '_utc_transition_times') and
+            hasattr(tz, '_transition_info'))
+
+
+cdef bint _treat_tz_as_dateutil(object tz):
+    return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
+
+
+cdef object _get_zone(object tz):
+    """
+    We need to do several things here:
+    1) Distinguish between pytz and dateutil timezones
+    2) Not be over-specific (e.g. US/Eastern with/without DST is same *zone*
+       but a different tz object)
+    3) Provide something to serialize when we're storing a datetime object
+       in pytables.
+
+    We return a string prefaced with dateutil if it's a dateutil tz, else just
+    the tz name. It needs to be a string so that we can serialize it with
+    UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
+    """
+    if _is_utc(tz):
+        return 'UTC'
+    else:
+        if _treat_tz_as_dateutil(tz):
+            if '.tar.gz' in tz._filename:
+                raise ValueError(
+                    'Bad tz filename. Dateutil on python 3 on windows has a '
+                    'bug which causes tzfile._filename to be the same for all '
+                    'timezone files. Please construct dateutil timezones '
+                    'implicitly by passing a string like "dateutil/Europe'
+                    '/London" when you construct your pandas objects instead '
+                    'of passing a timezone object. See '
+                    'https://github.com/pandas-dev/pandas/pull/7362')
+            return 'dateutil/' + tz._filename
+            # TODO: use os.path.join?
+        else:
+            # tz is a pytz timezone or unknown.
+            try:
+                zone = tz.zone
+                if zone is None:
+                    return tz
+                return zone
+            except AttributeError:
+                return tz
+
+
+cpdef object maybe_get_tz(object tz):
+    """
+    (Maybe) Construct a timezone object from a string. If tz is a string, use
+    it to construct a timezone object. Otherwise, just return tz.
+    """
+    if isinstance(tz, string_types):
+        if tz == 'tzlocal()':
+            tz = _dateutil_tzlocal()
+        elif tz.startswith('dateutil/'):
+            zone = tz[9:]
+            tz = _dateutil_gettz(zone)
+            # On Python 3 on Windows, the filename is not always set correctly.
+            if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
+                tz._filename = zone
+        else:
+            tz = pytz.timezone(tz)
+    elif is_integer_object(tz):
+        tz = pytz.FixedOffset(tz / 60)
+    return tz
+
+
+def _p_tz_cache_key(tz):
+    """ Python interface for cache function to facilitate testing."""
+    return _tz_cache_key(tz)
+
+
+cdef object _tz_cache_key(object tz):
+    """
+    Return the key in the cache for the timezone info object or None
+    if unknown.
+
+    The key is currently the tz string for pytz timezones, the filename for
+    dateutil timezones.
+
+    Notes
+    =====
+    This cannot just be the hash of a timezone object. Unfortunately, the
+    hashes of two dateutil tz objects which represent the same timezone are
+    not equal (even though the tz objects will compare equal and represent
+    the same tz file). Also, pytz objects are not always hashable so we use
+    str(tz) instead.
+    """
+    if isinstance(tz, _pytz_BaseTzInfo):
+        return tz.zone
+    elif isinstance(tz, _dateutil_tzfile):
+        if '.tar.gz' in tz._filename:
+            raise ValueError('Bad tz filename. Dateutil on python 3 on '
+                             'windows has a bug which causes tzfile._filename '
+                             'to be the same for all timezone files. Please '
+                             'construct dateutil timezones implicitly by '
+                             'passing a string like "dateutil/Europe/London" '
+                             'when you construct your pandas objects instead '
+                             'of passing a timezone object. See '
+                             'https://github.com/pandas-dev/pandas/pull/7362')
+        return 'dateutil' + tz._filename
+    else:
+        return None
+
+
+#----------------------------------------------------------------------
+# UTC Offsets
+
+cpdef _get_utcoffset(tzinfo, obj):
+    try:
+        return tzinfo._utcoffset
+    except AttributeError:
+        return tzinfo.utcoffset(obj)
+
+
+cpdef ndarray _unbox_utcoffsets(object transinfo):
+    cdef:
+        Py_ssize_t i, sz
+        ndarray[int64_t] arr
+
+    sz = len(transinfo)
+    arr = np.empty(sz, dtype='i8')
+
+    for i in range(sz):
+        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000000
+
+    return arr
+
+
+cdef bint _is_fixed_offset(object tz):
+    if _treat_tz_as_dateutil(tz):
+        if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
+            return 1
+        else:
+            return 0
+    elif _treat_tz_as_pytz(tz):
+        if (len(tz._transition_info) == 0
+            and len(tz._utc_transition_times) == 0):
+            return 1
+        else:
+            return 0
+    return 1
+
+
+cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
+    """
+    Transition times in dateutil timezones are stored in local non-dst
+    time.  This code converts them to UTC. It's the reverse of the code
+    in dateutil.tz.tzfile.__init__.
+    """
+    new_trans = list(tz._trans_list)
+    last_std_offset = 0
+    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
+        if not tti.isdst:
+            last_std_offset = tti.offset
+        new_trans[i] = trans - last_std_offset
+    return new_trans
+
+
+#----------------------------------------------------------------------
+# Daylight Savings
+
+# Timezone data caches, key is the pytz string or dateutil file name.
+dst_cache = {}
+
+# TODO: go back to just cdef
+cpdef object _get_dst_info(object tz):
+    """
+    return a tuple of :
+      (UTC times of DST transitions,
+       UTC offsets in microseconds corresponding to DST transitions,
+       string of type of transitions)
+
+    """
+    cache_key = _tz_cache_key(tz)
+    if cache_key is None:
+        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+        return (np.array([NPY_NAT + 1], dtype=np.int64),
+                np.array([num], dtype=np.int64),
+                None)
+
+    if cache_key not in dst_cache:
+        if _treat_tz_as_pytz(tz):
+            trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
+            trans = trans.view('i8')
+            try:
+                if tz._utc_transition_times[0].year == 1:
+                    trans[0] = NPY_NAT + 1
+            except Exception:
+                pass
+            deltas = _unbox_utcoffsets(tz._transition_info)
+            typ = 'pytz'
+
+        elif _treat_tz_as_dateutil(tz):
+            if len(tz._trans_list):
+                # get utc trans times
+                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
+                trans = np.hstack([
+                    np.array([0], dtype='M8[s]'), # place holder for first item
+                    np.array(trans_list, dtype='M8[s]')]).astype(
+                    'M8[ns]')  # all trans listed
+                trans = trans.view('i8')
+                trans[0] = NPY_NAT + 1
+
+                # deltas
+                deltas = np.array([v.offset for v in (
+                    tz._ttinfo_before,) + tz._trans_idx], dtype='i8')
+                deltas *= 1000000000
+                typ = 'dateutil'
+
+            elif _is_fixed_offset(tz):
+                trans = np.array([NPY_NAT + 1], dtype=np.int64)
+                deltas = np.array([tz._ttinfo_std.offset],
+                                  dtype='i8') * 1000000000
+                typ = 'fixed'
+            else:
+                trans = np.array([], dtype='M8[ns]')
+                deltas = np.array([], dtype='i8')
+                typ = None
+
+        else:
+            # static tzinfo
+            trans = np.array([NPY_NAT + 1], dtype=np.int64)
+            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+            deltas = np.array([num], dtype=np.int64)
+            typ = 'static'
+
+        dst_cache[cache_key] = (trans, deltas, typ)
+
+    return dst_cache[cache_key]

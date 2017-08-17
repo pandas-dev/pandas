@@ -10,19 +10,19 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
-cdef extern from "datetime_helper.h":
-    double total_seconds(object)
-
 from libc.stdlib cimport free
 
 from pandas import compat
 from pandas.compat import PY2
+from pandas.core.dtypes.generic import ABCDateOffset
 
 cimport cython
 
+cdef extern from "datetime.h":
+    void PyDateTime_IMPORT()
+
 from datetime cimport (
     is_leapyear,
-    PyDateTime_IMPORT,
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -32,16 +32,17 @@ from datetime cimport (
 cimport util, lib
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
-from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT, _get_utcoffset)
-from tslib cimport (
-    maybe_get_tz,
-    _is_utc,
-    _is_tzlocal,
-    _get_dst_info,
-    _nat_scalar_rules)
+from pandas._libs.tslib import Timestamp, iNaT, NaT
+from tslib cimport _nat_scalar_rules
 
-from pandas.tseries import offsets
+from tslibs.timezones cimport (
+    total_seconds,
+    _get_utcoffset,
+    _get_dst_info,
+    _is_tzlocal,
+    _is_utc,
+    maybe_get_tz)
+
 from pandas.core.tools.datetimes import parse_time_string
 from pandas.tseries import frequencies
 
@@ -117,9 +118,16 @@ cdef extern from "period_helper.h":
 
 initialize_daytime_conversion_factor_matrix()
 
+
+cpdef _is_tick(item):
+    # offsets.Tick subclasses offsets.DateOffset and has a "_inc" attribute
+    return isinstance(item, ABCDateOffset) and hasattr(item, "_inc")
+
+
 # Period logic
 #----------------------------------------------------------------------
 
+# TODO: never used?
 cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
     """
     Get freq+multiple ordinal value from corresponding freq-only ordinal value.
@@ -131,6 +139,7 @@ cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
 
     return (period_ord - 1) // mult
 
+# TODO: never used?
 cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
     """
     Get freq-only ordinal value from corresponding freq+multiple ordinal.
@@ -746,10 +755,9 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, Timedelta)):
+        if isinstance(other, (timedelta, np.timedelta64)) or _is_tick(other):
             offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if _is_tick(offset):
                 nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
 
@@ -758,7 +766,7 @@ cdef class _Period(object):
                     return Period(ordinal=ordinal, freq=self.freq)
             msg = 'Input cannot be converted to Period(freq={0})'
             raise IncompatibleFrequency(msg.format(self.freqstr))
-        elif isinstance(other, offsets.DateOffset):
+        elif isinstance(other, ABCDateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -771,9 +779,7 @@ cdef class _Period(object):
 
     def __add__(self, other):
         if isinstance(self, Period):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
-                                  Timedelta)):
+            if isinstance(other, (timedelta, np.timedelta64, ABCDateOffset)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
@@ -789,9 +795,7 @@ cdef class _Period(object):
 
     def __sub__(self, other):
         if isinstance(self, Period):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
-                                  Timedelta)):
+            if isinstance(other, (timedelta, np.timedelta64, ABCDateOffset)):
                 neg_other = -other
                 return self + neg_other
             elif lib.is_integer(other):
