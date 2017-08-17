@@ -26,10 +26,14 @@ except ImportError:
 
 # setup engines & skips
 @pytest.fixture(params=[
-    pytest.mark.skipif(not _HAVE_FASTPARQUET,
-                       reason='fastparquet is not installed')('fastparquet'),
-    pytest.mark.skipif(not _HAVE_PYARROW,
-                       reason='pyarrow is not installed')('pyarrow')])
+    pytest.param('fastparquet',
+                 marks=pytest.mark.skipif(not _HAVE_FASTPARQUET,
+                                          reason='fastparquet is '
+                                                 'not installed')),
+    pytest.param('pyarrow',
+                 marks=pytest.mark.skipif(not _HAVE_PYARROW,
+                                          reason='pyarrow is '
+                                                 'not installed'))])
 def engine(request):
     return request.param
 

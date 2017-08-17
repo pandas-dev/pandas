@@ -598,6 +598,10 @@ Like many packages, *pandas* uses `pytest
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
+.. note::
+
+   The earliest supported pytest version is 3.1.0.
+
 Writing tests
 ~~~~~~~~~~~~~
 
@@ -654,7 +658,9 @@ Using ``pytest``
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
 - functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
 - using ``parametrize``: allow testing of multiple cases
+- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
 - ``fixture``, code for object construction, on a per-test basis
 - using bare ``assert`` for scalars and truth-testing
 - ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
@@ -672,6 +678,13 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
+
+   @pytest.mark.parametrize('dtype', ['float32',
+       pytest.param('int16', marks=pytest.mark.skip),
+       pytest.param('int32',
+                    marks=pytest.mark.xfail(reason='to show how it works'))])
+   def test_mark(dtype):
+       assert str(np.dtype(dtype)) == 'float32'
 
    @pytest.fixture
    def series():
@@ -695,13 +708,16 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
    tester.py::test_dtypes[int16] PASSED
    tester.py::test_dtypes[int32] PASSED
    tester.py::test_dtypes[int64] PASSED
+   tester.py::test_mark[float32] PASSED
+   tester.py::test_mark[int16] SKIPPED
+   tester.py::test_mark[int32] xfail
    tester.py::test_series[int8] PASSED
    tester.py::test_series[int16] PASSED
    tester.py::test_series[int32] PASSED
@@ -714,8 +730,8 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED

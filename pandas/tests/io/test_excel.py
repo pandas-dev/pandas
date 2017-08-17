@@ -2400,8 +2400,10 @@ class TestExcelWriterEngineTests(object):
 
 
 @pytest.mark.parametrize('engine', [
-    pytest.mark.xfail('xlwt', reason='xlwt does not support '
-                                     'openpyxl-compatible style dicts'),
+    pytest.param('xlwt',
+                 marks=pytest.mark.xfail(reason='xlwt does not support '
+                                                'openpyxl-compatible '
+                                                'style dicts')),
     'xlsxwriter',
     'openpyxl',
 ])
