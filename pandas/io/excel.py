@@ -1610,66 +1610,80 @@ class _XlsxWriter(ExcelWriter):
                           val, style)
 
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
-    STYLE_MAPPING = [
-        (('font', 'name'), 'font_name'),
-        (('font', 'sz'), 'font_size'),
-        (('font', 'size'), 'font_size'),
-        (('font', 'color', 'rgb'), 'font_color'),
-        (('font', 'color'), 'font_color'),
-        (('font', 'b'), 'bold'),
-        (('font', 'bold'), 'bold'),
-        (('font', 'i'), 'italic'),
-        (('font', 'italic'), 'italic'),
-        (('font', 'u'), 'underline'),
-        (('font', 'underline'), 'underline'),
-        (('font', 'strike'), 'font_strikeout'),
-        (('font', 'vertAlign'), 'font_script'),
-        (('font', 'vertalign'), 'font_script'),
-        (('number_format', 'format_code'), 'num_format'),
-        (('number_format',), 'num_format'),
-        (('protection', 'locked'), 'locked'),
-        (('protection', 'hidden'), 'hidden'),
-        (('alignment', 'horizontal'), 'align'),
-        (('alignment', 'vertical'), 'valign'),
-        (('alignment', 'text_rotation'), 'rotation'),
-        (('alignment', 'wrap_text'), 'text_wrap'),
-        (('alignment', 'indent'), 'indent'),
-        (('alignment', 'shrink_to_fit'), 'shrink'),
-        (('fill', 'patternType'), 'pattern'),
-        (('fill', 'patterntype'), 'pattern'),
-        (('fill', 'fill_type'), 'pattern'),
-        (('fill', 'start_color', 'rgb'), 'fg_color'),
-        (('fill', 'fgColor', 'rgb'), 'fg_color'),
-        (('fill', 'fgcolor', 'rgb'), 'fg_color'),
-        (('fill', 'start_color'), 'fg_color'),
-        (('fill', 'fgColor'), 'fg_color'),
-        (('fill', 'fgcolor'), 'fg_color'),
-        (('fill', 'end_color', 'rgb'), 'bg_color'),
-        (('fill', 'bgColor', 'rgb'), 'bg_color'),
-        (('fill', 'bgcolor', 'rgb'), 'bg_color'),
-        (('fill', 'end_color'), 'bg_color'),
-        (('fill', 'bgColor'), 'bg_color'),
-        (('fill', 'bgcolor'), 'bg_color'),
-        (('border', 'color', 'rgb'), 'border_color'),
-        (('border', 'color'), 'border_color'),
-        (('border', 'style'), 'border'),
-        (('border', 'top', 'color', 'rgb'), 'top_color'),
-        (('border', 'top', 'color'), 'top_color'),
-        (('border', 'top', 'style'), 'top'),
-        (('border', 'top'), 'top'),
-        (('border', 'right', 'color', 'rgb'), 'right_color'),
-        (('border', 'right', 'color'), 'right_color'),
-        (('border', 'right', 'style'), 'right'),
-        (('border', 'right'), 'right'),
-        (('border', 'bottom', 'color', 'rgb'), 'bottom_color'),
-        (('border', 'bottom', 'color'), 'bottom_color'),
-        (('border', 'bottom', 'style'), 'bottom'),
-        (('border', 'bottom'), 'bottom'),
-        (('border', 'left', 'color', 'rgb'), 'left_color'),
-        (('border', 'left', 'color'), 'left_color'),
-        (('border', 'left', 'style'), 'left'),
-        (('border', 'left'), 'left'),
-    ]
+    # Ordering necessary for both determinism and because some are keyed by
+    # prefixes of others.
+    STYLE_MAPPING = {
+        'font': [
+            (('name',), 'font_name'),
+            (('sz',), 'font_size'),
+            (('size',), 'font_size'),
+            (('color', 'rgb',), 'font_color'),
+            (('color',), 'font_color'),
+            (('b',), 'bold'),
+            (('bold',), 'bold'),
+            (('i',), 'italic'),
+            (('italic',), 'italic'),
+            (('u',), 'underline'),
+            (('underline',), 'underline'),
+            (('strike',), 'font_strikeout'),
+            (('vertAlign',), 'font_script'),
+            (('vertalign',), 'font_script'),
+        ],
+        'number_format': [
+            (('format_code',), 'num_format'),
+            ((), 'num_format',),
+        ],
+        'protection': [
+            (('locked',), 'locked'),
+            (('hidden',), 'hidden'),
+        ],
+        'alignment': [
+            (('horizontal',), 'align'),
+            (('vertical',), 'valign'),
+            (('text_rotation',), 'rotation'),
+            (('wrap_text',), 'text_wrap'),
+            (('indent',), 'indent'),
+            (('shrink_to_fit',), 'shrink'),
+        ],
+        'fill': [
+            (('patternType',), 'pattern'),
+            (('patterntype',), 'pattern'),
+            (('fill_type',), 'pattern'),
+            (('start_color', 'rgb',), 'fg_color'),
+            (('fgColor', 'rgb',), 'fg_color'),
+            (('fgcolor', 'rgb',), 'fg_color'),
+            (('start_color',), 'fg_color'),
+            (('fgColor',), 'fg_color'),
+            (('fgcolor',), 'fg_color'),
+            (('end_color', 'rgb',), 'bg_color'),
+            (('bgColor', 'rgb',), 'bg_color'),
+            (('bgcolor', 'rgb',), 'bg_color'),
+            (('end_color',), 'bg_color'),
+            (('bgColor',), 'bg_color'),
+            (('bgcolor',), 'bg_color'),
+        ],
+        'border': [
+            (('color', 'rgb',), 'border_color'),
+            (('color',), 'border_color'),
+            (('style',), 'border'),
+            (('top', 'color', 'rgb',), 'top_color'),
+            (('top', 'color',), 'top_color'),
+            (('top', 'style',), 'top'),
+            (('top',), 'top'),
+            (('right', 'color', 'rgb',), 'right_color'),
+            (('right', 'color',), 'right_color'),
+            (('right', 'style',), 'right'),
+            (('right',), 'right'),
+            (('bottom', 'color', 'rgb',), 'bottom_color'),
+            (('bottom', 'color',), 'bottom_color'),
+            (('bottom', 'style',), 'bottom'),
+            (('bottom',), 'bottom'),
+            (('left', 'color', 'rgb',), 'left_color'),
+            (('left', 'color',), 'left_color'),
+            (('left', 'style',), 'left'),
+            (('left',), 'left'),
+        ],
+    }
 
     def _convert_to_style(self, style_dict, num_format_str=None):
         """
@@ -1697,19 +1711,20 @@ class _XlsxWriter(ExcelWriter):
             style_dict = style_dict.copy()
             style_dict['border'] = style_dict.pop('borders')
 
-        for src, dst in self.STYLE_MAPPING:
-            # src is a sequence of keys into a nested dict
-            # dst is a flat key
-            if dst in props:
-                continue
-            v = style_dict
-            for k in src:
-                try:
-                    v = v[k]
-                except (KeyError, TypeError):
-                    break
-            else:
-                props[dst] = v
+        for style_group_key, style_group in style_dict.items():
+            for src, dst in self.STYLE_MAPPING.get(style_group_key, []):
+                # src is a sequence of keys into a nested dict
+                # dst is a flat key
+                if dst in props:
+                    continue
+                v = style_group
+                for k in src:
+                    try:
+                        v = v[k]
+                    except (KeyError, TypeError):
+                        break
+                else:
+                    props[dst] = v
 
         if isinstance(props.get('pattern'), string_types):
             # TODO: support other fill patterns
