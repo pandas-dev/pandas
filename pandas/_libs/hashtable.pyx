@@ -2,7 +2,27 @@
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
-from khash cimport *
+from khash cimport (
+    khiter_t,
+
+    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
+    kh_get_str, kh_destroy_str, kh_resize_str,
+
+    kh_put_strbox, kh_get_strbox, kh_init_strbox,
+
+    kh_int64_t, kh_init_int64, kh_resize_int64, kh_destroy_int64,
+    kh_get_int64, kh_exist_int64, kh_put_int64,
+
+    kh_float64_t, kh_exist_float64, kh_put_float64, kh_init_float64,
+    kh_get_float64, kh_destroy_float64, kh_resize_float64,
+
+    kh_resize_uint64, kh_exist_uint64, kh_destroy_uint64, kh_put_uint64,
+    kh_get_uint64, kh_init_uint64,
+
+    kh_destroy_pymap, kh_exist_pymap, kh_init_pymap, kh_get_pymap,
+    kh_put_pymap, kh_resize_pymap)
+
+
 from numpy cimport *
 
 from libc.stdlib cimport malloc, free
