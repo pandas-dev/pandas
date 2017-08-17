@@ -269,37 +269,39 @@ class TestToDatetime(object):
         result = pd.to_datetime(date_range, utc=True)
         expected = pd.DatetimeIndex(data=date_range)
         tm.assert_index_equal(result, expected)
-
-    def test_to_datetime_utc_true_with_series(self):
+    
+    @pytest.mark.parametrize("init_constructor, end_constructor, test_method",
+        [(Index, DatetimeIndex, tm.assert_index_equal),
+         (Series, Series, tm.assert_series_equal)])
+    def test_to_datetime_utc_true_with_series(self, 
+                                              init_constructor, 
+                                              end_constructor, 
+                                              test_method):
         # GH 6415: UTC=True with Series
         data = ['20100102 121314', '20100102 121315']
         expected_data = [pd.Timestamp('2010-01-02 12:13:14', tz='utc'),
                          pd.Timestamp('2010-01-02 12:13:15', tz='utc')]
-        result = pd.to_datetime(pd.Series(data),
-                                format='%Y%m%d %H%M%S',
-                                utc=True)
-        expected = pd.Series(expected_data)
-        tm.assert_series_equal(result, expected)
-        result = pd.to_datetime(pd.Index(data),
-                                format='%Y%m%d %H%M%S',
-                                utc=True)
-        expected = pd.DatetimeIndex(expected_data)
-        tm.assert_index_equal(result, expected)
 
+        result = pd.to_datetime(init_constructor(data),
+                                format='%Y%m%d %H%M%S',
+                                utc=True)
+        expected = end_constructor(expected_data)
+        test_method(result, expected)
+
+    def test_to_datetime_utc_true_with_series_single_value(self):
         # GH 15760 UTC=True with Series
         ts = 1.5e18
         result = pd.to_datetime(pd.Series([ts]), utc=True)
         expected = pd.Series([pd.Timestamp(ts, tz='utc')])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [None, 'datetime64[ns]'])
+    def test_to_datetime_utc_true_with_naive_series(self, dtype):
         test_dates = ['2013-01-01 00:00:00-01:00'] * 10
+        ser = pd.Series(test_dates, dtype=dtype)
+        result = pd.to_datetime(ser, utc=True)
         expected_data = [pd.Timestamp('20130101 01:00:00', tz='utc')] * 10
         expected = pd.Series(expected_data)
-        ser = Series(test_dates)
-        result = pd.to_datetime(ser, utc=True)
-        tm.assert_series_equal(result, expected)
-        ser_naive = Series(test_dates, dtype='datetime64[ns]')
-        result = pd.to_datetime(ser_naive, utc=True)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_tz_psycopg2(self):
