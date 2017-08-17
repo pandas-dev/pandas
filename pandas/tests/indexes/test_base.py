@@ -2119,6 +2119,27 @@ class TestMixedIntIndex(Base):
 
         assert len(res) == 0
 
+    def test_searchsorted_monotonic(self):
+        # GH17271
+        idx_inc = Index([0, 2, 4])
+        idx_dec = Index([4, 2, 0])
+
+        # test included value.
+        assert idx_inc._searchsorted_monotonic(0, side='left') == 0
+        assert idx_inc._searchsorted_monotonic(0, side='right') == 1
+        assert idx_dec._searchsorted_monotonic(0, side='left') == 2
+        assert idx_dec._searchsorted_monotonic(0, side='right') == 3
+
+        # test non-included value.
+        for side in ('left', 'right'):
+            assert idx_inc._searchsorted_monotonic(1, side=side) == 1
+            assert idx_dec._searchsorted_monotonic(1, side=side) == 2
+
+        # non-monotonic should raise.
+        idx_bad = Index([0, 4, 2])
+        with pytest.raises(ValueError):
+            idx_bad._searchsorted_monotonic(3)
+
 
 class TestIndexUtils(object):
 

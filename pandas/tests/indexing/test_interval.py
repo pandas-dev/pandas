@@ -11,6 +11,9 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
+        idx_dec = IntervalIndex.from_tuples([(2, 3), (1, 2), (0, 1)])
+        self.s_dec = Series(list('abc'), idx_dec)
+
     def test_loc_with_scalar(self):
 
         s = self.s
@@ -39,6 +42,9 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s.loc[s >= 2])
 
+        # test endpoint of non-overlapping monotonic decreasing (GH16417)
+        assert self.s_dec.loc[3] == 'a'
+
     def test_getitem_with_scalar(self):
 
         s = self.s
@@ -66,6 +72,9 @@ class TestIntervalIndex(object):
 
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
+
+        # test endpoint of non-overlapping monotonic decreasing (GH16417)
+        assert self.s_dec[3] == 'a'
 
     def test_with_interval(self):
 
