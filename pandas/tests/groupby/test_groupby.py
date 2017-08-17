@@ -2339,7 +2339,7 @@ class TestGroupBy(MixIn):
         assert_frame_equal(result, expected)
 
         # idxmax
-        expected = DataFrame([[0], [nan]], columns=['B'], index=[1, 3])
+        expected = DataFrame([[0.0], [nan]], columns=['B'], index=[1, 3])
         expected.index.name = 'A'
         result = g.idxmax()
         assert_frame_equal(result, expected)
@@ -2562,7 +2562,7 @@ class TestGroupBy(MixIn):
         inds = np.tile(lrange(10), 10)
 
         result = obj.groupby(inds).agg(Series.median)
-        assert result.isnull().all()
+        assert result.isna().all()
 
     def test_series_grouper_noncontig_index(self):
         index = Index(tm.rands_array(10, 100))
@@ -3540,7 +3540,7 @@ class TestGroupBy(MixIn):
         r = gb[['File']].max()
         e = gb['File'].max().to_frame()
         tm.assert_frame_equal(r, e)
-        assert not r['File'].isnull().any()
+        assert not r['File'].isna().any()
 
     def test_nlargest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])

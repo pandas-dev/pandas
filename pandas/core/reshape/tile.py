@@ -2,7 +2,7 @@
 Quantilization functions and related stuff
 """
 
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
@@ -229,9 +229,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
-            raise ValueError("Bin edges must be unique: {}.\nYou "
+            raise ValueError("Bin edges must be unique: {bins!r}.\nYou "
                              "can drop duplicate edges by setting "
-                             "the 'duplicates' kwarg".format(repr(bins)))
+                             "the 'duplicates' kwarg".format(bins=bins))
         else:
             bins = unique_bins
 
@@ -241,7 +241,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     if include_lowest:
         ids[x == bins[0]] = 1
 
-    na_mask = isnull(x) | (ids == len(bins)) | (ids == 0)
+    na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:

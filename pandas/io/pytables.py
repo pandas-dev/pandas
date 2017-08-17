@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isnull, concat,
+                    MultiIndex, Int64Index, isna, concat,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
@@ -282,7 +282,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key=None, **kwargs):
+def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
     """ read from the store, close it if we opened it
 
         Retrieve pandas object stored in file, optionally based on where
@@ -290,13 +290,16 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         Parameters
         ----------
-        path_or_buf : path (string), buffer, or path object (pathlib.Path or
-            py._path.local.LocalPath) to read from
+        path_or_buf : path (string), buffer or path object (pathlib.Path or
+            py._path.local.LocalPath) designating the file to open, or an
+            already opened pd.HDFStore object
 
             .. versionadded:: 0.19.0 support for pathlib, py.path.
 
         key : group identifier in the store. Can be omitted if the HDF file
             contains a single pandas object.
+        mode : string, {'r', 'r+', 'a'}, default 'r'. Mode to use when opening
+            the file. Ignored if path_or_buf is a pd.HDFStore.
         where : list of Term (or convertable) objects, optional
         start : optional, integer (defaults to None), row number to start
             selection
@@ -313,10 +316,9 @@ def read_hdf(path_or_buf, key=None, **kwargs):
 
         """
 
-    if kwargs.get('mode', 'a') not in ['r', 'r+', 'a']:
+    if mode not in ['r', 'r+', 'a']:
         raise ValueError('mode {0} is not allowed while performing a read. '
-                         'Allowed modes are r, r+ and a.'
-                         .format(kwargs.get('mode')))
+                         'Allowed modes are r, r+ and a.'.format(mode))
     # grab the scope
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
@@ -343,7 +345,7 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             raise compat.FileNotFoundError(
                 'File %s does not exist' % path_or_buf)
 
-        store = HDFStore(path_or_buf, **kwargs)
+        store = HDFStore(path_or_buf, mode=mode, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
         auto_close = True
@@ -2134,7 +2136,7 @@ class DataCol(IndexCol):
                 # if we have stored a NaN in the categories
                 # then strip it; in theory we could have BOTH
                 # -1s in the codes and nulls :<
-                mask = isnull(categories)
+                mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
                     codes[codes != -1] -= mask.astype(int).cumsum().values
@@ -2589,8 +2591,8 @@ class GenericFixed(Fixed):
         if 'name' in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
 
-        index_class = self._alias_to_class(getattr(node._v_attrs,
-                                                   'index_class', ''))
+        index_class = self._alias_to_class(_ensure_decoded(
+            getattr(node._v_attrs, 'index_class', '')))
         factory = self._get_index_factory(index_class)
 
         kwargs = {}
@@ -3939,7 +3941,7 @@ class AppendableTable(LegacyTable):
 
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
-                mask = isnull(a.data).all(axis=0)
+                mask = isna(a.data).all(axis=0)
                 if isinstance(mask, np.ndarray):
                     masks.append(mask.astype('u1', copy=False))
 

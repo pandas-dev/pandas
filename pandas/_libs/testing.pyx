@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
 
 cdef NUMERIC_TYPES = (
@@ -182,7 +182,7 @@ cpdef assert_almost_equal(a, b,
     if a == b:
         # object comparison
         return True
-    if isnull(a) and isnull(b):
+    if isna(a) and isna(b):
         # nan / None comparison
         return True
     if is_comparable_as_number(a) and is_comparable_as_number(b):

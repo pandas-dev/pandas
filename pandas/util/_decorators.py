@@ -6,18 +6,37 @@ from textwrap import dedent
 from functools import wraps, update_wrapper
 
 
-def deprecate(name, alternative, alt_name=None):
+def deprecate(name, alternative, alt_name=None, klass=None,
+              stacklevel=2):
+    """
+    Return a new function that emits a deprecation warning on use.
+
+    Parameters
+    ----------
+    name : str
+        Name of function to deprecate
+    alternative : str
+        Name of function to use instead
+    alt_name : str, optional
+        Name to use in preference of alternative.__name__
+    klass : Warning, default FutureWarning
+    stacklevel : int, default 2
+    """
+
     alt_name = alt_name or alternative.__name__
+    klass = klass or FutureWarning
 
     def wrapper(*args, **kwargs):
-        warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
-                      FutureWarning, stacklevel=2)
+        msg = "{name} is deprecated. Use {alt_name} instead".format(
+            name=name, alt_name=alt_name)
+        warnings.warn(msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
     return wrapper
 
 
 def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
-    """Decorator to deprecate a keyword argument of a function
+    """
+    Decorator to deprecate a keyword argument of a function.
 
     Parameters
     ----------
@@ -54,8 +73,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
-
     """
+
     if mapping is not None and not hasattr(mapping, 'get') and \
             not callable(mapping):
         raise TypeError("mapping from old to new argument values "
@@ -72,19 +91,24 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
                                                     old_arg_value)
                     else:
                         new_arg_value = mapping(old_arg_value)
-                    msg = "the %s=%r keyword is deprecated, " \
-                          "use %s=%r instead" % \
-                          (old_arg_name, old_arg_value,
-                           new_arg_name, new_arg_value)
+                    msg = ("the {old_name}={old_val!r} keyword is deprecated, "
+                           "use {new_name}={new_val!r} instead"
+                           ).format(old_name=old_arg_name,
+                                    old_val=old_arg_value,
+                                    new_name=new_arg_name,
+                                    new_val=new_arg_value)
                 else:
                     new_arg_value = old_arg_value
-                    msg = "the '%s' keyword is deprecated, " \
-                          "use '%s' instead" % (old_arg_name, new_arg_name)
+                    msg = ("the '{old_name}' keyword is deprecated, "
+                           "use '{new_name}' instead"
+                           ).format(old_name=old_arg_name,
+                                    new_name=new_arg_name)
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name, None) is not None:
-                    msg = ("Can only specify '%s' or '%s', not both" %
-                           (old_arg_name, new_arg_name))
+                    msg = ("Can only specify '{old_name}' or '{new_name}', "
+                           "not both").format(old_name=old_arg_name,
+                                              new_name=new_arg_name)
                     raise TypeError(msg)
                 else:
                     kwargs[new_arg_name] = new_arg_value
@@ -137,7 +161,12 @@ class Substitution(object):
         return func
 
     def update(self, *args, **kwargs):
-        "Assume self.params is a dict and update it with supplied args"
+        """
+        Update self.params with supplied args.
+
+        If called, we assume self.params is a dict.
+        """
+
         self.params.update(*args, **kwargs)
 
     @classmethod
@@ -197,16 +226,16 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults
+    Returns a string repr of the arg list of a func call, with any defaults.
 
     Examples
     --------
-
     >>> def f(a,b,c=2) :
     >>>     return a*b*c
     >>> print(_make_signature(f))
     a,b,c=2
     """
+
     spec = signature(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
@@ -226,8 +255,8 @@ def make_signature(func):
 
 class docstring_wrapper(object):
     """
-    decorator to wrap a function,
-    provide a dynamically evaluated doc-string
+    Decorator to wrap a function and provide
+    a dynamically evaluated doc-string.
 
     Parameters
     ----------

@@ -19,11 +19,12 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_scalar)
-from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
-                                is_null_slice)
+                                is_null_slice,
+                                is_true_slices)
 
 import pandas.core.base as base
 from pandas.util._decorators import (Appender, cache_readonly,
@@ -464,9 +465,13 @@ class MultiIndex(Index):
         *this is in internal routine*
 
         """
+
+        # for implementations with no useful getsizeof (PyPy)
+        objsize = 24
+
         level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
         label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i) for i in self.names))
+        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -782,8 +787,8 @@ class MultiIndex(Index):
 
     @Appender(ibase._index_shared_docs['fillna'])
     def fillna(self, value=None, downcast=None):
-        # isnull is not implemented for MultiIndex
-        raise NotImplementedError('isnull is not defined for MultiIndex')
+        # isna is not implemented for MultiIndex
+        raise NotImplementedError('isna is not defined for MultiIndex')
 
     @Appender(_index_shared_docs['dropna'])
     def dropna(self, how='any'):
@@ -919,7 +924,7 @@ class MultiIndex(Index):
 
             else:
                 # weird all NA case
-                formatted = [pprint_thing(na if isnull(x) else x,
+                formatted = [pprint_thing(na if isna(x) else x,
                                           escape_chars=('\t', '\r', '\n'))
                              for x in algos.take_1d(lev._values, lab)]
             stringified_levels.append(formatted)
@@ -1035,12 +1040,6 @@ class MultiIndex(Index):
         """
         return self.lexsort_depth == self.nlevels
 
-    def is_lexsorted_for_tuple(self, tup):
-        """
-        Return True if we are correctly lexsorted given the passed tuple
-        """
-        return len(tup) <= self.lexsort_depth
-
     @cache_readonly
     def lexsort_depth(self):
         if self.sortorder is not None:
@@ -1134,10 +1133,11 @@ class MultiIndex(Index):
                                   of iterables
         """
         if len(tuples) == 0:
-            # I think this is right? Not quite sure...
-            raise TypeError('Cannot infer number of levels from empty list')
-
-        if isinstance(tuples, (np.ndarray, Index)):
+            if names is None:
+                msg = 'Cannot infer number of levels from empty list'
+                raise TypeError(msg)
+            arrays = [[]] * len(names)
+        elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = tuples._values
 
@@ -1387,6 +1387,9 @@ class MultiIndex(Index):
             else:
                 # cannot be sure whether the result will be sorted
                 sortorder = None
+
+                if isinstance(key, Index):
+                    key = np.asarray(key)
 
             new_labels = [lab[key] for lab in self.labels]
 
@@ -1698,7 +1701,8 @@ class MultiIndex(Index):
                 raise ValueError("level must have same length as ascending")
 
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(self.labels, orders=ascending)
+            indexer = lexsort_indexer([self.labels[lev] for lev in level],
+                                      orders=ascending)
 
         # level ordering
         else:
@@ -2262,12 +2266,12 @@ class MultiIndex(Index):
         """
 
         # must be lexsorted to at least as many levels
-        if not self.is_lexsorted_for_tuple(tup):
-            raise UnsortedIndexError('MultiIndex Slicing requires the index '
-                                     'to be fully lexsorted tuple len ({0}), '
-                                     'lexsort depth ({1})'
-                                     .format(len(tup), self.lexsort_depth))
-
+        true_slices = [i for (i, s) in enumerate(is_true_slices(tup)) if s]
+        if true_slices and true_slices[-1] >= self.lexsort_depth:
+            raise UnsortedIndexError('MultiIndex slicing requires the index '
+                                     'to be lexsorted: slicing on levels {0}, '
+                                     'lexsort depth {1}'
+                                     .format(true_slices, self.lexsort_depth))
         # indexer
         # this is the list of all values that we want to select
         n = len(self)
@@ -2623,8 +2627,9 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return algos.isin(self.values,
-                              MultiIndex.from_tuples(values).values)
+            values = MultiIndex.from_tuples(values,
+                                            names=self.names).values
+            return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]

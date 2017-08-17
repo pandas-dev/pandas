@@ -19,6 +19,7 @@ def salaries_table():
     return read_table(path)
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "compression,extension",
     [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),

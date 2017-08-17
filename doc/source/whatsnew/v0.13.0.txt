@@ -790,7 +790,7 @@ Experimental
   .. ipython:: python
 
      for o in pd.read_msgpack('foo.msg',iterator=True):
-        print o
+        print(o)
 
   .. ipython:: python
      :suppress:

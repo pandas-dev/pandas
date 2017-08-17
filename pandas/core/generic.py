@@ -13,7 +13,6 @@ from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
-    needs_i8_conversion,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -27,8 +26,8 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
-from pandas.core.dtypes.missing import isnull, notnull
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -52,8 +51,10 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name, cPickle as pkl)
+from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import (Appender, Substitution,
+                                     deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
@@ -151,7 +152,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
-                                          "in the {0} constructor"
+                                          " in the {0} constructor"
                                           .format(self.__class__.__name__))
 
         return dtype
@@ -465,9 +466,91 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    def set_axis(self, axis, labels):
-        """ public verson of axis assignment """
-        setattr(self, self._get_axis_name(axis), labels)
+    _shared_docs['set_axis'] = """Assign desired index to given axis
+
+        Parameters
+        ----------
+        labels: list-like or Index
+            The values for the new index
+        axis : int or string, default 0
+        inplace : boolean, default None
+            Whether to return a new %(klass)s instance.
+
+            WARNING: inplace=None currently falls back to to True, but
+            in a future version, will default to False.  Use inplace=True
+            explicitly rather than relying on the default.
+
+        .. versionadded:: 0.21.0
+            The signature is make consistent to the rest of the API.
+            Previously, the "axis" and "labels" arguments were respectively
+            the first and second positional arguments.
+
+        Returns
+        -------
+        renamed : %(klass)s or None
+            An object of same type as caller if inplace=False, None otherwise.
+
+        See Also
+        --------
+        pandas.NDFrame.rename
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+        a    1
+        b    2
+        c    3
+        dtype: int64
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+           A  B
+        a  1  4
+        b  2  5
+        c  3  6
+        >>> df.set_axis(['I', 'II'], axis=1, inplace=False)
+           I  II
+        0  1   4
+        1  2   5
+        2  3   6
+        >>> df.set_axis(['i', 'ii'], axis=1, inplace=True)
+        >>> df
+           i  ii
+        0  1   4
+        1  2   5
+        2  3   6
+
+        """
+
+    @Appender(_shared_docs['set_axis'] % dict(klass='NDFrame'))
+    def set_axis(self, labels, axis=0, inplace=None):
+        if is_scalar(labels):
+            warnings.warn(
+                'set_axis now takes "labels" as first argument, and '
+                '"axis" as named parameter. The old form, with "axis" as '
+                'first parameter and \"labels\" as second, is still supported '
+                'but will be deprecated in a future version of pandas.',
+                FutureWarning, stacklevel=2)
+            labels, axis = axis, labels
+
+        if inplace is None:
+            warnings.warn(
+                'set_axis currently defaults to operating inplace.\nThis '
+                'will change in a future version of pandas, use '
+                'inplace=True to avoid this warning.',
+                FutureWarning, stacklevel=2)
+            inplace = True
+        if inplace:
+            setattr(self, self._get_axis_name(axis), labels)
+        else:
+            obj = self.copy()
+            obj.set_axis(labels, axis=axis, inplace=True)
+            return obj
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
@@ -546,6 +629,43 @@ class NDFrame(PandasObject, SelectionMixin):
     def pop(self, item):
         """
         Return item and drop from frame. Raise KeyError if not found.
+
+        Parameters
+        ----------
+        item : str
+            Column label to be popped
+
+        Returns
+        -------
+        popped : Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        >>> df.pop('class')
+        0      bird
+        1      bird
+        2    mammal
+        3    mammal
+        Name: class, dtype: object
+
+        >>> df
+             name  max_speed
+        0  falcon      389.0
+        1  parrot       24.0
+        2    lion       80.5
+        3  monkey        NaN
         """
         result = self[item]
         del self[item]
@@ -837,7 +957,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         renamed = self if inplace else self.copy()
-        renamed.set_axis(axis, idx)
+        renamed.set_axis(idx, axis=axis, inplace=True)
         if not inplace:
             return renamed
 
@@ -1087,7 +1207,7 @@ class NDFrame(PandasObject, SelectionMixin):
     columns : sequence, optional
         Columns to write
     header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
+        Write out the column names. If a list of strings is given it is
         assumed to be aliases for the column names
     index : boolean, default True
         Write row names (index)
@@ -1292,7 +1412,7 @@ class NDFrame(PandasObject, SelectionMixin):
             As of v0.20.2 these additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-             'blosc:zlib', 'blosc:zstd'}.
+            'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
         fletcher32 : bool, default False
@@ -1338,9 +1458,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. If a DBAPI2 object, only sqlite3 is supported.
         flavor : 'sqlite', default None
-            DEPRECATED: this parameter will be removed in a future version,
-            as 'sqlite' is the only supported option if SQLAlchemy is not
-            installed.
+            .. deprecated:: 0.19.0
+               'sqlite' is the only supported option if SQLAlchemy is not
+               used.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -1538,7 +1658,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         `to_latex`-specific options:
 
-        bold_rows : boolean, default True
+        bold_rows : boolean, default False
             Make the row labels bold in the output
         column_format : str, default None
             The columns format as specified in `LaTeX table format
@@ -1582,12 +1702,13 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
             """
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names.')
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names.')
     @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=None, index_names=True, bold_rows=True,
+                 sparsify=None, index_names=True, bold_rows=False,
                  column_format=None, longtable=None, escape=None,
                  encoding=None, decimal='.', multicolumn=None,
                  multicolumn_format=None, multirow=None):
@@ -1786,6 +1907,10 @@ it is assumed to be aliases for the column names.')
         return result
 
     def _set_item(self, key, value):
+        if isinstance(key, str) and callable(getattr(self, key, None)):
+            warnings.warn("Column name '{key}' collides with a built-in "
+                          "method, which will cause unexpected attribute "
+                          "behavior".format(key=key), stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -2097,7 +2222,6 @@ it is assumed to be aliases for the column names.')
 
     _xs = xs
 
-    # TODO: Check if this was clearer in 0.12
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -3115,7 +3239,7 @@ it is assumed to be aliases for the column names.')
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
-    agg is an alias for aggregate. Use it.
+    `agg` is an alias for `aggregate`. Use the alias.
 
     Returns
     -------
@@ -3124,7 +3248,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['transform'] = ("""
     Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values`
+    and return a %(klass)s with the transformed values
 
     .. versionadded:: 0.20.0
 
@@ -3237,6 +3361,12 @@ it is assumed to be aliases for the column names.')
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
+                    warnings.warn("Pandas doesn't allow Series to be assigned "
+                                  "into nonexistent columns - see "
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
@@ -3480,8 +3610,7 @@ it is assumed to be aliases for the column names.')
                      mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
+        Cast a pandas object to a specified dtype ``dtype``.
 
         Parameters
         ----------
@@ -3490,6 +3619,10 @@ it is assumed to be aliases for the column names.')
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
+        copy : bool, default True.
+            Return a copy when ``copy=True`` (be very careful setting
+            ``copy=False`` as changes to values then may propagate to other
+            pandas objects).
         errors : {'raise', 'ignore'}, default 'raise'.
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -3498,19 +3631,67 @@ it is assumed to be aliases for the column names.')
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : DEPRECATED use ``errors`` instead
+        raise_on_error : raise on invalid input
+            .. deprecated:: 0.20.0
+               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
         -------
         casted : type of caller
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2], dtype='int32')
+        >>> ser
+        0    1
+        1    2
+        dtype: int32
+        >>> ser.astype('int64')
+        0    1
+        1    2
+        dtype: int64
+
+        Convert to categorical type:
+
+        >>> ser.astype('category')
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [1, 2]
+
+        Convert to ordered categorical type with custom ordering:
+
+        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [2 < 1]
+
+        Note that using ``copy=False`` and changing data on a new
+        pandas object may propagate changes:
+
+        >>> s1 = pd.Series([1,2])
+        >>> s2 = s1.astype('int', copy=False)
+        >>> s2[0] = 10
+        >>> s1  # note that s1[0] has changed too
+        0    10
+        1     2
+        dtype: int64
+
+        See also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to a numeric type.
+        numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
-        if isinstance(dtype, collections.Mapping):
+        if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
-                if len(dtype) > 1 or list(dtype.keys())[0] != self.name:
+                if len(dtype) > 1 or self.name not in dtype:
                     raise KeyError('Only the Series name can be used for '
                                    'the key in Series dtype mappings.')
-                new_type = list(dtype.values())[0]
+                new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors, **kwargs)
             elif self.ndim > 2:
                 raise NotImplementedError(
@@ -3602,7 +3783,6 @@ it is assumed to be aliases for the column names.')
                         convert_timedeltas=True, copy=True):
         """
         Deprecated.
-
         Attempt to infer better dtype for object columns
 
         Parameters
@@ -3633,15 +3813,65 @@ it is assumed to be aliases for the column names.')
         converted : same as input object
         """
         from warnings import warn
-        warn("convert_objects is deprecated.  Use the data-type specific "
-             "converters pd.to_datetime, pd.to_timedelta and pd.to_numeric.",
-             FutureWarning, stacklevel=2)
+        msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
+               "object columns, use {klass}.infer_objects()\nFor all "
+               "other conversions use the data-type specific converters "
+               "pd.to_datetime, pd.to_timedelta and pd.to_numeric."
+               ).format(klass=self.__class__.__name__)
+        warn(msg, FutureWarning, stacklevel=2)
 
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
                                convert_numeric=convert_numeric,
                                convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
+
+    def infer_objects(self):
+        """
+        Attempt to infer better dtypes for object columns.
+
+        Attempts soft conversion of object-dtyped
+        columns, leaving non-object and unconvertible
+        columns unchanged. The inference rules are the
+        same as during normal Series/DataFrame construction.
+
+        .. versionadded:: 0.21.0
+
+        See Also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to numeric typeR
+
+        Returns
+        -------
+        converted : same type as input object
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["a", 1, 2, 3]})
+        >>> df = df.iloc[1:]
+        >>> df
+           A
+        1  1
+        2  2
+        3  3
+
+        >>> df.dtypes
+        A    object
+        dtype: object
+
+        >>> df.infer_objects().dtypes
+        A    int64
+        dtype: object
+        """
+        # numeric=False necessary to only soft convert;
+        # python objects will still be converted to
+        # native numpy numeric types
+        return self._constructor(
+            self._data.convert(datetime=True, numeric=False,
+                               timedelta=True, coerce=False,
+                               copy=True)).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -3830,7 +4060,7 @@ it is assumed to be aliases for the column names.')
                                              inplace=inplace,
                                              downcast=downcast)
             elif isinstance(value, DataFrame) and self.ndim == 2:
-                new_data = self.where(self.notnull(), value)
+                new_data = self.where(self.notna(), value)
             else:
                 raise ValueError("invalid fill value with a %s" % type(value))
 
@@ -4228,7 +4458,7 @@ it is assumed to be aliases for the column names.')
         else:
             index = _maybe_transposed_self._get_axis(alt_ax)
 
-        if pd.isnull(index).any():
+        if isna(index).any():
             raise NotImplementedError("Interpolation with NaNs in the index "
                                       "has not been implemented. Try filling "
                                       "those NaNs before interpolating.")
@@ -4333,14 +4563,14 @@ it is assumed to be aliases for the column names.')
                     loc -= 1
 
                 values = self._values
-                while loc > 0 and isnull(values[loc]):
+                while loc > 0 and isna(values[loc]):
                     loc -= 1
                 return values[loc]
 
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        nulls = self.isna() if is_series else self[subset].isna().any(1)
         if nulls.all():
             if is_series:
                 return self._constructor(np.nan, index=where, name=self.name)
@@ -4363,38 +4593,50 @@ it is assumed to be aliases for the column names.')
     # ----------------------------------------------------------------------
     # Action Methods
 
-    _shared_docs['isnull'] = """
-        Return a boolean same-sized object indicating if the values are null.
+    _shared_docs['isna'] = """
+        Return a boolean same-sized object indicating if the values are NA.
 
         See Also
         --------
-        notnull : boolean inverse of isnull
+        %(klass)s.notna : boolean inverse of isna
+        %(klass)s.isnull : alias of isna
+        isna : top-level isna
         """
 
-    @Appender(_shared_docs['isnull'])
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return isna(self).__finalize__(self)
+
+    @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
     def isnull(self):
-        return isnull(self).__finalize__(self)
+        return isna(self).__finalize__(self)
 
-    _shared_docs['isnotnull'] = """
+    _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
-        not null.
+        not NA.
 
         See Also
         --------
-        isnull : boolean inverse of notnull
+        %(klass)s.isna : boolean inverse of notna
+        %(klass)s.notnull : alias of notna
+        notna : top-level notna
         """
 
-    @Appender(_shared_docs['isnotnull'])
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
+    def notna(self):
+        return notna(self).__finalize__(self)
+
+    @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notnull(self):
-        return notnull(self).__finalize__(self)
+        return notna(self).__finalize__(self)
 
     def _clip_with_scalar(self, lower, upper, inplace=False):
-        if ((lower is not None and np.any(isnull(lower))) or
-                (upper is not None and np.any(isnull(upper)))):
+        if ((lower is not None and np.any(isna(lower))) or
+                (upper is not None and np.any(isna(upper)))):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         result = self.values
-        mask = isnull(result)
+        mask = isna(result)
 
         with np.errstate(all='ignore'):
             if upper is not None:
@@ -4411,6 +4653,34 @@ it is assumed to be aliases for the column names.')
             self._update_inplace(result)
         else:
             return result
+
+    def _clip_with_one_bound(self, threshold, method, axis, inplace):
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
+        if np.any(isna(threshold)):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        # method is self.le for upper bound and self.ge for lower bound
+        if is_scalar(threshold) and is_number(threshold):
+            if method.__name__ == 'le':
+                return self._clip_with_scalar(None, threshold, inplace=inplace)
+            return self._clip_with_scalar(threshold, None, inplace=inplace)
+
+        subset = method(threshold, axis=axis) | isna(self)
+
+        # GH #15390
+        # In order for where method to work, the threshold must
+        # be transformed to NDFrame from other array like structure.
+        if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
+            if isinstance(self, ABCSeries):
+                threshold = pd.Series(threshold, index=self.index)
+            else:
+                threshold = _align_method_FRAME(self, np.asarray(threshold),
+                                                axis)
+        return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False,
              *args, **kwargs):
@@ -4514,16 +4784,8 @@ it is assumed to be aliases for the column names.')
         -------
         clipped : same type as input
         """
-        if np.any(isnull(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(None, threshold, inplace=inplace)
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
-
-        subset = self.le(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis, inplace=inplace)
+        return self._clip_with_one_bound(threshold, method=self.le,
+                                         axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
@@ -4546,16 +4808,8 @@ it is assumed to be aliases for the column names.')
         -------
         clipped : same type as input
         """
-        if np.any(isnull(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(threshold, None, inplace=inplace)
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
-
-        subset = self.ge(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis, inplace=inplace)
+        return self._clip_with_one_bound(threshold, method=self.ge,
+                                         axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, **kwargs):
@@ -4776,6 +5030,8 @@ it is assumed to be aliases for the column names.')
         label : {'right', 'left'}
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
+            For PeriodIndex only, controls whether to use the start or end of
+            `rule`
         loffset : timedelta
             Adjust the resampled time labels
         base : int, default 0
@@ -4895,6 +5151,47 @@ it is assumed to be aliases for the column names.')
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
+
+        For a Series with a PeriodIndex, the keyword `convention` can be
+        used to control whether to use the start or end of `rule`.
+
+        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
+                                                        freq='A',
+                                                        periods=2))
+        >>> s
+        2012    1
+        2013    2
+        Freq: A-DEC, dtype: int64
+
+        Resample by month using 'start' `convention`. Values are assigned to
+        the first month of the period.
+
+        >>> s.resample('M', convention='start').asfreq().head()
+        2012-01    1.0
+        2012-02    NaN
+        2012-03    NaN
+        2012-04    NaN
+        2012-05    NaN
+        Freq: M, dtype: float64
+
+        Resample by month using 'end' `convention`. Values are assigned to
+        the last month of the period.
+
+        >>> s.resample('M', convention='end').asfreq()
+        2012-12    1.0
+        2013-01    NaN
+        2013-02    NaN
+        2013-03    NaN
+        2013-04    NaN
+        2013-05    NaN
+        2013-06    NaN
+        2013-07    NaN
+        2013-08    NaN
+        2013-09    NaN
+        2013-10    NaN
+        2013-11    NaN
+        2013-12    2.0
+        Freq: M, dtype: float64
 
         For DataFrame objects, the keyword ``on`` can be used to specify the
         column instead of the index for resampling.
@@ -5247,7 +5544,7 @@ it is assumed to be aliases for the column names.')
                 right = other.reindex(join_index, level=level)
 
         # fill
-        fill_na = notnull(fill_value) or (method is not None)
+        fill_na = notna(fill_value) or (method is not None)
         if fill_na:
             left = left.fillna(fill_value, method=method, limit=limit,
                                axis=fill_axis)
@@ -5321,48 +5618,6 @@ it is assumed to be aliases for the column names.')
             else:
                 raise NotImplementedError("cannot align with a higher "
                                           "dimensional NDFrame")
-
-        elif is_list_like(other):
-
-            if self.ndim == 1:
-
-                # try to set the same dtype as ourselves
-                try:
-                    new_other = np.array(other, dtype=self.dtype)
-                except ValueError:
-                    new_other = np.array(other)
-                except TypeError:
-                    new_other = other
-
-                # we can end up comparing integers and m8[ns]
-                # which is a numpy no no
-                is_i8 = needs_i8_conversion(self.dtype)
-                if is_i8:
-                    matches = False
-                else:
-                    matches = (new_other == np.array(other))
-
-                if matches is False or not matches.all():
-
-                    # coerce other to a common dtype if we can
-                    if needs_i8_conversion(self.dtype):
-                        try:
-                            other = np.array(other, dtype=self.dtype)
-                        except:
-                            other = np.array(other)
-                    else:
-                        other = np.asarray(other)
-                        other = np.asarray(other,
-                                           dtype=np.common_type(other,
-                                                                new_other))
-
-                    # we need to use the new dtype
-                    try_quick = False
-                else:
-                    other = new_other
-            else:
-
-                other = np.array(other)
 
         if isinstance(other, np.ndarray):
 
@@ -5620,7 +5875,7 @@ it is assumed to be aliases for the column names.')
 
         new_obj = self._slice(vslicer, axis=axis)
         shifted_axis = self._get_axis(axis)[islicer]
-        new_obj.set_axis(axis, shifted_axis)
+        new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
 
         return new_obj.__finalize__(self)
 
@@ -5780,7 +6035,7 @@ it is assumed to be aliases for the column names.')
             ax = _tz_convert(ax, tz)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(axis, ax)
+        result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
@@ -5809,8 +6064,9 @@ it is assumed to be aliases for the column names.')
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False (DEPRECATED)
-            Attempt to infer fall dst-transition hours based on order
+        infer_dst : boolean, default False
+            .. deprecated:: 0.15.0
+               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -5847,7 +6103,7 @@ it is assumed to be aliases for the column names.')
             ax = _tz_localize(ax, tz, ambiguous)
 
         result = self._constructor(self._data, copy=copy)
-        result.set_axis(axis, ax)
+        result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
     # ----------------------------------------------------------------------
@@ -6221,7 +6477,7 @@ it is assumed to be aliases for the column names.')
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = isnull(_values_from_object(self))
+            mask = isna(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -6583,10 +6839,10 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
-            mask = isnull(self)
+            mask = isna(self)
             np.putmask(result, mask, tslib.iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-            mask = isnull(self)
+            mask = isna(self)
             np.putmask(y, mask, mask_a)
             result = accum_func(y, axis)
             np.putmask(result, mask, mask_b)

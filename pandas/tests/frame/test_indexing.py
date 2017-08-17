@@ -15,7 +15,7 @@ import pytest
 import numpy as np
 
 import pandas.core.common as com
-from pandas import (DataFrame, Index, Series, notnull, isnull,
+from pandas import (DataFrame, Index, Series, notna, isna,
                     MultiIndex, DatetimeIndex, Timestamp,
                     date_range)
 import pandas as pd
@@ -312,7 +312,7 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(data=np.random.randn(100, 50))
         df = df.where(df > 0)  # create nans
         bools = df > 0
-        mask = isnull(df)
+        mask = isna(df)
         expected = bools.astype(float).mask(mask)
         result = bools.mask(mask)
         assert_frame_equal(result, expected)
@@ -395,7 +395,7 @@ class TestDataFrameIndexing(TestData):
 
         df = DataFrame(np.random.randn(8, 4))
         with catch_warnings(record=True):
-            assert isnull(df.ix[:, [-1]].values).all()
+            assert isna(df.ix[:, [-1]].values).all()
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
@@ -487,7 +487,7 @@ class TestDataFrameIndexing(TestData):
         self.frame['E'] = s
 
         self.frame['E'][5:10] = nan
-        assert notnull(s[5:10]).all()
+        assert notna(s[5:10]).all()
 
     def test_setitem_boolean(self):
         df = self.frame.copy()
@@ -705,7 +705,7 @@ class TestDataFrameIndexing(TestData):
                            'c': ['111', '222', '333']})
 
         result = df.copy()
-        result.loc[result.b.isnull(), 'a'] = result.a
+        result.loc[result.b.isna(), 'a'] = result.a
         assert_frame_equal(result, df)
 
     def test_setitem_empty_frame_with_boolean(self):
@@ -795,7 +795,7 @@ class TestDataFrameIndexing(TestData):
         # this is OK
         result = df.iloc[:8:2]  # noqa
         df.iloc[:8:2] = np.nan
-        assert isnull(df.iloc[:8:2]).values.all()
+        assert isna(df.iloc[:8:2]).values.all()
 
     def test_getitem_setitem_integer_slice_keyerrors(self):
         df = DataFrame(np.random.randn(10, 5), index=lrange(0, 20, 2))
@@ -1020,7 +1020,7 @@ class TestDataFrameIndexing(TestData):
             assert (result.values == 5).all()
 
             self.mixed_frame.ix[5] = np.nan
-            assert isnull(self.mixed_frame.ix[5]).all()
+            assert isna(self.mixed_frame.ix[5]).all()
 
             self.mixed_frame.ix[5] = self.mixed_frame.ix[6]
             assert_series_equal(self.mixed_frame.ix[5], self.mixed_frame.ix[6],
@@ -1492,15 +1492,15 @@ class TestDataFrameIndexing(TestData):
 
         # set an allowable datetime64 type
         df.loc['b', 'timestamp'] = iNaT
-        assert isnull(df.loc['b', 'timestamp'])
+        assert isna(df.loc['b', 'timestamp'])
 
         # allow this syntax
         df.loc['c', 'timestamp'] = nan
-        assert isnull(df.loc['c', 'timestamp'])
+        assert isna(df.loc['c', 'timestamp'])
 
         # allow this syntax
         df.loc['d', :] = nan
-        assert not isnull(df.loc['c', :]).all()
+        assert not isna(df.loc['c', :]).all()
 
         # as of GH 3216 this will now work!
         # try to set with a list like item
@@ -1695,7 +1695,7 @@ class TestDataFrameIndexing(TestData):
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 5)
         assert is_float_dtype(res3['baz'])
-        assert isnull(res3['baz'].drop(['foobar'])).all()
+        assert isna(res3['baz'].drop(['foobar'])).all()
         pytest.raises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
@@ -1935,7 +1935,7 @@ class TestDataFrameIndexing(TestData):
         result = df.reindex(lrange(15))
         assert np.issubdtype(result['B'].dtype, np.dtype('M8[ns]'))
 
-        mask = com.isnull(result)['B']
+        mask = com.isna(result)['B']
         assert mask[-5:].all()
         assert not mask[:-5].any()
 
@@ -2522,14 +2522,15 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         cond = DataFrame([[True, False, True], [False, False, True]])
 
-        out = df.where(cond)
+        result = df.where(cond)
         expected = DataFrame([[1.0, np.nan, 3], [np.nan, np.nan, 6]])
-        tm.assert_frame_equal(out, expected)
+        tm.assert_frame_equal(result, expected)
 
-        cond.columns = ["a", "b", "c"]  # Columns no longer match.
-        msg = "Boolean array expected for the condition"
-        with tm.assert_raises_regex(ValueError, msg):
-            df.where(cond)
+        # this *does* align, though has no matching columns
+        cond.columns = ["a", "b", "c"]
+        result = df.where(cond)
+        expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_where_ndframe_align(self):
         msg = "Array conditional must be same shape as self"
@@ -2589,7 +2590,7 @@ class TestDataFrameIndexing(TestData):
         # GH7506
         a = DataFrame({0: [1, 2], 1: [3, 4], 2: [5, 6]})
         b = DataFrame({0: [np.nan, 8], 1: [9, np.nan], 2: [np.nan, np.nan]})
-        do_not_replace = b.isnull() | (a > b)
+        do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
         expected[~do_not_replace] = b
@@ -2599,7 +2600,7 @@ class TestDataFrameIndexing(TestData):
 
         a = DataFrame({0: [4, 6], 1: [1, 0]})
         b = DataFrame({0: [np.nan, 3], 1: [3, np.nan]})
-        do_not_replace = b.isnull() | (a > b)
+        do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
         expected[~do_not_replace] = b
@@ -2632,10 +2633,10 @@ class TestDataFrameIndexing(TestData):
         # GH 7656
         df = DataFrame([{'A': 1, 'B': np.nan, 'C': 'Test'}, {
                        'A': np.nan, 'B': 'Test', 'C': np.nan}])
-        expected = df.where(~isnull(df), None)
+        expected = df.where(~isna(df), None)
         with tm.assert_raises_regex(TypeError, 'boolean setting '
                                     'on mixed-type'):
-            df.where(~isnull(df), None, inplace=True)
+            df.where(~isna(df), None, inplace=True)
 
     def test_where_align(self):
 
@@ -2649,10 +2650,10 @@ class TestDataFrameIndexing(TestData):
         # series
         df = create()
         expected = df.fillna(df.mean())
-        result = df.where(pd.notnull(df), df.mean(), axis='columns')
+        result = df.where(pd.notna(df), df.mean(), axis='columns')
         assert_frame_equal(result, expected)
 
-        df.where(pd.notnull(df), df.mean(), inplace=True, axis='columns')
+        df.where(pd.notna(df), df.mean(), inplace=True, axis='columns')
         assert_frame_equal(df, expected)
 
         df = create().fillna(0)
@@ -2665,7 +2666,7 @@ class TestDataFrameIndexing(TestData):
         # frame
         df = create()
         expected = df.fillna(1)
-        result = df.where(pd.notnull(df), DataFrame(
+        result = df.where(pd.notna(df), DataFrame(
             1, index=df.index, columns=df.columns))
         assert_frame_equal(result, expected)
 
@@ -2712,7 +2713,7 @@ class TestDataFrameIndexing(TestData):
         result.where(mask, s, axis='index', inplace=True)
         assert_frame_equal(result, expected)
 
-        expected = DataFrame([[0, np.nan], [0, np.nan]], dtype='float64')
+        expected = DataFrame([[0, np.nan], [0, np.nan]])
         result = df.where(mask, s, axis='columns')
         assert_frame_equal(result, expected)
 
@@ -2723,17 +2724,18 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(result, expected)
 
         # Multiple dtypes (=> multiple Blocks)
-        df = pd.concat([DataFrame(np.random.randn(10, 2)),
-                        DataFrame(np.random.randint(0, 10, size=(10, 2)))],
-                       ignore_index=True, axis=1)
+        df = pd.concat([
+            DataFrame(np.random.randn(10, 2)),
+            DataFrame(np.random.randint(0, 10, size=(10, 2)), dtype='int64')],
+            ignore_index=True, axis=1)
         mask = DataFrame(False, columns=df.columns, index=df.index)
         s1 = Series(1, index=df.columns)
         s2 = Series(2, index=df.index)
 
         result = df.where(mask, s1, axis='columns')
         expected = DataFrame(1.0, columns=df.columns, index=df.index)
-        expected[2] = expected[2].astype(int)
-        expected[3] = expected[3].astype(int)
+        expected[2] = expected[2].astype('int64')
+        expected[3] = expected[3].astype('int64')
         assert_frame_equal(result, expected)
 
         result = df.copy()
@@ -2742,8 +2744,8 @@ class TestDataFrameIndexing(TestData):
 
         result = df.where(mask, s2, axis='index')
         expected = DataFrame(2.0, columns=df.columns, index=df.index)
-        expected[2] = expected[2].astype(int)
-        expected[3] = expected[3].astype(int)
+        expected[2] = expected[2].astype('int64')
+        expected[3] = expected[3].astype('int64')
         assert_frame_equal(result, expected)
 
         result = df.copy()
@@ -2946,7 +2948,7 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         df2.iloc[1, 1] = pd.NaT
         df2.iloc[1, 2] = pd.NaT
         result = df2['B']
-        assert_series_equal(notnull(result), Series(
+        assert_series_equal(notna(result), Series(
             [True, False, True], name='B'))
         assert_series_equal(df2.dtypes, df.dtypes)
 
@@ -2998,7 +3000,7 @@ class TestDataFrameIndexingUInt64(TestData):
         df2.iloc[1, 1] = pd.NaT
         df2.iloc[1, 2] = pd.NaT
         result = df2['B']
-        assert_series_equal(notnull(result), Series(
+        assert_series_equal(notna(result), Series(
             [True, False, True], name='B'))
         assert_series_equal(df2.dtypes, Series([np.dtype('uint64'),
                                                 np.dtype('O'), np.dtype('O')],

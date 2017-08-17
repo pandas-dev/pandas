@@ -109,10 +109,10 @@ class TestIntervalIndex(object):
 
         # slice of interval
         with pytest.raises(NotImplementedError):
-            result = s.loc[Interval(3, 6):]
+            s.loc[Interval(3, 6):]
 
         with pytest.raises(NotImplementedError):
-            result = s[Interval(3, 6):]
+            s[Interval(3, 6):]
 
         expected = s.iloc[3:5]
         result = s[[Interval(3, 6)]]
