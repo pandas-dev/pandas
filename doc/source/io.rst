@@ -1994,18 +1994,13 @@ into a flat table.
 .. ipython:: python
 
    from pandas.io.json import json_normalize
-   data = [
-             {'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
-             {'name': {'given': 'Mose', 'family': 'Regner'}},
-             {'id': 2, 'name': 'Faye Raker'}
-          ]
+   data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
+           {'name': {'given': 'Mose', 'family': 'Regner'}},
+           {'id': 2, 'name': 'Faye Raker'}]
    json_normalize(data)
-
-.. _io.jsonl:
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
    data = [{'state': 'Florida',
              'shortname': 'FL',
              'info': {
