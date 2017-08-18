@@ -281,13 +281,14 @@ class Styler(object):
         for r, idx in enumerate(self.data.index):
             row_es = []
             for c, value in enumerate(rlabels[r]):
+                rid = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
                 es = {
                     "type": "th",
                     "is_visible": _is_visible(r, c, idx_lengths),
                     "value": value,
                     "display_value": value,
-                    "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
-                                       "row%s" % r]),
+                    "id": "_".join(rid[1:]),
+                    "class": " ".join(rid)
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
@@ -770,7 +771,7 @@ class Styler(object):
 
     @staticmethod
     def _highlight_null(v, null_color):
-        return 'background-color: %s' % null_color if pd.isnull(v) else ''
+        return 'background-color: %s' % null_color if pd.isna(v) else ''
 
     def highlight_null(self, null_color='red'):
         """
@@ -1053,9 +1054,9 @@ class Styler(object):
         subset: IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
-        axis: int, str, or None; default None
-            0 or 'index' for columnwise, 1 or 'columns' for rowwise
-            or ``None`` for tablewise (the default)
+        axis: int, str, or None; default 0
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
+            or ``None`` for tablewise
 
         Returns
         -------
@@ -1075,9 +1076,9 @@ class Styler(object):
         subset: IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color: str, default 'yellow'
-        axis: int, str, or None; default None
-            0 or 'index' for columnwise, 1 or 'columns' for rowwise
-            or ``None`` for tablewise (the default)
+        axis: int, str, or None; default 0
+            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
+            or ``None`` for tablewise
 
         Returns
         -------

@@ -10,8 +10,8 @@ import numpy as np
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range, isnull,
-                    notnull, concat, Timestamp, Index)
+from pandas import (Series, DataFrame, bdate_range, isna,
+                    notna, concat, Timestamp, Index)
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
@@ -249,7 +249,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.rolling(1).count()
-        expected = df.notnull().astype(float)
+        expected = df.notna().astype(float)
         tm.assert_frame_equal(result, expected)
 
     def test_window_with_args(self):
@@ -423,6 +423,26 @@ class TestRolling(Base):
             expected = df.rolling('3D').sum()
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        'window', [timedelta(days=3), pd.Timedelta(days=3), '3D'])
+    def test_constructor_with_timedelta_window_and_minperiods(self, window):
+        # GH 15305
+        n = 10
+        df = pd.DataFrame({'value': np.arange(n)},
+                          index=pd.date_range('2017-08-08',
+                                              periods=n,
+                                              freq="D"))
+        expected = pd.DataFrame({'value': np.append([np.NaN, 1.],
+                                                    np.arange(3., 27., 3))},
+                                index=pd.date_range('2017-08-08',
+                                                    periods=n,
+                                                    freq="D"))
+        result_roll_sum = df.rolling(window=window, min_periods=2).sum()
+        result_roll_generic = df.rolling(window=window,
+                                         min_periods=2).apply(sum)
+        tm.assert_frame_equal(result_roll_sum, expected)
+        tm.assert_frame_equal(result_roll_generic, expected)
+
     def test_numpy_compat(self):
         # see gh-12811
         r = rwindow.Rolling(Series([2, 4, 6]), window=2)
@@ -454,6 +474,17 @@ class TestRolling(Base):
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_multi_index_names(self):
+
+        # GH 16789, 16825
+        cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']],
+                                          names=['1', '2'])
+        df = pd.DataFrame(np.ones((10, 6)), columns=cols)
+        result = df.rolling(3).cov()
+
+        tm.assert_index_equal(result.columns, df.columns)
+        assert result.index.names == [None, '1', '2']
 
 
 class TestExpanding(Base):
@@ -499,11 +530,13 @@ class TestExpanding(Base):
 
     @pytest.mark.parametrize(
         'expander',
-        [1, pytest.mark.xfail(
-            reason='GH 16425 expanding with offset not supported')('1s')])
-    def tests_empty_df_expanding(self, expander):
+        [1, pytest.param('ls', marks=pytest.mark.xfail(
+                         reason='GH 16425 expanding with '
+                                'offset not supported'))])
+    def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
+
         expected = DataFrame()
         result = DataFrame().expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
@@ -1110,8 +1143,19 @@ class TestMoments(Base):
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
 
-            idx = per / 1. * (values.shape[0] - 1)
-            return values[int(idx)]
+            idx = int(per / 1. * (values.shape[0] - 1))
+
+            if idx == values.shape[0] - 1:
+                retval = values[-1]
+
+            else:
+                qlow = float(idx) / float(values.shape[0] - 1)
+                qhig = float(idx + 1) / float(values.shape[0] - 1)
+                vlow = values[idx]
+                vhig = values[idx + 1]
+                retval = vlow + (vhig - vlow) * (per - qlow) / (qhig - qlow)
+
+            return retval
 
         for q in qs:
 
@@ -1125,6 +1169,30 @@ class TestMoments(Base):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
+
+    def test_rolling_quantile_np_percentile(self):
+        # #9413: Tests that rolling window's quantile default behavior
+        # is analogus to Numpy's percentile
+        row = 10
+        col = 5
+        idx = pd.date_range(20100101, periods=row, freq='B')
+        df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
+                          index=idx)
+
+        df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
+        np_percentile = np.percentile(df, [25, 50, 75], axis=0)
+
+        tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
+
+    def test_rolling_quantile_series(self):
+        # #16211: Tests that rolling window's quantile default behavior
+        # is analogus to pd.Series' quantile
+        arr = np.arange(100)
+        s = pd.Series(arr)
+        q1 = s.quantile(0.1)
+        q2 = s.rolling(100).quantile(0.1).iloc[-1]
+
+        tm.assert_almost_equal(q1, q2)
 
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
@@ -1176,7 +1244,7 @@ class TestMoments(Base):
         # it works!
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
-        assert isnull(result).all()
+        assert isna(result).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
@@ -1337,8 +1405,8 @@ class TestMoments(Base):
 
             arr2 = randn(20)
             result = get_result(arr2, 10, min_periods=5)
-            assert isnull(result[3])
-            assert notnull(result[4])
+            assert isna(result[3])
+            assert notna(result[4])
 
             # min_periods=0
             result0 = get_result(arr, 20, min_periods=0)
@@ -1927,10 +1995,10 @@ def _create_consistency_data():
 
     def is_constant(x):
         values = x.values.ravel()
-        return len(set(values[notnull(values)])) == 1
+        return len(set(values[notna(values)])) == 1
 
     def no_nans(x):
-        return x.notnull().all().all()
+        return x.notna().all().all()
 
     # data is a tuple(object, is_contant, no_nans)
     data = create_series() + create_dataframes()
@@ -2000,7 +2068,7 @@ class TestMomentsConsistency(Base):
                                   var_debiasing_factors=None):
         def _non_null_values(x):
             values = x.values.ravel()
-            return set(values[notnull(values)].tolist())
+            return set(values[notna(values)].tolist())
 
         for (x, is_constant, no_nans) in self.data:
             count_x = count(x)
@@ -2072,7 +2140,7 @@ class TestMomentsConsistency(Base):
 
                 if isinstance(x, Series):
                     for (y, is_constant, no_nans) in self.data:
-                        if not x.isnull().equals(y.isnull()):
+                        if not x.isna().equals(y.isna()):
                             # can only easily test two Series with similar
                             # structure
                             continue
@@ -2108,7 +2176,7 @@ class TestMomentsConsistency(Base):
                                 assert_equal(cov_x_y, mean_x_times_y -
                                              (mean_x * mean_y))
 
-    @tm.slow
+    @pytest.mark.slow
     def test_ewm_consistency(self):
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):
@@ -2125,8 +2193,8 @@ class TestMomentsConsistency(Base):
             w = Series(np.nan, index=s.index)
             alpha = 1. / (1. + com)
             if ignore_na:
-                w[s.notnull()] = _weights(s[s.notnull()], com=com,
-                                          adjust=adjust, ignore_na=False)
+                w[s.notna()] = _weights(s[s.notna()], com=com,
+                                        adjust=adjust, ignore_na=False)
             elif adjust:
                 for i in range(len(s)):
                     if s.iat[i] == s.iat[i]:
@@ -2207,7 +2275,7 @@ class TestMomentsConsistency(Base):
                     _variance_debiasing_factors(x, com=com, adjust=adjust,
                                                 ignore_na=ignore_na)))
 
-    @tm.slow
+    @pytest.mark.slow
     def test_expanding_consistency(self):
 
         # suppress warnings about empty slices, as we are deliberately testing
@@ -2281,7 +2349,7 @@ class TestMomentsConsistency(Base):
                             assert_equal(expanding_f_result,
                                          expanding_apply_f_result)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_rolling_consistency(self):
 
         # suppress warnings about empty slices, as we are deliberately testing
@@ -2928,8 +2996,8 @@ class TestMomentsConsistency(Base):
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
-            assert isnull(result[3])
-            assert notnull(result[4])
+            assert isna(result[3])
+            assert notna(result[4])
 
             # min_periods=0
             result0 = func(arr, min_periods=0)
@@ -3546,7 +3614,7 @@ class TestRollingTS(object):
 
         result = df.rolling(window='2s', min_periods=1).quantile(0.5)
         expected = df.copy()
-        expected['B'] = [0.0, 1, 1.0, 3.0, 3.0]
+        expected['B'] = [0.0, 1, 1.5, 3.0, 3.5]
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_std(self):
@@ -3833,3 +3901,26 @@ class TestRollingTS(object):
         df2 = df.sort_values('B')
         result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_cov_offset(self):
+        # GH16058
+
+        idx = pd.date_range('2017-01-01', periods=24, freq='1h')
+        ss = pd.Series(np.arange(len(idx)), index=idx)
+
+        result = ss.rolling('2h').cov()
+        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(2, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
+
+        result = ss.rolling('3h').cov()
+        expected = pd.Series([np.nan, 0.5] +
+                             [1.0 for _ in range(len(idx) - 2)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(3, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)

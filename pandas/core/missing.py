@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 
 def mask_missing(arr, values_to_mask):
@@ -36,7 +36,7 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
-    na_mask = isnull(values_to_mask)
+    na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
     mask = None
@@ -63,9 +63,9 @@ def mask_missing(arr, values_to_mask):
 
     if na_mask.any():
         if mask is None:
-            mask = isnull(arr)
+            mask = isna(arr)
         else:
-            mask |= isnull(arr)
+            mask |= isna(arr)
 
     return mask
 
@@ -122,7 +122,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     """
     # Treat the original, non-scipy methods first.
 
-    invalid = isnull(yvalues)
+    invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -142,12 +142,6 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                              'on Series or DataFrames with a '
                              'DatetimeIndex')
         method = 'values'
-
-    def _interp_limit(invalid, fw_limit, bw_limit):
-        "Get idx of values that won't be filled b/c they exceed the limits."
-        for x in np.where(invalid)[0]:
-            if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-                yield x
 
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
@@ -180,21 +174,29 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     # default limit is unlimited GH #16282
     if limit is None:
-        limit = len(xvalues)
+        # limit = len(xvalues)
+        pass
     elif not is_integer(limit):
         raise ValueError('Limit must be an integer')
     elif limit < 1:
         raise ValueError('Limit must be greater than 0')
 
     # each possible limit_direction
-    if limit_direction == 'forward':
+    # TODO: do we need sorted?
+    if limit_direction == 'forward' and limit is not None:
         violate_limit = sorted(start_nans |
                                set(_interp_limit(invalid, limit, 0)))
-    elif limit_direction == 'backward':
+    elif limit_direction == 'forward':
+        violate_limit = sorted(start_nans)
+    elif limit_direction == 'backward' and limit is not None:
         violate_limit = sorted(end_nans |
                                set(_interp_limit(invalid, 0, limit)))
-    elif limit_direction == 'both':
+    elif limit_direction == 'backward':
+        violate_limit = sorted(end_nans)
+    elif limit_direction == 'both' and limit is not None:
         violate_limit = sorted(_interp_limit(invalid, limit, limit))
+    else:
+        violate_limit = []
 
     xvalues = getattr(xvalues, 'values', xvalues)
     yvalues = getattr(yvalues, 'values', yvalues)
@@ -477,7 +479,7 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
     return values
@@ -501,7 +503,7 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
@@ -526,7 +528,7 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -555,7 +557,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -630,3 +632,58 @@ def fill_zeros(result, x, y, name, fill):
             result = result.reshape(shape)
 
     return result
+
+
+def _interp_limit(invalid, fw_limit, bw_limit):
+    """Get idx of values that won't be filled b/c they exceed the limits.
+
+    This is equivalent to the more readable, but slower
+
+    .. code-block:: python
+
+       for x in np.where(invalid)[0]:
+           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+               yield x
+    """
+    # handle forward first; the backward direction is the same except
+    # 1. operate on the reversed array
+    # 2. subtract the returned indicies from N - 1
+    N = len(invalid)
+
+    def inner(invalid, limit):
+        limit = min(limit, N)
+        windowed = _rolling_window(invalid, limit + 1).all(1)
+        idx = (set(np.where(windowed)[0] + limit) |
+               set(np.where((~invalid[:limit + 1]).cumsum() == 0)[0]))
+        return idx
+
+    if fw_limit == 0:
+        f_idx = set(np.where(invalid)[0])
+    else:
+        f_idx = inner(invalid, fw_limit)
+
+    if bw_limit == 0:
+        # then we don't even need to care about backwards, just use forwards
+        return f_idx
+    else:
+        b_idx = set(N - 1 - np.asarray(list(inner(invalid[::-1], bw_limit))))
+        if fw_limit == 0:
+            return b_idx
+    return f_idx & b_idx
+
+
+def _rolling_window(a, window):
+    """
+    [True, True, False, True, False], 2 ->
+
+    [
+        [True,  True],
+        [True, False],
+        [False, True],
+        [True, False],
+    ]
+    """
+    # https://stackoverflow.com/a/6811241
+    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)

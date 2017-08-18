@@ -184,6 +184,7 @@ class DateOffset(object):
     )
     _use_relativedelta = False
     _adjust_dst = False
+    _typ = "dateoffset"
 
     # default for prior pickles
     normalize = False
@@ -1596,7 +1597,6 @@ class Week(DateOffset):
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
-            other = other
             for i in range(k):
                 other = other + self._inc
         else:

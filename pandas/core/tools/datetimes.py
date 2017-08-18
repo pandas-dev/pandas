@@ -17,8 +17,8 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
-    ABCDataFrame)
-from pandas.core.dtypes.missing import notnull
+    ABCDataFrame, ABCDateOffset)
+from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
 
 import pandas.compat as compat
@@ -176,7 +176,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
 
 def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
@@ -335,6 +335,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1    1960-01-03
     2    1960-01-04
 
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_timedelta : Convert argument to timedelta.
     """
     from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -665,7 +669,7 @@ def _attempt_YYYYMMDD(arg, errors):
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
-        return calc_with_mask(carg, notnull(carg))
+        return calc_with_mask(carg, notna(carg))
     except:
         pass
 
@@ -720,8 +724,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, compat.string_types):
         return arg
 
-    from pandas.tseries.offsets import DateOffset
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
 
     if dayfirst is None:
@@ -744,7 +747,7 @@ _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
 
 def _guess_time_format_for_array(arr):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         element = arr[non_nan_elements[0]]
         for time_format in _time_formats:

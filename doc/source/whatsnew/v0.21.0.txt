@@ -127,6 +127,7 @@ Other Enhancements
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
+- :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 
 .. _whatsnew_0210.api_breaking:
 
@@ -297,8 +298,13 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
-- Improved performance of  :func:`median()` when bottleneck is not installed but :func:`np.namnmedian` is present (:issue:`16468`) 
+<<<<<<< HEAD
+- Improved performance of  :func:`median()` when bottleneck is not installed but :func:`np.namnmedian` is present (:issue:`16468`)
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
+=======
+- :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
+
+>>>>>>> 34c4ffd7c454848311f71e6869b5cad4bc132449
 
 .. _whatsnew_0210.bug_fixes:
 

@@ -252,7 +252,7 @@ class TestJoin(object):
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
             assert col in merged
-            assert merged[col].isnull().all()
+            assert merged[col].isna().all()
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
@@ -266,7 +266,7 @@ class TestJoin(object):
         joined = df.join(df2, on='key', how='inner')
 
         expected = df.join(df2, on='key')
-        expected = expected[expected['value'].notnull()]
+        expected = expected[expected['value'].notna()]
         tm.assert_series_equal(joined['key'], expected['key'],
                                check_dtype=False)
         tm.assert_series_equal(joined['value'], expected['value'],
@@ -550,6 +550,18 @@ class TestJoin(object):
                              index=[1, 2, 2, 'a'])
         tm.assert_frame_equal(result, expected)
 
+    def test_join_non_unique_period_index(self):
+        # GH #16871
+        index = pd.period_range('2016-01-01', periods=16, freq='M')
+        df = DataFrame([i for i in range(len(index))],
+                       index=index, columns=['pnum'])
+        df2 = concat([df, df])
+        result = df.join(df2, how='inner', rsuffix='_df2')
+        expected = DataFrame(
+            np.tile(np.arange(16, dtype=np.int64).repeat(2).reshape(-1, 1), 2),
+            columns=['pnum', 'pnum_df2'], index=df2.sort_index().index)
+        tm.assert_frame_equal(result, expected)
+
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6),
@@ -722,7 +734,7 @@ def _check_join(left, right, result, join_col, how='left',
 
     # some smoke tests
     for c in join_col:
-        assert(result[c].notnull().all())
+        assert(result[c].notna().all())
 
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
@@ -785,7 +797,7 @@ def _assert_all_na(join_chunk, source_columns, join_col):
     for c in source_columns:
         if c in join_col:
             continue
-        assert(join_chunk[c].isnull().all())
+        assert(join_chunk[c].isna().all())
 
 
 def _join_by_hand(a, b, how='left'):

@@ -90,6 +90,15 @@ class HDF5(object):
         stop = self.df2.index[15000]
         self.store.select('table', where="index > start and index < stop")
 
+    def time_store_repr(self):
+        repr(self.store)
+
+    def time_store_str(self):
+        str(self.store)
+
+    def time_store_info(self):
+        self.store.info()
+
 
 class HDF5Panel(object):
     goal_time = 0.2

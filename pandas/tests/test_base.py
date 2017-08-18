@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta, IntervalIndex, Interval)
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -144,6 +144,7 @@ class TestPandasDelegate(object):
 
         pytest.raises(TypeError, f)
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
         # Delegate does not implement memory_usage.
         # Check that we fall back to in-built `__sizeof__`
@@ -353,10 +354,10 @@ class TestIndexOps(Ops):
                 assert getattr(obj, op)() == 2.0
 
                 obj = klass([np.nan])
-                assert pd.isnull(getattr(obj, op)())
+                assert pd.isna(getattr(obj, op)())
 
                 obj = klass([])
-                assert pd.isnull(getattr(obj, op)())
+                assert pd.isna(getattr(obj, op)())
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1)])
                 # check DatetimeIndex monotonic path
@@ -495,10 +496,10 @@ class TestIndexOps(Ops):
                 nanloc = np.zeros(len(o), dtype=np.bool)
                 nanloc[:3] = True
                 if isinstance(o, Index):
-                    tm.assert_numpy_array_equal(pd.isnull(o), nanloc)
+                    tm.assert_numpy_array_equal(pd.isna(o), nanloc)
                 else:
                     exp = pd.Series(nanloc, o.index, name='a')
-                    tm.assert_series_equal(pd.isnull(o), exp)
+                    tm.assert_series_equal(pd.isna(o), exp)
 
                 expected_s_na = Series(list(range(10, 2, -1)) + [3],
                                        index=expected_index[9:0:-1],
@@ -528,7 +529,7 @@ class TestIndexOps(Ops):
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
 
-                    assert pd.isnull(result[0])
+                    assert pd.isna(result[0])
                     assert result.dtype == orig.dtype
 
                 assert o.nunique() == 8
@@ -689,7 +690,7 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(unique, exp_idx)
             else:
                 tm.assert_numpy_array_equal(unique[:3], expected)
-                assert pd.isnull(unique[3])
+                assert pd.isna(unique[3])
 
             assert s.nunique() == 3
             assert s.nunique(dropna=False) == 4
@@ -941,6 +942,7 @@ class TestIndexOps(Ops):
                 # check shallow_copied
                 assert o is not result
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
         for o in self.objs:
             res = o.memory_usage()

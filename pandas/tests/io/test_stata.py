@@ -9,18 +9,18 @@ import warnings
 from datetime import datetime
 from distutils.version import LooseVersion
 
-import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+import pytest
 from pandas import compat
+from pandas._libs.tslib import NaT
 from pandas.compat import iterkeys
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-from pandas._libs.tslib import NaT
-from pandas.core.dtypes.common import is_categorical_dtype
 
 
 class TestStata(object):
@@ -1297,3 +1297,15 @@ class TestStata(object):
         reader = lambda x: read_stata(x).set_index('index')
         result = tm.round_trip_localpath(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize('write_index', [True, False])
+    def test_value_labels_iterator(self, write_index):
+        # GH 16923
+        d = {'A': ['B', 'E', 'C', 'A', 'E']}
+        df = pd.DataFrame(data=d)
+        df['A'] = df['A'].astype('category')
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=write_index)
+            dta_iter = pd.read_stata(path, iterator=True)
+            value_labels = dta_iter.value_labels()
+        assert value_labels == {'A': {0: 'A', 1: 'B', 2: 'C', 3: 'E'}}

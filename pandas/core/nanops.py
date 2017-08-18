@@ -493,6 +493,8 @@ def _nanminmax(meth, fill_value_typ):
 nanmin = _nanminmax('min', fill_value_typ='+inf')
 nanmax = _nanminmax('max', fill_value_typ='-inf')
 
+
+
 @disallow('O')
 def nanargmax(values, axis=None, skipna=True):
     """
@@ -502,6 +504,8 @@ def nanargmax(values, axis=None, skipna=True):
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
+
+
 
 @disallow('O')
 def nanargmin(values, axis=None, skipna=True):

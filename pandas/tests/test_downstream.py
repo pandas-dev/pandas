@@ -52,6 +52,7 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+@tm.network
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -84,6 +85,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa

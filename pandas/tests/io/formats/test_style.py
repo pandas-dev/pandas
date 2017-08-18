@@ -1,5 +1,6 @@
 import copy
 import textwrap
+import re
 
 import pytest
 import numpy as np
@@ -505,6 +506,14 @@ class TestStyler(object):
         assert result is styler
         assert result.uuid == 'aaa'
 
+    def test_unique_id(self):
+        # See https://github.com/pandas-dev/pandas/issues/16780
+        df = pd.DataFrame({'a': [1, 3, 5, 6], 'b': [2, 4, 12, 21]})
+        result = df.style.render(uuid='test')
+        assert 'test' in result
+        ids = re.findall('id="(.*?)"', result)
+        assert np.unique(ids).size == len(ids)
+
     def test_table_styles(self):
         style = [{'selector': 'th', 'props': [('foo', 'bar')]}]
         styler = Styler(self.df, table_styles=style)
@@ -719,12 +728,13 @@ class TestStyler(object):
         df = pd.DataFrame({'A': [1, 2]},
                           index=pd.MultiIndex.from_arrays([['a', 'a'],
                                                            [0, 1]]))
+
         result = df.style._translate()
         body_0 = result['body'][0][0]
         expected_0 = {
             "value": "a", "display_value": "a", "is_visible": True,
             "type": "th", "attributes": ["rowspan=2"],
-            "class": "row_heading level0 row0",
+            "class": "row_heading level0 row0", "id": "level0_row0"
         }
         tm.assert_dict_equal(body_0, expected_0)
 
@@ -732,6 +742,7 @@ class TestStyler(object):
         expected_1 = {
             "value": 0, "display_value": 0, "is_visible": True,
             "type": "th", "class": "row_heading level1 row0",
+            "id": "level1_row0"
         }
         tm.assert_dict_equal(body_1, expected_1)
 
@@ -739,6 +750,7 @@ class TestStyler(object):
         expected_10 = {
             "value": 'a', "display_value": 'a', "is_visible": False,
             "type": "th", "class": "row_heading level0 row1",
+            "id": "level0_row1"
         }
         tm.assert_dict_equal(body_10, expected_10)
 

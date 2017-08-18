@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 
 from textwrap import dedent
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_float_dtype,
@@ -237,7 +237,8 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.tr_series._values, None,
+        values_to_format = self.tr_series._formatting_values()
+        return format_array(values_to_format, None,
                             float_format=self.float_format, na_rep=self.na_rep)
 
     def to_string(self):
@@ -694,7 +695,8 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
-        return format_array(frame.iloc[:, i]._values, formatter,
+        values_to_format = frame.iloc[:, i]._formatting_values()
+        return format_array(values_to_format, formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
@@ -845,6 +847,7 @@ class LatexFormatter(TableFormatter):
                  multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
@@ -943,6 +946,11 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if self.bold_rows and self.fmt.index:
+                # bold row labels
+                crow = ['\\textbf{%s}' % x
+                        if j < ilevels and x.strip() not in ['', '{}'] else x
+                        for j, x in enumerate(crow)]
             if i < clevels and self.fmt.header and self.multicolumn:
                 # sum up columns to multicolumns
                 crow = self._format_multicolumn(crow, ilevels)
@@ -1058,7 +1066,7 @@ class HTMLFormatter(TableFormatter):
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
-            border = get_option('html.border')
+            border = get_option('display.html.border')
         self.border = border
 
     def write(self, s, indent=0):
@@ -1292,7 +1300,9 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if self.fmt.has_index_names and self.fmt.index:
+        if all((self.fmt.has_index_names,
+                self.fmt.index,
+                self.fmt.show_index_names)):
             row = ([x if x is not None else ''
                     for x in self.frame.index.names] +
                    [''] * min(len(self.columns), self.max_cols))
@@ -1554,7 +1564,7 @@ class CSVFormatter(object):
         self.data_index = obj.index
         if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
                 date_format is not None):
-            self.data_index = Index([x.strftime(date_format) if notnull(x) else
+            self.data_index = Index([x.strftime(date_format) if notna(x) else
                                      '' for x in self.data_index])
 
         self.nlevels = getattr(self.data_index, 'nlevels', 1)
@@ -1808,7 +1818,7 @@ class GenericArrayFormatter(object):
         elif isinstance(vals, ABCSparseArray):
             vals = vals.values
 
-        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = is_float_type.any()
 
         fmt_values = []
@@ -1854,10 +1864,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
             def base_formatter(v):
-                return (float_format % v) if notnull(v) else self.na_rep
+                return (float_format % v) if notna(v) else self.na_rep
         else:
             def base_formatter(v):
-                return str(v) if notnull(v) else self.na_rep
+                return str(v) if notna(v) else self.na_rep
 
         if self.decimal != '.':
             def decimal_formatter(v):
@@ -1869,7 +1879,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             return decimal_formatter
 
         def formatter(value):
-            if notnull(value):
+            if notna(value):
                 if abs(value) > threshold:
                     return decimal_formatter(value)
                 else:
@@ -1899,7 +1909,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
-            mask = isnull(values)
+            mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
             values = np.array(values, dtype='object')
