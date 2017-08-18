@@ -467,7 +467,6 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime_helper.h',
                    'pandas/_libs/src/period_helper.h',
                    'pandas/_libs/src/datetime.pxd']
 
