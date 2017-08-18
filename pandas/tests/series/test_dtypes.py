@@ -152,24 +152,35 @@ class TestSeriesDtypes(TestData):
             reload(sys)  # noqa
             sys.setdefaultencoding(former_encoding)
 
-    def test_astype_dict(self):
+    @pytest.mark.parametrize("dtype_class", [dict, Series])
+    def test_astype_dict_like(self, dtype_class):
         # see gh-7271
         s = Series(range(0, 10, 2), name='abc')
 
-        result = s.astype({'abc': str})
+        dt1 = dtype_class({'abc': str})
+        result = s.astype(dt1)
         expected = Series(['0', '2', '4', '6', '8'], name='abc')
         tm.assert_series_equal(result, expected)
 
-        result = s.astype({'abc': 'float64'})
+        dt2 = dtype_class({'abc': 'float64'})
+        result = s.astype(dt2)
         expected = Series([0.0, 2.0, 4.0, 6.0, 8.0], dtype='float64',
                           name='abc')
         tm.assert_series_equal(result, expected)
 
+        dt3 = dtype_class({'abc': str, 'def': str})
         with pytest.raises(KeyError):
-            s.astype({'abc': str, 'def': str})
+            s.astype(dt3)
 
+        dt4 = dtype_class({0: str})
         with pytest.raises(KeyError):
-            s.astype({0: str})
+            s.astype(dt4)
+
+        # GH16717
+        # if dtypes provided is empty, it should error
+        dt5 = dtype_class({})
+        with pytest.raises(KeyError):
+            s.astype(dt5)
 
     def test_astype_generic_timestamp_deprecated(self):
         # see gh-15524
@@ -248,3 +259,30 @@ class TestSeriesDtypes(TestData):
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
+
+    def test_series_to_categorical(self):
+        # see gh-16524: test conversion of Series to Categorical
+        series = Series(['a', 'b', 'c'])
+
+        result = Series(series, dtype='category')
+        expected = Series(['a', 'b', 'c'], dtype='category')
+
+        tm.assert_series_equal(result, expected)
+
+    def test_infer_objects_series(self):
+        # GH 11221
+        actual = Series(np.array([1, 2, 3], dtype='O')).infer_objects()
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(actual, expected)
+
+        actual = Series(np.array([1, 2, 3, None], dtype='O')).infer_objects()
+        expected = Series([1., 2., 3., np.nan])
+        tm.assert_series_equal(actual, expected)
+
+        # only soft conversions, uncovertable pass thru unchanged
+        actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
+                  .infer_objects())
+        expected = Series([1, 2, 3, None, 'a'])
+
+        assert actual.dtype == 'object'
+        tm.assert_series_equal(actual, expected)

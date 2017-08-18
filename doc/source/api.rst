@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.append
    HDFStore.get
    HDFStore.select
+   HDFStore.info
 
 Feather
 ~~~~~~~
@@ -107,6 +108,14 @@ Feather
    :toctree: generated/
 
    read_feather
+
+Parquet
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_parquet
 
 SAS
 ~~~
@@ -186,7 +195,9 @@ Top-level missing data
 .. autosummary::
    :toctree: generated/
 
+   isna
    isnull
+   notna
    notnull
 
 Top-level conversions
@@ -269,9 +280,10 @@ Conversion
    :toctree: generated/
 
    Series.astype
+   Series.infer_objects
    Series.copy
-   Series.isnull
-   Series.notnull
+   Series.isna
+   Series.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -408,6 +420,7 @@ Reindexing / Selection / Label manipulation
    Series.reset_index
    Series.sample
    Series.select
+   Series.set_axis
    Series.take
    Series.tail
    Series.truncate
@@ -724,6 +737,7 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+   Series.to_latex
 
 Sparse
 ~~~~~~
@@ -775,9 +789,10 @@ Conversion
 
    DataFrame.astype
    DataFrame.convert_objects
+   DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.isnull
-   DataFrame.notnull
+   DataFrame.isna
+   DataFrame.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -1094,8 +1109,8 @@ Conversion
 
    Panel.astype
    Panel.copy
-   Panel.isnull
-   Panel.notnull
+   Panel.isna
+   Panel.notna
 
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
@@ -1338,8 +1353,8 @@ Missing Values
 
    Index.fillna
    Index.dropna
-   Index.isnull
-   Index.notnull
+   Index.isna
+   Index.notna
 
 Conversion
 ~~~~~~~~~~
@@ -1704,6 +1719,7 @@ Computations / Descriptive Stats
    GroupBy.mean
    GroupBy.median
    GroupBy.min
+   GroupBy.ngroup
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
@@ -1738,6 +1754,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
+   DataFrameGroupBy.filter
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin

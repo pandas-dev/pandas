@@ -10,6 +10,10 @@ from pandas.io.feather_format import to_feather, read_feather
 from feather import FeatherError
 from pandas.util.testing import assert_frame_equal, ensure_clean
 import pandas.util.testing as tm
+from distutils.version import LooseVersion
+
+
+fv = LooseVersion(feather.__version__)
 
 
 @pytest.mark.single
@@ -23,11 +27,11 @@ class TestFeather(object):
             with ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df):
+    def check_round_trip(self, df, **kwargs):
 
         with ensure_clean() as path:
             to_feather(df, path)
-            result = read_feather(path)
+            result = read_feather(path, **kwargs)
             assert_frame_equal(result, df)
 
     def test_error(self):
@@ -57,6 +61,7 @@ class TestFeather(object):
         assert df.dttz.dtype.tz.zone == 'US/Eastern'
         self.check_round_trip(df)
 
+    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
     def test_strided_data_issues(self):
 
         # strided data issuehttps://github.com/wesm/feather/issues/97
@@ -76,18 +81,28 @@ class TestFeather(object):
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
+    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
     def test_unsupported(self):
 
-        # period
-        df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, ValueError)
-
+        # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day', periods=3)})
         self.check_error_on_write(df, FeatherError)
 
         # non-strings
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
         self.check_error_on_write(df, ValueError)
+
+    def test_unsupported_other(self):
+
+        # period
+        df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
+        self.check_error_on_write(df, ValueError)
+
+    @pytest.mark.skipif(fv < '0.4.0', reason='new in 0.4.0')
+    def test_rw_nthreads(self):
+
+        df = pd.DataFrame({'A': np.arange(100000)})
+        self.check_round_trip(df, nthreads=2)
 
     def test_write_with_index(self):
 

@@ -13,6 +13,10 @@ The full license is in the LICENSE file, distributed with this software.
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif /* O_BINARY */
+
 /*
   On-disk FILE, uncompressed
 */
@@ -23,26 +27,25 @@ void *new_file_source(char *fname, size_t buffer_size) {
         return NULL;
     }
 
-    fs->fd = open(fname, O_RDONLY);
+    fs->fd = open(fname, O_RDONLY | O_BINARY);
     if (fs->fd == -1) {
-        goto err_free;
+        free(fs);
+        return NULL;
     }
 
     // Only allocate this heap memory if we are not memory-mapping the file
     fs->buffer = (char *)malloc((buffer_size + 1) * sizeof(char));
 
     if (fs->buffer == NULL) {
-        goto err_free;
+        close(fs->fd);
+        free(fs);
+        return NULL;
     }
 
     memset(fs->buffer, '\0', buffer_size + 1);
     fs->size = buffer_size;
 
     return (void *)fs;
-
-err_free:
-    free(fs);
-    return NULL;
 }
 
 void *new_rd_source(PyObject *obj) {
@@ -184,17 +187,20 @@ void *new_mmap(char *fname) {
         fprintf(stderr, "new_file_buffer: malloc() failed.\n");
         return (NULL);
     }
-    mm->fd = open(fname, O_RDONLY);
+    mm->fd = open(fname, O_RDONLY | O_BINARY);
     if (mm->fd == -1) {
         fprintf(stderr, "new_file_buffer: open(%s) failed. errno =%d\n",
           fname, errno);
-        goto err_free;
+        free(mm);
+        return NULL;
     }
 
     if (fstat(mm->fd, &stat) == -1) {
         fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n",
           errno);
-        goto err_close;
+        close(mm->fd);
+        free(mm);
+        return NULL;
     }
     filesize = stat.st_size; /* XXX This might be 32 bits. */
 
@@ -202,19 +208,15 @@ void *new_mmap(char *fname) {
     if (mm->memmap == MAP_FAILED) {
         /* XXX Eventually remove this print statement. */
         fprintf(stderr, "new_file_buffer: mmap() failed.\n");
-        goto err_close;
+        close(mm->fd);
+        free(mm);
+        return NULL;
     }
 
     mm->size = (off_t)filesize;
     mm->position = 0;
 
     return mm;
-
-err_close:
-    close(mm->fd);
-err_free:
-    free(mm);
-    return NULL;
 }
 
 int del_mmap(void *ptr) {

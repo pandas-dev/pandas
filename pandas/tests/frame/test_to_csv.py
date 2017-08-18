@@ -17,7 +17,7 @@ import pandas as pd
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
-                                 ensure_clean, slow,
+                                 ensure_clean,
                                  makeCustomDataframe as mkdf)
 import pandas.util.testing as tm
 
@@ -205,7 +205,7 @@ class TestDataFrameToCSV(TestData):
         cols = ['b', 'a']
         _check_df(df, cols)
 
-    @slow
+    @pytest.mark.slow
     def test_to_csv_dtnat(self):
         # GH3437
         from pandas import NaT
@@ -236,7 +236,7 @@ class TestDataFrameToCSV(TestData):
             assert_frame_equal(df, recons, check_names=False,
                                check_less_precise=True)
 
-    @slow
+    @pytest.mark.slow
     def test_to_csv_moar(self):
 
         def _do_test(df, r_dtype=None, c_dtype=None,
@@ -728,7 +728,7 @@ class TestDataFrameToCSV(TestData):
                 rs = read_csv(filename, index_col=0)
                 assert_frame_equal(rs, aa)
 
-    @slow
+    @pytest.mark.slow
     def test_to_csv_wide_frame_formatting(self):
         # Issue #8621
         df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)

@@ -13,15 +13,14 @@ import pandas as pd
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
-from pandas import (Index, Series, isnull, date_range,
+from pandas import (Index, Series, isna, date_range,
                     NaT, period_range, MultiIndex, IntervalIndex)
 from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import lrange, range, zip, OrderedDict, long
-from pandas import compat
+from pandas.compat import lrange, range, zip, long
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
@@ -349,22 +348,22 @@ class TestSeriesConstructors(TestData):
     def test_constructor_dtype_datetime64(self):
 
         s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
-        assert isnull(s).all()
+        assert isna(s).all()
 
         # in theory this should be all nulls, but since
         # we are not specifying a dtype is ambiguous
         s = Series(iNaT, index=lrange(5))
-        assert not isnull(s).all()
+        assert not isna(s).all()
 
         s = Series(nan, dtype='M8[ns]', index=lrange(5))
-        assert isnull(s).all()
+        assert isna(s).all()
 
         s = Series([datetime(2001, 1, 2, 0, 0), iNaT], dtype='M8[ns]')
-        assert isnull(s[1])
+        assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
         s = Series([datetime(2001, 1, 2, 0, 0), nan], dtype='M8[ns]')
-        assert isnull(s[1])
+        assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
         # GH3416
@@ -605,48 +604,6 @@ class TestSeriesConstructors(TestData):
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
 
-    def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_series_equal(
-            result, expected, check_dtype=True, check_series_type=True)
-        d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
-        _d = sorted(d.items())
-        ser = Series(d)
-        expected = Series([x[1] for x in _d],
-                          index=MultiIndex.from_tuples([x[0] for x in _d]))
-        check(ser, expected)
-
-        d['z'] = 111.
-        _d.insert(0, ('z', d['z']))
-        ser = Series(d)
-        expected = Series([x[1] for x in _d], index=Index(
-            [x[0] for x in _d], tupleize_cols=False))
-        ser = ser.reindex(index=expected.index)
-        check(ser, expected)
-
-    def test_constructor_dict_timedelta_index(self):
-        # GH #12169 : Resample category data with timedelta index
-        # construct Series from dict as data and TimedeltaIndex as index
-        # will result NaN in result Series data
-        expected = Series(
-            data=['A', 'B', 'C'],
-            index=pd.to_timedelta([0, 10, 20], unit='s')
-        )
-
-        result = Series(
-            data={pd.to_timedelta(0, unit='s'): 'A',
-                  pd.to_timedelta(10, unit='s'): 'B',
-                  pd.to_timedelta(20, unit='s'): 'C'},
-            index=pd.to_timedelta([0, 10, 20], unit='s')
-        )
-        # this should work
-        assert_series_equal(result, expected)
-
-    def test_constructor_subclass_dict(self):
-        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
-        series = Series(data)
-        refseries = Series(dict(compat.iteritems(data)))
-        assert_series_equal(refseries, series)
-
     def test_constructor_dict_datetime64_index(self):
         # GH 9456
 
@@ -669,26 +626,6 @@ class TestSeriesConstructors(TestData):
         assert_series_equal(result_datetime64, expected)
         assert_series_equal(result_datetime, expected)
         assert_series_equal(result_Timestamp, expected)
-
-    def test_orderedDict_ctor(self):
-        # GH3283
-        import pandas
-        import random
-        data = OrderedDict([('col%s' % i, random.random()) for i in range(12)])
-        s = pandas.Series(data)
-        assert all(s.values == list(data.values()))
-
-    def test_orderedDict_subclass_ctor(self):
-        # GH3283
-        import pandas
-        import random
-
-        class A(OrderedDict):
-            pass
-
-        data = A([('col%s' % i, random.random()) for i in range(12)])
-        s = pandas.Series(data)
-        assert all(s.values == list(data.values()))
 
     def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]
@@ -823,10 +760,10 @@ class TestSeriesConstructors(TestData):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         val = series[3]
-        assert isnull(val)
+        assert isna(val)
 
         series[2] = val
-        assert isnull(series[2])
+        assert isna(series[2])
 
     def test_NaT_cast(self):
         # GH10747

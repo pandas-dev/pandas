@@ -20,7 +20,7 @@ from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
-from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
+from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, bdate_range,
                     compat)
 
@@ -625,7 +625,7 @@ class ToDatetimeMisc(object):
     def test_to_datetime_default(self):
         rs = to_datetime('2001')
         xp = datetime(2001, 1, 1)
-        assert rs, xp
+        assert rs == xp
 
         # dayfirst is essentially broken
 
@@ -683,7 +683,7 @@ class ToDatetimeMisc(object):
         assert result is NaT
 
         result = to_datetime(['', ''])
-        assert isnull(result).all()
+        assert isna(result).all()
 
         # ints
         result = Timestamp(0)
@@ -751,7 +751,7 @@ class ToDatetimeMisc(object):
 
         expected = np.empty(4, dtype='M8[ns]')
         for i, val in enumerate(strings):
-            if isnull(val):
+            if isna(val):
                 expected[i] = tslib.iNaT
             else:
                 expected[i] = parse_date(val)
@@ -787,7 +787,7 @@ class ToDatetimeMisc(object):
         expected = Series(np.empty(5, dtype='M8[ns]'), index=idx)
         for i in range(5):
             x = series[i]
-            if isnull(x):
+            if isna(x):
                 expected[i] = tslib.iNaT
             else:
                 expected[i] = to_datetime(x)
@@ -977,13 +977,13 @@ class TestDaysInMonth(object):
     # tests for issue #10154
 
     def test_day_not_in_month_coerce(self):
-        assert isnull(to_datetime('2015-02-29', errors='coerce'))
-        assert isnull(to_datetime('2015-02-29', format="%Y-%m-%d",
-                                  errors='coerce'))
-        assert isnull(to_datetime('2015-02-32', format="%Y-%m-%d",
-                                  errors='coerce'))
-        assert isnull(to_datetime('2015-04-31', format="%Y-%m-%d",
-                                  errors='coerce'))
+        assert isna(to_datetime('2015-02-29', errors='coerce'))
+        assert isna(to_datetime('2015-02-29', format="%Y-%m-%d",
+                                errors='coerce'))
+        assert isna(to_datetime('2015-02-32', format="%Y-%m-%d",
+                                errors='coerce'))
+        assert isna(to_datetime('2015-04-31', format="%Y-%m-%d",
+                                errors='coerce'))
 
     def test_day_not_in_month_raise(self):
         pytest.raises(ValueError, to_datetime, '2015-02-29',
@@ -1112,9 +1112,9 @@ class TestDatetimeParsingWrappers(object):
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
         assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
+        assert result2 is tslib.NaT
+        assert result3 is tslib.NaT
+        assert result4 is tslib.NaT
 
     def test_parsers_quarter_invalid(self):
 

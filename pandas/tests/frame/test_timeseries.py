@@ -266,6 +266,28 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         assert_frame_equal(df, rs)
 
+    def test_shift_duplicate_columns(self):
+        # GH 9092; verify that position-based shifting works
+        # in the presence of duplicate columns
+        column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
+        data = np.random.randn(20, 5)
+
+        shifted = []
+        for columns in column_lists:
+            df = pd.DataFrame(data.copy(), columns=columns)
+            for s in range(5):
+                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+            df.columns = range(5)
+            shifted.append(df)
+
+        # sanity check the base case
+        nulls = shifted[0].isna().sum()
+        assert_series_equal(nulls, Series(range(1, 6), dtype='int64'))
+
+        # check all answers are the same
+        assert_frame_equal(shifted[0], shifted[1])
+        assert_frame_equal(shifted[0], shifted[2])
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodFrame()

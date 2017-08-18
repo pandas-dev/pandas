@@ -10,7 +10,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notna
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -236,13 +236,13 @@ class TestCategoricalIndex(Base):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
-        result = i.where(notnull(i2))
+        result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
 
@@ -386,15 +386,14 @@ class TestCategoricalIndex(Base):
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(
-                expected.values, actual, check_dtype=False)
+            tm.assert_numpy_array_equal(expected, actual)
 
     def test_reindex_dtype(self):
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
         res, indexer = c.reindex(['a', 'c'])
         tm.assert_index_equal(res, Index(['a', 'a', 'c']), exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([0, 3, 2], dtype=np.int64))
+                                    np.array([0, 3, 2], dtype=np.intp))
 
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
         res, indexer = c.reindex(Categorical(['a', 'c']))
@@ -402,7 +401,7 @@ class TestCategoricalIndex(Base):
         exp = CategoricalIndex(['a', 'a', 'c'], categories=['a', 'c'])
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([0, 3, 2], dtype=np.int64))
+                                    np.array([0, 3, 2], dtype=np.intp))
 
         c = CategoricalIndex(['a', 'b', 'c', 'a'],
                              categories=['a', 'b', 'c', 'd'])
@@ -410,7 +409,7 @@ class TestCategoricalIndex(Base):
         exp = Index(['a', 'a', 'c'], dtype='object')
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([0, 3, 2], dtype=np.int64))
+                                    np.array([0, 3, 2], dtype=np.intp))
 
         c = CategoricalIndex(['a', 'b', 'c', 'a'],
                              categories=['a', 'b', 'c', 'd'])
@@ -418,7 +417,47 @@ class TestCategoricalIndex(Base):
         exp = CategoricalIndex(['a', 'a', 'c'], categories=['a', 'c'])
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer,
-                                    np.array([0, 3, 2], dtype=np.int64))
+                                    np.array([0, 3, 2], dtype=np.intp))
+
+    def test_reindex_empty_index(self):
+        # See GH16770
+        c = CategoricalIndex([])
+        res, indexer = c.reindex(['a', 'b'])
+        tm.assert_index_equal(res, Index(['a', 'b']), exact=True)
+        tm.assert_numpy_array_equal(indexer,
+                                    np.array([-1, -1], dtype=np.intp))
+
+    def test_is_monotonic(self):
+        c = CategoricalIndex([1, 2, 3])
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], ordered=True)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # non lexsorted categories
+        categories = [9, 0, 1, 2, 3]
+
+        c = CategoricalIndex([9, 0], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([0, 1], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
 
     def test_duplicates(self):
 

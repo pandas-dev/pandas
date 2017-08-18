@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pandas.core.dtypes.missing import notnull, isnull
+from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.generic import ABCPeriodIndex
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.common import (
@@ -222,8 +222,8 @@ class IntervalIndex(IntervalMixin, Index):
             raise ValueError("invalid options for 'closed': %s" % self.closed)
         if len(self.left) != len(self.right):
             raise ValueError('left and right must have the same length')
-        left_mask = notnull(self.left)
-        right_mask = notnull(self.right)
+        left_mask = notna(self.left)
+        right_mask = notna(self.right)
         if not (left_mask == right_mask).all():
             raise ValueError('missing values must be missing in the same '
                              'location both left and right sides')
@@ -240,7 +240,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _isnan(self):
         """ return if each value is nan"""
         if self._mask is None:
-            self._mask = isnull(self.left)
+            self._mask = isna(self.left)
         return self._mask
 
     @cache_readonly
@@ -415,7 +415,7 @@ class IntervalIndex(IntervalMixin, Index):
         right = []
         for d in data:
 
-            if isnull(d):
+            if isna(d):
                 left.append(np.nan)
                 right.append(np.nan)
                 continue
@@ -556,8 +556,17 @@ class IntervalIndex(IntervalMixin, Index):
         # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
         # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
         # we already require left <= right
-        return ((self.right[:-1] <= self.left[1:]).all() or
-                (self.left[:-1] >= self.right[1:]).all())
+
+        # strict inequality for closed == 'both'; equality implies overlapping
+        # at a point when both sides of intervals are included
+        if self.closed == 'both':
+            return bool((self.right[:-1] < self.left[1:]).all() or
+                        (self.left[:-1] > self.right[1:]).all())
+
+        # non-strict inequality when closed != 'both'; at least one side is
+        # not included in the intervals, so equality does not imply overlapping
+        return bool((self.right[:-1] <= self.left[1:]).all() or
+                    (self.left[:-1] >= self.right[1:]).all())
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -1053,11 +1062,11 @@ def interval_range(start=None, end=None, freq=None, periods=None,
         if periods is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         start = end - periods * freq
-    elif end is None:
+    if end is None:
         if periods is None or start is None:
             raise ValueError("must specify 2 of start, end, periods")
         end = start + periods * freq
-    elif periods is None:
+    if periods is None:
         if start is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         pass

@@ -6,7 +6,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.dtypes.common import _ensure_int64
-from pandas import Index, isnull
+from pandas import Index, isna
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas._libs import lib, groupby
@@ -97,7 +97,7 @@ def test_group_ohlc():
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
-            if isnull(group).all():
+            if isna(group).all():
                 return np.repeat(nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
