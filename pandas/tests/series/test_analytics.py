@@ -1003,10 +1003,11 @@ class TestSeriesAnalytics(TestData):
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
         # GH # 17276
-        s = Series([1,2,3])
+        s = Series([1, 2, 3])
+
         s.clip(np.nan)
-        s.clip(upper=[1,2,np.nan])
-        s.clip(lower=[1,np.nan,3])
+        s.clip(upper=[1, 2, np.nan])
+        s.clip(lower=[1, np.nan, 3])
         s.clip(upper=np.nan, lower=np.nan)
 
     def test_clip_against_series(self):
