@@ -366,6 +366,8 @@ class Resampler(_GroupBy):
         subset : object, default None
             subset to act on
         """
+        if key not in self.obj.keys():
+            raise KeyError('{}'.format(key))
         self._set_binner()
         grouper = self.grouper
         if subset is None:
