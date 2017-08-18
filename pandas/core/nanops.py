@@ -388,6 +388,7 @@ def nanmedian(values, axis=None, skipna=True):
     # otherwise return a scalar value
     return _wrap_results(agg1d(values) if notempty else np.nan, dtype)
 
+
 def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     dtype = _get_dtype(dtype)
     count = _get_counts(mask, axis, dtype=dtype)
