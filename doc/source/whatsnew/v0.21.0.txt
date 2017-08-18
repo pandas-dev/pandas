@@ -298,13 +298,9 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
-<<<<<<< HEAD
 - Improved performance of  :func:`median()` when bottleneck is not installed but :func:`np.namnmedian` is present (:issue:`16468`)
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
-=======
-- :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
 
->>>>>>> 34c4ffd7c454848311f71e6869b5cad4bc132449
 
 .. _whatsnew_0210.bug_fixes:
 
