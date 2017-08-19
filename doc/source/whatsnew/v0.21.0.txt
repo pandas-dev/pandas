@@ -385,6 +385,9 @@ Numeric
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
+- Bug in the categorical constructor with empty values and categories causing
+  the ``.categories`` to be an empty ``Float64Index`` rather than an empty
+  ``Index`` with object dtype (:issue:`17248`)
 
 
 Other

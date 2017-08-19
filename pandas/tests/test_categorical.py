@@ -112,6 +112,16 @@ class TestCategorical(object):
         result = c.codes[np.array([100000]).astype(np.int64)]
         tm.assert_numpy_array_equal(result, np.array([5], dtype='int8'))
 
+    def test_constructor_empty(self):
+        # GH 17248
+        c = Categorical([])
+        expected = Index([])
+        tm.assert_index_equal(c.categories, expected)
+
+        c = Categorical([], categories=[1, 2, 3])
+        expected = pd.Int64Index([1, 2, 3])
+        tm.assert_index_equal(c.categories, expected)
+
     def test_constructor_unsortable(self):
 
         # it works!
