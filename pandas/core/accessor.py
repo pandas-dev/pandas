@@ -6,6 +6,7 @@ that can be mixed into or pinned onto other pandas classes.
 
 """
 
+
 class DirNamesMixin(object):
     _accessors = frozenset([])
 
