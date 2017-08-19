@@ -18,7 +18,6 @@ from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
-# this is _libs.src.datetime, not python stdlib
 from datetime cimport *
 
 cimport util, lib

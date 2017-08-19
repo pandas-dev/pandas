@@ -132,6 +132,16 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0210.api_breaking.Period:
+
+pd.Period objects are now immutable
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Period` will now raise an ``AttributeError`` when a user tries to
+assign a new value to the `ordinal` or `freq` attributes.  This will allow
+for reliable caching which will improve performance in indexing
+operations (:issue:`17116`).
+
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
 Improved error handling during item assignment in pd.eval

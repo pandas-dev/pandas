@@ -248,13 +248,3 @@ class TestNAObj(object):
         expected = np.array([True])
 
         self._check_behavior(arr, expected)
-
-
-def test_period_immutable():
-    per = pd.Period('2014Q1')
-    with pytest.raises(AttributeError, message="is not writable"):
-        per.ordinal = 14
-
-    freq = per.freq
-    with pytest.raises(AttributeError, message="is not writable"):
-        per.freq = 2 * freq
