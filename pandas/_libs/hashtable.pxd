@@ -38,7 +38,7 @@ cdef class MultiIndexHashTable(HashTable):
 
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
-    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label)
+    cdef void _check_for_collision(self, Py_ssize_t loc, object label)
 
 
 cdef class StringHashTable(HashTable):
@@ -58,5 +58,5 @@ cdef class Int64Vector:
 
     cdef resize(self)
     cpdef to_array(self)
-    cdef inline void append(self, int64_t x)
+    cdef void append(self, int64_t x)
     cdef extend(self, int64_t[:] x)
