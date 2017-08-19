@@ -1683,6 +1683,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         else:
             obj.tzinfo = tz
 
+
 def _localize_pydatetime(object dt, object tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
