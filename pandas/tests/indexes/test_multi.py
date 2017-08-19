@@ -776,7 +776,7 @@ class TestMultiIndex(Base):
             arrays = [[]] * N
             names = list('ABC')[:N]
             result = MultiIndex.from_arrays(arrays=arrays, names=names)
-            expected = MultiIndex(levels=[np.array([])] * N, labels=[[]] * N,
+            expected = MultiIndex(levels=[[]] * N, labels=[[]] * N,
                                   names=names)
             tm.assert_index_equal(result, expected)
 
@@ -829,7 +829,7 @@ class TestMultiIndex(Base):
 
         # 1 level
         result = MultiIndex.from_product([[]], names=['A'])
-        expected = pd.Float64Index([], name='A')
+        expected = pd.Index([], name='A')
         tm.assert_index_equal(result, expected)
 
         # 2 levels
@@ -838,7 +838,7 @@ class TestMultiIndex(Base):
         names = ['A', 'B']
         for first, second in zip(l1, l2):
             result = MultiIndex.from_product([first, second], names=names)
-            expected = MultiIndex(levels=[np.array(first), np.array(second)],
+            expected = MultiIndex(levels=[first, second],
                                   labels=[[], []], names=names)
             tm.assert_index_equal(result, expected)
 
@@ -847,8 +847,7 @@ class TestMultiIndex(Base):
         for N in range(4):
             lvl2 = lrange(N)
             result = MultiIndex.from_product([[], lvl2, []], names=names)
-            expected = MultiIndex(levels=[np.array(A)
-                                          for A in [[], lvl2, []]],
+            expected = MultiIndex(levels=[[], lvl2, []],
                                   labels=[[], [], []], names=names)
             tm.assert_index_equal(result, expected)
 
