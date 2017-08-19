@@ -596,7 +596,6 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 
 ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/datetime_helper.h',
                                'pandas/_libs/src/numpy_helper.h'],
                       sources=['pandas/_libs/src/ujson/python/ujson.c',
                                'pandas/_libs/src/ujson/python/objToJSON.c',
