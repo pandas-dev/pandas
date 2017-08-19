@@ -301,6 +301,16 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # assert is lazy (genrators don't define reverse, lists do)
         assert not hasattr(self.series.iteritems(), 'reverse')
 
+    def test_items(self):
+        for idx, val in self.series.items():
+            assert val == self.series[idx]
+
+        for idx, val in self.ts.items():
+            assert val == self.ts[idx]
+
+        # assert is lazy (genrators don't define reverse, lists do)
+        assert not hasattr(self.series.items(), 'reverse')
+
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
         with pytest.raises(AttributeError):
