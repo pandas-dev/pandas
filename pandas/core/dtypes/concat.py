@@ -565,6 +565,11 @@ def _concat_sparse(to_concat, axis=0, typs=None):
 
 
 def _concat_indexes_same_dtype_rangeindex(indexes):
+    # Concatenates multiple RangeIndex instances. All members of "indexes" must
+    # be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+    # otherwise. E.g.:
+    # indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
+    # indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
 
     start = step = next = None
 
@@ -586,7 +591,9 @@ def _concat_indexes_same_dtype_rangeindex(indexes):
         non_consecutive = ((step != obj._step and len(obj) > 1) or
                            (next is not None and obj._start != next))
         if non_consecutive:
-            # Not nice... but currently what happens in NumericIndex:
+            # Int64Index._append_same_dtype([ix.astype(int) for ix in indexes])
+            # would be preferred... but it currently resorts to
+            # _concat_index_asobject anyway.
             return _concat_index_asobject(indexes)
 
         if step is not None:
