@@ -147,7 +147,7 @@ class _NDFrameIndexer(object):
 
         axis = self.obj._get_axis(0)
 
-        if isinstance(axis, MultiIndex) and not is_integer(key):
+        if isinstance(axis, MultiIndex) and self.name != 'iloc':
             try:
                 return axis.get_loc(key)
             except Exception:

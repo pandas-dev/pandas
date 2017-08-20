@@ -269,39 +269,29 @@ class TestiLoc(Base):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
-    def test_iloc_setitem_int_multiindex_series(self):
+    @pytest.mark.parametrize(
+        "data, indexes, values, expected_k", [
+            ([[1, 22, 5], [1, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
+            ([[2, 22, 5], [2, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
+            ([[1, 3, 7], [2, 4, 8]], [0, -1, 1], [1, 1, 10], [8, 19]),
+            ([[1, 11, 4], [2, 22, 5], [3, 33, 6]], [0, -1, 1], [4, 7, 10],
+                [8, 15, 13])
+        ])
+    def test_iloc_setitem_int_multiindex_series(
+            self, data, indexes, values, expected_k):
         # GH17148
-        def check_scenario(data, indexes, values, expected_k):
-            df = pd.DataFrame(
-                data=data,
-                columns=['i', 'j', 'k'])
-            df.set_index(['i', 'j'], inplace=True)
+        df = pd.DataFrame(
+            data=data,
+            columns=['i', 'j', 'k'])
+        df.set_index(['i', 'j'], inplace=True)
 
-            series = df.k.copy()
-            for i, v in zip(indexes, values):
-                series.iloc[i] += v
+        series = df.k.copy()
+        for i, v in zip(indexes, values):
+            series.iloc[i] += v
 
-            df.k = expected_k
-            expected = df.k.copy()
-            tm.assert_series_equal(series, expected)
-
-        check_scenario(
-            data=[[1, 22, 5], [1, 33, 6]],
-            indexes=[0, -1, 1],
-            values=[2, 3, 1],
-            expected_k=[7, 10])
-
-        check_scenario(
-            data=[[1, 3, 7], [2, 4, 8]],
-            indexes=[0, -1, 1],
-            values=[1, 1, 10],
-            expected_k=[8, 19])
-
-        check_scenario(
-            data=[[1, 11, 4], [2, 22, 5], [3, 33, 6]],
-            indexes=[0, -1, 1],
-            values=[4, 7, 10],
-            expected_k=[8, 15, 13])
+        df.k = expected_k
+        expected = df.k.copy()
+        tm.assert_series_equal(series, expected)
 
     def test_iloc_setitem_list(self):
 
