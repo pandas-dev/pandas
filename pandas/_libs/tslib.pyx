@@ -1008,10 +1008,6 @@ def unique_deltas(ndarray[int64_t] arr):
     return result
 
 
-cdef inline bint _is_multiple(int64_t us, int64_t mult):
-    return us % mult == 0
-
-
 cdef inline bint _cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     if op == Py_EQ:
         return lhs == rhs
