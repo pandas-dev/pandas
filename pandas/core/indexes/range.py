@@ -194,8 +194,12 @@ class RangeIndex(Int64Index):
 
     @cache_readonly
     def nbytes(self):
-        """ return the number of bytes in the underlying data """
-        return sum([getsizeof(getattr(self, v)) for v in
+        """
+        Return the number of bytes in the underlying data
+        On implementations where this is undetermined (PyPy)
+        assume 24 bytes for each value
+        """
+        return sum([getsizeof(getattr(self, v), 24) for v in
                     ['_start', '_stop', '_step']])
 
     def memory_usage(self, deep=False):

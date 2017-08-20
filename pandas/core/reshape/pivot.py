@@ -8,7 +8,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, _get_combined_index
+from pandas.core.index import Index, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -145,10 +145,10 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
+    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
-            raise ValueError(exception_msg)
+            raise ValueError(msg)
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
@@ -156,7 +156,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if hasattr(table, 'columns'):
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
-                raise ValueError(exception_msg)
+                raise ValueError(msg)
 
     if len(rows) > 1:
         key = (margins_name,) + ('',) * (len(rows) - 1)
@@ -440,12 +440,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
-    obs_idxes = [obj.index for objs in (index, columns) for obj in objs
-                 if hasattr(obj, 'index')]
-    if obs_idxes:
-        common_idx = _get_combined_index(obs_idxes, intersect=True)
-    else:
-        common_idx = None
+    common_idx = _get_objs_combined_axis(index + columns, intersect=True)
 
     data = {}
     data.update(zip(rownames, index))
@@ -558,7 +553,7 @@ def _get_names(arrs, names, prefix='row'):
             if isinstance(arr, ABCSeries) and arr.name is not None:
                 names.append(arr.name)
             else:
-                names.append('%s_%d' % (prefix, i))
+                names.append('{prefix}_{i}'.format(prefix=prefix, i=i))
     else:
         if len(names) != len(arrs):
             raise AssertionError('arrays and names must have the same length')

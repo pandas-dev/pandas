@@ -44,8 +44,8 @@ class SAS7BDATReader(BaseIterator):
     index : column identifier, defaults to None
         Column to use as index.
     convert_dates : boolean, defaults to True
-        Attempt to convert dates to Pandas datetime values.  Note all
-        SAS date formats are supported.
+        Attempt to convert dates to Pandas datetime values.  Note that
+        some rarely used SAS date formats may be unsupported.
     blank_missing : boolean, defaults to True
         Convert empty strings to missing values (SAS uses blanks to
         indicate missing character variables).
@@ -655,9 +655,15 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = self._byte_chunk[jb, :].view(
                     dtype=self.byte_order + 'd')
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
-                if self.convert_dates and (self.column_formats[j] == "MMDDYY"):
-                    epoch = pd.datetime(1960, 1, 1)
-                    rslt[name] = epoch + pd.to_timedelta(rslt[name], unit='d')
+                if self.convert_dates:
+                    unit = None
+                    if self.column_formats[j] in const.sas_date_formats:
+                        unit = 'd'
+                    elif self.column_formats[j] in const.sas_datetime_formats:
+                        unit = 's'
+                    if unit:
+                        rslt[name] = pd.to_datetime(rslt[name], unit=unit,
+                                                    origin="1960-01-01")
                 jb += 1
             elif self.column_types[j] == b's':
                 rslt[name] = self._string_chunk[js, :]

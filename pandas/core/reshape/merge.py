@@ -534,28 +534,27 @@ class _MergeOperation(object):
                 'indicator option can only accept boolean or string arguments')
 
         if not isinstance(left, DataFrame):
-            raise ValueError(
-                'can not merge DataFrame with instance of '
-                'type {0}'.format(type(left)))
+            raise ValueError('can not merge DataFrame with instance of '
+                             'type {left}'.format(left=type(left)))
         if not isinstance(right, DataFrame):
-            raise ValueError(
-                'can not merge DataFrame with instance of '
-                'type {0}'.format(type(right)))
+            raise ValueError('can not merge DataFrame with instance of '
+                             'type {right}'.format(right=type(right)))
 
         if not is_bool(left_index):
             raise ValueError(
                 'left_index parameter must be of type bool, not '
-                '{0}'.format(type(left_index)))
+                '{left_index}'.format(left_index=type(left_index)))
         if not is_bool(right_index):
             raise ValueError(
                 'right_index parameter must be of type bool, not '
-                '{0}'.format(type(right_index)))
+                '{right_index}'.format(right_index=type(right_index)))
 
         # warn user when merging between different levels
         if left.columns.nlevels != right.columns.nlevels:
             msg = ('merging between different levels can give an unintended '
-                   'result ({0} levels on the left, {1} on the right)')
-            msg = msg.format(left.columns.nlevels, right.columns.nlevels)
+                   'result ({left} levels on the left, {right} on the right)'
+                   ).format(left=left.columns.nlevels,
+                            right=right.columns.nlevels)
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
@@ -613,7 +612,8 @@ class _MergeOperation(object):
         for i in ['_left_indicator', '_right_indicator']:
             if i in columns:
                 raise ValueError("Cannot use `indicator=True` option when "
-                                 "data contains a column named {}".format(i))
+                                 "data contains a column named {name}"
+                                 .format(name=i))
         if self.indicator_name in columns:
             raise ValueError(
                 "Cannot use name of an existing column for indicator column")
@@ -717,7 +717,7 @@ class _MergeOperation(object):
                 if name in result:
                     result[name] = key_col
                 else:
-                    result.insert(i, name or 'key_%d' % i, key_col)
+                    result.insert(i, name or 'key_{i}'.format(i=i), key_col)
 
     def _get_join_indexers(self):
         """ return the join indexers """
@@ -952,8 +952,8 @@ class _MergeOperation(object):
                 if len(common_cols) == 0:
                     raise MergeError('No common columns to perform merge on')
                 if not common_cols.is_unique:
-                    raise MergeError("Data columns not unique: %s"
-                                     % repr(common_cols))
+                    raise MergeError("Data columns not unique: {common!r}"
+                                     .format(common=common_cols))
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
@@ -1119,12 +1119,14 @@ class _OrderedMerge(_MergeOperation):
 
 
 def _asof_function(direction, on_type):
-    return getattr(libjoin, 'asof_join_%s_%s' % (direction, on_type), None)
+    name = 'asof_join_{dir}_{on}'.format(dir=direction, on=on_type)
+    return getattr(libjoin, name, None)
 
 
 def _asof_by_function(direction, on_type, by_type):
-    return getattr(libjoin, 'asof_join_%s_%s_by_%s' %
-                   (direction, on_type, by_type), None)
+    name = 'asof_join_{dir}_{on}_by_{by}'.format(
+        dir=direction, on=on_type, by=by_type)
+    return getattr(libjoin, name, None)
 
 
 _type_casters = {
@@ -1153,7 +1155,7 @@ def _get_cython_type(dtype):
     type_name = _get_dtype(dtype).name
     ctype = _cython_types.get(type_name, 'object')
     if ctype == 'error':
-        raise MergeError('unsupported type: ' + type_name)
+        raise MergeError('unsupported type: {type}'.format(type=type_name))
     return ctype
 
 
@@ -1235,7 +1237,8 @@ class _AsOfMerge(_OrderedMerge):
 
         # check 'direction' is valid
         if self.direction not in ['backward', 'forward', 'nearest']:
-            raise MergeError('direction invalid: ' + self.direction)
+            raise MergeError('direction invalid: {direction}'
+                             .format(direction=self.direction))
 
     @property
     def _asof_key(self):
@@ -1264,7 +1267,7 @@ class _AsOfMerge(_OrderedMerge):
                 lt = left_join_keys[-1]
 
             msg = "incompatible tolerance, must be compat " \
-                  "with type {0}".format(type(lt))
+                  "with type {lt}".format(lt=type(lt))
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
@@ -1283,8 +1286,8 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
-            raise MergeError("allow_exact_matches must be boolean, "
-                             "passed {0}".format(self.allow_exact_matches))
+            msg = "allow_exact_matches must be boolean, passed {passed}"
+            raise MergeError(msg.format(passed=self.allow_exact_matches))
 
         return left_join_keys, right_join_keys, join_names
 
@@ -1306,11 +1309,11 @@ class _AsOfMerge(_OrderedMerge):
         tolerance = self.tolerance
 
         # we required sortedness in the join keys
-        msg = " keys must be sorted"
+        msg = "{side} keys must be sorted"
         if not Index(left_values).is_monotonic:
-            raise ValueError('left' + msg)
+            raise ValueError(msg.format(side='left'))
         if not Index(right_values).is_monotonic:
-            raise ValueError('right' + msg)
+            raise ValueError(msg.format(side='right'))
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
