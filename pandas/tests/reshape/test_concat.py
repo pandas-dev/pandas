@@ -1222,7 +1222,7 @@ class TestConcatenate(ConcatenateBase):
         frames = [baz, empty, empty, df[5:]]
         concatted = concat(frames, axis=0)
 
-        expected = df.loc[:, ['a', 'b', 'c', 'd', 'foo']]
+        expected = df.reindex(columns=['a', 'b', 'c', 'd', 'foo'])
         expected['foo'] = expected['foo'].astype('O')
         expected.loc[0:4, 'foo'] = 'bar'
 
