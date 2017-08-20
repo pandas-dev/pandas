@@ -151,7 +151,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = frozenset(['dt', 'str', 'cat'])
+    _accessors = frozenset(['str'])
 
     # String Methods
     str = base.AccessorProperty(strings.StringMethods)
