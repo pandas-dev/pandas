@@ -340,6 +340,7 @@ npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
 npy_float64 total_seconds(PyObject *td) {
   // Python 2.6 compat
+  // TODO: remove this legacy workaround with a more direct td.total_seconds()
   npy_int64 microseconds = get_long_attr(td, "microseconds");
   npy_int64 seconds = get_long_attr(td, "seconds");
   npy_int64 days = get_long_attr(td, "days");
