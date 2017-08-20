@@ -1407,6 +1407,7 @@ class TestMethods(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             p - offsets.Hour(2)
 
+
 def test_period_immutable():
     # see gh-17116
     per = pd.Period('2014Q1')
