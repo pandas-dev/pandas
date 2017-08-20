@@ -1180,8 +1180,8 @@ cdef class _Timestamp(datetime):
             warnings.warn("Discarding nonzero nanoseconds in conversion",
                           UserWarning, stacklevel=2)
         return datetime(self.year, self.month, self.day,
-                        self.hour, self.min, self.sec,
-                        self.us, self.tzinfo)
+                        self.hour, self.minute, self.second,
+                        self.microsecond, self.tzinfo)
 
     cpdef to_datetime64(self):
         """ Returns a numpy.datetime64 object with 'ns' precision """
