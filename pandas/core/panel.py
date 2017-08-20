@@ -26,7 +26,7 @@ from pandas.core.common import _try_sort, _default_index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               _get_combined_index)
+                               _get_objs_combined_axis)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
@@ -1448,7 +1448,6 @@ class Panel(NDFrame):
             index = Index([])
         elif len(data) > 0:
             raw_lengths = []
-            indexes = []
 
         have_raw_arrays = False
         have_frames = False
@@ -1456,13 +1455,13 @@ class Panel(NDFrame):
         for v in data.values():
             if isinstance(v, self._constructor_sliced):
                 have_frames = True
-                indexes.append(v._get_axis(axis))
             elif v is not None:
                 have_raw_arrays = True
                 raw_lengths.append(v.shape[axis])
 
         if have_frames:
-            index = _get_combined_index(indexes, intersect=intersect)
+            index = _get_objs_combined_axis(data.values(), axis=axis,
+                                            intersect=intersect)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))

@@ -4,8 +4,8 @@ import warnings
 
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
+                    float64_t,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
-from datetime cimport get_datetime64_value, get_timedelta64_value
 import numpy as np
 
 import sys
@@ -30,19 +30,46 @@ cdef extern from "datetime_helper.h":
     double total_seconds(object)
 
 # this is our datetime.pxd
-from datetime cimport cmp_pandas_datetimestruct
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
                    is_timedelta64_object, INT64_MAX)
 cimport util
 
-from datetime cimport *
-from khash cimport *
-cimport cython
+# this is our datetime.pxd
+from datetime cimport (
+    pandas_datetimestruct,
+    pandas_datetime_to_datetimestruct,
+    pandas_datetimestruct_to_datetime,
+    cmp_pandas_datetimestruct,
+    days_per_month_table,
+    get_datetime64_value,
+    get_timedelta64_value,
+    get_datetime64_unit,
+    PANDAS_DATETIMEUNIT,
+    _string_to_dts,
+    _pydatetime_to_dts,
+    _date_to_datetime64,
+    npy_datetime,
+    is_leapyear,
+    dayofweek,
+    PANDAS_FR_ns,
+    PyDateTime_Check, PyDate_Check,
+    PyDateTime_IMPORT,
+    timedelta, datetime
+    )
 
+# stdlib datetime imports
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+
+from khash cimport (
+    khiter_t,
+    kh_destroy_int64, kh_put_int64,
+    kh_init_int64, kh_int64_t,
+    kh_resize_int64, kh_get_int64)
+
+cimport cython
 
 import re
 
@@ -80,15 +107,6 @@ PyDateTime_IMPORT
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
-
-# < numpy 1.7 compat for NaT
-compat_NaT = np.array([NPY_NAT]).astype('m8[ns]').item()
-
-
-try:
-    basestring
-except NameError: # py3
-    basestring = str
 
 
 cdef inline object create_timestamp_from_ts(
@@ -314,7 +332,7 @@ class Timestamp(_Timestamp):
         tz : string / timezone object, default None
             Timezone to localize to
         """
-        if isinstance(tz, basestring):
+        if isinstance(tz, string_types):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
@@ -615,7 +633,7 @@ class Timestamp(_Timestamp):
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
-            if not isinstance(ambiguous, basestring):
+            if not isinstance(ambiguous, string_types):
                 ambiguous =   [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous, errors=errors)[0]
@@ -4080,12 +4098,8 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 #----------------------------------------------------------------------
 # time zone conversion helpers
 
-try:
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except:
-    have_pytz = False
+import pytz
+UTC = pytz.utc
 
 
 @cython.boundscheck(False)
@@ -4111,9 +4125,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         ndarray[Py_ssize_t] posn
         int64_t v, offset, delta
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        import pytz
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -4228,9 +4239,6 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        import pytz
 
     if val == NPY_NAT:
         return val
@@ -4443,9 +4451,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     # Vectorized version of DstTzInfo.localize
 
     assert is_coerce or is_raise
-
-    if not have_pytz:
-        raise Exception("Could not find pytz module")
 
     if tz == UTC or tz is None:
         return vals

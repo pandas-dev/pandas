@@ -145,3 +145,27 @@ subheader_signature_to_index = {
     b"\xFF\xFF\xFF\xFE": index.columnListIndex,
     b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnListIndex,
     b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": index.columnListIndex}
+
+
+# List of frequently used SAS date and datetime formats
+# http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_intervals_sect009.htm
+# https://github.com/epam/parso/blob/master/src/main/java/com/epam/parso/impl/SasFileConstants.java
+sas_date_formats = ("DATE", "DAY", "DDMMYY", "DOWNAME", "JULDAY", "JULIAN",
+                    "MMDDYY", "MMYY", "MMYYC", "MMYYD", "MMYYP", "MMYYS",
+                    "MMYYN", "MONNAME", "MONTH", "MONYY", "QTR", "QTRR",
+                    "NENGO", "WEEKDATE", "WEEKDATX", "WEEKDAY", "WEEKV",
+                    "WORDDATE", "WORDDATX", "YEAR", "YYMM", "YYMMC", "YYMMD",
+                    "YYMMP", "YYMMS", "YYMMN", "YYMON", "YYMMDD", "YYQ",
+                    "YYQC", "YYQD", "YYQP", "YYQS", "YYQN", "YYQR", "YYQRC",
+                    "YYQRD", "YYQRP", "YYQRS", "YYQRN",
+                    "YYMMDDP", "YYMMDDC", "E8601DA", "YYMMDDN", "MMDDYYC",
+                    "MMDDYYS", "MMDDYYD", "YYMMDDS", "B8601DA", "DDMMYYN",
+                    "YYMMDDD", "DDMMYYB", "DDMMYYP", "MMDDYYP", "YYMMDDB",
+                    "MMDDYYN", "DDMMYYC", "DDMMYYD", "DDMMYYS",
+                    "MINGUO")
+
+sas_datetime_formats = ("DATETIME", "DTWKDATX",
+                        "B8601DN", "B8601DT", "B8601DX", "B8601DZ", "B8601LX",
+                        "E8601DN", "E8601DT", "E8601DX", "E8601DZ", "E8601LX",
+                        "DATEAMPM", "DTDATE", "DTMONYY", "DTMONYY", "DTWKDATX",
+                        "DTYEAR", "TOD", "MDYAMPM")

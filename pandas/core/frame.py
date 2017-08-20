@@ -802,8 +802,7 @@ class DataFrame(NDFrame):
         # fallback to regular tuples
         return zip(*arrays)
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     def __len__(self):
         """Returns length of info axis, but here we use the index """
@@ -6126,12 +6125,10 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
-    from pandas.core.index import _get_combined_index
+    from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_combined_index([
-            s.index for s in data if getattr(s, 'index', None) is not None
-        ])
+        columns = _get_objs_combined_axis(data)
 
     indexer_cache = {}
 

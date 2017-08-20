@@ -2,6 +2,7 @@ from datetime import datetime, date, timedelta
 import operator
 
 from cpython cimport (
+    PyUnicode_Check,
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -18,21 +19,29 @@ from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
-from datetime cimport *
+
+from datetime cimport (
+    is_leapyear,
+    PyDateTime_IMPORT,
+    pandas_datetimestruct,
+    pandas_datetimestruct_to_datetime,
+    pandas_datetime_to_datetimestruct,
+    PANDAS_FR_ns,
+    INT32_MIN)
+
 
 cimport util, lib
 
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT, have_pytz, _get_utcoffset)
+                                NaT, _get_utcoffset)
 from tslib cimport (
     maybe_get_tz,
     _is_utc,
     _is_tzlocal,
     _get_dst_info,
-    _nat_scalar_rules,
-)
+    _nat_scalar_rules)
 
 from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
@@ -610,9 +619,6 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
-
-    if not have_pytz:
-        raise Exception('Could not find pytz module')
 
     if _is_utc(tz):
         for i in range(n):
