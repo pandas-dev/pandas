@@ -129,47 +129,53 @@ class TestDataFrameAnalytics(TestData):
             assert result.index.equals(result.columns)
 
     def test_cov(self):
-        # compare cov(col_a, col_a) to var(col_a)
-        s_expected = self.frame.var(ddof=1)
-        df_cov = self.frame.cov(ddof=1)
-        for col in df_cov:
-            result = df_cov.loc[col, col]
-            tm.assert_almost_equal(s_expected[col], result)
+        df_na = self.frame.copy()
+        num_rows = df_na.shape[0]
+        num_isna = num_rows // 2
+        num_notna = num_rows - num_isna
+        df_na['A'][:num_isna] = nan
+        df_na['B'][num_isna:2*num_isna] = nan
 
-        s_expected = self.frame.var(ddof=0)
-        df_cov = self.frame.cov(ddof=0)
-        for col in df_cov:
-            result = df_cov.loc[col, col]
-            tm.assert_almost_equal(s_expected[col], result)
+        # compare each number in DataFrame.cov() matrix to corresponding Series.cov() number
+        for ddof in [0, 1]:
+            df_cov = self.frame.cov(ddof=ddof)
+            df_na_cov = df_na.cov(ddof=ddof)
+            for col_i in df_cov:
+                for col_j in df_cov:
+                    result = df_cov.loc[col_i, col_j]
+                    expected = self.frame[col_i].cov(self.frame[col_j], ddof=ddof)
+                    tm.assert_almost_equal(expected, result)
+
+                    result = df_na_cov.loc[col_i, col_j]
+                    expected = df_na[col_i].cov(df_na[col_j], ddof=ddof)
+                    tm.assert_almost_equal(expected, result)
+
+        # compare cov(col_a, col_a) to var(col_a)
+        for ddof in [0, 1]:
+            s_expected = self.frame.var(ddof=ddof)
+            df_cov = self.frame.cov(ddof=ddof)
+            for col in df_cov:
+                result = df_cov.loc[col, col]
+                tm.assert_almost_equal(s_expected[col], result)
 
         # min_periods no NAs (corner case)
-        expected = self.frame.cov(ddof=1)
-        result = self.frame.cov(min_periods=len(self.frame), ddof=1)
+        for ddof in [0, 1]:
+            expected = self.frame.cov(ddof=ddof)
+            result = self.frame.cov(min_periods=len(self.frame), ddof=ddof)
+            tm.assert_frame_equal(expected, result)
+
+            result = self.frame.cov(min_periods=len(self.frame) + 1, ddof=ddof)
+            assert isna(result.values).all()
+
+        # min_periods with NAs
+        result = df_na.cov(min_periods=num_notna)
+        expected = df_na.cov()
         tm.assert_frame_equal(expected, result)
 
-        expected = self.frame.cov(ddof=0)
-        result = self.frame.cov(min_periods=len(self.frame), ddof=0)
-        tm.assert_frame_equal(expected, result)
-
-        result = self.frame.cov(min_periods=len(self.frame) + 1)
-        assert isna(result.values).all()
-
-        # with NAs
-        frame = self.frame.copy()
-        frame['A'][:5] = nan
-        frame['B'][5:10] = nan
-        result = self.frame.cov(min_periods=len(self.frame) - 8)
-        expected = self.frame.cov()
-        expected.loc['A', 'B'] = np.nan
-        expected.loc['B', 'A'] = np.nan
-
-        # regular
-        self.frame['A'][:5] = nan
-        self.frame['B'][:10] = nan
-        cov = self.frame.cov()
-
-        tm.assert_almost_equal(cov['A']['C'],
-                               self.frame['A'].cov(self.frame['C']))
+        result = df_na.cov(min_periods=num_notna + 1)
+        assert isna(result['A'].values).all()
+        assert isna(result['B'].values).all()
+        assert notna(result['C'].values).any()
 
         # exclude non-numeric types
         result = self.mixed_frame.cov()
@@ -192,13 +198,21 @@ class TestDataFrameAnalytics(TestData):
         df1 = self.frame.dropna()[:1]
         tm.assert_produces_warning(df1.cov(ddof=1))
         result = df1.cov(ddof=1)
-        assert isnull(result.values).all()
+        assert isna(result.values).all()
 
         # N - ddof == 1
         num_cols = df1.shape[1]
         expected = np.zeros((num_cols, num_cols))
         result = df1.cov(ddof=0).values
         tm.assert_numpy_array_equal(expected, result)
+
+        # N - ddof <= 0, with NaNs
+        ddof = num_notna
+        tm.assert_produces_warning(df_na.cov(ddof=ddof))
+        result = df_na.cov(ddof=ddof)
+        assert isna(result['A'].values).all()
+        assert isna(result['B'].values).all()
+        assert notna(result['C'].values).any()
 
     def test_corrwith(self):
         a = self.tsframe
