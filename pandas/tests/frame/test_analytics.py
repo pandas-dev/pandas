@@ -1934,10 +1934,13 @@ class TestDataFrameAnalytics(TestData):
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
         # GH # 17276
-        self.frame.clip(np.nan)
-        self.frame.clip(upper=[1, 2, np.nan])
-        self.frame.clip(lower=[1, np.nan, 3])
-        self.frame.clip(upper=np.nan, lower=np.nan)
+        tm.assert_frame_equal(self.frame.clip(np.nan), self.frame)
+        tm.assert_frame_equal(self.frame.clip(upper=[1, 2, np.nan]),
+                              self.frame)
+        tm.assert_frame_equal(self.frame.clip(lower=[1, np.nan, 3]),
+                              self.frame)
+        tm.assert_frame_equal(self.frame.clip(upper=np.nan, lower=np.nan),
+                              self.frame)
 
     # Matrix-like
 
