@@ -128,7 +128,7 @@ Other Enhancements
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
-- :func:`Series.clip()` and `DataFrame.clip()` now treat NA values for upper and lower arguments as None instead of raising `ValueError` (:issue:`17276`).
+- :func:`Series.clip()` and :func:`DataFrame.clip()` now treat NA values for upper and lower arguments as None instead of raising `ValueError` (:issue:`17276`).
 
 .. _whatsnew_0210.api_breaking:
 
