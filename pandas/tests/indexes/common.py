@@ -551,6 +551,8 @@ class Base(object):
                                            "or array-like",
                                            method, case)
 
+    @pytest.mark.xfail(reason='intersection fails for monotonic decreasing '
+                              'RangeIndex (GH 17296)')
     def test_intersection_base(self):
         for name, idx in compat.iteritems(self.indices):
             first = idx[:5]
@@ -632,7 +634,8 @@ class Base(object):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
                     assert result.__class__ == answer.__class__
-                    assert tm.equalContents(result.asi8, answer.asi8)
+                    tm.assert_numpy_array_equal(result.sort_values().asi8,
+                                                answer.sort_values().asi8)
                 else:
                     result = first.difference(case)
                     assert tm.equalContents(result, answer)

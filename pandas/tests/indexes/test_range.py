@@ -25,7 +25,8 @@ class TestRangeIndex(Numeric):
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
     def setup_method(self, method):
-        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'))
+        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
+                            index_dec=RangeIndex(18, -1, -2, name='bar'))
         self.setup_indices()
 
     def create_index(self):
