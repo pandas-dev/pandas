@@ -120,26 +120,6 @@ initialize_daytime_conversion_factor_matrix()
 # Period logic
 #----------------------------------------------------------------------
 
-cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
-    """
-    Get freq+multiple ordinal value from corresponding freq-only ordinal value.
-    For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
-    integer).
-    """
-    if mult == 1:
-        return period_ord
-
-    return (period_ord - 1) // mult
-
-cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
-    """
-    Get freq-only ordinal value from corresponding freq+multiple ordinal.
-    """
-    if mult == 1:
-        return period_ord_w_mult
-
-    return period_ord_w_mult * mult + 1;
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
