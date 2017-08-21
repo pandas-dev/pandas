@@ -703,7 +703,7 @@ class Timestamp(_Timestamp):
 
         cdef:
             pandas_datetimestruct dts
-            int64_t value
+            int64_t value, value_tz, offset
             object _tzinfo, result, k, v, ts_input
             _TSObject ts
 
@@ -4216,7 +4216,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     return result
 
 
-def tz_convert_single(int64_t val, object tz1, object tz2):
+cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
