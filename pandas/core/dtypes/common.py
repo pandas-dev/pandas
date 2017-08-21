@@ -12,7 +12,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass, ABCRangeIndex)
+                      ABCIndexClass)
 from .inference import is_string_like
 from .inference import *  # noqa
 
@@ -218,10 +218,6 @@ def is_categorical(arr):
     """
 
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
-
-
-def is_range(arr):
-    return isinstance(arr, ABCRangeIndex)
 
 
 def is_datetimetz(arr):

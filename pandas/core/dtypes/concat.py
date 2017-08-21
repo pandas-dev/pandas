@@ -15,12 +15,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_bool_dtype,
     is_dtype_equal,
-    is_range,
     _NS_DTYPE,
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex)
+    ABCPeriodIndex, ABCRangeIndex)
 
 
 def get_dtype_kinds(l):
@@ -42,12 +41,12 @@ def get_dtype_kinds(l):
             typ = 'category'
         elif is_sparse(arr):
             typ = 'sparse'
+        elif isinstance(arr, ABCRangeIndex):
+            typ = 'range'
         elif is_datetimetz(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
             typ = str(arr.dtype)
-        elif is_range(arr):
-            typ = 'range'
         elif is_datetime64_dtype(dtype):
             typ = 'datetime'
         elif is_timedelta64_dtype(dtype):
@@ -564,12 +563,14 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     return result
 
 
-def _concat_indexes_same_dtype_rangeindex(indexes):
-    # Concatenates multiple RangeIndex instances. All members of "indexes" must
-    # be of type RangeIndex; result will be RangeIndex if possible, Int64Index
-    # otherwise. E.g.:
-    # indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
-    # indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+def _concat_rangeindex_same_dtype(indexes):
+    """
+    Concatenates multiple RangeIndex instances. All members of "indexes" must
+    be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+    otherwise. E.g.:
+    indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
+    indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+    """
 
     start = step = next = None
 
