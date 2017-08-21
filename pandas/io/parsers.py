@@ -487,18 +487,18 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skipfooter'])
-_python_unsupported = set([
+_c_unsupported = {'skipfooter'}
+_python_unsupported = {
     'low_memory',
     'buffer_lines',
     'float_precision',
-])
-_deprecated_args = set([
+}
+_deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
-])
+}
 
 
 def _make_parser_function(name, sep=','):
