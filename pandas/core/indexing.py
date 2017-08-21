@@ -1985,9 +1985,31 @@ def convert_from_missing_indexer_tuple(indexer, axes):
 
 
 def maybe_convert_indices(indices, n):
-    """ if we have negative indicies, translate to postive here
-    if have indicies that are out-of-bounds, raise an IndexError
     """
+    Attempt to convert indices into valid, positive indices.
+
+    If we have negative indices, translate to positive here.
+    If we have indices that are out-of-bounds, raise an IndexError.
+
+    Parameters
+    ----------
+    indices : array-like
+        The array of indices that we are to convert.
+    n : int
+        The number of elements in the array that we are indexing.
+
+    Returns
+    -------
+    valid_indices : array-like
+        An array-like of positive indices that correspond to the ones
+        that were passed in initially to this function.
+
+    Raises
+    ------
+    IndexError : one of the converted indices either exceeded the number
+        of elements (specified by `n`) OR was still negative.
+    """
+
     if isinstance(indices, list):
         indices = np.array(indices)
         if len(indices) == 0:
