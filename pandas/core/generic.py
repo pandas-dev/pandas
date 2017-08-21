@@ -3437,8 +3437,8 @@ class NDFrame(PandasObject, SelectionMixin):
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
                 if isinstance(self, ABCDataFrame) and (is_list_like(value)):
-                    warnings.warn("Pandas doesn't allow Series to be assigned "
-                                  "into nonexistent columns - see "
+                    warnings.warn("Pandas doesn't allow columns to be "
+                                  "created via a new attribute name - see "
                                   "https://pandas.pydata.org/pandas-docs/"
                                   "stable/indexing.html#attribute-access",
                                   stacklevel=2)
