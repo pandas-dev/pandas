@@ -345,7 +345,8 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
                         result[xi, yi] = result[yi, xi] = NaN
 
     if warn_ddof:
-        warnings.warn("N - ddof <= 0 for input ddof, for at least 1 pair of columns.", RuntimeWarning)
+        msg = "N - ddof <= 0 for input ddof, for at least 1 pair of columns."
+        warnings.warn(msg, RuntimeWarning)
 
     return result
 

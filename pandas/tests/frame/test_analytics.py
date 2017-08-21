@@ -134,16 +134,18 @@ class TestDataFrameAnalytics(TestData):
         num_isna = num_rows // 2
         num_notna = num_rows - num_isna
         df_na['A'][:num_isna] = nan
-        df_na['B'][num_isna:2*num_isna] = nan
+        df_na['B'][num_isna:2 * num_isna] = nan
 
-        # compare each number in DataFrame.cov() matrix to corresponding Series.cov() number
+        # compare each number in DataFrame.cov() matrix
+        # to corresponding Series.cov() number
         for ddof in [0, 1]:
             df_cov = self.frame.cov(ddof=ddof)
             df_na_cov = df_na.cov(ddof=ddof)
             for col_i in df_cov:
                 for col_j in df_cov:
                     result = df_cov.loc[col_i, col_j]
-                    expected = self.frame[col_i].cov(self.frame[col_j], ddof=ddof)
+                    expected = self.frame[col_i].cov(self.frame[col_j],
+                                                     ddof=ddof)
                     tm.assert_almost_equal(expected, result)
 
                     result = df_na_cov.loc[col_i, col_j]
