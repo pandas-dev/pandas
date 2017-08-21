@@ -316,9 +316,18 @@ class CategoricalIndex(Index, base.PandasDelegate):
         # we are going to look things up with the codes themselves
         return self._engine_type(lambda: self.codes.astype('i8'), len(self))
 
+    # introspection
     @cache_readonly
     def is_unique(self):
         return not self.duplicated().any()
+
+    @property
+    def is_monotonic_increasing(self):
+        return Index(self.codes).is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        return Index(self.codes).is_monotonic_decreasing
 
     @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
     def unique(self):
@@ -419,7 +428,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
             raise ValueError("cannot reindex with a non-unique indexer")
 
         indexer, missing = self.get_indexer_non_unique(np.array(target))
-        new_target = self.take(indexer)
+
+        if len(self.codes):
+            new_target = self.take(indexer)
+        else:
+            new_target = target
 
         # filling in missing if needed
         if len(missing):
@@ -430,7 +443,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(
                     np.array(target))
-
             else:
 
                 codes = new_target.codes.copy()
@@ -497,7 +509,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-
         return _ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -508,7 +519,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
             target = target.categories
 
         codes = self.categories.get_indexer(target)
-        return self._engine.get_indexer_non_unique(codes)
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return _ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -559,6 +571,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                            fill_value=fill_value,
                                            na_value=-1)
         return self._create_from_codes(taken)
+
+    def is_dtype_equal(self, other):
+        return self._data.is_dtype_equal(other)
 
     take_nd = take
 

@@ -948,6 +948,16 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     In [11]: df.loc[2:3, :]
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
+:meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
+an index is weakly monotonic. To check for strict montonicity, you can combine one of those with
+:meth:`Index.is_unique`
+
+.. ipython:: python
+
+   weakly_monotonic = pd.Index(['a', 'b', 'c', 'c'])
+   weakly_monotonic
+   weakly_monotonic.is_monotonic_increasing
+   weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~

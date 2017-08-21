@@ -11,7 +11,7 @@ from numpy.random import randint
 
 from pandas.compat import range, u
 import pandas.compat as compat
-from pandas import (Index, Series, DataFrame, isnull, MultiIndex, notnull)
+from pandas import Index, Series, DataFrame, isna, MultiIndex, notna
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -49,7 +49,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isnull(el)
+                assert isinstance(el, compat.string_types) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -1413,7 +1413,7 @@ class TestStringMethods(object):
         values = Series(['foo', 'fooo', 'fooooo', np.nan, 'fooooooo'])
 
         result = values.str.len()
-        exp = values.map(lambda x: len(x) if notnull(x) else NA)
+        exp = values.map(lambda x: len(x) if notna(x) else NA)
         tm.assert_series_equal(result, exp)
 
         # mixed
@@ -1431,7 +1431,7 @@ class TestStringMethods(object):
             'fooooooo')])
 
         result = values.str.len()
-        exp = values.map(lambda x: len(x) if notnull(x) else NA)
+        exp = values.map(lambda x: len(x) if notna(x) else NA)
         tm.assert_series_equal(result, exp)
 
     def test_findall(self):
@@ -2102,12 +2102,12 @@ class TestStringMethods(object):
         idx = Index(['a,b', 'c,d'], name='xxx')
         res = idx.str.split(',')
         exp = Index([['a', 'b'], ['c', 'd']], name='xxx')
-        assert res.nlevels, 1
+        assert res.nlevels == 1
         tm.assert_index_equal(res, exp)
 
         res = idx.str.split(',', expand=True)
         exp = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')])
-        assert res.nlevels, 2
+        assert res.nlevels == 2
         tm.assert_index_equal(res, exp)
 
     def test_partition_series(self):
@@ -2247,13 +2247,13 @@ class TestStringMethods(object):
         idx = Index(['a,b', 'c,d'], name='xxx')
         res = idx.str.partition(',')
         exp = MultiIndex.from_tuples([('a', ',', 'b'), ('c', ',', 'd')])
-        assert res.nlevels, 3
+        assert res.nlevels == 3
         tm.assert_index_equal(res, exp)
 
         # should preserve name
         res = idx.str.partition(',', expand=False)
         exp = Index(np.array([('a', ',', 'b'), ('c', ',', 'd')]), name='xxx')
-        assert res.nlevels, 1
+        assert res.nlevels == 1
         tm.assert_index_equal(res, exp)
 
     def test_pipe_failures(self):
@@ -2281,7 +2281,7 @@ class TestStringMethods(object):
                                   (3, 0, -1)]:
             try:
                 result = values.str.slice(start, stop, step)
-                expected = Series([s[start:stop:step] if not isnull(s) else NA
+                expected = Series([s[start:stop:step] if not isna(s) else NA
                                    for s in values])
                 tm.assert_series_equal(result, expected)
             except:

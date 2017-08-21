@@ -61,6 +61,11 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
+
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_datetime : Convert argument to datetime.
     """
     unit = _validate_timedelta_unit(unit)
 

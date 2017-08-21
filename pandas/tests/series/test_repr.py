@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range)
+from pandas import (Index, Series, DataFrame, date_range, option_context)
 from pandas.core.index import MultiIndex
 
 from pandas.compat import lrange, range, u
@@ -180,3 +180,21 @@ class TestSeriesRepr(TestData):
 
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
+
+    def test_latex_repr(self):
+        result = r"""\begin{tabular}{ll}
+\toprule
+{} &         0 \\
+\midrule
+0 &  $\alpha$ \\
+1 &         b \\
+2 &         c \\
+\bottomrule
+\end{tabular}
+"""
+        with option_context('display.latex.escape', False,
+                            'display.latex.repr', True):
+            s = Series([r'$\alpha$', 'b', 'c'])
+            assert result == s._repr_latex_()
+
+        assert s._repr_latex_() is None

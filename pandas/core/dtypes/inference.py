@@ -171,7 +171,7 @@ def is_file_like(obj):
     if not (hasattr(obj, 'read') or hasattr(obj, 'write')):
         return False
 
-    if not is_iterator(obj):
+    if not hasattr(obj, "__iter__"):
         return False
 
     return True

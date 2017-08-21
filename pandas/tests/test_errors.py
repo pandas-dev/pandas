@@ -10,7 +10,7 @@ import pandas as pd
     "exc", ['UnsupportedFunctionCall', 'UnsortedIndexError',
             'OutOfBoundsDatetime',
             'ParserError', 'PerformanceWarning', 'DtypeWarning',
-            'EmptyDataError', 'ParserWarning'])
+            'EmptyDataError', 'ParserWarning', 'MergeError'])
 def test_exception_importable(exc):
     from pandas import errors
     e = getattr(errors, exc)

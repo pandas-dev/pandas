@@ -171,7 +171,7 @@ other dependencies, you can install them as follows::
 
 To install *all* pandas dependencies you can do the following::
 
-      conda install -n pandas_dev -c pandas --file ci/requirements_all.txt
+      conda install -n pandas_dev -c conda-forge --file ci/requirements_all.txt
 
 To work in this environment, Windows users should ``activate`` it as follows::
 
@@ -509,7 +509,7 @@ the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master --name-only -- '*.py' | flake8 --diff
+   git diff master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -518,12 +518,28 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs -r flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+
+Note that on Windows, these commands are unfortunately not possible because
+commands like ``grep`` and ``xargs`` are not available natively. To imitate the
+behavior with the commands above, you should run::
+
+    git diff master --name-only -- "*.py"
+
+This will list all of the Python files that have been modified. The only ones
+that matter during linting are any whose directory filepath begins with "pandas."
+For each filepath, copy and paste it after the ``flake8`` command as shown below:
+
+    flake8 <python-filepath>
+
+Alternatively, you can install the ``grep`` and ``xargs`` commands via the
+`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
+commands above.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -582,6 +598,10 @@ Like many packages, *pandas* uses `pytest
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
+.. note::
+
+   The earliest supported pytest version is 3.1.0.
+
 Writing tests
 ~~~~~~~~~~~~~
 
@@ -638,7 +658,9 @@ Using ``pytest``
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
 - functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
 - using ``parametrize``: allow testing of multiple cases
+- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
 - ``fixture``, code for object construction, on a per-test basis
 - using bare ``assert`` for scalars and truth-testing
 - ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
@@ -656,6 +678,13 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
+
+   @pytest.mark.parametrize('dtype', ['float32',
+       pytest.param('int16', marks=pytest.mark.skip),
+       pytest.param('int32',
+                    marks=pytest.mark.xfail(reason='to show how it works'))])
+   def test_mark(dtype):
+       assert str(np.dtype(dtype)) == 'float32'
 
    @pytest.fixture
    def series():
@@ -679,13 +708,16 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
    tester.py::test_dtypes[int16] PASSED
    tester.py::test_dtypes[int32] PASSED
    tester.py::test_dtypes[int64] PASSED
+   tester.py::test_mark[float32] PASSED
+   tester.py::test_mark[int16] SKIPPED
+   tester.py::test_mark[int32] xfail
    tester.py::test_series[int8] PASSED
    tester.py::test_series[int16] PASSED
    tester.py::test_series[int32] PASSED
@@ -698,8 +730,8 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED

@@ -8,7 +8,7 @@ parsing for all of the parsers defined in parsers.py
 import numpy as np
 from numpy import nan
 
-import pandas.io.parsers as parsers
+import pandas.io.common as com
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Index, MultiIndex
@@ -70,9 +70,9 @@ NaN,nan
 
     def test_default_na_values(self):
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                          '#N/A', 'N/A', 'NA', '#NA', 'NULL', 'NaN',
-                          'nan', '-NaN', '-nan', '#N/A N/A', ''])
-        assert _NA_VALUES == parsers._NA_VALUES
+                          '#N/A', 'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null',
+                          'NaN', 'nan', '-NaN', '-nan', '#N/A N/A', ''])
+        assert _NA_VALUES == com._NA_VALUES
         nv = len(_NA_VALUES)
 
         def f(i, v):
@@ -249,7 +249,7 @@ nan,B
 
         result = self.read_csv(StringIO(data))
         assert result['Date'][1] == '2012-05-12'
-        assert result['UnitPrice'].isnull().all()
+        assert result['UnitPrice'].isna().all()
 
     def test_na_values_scalar(self):
         # see gh-12224

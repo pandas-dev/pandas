@@ -111,6 +111,7 @@ class series_dropna_int64(object):
     def time_series_dropna_int64(self):
         self.s.dropna()
 
+
 class series_dropna_datetime(object):
     goal_time = 0.2
 
@@ -120,3 +121,13 @@ class series_dropna_datetime(object):
 
     def time_series_dropna_datetime(self):
         self.s.dropna()
+
+
+class series_clip(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = pd.Series(np.random.randn(50))
+
+    def time_series_dropna_datetime(self):
+        self.s.clip(0, 1)

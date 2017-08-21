@@ -52,6 +52,7 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+@tm.network
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -84,12 +85,11 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
-@pytest.mark.xfail(reason=("pandas_datareader<=0.3.0 "
-                           "broken w.r.t. pandas >= 0.20.0"))
+@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa
-    pandas_datareader.get_data_yahoo('AAPL')
+    pandas_datareader.get_data_google('AAPL')
 
 
 def test_geopandas():

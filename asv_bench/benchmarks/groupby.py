@@ -368,6 +368,11 @@ class groupby_size(object):
         self.dates = (np.datetime64('now') + self.offsets)
         self.df = DataFrame({'key1': np.random.randint(0, 500, size=self.n), 'key2': np.random.randint(0, 100, size=self.n), 'value1': np.random.randn(self.n), 'value2': np.random.randn(self.n), 'value3': np.random.randn(self.n), 'dates': self.dates, })
 
+        N = 1000000
+        self.draws = pd.Series(np.random.randn(N))
+        labels = pd.Series(['foo', 'bar', 'baz', 'qux'] * (N // 4))
+        self.cats = labels.astype('category')
+
     def time_groupby_multi_size(self):
         self.df.groupby(['key1', 'key2']).size()
 
@@ -376,6 +381,10 @@ class groupby_size(object):
 
     def time_groupby_dt_timegrouper_size(self):
         self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
+
+    def time_groupby_size(self):
+        self.draws.groupby(self.cats).size()
+
 
 
 #----------------------------------------------------------------------

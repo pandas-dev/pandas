@@ -65,6 +65,27 @@ class TestSAS7BDAT(object):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
+    def test_path_pathlib(self):
+        tm._skip_if_no_pathlib()
+        from pathlib import Path
+        for j in 0, 1:
+            df0 = self.data[j]
+            for k in self.test_ix[j]:
+                fname = Path(os.path.join(self.dirpath, "test%d.sas7bdat" % k))
+                df = pd.read_sas(fname, encoding='utf-8')
+                tm.assert_frame_equal(df, df0)
+
+    def test_path_localpath(self):
+        tm._skip_if_no_localpath()
+        from py.path import local as LocalPath
+        for j in 0, 1:
+            df0 = self.data[j]
+            for k in self.test_ix[j]:
+                fname = LocalPath(os.path.join(self.dirpath,
+                                               "test%d.sas7bdat" % k))
+                df = pd.read_sas(fname, encoding='utf-8')
+                tm.assert_frame_equal(df, df0)
+
     def test_iterator_loop(self):
         # github #13654
         for j in 0, 1:
@@ -118,8 +139,8 @@ def test_productsales():
     fname = os.path.join(dirpath, "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding='utf-8')
     fname = os.path.join(dirpath, "productsales.csv")
-    df0 = pd.read_csv(fname)
-    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
+    df0 = pd.read_csv(fname, parse_dates=['MONTH'])
+    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
@@ -142,3 +163,14 @@ def test_airline():
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0, check_exact=False)
+
+
+def test_date_time():
+    # Support of different SAS date/datetime formats (PR #15871)
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "datetime.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "datetime.csv")
+    df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
+                                          'DateTimeHi', 'Taiw'])
+    tm.assert_frame_equal(df, df0)

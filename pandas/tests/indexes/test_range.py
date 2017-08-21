@@ -10,7 +10,7 @@ from pandas.compat import range, u, PY3
 
 import numpy as np
 
-from pandas import (notnull, Series, Index, Float64Index,
+from pandas import (notna, Series, Index, Float64Index,
                     Int64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -172,16 +172,16 @@ class TestRangeIndex(Numeric):
         copy = RangeIndex(orig)
         copy.name = 'copy'
 
-        assert orig.name, 'original'
-        assert copy.name, 'copy'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
 
         new = Index(copy)
-        assert new.name, 'copy'
+        assert new.name == 'copy'
 
         new.name = 'new'
-        assert orig.name, 'original'
-        assert new.name, 'copy'
-        assert new.name, 'new'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
+        assert new.name == 'new'
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
@@ -273,7 +273,7 @@ class TestRangeIndex(Numeric):
             expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         else:
             expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
-        assert result, expected
+        assert result == expected
 
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
@@ -331,25 +331,35 @@ class TestRangeIndex(Numeric):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert self.index._is_strictly_monotonic_increasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
         assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 2)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(2, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -919,7 +929,7 @@ class TestRangeIndex(Numeric):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -941,3 +951,39 @@ class TestRangeIndex(Numeric):
         for klass in klasses:
             result = i.where(klass(cond))
             tm.assert_index_equal(result, expected)
+
+    def test_append(self):
+        # GH16212
+        RI = RangeIndex
+        I64 = Int64Index
+        F64 = Float64Index
+        OI = Index
+        cases = [([RI(1, 12, 5)], RI(1, 12, 5)),
+                 ([RI(0, 6, 4)], RI(0, 6, 4)),
+                 ([RI(1, 3), RI(3, 7)], RI(1, 7)),
+                 ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
+                 ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
+                 ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
+                 ([RI(-4, -8), RI(-8, -12)], RI(-8, -12)),
+                 ([RI(-4, -8), RI(3, -4)], RI(3, -8)),
+                 ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
+                 ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
+                 ([RI(-2,), RI(3, 5)], RI(3, 5)),
+                 ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
+                 ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
+                 ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
+                 ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
+                 ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
+                 ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
+                 ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
+                 ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
+                 ]
+
+        for indices, expected in cases:
+            result = indices[0].append(indices[1:])
+            tm.assert_index_equal(result, expected, exact=True)
+
+            if len(indices) == 2:
+                # Append single item rather than list
+                result2 = indices[0].append(indices[1])
+                tm.assert_index_equal(result2, expected, exact=True)

@@ -25,6 +25,7 @@ import pandas
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, MonthEnd
 import shutil
+import sys
 
 
 @pytest.fixture(scope='module')
@@ -299,6 +300,18 @@ def test_pickle_v0_15_2():
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
+def test_pickle_path_pathlib():
+    df = tm.makeDataFrame()
+    result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
+
+
+def test_pickle_path_localpath():
+    df = tm.makeDataFrame()
+    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
+
+
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -489,3 +502,38 @@ class TestCompression(object):
             df2 = pd.read_pickle(p2)
 
             tm.assert_frame_equal(df, df2)
+
+
+# ---------------------
+# test pickle compression
+# ---------------------
+
+class TestProtocol(object):
+
+    @pytest.mark.parametrize('protocol', [-1, 0, 1, 2])
+    def test_read(self, protocol, get_random_path):
+        with tm.ensure_clean(get_random_path) as path:
+            df = tm.makeDataFrame()
+            df.to_pickle(path, protocol=protocol)
+            df2 = pd.read_pickle(path)
+            tm.assert_frame_equal(df, df2)
+
+    @pytest.mark.parametrize('protocol', [3, 4])
+    @pytest.mark.skipif(sys.version_info[:2] >= (3, 4),
+                        reason="Testing invalid parameters for "
+                               "Python 2.x and 3.y (y < 4).")
+    def test_read_bad_versions(self, protocol, get_random_path):
+        # For Python 2.x (respectively 3.y with y < 4), [expected]
+        # HIGHEST_PROTOCOL should be 2 (respectively 3). Hence, the protocol
+        # parameter should not exceed 2 (respectively 3).
+        if sys.version_info[:2] < (3, 0):
+            expect_hp = 2
+        else:
+            expect_hp = 3
+        with tm.assert_raises_regex(ValueError,
+                                    "pickle protocol %d asked for; the highest"
+                                    " available protocol is %d" % (protocol,
+                                                                   expect_hp)):
+            with tm.ensure_clean(get_random_path) as path:
+                df = tm.makeDataFrame()
+                df.to_pickle(path, protocol=protocol)

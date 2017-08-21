@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isnull
+from pandas import Series, DataFrame, date_range, concat, isna
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -191,7 +191,7 @@ class TestiLoc(Base):
 
         # cross-sectional indexing
         result = df.iloc[0, 0]
-        assert isnull(result)
+        assert isna(result)
 
         result = df.iloc[0, :]
         expected = Series([np.nan, 1, 3, 3], index=['A', 'B', 'A', 'B'],
@@ -281,6 +281,19 @@ class TestiLoc(Base):
             np.array([0, 101, 102, 3, 104, 105, 6, 7, 8]).reshape((3, 3)),
             index=["A", "B", "C"], columns=["A", "B", "C"])
         tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_pandas_object(self):
+        # GH 17193, affecting old numpy (1.7 and 1.8)
+        s_orig = Series([0, 1, 2, 3])
+        expected = Series([0, -1, -2, 3])
+
+        s = s_orig.copy()
+        s.iloc[Series([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
+
+        s = s_orig.copy()
+        s.iloc[pd.Index([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
 
@@ -591,3 +604,21 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df.iloc[[]], df.iloc[:0, :],
                               check_index_type=True,
                               check_column_type=True)
+
+    def test_identity_slice_returns_new_object(self):
+        # GH13873
+        original_df = DataFrame({'a': [1, 2, 3]})
+        sliced_df = original_df.iloc[:]
+        assert sliced_df is not original_df
+
+        # should be a shallow copy
+        original_df['a'] = [4, 4, 4]
+        assert (sliced_df['a'] == 4).all()
+
+        original_series = Series([1, 2, 3, 4, 5, 6])
+        sliced_series = original_series.iloc[:]
+        assert sliced_series is not original_series
+
+        # should also be a shallow copy
+        original_series[:3] = [7, 8, 9]
+        assert all(sliced_series[:3] == [7, 8, 9])

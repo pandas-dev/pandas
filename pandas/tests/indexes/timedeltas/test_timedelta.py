@@ -66,6 +66,12 @@ class TestTimedeltaIndex(DatetimeLike):
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             assert idx.get_loc('1 day 1 hour', method) == loc
 
+        # GH 16909
+        assert idx.get_loc(idx[1].to_timedelta64()) == 1
+
+        # GH 16896
+        assert idx.get_loc('0 days') == 0
+
     def test_get_loc_nat(self):
         tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
 
@@ -564,15 +570,23 @@ class TestTimedeltaIndex(DatetimeLike):
 
 
 class TestSlicing(object):
+    @pytest.mark.parametrize('freq', ['B', 'D'])
+    def test_timedelta(self, freq):
+        index = date_range('1/1/2000', periods=50, freq=freq)
 
-    def test_timedelta(self):
-        # this is valid too
-        index = date_range('1/1/2000', periods=50, freq='B')
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
-        assert tm.equalContents(index, back)
-        assert shifted.freq == index.freq
-        assert shifted.freq == back.freq
+        tm.assert_index_equal(index, back)
+
+        if freq == 'D':
+            expected = pd.tseries.offsets.Day(1)
+            assert index.freq == expected
+            assert shifted.freq == expected
+            assert back.freq == expected
+        else:  # freq == 'B'
+            assert index.freq == pd.tseries.offsets.BusinessDay(1)
+            assert shifted.freq is None
+            assert back.freq == pd.tseries.offsets.BusinessDay(1)
 
         result = index - timedelta(1)
         expected = index + timedelta(-1)

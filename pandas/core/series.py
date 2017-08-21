@@ -10,7 +10,6 @@ import types
 import warnings
 from textwrap import dedent
 
-from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
@@ -36,7 +35,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
@@ -46,7 +45,8 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
-                                _dict_compat)
+                                _dict_compat,
+                                standardize_mapping)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -54,8 +54,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.core.indexes.accessors import (
-    maybe_to_datetimelike, CombinedDatetimelikeProperties)
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -76,6 +75,8 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 
+import pandas.plotting._core as gfx
+
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
@@ -85,6 +86,17 @@ _shared_doc_kwargs = dict(
     unique='np.ndarray', duplicated='Series',
     optional_by='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
+
+
+# see gh-16971
+def remove_na(arr):
+    """
+    DEPRECATED : this function will be removed in a future version.
+    """
+
+    warnings.warn("remove_na is deprecated and is a private "
+                  "function. Do not use.", FutureWarning, stacklevel=2)
+    return remove_na_arraylike(arr)
 
 
 def _coerce_method(converter):
@@ -198,13 +210,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                             data = np.nan
                     # GH #12169
                     elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
-                        data = ([data.get(i, nan) for i in index]
+                        data = ([data.get(i, np.nan) for i in index]
                                 if data else np.nan)
                     else:
                         data = lib.fast_multiget(data, index.values,
                                                  default=np.nan)
                 except TypeError:
-                    data = ([data.get(i, nan) for i in index]
+                    data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)
 
             elif isinstance(data, SingleBlockManager):
@@ -385,6 +397,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def _values(self):
         """ return the internal repr of this data """
         return self._data.internal_values()
+
+    def _formatting_values(self):
+        """Return the values that can be formatted (used by SeriesFormatter
+        and DataFrameFormatter)
+        """
+        return self._data.formatting_values()
 
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
@@ -734,7 +752,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     pass
                 elif is_timedelta64_dtype(self.dtype):
                     # reassign a null value to iNaT
-                    if isnull(value):
+                    if isna(value):
                         value = iNaT
 
                         try:
@@ -849,8 +867,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def reshape(self, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release. Please call ``.values.reshape(...)`` instead.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error. Please call
+           ``.values.reshape(...)`` instead.
 
         return an ndarray with the values shape
         if the specified shape matches exactly the current shape, then
@@ -946,6 +965,37 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Returns
         ----------
         resetted : DataFrame, or Series if drop == True
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
+        >>> s.reset_index()
+           index  0
+        0      0  1
+        1      1  2
+        2      2  3
+        3      3  4
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
+        ...                     'foo', 'qux', 'qux']),
+        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
+        ...                     'one', 'two'])]
+        >>> s2 = pd.Series(
+        ...     np.random.randn(8),
+        ...     index=pd.MultiIndex.from_arrays(arrays,
+        ...                                     names=['a', 'b']))
+        >>> s2.reset_index(level='a')
+               a         0
+        b
+        one  bar -0.286320
+        two  bar -0.587934
+        one  baz  0.710491
+        two  baz -1.429006
+        one  foo  0.790700
+        two  foo  0.824863
+        one  qux -0.718963
+        two  qux -0.055028
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -1060,8 +1110,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         return zip(iter(self.index), iter(self))
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -1074,15 +1123,39 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """ Convert Series to a nested list """
         return list(self.asobject)
 
-    def to_dict(self):
+    def to_dict(self, into=dict):
         """
-        Convert Series to {label -> value} dict
+        Convert Series to {label -> value} dict or dict-like object.
+
+        Parameters
+        ----------
+        into : class, default dict
+            The collections.Mapping subclass to use as the return
+            object. Can be the actual class or an empty
+            instance of the mapping type you want.  If you want a
+            collections.defaultdict, you must pass it initialized.
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
-        value_dict : dict
+        value_dict : collections.Mapping
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s.to_dict()
+        {0: 1, 1: 2, 2: 3, 3: 4}
+        >>> from collections import OrderedDict, defaultdict
+        >>> s.to_dict(OrderedDict)
+        OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
+        >>> dd = defaultdict(list)
+        >>> s.to_dict(dd)
+        defaultdict(<type 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
-        return dict(compat.iteritems(self))
+        # GH16122
+        into_c = standardize_mapping(into)
+        return into_c(compat.iteritems(self))
 
     def to_frame(self, name=None):
         """
@@ -1159,7 +1232,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         from pandas.core.index import _get_na_value
 
         if level is None:
-            return notnull(_values_from_object(self)).sum()
+            return notna(_values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1172,7 +1245,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             lab[mask] = cnt = len(lev)
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        obs = lab[notnull(self.values)]
+        obs = lab[notna(self.values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
@@ -1496,6 +1569,18 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
 
+        Notes
+        -----
+        Iteratively appending to a Series can be more computationally intensive
+        than a single concatenate. A better solution is to append values to a
+        list and then concatenate the list with the original Series all at
+        once.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
         Returns
         -------
         appended : Series
@@ -1586,8 +1671,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other_vals = other.values
 
         if fill_value is not None:
-            this_mask = isnull(this_vals)
-            other_mask = isnull(other_vals)
+            this_mask = isna(this_vals)
+            other_mask = isna(other_vals)
             this_vals = this_vals.copy()
             other_vals = other_vals.copy()
 
@@ -1606,7 +1691,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=nan):
+    def combine(self, other, func, fill_value=np.nan):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
@@ -1656,7 +1741,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
         name = _maybe_match_name(self, other)  # noqa
-        rs_vals = com._where_compat(isnull(this), other._values, this._values)
+        rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
     def update(self, other):
@@ -1669,7 +1754,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         other : Series
         """
         other = other.reindex_like(self)
-        mask = notnull(other)
+        mask = notna(other)
 
         self._data = self._data.putmask(mask=mask, new=other, inplace=True)
         self._maybe_update_cacher()
@@ -1702,7 +1787,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         arr = self._values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
-        bad = isnull(arr)
+        bad = isna(arr)
 
         good = ~bad
         idx = _default_index(len(self))
@@ -1807,7 +1892,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         numpy.ndarray.argsort
         """
         values = self._values
-        mask = isnull(values)
+        mask = isna(values)
 
         if mask.any():
             result = Series(-1, index=self.index, name=self.name,
@@ -1822,7 +1907,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 dtype='int64').__finalize__(self)
 
     def nlargest(self, n=5, keep='first'):
-        """Return the largest `n` elements.
+        """
+        Return the largest `n` elements.
 
         Parameters
         ----------
@@ -1868,7 +1954,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
-        """Return the smallest `n` elements.
+        """
+        Return the smallest `n` elements.
 
         Parameters
         ----------
@@ -2134,7 +2221,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if na_action == 'ignore':
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f,
-                                              isnull(values).view(np.uint8))
+                                              isna(values).view(np.uint8))
             else:
                 map_f = lib.map_infer
 
@@ -2702,6 +2789,22 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     merge_cells=merge_cells, encoding=encoding,
                     inf_rep=inf_rep, verbose=verbose)
 
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isna(self):
+        return super(Series, self).isna()
+
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    def isnull(self):
+        return super(Series, self).isnull()
+
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    def notna(self):
+        return super(Series, self).notna()
+
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    def notnull(self):
+        return super(Series, self).notnull()
+
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
         Return Series without null values
@@ -2721,7 +2824,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         axis = self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
-            result = remove_na(self)
+            result = remove_na_arraylike(self)
             if inplace:
                 self._update_inplace(result)
             else:
@@ -2743,7 +2846,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values)
+        mask = isna(self._values)
         i = mask.argmin()
         if mask[i]:
             return None
@@ -2757,7 +2860,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if len(self) == 0:
             return None
 
-        mask = isnull(self._values[::-1])
+        mask = isna(self._values[::-1])
         i = mask.argmin()
         if mask[i]:
             return None
@@ -2814,27 +2917,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-
-    def _make_dt_accessor(self):
-        try:
-            return maybe_to_datetimelike(self)
-        except Exception:
-            raise AttributeError("Can only use .dt accessor with datetimelike "
-                                 "values")
-
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties,
-                               _make_dt_accessor)
+    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-
-    def _make_cat_accessor(self):
-        if not is_categorical_dtype(self.dtype):
-            raise AttributeError("Can only use .cat accessor with a "
-                                 "'category' dtype")
-        return CategoricalAccessor(self.values, self.index)
-
-    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
+    cat = base.AccessorProperty(CategoricalAccessor)
 
     def _dir_deletions(self):
         return self._accessors
@@ -2849,22 +2936,25 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 pass
         return rv
 
+    # ----------------------------------------------------------------------
+    # Add plotting methods to Series
+    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
+                                 gfx.SeriesPlotMethods)
+    hist = gfx.hist_series
+
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
-_INDEX_TYPES = ndarray, Index, list, tuple
+
+# Add arithmetic!
+ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
+ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
-
-
-def remove_na(series):
-    """
-    Return series containing only true/non-NaN values, possibly empty.
-    """
-    return series[notnull(_values_from_object(series))]
 
 
 def _sanitize_index(data, index, copy=False):
@@ -2936,7 +3026,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                if not isnull(data).any():
+                if not isna(data).any():
                     subarr = _try_cast(data, True)
                 elif copy:
                     subarr = data.copy()
@@ -3034,17 +3124,3 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-# ----------------------------------------------------------------------
-# Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
-
-Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
-                                    _gfx.SeriesPlotMethods)
-Series.hist = _gfx.hist_series
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)

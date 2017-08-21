@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, compat
+from pandas import DataFrame, compat, Series
 from pandas.util import testing as tm
 from pandas.compat import u
 import codecs
@@ -491,3 +491,48 @@ AA &  BB \\
 """
 
         assert withindex_result == withindex_expected
+
+    def test_to_latex_series(self):
+        s = Series(['a', 'b', 'c'])
+        withindex_result = s.to_latex()
+        withindex_expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  0 \\
+\midrule
+0 &  a \\
+1 &  b \\
+2 &  c \\
+\bottomrule
+\end{tabular}
+"""
+        assert withindex_result == withindex_expected
+
+    def test_to_latex_bold_rows(self):
+        # GH 16707
+        df = pd.DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+        observed = df.to_latex(bold_rows=True)
+        expected = r"""\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\textbf{0} &  1 &  b1 \\
+\textbf{1} &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
+
+    def test_to_latex_no_bold_rows(self):
+        # GH 16707
+        df = pd.DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+        observed = df.to_latex(bold_rows=False)
+        expected = r"""\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected

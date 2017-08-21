@@ -30,7 +30,7 @@ import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
-                                 assert_produces_warning, slow)
+                                 assert_produces_warning)
 from pandas.compat import PY3, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -38,13 +38,14 @@ _scalar_skip = 'in', 'not in'
 
 
 @pytest.fixture(params=(
-    pytest.mark.skipif(engine == 'numexpr' and not _USE_NUMEXPR,
-                       reason='numexpr enabled->{enabled}, '
-                              'installed->{installed}'.format(
-                                  enabled=_USE_NUMEXPR,
-                                  installed=_NUMEXPR_INSTALLED))(engine)
-                       for engine in _engines  # noqa
-))
+    pytest.param(engine,
+                 marks=pytest.mark.skipif(
+                     engine == 'numexpr' and not _USE_NUMEXPR,
+                     reason='numexpr enabled->{enabled}, '
+                            'installed->{installed}'.format(
+                                enabled=_USE_NUMEXPR,
+                                installed=_NUMEXPR_INSTALLED)))
+                 for engine in _engines))  # noqa
 def engine(request):
     return request.param
 
@@ -144,7 +145,7 @@ class TestEvalNumexprPandas(object):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
-    @slow
+    @pytest.mark.slow
     def test_complex_cmp_ops(self):
         cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
         cmp2_ops = ('>', '<')
@@ -161,7 +162,7 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
             self.check_binary_arith_op(lhs, op, rhs)
@@ -181,17 +182,17 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_single_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_single_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_compound_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_compound_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_chained_cmp_op(self):
         mids = self.lhses
         cmp_ops = '<', '>'
@@ -870,7 +871,7 @@ class TestAlignment(object):
             res = pd.eval('df < df3', engine=engine, parser=parser)
             assert_frame_equal(res, df < df3)
 
-    @slow
+    @pytest.mark.slow
     def test_medium_complex_frame_alignment(self, engine, parser):
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
@@ -974,7 +975,7 @@ class TestAlignment(object):
                     if engine == 'numexpr':
                         assert_frame_equal(a, b)
 
-    @slow
+    @pytest.mark.slow
     def test_complex_series_frame_alignment(self, engine, parser):
         import random
         args = product(self.lhs_index_types, self.index_types,
@@ -1311,14 +1312,6 @@ class TestOperationsNumExprPandas(object):
         expected['c'] = expected['a'] + expected['b']
         tm.assert_frame_equal(df, expected)
 
-        # Default for inplace will change
-        with tm.assert_produces_warnings(FutureWarning):
-            df.eval('c = a + b')
-
-        # but don't warn without assignment
-        with tm.assert_produces_warnings(None):
-            df.eval('a + b')
-
     def test_multi_line_expression(self):
         # GH 11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
@@ -1388,13 +1381,51 @@ class TestOperationsNumExprPandas(object):
             df.query('a = 1')
         assert_frame_equal(df, df_orig)
 
-    def query_inplace(self):
-        # GH 11149
+    def test_query_inplace(self):
+        # see gh-11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected['a'] == 2]
         df.query('a == 2', inplace=True)
         assert_frame_equal(expected, df)
+
+        df = {}
+        expected = {"a": 3}
+
+        self.eval("a = 1 + 2", target=df, inplace=True)
+        tm.assert_dict_equal(df, expected)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2],
+                                                np.array([]), (1, 3)])
+    def test_cannot_item_assign(self, invalid_target):
+        msg = "Cannot assign expression output to target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=True)
+
+        if hasattr(invalid_target, "copy"):
+            with tm.assert_raises_regex(ValueError, msg):
+                self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", (1, 3)])
+    def test_cannot_copy_item(self, invalid_target):
+        msg = "Cannot return a copy of the target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("target", [1, "cat", [1, 2],
+                                        np.array([]), (1, 3), {1: 2}])
+    def test_inplace_no_assignment(self, target):
+        expression = "1 + 2"
+
+        assert self.eval(expression, target=target, inplace=False) == 3
+
+        msg = "Cannot operate inplace if there is no assignment"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')

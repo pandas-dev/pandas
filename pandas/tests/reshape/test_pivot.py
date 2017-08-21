@@ -167,6 +167,24 @@ class TestPivotTable(object):
         expected = Series(dict(float64=2))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('columns,values',
+                             [('bool1', ['float1', 'float2']),
+                              ('bool1', ['float1', 'float2', 'bool1']),
+                              ('bool2', ['float1', 'float2', 'bool1'])])
+    def test_pivot_preserve_dtypes(self, columns, values):
+        # GH 7142 regression test
+        v = np.arange(5, dtype=np.float64)
+        df = DataFrame({'float1': v, 'float2': v + 2.0,
+                        'bool1': v <= 2, 'bool2': v <= 3})
+
+        df_res = df.reset_index().pivot_table(
+            index='index', columns=columns, values=values)
+
+        result = dict(df_res.dtypes)
+        expected = {col: np.dtype('O') if col[0].startswith('b')
+                    else np.dtype('float64') for col in df_res}
+        assert result == expected
+
     def test_pivot_no_values(self):
         # GH 14380
         idx = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-01-02',
@@ -249,7 +267,7 @@ class TestPivotTable(object):
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
         pv = df.pivot('a', 'b', 'c')
-        assert pv.notnull().values.sum() == len(df)
+        assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row['a'], row['b']] == row['c']
@@ -440,6 +458,41 @@ class TestPivotTable(object):
                                       aggfunc='sum', margins=True)
 
         tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
+
+    def test_margins_dtype(self):
+        # GH 17013
+
+        df = self.data.copy()
+        df[['D', 'E', 'F']] = np.arange(len(df) * 3).reshape(len(df), 3)
+
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [12, 21, 3, 9, 45],
+                              'shiny': [33, 0, 36, 51, 120]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = df.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=np.sum, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.xfail(reason='GH 17035 (len of floats is casted back to '
+                              'floats)')
+    def test_margins_dtype_len(self):
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [1, 1, 2, 1, 5],
+                              'shiny': [2, 0, 2, 2, 6]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = self.data.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=len, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
@@ -876,6 +929,8 @@ class TestPivotTable(object):
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
     def test_categorical_margins(self):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -886,14 +941,23 @@ class TestPivotTable(object):
         expected.index = Index([0, 1, 'All'], name='y')
         expected.columns = Index([0, 1, 'All'], name='z')
 
-        data = df.copy()
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
-        data = df.copy()
-        data.y = data.y.astype('category')
-        data.z = data.z.astype('category')
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
+    def test_categorical_margins_category(self):
+        df = pd.DataFrame({'x': np.arange(8),
+                           'y': np.arange(8) // 4,
+                           'z': np.arange(8) % 2})
+
+        expected = pd.DataFrame([[1.0, 2.0, 1.5], [5, 6, 5.5], [3, 4, 3.5]])
+        expected.index = Index([0, 1, 'All'], name='y')
+        expected.columns = Index([0, 1, 'All'], name='z')
+
+        df.y = df.y.astype('category')
+        df.z = df.z.astype('category')
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
     def test_categorical_aggfunc(self):
@@ -1040,6 +1104,22 @@ class TestCrosstab(object):
         assert result.index.name == 'row_0'
         assert result.columns.name == 'col_0'
 
+    def test_crosstab_non_aligned(self):
+        # GH 17005
+        a = pd.Series([0, 1, 1], index=['a', 'b', 'c'])
+        b = pd.Series([3, 4, 3, 4, 3], index=['a', 'b', 'c', 'd', 'f'])
+        c = np.array([3, 4, 3])
+
+        expected = pd.DataFrame([[1, 0], [1, 1]],
+                                index=Index([0, 1], name='row_0'),
+                                columns=Index([3, 4], name='col_0'))
+
+        result = crosstab(a, b)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab(a, c)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_margins(self):
         a = np.random.randint(0, 7, size=100)
         b = np.random.randint(0, 3, size=100)
@@ -1070,6 +1150,43 @@ class TestCrosstab(object):
         exp_rows = exp_rows.reindex(all_rows.index)
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
+
+    def test_crosstab_margins_set_margin_name(self):
+        # GH 15972
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                          margins=True, margins_name='TOTAL')
+
+        assert result.index.names == ('a',)
+        assert result.columns.names == ['b', 'c']
+
+        all_cols = result['TOTAL', '']
+        exp_cols = df.groupby(['a']).size().astype('i8')
+        # to keep index.name
+        exp_margin = Series([len(df)], index=Index(['TOTAL'], name='a'))
+        exp_cols = exp_cols.append(exp_margin)
+        exp_cols.name = ('TOTAL', '')
+
+        tm.assert_series_equal(all_cols, exp_cols)
+
+        all_rows = result.loc['TOTAL']
+        exp_rows = df.groupby(['b', 'c']).size().astype('i8')
+        exp_rows = exp_rows.append(Series([len(df)], index=[('TOTAL', '')]))
+        exp_rows.name = 'TOTAL'
+
+        exp_rows = exp_rows.reindex(all_rows.index)
+        exp_rows = exp_rows.fillna(0).astype(np.int64)
+        tm.assert_series_equal(all_rows, exp_rows)
+
+        for margins_name in [666, None, ['a', 'b']]:
+            with pytest.raises(ValueError):
+                crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                         margins=True, margins_name=margins_name)
 
     def test_crosstab_pass_values(self):
         a = np.random.randint(0, 7, size=100)
@@ -1394,6 +1511,16 @@ class TestCrosstab(object):
         expected = pd.DataFrame(expected_data,
                                 index=expected_index,
                                 columns=expected_column)
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_dup_index_names(self):
+        # GH 13279
+        s = pd.Series(range(3), name='foo')
+        result = pd.crosstab(s, s)
+        expected_index = pd.Index(range(3), name='foo')
+        expected = pd.DataFrame(np.eye(3, dtype=np.int64),
+                                index=expected_index,
+                                columns=expected_index)
         tm.assert_frame_equal(result, expected)
 
 
