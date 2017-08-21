@@ -83,8 +83,12 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, unit=unit, box=box,
                                  errors=errors, name=arg.name)
-    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:
-        return _convert_listlike(arg, unit=unit, box=box, errors=errors)
+    elif is_list_like(arg) and getattr(arg, 'ndim', 1) <= 1:
+        if getattr(arg, 'ndim', 1) == 0:
+            # extract array scalar and process below
+            arg = arg.item()
+        else:
+            return _convert_listlike(arg, unit=unit, box=box, errors=errors)
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, timedelta, list, tuple, '
                         '1-d array, or Series')
