@@ -632,7 +632,7 @@ class Base(object):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
                     assert result.__class__ == answer.__class__
-                    tm.assert_numpy_array_equal(result.asi8, answer.asi8)
+                    assert tm.equalContents(result.asi8, answer.asi8)
                 else:
                     result = first.difference(case)
                     assert tm.equalContents(result, answer)
@@ -954,3 +954,24 @@ class Base(object):
         if index.is_unique:
             joined = index.join(index, how=how)
             assert (index == joined).all()
+
+    def test_searchsorted_monotonic(self):
+        # GH17271
+        for index in self.indices.values():
+            # not implemented for tuple searches in MultiIndex
+            # or Intervals searches in IntervalIndex
+            if isinstance(index, (MultiIndex, IntervalIndex)):
+                continue
+
+            # nothing to test if the index is empty
+            if index.empty:
+                continue
+            value = index[0]
+
+            if index.is_monotonic_increasing or index.is_monotonic_decreasing:
+                assert index._searchsorted_monotonic(value, side='left') == 0
+                assert index._searchsorted_monotonic(value, side='right') == 1
+            else:
+                # non-monotonic should raise.
+                with pytest.raises(ValueError):
+                    index._searchsorted_monotonic(value, side='left')

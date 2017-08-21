@@ -12,7 +12,9 @@ class TestDatetimeIndex(DatetimeLike):
     _holder = DatetimeIndex
 
     def setup_method(self, method):
-        self.indices = dict(index=tm.makeDateIndex(10))
+        self.indices = dict(index=tm.makeDateIndex(10),
+                            index_dec=date_range('20130110', periods=10,
+                                                 freq='-1D'))
         self.setup_indices()
 
     def create_index(self):
