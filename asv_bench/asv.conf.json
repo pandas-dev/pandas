@@ -118,9 +118,9 @@
     // skipped for the matching benchmark.
     //
     "regressions_first_commits": {
-        "*": "v0.20.0"
+        ".*": "v0.20.0"
     },
     "regression_thresholds": {
-        "*": 0.05
+        ".*": 0.05
     }
 }
