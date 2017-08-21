@@ -444,7 +444,7 @@ class RangeIndex(Int64Index):
         return super(RangeIndex, self).join(other, how, level, return_indexers,
                                             sort)
 
-    def _append_same_dtype(self, indexes, name):
+    def _concat_same_dtype(self, indexes, name):
         return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
 
     def __len__(self):

@@ -635,9 +635,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
-        return CategoricalIndex._append_same_dtype(self, to_concat, name)
+        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories
