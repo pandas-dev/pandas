@@ -48,6 +48,8 @@ cimport lib
 from lib cimport is_null_datetimelike
 from pandas._libs import lib
 
+import warnings
+
 cdef int64_t iNaT = get_nat()
 
 cdef:
@@ -300,6 +302,8 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
 
+    warn_ddof = False
+
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
@@ -312,8 +316,11 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
                         sumx += vx
                         sumy += vy
 
-                if nobs < minpv or (cov and nobs - ddofv <= 0):
+                if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
+                elif cov and nobs - ddofv <= 0:
+                    result[xi, yi] = result[yi, xi] = NaN
+                    warn_ddof = True
                 else:
                     meanx = sumx / nobs
                     meany = sumy / nobs
@@ -336,6 +343,9 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None, ddof=None):
                         result[xi, yi] = result[yi, xi] = sumx / divisor
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
+
+    if warn_ddof:
+        warnings.warn("N - ddof <= 0 for input ddof, for at least 1 pair of columns.", RuntimeWarning)
 
     return result
 

@@ -5325,12 +5325,11 @@ class DataFrame(NDFrame):
 
         if notna(mat).all():
             fill_nan = False
-            #raise on ddof < 0, warn on N - ddof <= 0
             if min_periods is not None and min_periods > len(mat):
                 fill_nan = True
             if len(mat) - ddof <= 0:
                 fill_nan = True
-                warnings.warn("N - ddof <= 0 for input ddof.", UserWarning)
+                warnings.warn("N - ddof <= 0 for input ddof.", RuntimeWarning)
             if fill_nan:
                 baseCov = np.empty((mat.shape[1], mat.shape[1]))
                 baseCov.fill(np.nan)
