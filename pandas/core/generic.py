@@ -4135,7 +4135,8 @@ class NDFrame(PandasObject, SelectionMixin):
                         continue
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
-                return result
+                return result if not inplace else None
+
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
