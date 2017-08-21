@@ -132,7 +132,6 @@ Other Enhancements
 
 
 
-
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
@@ -384,6 +383,7 @@ Reshaping
 Numeric
 ^^^^^^^
 - Bug in ``.clip()`` with ``axis=1`` and a list-like for ``threshold`` is passed; previously this raised ``ValueError`` (:issue:`15390`)
+- :func:`Series.clip()` and :func:`DataFrame.clip()` now treat NA values for upper and lower arguments as ``None`` instead of raising ``ValueError`` (:issue:`17276`).
 
 
 Categorical

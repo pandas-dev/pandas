@@ -4741,9 +4741,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        if np.any(isna(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
         # method is self.le for upper bound and self.ge for lower bound
         if is_scalar(threshold) and is_number(threshold):
             if method.__name__ == 'le':
@@ -4823,6 +4820,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
+        # GH 17276
+        # numpy doesn't like NaN as a clip value
+        # so ignore
+        if np.any(pd.isnull(lower)):
+            lower = None
+        if np.any(pd.isnull(upper)):
+            upper = None
+
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
@@ -4839,7 +4844,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if upper is not None:
             if inplace:
                 result = self
-
             result = result.clip_upper(upper, axis, inplace=inplace)
 
         return result
