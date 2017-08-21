@@ -120,6 +120,7 @@ initialize_daytime_conversion_factor_matrix()
 # Period logic
 #----------------------------------------------------------------------
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
