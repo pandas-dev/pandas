@@ -109,6 +109,14 @@ Feather
 
    read_feather
 
+Parquet
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_parquet
+
 SAS
 ~~~
 

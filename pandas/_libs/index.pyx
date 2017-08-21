@@ -1,8 +1,6 @@
 # cython: profile=False
 
-from numpy cimport ndarray
-
-from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
+from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
                     NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
@@ -16,7 +14,9 @@ cimport util
 import numpy as np
 
 cimport tslib
-from hashtable cimport *
+
+from hashtable cimport HashTable
+
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
@@ -32,13 +32,9 @@ cdef extern from "datetime.h":
 
 cdef int64_t iNaT = util.get_nat()
 
-try:
-    from dateutil.tz import tzutc as _du_utc
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except ImportError:
-    have_pytz = False
+from dateutil.tz import tzutc as _du_utc
+import pytz
+UTC = pytz.utc
 
 PyDateTime_IMPORT
 

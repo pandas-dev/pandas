@@ -24,7 +24,7 @@ from pandas import (Categorical, Index, Series, DataFrame,
                     period_range, PeriodIndex,
                     timedelta_range, TimedeltaIndex, NaT,
                     Interval, IntervalIndex)
-from pandas.compat import range, lrange, u, PY3
+from pandas.compat import range, lrange, u, PY3, PYPY
 from pandas.core.config import option_context
 
 
@@ -111,6 +111,16 @@ class TestCategorical(object):
         # which maps to the -1000 category
         result = c.codes[np.array([100000]).astype(np.int64)]
         tm.assert_numpy_array_equal(result, np.array([5], dtype='int8'))
+
+    def test_constructor_empty(self):
+        # GH 17248
+        c = Categorical([])
+        expected = Index([])
+        tm.assert_index_equal(c.categories, expected)
+
+        c = Categorical([], categories=[1, 2, 3])
+        expected = pd.Int64Index([1, 2, 3])
+        tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_unsortable(self):
 
@@ -1448,10 +1458,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat = pd.Categorical(['foo', 'foo', 'bar'])
         assert cat.memory_usage(deep=True) > cat.nbytes
 
-        # sys.getsizeof will call the .memory_usage with
-        # deep=True, and add on some GC overhead
-        diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
-        assert abs(diff) < 100
+        if not PYPY:
+            # sys.getsizeof will call the .memory_usage with
+            # deep=True, and add on some GC overhead
+            diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
+            assert abs(diff) < 100
 
     def test_searchsorted(self):
         # https://github.com/pandas-dev/pandas/issues/8420
