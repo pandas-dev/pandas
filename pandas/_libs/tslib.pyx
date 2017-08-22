@@ -704,7 +704,6 @@ class Timestamp(_Timestamp):
             pandas_datetimestruct dts
             int64_t value
             object _tzinfo, result, k, v
-            _TSObject ts
 
         # set to naive if needed
         _tzinfo = self.tzinfo
@@ -1006,11 +1005,6 @@ def unique_deltas(ndarray[int64_t] arr):
     result = np.array(uniques, dtype=np.int64)
     result.sort()
     return result
-
-
-# TODO: never used?  an identical function is defined in tseries.frequencies
-cdef inline bint _is_multiple(int64_t us, int64_t mult):
-    return us % mult == 0
 
 
 cdef inline bint _cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
@@ -4483,7 +4477,6 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     field and return an array of these values.
     """
     cdef:
-        _TSObject ts
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
         ndarray[int32_t, ndim=2] _month_offset
@@ -4665,7 +4658,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     (defined by frequency).
     """
     cdef:
-        _TSObject ts
         Py_ssize_t i
         int count = 0
         bint is_business = 0
@@ -4714,9 +4706,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if (dom == 1 and dow < 5) or (dom <= 3 and dow == 0):
                     out[i] = 1
@@ -4740,13 +4731,12 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if (ldom == doy and dow < 5) or (
                         dow == 4 and (ldom - doy <= 2)):
@@ -4775,9 +4765,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if ((dts.month - start_month) % 3 == 0) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
@@ -4802,13 +4791,12 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
                 ldom = _month_offset[isleap, dts.month]
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if ((dts.month - end_month) % 3 == 0) and (
                         (ldom == doy and dow < 5) or (
@@ -4838,9 +4826,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if (dts.month == start_month) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
@@ -4865,12 +4852,11 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 dom = dts.day
                 mo_off = _month_offset[isleap, dts.month - 1]
                 doy = mo_off + dom
-                dow = ts_dayofweek(ts)
+                dow = dayofweek(dts.year, dts.month, dts.day)
                 ldom = _month_offset[isleap, dts.month]
 
                 if (dts.month == end_month) and (
@@ -4884,7 +4870,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -4906,7 +4891,6 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
     name based on requested field (e.g. weekday_name)
     """
     cdef:
-        _TSObject ts
         Py_ssize_t i, count = 0
         ndarray[object] out
         pandas_datetimestruct dts
@@ -4932,11 +4916,6 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
     raise ValueError("Field %s not supported" % field)
 
 
-# TODO: never used?
-cdef inline int m8_weekday(int64_t val):
-    ts = convert_to_tsobject(val, None, None, 0, 0)
-    return ts_dayofweek(ts)
-
 cdef int64_t DAY_NS = 86400000000000LL
 
 
@@ -4946,11 +4925,9 @@ def date_normalize(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
-        _TSObject tso
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
     if tz is not None:
-        tso = _TSObject()
         tz = maybe_get_tz(tz)
         result = _normalize_local(stamps, tz)
     else:
@@ -5095,8 +5072,6 @@ def monthrange(int64_t year, int64_t month):
 
     return (dayofweek(year, month, 1), days)
 
-cdef inline int64_t ts_dayofweek(_TSObject ts):
-    return dayofweek(ts.dts.year, ts.dts.month, ts.dts.day)
 
 cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month -1]

@@ -45,7 +45,7 @@ except ImportError:
     _have_setuptools = False
 
 setuptools_kwargs = {}
-min_numpy_ver = '1.7.0'
+min_numpy_ver = '1.9.0'
 if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {
