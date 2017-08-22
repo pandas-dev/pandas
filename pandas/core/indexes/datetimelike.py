@@ -837,7 +837,7 @@ class DatetimeIndexOpsMixin(object):
         result = result.replace("'", "")
         return result
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         """
