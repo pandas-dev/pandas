@@ -342,24 +342,25 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) %s already selected' % self._selection)
+            raise Exception('Column(s) {selection} already selected'
+                            .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError("Columns not found: %s"
-                               % str(bad_keys)[1:-1])
+                raise KeyError("Columns not found: {missing}"
+                               .format(missing=str(bad_keys)[1:-1]))
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, 'as_index', False):
             if key not in self.obj.columns:
-                raise KeyError("Column not found: %s" % key)
+                raise KeyError("Column not found: {key}".format(key=key))
             return self._gotitem(key, ndim=2)
 
         else:
             if key not in self.obj:
-                raise KeyError("Column not found: %s" % key)
+                raise KeyError("Column not found: {key}".format(key=key))
             return self._gotitem(key, ndim=1)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -409,7 +410,7 @@ class SelectionMixin(object):
         if f is not None:
             return f(self, *args, **kwargs)
 
-        raise ValueError("{} is an unknown string function".format(arg))
+        raise ValueError("{arg} is an unknown string function".format(arg=arg))
 
     def _aggregate(self, arg, *args, **kwargs):
         """
@@ -484,9 +485,9 @@ class SelectionMixin(object):
                         is_nested_renamer = True
 
                         if k not in obj.columns:
-                            raise SpecificationError('cannot perform renaming '
-                                                     'for {0} with a nested '
-                                                     'dictionary'.format(k))
+                            msg = ('cannot perform renaming for {key} with a '
+                                   'nested dictionary').format(key=k)
+                            raise SpecificationError(msg)
                         nested_renaming_depr(4 + (_level or 0))
 
                     elif isinstance(obj, ABCSeries):
