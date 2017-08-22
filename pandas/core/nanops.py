@@ -87,6 +87,21 @@ class disallow(object):
 
         return _f
 
+class skipna_switch(object):
+
+    def __init__(self, alt):
+        self.alt = alt
+
+    def __call__(self, default):
+
+        @functools.wraps(default)
+        def f(values, axis=None, skipna=True, **kwds):
+            if skipna:
+                return default(values, axis, skipna, **kwds)
+            else:
+                return self.alt(values, axis, **kwds)
+
+        return f
 
 class bottleneck_switch(object):
 
@@ -338,14 +353,12 @@ def nanmean(values, axis=None, skipna=True):
     return _wrap_results(the_mean, dtype)
 
 
+@skipna_switch(np.median)
 @disallow('M8')
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
 
     values, mask, dtype, dtype_max = _get_values(values, skipna)
-
-    if not skipna:
-        return _wrap_results(np.median(values, axis=axis), dtype)
 
     def get_median(x):
         mask = notna(x)
