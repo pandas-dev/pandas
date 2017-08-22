@@ -137,6 +137,27 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+.. _whatsnew_0210.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`)
+). If installed, we now require:
+
+   +--------------+-----------------+----------+
+   | Package      | Minimum Version | Required |
+   +======================+=========+==========+
+   | Numpy        | 1.9.0           |    X     |
+   +--------------+-----------------+----------+
+   | Matplotlib   | 1.4.3           |          |
+   +--------------+-----------------+----------+
+   | Scipy        | 0.14.0          |          |
+   +--------------+-----------------+----------+
+   | Bottleneck   | 1.0.0           |          |
+   +--------------+-----------------+----------+
+
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
 Improved error handling during item assignment in pd.eval
@@ -258,7 +279,6 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
-- Support has been dropped for bottleneck < 1.0.0 (:issue:`15214`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)

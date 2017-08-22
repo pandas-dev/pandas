@@ -571,6 +571,9 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_kde(self):
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis='log')
@@ -596,6 +599,9 @@ class TestSeriesPlots(TestPlotBase):
     def test_kde_kwargs(self):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         from numpy import linspace
         _check_plot_works(self.ts.plot.kde, bw_method=.5,
                           ind=linspace(-100, 100, 20))
@@ -611,6 +617,9 @@ class TestSeriesPlots(TestPlotBase):
     def test_kde_missing_vals(self):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
@@ -638,6 +647,9 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_kde_color(self):
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, bins=10, color='b', ax=ax)
         self._check_ax_scales(ax, yaxis='log')

@@ -1688,7 +1688,7 @@ class TestDatetimeIndex(Base):
 
     def test_resample_dtype_coerceion(self):
 
-        pytest.importorskip('scipy')
+        pytest.importorskip('scipy.interpolate')
 
         # GH 16361
         df = {"a": [1, 3, 1, 4]}

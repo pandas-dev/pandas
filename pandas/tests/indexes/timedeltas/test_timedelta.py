@@ -7,7 +7,7 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Index, DataFrame,
-                    Int64Index, _np_version_under1p8)
+                    Int64Index)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_index_equal)
 
@@ -379,11 +379,7 @@ class TestTimedeltaIndex(DatetimeLike):
                           np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
                           np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
 
-        if _np_version_under1p8:
-            # cannot test array because np.datetime('nat') returns today's date
-            cases = [(tdidx1, tdidx2)]
-        else:
-            cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
+        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
 
         # Check pd.NaT is handles as the same as np.nan
         for idx1, idx2 in cases:

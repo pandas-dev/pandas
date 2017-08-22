@@ -4,7 +4,7 @@
 
 import pytest
 
-from pandas import Series, DataFrame
+from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
 
@@ -13,8 +13,7 @@ from numpy import random
 from numpy.random import randn
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _ok_for_gaussian_kde)
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 tm._skip_if_no_mpl()
 
@@ -51,46 +50,6 @@ class TestSeriesPlots(TestPlotBase):
 
 
 class TestDataFramePlots(TestPlotBase):
-
-    @pytest.mark.slow
-    def test_scatter_plot_legacy(self):
-        tm._skip_if_no_scipy()
-
-        df = DataFrame(randn(100, 2))
-
-        def scat(**kwds):
-            return plotting.scatter_matrix(df, **kwds)
-
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, marker='+')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, vmin=0)
-        if _ok_for_gaussian_kde('kde'):
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(scat, diagonal='kde')
-        if _ok_for_gaussian_kde('density'):
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(scat, diagonal='density')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, diagonal='hist')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, range_padding=.1)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, color='rgb')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, c='rgb')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, facecolor='rgb')
-
-        def scat2(x, y, by=None, ax=None, figsize=None):
-            return plotting._core.scatter_plot(df, x, y, by, ax, figsize=None)
-
-        _check_plot_works(scat2, x=0, y=1)
-        grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat2, x=0, y=1, by=grouper)
 
     def test_scatter_matrix_axis(self):
         tm._skip_if_no_scipy()

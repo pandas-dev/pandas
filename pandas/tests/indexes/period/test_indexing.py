@@ -8,7 +8,7 @@ from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas._libs import tslib
 from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, _np_version_under1p9)
+                    period_range, Period)
 
 
 class TestGetItem(object):
@@ -149,16 +149,12 @@ class TestGetItem(object):
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                if _np_version_under1p9:
-                    with pytest.raises(ValueError):
-                        idx[v]
-                else:
-                    # GH7116
-                    # these show deprecations as we are trying
-                    # to slice with non-integer indexers
-                    # with pytest.raises(IndexError):
-                    #    idx[v]
-                    continue
+                # GH7116
+                # these show deprecations as we are trying
+                # to slice with non-integer indexers
+                # with pytest.raises(IndexError):
+                #    idx[v]
+                continue
 
             s = Series(np.random.rand(len(idx)), index=idx)
             tm.assert_series_equal(s['2013/01/01 10:00'], s[3600:3660])
@@ -178,16 +174,12 @@ class TestGetItem(object):
                       '2013/02/01 09:00']
             for v in values:
 
-                if _np_version_under1p9:
-                    with pytest.raises(ValueError):
-                        idx[v]
-                else:
-                    # GH7116
-                    # these show deprecations as we are trying
-                    # to slice with non-integer indexers
-                    # with pytest.raises(IndexError):
-                    #    idx[v]
-                    continue
+                # GH7116
+                # these show deprecations as we are trying
+                # to slice with non-integer indexers
+                # with pytest.raises(IndexError):
+                #    idx[v]
+                continue
 
             s = Series(np.random.rand(len(idx)), index=idx)
             tm.assert_series_equal(s['2013/01'], s[0:31])

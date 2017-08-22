@@ -6,7 +6,6 @@ from __future__ import division
 from warnings import warn, catch_warnings
 import numpy as np
 
-from pandas import compat, _np_version_under1p8
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
@@ -407,14 +406,12 @@ def isin(comps, values):
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
-    # GH11232
-    # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
+
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if ((_np_version_under1p8 and compat.PY3) or len(comps) > 1000000 and
-       not is_object_dtype(comps)):
+    if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
     elif is_integer_dtype(comps):
         try:

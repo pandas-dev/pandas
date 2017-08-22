@@ -3,7 +3,7 @@ import decimal
 
 import numpy as np
 import pandas as pd
-from pandas import to_numeric, _np_version_under1p9
+from pandas import to_numeric
 
 from pandas.util import testing as tm
 from numpy import iinfo
@@ -355,9 +355,6 @@ class TestToNumeric(object):
 
     def test_downcast_limits(self):
         # Test the limits of each downcast. Bug: #14401.
-        # Check to make sure numpy is new enough to run this test.
-        if _np_version_under1p9:
-            pytest.skip("Numpy version is under 1.9")
 
         i = 'integer'
         u = 'unsigned'

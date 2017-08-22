@@ -14,8 +14,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isna, bdate_range,
-                    NaT, date_range, timedelta_range,
-                    _np_version_under1p8)
+                    NaT, date_range, timedelta_range)
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
@@ -687,14 +686,13 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, exp)
 
         # odd numpy behavior with scalar timedeltas
-        if not _np_version_under1p8:
-            result = td1[0] + dt1
-            exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td1[0] + dt1
+        exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
-            result = td2[0] + dt2
-            exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td2[0] + dt2
+        exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)

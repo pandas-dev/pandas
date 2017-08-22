@@ -39,7 +39,8 @@ def _ok_for_gaussian_kde(kind):
             from scipy.stats import gaussian_kde  # noqa
         except ImportError:
             return False
-    return True
+
+    return plotting._compat._mpl_ge_1_5_0()
 
 
 class TestPlotBase(object):

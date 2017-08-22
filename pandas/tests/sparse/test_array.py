@@ -8,7 +8,6 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas import _np_version_under1p8
 from pandas.core.sparse.api import SparseArray, SparseSeries
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
@@ -150,10 +149,8 @@ class TestSparseArray(object):
         assert np.isnan(self.arr.take(0))
         assert np.isscalar(self.arr.take(2))
 
-        # np.take in < 1.8 doesn't support scalar indexing
-        if not _np_version_under1p8:
-            assert self.arr.take(2) == np.take(self.arr_data, 2)
-            assert self.arr.take(6) == np.take(self.arr_data, 6)
+        assert self.arr.take(2) == np.take(self.arr_data, 2)
+        assert self.arr.take(6) == np.take(self.arr_data, 6)
 
         exp = SparseArray(np.take(self.arr_data, [2, 3]))
         tm.assert_sp_array_equal(self.arr.take([2, 3]), exp)
