@@ -5208,7 +5208,7 @@ easy conversion to and from pandas.
 Performance Considerations
 --------------------------
 
-This is an informal comparison of various IO methods, using pandas 0.13.1.
+This is an informal comparison of various IO methods, using pandas 0.20.3.
 
 .. code-block:: ipython
 
@@ -5216,74 +5216,97 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
    In [2]: df.info()
    <class 'pandas.core.frame.DataFrame'>
-   Int64Index: 1000000 entries, 0 to 999999
+   RangeIndex: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
    A    1000000 non-null float64
    B    1000000 non-null float64
    dtypes: float64(2)
-   memory usage: 22.9 MB
+   memory usage: 15.3 MB
 
 Writing
 
 .. code-block:: ipython
 
    In [14]: %timeit test_sql_write(df)
-   1 loops, best of 3: 6.24 s per loop
+   2.23 s ± 27.5 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [15]: %timeit test_hdf_fixed_write(df)
-   1 loops, best of 3: 237 ms per loop
+   239 ms ± 112 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [26]: %timeit test_hdf_fixed_write_compress(df)
-   1 loops, best of 3: 245 ms per loop
+   355 ms ± 116 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [16]: %timeit test_hdf_table_write(df)
-   1 loops, best of 3: 901 ms per loop
+   614 ms ± 50.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [27]: %timeit test_hdf_table_write_compress(df)
-   1 loops, best of 3: 952 ms per loop
+   679 ms ± 37.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [17]: %timeit test_csv_write(df)
-   1 loops, best of 3: 3.44 s per loop
+   4.18 s ± 50.8 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [30]: %timeit test_feather_write(df)
+   112 ms ± 764 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [31]: %timeit test_pickle_write(df)
+   144 ms ± 25.7 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [32]: %timeit test_pickle_write_compress(df)
+   6.45 s ± 81.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Reading
 
 .. code-block:: ipython
 
    In [18]: %timeit test_sql_read()
-   1 loops, best of 3: 766 ms per loop
+   1.33 s ± 16.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [19]: %timeit test_hdf_fixed_read()
-   10 loops, best of 3: 19.1 ms per loop
+   11.1 ms ± 177 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
    In [28]: %timeit test_hdf_fixed_read_compress()
-   10 loops, best of 3: 36.3 ms per loop
+   25.1 ms ± 371 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [20]: %timeit test_hdf_table_read()
-   10 loops, best of 3: 39 ms per loop
+   20.9 ms ± 502 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [29]: %timeit test_hdf_table_read_compress()
-   10 loops, best of 3: 60.6 ms per loop
+   28.2 ms ± 453 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [22]: %timeit test_csv_read()
-   1 loops, best of 3: 620 ms per loop
+   684 ms ± 14 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [33]: %timeit test_feather_read()
+   3.51 ms ± 57.2 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [34]: %timeit test_pickle_read()
+   5.75 ms ± 110 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [35]: %timeit test_pickle_read_compress()
+   1.11 s ± 869 µs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Space on disk (in bytes)
 
 .. code-block:: none
 
-    25843712 Apr  8 14:11 test.sql
-    24007368 Apr  8 14:11 test_fixed.hdf
-    15580682 Apr  8 14:11 test_fixed_compress.hdf
-    24458444 Apr  8 14:11 test_table.hdf
-    16797283 Apr  8 14:11 test_table_compress.hdf
-    46152810 Apr  8 14:11 test.csv
+    42975232 Aug 21 18:00 test.sql
+    24007192 Aug 21 18:00 test_fixed.hdf
+    15580621 Aug 21 18:00 test_fixed_compress.hdf
+    24458524 Aug 21 18:00 test_table.hdf
+    16797892 Aug 21 18:00 test_table_compress.hdf
+    46149803 Aug 21 18:00 test.csv
+    16000248 Aug 21 18:00 test.feather
+    16000694 Aug 21 18:00 test.pkl
+    15047240 Aug 21 18:00 test.pkl.compress
 
 And here's the code
 
 .. code-block:: python
 
-   import sqlite3
    import os
+   import pandas as pd
+   import sqlite3
+   from numpy.random import randn
    from pandas.io import sql
 
    df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
@@ -5329,3 +5352,21 @@ And here's the code
 
    def test_csv_read():
        pd.read_csv('test.csv',index_col=0)
+
+   def test_feather_write(df):
+       df.to_feather('test.feather')
+
+   def test_feather_read():
+       pd.read_feather('test.feather')
+
+   def test_pickle_write(df):
+       df.to_pickle('test.pkl')
+
+   def test_pickle_read():
+       pd.read_pickle('test.pkl')
+
+   def test_pickle_write_compress(df):
+       df.to_pickle('test.pkl.compress', compression='xz')
+
+   def test_pickle_read_compress():
+       pd.read_pickle('test.pkl.compress', compression='xz')
