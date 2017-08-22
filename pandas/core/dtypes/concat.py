@@ -467,6 +467,11 @@ def _concat_datetimetz(to_concat, name=None):
     return to_concat[0]._simple_new(new_values, tz=tz, name=name)
 
 
+def _concat_index_same_dtype(indexes, klass=None):
+    klass = klass if klass is not None else indexes[0].__class__
+    return klass(np.concatenate([x._values for x in indexes]))
+
+
 def _concat_index_asobject(to_concat, name=None):
     """
     concat all inputs as object. DatetimeIndex, TimedeltaIndex and
@@ -581,16 +586,15 @@ def _concat_rangeindex_same_dtype(indexes):
         elif step is None:
             # First non-empty index had only one element
             if obj._start == start:
-                return _concat_index_asobject(indexes)
+                from pandas import Int64Index
+                return _concat_index_same_dtype(indexes, klass=Int64Index)
             step = obj._start - start
 
         non_consecutive = ((step != obj._step and len(obj) > 1) or
                            (next is not None and obj._start != next))
         if non_consecutive:
-            # Int64Index._append_same_dtype([ix.astype(int) for ix in indexes])
-            # would be preferred... but it currently resorts to
-            # _concat_index_asobject anyway.
-            return _concat_index_asobject(indexes)
+            from pandas import Int64Index
+            return _concat_index_same_dtype(indexes, klass=Int64Index)
 
         if step is not None:
             next = obj[-1] + step
