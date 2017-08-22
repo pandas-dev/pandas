@@ -219,3 +219,22 @@ class Range(object):
 
     def time_min_trivial(self):
         self.idx_inc.min()
+
+
+class IndexOps(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        self.ridx = [RangeIndex(i * 100, (i + 1) * 100) for i in range(N)]
+        self.iidx = [idx.astype(int) for idx in self.ridx]
+        self.oidx = [idx.astype(str) for idx in self.iidx]
+
+    def time_concat_range(self):
+        self.ridx[0].append(self.ridx[1:])
+
+    def time_concat_int(self):
+        self.iidx[0].append(self.iidx[1:])
+
+    def time_concat_obj(self):
+        self.oidx[0].append(self.oidx[1:])
