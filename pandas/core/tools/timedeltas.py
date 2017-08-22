@@ -129,7 +129,8 @@ def _validate_timedelta_unit(arg):
     except:
         if arg is None:
             return 'ns'
-        raise ValueError("invalid timedelta unit {0} provided".format(arg))
+        raise ValueError("invalid timedelta unit {arg} provided"
+                         .format(arg=arg))
 
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
@@ -161,8 +162,8 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
     if is_timedelta64_dtype(arg):
         value = arg.astype('timedelta64[ns]')
     elif is_integer_dtype(arg):
-        value = arg.astype('timedelta64[{0}]'.format(
-            unit)).astype('timedelta64[ns]', copy=False)
+        value = arg.astype('timedelta64[{unit}]'.format(unit=unit)).astype(
+            'timedelta64[ns]', copy=False)
     else:
         try:
             value = tslib.array_to_timedelta64(_ensure_object(arg),
