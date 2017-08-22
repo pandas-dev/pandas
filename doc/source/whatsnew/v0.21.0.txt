@@ -353,6 +353,7 @@ Indexing
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
 - Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
+- Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
 
 I/O
 ^^^

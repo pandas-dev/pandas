@@ -146,7 +146,8 @@ class _NDFrameIndexer(object):
             return self._convert_tuple(key, is_setter=True)
 
         axis = self.obj._get_axis(0)
-        if isinstance(axis, MultiIndex):
+
+        if isinstance(axis, MultiIndex) and self.name != 'iloc':
             try:
                 return axis.get_loc(key)
             except Exception:
