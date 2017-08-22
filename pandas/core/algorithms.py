@@ -393,12 +393,12 @@ def isin(comps, values):
 
     if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(comps).__name__))
+                        " to isin(), you passed a [{comps_type}]"
+                        .format(comps_type=type(comps).__name__))
     if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(values).__name__))
+                        " to isin(), you passed a [{values_type}]"
+                        .format(values_type=type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = lib.list_to_object_array(list(values))
@@ -671,7 +671,7 @@ def mode(values):
     try:
         result = np.sort(result)
     except TypeError as e:
-        warn("Unable to sort modes: %s" % e)
+        warn("Unable to sort modes: {error}".format(error=e))
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
