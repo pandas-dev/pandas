@@ -481,7 +481,7 @@ a,b,c
         data = 'a,b,c,d\n1,2,3,4\n5,6,7,8'
 
         if self.engine == 'c':
-            msg = 'Usecols do not match names'
+            msg = "do not match columns, columns expected but not found"
         else:
             msg = 'is not in list'
 

@@ -1662,14 +1662,22 @@ class CParserWrapper(ParserBase):
             # GH 14671
             if (self.usecols_dtype == 'string' and
                     not set(usecols).issubset(self.orig_names)):
-                raise ValueError("Usecols do not match names.")
+                missing = [c for c in usecols if c not in self.orig_names]
+                raise ValueError(
+                    "Usecols do not match columns, "
+                    "columns expected but not found: %s" % missing
+                )
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                raise ValueError("Usecols do not match names.")
+                missing = [c for c in usecols if c not in self.orig_names]
+                raise ValueError(
+                    "Usecols do not match columns, "
+                    "columns expected but not found: %s" % missing
+                )
 
         self._set_noconvert_columns()
 
