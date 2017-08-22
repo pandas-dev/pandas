@@ -13,7 +13,7 @@ from pandas.compat import (
 )
 
 from pandas import compat
-from pandas.compat.numpy import function as nv, _np_version_under1p8
+from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name
 
 from pandas.core.dtypes.common import (
@@ -3257,11 +3257,7 @@ class SeriesGroupBy(GroupBy):
             d = np.diff(np.r_[idx, len(ids)])
             if dropna:
                 m = ids[lab == -1]
-                if _np_version_under1p8:
-                    mi, ml = algorithms.factorize(m)
-                    d[ml] = d[ml] - np.bincount(mi)
-                else:
-                    np.add.at(d, m, -1)
+                np.add.at(d, m, -1)
                 acc = rep(d)[mask]
             else:
                 acc = rep(d)

@@ -69,8 +69,7 @@ from pandas._libs.lib import BlockPlacement
 import pandas.core.computation.expressions as expressions
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
-
-from pandas import compat, _np_version_under1p9
+from pandas import compat
 from pandas.compat import range, map, zip, u
 
 
@@ -857,9 +856,6 @@ class Block(PandasObject):
 
         # set
         else:
-            if _np_version_under1p9:
-                # Work around GH 6168 to support old numpy
-                indexer = getattr(indexer, 'values', indexer)
             values[indexer] = value
 
         # coerce and try to infer the dtypes of the result
@@ -1482,15 +1478,7 @@ class Block(PandasObject):
         tuple of (axis, block)
 
         """
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9.")
-
-        kw = {}
-        if not _np_version_under1p9:
-            kw.update({'interpolation': interpolation})
-
+        kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _, _, _ = self._try_coerce_args(values, values)
 
