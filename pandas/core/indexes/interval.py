@@ -876,7 +876,7 @@ class IntervalIndex(IntervalMixin, Index):
             raise ValueError(error_msg)
         return other
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         assert that we all have the same .closed
         we allow a 0-len index here as well
@@ -885,7 +885,7 @@ class IntervalIndex(IntervalMixin, Index):
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)
-        return super(IntervalIndex, self)._append_same_dtype(to_concat, name)
+        return super(IntervalIndex, self)._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
