@@ -322,37 +322,42 @@ class DateOffset(object):
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
+
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
+
+        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        return out
+
+    # TODO: Combine this with BusinessMixin version by defining a whitelisted
+    # set of attributes on each object rather than the existing behavior of
+    # iterating over internal ``__dict__``
+    def _repr_attrs(self):
         exclude = set(['n', 'inc', 'normalize'])
         attrs = []
         for attr in sorted(self.__dict__):
-            if ((attr == 'kwds' and len(self.kwds) == 0) or
-                    attr.startswith('_')):
+            if attr.startswith('_'):
                 continue
-            elif attr == 'kwds':
+            elif attr == 'kwds':  # TODO: get rid of this
                 kwds_new = {}
                 for key in self.kwds:
                     if not hasattr(self, key):
                         kwds_new[key] = self.kwds[key]
                 if len(kwds_new) > 0:
-                    attrs.append('='.join((attr, repr(kwds_new))))
-            else:
-                if attr not in exclude:
-                    attrs.append('='.join((attr, repr(getattr(self, attr)))))
+                    attrs.append('kwds=%s' % (kwds_new))
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append('%s=%s' % (attr, value))
 
-        plural = ''
-        if abs(self.n) != 1:
-            plural = 's'
-
-        n_str = ''
-        if self.n != 1:
-            n_str = '{n} * '.format(n=self.n)
-
-        attrs_str = ''
+        out = ''
         if attrs:
-            attrs_str = ': ' + ', '.join(attrs)
-
-        repr_content = ''.join([n_str, className, plural, attrs_str])
-        out = '<{content}>'.format(content=repr_content)
+            out += ': ' + ', '.join(attrs)
         return out
 
     @property
@@ -506,7 +511,17 @@ class DateOffset(object):
         else:
             fstr = code
 
+        try:
+            if self._offset:
+                fstr += self._offset_str()
+        except AttributeError:
+            # TODO: standardize `_offset` vs `offset` naming convention
+            pass
+
         return fstr
+
+    def _offset_str(self):
+        return ''
 
     @property
     def nanos(self):
@@ -525,24 +540,6 @@ class SingleConstructorOffset(DateOffset):
 
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
-
-    # TODO: Combine this with DateOffset by defining a whitelisted set of
-    # attributes on each object rather than the existing behavior of iterating
-    # over internal ``__dict__``
-    def __repr__(self):
-        className = getattr(self, '_outputName', self.__class__.__name__)
-
-        plural = ''
-        if abs(self.n) != 1:
-            plural = 's'
-
-        n_str = ''
-        if self.n != 1:
-            n_str = '{n} * '.format(n=self.n)
-
-        repr_content = ''.join([n_str, className, plural, self._repr_attrs()])
-        out = '<{content}>'.format(content=repr_content)
-        return out
 
     def _repr_attrs(self):
         if self.offset:
@@ -593,23 +590,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-
-    @property
-    def freqstr(self):
-        try:
-            code = self.rule_code
-        except NotImplementedError:
-            return repr(self)
-
-        if self.n != 1:
-            fstr = '{n}{code}'.format(n=self.n, code=code)
-        else:
-            fstr = code
-
-        if self.offset:
-            fstr += self._offset_str()
-
-        return fstr
 
     def _offset_str(self):
         def get_str(td):
