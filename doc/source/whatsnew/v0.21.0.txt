@@ -143,8 +143,7 @@ Backwards incompatible API changes
 pd.Period objects are now immutable
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Period` will now raise an ``AttributeError`` when a user tries to
-assign a new value to the `ordinal` or `freq` attributes (:issue:`17116`).
+:class:`Period` will now raise an ``AttributeError`` when a user tries to assign a new value to the `ordinal` or `freq` attributes (:issue:`17116`).
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
