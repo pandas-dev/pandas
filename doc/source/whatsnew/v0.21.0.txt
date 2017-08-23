@@ -137,12 +137,6 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-.. _whatsnew_0210.api_breaking.Period:
-
-pd.Period objects are now immutable
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 :class:`Period` will now raise an ``AttributeError`` when a user tries to assign a new value to the `ordinal` or `freq` attributes (:issue:`17116`).
 
 
