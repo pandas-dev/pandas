@@ -47,7 +47,7 @@ which conda
 echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
-conda config --set always_yes true --set changeps1 false || exit 1
+conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
 echo

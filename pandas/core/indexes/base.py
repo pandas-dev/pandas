@@ -1745,18 +1745,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         names = set([obj.name for obj in to_concat])
         name = None if len(names) > 1 else self.name
 
-        if self.is_categorical():
-            # if calling index is category, don't check dtype of others
-            from pandas.core.indexes.category import CategoricalIndex
-            return CategoricalIndex._append_same_dtype(self, to_concat, name)
+        return self._concat(to_concat, name)
+
+    def _concat(self, to_concat, name):
 
         typs = _concat.get_dtype_kinds(to_concat)
 
         if len(typs) == 1:
-            return self._append_same_dtype(to_concat, name=name)
+            return self._concat_same_dtype(to_concat, name=name)
         return _concat._concat_index_asobject(to_concat, name=name)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         """
