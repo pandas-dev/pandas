@@ -365,7 +365,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 except ValueError:
                     pass
 
-
             return arg
 
         elif unit is not None:
@@ -385,13 +384,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             raise TypeError('arg must be a string, datetime, list, tuple, '
                             '1-d array, or Series')
 
-
         arg = _ensure_object(arg)
         require_iso8601 = False
 
         if infer_datetime_format and format is None:
-            format = _guess_datetime_format_for_array(arg,
-                                                      dayfirst=dayfirst)
+            format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
         if format is not None:
             # There is a special fast-path for iso8601 formatted
@@ -418,8 +415,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(arg, format,
-                                                      exact=exact,
+                        result = tslib.array_strptime(arg, format, exact=exact,
                                                       errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
@@ -443,6 +439,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     yearfirst=yearfirst,
                     require_iso8601=require_iso8601
                 )
+
             if is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz=tz, name=name)
             return result
