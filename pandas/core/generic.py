@@ -1827,11 +1827,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
-
-        numpy < 1.8 has an issue with object arrays and aliasing
-        GH6026
         """
-        self._data.set(item, value, check=pd._np_version_under1p8)
+        self._data.set(item, value, check=False)
 
     @property
     def _is_cached(self):
@@ -2063,18 +2060,77 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         """
-        Analogous to ndarray.take
+        Return the elements in the given *positional* indices along an axis.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
 
         Parameters
         ----------
-        indices : list / array of ints
+        indices : array-like
+            An array of ints indicating which positions to take.
         axis : int, default 0
-        convert : translate neg to pos indices (default)
-        is_copy : mark the returned frame as a copy
+            The axis on which to select elements. "0" means that we are
+            selecting rows, "1" means that we are selecting columns, etc.
+        convert : bool, default True
+            Whether to convert negative indices to positive ones, just as with
+            indexing into Python lists. For example, if `-1` was passed in,
+            this index would be converted ``n - 1``.
+        is_copy : bool, default True
+            Whether to return a copy of the original object or not.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+                               ('parrot', 'bird',     24.0),
+                               ('lion',   'mammal',   80.5),
+                               ('monkey', 'mammal', np.nan)],
+                              columns=('name', 'class', 'max_speed'),
+                              index=[0, 2, 3, 1])
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        2  parrot    bird       24.0
+        3    lion  mammal       80.5
+        1  monkey  mammal        NaN
+
+        Take elements at positions 0 and 3 along the axis 0 (default).
+
+        Note how the actual indices selected (0 and 1) do not correspond to
+        our selected indices 0 and 3. That's because we are selecting the 0th
+        and 3rd rows, not rows whose indices equal 0 and 3.
+
+        >>> df.take([0, 3])
+        0  falcon    bird      389.0
+        1  monkey  mammal        NaN
+
+        Take elements at indices 1 and 2 along the axis 1 (column selection).
+
+        >>> df.take([1, 2], axis=1)
+            class  max_speed
+        0    bird      389.0
+        2    bird       24.0
+        3  mammal       80.5
+        1  mammal        NaN
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> df.take([-1, -2])
+             name   class  max_speed
+        1  monkey  mammal        NaN
+        3    lion  mammal       80.5
 
         Returns
         -------
         taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        numpy.ndarray.take
+        numpy.take
         """
         nv.validate_take(tuple(), kwargs)
         self._consolidate_inplace()
@@ -2978,14 +3034,36 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def head(self, n=5):
         """
-        Returns first n rows
+        Return the first n rows.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Number of rows to select.
+
+        Returns
+        -------
+        obj_head : type of caller
+            The first n rows of the caller object.
         """
+
         return self.iloc[:n]
 
     def tail(self, n=5):
         """
-        Returns last n rows
+        Return the last n rows.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Number of rows to select.
+
+        Returns
+        -------
+        obj_tail : type of caller
+            The last n rows of the caller object.
         """
+
         if n == 0:
             return self.iloc[0:0]
         return self.iloc[-n:]
@@ -4054,7 +4132,8 @@ class NDFrame(PandasObject, SelectionMixin):
                         continue
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
-                return result
+                return result if not inplace else None
+
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
@@ -4660,9 +4739,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        if np.any(isna(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
         # method is self.le for upper bound and self.ge for lower bound
         if is_scalar(threshold) and is_number(threshold):
             if method.__name__ == 'le':
@@ -4742,6 +4818,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
+        # GH 17276
+        # numpy doesn't like NaN as a clip value
+        # so ignore
+        if np.any(pd.isnull(lower)):
+            lower = None
+        if np.any(pd.isnull(upper)):
+            upper = None
+
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
@@ -4758,7 +4842,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if upper is not None:
             if inplace:
                 result = self
-
             result = result.clip_upper(upper, axis, inplace=inplace)
 
         return result
