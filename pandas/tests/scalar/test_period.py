@@ -1411,9 +1411,9 @@ class TestMethods(object):
 def test_period_immutable():
     # see gh-17116
     per = pd.Period('2014Q1')
-    with pytest.raises(AttributeError, message="is not writable"):
+    with pytest.raises(AttributeError):
         per.ordinal = 14
 
     freq = per.freq
-    with pytest.raises(AttributeError, message="is not writable"):
+    with pytest.raises(AttributeError):
         per.freq = 2 * freq
