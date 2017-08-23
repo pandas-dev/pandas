@@ -1246,9 +1246,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
-        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
-        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
     def test_datetime_with_timezone(self):
         # edge case that converts postgresql datetime with time zone types
