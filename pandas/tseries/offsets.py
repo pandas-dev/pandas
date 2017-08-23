@@ -622,9 +622,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         else:
             return '+' + repr(self.offset)
 
-    def isAnchored(self):
-        return (self.n == 1)
-
     @apply_wraps
     def apply(self, other):
         if isinstance(other, datetime):
@@ -1358,9 +1355,6 @@ class SemiMonthBegin(SemiMonthOffset):
 class BusinessMonthEnd(MonthOffset):
     """DateOffset increments between business EOM dates"""
 
-    def isAnchored(self):
-        return (self.n == 1)
-
     @apply_wraps
     def apply(self, other):
         n = self.n
@@ -1965,16 +1959,6 @@ class QuarterEnd(QuarterOffset):
     _default_startingMonth = 3
     _prefix = 'Q'
 
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.n = n
-        self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth', 3)
-
-        self.kwds = kwds
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
-
     @apply_wraps
     def apply(self, other):
         n = self.n
@@ -2009,9 +1993,6 @@ class QuarterBegin(QuarterOffset):
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = 'QS'
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
 
     @apply_wraps
     def apply(self, other):
@@ -2639,9 +2620,6 @@ class Easter(DateOffset):
     1583-4099.
     """
     _adjust_dst = True
-
-    def __init__(self, n=1, **kwds):
-        super(Easter, self).__init__(n, **kwds)
 
     @apply_wraps
     def apply(self, other):
