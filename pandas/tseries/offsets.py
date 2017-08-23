@@ -590,7 +590,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset # alias for backward compat
+        self._offset = self.offset  # alias for backward compat
 
     def _offset_str(self):
         def get_str(td):
@@ -687,7 +687,7 @@ class BusinessHourMixin(BusinessMixin):
         kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset # alias for backward compat
+        self._offset = self.offset  # alias for backward compat
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
 
@@ -957,7 +957,7 @@ class CustomBusinessDay(BusinessDay):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset # alias for backward compat
+        self._offset = self.offset  # alias for backward compat
         calendar, holidays = self.get_calendar(weekmask=weekmask,
                                                holidays=holidays,
                                                calendar=calendar)
@@ -1448,7 +1448,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset # alias for backward compat
+        self._offset = self.offset  # alias for backward compat
         self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
                                        weekmask=weekmask, holidays=holidays,
                                        calendar=calendar, **kwds)
@@ -1509,7 +1509,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset # alias for backward compat
+        self._offset = self.offset  # alias for backward compat
         self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
                                        weekmask=weekmask, holidays=holidays,
                                        calendar=calendar, **kwds)
