@@ -775,7 +775,7 @@ class BusinessHourMixin(BusinessMixin):
         Return business hours in a day by seconds.
         """
         if self._get_daytime_flag():
-            # create dummy datetime to calcurate businesshours in a day
+            # create dummy datetime to calculate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
             return tslib.tot_seconds(until - dtstart)
@@ -810,7 +810,7 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        # calcurate here because offset is not immutable
+        # calculate here because offset is not immutable
         daytime = self._get_daytime_flag()
         businesshours = self._get_business_hours_by_sec()
         bhdelta = timedelta(seconds=businesshours)
@@ -859,7 +859,7 @@ class BusinessHourMixin(BusinessMixin):
                 if n >= 0:
                     bday_edge = self._prev_opening_time(other)
                     bday_edge = bday_edge + bhdelta
-                    # calcurate remainder
+                    # calculate remainder
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
@@ -897,7 +897,7 @@ class BusinessHourMixin(BusinessMixin):
 
     def _onOffset(self, dt, businesshours):
         """
-        Slight speedups using calcurated values
+        Slight speedups using calculated values
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
