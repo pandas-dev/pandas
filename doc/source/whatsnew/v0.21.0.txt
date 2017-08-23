@@ -127,11 +127,36 @@ Other Enhancements
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
+- :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
+- :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
+
+
 
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_0210.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`)
+). If installed, we now require:
+
+   +--------------+-----------------+----------+
+   | Package      | Minimum Version | Required |
+   +======================+=========+==========+
+   | Numpy        | 1.9.0           |    X     |
+   +--------------+-----------------+----------+
+   | Matplotlib   | 1.4.3           |          |
+   +--------------+-----------------+----------+
+   | Scipy        | 0.14.0          |          |
+   +--------------+-----------------+----------+
+   | Bottleneck   | 1.0.0           |          |
+   +--------------+-----------------+----------+
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
@@ -254,7 +279,6 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
-- Support has been dropped for bottleneck < 1.0.0 (:issue:`15214`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
@@ -314,7 +338,7 @@ Conversion
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
 - Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
-
+- Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
 
 Indexing
 ^^^^^^^^
@@ -329,6 +353,7 @@ Indexing
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
 - Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
+- Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
 
 I/O
 ^^^
@@ -379,11 +404,15 @@ Reshaping
 Numeric
 ^^^^^^^
 - Bug in ``.clip()`` with ``axis=1`` and a list-like for ``threshold`` is passed; previously this raised ``ValueError`` (:issue:`15390`)
+- :func:`Series.clip()` and :func:`DataFrame.clip()` now treat NA values for upper and lower arguments as ``None`` instead of raising ``ValueError`` (:issue:`17276`).
 
 
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
+- Bug in the categorical constructor with empty values and categories causing
+  the ``.categories`` to be an empty ``Float64Index`` rather than an empty
+  ``Index`` with object dtype (:issue:`17248`)
 
 
 Other

@@ -802,8 +802,7 @@ class DataFrame(NDFrame):
         # fallback to regular tuples
         return zip(*arrays)
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     def __len__(self):
         """Returns length of info axis, but here we use the index """
