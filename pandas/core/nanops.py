@@ -5,7 +5,7 @@ import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
-from pandas import compat, _np_version_under1p9
+from pandas import compat
 from pandas._libs import tslib, algos, lib
 from pandas.core.dtypes.common import (
     _get_dtype,
@@ -87,6 +87,7 @@ class disallow(object):
 
         return _f
 
+
 class skipna_switch(object):
 
     def __init__(self, alt):
@@ -102,6 +103,7 @@ class skipna_switch(object):
                 return self.alt(values, axis, **kwds)
 
         return f
+
 
 class bottleneck_switch(object):
 
@@ -366,13 +368,6 @@ def nanmedian(values, axis=None, skipna=True):
             return np.nan
         return algos.median(_values_from_object(x[mask]))
 
-    if _np_version_under1p9:
-        agg1d = get_median
-        aggaxis = lambda values, axis: np.apply_along_axis(get_median, axis, values)
-    else:
-        agg1d = np.nanmedian
-        aggaxis = np.nanmedian
-
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -386,7 +381,7 @@ def nanmedian(values, axis=None, skipna=True):
     if values.ndim > 1:
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
-            return _wrap_results(aggaxis(values, axis), dtype)
+            return _wrap_results(np.nanmedian(values, axis), dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
@@ -399,7 +394,7 @@ def nanmedian(values, axis=None, skipna=True):
         return _wrap_results(ret, dtype)
 
     # otherwise return a scalar value
-    return _wrap_results(agg1d(values) if notempty else np.nan, dtype)
+    return _wrap_results(np.nanmedian(values) if notempty else np.nan, dtype)
 
 
 def _get_counts_nanvar(mask, axis, ddof, dtype=float):
