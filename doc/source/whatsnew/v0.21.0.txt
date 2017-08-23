@@ -303,6 +303,8 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 UTC Localization with Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Previously, :func:`to_datetime` did not localize datetime ``Series`` data as when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize `Series` with a `datetime64[ns, UTC]` data type. (:issue:`6415`).
+
   Previous Behavior
 
   .. ipython:: python
@@ -331,7 +333,7 @@ UTC Localization with Series
 
      pd.to_datetime(s, utc=True)
 
-This new behavior will also localize datetime columns in DataFrames returned from :func:`read_sql` which previously returned datetime columns as naive UTC.
+Additionally, DataFrames with datetime columns returned by :func:`read_sql` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
 .. _whatsnew_0210.api:
 

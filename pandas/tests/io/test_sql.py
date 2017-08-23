@@ -606,15 +606,14 @@ class _TestSQLApi(PandasSQLTest):
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
-        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
-        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
+
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['IntDateCol'])
@@ -632,9 +631,8 @@ class _TestSQLApi(PandasSQLTest):
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 index_col='DateCol',
                                 parse_dates=['DateCol', 'IntDateCol'])
-        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
-        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
-        assert issubclass(df.index.dtype.type, utc_dtype)
+
+        assert issubclass(df.index.dtype.type, np.datetime64)
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_timedelta(self):
@@ -1323,15 +1321,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_date_parsing(self):
         # No Parsing
         df = sql.read_sql_table("types_test_data", self.conn)
-        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
-        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
+
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        assert issubclass(df.DateCol.dtype.type, utc_dtype)
+        assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table("types_test_data", self.conn, parse_dates={
             'DateCol': {'format': '%Y-%m-%d %H:%M:%S'}})
@@ -1357,11 +1354,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
         result = result.drop('index', axis=1)
-        # After GH 6415, dates outbound from a db will be localized to UTC
-        # xref GH 7364
-        expected = df.copy()
-        expected['A'] = expected['A'].dt.tz_localize('UTC')
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, df)
 
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
@@ -1381,11 +1374,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime', self.conn)
-        # After GH 6415, dates outbound from a db will be localized to UTC
-        # xref GH 7364
-        expected = df.copy()
-        expected['A'] = expected['A'].dt.tz_localize('UTC')
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, df)
 
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
@@ -1401,8 +1390,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         df.to_sql('test_date', self.conn, index=False)
         res = read_sql_table('test_date', self.conn)
-        # GH 6415 comes back as datetime64[ns, UTC]
-        tm.assert_series_equal(res['a'], to_datetime(df['a'], utc=True))
+        expected = res['a']
+        result = to_datetime(df['a'])
+        # comes back as datetime64
+        tm.assert_series_equal(result, expected)
 
     def test_datetime_time(self):
         # test support for datetime.time
