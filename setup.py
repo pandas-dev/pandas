@@ -493,7 +493,8 @@ ext_data = {
                      'depends': tseries_depends + \
                                 ['pandas/_libs/tslibs/timezones.pyx'],
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                 'pandas/_libs/src/datetime/np_datetime_strings.c']},
+                                 'pandas/_libs/src/datetime/np_datetime_strings.c',
+                                 'pandas/_libs/src/period_helper.c']},
     '_libs.index': {'pyxfile': '_libs/index',
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c'],
