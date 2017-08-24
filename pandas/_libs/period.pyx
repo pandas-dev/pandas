@@ -10,6 +10,9 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
+cdef extern from "datetime_helper.h":
+    double total_seconds(object)
+
 from libc.stdlib cimport free
 
 from pandas import compat
@@ -17,11 +20,9 @@ from pandas.compat import PY2
 
 cimport cython
 
-cdef extern from "datetime.h":
-    void PyDateTime_IMPORT()
-
 from datetime cimport (
     is_leapyear,
+    PyDateTime_IMPORT
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -31,19 +32,19 @@ from datetime cimport (
 cimport util, lib
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
-from pandas._libs.tslib import Timestamp, iNaT, NaT
+from pandas._libs.tslib import Timedelta, Timestamp, iNaT, NaT
 from tslib cimport _nat_scalar_rules
 
 from tslibs.timezones cimport (
-    total_seconds,
     _get_utcoffset,
     _get_dst_info,
     _is_tzlocal,
     _is_utc,
     maybe_get_tz)
 
+from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
-from pandas.tseries import frequencies, offsets
+from pandas.tseries import frequencies
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -727,7 +728,8 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        if isinstance(other, (timedelta, np.timedelta64,
+                              offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
@@ -752,7 +754,9 @@ cdef class _Period(object):
     def __add__(self, other):
         if isinstance(self, Period):
             if isinstance(other,
-                          (timedelta, np.timedelta64, offsets.DateOffset)):
+                          (timedelta, np.timedelta64,
+                           offsets.Tick, offsets.DateOffset,
+                           Timedelta)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
@@ -769,7 +773,9 @@ cdef class _Period(object):
     def __sub__(self, other):
         if isinstance(self, Period):
             if isinstance(other,
-                          (timedelta, np.timedelta64, offsets.DateOffset)):
+                          (timedelta, np.timedelta64,
+                           offsets.Tick, offsets.DateOffset,
+                           Timedelta)):
                 neg_other = -other
                 return self + neg_other
             elif lib.is_integer(other):

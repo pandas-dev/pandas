@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-try: string_types = basestring
-except NameError: string_types = str
+from pandas.compat import string_types, is_platform_windows
 
 
 cdef extern from "Python.h":
@@ -29,9 +28,7 @@ from dateutil.tz import (tzoffset,
                          tzutc as _dateutil_tzutc,
                          tzstr as _dateutil_tzstr)
 
-import sys
-if sys.platform == 'win32' or sys.platform == 'cygwin':
-    # equiv pd.compat.is_platform_windows()
+if is_platform_windows():
     from dateutil.zoneinfo import gettz as _dateutil_gettz
 else:
     from dateutil.tz import gettz as _dateutil_gettz
@@ -53,18 +50,6 @@ cdef inline bint is_integer_object(object obj):
 
 
 cdef int64_t NPY_NAT = np.datetime64('nat').astype(np.int64)
-
-
-# TODO: Does this belong somewhere else?
-cdef float64_t total_seconds(object td):
-    # Note: This is marginally faster than the version in datetime_helper.
-    cdef int64_t microseconds, seconds, days, days_in_seconds
-
-    microseconds = getattr(td, "microseconds", 0)
-    seconds = getattr(td, "seconds", 0)
-    days = getattr(td, "days", 0)
-    days_in_seconds = days * 24 * 3600;
-    return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0
 
 
 #----------------------------------------------------------------------
@@ -208,7 +193,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000000
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000000
 
     return arr
 
@@ -260,7 +245,7 @@ cpdef object _get_dst_info(object tz):
     """
     cache_key = _tz_cache_key(tz)
     if cache_key is None:
-        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+        num = int(_get_utcoffset(tz, None).total_seconds()) * 1000000000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 None)
@@ -307,7 +292,7 @@ cpdef object _get_dst_info(object tz):
         else:
             # static tzinfo
             trans = np.array([NPY_NAT + 1], dtype=np.int64)
-            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+            num = int(_get_utcoffset(tz, None).total_seconds()) * 1000000000
             deltas = np.array([num], dtype=np.int64)
             typ = 'static'
 
