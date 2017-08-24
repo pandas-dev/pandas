@@ -646,7 +646,10 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
+.. autoclass:: api.types.CategoricalDtype
+   :members: categories, ordered
+
+If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
 

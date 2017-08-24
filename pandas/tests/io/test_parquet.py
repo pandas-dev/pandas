@@ -8,6 +8,8 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 from pandas.compat import PY3
+from distutils.version import LooseVersion
+from pandas.compat import PY3, is_platform_windows
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
@@ -394,6 +396,8 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError)
 
     def test_categorical(self, fp):
+        if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
+            pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         self.check_round_trip(df, fp, compression=None)
 

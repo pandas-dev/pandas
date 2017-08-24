@@ -139,13 +139,13 @@ class Block(PandasObject):
         validate that we have a astypeable to categorical,
         returns a boolean if we are a categorical
         """
-        if is_categorical_dtype(dtype):
-            if dtype == CategoricalDtype():
-                return True
-
+        if dtype is Categorical or dtype is CategoricalDtype:
             # this is a pd.Categorical, but is not
             # a valid type for astypeing
             raise TypeError("invalid type {0} for astype".format(dtype))
+
+        elif is_categorical_dtype(dtype):
+            return True
 
         return False
 
@@ -548,6 +548,18 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
+            if (('categories' in kwargs or 'ordered' in kwargs) and
+                    isinstance(dtype, CategoricalDtype)):
+                raise TypeError("Cannot specify a CategoricalDtype and also "
+                                "`categories` or `ordered`. Use "
+                                "`dtype=CategoricalDtype(categories, ordered)`"
+                                " instead.")
+            kwargs = kwargs.copy()
+            categories = getattr(dtype, 'categories', None)
+            ordered = getattr(dtype, 'ordered', False)
+
+            kwargs.setdefault('categories', categories)
+            kwargs.setdefault('ordered', ordered)
             return self.make_block(Categorical(self.values, **kwargs))
 
         # astype processing
