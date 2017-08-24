@@ -292,6 +292,7 @@ Other API Changes
 - The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is deprecated and will show a ``FutureWarning`` (:issue:`14636`)
 - :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
+- :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 
 
 .. _whatsnew_0210.deprecations:
@@ -356,6 +357,7 @@ Indexing
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
 - Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
 - Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
+- Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
 
 I/O
 ^^^
@@ -402,6 +404,7 @@ Reshaping
 - Fixes dtype of result with integer dtype input, from :func:`pivot_table` when called with ``margins=True`` (:issue:`17013`)
 - Bug in :func:`crosstab` where passing two ``Series`` with the same name raised a ``KeyError`` (:issue:`13279`)
 - :func:`Series.argmin`, :func:`Series.argmax`, and their counterparts on ``DataFrame`` and groupby objects work correctly with floating point data that contains infinite values (:issue:`13595`).
+- Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
 
 Numeric
 ^^^^^^^
@@ -420,5 +423,3 @@ Categorical
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
-- Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
-- Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)

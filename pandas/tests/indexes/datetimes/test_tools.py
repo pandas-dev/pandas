@@ -1589,6 +1589,12 @@ class TestOrigin(object):
             pd.to_datetime(units_from_epochs, unit=units,
                            origin=origin)
 
+    def test_invalid_origins_tzinfo(self):
+        # GH16842
+        with pytest.raises(ValueError):
+            pd.to_datetime(1, unit='D',
+                           origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
+
     def test_processing_order(self):
         # make sure we handle out-of-bounds *before*
         # constructing the dates
