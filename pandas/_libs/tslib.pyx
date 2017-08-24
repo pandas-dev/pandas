@@ -3925,7 +3925,7 @@ for _method_name in _nat_methods:
         def f(*args, **kwargs):
             return NaT
         f.__name__ = func_name
-        f.__doc__ = _get_docstring(_method_name)
+        f.__doc__ = _get_docstring(func_name)
         return f
 
     setattr(NaTType, _method_name, _make_nat_func(_method_name))
@@ -3937,7 +3937,7 @@ for _method_name in _nan_methods:
         def f(*args, **kwargs):
             return np.nan
         f.__name__ = func_name
-        f.__doc__ = _get_docstring(_method_name)
+        f.__doc__ = _get_docstring(func_name)
         return f
 
     setattr(NaTType, _method_name, _make_nan_func(_method_name))
@@ -3955,7 +3955,7 @@ for _maybe_method_name in dir(NaTType):
             def f(*args, **kwargs):
                 raise ValueError("NaTType does not support " + func_name)
             f.__name__ = func_name
-            f.__doc__ = _get_docstring(_method_name)
+            f.__doc__ = _get_docstring(func_name)
             return f
 
         setattr(NaTType, _maybe_method_name,
