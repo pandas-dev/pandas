@@ -1281,7 +1281,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # GH 6415
                 expected_data = [Timestamp('2000-01-01 08:00:00', tz='UTC'),
                                  Timestamp('2000-06-01 07:00:00', tz='UTC')]
-                expected = Series(expected_data)
+                expected = Series(expected_data, name=col.name)
                 tm.assert_series_equal(col, expected)
 
             else:
