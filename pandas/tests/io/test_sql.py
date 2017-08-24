@@ -1277,6 +1277,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # "2000-06-01 07:00:00"
                 assert col[1] == Timestamp('2000-06-01 07:00:00', tz='UTC')
 
+                # Double check that the Series has been localized correctly
+                # GH 6415
+                expected_data = [Timestamp('2000-01-01 08:00:00', tz='UTC'),
+                                 Timestamp('2000-06-01 07:00:00', tz='UTC')]
+                expected = Series(expected_data)
+                tm.assert_series_equal(col, expected)
+
             else:
                 raise AssertionError("DateCol loaded with incorrect type "
                                      "-> {0}".format(col.dtype))
@@ -1388,8 +1395,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         df.to_sql('test_date', self.conn, index=False)
         res = read_sql_table('test_date', self.conn)
-        expected = res['a']
-        result = to_datetime(df['a'])
+        result = res['a']
+        expected = to_datetime(df['a'])
         # comes back as datetime64
         tm.assert_series_equal(result, expected)
 

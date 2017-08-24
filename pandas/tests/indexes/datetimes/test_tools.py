@@ -272,11 +272,13 @@ class TestToDatetime(object):
     
     @pytest.mark.parametrize("init_constructor, end_constructor, test_method",
         [(Index, DatetimeIndex, tm.assert_index_equal),
+         (list, DatetimeIndex, tm.assert_index_equal),
+         (np.array, DatetimeIndex, tm.assert_index_equal),
          (Series, Series, tm.assert_series_equal)])
-    def test_to_datetime_utc_true_with_series(self, 
-                                              init_constructor, 
-                                              end_constructor, 
-                                              test_method):
+    def test_to_datetime_utc_true_with_constructors(self, 
+                                                    init_constructor, 
+                                                    end_constructor, 
+                                                    test_method):
         # GH 6415: UTC=True with Series
         data = ['20100102 121314', '20100102 121315']
         expected_data = [pd.Timestamp('2010-01-02 12:13:14', tz='utc'),

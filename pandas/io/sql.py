@@ -818,6 +818,7 @@ class SQLTable(PandasObject):
                 df_col = self.frame[col_name]
                 # the type the dataframe column should have
                 col_type = self._get_dtype(sql_col.type)
+
                 if (col_type is datetime or col_type is date or
                         col_type is DatetimeTZDtype):
                     if col_type is DatetimeTZDtype:
