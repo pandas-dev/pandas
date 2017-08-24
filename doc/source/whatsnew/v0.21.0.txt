@@ -383,7 +383,7 @@ Groupby/Resample/Rolling
 - Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 - Bug in ``Series.resample(...).apply()`` where an empty ``Series`` modified the source index and did not return the name of a ``Series`` (:issue:`14313`)
 - Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1` (:issue:`15305`)
-
+- Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
 
 Sparse
 ^^^^^^
