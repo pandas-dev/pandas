@@ -22,7 +22,7 @@ cimport cython
 
 from datetime cimport (
     is_leapyear,
-    PyDateTime_IMPORT
+    PyDateTime_IMPORT,
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
