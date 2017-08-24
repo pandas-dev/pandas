@@ -1406,3 +1406,14 @@ class TestMethods(object):
 
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             p - offsets.Hour(2)
+
+
+def test_period_immutable():
+    # see gh-17116
+    per = pd.Period('2014Q1')
+    with pytest.raises(AttributeError):
+        per.ordinal = 14
+
+    freq = per.freq
+    with pytest.raises(AttributeError):
+        per.freq = 2 * freq

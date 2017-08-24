@@ -489,13 +489,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+            offset = tslib.Timestamp(origin)
         except tslib.OutOfBoundsDatetime:
             raise tslib.OutOfBoundsDatetime(
                 "origin {origin} is Out of Bounds".format(origin=origin))
         except ValueError:
             raise ValueError("origin {origin} cannot be converted "
                              "to a Timestamp".format(origin=origin))
+
+        if offset.tz is not None:
+            raise ValueError(
+                "origin offset {} must be tz-naive".format(offset))
+        offset -= tslib.Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
