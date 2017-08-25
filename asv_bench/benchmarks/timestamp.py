@@ -10,7 +10,7 @@ class TimestampProperties(object):
 
     def time_tz(self):
         self.ts.tz
-    
+
     def time_offset(self):
         self.ts.offset
 
@@ -58,4 +58,3 @@ class TimestampProperties(object):
 
     def time_microsecond(self):
         self.ts.microsecond
-
