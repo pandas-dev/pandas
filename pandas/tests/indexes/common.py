@@ -11,6 +11,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
                     notna, isna)
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas._libs.tslib import iNaT
@@ -138,10 +139,14 @@ class Base(object):
             if isinstance(index, IntervalIndex):
                 continue
 
-            if index.is_unique:
+            if index.is_unique or isinstance(index, CategoricalIndex):
                 indexer = index.get_indexer(index[0:2])
                 assert isinstance(indexer, np.ndarray)
                 assert indexer.dtype == np.intp
+            else:
+                e = "Reindexing only valid with uniquely valued Index objects"
+                with tm.assert_raises_regex(InvalidIndexError, e):
+                    indexer = index.get_indexer(index[0:2])
 
             indexer, _ = index.get_indexer_non_unique(index[0:2])
             assert isinstance(indexer, np.ndarray)
