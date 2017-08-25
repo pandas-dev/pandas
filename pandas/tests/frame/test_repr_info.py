@@ -259,8 +259,8 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert 'a    1 non-null int64\n' == lines[3]
-        assert 'a    1 non-null float64\n' == lines[4]
+        assert ' 0     a         1 non-null int64\n' == lines[4]
+        assert ' 1     a         1 non-null float64\n' == lines[5]
 
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
@@ -274,12 +274,13 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
         res = buf.getvalue()
         for i, dtype in enumerate(dtypes):
-            name = '%d    %d non-null %s' % (i, n, dtype)
+            name = '%s         %d non-null %s' % (i, n, dtype)
+
             assert name in res
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(5, None), (5, False), (10, True)]:
+        for len_, verbose in [(5, None), (5, False), (11, True)]:
             # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context('max_info_columns', 4):
                 buf = StringIO()
@@ -287,7 +288,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split('\n')) == len_
 
-        for len_, verbose in [(10, None), (5, False), (10, True)]:
+        for len_, verbose in [(11, None), (5, False), (11, True)]:
 
             # max_cols no exceeded
             with option_context('max_info_columns', 5):
@@ -296,7 +297,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split('\n')) == len_
 
-        for len_, max_cols in [(10, 5), (5, 4)]:
+        for len_, max_cols in [(11, 5), (5, 4)]:
             # setting truncates
             with option_context('max_info_columns', 4):
                 buf = StringIO()

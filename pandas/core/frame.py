@@ -2192,48 +2192,54 @@ class DataFrame(NDFrame):
             return
 
         cols = self.columns
+        cols_count = len(cols)
 
         # hack
         if max_cols is None:
-            max_cols = get_option('display.max_info_columns',
-                                  len(self.columns) + 1)
+            max_cols = get_option('display.max_info_columns', cols_count + 1)
 
         max_rows = get_option('display.max_info_rows', len(self) + 1)
 
         if null_counts is None:
-            show_counts = ((len(self.columns) <= max_cols) and
+            show_counts = ((cols_count <= max_cols) and
                            (len(self) < max_rows))
         else:
             show_counts = null_counts
-        exceeds_info_cols = len(self.columns) > max_cols
+        exceeds_info_cols = cols_count > max_cols
 
         def _verbose_repr():
-            lines.append('Data columns (total %d columns):' %
-                         len(self.columns))
-            space = max(len(pprint_thing(k)) for k in self.columns) + 4
+            lines.append('Data columns (total '
+                         '{count} columns):'.format(count=cols_count))
+            space = max([len(pprint_thing(k)) for k in cols])
+            space = max(space, len(pprint_thing('Column'))) + 4
+            space_num = len(pprint_thing(cols_count))
+            space_num = max(space_num, len(pprint_thing('Index'))) + 2
             counts = None
 
-            tmpl = "{count}{dtype}"
+            header = _put_str('Index', space_num) + _put_str('Column', space)
+            tmpl = '{count}{dtype}'
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError(
                         'Columns must equal counts '
-                        '({cols:d} != {counts:d})'.format(
-                            cols=len(cols), counts=len(counts)))
-                tmpl = "{count} non-null {dtype}"
+                        '({cols_count} != {count})'.format(
+                            cols_count=cols_count, count=len(counts)))
+                header += 'Non-Null Count'
+                tmpl = '{count} non-null {dtype}'
 
+            lines.append(header)
             dtypes = self.dtypes
-            for i, col in enumerate(self.columns):
+            for i, col in enumerate(cols):
                 dtype = dtypes.iloc[i]
                 col = pprint_thing(col)
-
-                count = ""
+                line_no = _put_str(' {num}'.format(num=i), space_num)
+                count = ''
                 if show_counts:
                     count = counts.iloc[i]
 
-                lines.append(_put_str(col, space) + tmpl.format(count=count,
-                                                                dtype=dtype))
+                lines.append(line_no + _put_str(col, space) +
+                             tmpl.format(count=count, dtype=dtype))
 
         def _non_verbose_repr():
             lines.append(self.columns._summary(name='Columns'))
