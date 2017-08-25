@@ -311,7 +311,7 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
      s = Series(['20130101 00:00:00'] * 3)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [12]: pd.to_datetime(s, utc=True)
      Out[12]:
@@ -326,7 +326,7 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
      pd.to_datetime(s, utc=True)
 
-Additionally, DataFrames with datetime columns returned by :func:`read_sql` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
+Additionally, DataFrames with datetime columns returned by :func:`read_sql_table` and :func:`read_sql_query` with the `parse_dates` argument specified will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
 .. _whatsnew_0210.api:
 

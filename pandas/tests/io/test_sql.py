@@ -1271,13 +1271,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
-                assert col[0] == Timestamp('2000-01-01 08:00:00', tz='UTC')
-
                 # "2000-06-01 00:00:00-07:00" should convert to
                 # "2000-06-01 07:00:00"
-                assert col[1] == Timestamp('2000-06-01 07:00:00', tz='UTC')
-
-                # Double check that the Series has been localized correctly
                 # GH 6415
                 expected_data = [Timestamp('2000-01-01 08:00:00', tz='UTC'),
                                  Timestamp('2000-06-01 07:00:00', tz='UTC')]
@@ -1305,6 +1300,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                                self.conn, parse_dates=['DateColWithTz'])
         if not hasattr(df, 'DateColWithTz'):
             pytest.skip("no column with datetime with time zone")
+        col = df.DateColWithTz
+        assert is_datetime64tz_dtype(col.dtype)
+        assert str(col.dt.tz) == 'UTC'
         check(df.DateColWithTz)
 
         df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
@@ -1314,9 +1312,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == 'UTC'
         expected = sql.read_sql_table("types_test_data", self.conn)
-        tm.assert_series_equal(df.DateColWithTz,
-                               expected.DateColWithTz
-                               .astype('datetime64[ns, UTC]'))
+        # Removed ".astype('datetime64[ns, UTC]')"after GH 6415 was fixed
+        tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
         # this might or might not be converted depending on the postgres driver

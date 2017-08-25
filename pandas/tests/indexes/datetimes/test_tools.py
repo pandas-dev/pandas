@@ -260,16 +260,6 @@ class TestToDatetime(object):
                                  dtype='datetime64[ns, UTC]', freq=None)
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_utc_is_true(self):
-        # See gh-11934
-        start = pd.Timestamp('2014-01-01', tz='utc')
-        end = pd.Timestamp('2014-01-03', tz='utc')
-        date_range = pd.bdate_range(start, end)
-
-        result = pd.to_datetime(date_range, utc=True)
-        expected = pd.DatetimeIndex(data=date_range)
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize("init_constructor, end_constructor, test_method",
                              [(Index, DatetimeIndex, tm.assert_index_equal),
                               (list, DatetimeIndex, tm.assert_index_equal),
@@ -279,7 +269,7 @@ class TestToDatetime(object):
                                                     init_constructor,
                                                     end_constructor,
                                                     test_method):
-        # GH 6415: UTC=True with Series
+        # See gh-11934 & gh-6415
         data = ['20100102 121314', '20100102 121315']
         expected_data = [pd.Timestamp('2010-01-02 12:13:14', tz='utc'),
                          pd.Timestamp('2010-01-02 12:13:15', tz='utc')]
@@ -289,6 +279,11 @@ class TestToDatetime(object):
                                 utc=True)
         expected = end_constructor(expected_data)
         test_method(result, expected)
+
+        # Test scalar case as well
+        for scalar, expected in zip(data, expected_data):
+            result = pd.to_datetime(scalar, format='%Y%m%d %H%M%S', utc=True)
+            assert result == expected
 
     def test_to_datetime_utc_true_with_series_single_value(self):
         # GH 15760 UTC=True with Series
