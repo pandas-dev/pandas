@@ -5,6 +5,7 @@ from cpython cimport PyObject
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
 
 
+
 cdef extern from "headers/stdint.h":
     enum: INT64_MIN
     enum: INT32_MIN
@@ -94,6 +95,7 @@ cdef extern from "datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
     int days_per_month_table[2][12]
+    pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
     int dayofweek(int y, int m, int d) nogil
     int is_leapyear(int64_t year) nogil
@@ -161,3 +163,23 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+
+
+cdef inline check_dts_bounds(pandas_datetimestruct *dts):
+    cdef:
+        bint error = False
+
+    if (dts.year <= 1677 and
+            cmp_pandas_datetimestruct(dts, &_NS_MIN_DTS) == -1):
+        error = True
+    elif (dts.year >= 2262 and
+          cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
+        error = True
+
+    if error:
+        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
+                                               dts.day, dts.hour,
+                                               dts.min, dts.sec)
+
+        raise ValueError(
+            'Out of bounds nanosecond timestamp: %s' % fmt)
