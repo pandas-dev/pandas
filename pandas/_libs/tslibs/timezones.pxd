@@ -18,5 +18,3 @@ cdef bint _is_fixed_offset(object tz)
 cdef object _get_utc_trans_times_from_dateutil_tz(object tz)
 
 cpdef object _get_dst_info(object tz)
-
-cdef float64_t total_seconds(object td)
