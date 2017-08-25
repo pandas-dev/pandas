@@ -1454,6 +1454,8 @@ class StringMethods(NoNewAttributesMixin):
                 result = list(result)
                 out = MultiIndex.from_tuples(result, names=name)
                 if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
                     out = out.get_level_values(0)
                 return out
             else:

@@ -312,6 +312,7 @@ def _unstack_multiple(data, clocs):
                                          xnull=False)
 
     if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name='__placeholder__')
     else:
         dummy_index = MultiIndex(levels=rlevels + [obs_ids],
@@ -450,6 +451,8 @@ def _slow_pivot(index, columns, values):
 def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
         if len(level) == 1:
+            # unstack_multiple only handles MultiIndexes,
+            # and isn't needed for a single level
             level = level[0]
         else:
             return _unstack_multiple(obj, level)

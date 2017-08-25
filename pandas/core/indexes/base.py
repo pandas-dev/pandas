@@ -4012,19 +4012,28 @@ Index._add_logical_methods()
 Index._add_comparison_methods()
 
 
-def _index_from_sequences(sequences, names=None):
+def _ensure_index_from_sequences(sequences, names=None):
     """Construct an index from sequences of data.
 
-    A single sequence returns an Index.
-    Many sequences returns a MultiIndex.
+    A single sequence returns an Index. Many sequences returns a
+    MultiIndex.
+
+    Parameters
+    ----------
+    sequences : sequence of sequences
+    names : sequence of str
+
+    Returns
+    -------
+    index : Index or MultiIndex
 
     Examples
     --------
-
-    >>> _index_from_sequences([[1, 2, 3]], names=['name'])
+    >>> _ensure_index_from_sequences([[1, 2, 3]], names=['name'])
     Int64Index([1, 2, 3], dtype='int64', name='name')
 
-    >>> _index_from_sequences([['a', 'a'], ['a', 'b']], names=['L1', 'L2'])
+    >>> _ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
+                                     names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
                labels=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
@@ -4040,6 +4049,31 @@ def _index_from_sequences(sequences, names=None):
 
 
 def _ensure_index(index_like, copy=False):
+    """
+    Ensure that we have an index from some index-like object
+
+    Parameters
+    ----------
+    index : sequence
+        An Index or other sequence
+    copy : bool
+
+    Returns
+    -------
+    index : Index or MultiIndex
+
+    Examples
+    --------
+    >>> _ensure_index(['a', 'b'])
+    Index(['a', 'b'], dtype='object')
+
+    >>> _ensure_index([('a', 'a'),  ('b', 'c')])
+    Index([('a', 'a'), ('b', 'c')], dtype='object')
+
+    >>> _ensure_index([['a', 'a'], ['b', 'c']])
+    MultiIndex(levels=[['a'], ['b', 'c']],
+               labels=[[0, 0], [0, 1]])
+    """
     if isinstance(index_like, Index):
         if copy:
             index_like = index_like.copy()

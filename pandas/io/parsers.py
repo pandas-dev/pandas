@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _index_from_sequences)
+                               _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
@@ -1446,15 +1446,7 @@ class ParserBase(object):
             arrays.append(arr)
 
         names = self.index_names
-        index = _index_from_sequences(arrays, names)
-        if len(arrays) > 1:
-            index = MultiIndex.from_arrays(arrays, names=self.index_names)
-        else:
-            if self.index_names is None:
-                name = None
-            else:
-                name = self.index_names[0]
-            index = Index(arrays[0], name=name)
+        index = _ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1818,7 +1810,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _index_from_sequences(arrays)
+            index = _ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -3149,7 +3141,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _index_from_sequences(data, names=index_names)
+        index = _ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
         for i, n in enumerate(index_col):
             columns.pop(n - i)

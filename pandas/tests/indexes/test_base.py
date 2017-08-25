@@ -17,7 +17,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
-from pandas.core.index import _get_combined_index, _index_from_sequences
+from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -2125,6 +2125,6 @@ class TestIndexUtils(object):
          MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]],
                     names=['L1', 'L2'])),
     ])
-    def test_index_from_sequences(self, data, names, expected):
-        result = _index_from_sequences(data, names)
+    def test_ensure_index_from_sequences(self, data, names, expected):
+        result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
