@@ -16,6 +16,9 @@ class Milestone(object):
             return self.number == other.number
         return False
 
+    def __ne__(self, other):
+        return not self == other
+
 
 class Issue(object):
 
@@ -31,6 +34,9 @@ class Issue(object):
         if isinstance(other, Issue):
             return self.number == other.number
         return False
+
+    def __ne__(self, other):
+        return not self == other
 
 
 def get_issues():

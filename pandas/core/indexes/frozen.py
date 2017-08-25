@@ -51,6 +51,9 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return super(FrozenList, self).__eq__(other)
 
+    def __ne__(self, other):
+        return not self == other
+
     __req__ = __eq__
 
     def __mul__(self, other):
