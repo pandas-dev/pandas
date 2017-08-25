@@ -138,9 +138,10 @@ class Base(object):
             if isinstance(index, IntervalIndex):
                 continue
 
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
+            if index.is_unique:
+                indexer = index.get_indexer(index[0:2])
+                assert isinstance(indexer, np.ndarray)
+                assert indexer.dtype == np.intp
 
             indexer, _ = index.get_indexer_non_unique(index[0:2])
             assert isinstance(indexer, np.ndarray)
@@ -551,8 +552,6 @@ class Base(object):
                                            "or array-like",
                                            method, case)
 
-    @pytest.mark.xfail(reason='intersection fails for monotonic decreasing '
-                              'RangeIndex (GH 17296)')
     def test_intersection_base(self):
         for name, idx in compat.iteritems(self.indices):
             first = idx[:5]
@@ -561,6 +560,9 @@ class Base(object):
 
             if isinstance(idx, CategoricalIndex):
                 pass
+            elif isinstance(idx, RangeIndex):
+                pytest.xfail(reason='intersection fails for decreasing '
+                                    'RangeIndex (GH 17296)')
             else:
                 assert tm.equalContents(intersect, second)
 
@@ -971,9 +973,32 @@ class Base(object):
                 continue
             value = index[0]
 
-            if index.is_monotonic_increasing or index.is_monotonic_decreasing:
-                assert index._searchsorted_monotonic(value, side='left') == 0
-                assert index._searchsorted_monotonic(value, side='right') == 1
+            # determine the expected results (handle dupes for 'right')
+            expected_left, expected_right = 0, (index == value).argmin()
+            if expected_right == 0:
+                # all values are the same, expected_right should be length
+                expected_right = len(index)
+
+            # test _searchsorted_monotonic in all cases
+            # test searchsorted only for increasing
+            if index.is_monotonic_increasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
+
+                ss_left = index.searchsorted(value, side='left')
+                assert expected_left == ss_left
+
+                ss_right = index.searchsorted(value, side='right')
+                assert expected_right == ss_right
+            elif index.is_monotonic_decreasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
             else:
                 # non-monotonic should raise.
                 with pytest.raises(ValueError):

@@ -46,7 +46,8 @@ class TestIndex(Base):
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
                             tuples=MultiIndex.from_tuples(lzip(
-                                ['foo', 'bar', 'baz'], [1, 2, 3])))
+                                ['foo', 'bar', 'baz'], [1, 2, 3])),
+                            repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
 
     def create_index(self):
