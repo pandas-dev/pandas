@@ -700,14 +700,16 @@ class Timestamp(_Timestamp):
 
         cdef:
             pandas_datetimestruct dts
-            int64_t value
-            object _tzinfo, result, k, v
+            int64_t value, value_tz, offset
+            object _tzinfo, result, k, v, ts_input
 
         # set to naive if needed
         _tzinfo = self.tzinfo
         value = self.value
         if _tzinfo is not None:
-            value = tz_convert_single(value, 'UTC', _tzinfo)
+            value_tz = tz_convert_single(value, _tzinfo, 'UTC')
+            offset = value - value_tz
+            value += offset
 
         # setup components
         pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -741,16 +743,14 @@ class Timestamp(_Timestamp):
             _tzinfo = tzinfo
 
         # reconstruct & check bounds
-        value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+        ts_input = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
+                            dts.sec, dts.us, tzinfo=_tzinfo)
+        ts = convert_to_tsobject(ts_input, _tzinfo, None, 0, 0)
+        value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             _check_dts_bounds(&dts)
 
-        # set tz if needed
-        if _tzinfo is not None:
-            value = tz_convert_single(value, _tzinfo, 'UTC')
-
-        result = create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
-        return result
+        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)
@@ -4208,7 +4208,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     return result
 
 
-def tz_convert_single(int64_t val, object tz1, object tz2):
+cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
