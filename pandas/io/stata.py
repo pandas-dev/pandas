@@ -805,6 +805,9 @@ class StataMissingValue(StringMixin):
         return (isinstance(other, self.__class__) and
                 self.string == other.string and self.value == other.value)
 
+    def __ne__(self, other):
+        return not self == other
+
     @classmethod
     def get_base_missing_value(cls, dtype):
         if dtype == np.int8:

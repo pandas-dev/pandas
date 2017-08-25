@@ -1826,6 +1826,9 @@ class DataCol(IndexCol):
         return all([getattr(self, a, None) == getattr(other, a, None)
                     for a in ['name', 'cname', 'dtype', 'pos']])
 
+    def __ne__(self, other):
+        return not self == other
+
     def set_data(self, data, dtype=None):
         self.data = data
         if data is not None:

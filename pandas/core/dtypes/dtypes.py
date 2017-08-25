@@ -142,6 +142,9 @@ class CategoricalDtype(ExtensionDtype):
 
         return isinstance(other, CategoricalDtype)
 
+    def __ne__(self, other):
+        return not self == other
+
     @classmethod
     def construct_from_string(cls, string):
         """ attempt to construct this type from a string, raise a TypeError if
@@ -268,6 +271,9 @@ class DatetimeTZDtype(ExtensionDtype):
                 self.unit == other.unit and
                 str(self.tz) == str(other.tz))
 
+    def __ne__(self, other):
+        return not self == other
+
 
 class PeriodDtypeType(type):
     """
@@ -363,6 +369,9 @@ class PeriodDtype(ExtensionDtype):
             return other == self.name or other == self.name.title()
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
+
+    def __ne__(self, other):
+        return not self == other
 
     @classmethod
     def is_dtype(cls, dtype):
@@ -485,6 +494,9 @@ class IntervalDtype(ExtensionDtype):
 
         return (isinstance(other, IntervalDtype) and
                 self.subtype == other.subtype)
+
+    def __ne__(self, other):
+        return not self == other
 
     @classmethod
     def is_dtype(cls, dtype):
