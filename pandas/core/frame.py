@@ -4102,7 +4102,7 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column name to use to make new frame's columns
-        values : string or object, optional
+        values : string, object or a list of the previous, optional
             Column name to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns
