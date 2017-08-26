@@ -72,7 +72,6 @@ from tslibs.timezones import (
     get_timezone,
     _p_tz_cache_key)
 from tslibs.timezones cimport (
-    total_seconds,
     _is_utc,
     maybe_get_tz,
     _is_tzlocal,
@@ -1633,7 +1632,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
         dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
                       obj.dts.min, obj.dts.sec, obj.dts.us, tz)
-        delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+        delta = int(_get_utcoffset(tz, dt).total_seconds()) * 1000000000
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value + delta,
                                               PANDAS_FR_ns, &obj.dts)
@@ -4066,7 +4065,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                     pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                                   dts.min, dts.sec, dts.us, tz1)
-                    delta = (int(total_seconds(_get_utcoffset(tz1, dt)))
+                    delta = (int(_get_utcoffset(tz1, dt).total_seconds())
                              * 1000000000)
                     utc_dates[i] = v - delta
         else:
@@ -4106,8 +4105,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz2)
-                delta = int(total_seconds(
-                    _get_utcoffset(tz2, dt))) * 1000000000
+                delta = (int(_get_utcoffset(tz2, dt).total_seconds())
+                             * 1000000000)
                 result[i] = v + delta
         return result
 
@@ -4173,7 +4172,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz1)
-        delta = int(total_seconds(_get_utcoffset(tz1, dt))) * 1000000000
+        delta = int(_get_utcoffset(tz1, dt).total_seconds()) * 1000000000
         utc_date = val - delta
     elif _get_zone(tz1) != 'UTC':
         trans, deltas, typ = _get_dst_info(tz1)
@@ -4191,7 +4190,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
         pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
-        delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
+        delta = int(_get_utcoffset(tz2, dt).total_seconds()) * 1000000000
         return utc_date + delta
 
     # Convert UTC to other timezone
@@ -4203,10 +4202,6 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
 
     offset = deltas[pos]
     return utc_date + offset
-
-
-def tot_seconds(td):
-    return total_seconds(td)
 
 
 @cython.boundscheck(False)
@@ -4247,7 +4242,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(_get_utcoffset(tz, dt).total_seconds()) * 1000000000
             result[i] = v - delta
         return result
 
@@ -4970,7 +4965,7 @@ cdef _normalize_local(ndarray[int64_t] stamps, object tz):
             pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(_get_utcoffset(tz, dt).total_seconds()) * 1000000000
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             result[i] = _normalized_stamp(&dts)
