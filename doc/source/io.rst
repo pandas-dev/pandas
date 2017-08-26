@@ -113,8 +113,8 @@ header : int or list of ints, default ``'infer'``
   rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed unless
-  ``mangle_dupe_cols=True``, which is the default.
+  explicitly pass ``header=None``. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
