@@ -3592,8 +3592,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-
-
 #----------------------------------------------------------------------
 # NaT methods/property setups
 

@@ -65,7 +65,7 @@ def _checknull_with_nat(val):
     """ utility to check if a value is a nat or not """
     return (val is None or
     	    (PyFloat_Check(val) and val != val) or
-    	    (isinstance(val, datetime) and not val == val))
+             (isinstance(val, datetime) and not val == val))
 
 
 @cython.returns(cython.bint)
