@@ -4381,7 +4381,7 @@ def _get_tz(tz):
     """ for a tz-aware type, return an encoded zone """
     zone = tslib.get_timezone(tz)
     if zone is None:
-        zone = tslib.tot_seconds(tz.utcoffset())
+        zone = tz.utcoffset().total_seconds()
     return zone
 
 

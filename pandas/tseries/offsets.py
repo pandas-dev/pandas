@@ -778,12 +778,12 @@ class BusinessHourMixin(BusinessMixin):
             # create dummy datetime to calcurate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
         else:
             self.daytime = False
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 2, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
 
     @apply_wraps
     def rollback(self, dt):
@@ -907,7 +907,7 @@ class BusinessHourMixin(BusinessMixin):
             op = self._prev_opening_time(dt)
         else:
             op = self._next_opening_time(dt)
-        span = tslib.tot_seconds(dt - op)
+        span = (dt - op).total_seconds()
         if span <= businesshours:
             return True
         else:
