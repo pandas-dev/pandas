@@ -170,7 +170,7 @@ class Base(object):
 
         offset = self._get_offset(self._offset, value=14)
         if len(offset.kwds) == 0:
-            cached_params = offset._params()
+            _ = offset._params()
             assert '_cached_params' in offset._cache
 
             offset.n = offset.n + 3
