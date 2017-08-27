@@ -581,11 +581,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         def gen_expected(df, mask):
             l = len(mask)
-            return pd.concat([df.take([0], convert=False),
+            return pd.concat([df.take([0]),
                               DataFrame(np.ones((l, len(columns))),
                                         index=[0] * l,
                                         columns=columns),
-                              df.take(mask[1:], convert=False)])
+                              df.take(mask[1:])])
 
         df = gen_test(900, 100)
         assert not df.index.is_unique
