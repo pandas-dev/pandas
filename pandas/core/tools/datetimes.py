@@ -23,21 +23,9 @@ from pandas.core import algorithms
 
 import pandas.compat as compat
 
-_DATEUTIL_LEXER_SPLIT = None
-try:
-    # Since these are private methods from dateutil, it is safely imported
-    # here so in case this interface changes, pandas will just fallback
-    # to not using the functionality
-    from dateutil.parser import _timelex
-
-    if hasattr(_timelex, 'split'):
-        def _lexer_split_from_str(dt_str):
-            # The StringIO(str(_)) is for dateutil 2.2 compatibility
-            return _timelex.split(compat.StringIO(str(dt_str)))
-
-        _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
-except (ImportError, AttributeError):
-    pass
+_format_is_iso = tslib.parsing._format_is_iso
+_DATEUTIL_LEXER_SPLIT = tslib.parsing._DATEUTIL_LEXER_SPLIT
+_guess_datetime_format = tslib.parsing._guess_datetime_format
 
 
 def _infer_tzinfo(start, end):
@@ -56,123 +44,6 @@ def _infer_tzinfo(start, end):
     elif end is not None:
         tz = _infer(end, start)
     return tz
-
-
-def _guess_datetime_format(dt_str, dayfirst=False,
-                           dt_str_parse=compat.parse_date,
-                           dt_str_split=_DATEUTIL_LEXER_SPLIT):
-    """
-    Guess the datetime format of a given datetime string.
-
-    Parameters
-    ----------
-    dt_str : string, datetime string to guess the format of
-    dayfirst : boolean, default False
-        If True parses dates with the day first, eg 20/01/2005
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug).
-    dt_str_parse : function, defaults to `compat.parse_date` (dateutil)
-        This function should take in a datetime string and return
-        a `datetime.datetime` guess that the datetime string represents
-    dt_str_split : function, defaults to `_DATEUTIL_LEXER_SPLIT` (dateutil)
-        This function should take in a datetime string and return
-        a list of strings, the guess of the various specific parts
-        e.g. '2011/12/30' -> ['2011', '/', '12', '/', '30']
-
-    Returns
-    -------
-    ret : datetime format string (for `strftime` or `strptime`)
-    """
-    if dt_str_parse is None or dt_str_split is None:
-        return None
-
-    if not isinstance(dt_str, compat.string_types):
-        return None
-
-    day_attribute_and_format = (('day',), '%d', 2)
-
-    # attr name, format, padding (if any)
-    datetime_attrs_to_format = [
-        (('year', 'month', 'day'), '%Y%m%d', 0),
-        (('year',), '%Y', 0),
-        (('month',), '%B', 0),
-        (('month',), '%b', 0),
-        (('month',), '%m', 2),
-        day_attribute_and_format,
-        (('hour',), '%H', 2),
-        (('minute',), '%M', 2),
-        (('second',), '%S', 2),
-        (('microsecond',), '%f', 6),
-        (('second', 'microsecond'), '%S.%f', 0),
-    ]
-
-    if dayfirst:
-        datetime_attrs_to_format.remove(day_attribute_and_format)
-        datetime_attrs_to_format.insert(0, day_attribute_and_format)
-
-    try:
-        parsed_datetime = dt_str_parse(dt_str, dayfirst=dayfirst)
-    except:
-        # In case the datetime can't be parsed, its format cannot be guessed
-        return None
-
-    if parsed_datetime is None:
-        return None
-
-    try:
-        tokens = dt_str_split(dt_str)
-    except:
-        # In case the datetime string can't be split, its format cannot
-        # be guessed
-        return None
-
-    format_guess = [None] * len(tokens)
-    found_attrs = set()
-
-    for attrs, attr_format, padding in datetime_attrs_to_format:
-        # If a given attribute has been placed in the format string, skip
-        # over other formats for that same underlying attribute (IE, month
-        # can be represented in multiple different ways)
-        if set(attrs) & found_attrs:
-            continue
-
-        if all(getattr(parsed_datetime, attr) is not None for attr in attrs):
-            for i, token_format in enumerate(format_guess):
-                token_filled = tokens[i].zfill(padding)
-                if (token_format is None and
-                        token_filled == parsed_datetime.strftime(attr_format)):
-                    format_guess[i] = attr_format
-                    tokens[i] = token_filled
-                    found_attrs.update(attrs)
-                    break
-
-    # Only consider it a valid guess if we have a year, month and day
-    if len(set(['year', 'month', 'day']) & found_attrs) != 3:
-        return None
-
-    output_format = []
-    for i, guess in enumerate(format_guess):
-        if guess is not None:
-            # Either fill in the format placeholder (like %Y)
-            output_format.append(guess)
-        else:
-            # Or just the token separate (IE, the dashes in "01-01-2013")
-            try:
-                # If the token is numeric, then we likely didn't parse it
-                # properly, so our guess is wrong
-                float(tokens[i])
-                return None
-            except ValueError:
-                pass
-
-            output_format.append(tokens[i])
-
-    guessed_format = ''.join(output_format)
-
-    # rebuild string, capturing any inferred padding
-    dt_str = ''.join(tokens)
-    if parsed_datetime.strftime(guessed_format) == dt_str:
-        return guessed_format
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -689,24 +560,6 @@ def _attempt_YYYYMMDD(arg, errors):
     return None
 
 
-def _format_is_iso(f):
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
-    excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
-
-    for date_sep in [' ', '/', '\\', '-', '.', '']:
-        for time_sep in [' ', 'T']:
-            if (iso_template(date_sep=date_sep,
-                             time_sep=time_sep
-                             ).startswith(f) and f not in excluded_formats):
-                return True
-    return False
-
-
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
@@ -726,6 +579,11 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
+    res = tslib.parse_time_string(arg, freq, dayfirst, yearfirst)
+    if isinstance(res, tuple) and res[0] is tslib.NAT_SENTINEL:
+        res = (tslib.NaT,) + res[1:]
+    return res
+
     from pandas.core.config import get_option
     if not isinstance(arg, compat.string_types):
         return arg

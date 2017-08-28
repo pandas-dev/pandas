@@ -40,8 +40,9 @@ from tslib cimport (
     _get_dst_info,
     _nat_scalar_rules)
 
+from tslibs.parsing import parse_time_string, NAT_SENTINEL
+
 from pandas.tseries import offsets
-from pandas.core.tools.datetimes import parse_time_string
 from pandas.tseries import frequencies
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -1178,6 +1179,8 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)
+            if dt is NAT_SENTINEL:
+                ordinal = iNaT
 
             if freq is None:
                 try:

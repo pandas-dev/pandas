@@ -331,6 +331,7 @@ class CheckSDist(sdist_class):
     _pyxfiles = ['pandas/_libs/lib.pyx',
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
+                 'pandas/_libs/tslibs/parsing.pyx',
                  'pandas/_libs/period.pyx',
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
@@ -481,6 +482,7 @@ ext_data = {
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
                                     + _pxi_dep['hashtable'])},
+    '_libs.tslibs.parsing': {'pyxfile': '_libs/tslibs/parsing'},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
