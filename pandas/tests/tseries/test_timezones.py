@@ -1290,7 +1290,6 @@ class TestTimeZones(object):
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
-
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         right = date_range('1/1/2011', periods=100, freq='H', tz='US/Eastern')
