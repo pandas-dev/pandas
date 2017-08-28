@@ -1832,7 +1832,6 @@ def datetime_to_datetime64(ndarray[object] values):
     return result, inferred_tz
 
 
-
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                object format=None, object na_rep=None):
     """
