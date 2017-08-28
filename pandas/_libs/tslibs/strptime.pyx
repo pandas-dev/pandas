@@ -45,10 +45,10 @@ from datetime cimport datetime
 
 # This is src/datetime.pxd
 from datetime cimport (
-	PANDAS_FR_ns,
-	check_dts_bounds,
-	pandas_datetimestruct,
-	pandas_datetimestruct_to_datetime)
+    PANDAS_FR_ns,
+    check_dts_bounds,
+    pandas_datetimestruct,
+    pandas_datetimestruct_to_datetime)
 
 cdef int64_t NPY_NAT = np.iinfo(np.int64).min
 
@@ -64,8 +64,8 @@ _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 def _checknull_with_nat(val):
     """ utility to check if a value is a nat or not """
     return (val is None or
-    	    (PyFloat_Check(val) and val != val) or
-             (isinstance(val, datetime) and not val == val))
+            (PyFloat_Check(val) and val != val) or
+            (isinstance(val, datetime) and not val == val))
 
 
 @cython.returns(cython.bint)
@@ -73,8 +73,8 @@ def _checknull_with_nat(val):
 @cython.inline
 @cython.cfunc
 def is_string_object(obj):
-	# ported from `util` to avoid dependency.  Also equivalent to
-	# `isinstance(obj, string_types)`
+    # ported from `util` to avoid dependency.  Also equivalent to
+    # `isinstance(obj, string_types)`
     return PyString_Check(obj) or PyUnicode_Check(obj)
 
 
