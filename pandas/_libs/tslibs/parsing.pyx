@@ -107,25 +107,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
 
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
-    """
-    Try hard to parse datetime string, leveraging dateutil plus some extra
-    goodies like quarter recognition.
-
-    Parameters
-    ----------
-    arg : compat.string_types
-    freq : str or DateOffset, default None
-        Helps with interpreting time string if supplied
-    dayfirst : bool, default None
-        If None uses default from print_config
-    yearfirst : bool, default None
-        If None uses default from print_config
-
-    Returns
-    -------
-    datetime, datetime/dateutil.parser._result, str
-    """
-    
+    """See tslib.parse_time_string.__doc__"""    
     if not isinstance(arg, string_types):
         return arg
 

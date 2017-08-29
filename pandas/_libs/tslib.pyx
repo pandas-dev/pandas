@@ -5461,8 +5461,25 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
 
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+    """
+    Try hard to parse datetime string, leveraging dateutil plus some extra
+    goodies like quarter recognition.
+
+    Parameters
+    ----------
+    arg : compat.string_types
+    freq : str or DateOffset, default None
+        Helps with interpreting time string if supplied
+    dayfirst : bool, default None
+        If None uses default from print_config
+    yearfirst : bool, default None
+        If None uses default from print_config
+
+    Returns
+    -------
+    datetime, datetime/dateutil.parser._result, str
+    """
     res = _parse_time_string(arg, freq, dayfirst, yearfirst)
     if isinstance(res, tuple) and res[0] is NAT_SENTINEL:
         res = (NaT,) + res[1:]
     return res
-parse_time_string.__doc__ = _parse_time_string.__doc__
