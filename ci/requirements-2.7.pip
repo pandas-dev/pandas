@@ -8,3 +8,4 @@ py
 PyCrypto
 mock
 ipython
+moto

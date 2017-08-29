@@ -4,11 +4,13 @@ import pytest
 from pandas.compat import (range, lrange, StringIO,
                            OrderedDict, is_platform_32bit)
 import os
+import boto3
 
 import numpy as np
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
+from moto import mock_s3
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
@@ -985,11 +987,35 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         assert dumps(df, iso_dates=True) == dfexp
 
-    def test_read_jsonl(self):
+    def test_read_inline_jsonl(self):
         # GH9180
         result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
+
+    @mock_s3
+    def test_read_s3_jsonl(self):
+        # GH17200
+        conn = boto3.client('s3')
+        conn.create_bucket(Bucket='testbucket')
+        conn.put_object(Body=b'{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', Key='items.jsonl', Bucket='testbucket')
+
+        result = read_json('s3://testbucket/items.jsonl', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_local_jsonl(self):
+        # GH17200
+        fname = "./tmp_items.jsonl"
+        try:
+            with open(fname, "w") as infile:
+                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+            result = read_json(fname, lines=True)
+            expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+            assert_frame_equal(result, expected)
+        finally:
+            import os
+            os.remove(fname)
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters

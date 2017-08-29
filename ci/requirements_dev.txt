@@ -5,3 +5,5 @@ cython
 pytest
 pytest-cov
 flake8
+s3fs
+boto3
