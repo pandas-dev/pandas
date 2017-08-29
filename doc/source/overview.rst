@@ -2,6 +2,7 @@
 
 .. currentmodule:: pandas
 
+****************
 Package overview
 ****************
 
@@ -109,21 +110,10 @@ The documents clarify how decisions are made and how the various elements of our
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
-Current Core Team
+Development Team
 -----------------
 
-* Tom Augspurger
-* Chris Bartak
-* Phillip Cloud
-* Andy Hayden
-* Stephan Hoyer
-* Wes McKinney
-* Jeff Reback
-* Chang She
-* Masaaki Horikoshi
-* Joris Van den Bossche
-
-More details and the past Core Team members can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
+The list of the  Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
  
 
 Institutional Partners
