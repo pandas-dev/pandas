@@ -639,15 +639,6 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    def test_intersect_str_dates(self):
-        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
-
-        i1 = Index(dt_dates, dtype=object)
-        i2 = Index(['aa'], dtype=object)
-        res = i2.intersection(i1)
-
-        assert len(res) == 0
-
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
         # corner case, non-Int64Index
