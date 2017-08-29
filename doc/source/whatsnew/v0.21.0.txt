@@ -278,8 +278,11 @@ The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and 
 MultiIndex Constructor with a Single Level
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previous versions would automatically squeeze a ``MultiIndex`` with length-one
-``levels`` down to an ``Index``:
+The ``MultiIndex`` constructors no longer squeeze a MultiIndex with all
+length-one levels down to a regular ``Index``. This affects all the
+``MultiIndex`` constructors. (:issue:`17178`)
+
+Previous behavior:
 
 .. code-block:: ipython
 

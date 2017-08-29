@@ -450,12 +450,12 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
-        if len(level) == 1:
-            # unstack_multiple only handles MultiIndexes,
+        if len(level) != 1:
+            # _unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            level = level[0]
-        else:
             return _unstack_multiple(obj, level)
+        else:
+            level = level[0]
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):

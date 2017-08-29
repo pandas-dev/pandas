@@ -4037,6 +4037,10 @@ def _ensure_index_from_sequences(sequences, names=None):
     MultiIndex(levels=[['a'], ['a', 'b']],
                labels=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
+
+    See Also
+    --------
+    _ensure_index
     """
     from .multi import MultiIndex
 
@@ -4073,6 +4077,10 @@ def _ensure_index(index_like, copy=False):
     >>> _ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
                labels=[[0, 0], [0, 1]])
+
+    See Also
+    --------
+    _ensure_index_from_sequences
     """
     if isinstance(index_like, Index):
         if copy:
