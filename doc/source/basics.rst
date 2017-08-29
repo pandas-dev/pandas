@@ -1726,9 +1726,8 @@ Sorting
    The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
    In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
 
-There are three obvious kinds of sorting that you may be interested in: sorting
-by labels (indexes), sorting by values (columns), and sorting by a
-combination of both.
+Pandas supports three kinds of sorting: sorting by labels (indexes), sorting
+by values (columns), and sorting by a combination of both.
 
 By Index
 ~~~~~~~~
@@ -1805,8 +1804,6 @@ refer to either columns or index levels.
    df_multi.sort_values(by=['second', 'A'])
 
 .. note::
-
-   .. versionadded:: 0.21
 
    If a string matches both a column name and an index level name then a
    warning is issued and the column takes precedence. This will result in an

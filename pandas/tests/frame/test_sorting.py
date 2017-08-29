@@ -713,7 +713,7 @@ class TestDataFrameSortIndexKinds(TestData):
         assert_frame_equal(result, expected)
 
     def test_sort_values_column_index_level_precedence(self):
-        # GH 14355, when a string passed as the `by` parameter
+        # GH 14353, when a string passed as the `by` parameter
         # matches a column and an index level the column takes
         # precedence
 
