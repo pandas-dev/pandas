@@ -23,9 +23,20 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'PeriodIndex', 'DatetimeIndex',
            '_new_Index', 'NaT',
            '_ensure_index', '_get_na_value', '_get_combined_index',
+           '_get_objs_combined_axis',
            '_get_distinct_indexes', '_union_indexes',
            '_get_consensus_names',
            '_all_indexes_same']
+
+
+def _get_objs_combined_axis(objs, intersect=False, axis=0):
+    # Extract combined index: return intersection or union (depending on the
+    # value of "intersect") of indexes on given axis, or None if all objects
+    # lack indexes (e.g. they are numpy arrays)
+    obs_idxes = [obj._get_axis(axis) for obj in objs
+                 if hasattr(obj, '_get_axis')]
+    if obs_idxes:
+        return _get_combined_index(obs_idxes, intersect=intersect)
 
 
 def _get_combined_index(indexes, intersect=False):

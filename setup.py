@@ -45,7 +45,7 @@ except ImportError:
     _have_setuptools = False
 
 setuptools_kwargs = {}
-min_numpy_ver = '1.7.0'
+min_numpy_ver = '1.9.0'
 if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {
@@ -467,7 +467,6 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime_helper.h',
                    'pandas/_libs/src/period_helper.h',
                    'pandas/_libs/src/datetime.pxd']
 
@@ -597,7 +596,6 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 
 ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/datetime_helper.h',
                                'pandas/_libs/src/numpy_helper.h'],
                       sources=['pandas/_libs/src/ujson/python/ujson.c',
                                'pandas/_libs/src/ujson/python/objToJSON.c',
@@ -670,6 +668,7 @@ setup(name=DISTNAME,
                 'pandas.tests.indexes.datetimes',
                 'pandas.tests.indexes.timedeltas',
                 'pandas.tests.indexes.period',
+                'pandas.tests.internals',
                 'pandas.tests.io',
                 'pandas.tests.io.json',
                 'pandas.tests.io.parser',

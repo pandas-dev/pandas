@@ -290,7 +290,10 @@ class Categorical(PandasObject):
                 # On list with NaNs, int values will be converted to float. Use
                 # "object" dtype to prevent this. In the end objects will be
                 # casted to int/... in the category assignment step.
-                dtype = 'object' if isna(values).any() else None
+                if len(values) == 0 or isna(values).any():
+                    dtype = 'object'
+                else:
+                    dtype = None
                 values = _sanitize_array(values, None, dtype=dtype)
 
         if categories is None:
@@ -2060,6 +2063,13 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self.index)
+
+    @classmethod
+    def _make_accessor(cls, data):
+        if not is_categorical_dtype(data.dtype):
+            raise AttributeError("Can only use .cat accessor with a "
+                                 "'category' dtype")
+        return CategoricalAccessor(data.values, data.index)
 
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,

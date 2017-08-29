@@ -1112,9 +1112,9 @@ class TestDatetimeParsingWrappers(object):
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
         assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
+        assert result2 is tslib.NaT
+        assert result3 is tslib.NaT
+        assert result4 is tslib.NaT
 
     def test_parsers_quarter_invalid(self):
 
@@ -1588,6 +1588,12 @@ class TestOrigin(object):
         with pytest.raises(exc):
             pd.to_datetime(units_from_epochs, unit=units,
                            origin=origin)
+
+    def test_invalid_origins_tzinfo(self):
+        # GH16842
+        with pytest.raises(ValueError):
+            pd.to_datetime(1, unit='D',
+                           origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
     def test_processing_order(self):
         # make sure we handle out-of-bounds *before*

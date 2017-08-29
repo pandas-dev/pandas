@@ -13,7 +13,11 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 
-from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCMultiIndex,
+    ABCPeriodIndex,
+    ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
     _ensure_int64,
@@ -52,7 +56,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core.strings import StringAccessorMixin
+from pandas.core import strings
 from pandas.core.config import get_option
 
 
@@ -98,7 +102,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
-class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
+class Index(IndexOpsMixin, PandasObject):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -150,6 +154,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _infer_as_myclass = False
 
     _engine_type = libindex.ObjectEngine
+
+    _accessors = frozenset(['str'])
+
+    # String Methods
+    str = base.AccessorProperty(strings.StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
@@ -1195,7 +1204,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @property
     def is_monotonic(self):
         """ alias for is_monotonic_increasing (deprecated) """
-        return self._engine.is_monotonic_increasing
+        return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self):
@@ -1741,18 +1750,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         names = set([obj.name for obj in to_concat])
         name = None if len(names) > 1 else self.name
 
-        if self.is_categorical():
-            # if calling index is category, don't check dtype of others
-            from pandas.core.indexes.category import CategoricalIndex
-            return CategoricalIndex._append_same_dtype(self, to_concat, name)
+        return self._concat(to_concat, name)
+
+    def _concat(self, to_concat, name):
 
         typs = _concat.get_dtype_kinds(to_concat)
 
         if len(typs) == 1:
-            return self._append_same_dtype(to_concat, name=name)
+            return self._concat_same_dtype(to_concat, name=name)
         return _concat._concat_index_asobject(to_concat, name=name)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         """
@@ -1852,7 +1860,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        a boolean array of whether my values are na
+        a boolean array of whether my values are NA
 
         See also
         --------
@@ -1870,7 +1878,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        a boolean array of whether my values are not na
+        a boolean array of whether my values are not NA
 
         See also
         --------
@@ -3814,8 +3822,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         internal method called by ops
         """
-        from pandas.tseries.offsets import DateOffset
-
         # if we are an inheritor of numeric,
         # but not actually numeric (e.g. DatetimeIndex/PeriodInde)
         if not self._is_numeric_dtype:
@@ -3843,7 +3849,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
-        elif isinstance(other, (DateOffset, np.timedelta64,
+        elif isinstance(other, (ABCDateOffset, np.timedelta64,
                                 Timedelta, datetime.timedelta)):
             # higher up to handle
             pass
@@ -3862,12 +3868,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
-
-                from pandas.tseries.offsets import DateOffset
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
                 # handle time-based others
-                if isinstance(other, (DateOffset, np.timedelta64,
+                if isinstance(other, (ABCDateOffset, np.timedelta64,
                                       Timedelta, datetime.timedelta)):
                     return self._evaluate_with_timedelta_like(other, op, opstr)
                 elif isinstance(other, (Timestamp, np.datetime64)):

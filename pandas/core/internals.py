@@ -5,6 +5,7 @@ import re
 import operator
 from datetime import datetime, timedelta, date
 from collections import defaultdict
+from functools import partial
 
 import numpy as np
 
@@ -68,8 +69,7 @@ from pandas._libs.lib import BlockPlacement
 import pandas.core.computation.expressions as expressions
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
-
-from pandas import compat, _np_version_under1p9
+from pandas import compat
 from pandas.compat import range, map, zip, u
 
 
@@ -158,6 +158,10 @@ class Block(PandasObject):
         this should be the pure internal API format
         """
         return self.values
+
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self.internal_values()
 
     def get_values(self, dtype=None):
         """
@@ -321,10 +325,6 @@ class Block(PandasObject):
         new_values = algos.take_nd(self.values, indexer, axis,
                                    fill_value=fill_value, mask_info=mask_info)
         return self.make_block(new_values, fastpath=True)
-
-    def get(self, item):
-        loc = self.items.get_loc(item)
-        return self.values[loc]
 
     def iget(self, i):
         return self.values[i]
@@ -1478,15 +1478,7 @@ class Block(PandasObject):
         tuple of (axis, block)
 
         """
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9.")
-
-        kw = {}
-        if not _np_version_under1p9:
-            kw.update({'interpolation': interpolation})
-
+        kw = {'interpolation': interpolation}
         values = self.get_values()
         values, _, _, _ = self._try_coerce_args(values, values)
 
@@ -1656,13 +1648,6 @@ class NonConsolidatableMixIn(object):
     def set(self, locs, values, check=False):
         assert locs.tolist() == [0]
         self.values = values
-
-    def get(self, item):
-        if self.ndim == 1:
-            loc = self.items.get_loc(item)
-            return self.values[loc]
-        else:
-            return self.values
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0,
                 transpose=False, mgr=None):
@@ -2959,11 +2944,11 @@ class BlockManager(PandasObject):
         return obj
 
     def add_prefix(self, prefix):
-        f = (str(prefix) + '%s').__mod__
+        f = partial('{prefix}{}'.format, prefix=prefix)
         return self.rename_axis(f, axis=0)
 
     def add_suffix(self, suffix):
-        f = ('%s' + str(suffix)).__mod__
+        f = partial('{}{suffix}'.format, suffix=suffix)
         return self.rename_axis(f, axis=0)
 
     @property
@@ -4316,6 +4301,10 @@ class SingleBlockManager(BlockManager):
     def internal_values(self):
         return self._block.internal_values()
 
+    def formatting_values(self):
+        """Return the internal values used by the DataFrame/SeriesFormatter"""
+        return self._block.formatting_values()
+
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
@@ -4721,8 +4710,6 @@ def _concat_indexes(indexes):
 
 def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
     """ pivot to the labels shape """
-    from pandas.core.internals import make_block
-
     panel_shape = (len(placement),) + shape
 
     # TODO: lexsort depth needs to be 2!!

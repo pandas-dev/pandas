@@ -852,6 +852,16 @@ class Base(object):
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
 
+    def test_apply_to_empty_series(self):
+        # GH 14313
+        series = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            result = series.resample(freq).apply(lambda x: 1)
+            expected = series.resample(freq).apply(np.sum)
+
+            assert_series_equal(result, expected, check_dtype=False)
+
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
@@ -1678,7 +1688,7 @@ class TestDatetimeIndex(Base):
 
     def test_resample_dtype_coerceion(self):
 
-        pytest.importorskip('scipy')
+        pytest.importorskip('scipy.interpolate')
 
         # GH 16361
         df = {"a": [1, 3, 1, 4]}
@@ -2793,6 +2803,14 @@ class TestPeriodIndex(Base):
             index=index)
         result = df.resample('7D').sum()
         assert_frame_equal(result, expected)
+
+    def test_apply_to_empty_series(self):
+        # GH 14313
+        series = self.create_series()[:0]
+
+        for freq in ['M', 'D', 'H']:
+            with pytest.raises(TypeError):
+                series.resample(freq).apply(lambda x: 1)
 
 
 class TestTimedeltaIndex(Base):

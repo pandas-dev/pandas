@@ -208,11 +208,11 @@ chunksize : int, default None
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
-    '.zip', or 'xz', respectively, and no decompression otherwise. If using
-    'zip', the ZIP file must contain only one data file to be read in.
-    Set to None for no decompression.
+    For on-the-fly decompression of on-disk data. If 'infer' and
+    `filepath_or_buffer` is path-like, then detect compression from the
+    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+    decompression). If using 'zip', the ZIP file must contain only one data
+    file to be read in. Set to None for no decompression.
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
@@ -487,18 +487,18 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skipfooter'])
-_python_unsupported = set([
+_c_unsupported = {'skipfooter'}
+_python_unsupported = {
     'low_memory',
     'buffer_lines',
     'float_precision',
-])
-_deprecated_args = set([
+}
+_deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
-])
+}
 
 
 def _make_parser_function(name, sep=','):
@@ -1318,14 +1318,18 @@ class ParserBase(object):
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = {}
+            counts = defaultdict(int)
 
             for i, col in enumerate(names):
-                cur_count = counts.get(col, 0)
+                cur_count = counts[col]
 
-                if cur_count > 0:
-                    names[i] = '%s.%d' % (col, cur_count)
+                while cur_count > 0:
+                    counts[col] = cur_count + 1
 
+                    col = '%s.%d' % (col, cur_count)
+                    cur_count = counts[col]
+
+                names[i] = col
                 counts[col] = cur_count + 1
 
         return names
@@ -2279,10 +2283,11 @@ class PythonParser(ParserBase):
         if self.header is not None:
             header = self.header
 
-            # we have a mi columns, so read an extra line
             if isinstance(header, (list, tuple, np.ndarray)):
-                have_mi_columns = True
-                header = list(header) + [header[-1] + 1]
+                have_mi_columns = len(header) > 1
+                # we have a mi columns, so read an extra line
+                if have_mi_columns:
+                    header = list(header) + [header[-1] + 1]
             else:
                 have_mi_columns = False
                 header = [header]
@@ -2330,15 +2335,15 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = {}
+                    counts = defaultdict(int)
 
                     for i, col in enumerate(this_columns):
-                        cur_count = counts.get(col, 0)
+                        cur_count = counts[col]
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
                             col = "%s.%d" % (col, cur_count)
-                            cur_count = counts.get(col, 0)
+                            cur_count = counts[col]
 
                         this_columns[i] = col
                         counts[col] = cur_count + 1
