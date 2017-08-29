@@ -3878,7 +3878,11 @@ create a new table!)
 Iterator
 ++++++++
 
+<<<<<<< HEAD
 You can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
+=======
+Note that you can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
+>>>>>>> Cleaned references to versions <0.12 in docs
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
