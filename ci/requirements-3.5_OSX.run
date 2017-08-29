@@ -14,4 +14,3 @@ bottleneck
 xarray
 s3fs
 beautifulsoup4
-boto3

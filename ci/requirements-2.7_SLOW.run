@@ -17,4 +17,3 @@ psycopg2
 pymysql
 html5lib
 beautiful-soup
-boto3
