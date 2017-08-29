@@ -293,8 +293,8 @@ class TestToDatetime(object):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("data, dtype",
-                             [('2013-01-01 00:00:00-01:00', None), 
-                              ('2013-01-01 00:00:00-01:00','datetime64[ns]'),
+                             [('2013-01-01 00:00:00-01:00', None),
+                              ('2013-01-01 00:00:00-01:00', 'datetime64[ns]'),
                               ('2013-01-01 01:00:00', None),
                               ('2013-01-01 01:00:00', 'datetime64[ns]')])
     def test_to_datetime_utc_true_with_naive_dtype_series(self, data, dtype):
