@@ -265,10 +265,10 @@ class TestToDatetime(object):
                               (list, DatetimeIndex, tm.assert_index_equal),
                               (np.array, DatetimeIndex, tm.assert_index_equal),
                               (Series, Series, tm.assert_series_equal)])
-    def test_to_datetime_utc_true_with_constructors(self,
-                                                    init_constructor,
-                                                    end_constructor,
-                                                    test_method):
+    def test_to_datetime_utc_true(self,
+                                  init_constructor,
+                                  end_constructor,
+                                  test_method):
         # See gh-11934 & gh-6415
         data = ['20100102 121314', '20100102 121315']
         expected_data = [pd.Timestamp('2010-01-02 12:13:14', tz='utc'),
@@ -292,9 +292,13 @@ class TestToDatetime(object):
         expected = pd.Series([pd.Timestamp(ts, tz='utc')])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [None, 'datetime64[ns]'])
-    def test_to_datetime_utc_true_with_naive_series(self, dtype):
-        test_dates = ['2013-01-01 00:00:00-01:00'] * 10
+    @pytest.mark.parametrize("data, dtype",
+                             [('2013-01-01 00:00:00-01:00', None), 
+                              ('2013-01-01 00:00:00-01:00','datetime64[ns]'),
+                              ('2013-01-01 01:00:00', None),
+                              ('2013-01-01 01:00:00', 'datetime64[ns]')])
+    def test_to_datetime_utc_true_with_naive_dtype_series(self, data, dtype):
+        test_dates = [data] * 10
         ser = pd.Series(test_dates, dtype=dtype)
         result = pd.to_datetime(ser, utc=True)
         expected_data = [pd.Timestamp('20130101 01:00:00', tz='utc')] * 10

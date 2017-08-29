@@ -326,7 +326,7 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
      pd.to_datetime(s, utc=True)
 
-Additionally, DataFrames with datetime columns returned by :func:`read_sql_table` and :func:`read_sql_query` with the `parse_dates` argument specified will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
+Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
 .. _whatsnew_0210.api:
 
