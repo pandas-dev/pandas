@@ -19,6 +19,7 @@ from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
+from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -73,7 +74,7 @@ class StringMixin(object):
         return str(self)
 
 
-class PandasObject(StringMixin):
+class PandasObject(StringMixin, DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -91,23 +92,6 @@ class PandasObject(StringMixin):
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
-
-    def _dir_additions(self):
-        """ add addtional __dir__ for this object """
-        return set()
-
-    def _dir_deletions(self):
-        """ delete unwanted __dir__ for this object """
-        return set()
-
-    def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
-        rv = set(dir(type(self)))
-        rv = (rv - self._dir_deletions()) | self._dir_additions()
-        return sorted(rv)
 
     def _reset_cache(self, key=None):
         """
@@ -141,7 +125,7 @@ class NoNewAttributesMixin(object):
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attrirbutes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on a accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
