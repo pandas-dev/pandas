@@ -66,10 +66,13 @@ from khash cimport (
     kh_init_int64, kh_int64_t,
     kh_resize_int64, kh_get_int64)
 
-from tslibs.parsing import parse_time_string
+from tslibs.parsing import parse_time_string as _parse_time_string
 from tslibs import parsing  # noqa
 from tslibs.parsing import ( # noqa
     DateParseError,
+    _format_is_iso,
+    _DATEUTIL_LEXER_SPLIT,
+    _guess_datetime_format,
     NAT_SENTINEL,
     parse_datetime_string,
     _does_string_look_like_datetime,
@@ -5451,3 +5454,15 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
 
 # def _strptime_time(data_string, format="%a %b %d %H:%M:%S %Y"):
 #     return _strptime(data_string, format)[0]
+
+#----------------------------------------------------------------------
+# Parsing
+# Wrap tslibs.parsing functions to return `NaT` instead of `NAT_SENTINEL`
+
+
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+    res = _parse_time_string(arg, freq, dayfirst, yearfirst)
+    if isinstance(res, tuple) and res[0] is NAT_SENTINEL:
+        res = (NaT,) + res[1:]
+    return res
+parse_time_string.__doc__ = _parse_time_string.__doc__

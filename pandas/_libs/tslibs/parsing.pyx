@@ -1,9 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # cython: profile=False
 # cython: linetrace=False
 # distutils: define_macros=CYTHON_TRACE=0
 # distutils: define_macros=CYTHON_TRACE_NOGIL=0
+"""
+Parsing functions for datetime and datetime-like strings.
+"""
 import sys
 import re
 
@@ -63,7 +65,6 @@ NAT_SENTINEL = object()
 # This allows us to reference NaT without having to import it
 
 
-@cython.locals(date_string=object, freq=object)
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
                           yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime.
@@ -85,6 +86,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
         dt = du_parse(date_string, dayfirst=dayfirst,
                       yearfirst=yearfirst, **kwargs)
         return dt
+
     try:
         dt, _, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
         return dt
@@ -104,7 +106,6 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
     return dt
 
 
-# Moved from pandas.core.tools.datetimes
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
@@ -143,7 +144,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
                                                  yearfirst=yearfirst)
 
 
-@cython.locals(date_string=object, freq=object)
 def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
                                     yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime
@@ -177,10 +177,7 @@ def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     return parsed, parsed, reso
 
 
-@cython.returns(cython.bint)
-@cython.locals(date_string=object)
-@cython.ccall
-def _does_string_look_like_datetime(date_string):
+cpdef bint _does_string_look_like_datetime(object date_string):
     if date_string.startswith('0'):
         # Strings starting with 0 are more consistent with a
         # date-like string than a number
@@ -198,11 +195,8 @@ def _does_string_look_like_datetime(date_string):
     return True
 
 
-@cython.returns(object)
-@cython.locals(date_string=object, default=object, freq=object)
-@cython.inline
-@cython.cfunc
-def _parse_dateabbr_string(date_string, default, freq):
+cdef inline object _parse_dateabbr_string(object date_string, object default,
+                                           object freq):
     cdef:
         object ret
         int year, quarter = -1, month, mnum, date_len
@@ -307,8 +301,8 @@ def _parse_dateabbr_string(date_string, default, freq):
     raise ValueError('Unable to parse {0}'.format(date_string))
 
 
-@cython.locals(timestr=object, default=object)
-def dateutil_parse(timestr, default, ignoretz=False, tzinfos=None, **kwargs):
+def dateutil_parse(object timestr, object default, ignoretz=False,
+                   tzinfos=None, **kwargs):
     """ lifted from dateutil to get resolution"""
 
     cdef:

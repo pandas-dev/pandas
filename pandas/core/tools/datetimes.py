@@ -3,6 +3,11 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
+from pandas._libs.tslib import (
+    parse_time_string,
+    _format_is_iso,
+    _DATEUTIL_LEXER_SPLIT,
+    _guess_datetime_format)
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -22,10 +27,6 @@ from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
 
 import pandas.compat as compat
-
-_format_is_iso = tslib.parsing._format_is_iso
-_DATEUTIL_LEXER_SPLIT = tslib.parsing._DATEUTIL_LEXER_SPLIT
-_guess_datetime_format = tslib.parsing._guess_datetime_format
 
 
 def _infer_tzinfo(start, end):
@@ -558,47 +559,6 @@ def _attempt_YYYYMMDD(arg, errors):
         pass
 
     return None
-
-
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
-    """
-    Try hard to parse datetime string, leveraging dateutil plus some extra
-    goodies like quarter recognition.
-
-    Parameters
-    ----------
-    arg : compat.string_types
-    freq : str or DateOffset, default None
-        Helps with interpreting time string if supplied
-    dayfirst : bool, default None
-        If None uses default from print_config
-    yearfirst : bool, default None
-        If None uses default from print_config
-
-    Returns
-    -------
-    datetime, datetime/dateutil.parser._result, str
-    """
-    res = tslib.parse_time_string(arg, freq, dayfirst, yearfirst)
-    if isinstance(res, tuple) and res[0] is tslib.NAT_SENTINEL:
-        res = (tslib.NaT,) + res[1:]
-    return res
-
-    from pandas.core.config import get_option
-    if not isinstance(arg, compat.string_types):
-        return arg
-
-    if isinstance(freq, ABCDateOffset):
-        freq = freq.rule_code
-
-    if dayfirst is None:
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        yearfirst = get_option("display.date_yearfirst")
-
-    return tslib.parse_datetime_string_with_reso(arg, freq=freq,
-                                                 dayfirst=dayfirst,
-                                                 yearfirst=yearfirst)
 
 
 DateParseError = tslib.DateParseError
