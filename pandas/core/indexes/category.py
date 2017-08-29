@@ -487,7 +487,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
