@@ -329,7 +329,7 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     return ret;
 }
 
-npy_int64 get_long_attr(PyObject *o, const char *attr) {
+static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
   long_val = (PyLong_Check(value) ?
@@ -338,15 +338,12 @@ npy_int64 get_long_attr(PyObject *o, const char *attr) {
   return long_val;
 }
 
-npy_float64 total_seconds(PyObject *td) {
-  // Python 2.6 compat
-  // TODO(anyone): remove this legacy workaround with a more
-  // direct td.total_seconds()
-  npy_int64 microseconds = get_long_attr(td, "microseconds");
-  npy_int64 seconds = get_long_attr(td, "seconds");
-  npy_int64 days = get_long_attr(td, "days");
-  npy_int64 days_in_seconds = days * 24LL * 3600LL;
-  return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0;
+static npy_float64 total_seconds(PyObject *td) {
+  npy_float64 double_val;
+  PyObject *value = PyObject_CallMethod(td, "total_seconds", NULL);
+  double_val = PyFloat_AS_DOUBLE(value);
+  Py_DECREF(value);
+  return double_val;
 }
 
 static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
