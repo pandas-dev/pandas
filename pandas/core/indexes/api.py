@@ -23,8 +23,7 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'PeriodIndex', 'DatetimeIndex',
            '_new_Index', 'NaT',
            '_ensure_index', '_get_na_value', '_get_combined_index',
-           '_get_objs_combined_axis',
-           '_get_distinct_indexes', '_union_indexes',
+           '_get_objs_combined_axis', '_union_indexes',
            '_get_consensus_names',
            '_all_indexes_same']
 
@@ -41,7 +40,7 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0):
 
 def _get_combined_index(indexes, intersect=False):
     # TODO: handle index names!
-    indexes = _get_distinct_indexes(indexes)
+    indexes = com._get_distinct_objs(indexes)
     if len(indexes) == 0:
         return Index([])
     if len(indexes) == 1:
@@ -53,10 +52,6 @@ def _get_combined_index(indexes, intersect=False):
         return index
     union = _union_indexes(indexes)
     return _ensure_index(union)
-
-
-def _get_distinct_indexes(indexes):
-    return list(dict((id(x), x) for x in indexes).values())
 
 
 def _union_indexes(indexes):
