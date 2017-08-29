@@ -529,14 +529,16 @@ class frame_sort_values_by_multiple_columns(object):
     goal_time = 0.1
 
     param_names = ['columns']
-    params = generate_column_combinations(
-        column_names=['repeated_strings', 'less_repeated_strings',
-                      'repeated_category', 'less_repeated_category',
-                      'float', 'int_sorted', 'int_random',
-                      'date', 'timedelta'], r=[1, 2, 5], num=9)
+    # params = generate_column_combinations(
+    #     column_names=['less_repeated_strings',
+    #                   'repeated_category', 'less_repeated_category',
+    #                   'float', 'int_sorted', 'int_random',
+    #                   'date', 'timedelta'], r=[2, 5], num=20)
+    params = ['repeated_strings|int_same_cardinality_as_repeated_strings',
+              'int_same_cardinality_as_repeated_strings|int_same_cardinality_as_repeated_strings_copy']
 
     def setup(self, columns):
-        N = 10000
+        N = 100000
 
         self.df = pd.DataFrame(
             {'repeated_strings': pd.Series(tm.makeStringIndex(100).take(
@@ -554,6 +556,12 @@ class frame_sort_values_by_multiple_columns(object):
             'category')
         self.df['less_repeated_category'] = self.df[
             'less_repeated_strings'].astype('category')
+        self.df['int_same_cardinality_as_repeated_strings'] = self.df['repeated_strings'].rank(method='dense')
+        self.df['int_same_cardinality_as_repeated_strings_copy'] = self.df['repeated_strings'].rank(method='dense')
+        self.df['int_same_cardinality_as_less_repeated_strings'] = self.df['less_repeated_strings'].rank(method='dense')
+        assert self.df['repeated_strings'].nunique() == self.df['int_same_cardinality_as_repeated_strings'].nunique()
+        assert self.df['less_repeated_strings'].nunique() == self.df['int_same_cardinality_as_less_repeated_strings'].nunique()
+
 
     def time_frame_sort_values_by_multiple_columns(self, columns):
         columns_list = columns.split('|')
