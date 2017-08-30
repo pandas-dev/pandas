@@ -25,8 +25,6 @@ programming language.
  * Memory-efficient "sparse" versions of the standard data structures for storing
    data that is mostly missing or mostly constant (some fixed value)
  * Moving window statistics (rolling mean, rolling standard deviation, etc.)
- * Static and moving window linear and `panel regression
-   <http://en.wikipedia.org/wiki/Panel_data>`__
 
 Data Structures
 ---------------
@@ -37,14 +35,13 @@ Data Structures
 
     1, "Series", "1D labeled homogeneously-typed array"
     2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
-    3, "Panel", "General 3D labeled, also size-mutable array"
 
 Why more than one data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The best way to think about the pandas data structures is as flexible
 containers for lower dimensional data. For example, DataFrame is a container
-for Series, and Panel is a container for DataFrame objects. We would like to be
+for Series, and Series is a container for scalars. We would like to be
 able to insert and remove objects from these containers in a dictionary-like
 fashion.
 
