@@ -162,6 +162,21 @@ class Base(object):
                 "cannot create out_of_range offset: {0} {1}".format(
                     str(self).split('.')[-1], e))
 
+    def test_cache_invalidation(self):
+        if self._offset is None:
+            return
+        elif not issubclass(self._offset, DateOffset):
+            raise TypeError(self._offset)
+
+        offset = self._get_offset(self._offset, value=14)
+        if len(offset.kwds) == 0:
+            _ = offset._params()
+            assert '_cached_params' in offset._cache
+
+            offset.n = offset.n + 3
+            # Setting offset.n should clear the cache
+            assert len(offset._cache) == 0
+
 
 class TestCommon(Base):
 
@@ -550,8 +565,7 @@ class TestBusinessDay(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
+        offset2 = BDay(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -745,8 +759,7 @@ class TestBusinessHour(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
+        offset2 = self._offset(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1437,8 +1450,7 @@ class TestCustomBusinessHour(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
+        offset2 = self._offset(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1678,8 +1690,7 @@ class TestCustomBusinessDay(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
+        offset2 = CDay(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1959,8 +1970,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
+        offset2 = CBMonthEnd(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -2073,8 +2083,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
+        offset2 = CBMonthBegin(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
