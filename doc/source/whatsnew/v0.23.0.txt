@@ -847,6 +847,7 @@ Other API Changes
 - ``KeyError`` now raises instead of ``ValueError`` in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` when dropping a non-existent element in an axis with duplicates (:issue:`19186`)
 - :func:`Series.to_csv` now accepts a ``compression`` argument that works in the same way as the ``compression`` argument in :func:`DataFrame.to_csv` (:issue:`18958`)
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
+- Bug in the order of the result of ``Index.union()`` when indexes contain tuples (:issue:`17376`)
 - :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)

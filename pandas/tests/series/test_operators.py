@@ -1472,24 +1472,12 @@ class TestSeriesOperators(TestData):
         pytest.raises(TypeError, lambda: s_0123 & [0.1, 4, 3.14, 2])
 
         # s_0123 will be all false now because of reindexing like s_tft
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=['b', 'c', 'a', 0, 1, 2, 3])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_tft & s_0123, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_tft & s_0123, exp)
+        exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+        assert_series_equal(s_tft & s_0123, exp)
 
         # s_tft will be all false now because of reindexing like s_0123
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'b', 'c', 'a'])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_0123 & s_tft, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_0123 & s_tft, exp)
+        exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+        assert_series_equal(s_0123 & s_tft, exp)
 
         assert_series_equal(s_0123 & False, Series([False] * 4))
         assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
