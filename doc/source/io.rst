@@ -1179,7 +1179,7 @@ data that appear in some lines but not others:
 Handling "bad" lines - preserving the data
 ''''''''''''''''''''
     
-To preserve all data, you can specify header ``names`` that are long enough:
+To preserve all data, you can specify a sufficient number of header ``names``:
 
 .. code-block:: ipython
 
