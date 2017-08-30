@@ -31,7 +31,7 @@ from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
-from pandas.core.index import MultiIndex, _get_na_value
+from pandas.core.index import Index, MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -311,10 +311,14 @@ def _unstack_multiple(data, clocs):
     recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels,
                                          xnull=False)
 
-    dummy_index = MultiIndex(levels=rlevels + [obs_ids],
-                             labels=rlabels + [comp_ids],
-                             names=rnames + ['__placeholder__'],
-                             verify_integrity=False)
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name='__placeholder__')
+    else:
+        dummy_index = MultiIndex(levels=rlevels + [obs_ids],
+                                 labels=rlabels + [comp_ids],
+                                 names=rnames + ['__placeholder__'],
+                                 verify_integrity=False)
 
     if isinstance(data, Series):
         dummy = data.copy()
@@ -446,7 +450,12 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
-        return _unstack_multiple(obj, level)
+        if len(level) != 1:
+            # _unstack_multiple only handles MultiIndexes,
+            # and isn't needed for a single level
+            return _unstack_multiple(obj, level)
+        else:
+            level = level[0]
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
