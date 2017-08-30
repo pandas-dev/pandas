@@ -1,8 +1,4 @@
 from .pandas_vb_common import *
-try:
-    import pandas.computation.expressions as expr
-except:
-    expr = None
 
 
 class Int64Indexing(object):
@@ -22,6 +18,9 @@ class Int64Indexing(object):
 
     def time_getitem_array(self):
         self.s[np.arange(10000)]
+
+    def time_getitem_lists(self):
+        self.s[np.arange(10000).tolist()]
 
     def time_iloc_array(self):
         self.s.iloc[np.arange(10000)]
@@ -88,7 +87,7 @@ class DatetimeIndexing(object):
 
     def time_getitem_scalar(self):
         self.ts[self.dt]
-    
+
 
 class DataFrameIndexing(object):
     goal_time = 0.2
@@ -189,6 +188,27 @@ class MultiIndexing(object):
         self.eps_C = 5
         self.eps_D = 5000
         self.mdt2 = self.mdt.set_index(['A', 'B', 'C', 'D']).sortlevel()
+        self.miint = MultiIndex.from_product(
+            [np.arange(1000),
+             np.arange(1000)], names=['one', 'two'])
+
+        import string
+
+        self.mi_large = MultiIndex.from_product(
+            [np.arange(1000), np.arange(20), list(string.ascii_letters)],
+            names=['one', 'two', 'three'])
+        self.mi_med = MultiIndex.from_product(
+            [np.arange(1000), np.arange(10), list('A')],
+            names=['one', 'two', 'three'])
+        self.mi_small = MultiIndex.from_product(
+            [np.arange(100), list('A'), list('A')],
+            names=['one', 'two', 'three'])
+
+        rng = np.random.RandomState(4)
+        size = 1 << 16
+        self.mi_unused_levels = pd.MultiIndex.from_arrays([
+            rng.randint(0, 1 << 13, size),
+            rng.randint(0, 1 << 10, size)])[rng.rand(size) < 0.1]
 
     def time_series_xs_mi_ix(self):
         self.s.ix[999]
@@ -197,7 +217,65 @@ class MultiIndexing(object):
         self.df.ix[999]
 
     def time_multiindex_slicers(self):
-        self.mdt2.loc[self.idx[(self.test_A - self.eps_A):(self.test_A + self.eps_A), (self.test_B - self.eps_B):(self.test_B + self.eps_B), (self.test_C - self.eps_C):(self.test_C + self.eps_C), (self.test_D - self.eps_D):(self.test_D + self.eps_D)], :]
+        self.mdt2.loc[self.idx[
+            (self.test_A - self.eps_A):(self.test_A + self.eps_A),
+            (self.test_B - self.eps_B):(self.test_B + self.eps_B),
+            (self.test_C - self.eps_C):(self.test_C + self.eps_C),
+            (self.test_D - self.eps_D):(self.test_D + self.eps_D)], :]
+
+    def time_multiindex_get_indexer(self):
+        self.miint.get_indexer(
+            np.array([(0, 10), (0, 11), (0, 12),
+                      (0, 13), (0, 14), (0, 15),
+                      (0, 16), (0, 17), (0, 18),
+                      (0, 19)], dtype=object))
+
+    def time_multiindex_large_get_loc(self):
+        self.mi_large.get_loc((999, 19, 'Z'))
+
+    def time_multiindex_large_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_large.get_loc((999, 19, 'Z'))
+
+    def time_multiindex_med_get_loc(self):
+        self.mi_med.get_loc((999, 9, 'A'))
+
+    def time_multiindex_med_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_med.get_loc((999, 9, 'A'))
+
+    def time_multiindex_string_get_loc(self):
+        self.mi_small.get_loc((99, 'A', 'A'))
+
+    def time_multiindex_small_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_small.get_loc((99, 'A', 'A'))
+
+    def time_is_monotonic(self):
+        self.miint.is_monotonic
+
+    def time_remove_unused_levels(self):
+        self.mi_unused_levels.remove_unused_levels()
+
+
+class IntervalIndexing(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.monotonic = Series(np.arange(1000000),
+                                index=IntervalIndex.from_breaks(np.arange(1000001)))
+
+    def time_getitem_scalar(self):
+        self.monotonic[80000]
+
+    def time_loc_scalar(self):
+        self.monotonic.loc[80000]
+
+    def time_getitem_list(self):
+        self.monotonic[80000:]
+
+    def time_loc_list(self):
+        self.monotonic.loc[80000:]
 
 
 class PanelIndexing(object):

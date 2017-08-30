@@ -7,7 +7,7 @@ Cross-compatible functions for Python 2 and 3.
 Key items to import for 2/3 compatible code:
 * iterators: range(), map(), zip(), filter(), reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [u"" is a syntax error in Python 3.0-3.2]
+* unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
 * callable
 * iterable method compatibility: iteritems, iterkeys, itervalues
@@ -21,7 +21,6 @@ Key items to import for 2/3 compatible code:
   given metaclass instead (and avoids intermediary class creation)
 
 Other items:
-* OrderedDefaultDict
 * platform checker
 """
 # pylint disable=W0611
@@ -32,6 +31,7 @@ import itertools
 from distutils.version import LooseVersion
 from itertools import product
 import sys
+import platform
 import types
 from unicodedata import east_asian_width
 import struct
@@ -42,6 +42,7 @@ PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
 PY35 = (sys.version_info >= (3, 5))
 PY36 = (sys.version_info >= (3, 6))
+PYPY = (platform.python_implementation() == 'PyPy')
 
 try:
     import __builtin__ as builtins
@@ -79,37 +80,38 @@ if PY3:
         args = [
             p.name for p in sig.parameters.values()
             if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-            ]
+        ]
         varargs = [
             p.name for p in sig.parameters.values()
             if p.kind == inspect.Parameter.VAR_POSITIONAL
-            ]
+        ]
         varargs = varargs[0] if varargs else None
         keywords = [
             p.name for p in sig.parameters.values()
             if p.kind == inspect.Parameter.VAR_KEYWORD
-            ]
+        ]
         keywords = keywords[0] if keywords else None
         defaults = [
             p.default for p in sig.parameters.values()
             if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
             and p.default is not p.empty
-            ] or None
-        argspec = namedtuple('Signature',['args','defaults',
-                                'varargs','keywords'])
-        return argspec(args,defaults,varargs,keywords)
+        ] or None
+        argspec = namedtuple('Signature', ['args', 'defaults',
+                                           'varargs', 'keywords'])
+        return argspec(args, defaults, varargs, keywords)
 
     # have to explicitly put builtins into the namespace
     range = range
     map = map
     zip = zip
     filter = filter
+    intern = sys.intern
     reduce = functools.reduce
     long = int
     unichr = chr
 
     # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.4, so checking PY3 is safe.
+    # Python 3.x < 3.5, so checking PY3 is safe.
     FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions
@@ -146,6 +148,7 @@ else:
 
     # import iterator versions of these functions
     range = xrange
+    intern = intern
     zip = itertools.izip
     filter = itertools.ifilter
     map = itertools.imap
@@ -170,7 +173,7 @@ if PY2:
     def itervalues(obj, **kw):
         return obj.itervalues(**kw)
 
-    next = lambda it : it.next()
+    next = lambda it: it.next()
 else:
     def iteritems(obj, **kw):
         return iter(obj.items(**kw))
@@ -182,6 +185,7 @@ else:
         return iter(obj.values(**kw))
 
     next = next
+
 
 def bind_method(cls, name, func):
     """Bind a method to class, python 2 and python 3 compatible.
@@ -307,7 +311,8 @@ else:
         f.__name__ = name
         return f
 
-    class ResourceWarning(Warning): pass
+    class ResourceWarning(Warning):
+        pass
 
 string_and_binary_types = string_types + (binary_type,)
 
@@ -369,43 +374,23 @@ else:
     parse_date = _date_parser.parse
 
 
-class OrderedDefaultdict(OrderedDict):
-
-    def __init__(self, *args, **kwargs):
-        newdefault = None
-        newargs = ()
-        if args:
-            newdefault = args[0]
-            if not (newdefault is None or callable(newdefault)):
-                raise TypeError('first argument must be callable or None')
-            newargs = args[1:]
-        self.default_factory = newdefault
-        super(self.__class__, self).__init__(*newargs, **kwargs)
-
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        self[key] = value = self.default_factory()
-        return value
-
-    def __reduce__(self):  # optional, for pickle support
-        args = self.default_factory if self.default_factory else tuple()
-        return type(self), args, None, None, list(self.items())
-
-
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
     return sys.byteorder == 'little'
 
+
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
+
 
 def is_platform_linux():
     return sys.platform == 'linux2'
 
+
 def is_platform_mac():
     return sys.platform == 'darwin'
+
 
 def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64

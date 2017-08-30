@@ -3,7 +3,7 @@ from pandas import *
 import numpy as np
 from pandas.compat import zip, range, lzip
 from pandas.util.testing import rands
-import pandas.lib as lib
+import pandas._libs.lib as lib
 
 N = 100000
 

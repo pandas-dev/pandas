@@ -8,9 +8,9 @@ RET=0
 
 if [ "$LINT" ]; then
 
-    # pandas/src is C code, so no need to search there.
+    # pandas/_libs/src is C code, so no need to search there.
     echo "Linting  *.py"
-    flake8 pandas --filename=*.py --exclude pandas/src
+    flake8 pandas --filename=*.py --exclude pandas/_libs/src
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -46,8 +46,8 @@ if [ "$LINT" ]; then
     echo "Linting *.c and *.h"
     for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
     do
-        echo "linting -> pandas/src/$path"
-        cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/src/$path
+        echo "linting -> pandas/_libs/src/$path"
+        cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/$path
         if [ $? -ne "0" ]; then
             RET=1
         fi
@@ -55,7 +55,7 @@ if [ "$LINT" ]; then
     echo "Linting *.c and *.h DONE"
 
     echo "Check for invalid testing"
-    grep -r -E --include '*.py' --exclude nosetester.py --exclude testing.py '(numpy|np)\.testing' pandas
+    grep -r -E --include '*.py' --exclude testing.py '(numpy|np)\.testing' pandas
     if [ $? = "0" ]; then
         RET=1
     fi

@@ -1,8 +1,8 @@
+from itertools import repeat
+
 from .pandas_vb_common import *
-import pandas.sparse.series
 import scipy.sparse
-from pandas.core.sparse import SparseSeries, SparseDataFrame
-from pandas.core.sparse import SparseDataFrame
+from pandas import SparseSeries, SparseDataFrame
 
 
 class sparse_series_to_frame(object):
@@ -29,6 +29,12 @@ class sparse_frame_constructor(object):
     def time_sparse_frame_constructor(self):
         SparseDataFrame(columns=np.arange(100), index=np.arange(1000))
 
+    def time_sparse_from_scipy(self):
+        SparseDataFrame(scipy.sparse.rand(1000, 1000, 0.005))
+
+    def time_sparse_from_dict(self):
+        SparseDataFrame(dict(zip(range(1000), repeat([0]))))
+
 
 class sparse_series_from_coo(object):
     goal_time = 0.2
@@ -37,7 +43,7 @@ class sparse_series_from_coo(object):
         self.A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        self.ss = pandas.sparse.series.SparseSeries.from_coo(self.A)
+        self.ss = SparseSeries.from_coo(self.A)
 
 
 class sparse_series_to_coo(object):

@@ -174,16 +174,16 @@ class Holiday(object):
     def __repr__(self):
         info = ''
         if self.year is not None:
-            info += 'year=%s, ' % self.year
-        info += 'month=%s, day=%s, ' % (self.month, self.day)
+            info += 'year={year}, '.format(year=self.year)
+        info += 'month={mon}, day={day}, '.format(mon=self.month, day=self.day)
 
         if self.offset is not None:
-            info += 'offset=%s' % self.offset
+            info += 'offset={offset}'.format(offset=self.offset)
 
         if self.observance is not None:
-            info += 'observance=%s' % self.observance
+            info += 'observance={obs}'.format(obs=self.observance)
 
-        repr = 'Holiday: %s (%s)' % (self.name, info)
+        repr = 'Holiday: {name} ({info})'.format(name=self.name, info=info)
         return repr
 
     def dates(self, start_date, end_date, return_name=False):
@@ -286,6 +286,7 @@ class Holiday(object):
                     dates += offset
         return dates
 
+
 holiday_calendars = {}
 
 
@@ -364,7 +365,7 @@ class AbstractHolidayCalendar(object):
         ----------
         start : starting date, datetime-like, optional
         end : ending date, datetime-like, optional
-        return_names : bool, optional
+        return_name : bool, optional
             If True, return a series that has dates and holiday names.
             False will only return a DatetimeIndex of dates.
 
@@ -373,8 +374,8 @@ class AbstractHolidayCalendar(object):
             DatetimeIndex of holidays
         """
         if self.rules is None:
-            raise Exception('Holiday Calendar %s does not have any '
-                            'rules specified' % self.name)
+            raise Exception('Holiday Calendar {name} does not have any '
+                            'rules specified'.format(name=self.name))
 
         if start is None:
             start = AbstractHolidayCalendar.start_date
@@ -460,6 +461,7 @@ class AbstractHolidayCalendar(object):
             self.rules = holidays
         else:
             return holidays
+
 
 USMemorialDay = Holiday('MemorialDay', month=5, day=31,
                         offset=DateOffset(weekday=MO(-1)))

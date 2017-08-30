@@ -1,6 +1,7 @@
 # coding: utf-8
 
-import nose
+""" Test cases for GroupBy.plot """
+
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
@@ -9,11 +10,9 @@ import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
+tm._skip_if_no_mpl()
 
-""" Test cases for GroupBy.plot """
 
-
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):
@@ -70,12 +69,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby('z').plot(kind='scatter', x='x', y='y')
         # check that a scatter plot is effectively plotted: the axes should
         # contain a PathCollection from the scatter plot (GH11805)
-        self.assertEqual(len(res['a'].collections), 1)
+        assert len(res['a'].collections) == 1
 
         res = df.groupby('z').plot.scatter(x='x', y='y')
-        self.assertEqual(len(res['a'].collections), 1)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+        assert len(res['a'].collections) == 1

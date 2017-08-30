@@ -1,15 +1,10 @@
-{% set pgn = pagename.split('.') -%}
-{% if pgn[-2][0].isupper() -%}
-    {% set redirect = ["pandas", pgn[-2], pgn[-1], 'html']|join('.') -%}
-{% else -%}
-    {% set redirect = ["pandas", pgn[-1], 'html']|join('.') -%}
-{% endif -%}
+{% set redirect = redirects[pagename.split("/")[-1]] %}
 <html>
     <head>
-        <meta http-equiv="Refresh" content="0; url={{ redirect }}" />
+        <meta http-equiv="Refresh" content="0; url={{ redirect }}.html" />
         <title>This API page has moved</title>
     </head>
     <body>
-        <p>This API page has moved <a href="{{ redirect }}">here</a>.</p>
+        <p>This API page has moved <a href="{{ redirect }}.html">here</a>.</p>
     </body>
 </html>

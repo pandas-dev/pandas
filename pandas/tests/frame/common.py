@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -89,11 +89,11 @@ class TestData(object):
 
     @cache_readonly
     def ts1(self):
-        return tm.makeTimeSeries()
+        return tm.makeTimeSeries(nper=30)
 
     @cache_readonly
     def ts2(self):
-        return tm.makeTimeSeries()[5:]
+        return tm.makeTimeSeries(nper=30)[5:]
 
     @cache_readonly
     def simple(self):

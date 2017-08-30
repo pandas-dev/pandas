@@ -357,11 +357,11 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     df = DataFrame(randn(10,2))
+     df = pd.DataFrame(np.random.randn(10,2))
      df.to_hdf(path,'df_table',format='table')
      df.to_hdf(path,'df_table2',append=True)
      df.to_hdf(path,'df_fixed')
-     with get_store(path) as store:
+     with pd.HDFStore(path) as store:
         print(store)
 
   .. ipython:: python
@@ -790,7 +790,7 @@ Experimental
   .. ipython:: python
 
      for o in pd.read_msgpack('foo.msg',iterator=True):
-        print o
+        print(o)
 
   .. ipython:: python
      :suppress:

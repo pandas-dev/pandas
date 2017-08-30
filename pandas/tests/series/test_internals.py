@@ -1,22 +1,22 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime
 
 from numpy import nan
 import numpy as np
 
 from pandas import Series
-from pandas.tseries.index import Timestamp
-import pandas.lib as lib
+from pandas.core.indexes.datetimes import Timestamp
+import pandas._libs.lib as lib
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 
-class TestSeriesInternals(tm.TestCase):
-
-    _multiprocess_can_split_ = True
+class TestSeriesInternals(object):
 
     def test_convert_objects(self):
 
@@ -116,7 +116,7 @@ class TestSeriesInternals(tm.TestCase):
         # r = s.copy()
         # r[0] = np.nan
         # result = r.convert_objects(convert_dates=True,convert_numeric=False)
-        # self.assertEqual(result.dtype, 'M8[ns]')
+        # assert result.dtype == 'M8[ns]'
 
         # dateutil parses some single letters into today's value as a date
         for x in 'abcdefghijklmnopqrstuvwxyz':
@@ -282,7 +282,7 @@ class TestSeriesInternals(tm.TestCase):
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)
-        # self.assertEqual(result.dtype, 'M8[ns]')
+        # assert result.dtype == 'M8[ns]'
 
         # dateutil parses some single letters into today's value as a date
         expected = Series([lib.NaT])
@@ -296,7 +296,7 @@ class TestSeriesInternals(tm.TestCase):
 
     def test_convert_no_arg_error(self):
         s = Series(['1.0', '2'])
-        self.assertRaises(ValueError, s._convert)
+        pytest.raises(ValueError, s._convert)
 
     def test_convert_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)

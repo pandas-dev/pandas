@@ -146,8 +146,8 @@ following code will cause trouble because of the regular expression meaning of
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-')
 
-The ``replace`` method can also take a callable as replacement. It is called 
-on every ``pat`` using :func:`re.sub`. The callable should expect one 
+The ``replace`` method can also take a callable as replacement. It is called
+on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
 
 .. versionadded:: 0.20.0
@@ -164,6 +164,27 @@ positional argument (a regex object) and return a string.
    repl = lambda m: m.group('two').swapcase()
    pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
 
+The ``replace`` method also accepts a compiled regular expression object
+from :func:`re.compile` as a pattern. All flags should be included in the
+compiled regular expression object.
+
+.. versionadded:: 0.20.0
+
+.. ipython:: python
+
+   import re
+   regex_pat = re.compile(r'^.a|dog', flags=re.IGNORECASE)
+   s3.str.replace(regex_pat, 'XX-XX ')
+
+Including a ``flags`` argument when calling ``replace`` with a compiled
+regular expression object will raise a ``ValueError``.
+
+.. ipython::
+
+    @verbatim
+    In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
+    ---------------------------------------------------------------------------
+    ValueError: case and flags cannot be set when pat is a compiled regex
 
 Indexing with ``.str``
 ----------------------
@@ -351,33 +372,20 @@ You can check whether elements contain a pattern:
 
 .. ipython:: python
 
-   pattern = r'[a-z][0-9]'
+   pattern = r'[0-9][a-z]'
    pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
 or match a pattern:
 
-
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
+   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
 
-.. warning::
-
-   In previous versions, ``match`` was for *extracting* groups,
-   returning a not-so-convenient Series of tuples. The new method ``extract``
-   (described in the previous section) is now preferred.
-
-   This old, deprecated behavior of ``match`` is still the default. As
-   demonstrated above, use the new behavior by setting ``as_indexer=True``.
-   In this mode, ``match`` is analogous to ``contains``, returning a boolean
-   Series. The new behavior will become the default behavior in a future
-   release.
-
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
- an extra ``na`` argument so missing values can be considered True or False:
+an extra ``na`` argument so missing values can be considered True or False:
 
 .. ipython:: python
 

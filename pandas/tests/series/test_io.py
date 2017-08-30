@@ -2,6 +2,8 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime
+import collections
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -16,9 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesToCSV(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
+class TestSeriesToCSV(TestData):
 
     def test_from_csv(self):
 
@@ -26,25 +26,25 @@ class TestSeriesToCSV(TestData, tm.TestCase):
             self.ts.to_csv(path)
             ts = Series.from_csv(path)
             assert_series_equal(self.ts, ts, check_names=False)
-            self.assertTrue(ts.name is None)
-            self.assertTrue(ts.index.name is None)
+            assert ts.name is None
+            assert ts.index.name is None
 
             # GH10483
             self.ts.to_csv(path, header=True)
             ts_h = Series.from_csv(path, header=0)
-            self.assertTrue(ts_h.name == 'ts')
+            assert ts_h.name == 'ts'
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
-            self.assertIsNone(series.name)
-            self.assertIsNone(series.index.name)
+            assert series.name is None
+            assert series.index.name is None
             assert_series_equal(self.series, series, check_names=False)
-            self.assertTrue(series.name is None)
-            self.assertTrue(series.index.name is None)
+            assert series.name is None
+            assert series.index.name is None
 
             self.series.to_csv(path, header=True)
             series_h = Series.from_csv(path, header=0)
-            self.assertTrue(series_h.name == 'series')
+            assert series_h.name == 'series'
 
             outfile = open(path, 'w')
             outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
@@ -107,12 +107,10 @@ class TestSeriesToCSV(TestData, tm.TestCase):
         # DataFrame.to_csv() which returned string
         s = Series([1, 2, 3])
         csv_str = s.to_csv(path=None)
-        self.assertIsInstance(csv_str, str)
+        assert isinstance(csv_str, str)
 
 
-class TestSeriesIO(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
+class TestSeriesIO(TestData):
 
     def test_to_frame(self):
         self.ts.name = None
@@ -130,21 +128,18 @@ class TestSeriesIO(TestData, tm.TestCase):
             dict(testdifferent=self.ts.values), index=self.ts.index)
         assert_frame_equal(rs, xp)
 
-    def test_to_dict(self):
-        self.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
-
     def test_timeseries_periodindex(self):
         # GH2891
         from pandas import period_range
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = self.round_trip_pickle(ts)
-        self.assertEqual(new_ts.index.freq, 'M')
+        new_ts = tm.round_trip_pickle(ts)
+        assert new_ts.index.freq == 'M'
 
     def test_pickle_preserve_name(self):
         for n in [777, 777., 'name', datetime(2001, 11, 11), (1, 2)]:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
-            self.assertEqual(unpickled.name, n)
+            assert unpickled.name == n
 
     def _pickle_roundtrip_name(self, obj):
 
@@ -167,14 +162,25 @@ class TestSeriesIO(TestData, tm.TestCase):
 
         s = SubclassedSeries([1, 2, 3], name='X')
         result = s.to_frame()
-        self.assertTrue(isinstance(result, SubclassedFrame))
+        assert isinstance(result, SubclassedFrame)
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('mapping', (
+        dict,
+        collections.defaultdict(list),
+        collections.OrderedDict))
+    def test_to_dict(self, mapping):
+        # GH16122
+        ts = TestData().ts
+        tm.assert_series_equal(
+            Series(ts.to_dict(mapping), name='ts'), ts)
+        from_method = Series(ts.to_dict(collections.Counter))
+        from_constructor = Series(collections.Counter(ts.iteritems()))
+        tm.assert_series_equal(from_method, from_constructor)
 
-class TestSeriesToList(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
+class TestSeriesToList(TestData):
 
     def test_tolist(self):
         rs = self.ts.tolist()
@@ -184,25 +190,25 @@ class TestSeriesToList(TestData, tm.TestCase):
         # datetime64
         s = Series(self.ts.index)
         rs = s.tolist()
-        self.assertEqual(self.ts.index[0], rs[0])
+        assert self.ts.index[0] == rs[0]
 
     def test_tolist_np_int(self):
         # GH10904
         for t in ['int8', 'int16', 'int32', 'int64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], (int, long))
+            assert isinstance(s.tolist()[0], (int, long))
 
     def test_tolist_np_uint(self):
         # GH10904
         for t in ['uint8', 'uint16']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], int)
+            assert isinstance(s.tolist()[0], int)
         for t in ['uint32', 'uint64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], long)
+            assert isinstance(s.tolist()[0], long)
 
     def test_tolist_np_float(self):
         # GH10904
         for t in ['float16', 'float32', 'float64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], float)
+            assert isinstance(s.tolist()[0], float)

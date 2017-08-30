@@ -4,37 +4,38 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
-import warnings
-
 import numpy as np
+import warnings
+from pandas.core.dtypes.cast import (
+    infer_dtype_from_scalar,
+    cast_scalar_to_array,
+    maybe_cast_item)
+from pandas.core.dtypes.common import (
+    is_integer, is_list_like,
+    is_string_like, is_scalar)
+from pandas.core.dtypes.missing import notna
 
-from pandas.types.cast import (_infer_dtype_from_scalar,
-                               _possibly_cast_item)
-from pandas.types.common import (is_integer, is_list_like,
-                                 is_string_like, is_scalar)
-from pandas.types.missing import notnull
-
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
 from pandas import compat
-from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
+from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
-from pandas.core.common import PandasError, _try_sort, _default_index
+from pandas.core.common import _try_sort, _default_index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               _get_combined_index)
-from pandas.formats.printing import pprint_thing
+                               _get_objs_combined_axis)
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
-from pandas.tools.util import cartesian_product
-from pandas.util.decorators import (deprecate, Appender)
+from pandas.core.reshape.util import cartesian_product
+from pandas.util._decorators import (deprecate, Appender)
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -132,6 +133,18 @@ class Panel(NDFrame):
 
     def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
+        # deprecation GH13563
+        warnings.warn("\nPanel is deprecated and will be removed in a "
+                      "future version.\nThe recommended way to represent "
+                      "these types of 3-dimensional data are with a "
+                      "MultiIndex on a DataFrame, via the "
+                      "Panel.to_frame() method\n"
+                      "Alternatively, you can use the xarray package "
+                      "http://xarray.pydata.org/en/stable/.\n"
+                      "Pandas provides a `.to_xarray()` method to help "
+                      "automate this conversion.\n",
+                      DeprecationWarning, stacklevel=3)
+
         self._init_data(data=data, items=items, major_axis=major_axis,
                         minor_axis=minor_axis, copy=copy, dtype=dtype)
 
@@ -166,15 +179,13 @@ class Panel(NDFrame):
             copy = False
             dtype = None
         elif is_scalar(data) and all(x is not None for x in passed_axes):
-            if dtype is None:
-                dtype, data = _infer_dtype_from_scalar(data)
-            values = np.empty([len(x) for x in passed_axes], dtype=dtype)
-            values.fill(data)
-            mgr = self._init_matrix(values, passed_axes, dtype=dtype,
+            values = cast_scalar_to_array([len(x) for x in passed_axes],
+                                          data, dtype=dtype)
+            mgr = self._init_matrix(values, passed_axes, dtype=values.dtype,
                                     copy=False)
             copy = False
         else:  # pragma: no cover
-            raise PandasError('Panel constructor not properly called!')
+            raise ValueError('Panel constructor not properly called!')
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
@@ -248,9 +259,11 @@ class Panel(NDFrame):
         -------
         Panel
         """
+        from collections import defaultdict
+
         orient = orient.lower()
         if orient == 'minor':
-            new_data = OrderedDefaultdict(dict)
+            new_data = defaultdict(OrderedDict)
             for col, df in compat.iteritems(data):
                 for item, s in compat.iteritems(df):
                     new_data[item][col] = s
@@ -313,7 +326,7 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Comparison methods
 
-    def _compare_constructor(self, other, func):
+    def _compare_constructor(self, other, func, try_cast=True):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
@@ -535,11 +548,11 @@ class Panel(NDFrame):
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
             args = list(args)
-            likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
+            likely_dtype, args[-1] = infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(axes[0], self._info_axis)
             # how to make this logic simpler?
             if made_bigger:
-                _possibly_cast_item(result, args[0], likely_dtype)
+                maybe_cast_item(result, args[0], likely_dtype)
 
             return result.set_value(*args)
 
@@ -570,9 +583,7 @@ class Panel(NDFrame):
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif is_scalar(value):
-            dtype, value = _infer_dtype_from_scalar(value)
-            mat = np.empty(shape[1:], dtype=dtype)
-            mat.fill(value)
+            mat = cast_scalar_to_array(shape[1:], value)
         else:
             raise TypeError('Cannot set item of type: %s' % str(type(value)))
 
@@ -674,7 +685,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
 
         values = self.values
-        mask = notnull(values)
+        mask = notna(values)
 
         for ax in reversed(sorted(set(range(self._AXIS_LEN)) - set([axis]))):
             mask = mask.sum(ax)
@@ -705,13 +716,13 @@ class Panel(NDFrame):
                                       "operation with %s" %
                                       (str(type(other)), str(type(self))))
 
-    def _combine_const(self, other, func):
+    def _combine_const(self, other, func, try_cast=True):
         with np.errstate(all='ignore'):
             new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
-    def _combine_frame(self, other, func, axis=0):
+    def _combine_frame(self, other, func, axis=0, try_cast=True):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
@@ -730,7 +741,7 @@ class Panel(NDFrame):
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
 
-    def _combine_panel(self, other, func):
+    def _combine_panel(self, other, func, try_cast=True):
         items = self.items.union(other.items)
         major = self.major_axis.union(other.major_axis)
         minor = self.minor_axis.union(other.minor_axis)
@@ -896,7 +907,7 @@ class Panel(NDFrame):
 
         if filter_observations:
             # shaped like the return DataFrame
-            mask = notnull(self.values).all(axis=0)
+            mask = notna(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
         else:
@@ -1150,8 +1161,8 @@ class Panel(NDFrame):
             return self._constructor_sliced(
                 result, **self._extract_axes_for_slice(self, axes))
 
-        raise PandasError('invalid _construct_return_type [self->%s] '
-                          '[result->%s]' % (self, result))
+        raise ValueError('invalid _construct_return_type [self->%s] '
+                         '[result->%s]' % (self, result))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
@@ -1282,7 +1293,7 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        from pandas.tools.merge import concat
+        from pandas.core.reshape.concat import concat
 
         if isinstance(other, Panel):
             join_major, join_minor = self._get_join_index(other, how)
@@ -1437,7 +1448,6 @@ class Panel(NDFrame):
             index = Index([])
         elif len(data) > 0:
             raw_lengths = []
-            indexes = []
 
         have_raw_arrays = False
         have_frames = False
@@ -1445,13 +1455,13 @@ class Panel(NDFrame):
         for v in data.values():
             if isinstance(v, self._constructor_sliced):
                 have_frames = True
-                indexes.append(v._get_axis(axis))
             elif v is not None:
                 have_raw_arrays = True
                 raw_lengths.append(v.shape[axis])
 
         if have_frames:
-            index = _get_combined_index(indexes, intersect=intersect)
+            index = _get_objs_combined_axis(data.values(), axis=axis,
+                                            intersect=intersect)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -1560,6 +1570,7 @@ Panel._add_numeric_operations()
 
 # legacy
 class WidePanel(Panel):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("WidePanel is deprecated. Please use Panel",
@@ -1569,6 +1580,7 @@ class WidePanel(Panel):
 
 
 class LongPanel(DataFrame):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("LongPanel is deprecated. Please use DataFrame",

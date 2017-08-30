@@ -69,7 +69,7 @@ Different Choices for Indexing
 .. versionadded:: 0.11.0
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. pandas now supports three types
+support more explicit location based indexing. Pandas now supports three types
 of multi-axis indexing.
 
 - ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
@@ -78,8 +78,10 @@ of multi-axis indexing.
     *label* of the index. This use is **not** an integer position along the
     index)
   - A list or array of labels ``['a', 'b', 'c']``
-  - A slice object with labels ``'a':'f'``, (note that contrary to usual python
-    slices, **both** the start and the stop are included!)
+  - A slice object with labels ``'a':'f'`` (note that contrary to usual python
+    slices, **both** the start and the stop are included, when present in the
+    index! - also see :ref:`Slicing with labels
+    <indexing.slicing_with_labels>`)
   - A boolean array
   - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
     that returns valid output for indexing (one of the above)
@@ -225,10 +227,6 @@ as an attribute:
    dfa.A
    panel.one
 
-You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
-if you try to use attribute access to create a new column, it fails silently, creating a new attribute rather than a
-new column.
-
 .. ipython:: python
 
    sa.a = 5
@@ -264,6 +262,37 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
    x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
    x.iloc[1] = dict(x=9, y=99)
    x
+
+You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
+if you try to use attribute access to create a new column, it creates a new attribute rather than a
+new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+
+.. code-block:: ipython
+
+    In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+    In[2]: df.two = [4, 5, 6]
+    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
+    In[3]: df
+    Out[3]:
+       one
+    0  1.0
+    1  2.0
+    2  3.0
+
+Similarly, it is possible to create a column with a name which collides with one of Pandas's
+built-in methods or attributes, which can cause confusion later when attempting to access
+that column as an attribute. This behavior now warns:
+
+.. code-block:: ipython
+
+    In[4]: df['sum'] = [5., 7., 9.]
+    UserWarning: Column name 'sum' collides with a built-in method, which will cause unexpected attribute behavior
+    In[5]: df.sum
+    Out[5]:
+    <bound method DataFrame.sum of    one  sum
+    0  1.0  5.0
+    1  2.0  7.0
+    2  3.0  9.0>
 
 Slicing ranges
 --------------
@@ -330,13 +359,16 @@ Selection By Label
      dfl.loc['20130102':'20130104']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
 - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
 - A list or array of labels ``['a', 'b', 'c']``
-- A slice object with labels ``'a':'f'`` (note that contrary to usual python slices, **both** the start and the stop are included!)
+- A slice object with labels ``'a':'f'`` (note that contrary to usual python
+  slices, **both** the start and the stop are included, when present in the
+  index! - also See :ref:`Slicing with labels
+  <indexing.slicing_with_labels>`)
 - A boolean array
 - A ``callable``, see :ref:`Selection By Callable <indexing.callable>`
 
@@ -390,6 +422,34 @@ For getting a value explicitly (equiv to deprecated ``df.get_value('a','A')``)
    # this is also equivalent to ``df1.at['a','A']``
    df1.loc['a', 'A']
 
+.. _indexing.slicing_with_labels:
+
+Slicing with labels
+~~~~~~~~~~~~~~~~~~~
+
+When using ``.loc`` with slices, if both the start and the stop labels are
+present in the index, then elements *located* between the two (including them)
+are returned:
+
+.. ipython:: python
+
+   s = pd.Series(list('abcde'), index=[0,3,2,5,4])
+   s.loc[3:5]
+
+If at least one of the two is absent, but the index is sorted, and can be
+compared against start and stop labels, then slicing will still work as
+expected, by selecting labels which *rank* between the two:
+
+.. ipython:: python
+
+   s.sort_index()
+   s.sort_index().loc[1:6]
+
+However, if at least one of the two is absent *and* the index is not sorted, an
+error will be raised (since doing otherwise would be computationally expensive,
+as well as potentially ambiguous for mixed type indexes). For instance, in the
+above example, ``s.loc[1:6]`` would raise ``KeyError``.
+
 .. _indexing.integer:
 
 Selection By Position
@@ -401,7 +461,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
-pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 

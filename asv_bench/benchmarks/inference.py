@@ -113,5 +113,5 @@ class MaybeConvertNumeric(object):
         self.na_values = set()
 
     def time_convert(self):
-        pd.lib.maybe_convert_numeric(self.data, self.na_values,
-                                     coerce_numeric=False)
+        lib.maybe_convert_numeric(self.data, self.na_values,
+                                  coerce_numeric=False)

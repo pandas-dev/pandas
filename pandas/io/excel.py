@@ -8,27 +8,30 @@ from datetime import datetime, date, time, MINYEAR
 
 import os
 import abc
+import warnings
 import numpy as np
 
-from pandas.types.common import (is_integer, is_float,
-                                 is_bool, is_list_like)
+from pandas.core.dtypes.common import (
+    is_integer, is_float,
+    is_bool, is_list_like)
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
+from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              EmptyDataError, get_filepath_or_buffer,
-                              _NA_VALUES)
-from pandas.tseries.period import Period
-from pandas import json
+                              get_filepath_or_buffer, _NA_VALUES,
+                              _stringify_path)
+from pandas.core.indexes.period import Period
+import pandas._libs.json as json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -46,7 +49,7 @@ io : string, path object (pathlib.Path or py._path.local.LocalPath),
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx
-sheetname : string, int, mixed list of strings/ints, or None, default 0
+sheet_name : string, int, mixed list of strings/ints, or None, default 0
 
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
@@ -67,10 +70,14 @@ sheetname : string, int, mixed list of strings/ints, or None, default 0
     * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
     * None -> All sheets as a dictionary of DataFrames
 
+sheetname : string, int, mixed list of strings/ints, or None, default 0
+    .. deprecated:: 0.21.0
+       Use `sheet_name` instead
+
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
-    be combined into a ``MultiIndex``
+    be combined into a ``MultiIndex``. Use None if there is no header.
 skiprows : list-like
     Rows to skip at the beginning (0-indexed)
 skip_footer : int, default 0
@@ -78,7 +85,9 @@ skip_footer : int, default 0
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
-    those columns will be combined into a ``MultiIndex``
+    those columns will be combined into a ``MultiIndex``.  If a
+    subset of data is selected with ``parse_cols``, index_col
+    is based on the subset.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None
@@ -89,7 +98,7 @@ converters : dict, default None
     content.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 
@@ -109,8 +118,9 @@ parse_cols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
-    * If string then indicates comma separated list of column names and
-      column ranges (e.g. "A:E" or "A,C,E:F")
+    * If string then indicates comma separated list of Excel column letters and
+      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
+      both sides.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 na_values : scalar, str, list-like, or dict, default None
@@ -134,15 +144,11 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
-has_index_names : boolean, default None
-    DEPRECATED: for version 0.17+ index names will be automatically
-    inferred based on index_col.  To read Excel output from 0.16.2 and
-    prior that had saved index names, use True.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheetname
+    DataFrame from the passed in Excel file.  See notes in sheet_name
     argument for more information on when a Dict of Dataframes is returned.
 """
 
@@ -188,24 +194,32 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
-def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
+def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
-               convert_float=True, has_index_names=None, converters=None,
-               dtype=None, true_values=None, false_values=None, engine=None,
+               convert_float=True, converters=None, dtype=None,
+               true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
+
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+    elif 'sheetname' in kwds:
+        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
+                        "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheetname, header=header, skiprows=skiprows, names=names,
+        sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, has_index_names=has_index_names,
-        skip_footer=skip_footer, converters=converters, dtype=dtype,
-        true_values=true_values, false_values=false_values, squeeze=squeeze,
-        **kwds)
+        convert_float=convert_float, skip_footer=skip_footer,
+        converters=converters, dtype=dtype, true_values=true_values,
+        false_values=false_values, squeeze=squeeze, **kwds)
 
 
 class ExcelFile(object):
@@ -232,7 +246,10 @@ class ExcelFile(object):
             raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
                               "support, current version " + xlrd.__VERSION__)
 
+        # could be a str, ExcelFile, Book, etc.
         self.io = io
+        # Always a string
+        self._io = _stringify_path(io)
 
         engine = kwds.pop('engine', None)
 
@@ -241,11 +258,10 @@ class ExcelFile(object):
 
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
-        if _is_url(io):
-            io = _urlopen(io)
-        # Deal with S3 urls, path objects, etc. Will convert them to
-        # buffer or path string
-        io, _, _ = get_filepath_or_buffer(io)
+        if _is_url(self._io):
+            io = _urlopen(self._io)
+        elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
+            io, _, _ = get_filepath_or_buffer(self._io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
@@ -253,18 +269,20 @@ class ExcelFile(object):
             # N.B. xlrd.Book has a read attribute too
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(io, compat.string_types):
-            self.book = xlrd.open_workbook(io)
+        elif isinstance(self._io, compat.string_types):
+            self.book = xlrd.open_workbook(self._io)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
-    def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
+    def __fspath__(self):
+        return self._io
+
+    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
-              convert_float=True, has_index_names=None,
-              converters=None, true_values=None, false_values=None,
-              squeeze=False, **kwds):
+              convert_float=True, converters=None, true_values=None,
+              false_values=None, squeeze=False, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -272,10 +290,9 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheetname, header=header,
+        return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
-                                 has_index_names=has_index_names,
                                  parse_cols=parse_cols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
@@ -322,34 +339,25 @@ class ExcelFile(object):
             return i in parse_cols
 
     def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, has_index_names=None,
-                     parse_cols=None, parse_dates=False, date_parser=None,
-                     na_values=None, thousands=None, convert_float=True,
-                     true_values=None, false_values=None, verbose=False,
-                     dtype=None, squeeze=False, **kwds):
+                     skip_footer=0, index_col=None, parse_cols=None,
+                     parse_dates=False, date_parser=None, na_values=None,
+                     thousands=None, convert_float=True, true_values=None,
+                     false_values=None, verbose=False, dtype=None,
+                     squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
 
         _validate_header_arg(header)
-        if has_index_names is not None:
-            warn("\nThe has_index_names argument is deprecated; index names "
-                 "will be automatically inferred based on index_col.\n"
-                 "This argmument is still necessary if reading Excel output "
-                 "from 0.16.2 or prior with index names.", FutureWarning,
-                 stacklevel=3)
 
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
-        if parse_dates:
-            raise NotImplementedError("parse_dates keyword of read_excel "
-                                      "is not implemented")
 
-        if date_parser is not None:
-            raise NotImplementedError("date_parser keyword of read_excel "
-                                      "is not implemented")
+        if parse_dates is True and index_col is None:
+            warn("The 'parse_dates=True' keyword of read_excel was provided"
+                 " without an 'index_col' keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
@@ -493,8 +501,7 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            if is_list_like(header) and len(header) > 1:
-                has_index_names = True
+            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
@@ -543,6 +550,22 @@ class ExcelFile(object):
         self.close()
 
 
+def _validate_freeze_panes(freeze_panes):
+    if freeze_panes is not None:
+        if (
+            len(freeze_panes) == 2 and
+            all(isinstance(item, int) for item in freeze_panes)
+        ):
+            return True
+
+        raise ValueError("freeze_panes must be of form (row, column)"
+                         " where row and column are integers")
+
+    # freeze_panes wasn't specified, return False so it won't be applied
+    # to output sheet
+    return False
+
+
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     # xlrd uses '' , openpyxl None
@@ -559,7 +582,7 @@ def _fill_mi_header(row, control_row):
     ----------
     row : list
         List of items in a single row.
-    constrol_row : list of boolean
+    control_row : list of boolean
         Helps to determine if particular column is in same parent index as the
         previous value. Used to stop propagation of empty cells between
         different indexes.
@@ -693,7 +716,8 @@ class ExcelWriter(object):
         pass
 
     @abc.abstractmethod
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         """
         Write given formated cells into Excel an excel sheet
 
@@ -705,6 +729,8 @@ class ExcelWriter(object):
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame
         startcol: upper left cell column to dump data frame
+        freeze_panes: integer tuple of length 2
+            contains the bottom-most row and right-most column to freeze
         """
         pass
 
@@ -737,6 +763,9 @@ class ExcelWriter(object):
             self.datetime_format = 'YYYY-MM-DD HH:MM:SS'
         else:
             self.datetime_format = datetime_format
+
+    def __fspath__(self):
+        return _stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -804,7 +833,8 @@ class _Openpyxl1Writer(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
@@ -886,11 +916,13 @@ class _Openpyxl1Writer(ExcelWriter):
 
         return xls_style
 
+
 register_writer(_Openpyxl1Writer)
 
 
 class _OpenpyxlWriter(_Openpyxl1Writer):
     engine = 'openpyxl'
+
 
 register_writer(_OpenpyxlWriter)
 
@@ -902,7 +934,8 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
     engine = 'openpyxl20'
     openpyxl_majorver = 2
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
@@ -1309,7 +1342,8 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
     engine = 'openpyxl22'
     openpyxl_majorver = 2
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -1321,6 +1355,10 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             wks = self.book.create_sheet()
             wks.title = sheet_name
             self.sheets[sheet_name] = wks
+
+        if _validate_freeze_panes(freeze_panes):
+            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
+                                        column=freeze_panes[1] + 1)
 
         for cell in cells:
             xcell = wks.cell(
@@ -1368,6 +1406,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
+
 register_writer(_Openpyxl22Writer)
 
 
@@ -1393,7 +1432,8 @@ class _XlwtWriter(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using xlwt.
 
         sheet_name = self._get_sheet_name(sheet_name)
@@ -1403,6 +1443,11 @@ class _XlwtWriter(ExcelWriter):
         else:
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
+
+        if _validate_freeze_panes(freeze_panes):
+            wks.set_panes_frozen(True)
+            wks.set_horz_split_pos(freeze_panes[0])
+            wks.set_vert_split_pos(freeze_panes[1])
 
         style_dict = {}
 
@@ -1491,6 +1536,7 @@ class _XlwtWriter(ExcelWriter):
 
         return style
 
+
 register_writer(_XlwtWriter)
 
 
@@ -1514,11 +1560,12 @@ class _XlsxWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
+
         return self.book.close()
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using xlsxwriter.
-
         sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
@@ -1528,6 +1575,9 @@ class _XlsxWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         style_dict = {}
+
+        if _validate_freeze_panes(freeze_panes):
+            wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
             val = _conv_value(cell.val)
@@ -1602,5 +1652,6 @@ class _XlsxWriter(ExcelWriter):
             xl_format.set_border()
 
         return xl_format
+
 
 register_writer(_XlsxWriter)

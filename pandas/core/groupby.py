@@ -5,61 +5,66 @@ import datetime
 import collections
 import warnings
 import copy
+from textwrap import dedent
 
 from pandas.compat import (
-    zip, range, long, lzip,
+    zip, range, lzip,
     callable, map
 )
+
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.compat.numpy import _np_version_under1p8
+from pandas.compat import set_function_name
 
-from pandas.types.common import (is_numeric_dtype,
-                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                 is_categorical_dtype,
-                                 is_datetimelike,
-                                 is_datetime64_any_dtype,
-                                 is_bool, is_integer_dtype,
-                                 is_complex_dtype,
-                                 is_bool_dtype,
-                                 is_scalar,
-                                 is_list_like,
-                                 needs_i8_conversion,
-                                 _ensure_float64,
-                                 _ensure_platform_int,
-                                 _ensure_int64,
-                                 _ensure_object,
-                                 _ensure_categorical,
-                                 _ensure_float)
-from pandas.types.cast import _possibly_downcast_to_dtype
-from pandas.types.missing import isnull, notnull, _maybe_fill
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_timedelta64_dtype, is_datetime64_dtype,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_datetimelike,
+    is_datetime64_any_dtype,
+    is_bool, is_integer_dtype,
+    is_complex_dtype,
+    is_bool_dtype,
+    is_scalar,
+    is_list_like,
+    needs_i8_conversion,
+    _ensure_float64,
+    _ensure_platform_int,
+    _ensure_int64,
+    _ensure_object,
+    _ensure_categorical,
+    _ensure_float)
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index)
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
+from pandas.core.index import (Index, MultiIndex,
+                               CategoricalIndex, _ensure_index)
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
-from pandas.core.index import (Index, MultiIndex, CategoricalIndex,
-                               _ensure_index)
+from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.util.decorators import (cache_readonly, Substitution, Appender,
-                                    make_signature, deprecate_kwarg)
-from pandas.formats.printing import pprint_thing
-from pandas.util.validators import validate_kwargs
+from pandas.core.sorting import (get_group_index_sorter, get_group_index,
+                                 compress_group_index, get_flattened_iterator,
+                                 decons_obs_group_ids, get_indexer_dict)
+from pandas.util._decorators import (cache_readonly, Substitution,
+                                     Appender, make_signature)
+from pandas.io.formats.printing import pprint_thing
+from pandas.util._validators import validate_kwargs
 
-import pandas.core.algorithms as algos
+import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
-import pandas.lib as lib
-from pandas.lib import Timestamp
-import pandas.tslib as tslib
-import pandas.algos as _algos
-import pandas.hashtable as _hash
+
+from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
+from pandas._libs.lib import count_level_2d
 
 _doc_template = """
 
@@ -70,6 +75,73 @@ _doc_template = """
         pandas.Panel.%(name)s
 """
 
+_transform_template = """
+Call function producing a like-indexed %(klass)s on each group and
+return a %(klass)s having the same indexes as the original object
+filled with the transformed values
+
+Parameters
+----------
+f : function
+    Function to apply to each group
+
+Notes
+-----
+Each group is endowed the attribute 'name' in case you need to know
+which group you are working on.
+
+The current implementation imposes three requirements on f:
+
+* f must return a value that either has the same shape as the input
+  subframe or can be broadcast to the shape of the input subframe.
+  For example, f returns a scalar it will be broadcast to have the
+  same shape as the input subframe.
+* if this is a DataFrame, f must support application column-by-column
+  in the subframe. If f also supports application to the entire subframe,
+  then a fast path is used starting from the second chunk.
+* f must not mutate groups. Mutation is not supported and may
+  produce unexpected results.
+
+Returns
+-------
+%(klass)s
+
+See also
+--------
+aggregate, transform
+
+Examples
+--------
+
+# Same shape
+>>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+...                           'foo', 'bar'],
+...                    'B' : ['one', 'one', 'two', 'three',
+...                          'two', 'two'],
+...                    'C' : [1, 5, 5, 2, 5, 5],
+...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
+>>> grouped = df.groupby('A')
+>>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+          C         D
+0 -1.154701 -0.577350
+1  0.577350  0.000000
+2  0.577350  1.154701
+3 -1.154701 -1.000000
+4  0.577350 -0.577350
+5  0.577350  1.000000
+
+# Broadcastable
+>>> grouped.transform(lambda x: x.max() - x.min())
+   C    D
+0  4  6.0
+1  3  8.0
+2  4  6.0
+3  3  8.0
+4  4  6.0
+5  3  8.0
+
+"""
+
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 _plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
@@ -78,9 +150,8 @@ _common_apply_whitelist = frozenset([
     'last', 'first',
     'head', 'tail', 'median',
     'mean', 'sum', 'min', 'max',
-    'cumcount',
+    'cumcount', 'ngroup',
     'resample',
-    'describe',
     'rank', 'quantile',
     'fillna',
     'mad',
@@ -93,73 +164,15 @@ _common_apply_whitelist = frozenset([
     'corr', 'cov', 'diff',
 ]) | _plotting_methods
 
-_series_apply_whitelist = \
-    (_common_apply_whitelist - set(['boxplot'])) | \
-    frozenset(['dtype', 'unique'])
+_series_apply_whitelist = ((_common_apply_whitelist |
+                            {'nlargest', 'nsmallest'}) -
+                           {'boxplot'}) | frozenset(['dtype', 'unique'])
 
-_dataframe_apply_whitelist = \
-    _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
+_dataframe_apply_whitelist = (_common_apply_whitelist |
+                              frozenset(['dtypes', 'corrwith']))
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
-
-
-def _groupby_function(name, alias, npfunc, numeric_only=True,
-                      _convert=False):
-
-    _local_template = "Compute %(f)s of group values"
-
-    @Substitution(name='groupby', f=name)
-    @Appender(_doc_template)
-    @Appender(_local_template)
-    def f(self, **kwargs):
-        if 'numeric_only' not in kwargs:
-            kwargs['numeric_only'] = numeric_only
-        self._set_group_selection()
-        try:
-            return self._cython_agg_general(alias, alt=npfunc, **kwargs)
-        except AssertionError as e:
-            raise SpecificationError(str(e))
-        except Exception:
-            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            if _convert:
-                result = result._convert(datetime=True)
-            return result
-
-        f.__name__ = name
-
-    return f
-
-
-def _first_compat(x, axis=0):
-
-    def _first(x):
-
-        x = np.asarray(x)
-        x = x[notnull(x)]
-        if len(x) == 0:
-            return np.nan
-        return x[0]
-
-    if isinstance(x, DataFrame):
-        return x.apply(_first, axis=axis)
-    else:
-        return _first(x)
-
-
-def _last_compat(x, axis=0):
-    def _last(x):
-
-        x = np.asarray(x)
-        x = x[notnull(x)]
-        if len(x) == 0:
-            return np.nan
-        return x[-1]
-
-    if isinstance(x, DataFrame):
-        return x.apply(_last, axis=axis)
-    else:
-        return _last(x)
 
 
 class Grouper(object):
@@ -220,7 +233,7 @@ class Grouper(object):
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
-            from pandas.tseries.resample import TimeGrouper
+            from pandas.core.resample import TimeGrouper
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
@@ -290,8 +303,8 @@ class Grouper(object):
                 # equivalent to the axis name
                 if isinstance(ax, MultiIndex):
                     level = ax._get_level_number(level)
-                    ax = Index(ax.get_level_values(
-                        level), name=ax.names[level])
+                    ax = Index(ax._get_level_values(level),
+                               name=ax.names[level])
 
                 else:
                     if level not in (0, ax.name):
@@ -517,10 +530,11 @@ class _GroupBy(PandasObject, SelectionMixin):
         if not self.grouper.is_monotonic:
             index = Index(np.concatenate(
                 self._get_indices(self.grouper.result_index)))
-            result.set_axis(self.axis, index)
+            result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        result.set_axis(self.axis, self.obj._get_axis(self.axis))
+        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis,
+                        inplace=True)
         return result
 
     def _dir_additions(self):
@@ -712,7 +726,7 @@ class _GroupBy(PandasObject, SelectionMixin):
             not_indexed_same=mutated or self.mutated)
 
     def _iterate_slices(self):
-        yield self.name, self._selected_obj
+        yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
@@ -730,7 +744,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         (though the default is sort=True) for groupby in general
         """
         ids, _, ngroups = self.grouper.group_info
-        sorter = _get_group_index_sorter(ids, ngroups)
+        sorter = get_group_index_sorter(ids, ngroups)
         ids, count = ids[sorter], len(ids)
 
         if count == 0:
@@ -760,16 +774,19 @@ class _GroupBy(PandasObject, SelectionMixin):
         gp = self.grouper
         levels = chain((gp.levels[i][gp.labels[i][b]]
                         for i in range(len(gp.groupings))),
-                       (original.get_level_values(i)[b]
+                       (original._get_level_values(i)[b]
                         for i in range(original.nlevels)))
         new = MultiIndex.from_arrays(list(levels))
         new.names = gp.names + original.names
         return new
 
-    def _try_cast(self, result, obj):
+    def _try_cast(self, result, obj, numeric_only=False):
         """
         try to cast the result to our obj original type,
         we may have roundtripped thru object in the mean-time
+
+        if numeric_only is True, then only try to cast numerics
+        and not datetimelikes
 
         """
         if obj.ndim > 1:
@@ -778,7 +795,8 @@ class _GroupBy(PandasObject, SelectionMixin):
             dtype = obj.dtype
 
         if not is_scalar(result):
-            result = _possibly_downcast_to_dtype(result, dtype)
+            if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
+                result = maybe_downcast_to_dtype(result, dtype)
 
         return result
 
@@ -829,7 +847,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj)
+                output[name] = self._try_cast(result, obj, numeric_only=True)
             except TypeError:
                 continue
 
@@ -854,7 +872,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
-        from pandas.tools.merge import concat
+        from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
             # reset the identities of the components
@@ -879,8 +897,9 @@ class _GroupBy(PandasObject, SelectionMixin):
                 # we can't reindex, so we resort to this
                 # GH 14776
                 if isinstance(ax, MultiIndex) and not ax.is_unique:
-                    result = result.take(result.index.get_indexer_for(
-                        ax.values).unique(), axis=self.axis)
+                    indexer = algorithms.unique1d(
+                        result.index.get_indexer_for(ax.values))
+                    result = result.take(indexer, axis=self.axis)
                 else:
                     result = result.reindex_axis(ax, axis=self.axis)
 
@@ -907,9 +926,9 @@ class _GroupBy(PandasObject, SelectionMixin):
             result = concat(values, axis=self.axis)
 
         if (isinstance(result, Series) and
-                getattr(self, 'name', None) is not None):
+                getattr(self, '_selection_name', None) is not None):
 
-            result.name = self.name
+            result.name = self._selection_name
 
         return result
 
@@ -998,16 +1017,6 @@ class GroupBy(_GroupBy):
         Number of groups
     """
     _apply_whitelist = _common_apply_whitelist
-
-    def irow(self, i):
-        """
-        DEPRECATED. Use ``.nth(i)`` instead
-        """
-
-        # 10177
-        warnings.warn("irow(i) is deprecated. Please use .nth(i)",
-                      FutureWarning, stacklevel=2)
-        return self.nth(i)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1116,16 +1125,82 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def size(self):
         """Compute group sizes"""
-        return self.grouper.size()
+        result = self.grouper.size()
 
-    sum = _groupby_function('sum', 'add', np.sum)
-    prod = _groupby_function('prod', 'prod', np.prod)
-    min = _groupby_function('min', 'min', np.min, numeric_only=False)
-    max = _groupby_function('max', 'max', np.max, numeric_only=False)
-    first = _groupby_function('first', 'first', _first_compat,
-                              numeric_only=False, _convert=True)
-    last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
-                             _convert=True)
+        if isinstance(self.obj, Series):
+            result.name = getattr(self.obj, 'name', None)
+        return result
+
+    @classmethod
+    def _add_numeric_operations(cls):
+        """ add numeric operations to the GroupBy generically """
+
+        def groupby_function(name, alias, npfunc,
+                             numeric_only=True, _convert=False):
+
+            _local_template = "Compute %(f)s of group values"
+
+            @Substitution(name='groupby', f=name)
+            @Appender(_doc_template)
+            @Appender(_local_template)
+            def f(self, **kwargs):
+                if 'numeric_only' not in kwargs:
+                    kwargs['numeric_only'] = numeric_only
+                self._set_group_selection()
+                try:
+                    return self._cython_agg_general(
+                        alias, alt=npfunc, **kwargs)
+                except AssertionError as e:
+                    raise SpecificationError(str(e))
+                except Exception:
+                    result = self.aggregate(
+                        lambda x: npfunc(x, axis=self.axis))
+                    if _convert:
+                        result = result._convert(datetime=True)
+                    return result
+
+            set_function_name(f, name, cls)
+
+            return f
+
+        def first_compat(x, axis=0):
+
+            def first(x):
+
+                x = np.asarray(x)
+                x = x[notna(x)]
+                if len(x) == 0:
+                    return np.nan
+                return x[0]
+
+            if isinstance(x, DataFrame):
+                return x.apply(first, axis=axis)
+            else:
+                return first(x)
+
+        def last_compat(x, axis=0):
+
+            def last(x):
+
+                x = np.asarray(x)
+                x = x[notna(x)]
+                if len(x) == 0:
+                    return np.nan
+                return x[-1]
+
+            if isinstance(x, DataFrame):
+                return x.apply(last, axis=axis)
+            else:
+                return last(x)
+
+        cls.sum = groupby_function('sum', 'add', np.sum)
+        cls.prod = groupby_function('prod', 'prod', np.prod)
+        cls.min = groupby_function('min', 'min', np.min, numeric_only=False)
+        cls.max = groupby_function('max', 'max', np.max, numeric_only=False)
+        cls.first = groupby_function('first', 'first', first_compat,
+                                     numeric_only=False, _convert=True)
+        cls.last = groupby_function('last', 'last', last_compat,
+                                    numeric_only=False, _convert=True)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1138,6 +1213,14 @@ class GroupBy(_GroupBy):
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
 
+    @Appender(DataFrame.describe.__doc__)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
+
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def resample(self, rule, *args, **kwargs):
@@ -1145,7 +1228,7 @@ class GroupBy(_GroupBy):
         Provide resampling when using a TimeGrouper
         Return a new grouper with our resampler appended
         """
-        from pandas.tseries.resample import get_resampler_for_grouping
+        from pandas.core.resample import get_resampler_for_grouping
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @Substitution(name='groupby')
@@ -1356,6 +1439,75 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def ngroup(self, ascending=True):
+        """
+        Number each group from 0 to the number of groups - 1.
+
+        This is the enumerative complement of cumcount.  Note that the
+        numbers given to the groups match the order in which the groups
+        would be seen when iterating over the groupby object, not the
+        order they are first observed.
+
+        .. versionadded:: 0.20.2
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            If False, number in reverse, from number of group - 1 to 0.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({"A": list("aaabba")})
+        >>> df
+           A
+        0  a
+        1  a
+        2  a
+        3  b
+        4  b
+        5  a
+        >>> df.groupby('A').ngroup()
+        0    0
+        1    0
+        2    0
+        3    1
+        4    1
+        5    0
+        dtype: int64
+        >>> df.groupby('A').ngroup(ascending=False)
+        0    1
+        1    1
+        2    1
+        3    0
+        4    0
+        5    1
+        dtype: int64
+        >>> df.groupby(["A", [1,1,2,3,2,1]]).ngroup()
+        0    0
+        1    0
+        2    1
+        3    3
+        4    2
+        5    0
+        dtype: int64
+
+        See also
+        --------
+        .cumcount : Number the rows in each group.
+
+        """
+
+        self._set_group_selection()
+
+        index = self._selected_obj.index
+        result = Series(self.grouper.group_info[0], index)
+        if not ascending:
+            result = self.ngroups - 1 - result
+        return result
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def cumcount(self, ascending=True):
         """
         Number each item in each group from 0 to the length of that group - 1.
@@ -1398,6 +1550,10 @@ class GroupBy(_GroupBy):
         4    0
         5    0
         dtype: int64
+
+        See also
+        --------
+        .ngroup : Number the groups themselves.
         """
 
         self._set_group_selection()
@@ -1433,7 +1589,7 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform('cummin', **kwargs)
+        return self._cython_transform('cummin', numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1442,7 +1598,7 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform('cummax', **kwargs)
+        return self._cython_transform('cummax', numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1465,11 +1621,11 @@ class GroupBy(_GroupBy):
 
         # filled in by Cython
         indexer = np.zeros_like(labels)
-        _algos.group_shift_indexer(indexer, labels, ngroups, periods)
+        libgroupby.group_shift_indexer(indexer, labels, ngroups, periods)
 
         output = {}
         for name, obj in self._iterate_slices():
-            output[name] = algos.take_nd(obj.values, indexer)
+            output[name] = algorithms.take_nd(obj.values, indexer)
 
         return self._wrap_transformed_output(output)
 
@@ -1526,6 +1682,9 @@ class GroupBy(_GroupBy):
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
+
+
+GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
@@ -1607,9 +1766,12 @@ class BaseGrouper(object):
             return self.levels[0]
         else:
             comp_ids, _, ngroups = self.group_info
+
             # provide "flattened" iterator for multi-group setting
-            mapper = _KeyMapper(comp_ids, ngroups, self.labels, self.levels)
-            return [mapper.get_key(i) for i in range(ngroups)]
+            return get_flattened_iterator(comp_ids,
+                                          ngroups,
+                                          self.levels,
+                                          self.labels)
 
     def apply(self, f, data, axis=0):
         mutated = self.mutated
@@ -1653,7 +1815,7 @@ class BaseGrouper(object):
             label_list = [ping.labels for ping in self.groupings]
             keys = [_values_from_object(ping.group_index)
                     for ping in self.groupings]
-            return _get_indices_dict(label_list, keys)
+            return get_indexer_dict(label_list, keys)
 
     @property
     def labels(self):
@@ -1675,7 +1837,9 @@ class BaseGrouper(object):
         ids, _, ngroup = self.group_info
         ids = _ensure_platform_int(ids)
         out = np.bincount(ids[ids != -1], minlength=ngroup or None)
-        return Series(out, index=self.result_index, dtype='int64')
+        return Series(out,
+                      index=self.result_index,
+                      dtype='int64')
 
     @cache_readonly
     def _max_groupsize(self):
@@ -1717,7 +1881,7 @@ class BaseGrouper(object):
         if len(all_labels) > 1:
             group_index = get_group_index(all_labels, self.shape,
                                           sort=True, xnull=True)
-            return _compress_group_index(group_index, sort=self.sort)
+            return compress_group_index(group_index, sort=self.sort)
 
         ping = self.groupings[0]
         return ping.labels, np.arange(len(ping.group_index))
@@ -1794,6 +1958,13 @@ class BaseGrouper(object):
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
     }
 
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return SelectionMixin._builtin_table.get(arg, arg)
+
     def _get_cython_function(self, kind, how, values, is_numeric):
 
         dtype_str = values.dtype.name
@@ -1801,13 +1972,13 @@ class BaseGrouper(object):
         def get_func(fname):
             # see if there is a fused-type version of function
             # only valid for numeric
-            f = getattr(_algos, fname, None)
+            f = getattr(libgroupby, fname, None)
             if f is not None and is_numeric:
                 return f
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
-                f = getattr(_algos, "%s_%s" % (fname, dtype_str), None)
+                f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
 
@@ -1887,7 +2058,7 @@ class BaseGrouper(object):
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
-            if (values == tslib.iNaT).any():
+            if (values == iNaT).any():
                 values = _ensure_float64(values)
             else:
                 values = values.astype('int64', copy=False)
@@ -1929,7 +2100,7 @@ class BaseGrouper(object):
                 result, values, labels, func, is_numeric, is_datetimelike)
 
         if is_integer_dtype(result):
-            mask = result == tslib.iNaT
+            mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')
                 result[mask] = np.nan
@@ -2018,9 +2189,10 @@ class BaseGrouper(object):
 
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
-        indexer = _get_group_index_sorter(group_index, ngroups)
-        obj = obj.take(indexer, convert=False)
-        group_index = algos.take_nd(group_index, indexer, allow_fill=False)
+        indexer = get_group_index_sorter(group_index, ngroups)
+        obj = obj.take(indexer, convert=False).to_dense()
+        group_index = algorithms.take_nd(
+            group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
                                     dummy)
         result, counts = grouper.get_result()
@@ -2118,7 +2290,7 @@ class BinGrouper(BaseGrouper):
         # GH 3881
         result = {}
         for key, value in zip(self.binlabels, self.bins):
-            if key is not tslib.NaT:
+            if key is not NaT:
                 result[key] = value
         return result
 
@@ -2145,7 +2317,7 @@ class BinGrouper(BaseGrouper):
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
-            if label is not tslib.NaT:
+            if label is not NaT:
                 yield label, slicer(start, edge)
             start = edge
 
@@ -2159,7 +2331,7 @@ class BinGrouper(BaseGrouper):
         i = 0
         for label, bin in zip(self.binlabels, self.bins):
             if i < bin:
-                if label is not tslib.NaT:
+                if label is not NaT:
                     indices[label] = list(range(i, bin))
                 i = bin
         return indices
@@ -2185,7 +2357,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def result_index(self):
-        if len(self.binlabels) != 0 and isnull(self.binlabels[0]):
+        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 
         return self.binlabels
@@ -2286,23 +2458,7 @@ class Grouping(object):
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                # must have an ordered categorical
-                if self.sort:
-                    if not self.grouper.ordered:
-
-                        # technically we cannot group on an unordered
-                        # Categorical
-                        # but this a user convenience to do so; the ordering
-                        # is preserved and if it's a reduction it doesn't make
-                        # any difference
-                        pass
-
-                # fix bug #GH8868 sort=False being ignored in categorical
-                # groupby
-                else:
-                    cat = self.grouper.unique()
-                    self.grouper = self.grouper.reorder_categories(
-                        cat.categories)
+                self.grouper = self.grouper._codes_for_groupby(self.sort)
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes
@@ -2385,7 +2541,8 @@ class Grouping(object):
 
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
-            labels, uniques = algos.factorize(self.grouper, sort=self.sort)
+            labels, uniques = algorithms.factorize(
+                self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
@@ -2415,7 +2572,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     a BaseGrouper.
 
     """
-
     group_axis = obj._get_axis(axis)
 
     # validate that the passed level is compatible with the passed
@@ -2473,13 +2629,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     try:
         if isinstance(obj, DataFrame):
-            all_in_columns = all(g in obj.columns for g in keys)
+            all_in_columns_index = all(g in obj.columns or g in obj.index.names
+                                       for g in keys)
         else:
-            all_in_columns = False
+            all_in_columns_index = False
     except Exception:
-        all_in_columns = False
+        all_in_columns_index = False
 
-    if not any_callable and not all_in_columns and \
+    if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
         keys = [com._asarray_tuplesafe(keys)]
@@ -2580,7 +2737,7 @@ def _convert_grouper(axis, grouper):
             return grouper.reindex(axis)._values
     elif isinstance(grouper, (list, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
-            raise AssertionError('Grouper and axis must be same length')
+            raise ValueError('Grouper and axis must be same length')
         return grouper
     else:
         return grouper
@@ -2656,7 +2813,7 @@ class SeriesGroupBy(GroupBy):
         exec(_def_str)
 
     @property
-    def name(self):
+    def _selection_name(self):
         """
         since we are a series, we by definition only have
         a single name, but may be the result of a selection or
@@ -2667,57 +2824,47 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> s = Series([1, 2, 3, 4])
+
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).min()
+    1    1
+    2    3
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).agg('min')
+    1    1
+    2    3
+    dtype: int64
+
+    >>> s.groupby([1, 1, 2, 2]).agg(['min', 'max'])
+       min  max
+    1    1    2
+    2    3    4
+
+    See also
+    --------
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        klass='Series',
+        versionadded=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
-        """
-        Apply aggregation function or functions to groups, yielding most likely
-        Series but in some cases DataFrame depending on the output of the
-        aggregation function
-
-        Parameters
-        ----------
-        func_or_funcs : function or list / dict of functions
-            List/dict of functions will produce DataFrame with column names
-            determined by the function names themselves (list) or the keys in
-            the dict
-
-        Notes
-        -----
-        agg is an alias for aggregate. Use it.
-
-        Examples
-        --------
-        >>> series
-        bar    1.0
-        baz    2.0
-        qot    3.0
-        qux    4.0
-
-        >>> mapper = lambda x: x[0] # first letter
-        >>> grouped = series.groupby(mapper)
-
-        >>> grouped.aggregate(np.sum)
-        b    3.0
-        q    7.0
-
-        >>> grouped.aggregate([np.sum, np.mean, np.std])
-           mean  std  sum
-        b  1.5   0.5  3
-        q  3.5   0.5  7
-
-        >>> grouped.agg({'result' : lambda x: x.mean() / x.std(),
-        ...              'total' : np.sum})
-           result  total
-        b  2.121   3
-        q  4.95    7
-
-        See also
-        --------
-        apply, transform
-
-        Returns
-        -------
-        Series or DataFrame
-        """
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
@@ -2754,6 +2901,17 @@ class SeriesGroupBy(GroupBy):
 
     def _aggregate_multiple_funcs(self, arg, _level):
         if isinstance(arg, dict):
+
+            # show the deprecation, but only if we
+            # have not shown a higher level one
+            # GH 15931
+            if isinstance(self._selected_obj, Series) and _level <= 1:
+                warnings.warn(
+                    ("using a dict on a Series for aggregation\n"
+                     "is deprecated and will be removed in a future "
+                     "version"),
+                    FutureWarning, stacklevel=3)
+
             columns = list(arg.keys())
             arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
@@ -2799,12 +2957,12 @@ class SeriesGroupBy(GroupBy):
 
     def _wrap_output(self, output, index, names=None):
         """ common agg/transform wrapping logic """
-        output = output[self.name]
+        output = output[self._selection_name]
 
         if names is not None:
             return DataFrame(output, index=index, columns=names)
         else:
-            name = self.name
+            name = self._selection_name
             if name is None:
                 name = self._selected_obj.name
             return Series(output, index=index, name=name)
@@ -2822,7 +2980,7 @@ class SeriesGroupBy(GroupBy):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self.name, index=keys)
+            return Series([], name=self._selection_name, index=keys)
 
         def _get_index():
             if self.grouper.nkeys > 1:
@@ -2835,7 +2993,7 @@ class SeriesGroupBy(GroupBy):
             # GH #823
             index = _get_index()
             result = DataFrame(values, index=index).stack()
-            result.name = self.name
+            result.name = self._selection_name
             return result
 
         if isinstance(values[0], (Series, dict)):
@@ -2847,7 +3005,8 @@ class SeriesGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
         else:
             # GH #6265
-            return Series(values, index=_get_index(), name=self.name)
+            return Series(values, index=_get_index(),
+                          name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
@@ -2861,25 +3020,9 @@ class SeriesGroupBy(GroupBy):
 
         return result
 
+    @Substitution(klass='Series', selected='A.')
+    @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values
-
-        Parameters
-        ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
-
-        Examples
-        --------
-        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-
-        Returns
-        -------
-        transformed : Series
-        """
-
         func = self._is_cython_func(func) or func
 
         # if string function
@@ -2893,32 +3036,33 @@ class SeriesGroupBy(GroupBy):
                     lambda: getattr(self, func)(*args, **kwargs))
 
         # reg transform
-        dtype = self._selected_obj.dtype
-        result = self._selected_obj.values.copy()
-
+        klass = self._selected_obj.__class__
+        results = []
         wrapper = lambda x: func(x, *args, **kwargs)
-        for i, (name, group) in enumerate(self):
+        for name, group in self:
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
 
             if hasattr(res, 'values'):
                 res = res.values
 
-            # may need to astype
-            try:
-                common_type = np.common_type(np.array(res), result)
-                if common_type != result.dtype:
-                    result = result.astype(common_type)
-            except:
-                pass
-
             indexer = self._get_index(name)
-            result[indexer] = res
+            s = klass(res, indexer)
+            results.append(s)
 
-        result = _possibly_downcast_to_dtype(result, dtype)
-        return self._selected_obj.__class__(result,
-                                            index=self._selected_obj.index,
-                                            name=self._selected_obj.name)
+        from pandas.core.reshape.concat import concat
+        result = concat(results).sort_index()
+
+        # we will only try to coerce the result type if
+        # we have a numeric dtype, as these are *always* udfs
+        # the cython take a different path (and casting)
+        dtype = self._selected_obj.dtype
+        if is_numeric_dtype(dtype):
+            result = maybe_downcast_to_dtype(result, dtype)
+
+        result.name = self._selected_obj.name
+        result.index = self._selected_obj.index
+        return result
 
     def _transform_fast(self, func):
         """
@@ -2930,7 +3074,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = (self.size().fillna(0) > 0).any()
-        out = algos.take_1d(func().values, ids)
+        out = algorithms.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -2949,7 +3093,17 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped.filter(lambda x: x.mean() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> df.groupby('A').B.filter(lambda x: x.mean() > 3.)
+        1    2
+        3    4
+        5    6
+        Name: B, dtype: int64
 
         Returns
         -------
@@ -2961,13 +3115,13 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notnull(x, *args, **kwargs):
+        def true_and_notna(x, *args, **kwargs):
             b = wrapper(x, *args, **kwargs)
-            return b and notnull(b)
+            return b and notna(b)
 
         try:
             indices = [self._get_index(name) for name, group in self
-                       if true_and_notnull(group)]
+                       if true_and_notna(group)]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
         except TypeError:
@@ -2987,11 +3141,11 @@ class SeriesGroupBy(GroupBy):
         except TypeError:  # catches object dtypes
             assert val.dtype == object, \
                 'val.dtype must be object, got %s' % val.dtype
-            val, _ = algos.factorize(val, sort=False)
+            val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
-            _isnull = lambda a: a == -1
+            _isna = lambda a: a == -1
         else:
-            _isnull = isnull
+            _isna = isna
 
         ids, val = ids[sorter], val[sorter]
 
@@ -3001,7 +3155,7 @@ class SeriesGroupBy(GroupBy):
         inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = _isnull(val)
+        mask = _isna(val)
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -3019,32 +3173,26 @@ class SeriesGroupBy(GroupBy):
         # we might have duplications among the bins
         if len(res) != len(ri):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
-            res[ids] = out
+            res[ids[idx]] = out
 
         return Series(res,
                       index=ri,
-                      name=self.name)
+                      name=self._selection_name)
 
-    @deprecate_kwarg('take_last', 'keep',
-                     mapping={True: 'last', False: 'first'})
-    @Appender(Series.nlargest.__doc__)
-    def nlargest(self, n=5, keep='first'):
-        # ToDo: When we remove deprecate_kwargs, we can remote these methods
-        # and include nlargest and nsmallest to _series_apply_whitelist
-        return self.apply(lambda x: x.nlargest(n=n, keep=keep))
-
-    @deprecate_kwarg('take_last', 'keep',
-                     mapping={True: 'last', False: 'first'})
-    @Appender(Series.nsmallest.__doc__)
-    def nsmallest(self, n=5, keep='first'):
-        return self.apply(lambda x: x.nsmallest(n=n, keep=keep))
+    @Appender(Series.describe.__doc__)
+    def describe(self, **kwargs):
+        self._set_group_selection()
+        result = self.apply(lambda x: x.describe(**kwargs))
+        if self.axis == 1:
+            return result.T
+        return result.unstack()
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
         from functools import partial
-        from pandas.tools.tile import cut
-        from pandas.tools.merge import _get_join_indexers
+        from pandas.core.reshape.tile import cut
+        from pandas.core.reshape.merge import _get_join_indexers
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
@@ -3063,21 +3211,30 @@ class SeriesGroupBy(GroupBy):
         ids, val = ids[mask], val[mask]
 
         if bins is None:
-            lab, lev = algos.factorize(val, sort=True)
+            lab, lev = algorithms.factorize(val, sort=True)
+            llab = lambda lab, inc: lab[inc]
         else:
-            cat, bins = cut(val, bins, retbins=True)
-            # bins[:-1] for backward compat;
-            # o.w. cat.categories could be better
-            lab, lev, dropna = cat.codes, bins[:-1], False
 
-        sorter = np.lexsort((lab, ids))
+            # lab is a Categorical with categories an IntervalIndex
+            lab = cut(Series(val), bins, include_lowest=True)
+            lev = lab.cat.categories
+            lab = lev.take(lab.cat.codes)
+            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+
+        if is_interval_dtype(lab):
+            # TODO: should we do this inside II?
+            sorter = np.lexsort((lab.left, lab.right, ids))
+        else:
+            sorter = np.lexsort((lab, ids))
+
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
 
         # new values are where sorted labels change
-        inc = np.r_[True, lab[1:] != lab[:-1]]
+        lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
+        inc = np.r_[True, lchanges]
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
 
@@ -3085,9 +3242,9 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        labels = list(map(rep, self.grouper.recons_labels)) + [lab[inc]]
+        labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
-        names = self.grouper.names + [self.name]
+        names = self.grouper.names + [self._selection_name]
 
         if dropna:
             mask = labels[-1] != -1
@@ -3101,11 +3258,7 @@ class SeriesGroupBy(GroupBy):
             d = np.diff(np.r_[idx, len(ids)])
             if dropna:
                 m = ids[lab == -1]
-                if _np_version_under1p8:
-                    mi, ml = algos.factorize(m)
-                    d[ml] = d[ml] - np.bincount(mi)
-                else:
-                    np.add.at(d, m, -1)
+                np.add.at(d, m, -1)
                 acc = rep(d)[mask]
             else:
                 acc = rep(d)
@@ -3122,9 +3275,9 @@ class SeriesGroupBy(GroupBy):
 
             if is_integer_dtype(out):
                 out = _ensure_int64(out)
-            return Series(out, index=mi, name=self.name)
+            return Series(out, index=mi, name=self._selection_name)
 
-        # for compat. with algos.value_counts need to ensure every
+        # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype='bool')
         for lab in labels[:-1]:
@@ -3153,20 +3306,20 @@ class SeriesGroupBy(GroupBy):
 
         if is_integer_dtype(out):
             out = _ensure_int64(out)
-        return Series(out, index=mi, name=self.name)
+        return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
         """ Compute count of group, excluding missing values """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
-        mask = (ids != -1) & ~isnull(val)
+        mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out,
                       index=self.grouper.result_index,
-                      name=self.name,
+                      name=self._selection_name,
                       dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
@@ -3254,13 +3407,15 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                result = result._data.blocks[0]
+                newb = result._data.blocks[0]
 
-            # see if we can cast the block back to the original dtype
-            result = block._try_coerce_and_cast_result(result)
+            finally:
+
+                # see if we can cast the block back to the original dtype
+                result = block._try_coerce_and_cast_result(result)
+                newb = block.make_block(result)
 
             new_items.append(locs)
-            newb = block.make_block_same_class(result)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
@@ -3322,7 +3477,7 @@ class NDFrameGroupBy(GroupBy):
                 try:
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
-                        [arg], _level=_level)
+                        [arg], _level=_level, _axis=self.axis)
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
@@ -3417,6 +3572,7 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
+        from pandas.core.tools.numeric import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -3507,7 +3663,7 @@ class NDFrameGroupBy(GroupBy):
                         # still a series
                         # path added as of GH 5545
                         elif all_indexed_same:
-                            from pandas.tools.merge import concat
+                            from pandas.core.reshape.concat import concat
                             return concat(values)
 
                     if not all_indexed_same:
@@ -3540,7 +3696,7 @@ class NDFrameGroupBy(GroupBy):
                         else:
                             # GH5788 instead of stacking; concat gets the
                             # dtypes correct
-                            from pandas.tools.merge import concat
+                            from pandas.core.reshape.concat import concat
                             result = concat(values, keys=key_index,
                                             names=key_index.names,
                                             axis=self.axis).unstack()
@@ -3553,13 +3709,15 @@ class NDFrameGroupBy(GroupBy):
                 except (ValueError, AttributeError):
                     # GH1738: values is list of arrays of unequal lengths fall
                     # through to the outer else caluse
-                    return Series(values, index=key_index, name=self.name)
+                    return Series(values, index=key_index,
+                                  name=self._selection_name)
 
                 # if we have date/time like in the original, then coerce dates
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
-                    result = result._convert(numeric=True)
+                    result = result.apply(
+                        lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(
                         include=['datetime', 'timedelta']).columns
                     date_cols = date_cols.intersection(result.columns)
@@ -3576,8 +3734,9 @@ class NDFrameGroupBy(GroupBy):
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([isinstance(x, Timestamp)
                                       for x in values]) else False
-                # self.name not passed through to Series as the result
-                # should not take the name of original selection of columns
+                # self._selection_name not passed through to Series as the
+                # result should not take the name of original selection
+                # of columns
                 return (Series(values, index=key_index)
                         ._convert(datetime=True,
                                   coerce=coerce))
@@ -3588,7 +3747,7 @@ class NDFrameGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
 
     def _transform_general(self, func, *args, **kwargs):
-        from pandas.tools.merge import concat
+        from pandas.core.reshape.concat import concat
 
         applied = []
         obj = self._obj_with_exclusions
@@ -3637,27 +3796,9 @@ class NDFrameGroupBy(GroupBy):
                               axis=self.axis, verify_integrity=False)
         return self._set_result_index_ordered(concatenated)
 
+    @Substitution(klass='DataFrame', selected='')
+    @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        """
-        Call function producing a like-indexed DataFrame on each group and
-        return a DataFrame having the same indexes as the original object
-        filled with the transformed values
-
-        Parameters
-        ----------
-        f : function
-            Function to apply to each subframe
-
-        Notes
-        -----
-        Each subframe is endowed the attribute 'name' in case you need to know
-        which group you are working on.
-
-        Examples
-        --------
-        >>> grouped = df.groupby(lambda x: mapping[x])
-        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        """
 
         # optimized transforms
         func = self._is_cython_func(func) or func
@@ -3695,7 +3836,7 @@ class NDFrameGroupBy(GroupBy):
         ids, _, ngroup = self.grouper.group_info
         output = []
         for i, _ in enumerate(result.columns):
-            res = algos.take_1d(result.iloc[:, i].values, ids)
+            res = algorithms.take_1d(result.iloc[:, i].values, ids)
             if cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
@@ -3726,7 +3867,7 @@ class NDFrameGroupBy(GroupBy):
             if res.shape == res_fast.shape:
                 res_r = res.values.ravel()
                 res_fast_r = res_fast.values.ravel()
-                mask = notnull(res_r)
+                mask = notna(res_r)
             if (res_r[mask] == res_fast_r[mask]).all():
                 path = fast_path
 
@@ -3773,8 +3914,21 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped = df.groupby(lambda x: mapping[x])
-        >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+             A  B    C
+        1  bar  2  5.0
+        3  bar  4  1.0
+        5  bar  6  9.0
+
+        Returns
+        -------
+        filtered : DataFrame
         """
 
         indices = []
@@ -3793,8 +3947,8 @@ class NDFrameGroupBy(GroupBy):
                 pass
 
             # interpret the result of the filter
-            if is_bool(res) or (is_scalar(res) and isnull(res)):
-                if res and notnull(res):
+            if is_bool(res) or (is_scalar(res) and isna(res)):
+                if res and notna(res):
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -3814,9 +3968,67 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    @Substitution(name='groupby')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame({'A': [1, 1, 2, 2],
+    ...                    'B': [1, 2, 3, 4],
+    ...                    'C': np.random.randn(4)})
+
+    >>> df
+       A  B         C
+    0  1  1  0.362838
+    1  1  2  0.227877
+    2  2  3  1.267767
+    3  2  4 -0.562860
+
+    The aggregation is for each column.
+
+    >>> df.groupby('A').agg('min')
+       B         C
+    A
+    1  1  0.227877
+    2  3 -0.562860
+
+    Multiple aggregations
+
+    >>> df.groupby('A').agg(['min', 'max'])
+        B             C
+      min max       min       max
+    A
+    1   1   2  0.227877  0.362838
+    2   3   4 -0.562860  1.267767
+
+    Select a column for aggregation
+
+    >>> df.groupby('A').B.agg(['min', 'max'])
+       min  max
+    A
+    1    1    2
+    2    3    4
+
+    Different aggregations per column
+
+    >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
+        B             C
+      min max       sum
+    A
+    1   1   2  0.590716
+    2   3   4  0.704907
+
+    See also
+    --------
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
+    pandas.DataFrame.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        klass='DataFrame',
+        versionadded=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -3888,7 +4100,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if not self.as_index:
             result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
-            result = result.consolidate()
+            result = result._consolidate()
         else:
             index = self.grouper.result_index
             result = DataFrame(output, index=index, columns=output_keys)
@@ -3908,7 +4120,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
-            result = result.consolidate()
+            result = result._consolidate()
         else:
             index = self.grouper.result_index
             mgr = BlockManager(blocks, [items, index])
@@ -3980,7 +4192,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                                          exclusions=self.exclusions)
 
     def _apply_to_column_groupbys(self, func):
-        from pandas.tools.merge import concat
+        from pandas.core.reshape.concat import concat
         return concat(
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
@@ -3989,14 +4201,13 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.lib import count_level_2d
-        from pandas.types.missing import _isnull_ndarraylike as isnull
+        from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = ((mask & ~isnull(blk.get_values())) for blk in data.blocks)
+        val = ((mask & ~isna(blk.get_values())) for blk in data.blocks)
         loc = (blk.mgr_locs for blk in data.blocks)
 
         counter = partial(count_level_2d, labels=ids, max_bin=ngroups, axis=1)
@@ -4061,7 +4272,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
-            from pandas.tools.merge import concat
+            from pandas.core.reshape.concat import concat
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
 
@@ -4070,15 +4281,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
 
-from pandas.tools.plotting import boxplot_frame_groupby  # noqa
+from pandas.plotting._core import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
 
 class PanelGroupBy(NDFrameGroupBy):
 
-    @Substitution(name='groupby')
-    @Appender(SelectionMixin._see_also_template)
-    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(PanelGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -4184,12 +4392,12 @@ class DataSplitter(object):
     @cache_readonly
     def slabels(self):
         # Sorted labels
-        return algos.take_nd(self.labels, self.sort_idx, allow_fill=False)
+        return algorithms.take_nd(self.labels, self.sort_idx, allow_fill=False)
 
     @cache_readonly
     def sort_idx(self):
         # Counting sort indexer
-        return _get_group_index_sorter(self.labels, self.ngroups)
+        return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
         sdata = self._get_sorted_data()
@@ -4285,355 +4493,3 @@ def get_splitter(data, *args, **kwargs):
         klass = NDFrameSplitter
 
     return klass(data, *args, **kwargs)
-
-
-# ----------------------------------------------------------------------
-# Misc utilities
-
-
-def get_group_index(labels, shape, sort, xnull):
-    """
-    For the particular label_list, gets the offsets into the hypothetical list
-    representing the totally ordered cartesian product of all possible label
-    combinations, *as long as* this space fits within int64 bounds;
-    otherwise, though group indices identify unique combinations of
-    labels, they cannot be deconstructed.
-    - If `sort`, rank of returned ids preserve lexical ranks of labels.
-      i.e. returned id's can be used to do lexical sort on labels;
-    - If `xnull` nulls (-1 labels) are passed through.
-
-    Parameters
-    ----------
-    labels: sequence of arrays
-        Integers identifying levels at each location
-    shape: sequence of ints same length as labels
-        Number of unique levels at each location
-    sort: boolean
-        If the ranks of returned ids should match lexical ranks of labels
-    xnull: boolean
-        If true nulls are excluded. i.e. -1 values in the labels are
-        passed through
-    Returns
-    -------
-    An array of type int64 where two elements are equal if their corresponding
-    labels are equal at all location.
-    """
-    def _int64_cut_off(shape):
-        acc = long(1)
-        for i, mul in enumerate(shape):
-            acc *= long(mul)
-            if not acc < _INT64_MAX:
-                return i
-        return len(shape)
-
-    def loop(labels, shape):
-        # how many levels can be done without overflow:
-        nlev = _int64_cut_off(shape)
-
-        # compute flat ids for the first `nlev` levels
-        stride = np.prod(shape[1:nlev], dtype='i8')
-        out = stride * labels[0].astype('i8', subok=False, copy=False)
-
-        for i in range(1, nlev):
-            if shape[i] == 0:
-                stride = 0
-            else:
-                stride //= shape[i]
-            out += labels[i] * stride
-
-        if xnull:  # exclude nulls
-            mask = labels[0] == -1
-            for lab in labels[1:nlev]:
-                mask |= lab == -1
-            out[mask] = -1
-
-        if nlev == len(shape):  # all levels done!
-            return out
-
-        # compress what has been done so far in order to avoid overflow
-        # to retain lexical ranks, obs_ids should be sorted
-        comp_ids, obs_ids = _compress_group_index(out, sort=sort)
-
-        labels = [comp_ids] + labels[nlev:]
-        shape = [len(obs_ids)] + shape[nlev:]
-
-        return loop(labels, shape)
-
-    def maybe_lift(lab, size):  # pormote nan values
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
-
-    labels = map(_ensure_int64, labels)
-    if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
-
-    return loop(list(labels), list(shape))
-
-
-_INT64_MAX = np.iinfo(np.int64).max
-
-
-def _int64_overflow_possible(shape):
-    the_prod = long(1)
-    for x in shape:
-        the_prod *= long(x)
-
-    return the_prod >= _INT64_MAX
-
-
-def decons_group_index(comp_labels, shape):
-    # reconstruct labels
-    if _int64_overflow_possible(shape):
-        # at some point group indices are factorized,
-        # and may not be deconstructed here! wrong path!
-        raise ValueError('cannot deconstruct factorized group indices!')
-
-    label_list = []
-    factor = 1
-    y = 0
-    x = comp_labels
-    for i in reversed(range(len(shape))):
-        labels = (x - y) % (factor * shape[i]) // factor
-        np.putmask(labels, comp_labels < 0, -1)
-        label_list.append(labels)
-        y = labels * factor
-        factor *= shape[i]
-    return label_list[::-1]
-
-
-def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull):
-    """
-    reconstruct labels from observed group ids
-
-    Parameters
-    ----------
-    xnull: boolean,
-        if nulls are excluded; i.e. -1 labels are passed through
-    """
-    from pandas.hashtable import unique_label_indices
-
-    if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype='i8')
-        shape = np.asarray(shape, dtype='i8') + lift
-
-    if not _int64_overflow_possible(shape):
-        # obs ids are deconstructable! take the fast route!
-        out = decons_group_index(obs_ids, shape)
-        return out if xnull or not lift.any() \
-            else [x - y for x, y in zip(out, lift)]
-
-    i = unique_label_indices(comp_ids)
-    i8copy = lambda a: a.astype('i8', subok=False, copy=True)
-    return [i8copy(lab[i]) for lab in labels]
-
-
-def _indexer_from_factorized(labels, shape, compress=True):
-    ids = get_group_index(labels, shape, sort=True, xnull=False)
-
-    if not compress:
-        ngroups = (ids.size and ids.max()) + 1
-    else:
-        ids, obs = _compress_group_index(ids, sort=True)
-        ngroups = len(obs)
-
-    return _get_group_index_sorter(ids, ngroups)
-
-
-def _lexsort_indexer(keys, orders=None, na_position='last'):
-    labels = []
-    shape = []
-    if isinstance(orders, bool):
-        orders = [orders] * len(keys)
-    elif orders is None:
-        orders = [True] * len(keys)
-
-    for key, order in zip(keys, orders):
-
-        # we are already a Categorical
-        if is_categorical_dtype(key):
-            c = key
-
-        # create the Categorical
-        else:
-            c = Categorical(key, ordered=True)
-
-        if na_position not in ['last', 'first']:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
-
-        n = len(c.categories)
-        codes = c.codes.copy()
-
-        mask = (c.codes == -1)
-        if order:  # ascending
-            if na_position == 'last':
-                codes = np.where(mask, n, codes)
-            elif na_position == 'first':
-                codes += 1
-        else:  # not order means descending
-            if na_position == 'last':
-                codes = np.where(mask, n, n - codes - 1)
-            elif na_position == 'first':
-                codes = np.where(mask, 0, n - codes)
-        if mask.any():
-            n += 1
-
-        shape.append(n)
-        labels.append(codes)
-
-    return _indexer_from_factorized(labels, shape)
-
-
-def _nargsort(items, kind='quicksort', ascending=True, na_position='last'):
-    """
-    This is intended to be a drop-in replacement for np.argsort which
-    handles NaNs. It adds ascending and na_position parameters.
-    GH #6399, #5231
-    """
-
-    # specially handle Categorical
-    if is_categorical_dtype(items):
-        return items.argsort(ascending=ascending)
-
-    items = np.asanyarray(items)
-    idx = np.arange(len(items))
-    mask = isnull(items)
-    non_nans = items[~mask]
-    non_nan_idx = idx[~mask]
-    nan_idx = np.nonzero(mask)[0]
-    if not ascending:
-        non_nans = non_nans[::-1]
-        non_nan_idx = non_nan_idx[::-1]
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
-    if not ascending:
-        indexer = indexer[::-1]
-    # Finally, place the NaNs at the end or the beginning according to
-    # na_position
-    if na_position == 'last':
-        indexer = np.concatenate([indexer, nan_idx])
-    elif na_position == 'first':
-        indexer = np.concatenate([nan_idx, indexer])
-    else:
-        raise ValueError('invalid na_position: {!r}'.format(na_position))
-    return indexer
-
-
-class _KeyMapper(object):
-
-    """
-    Ease my suffering. Map compressed group id -> key tuple
-    """
-
-    def __init__(self, comp_ids, ngroups, labels, levels):
-        self.levels = levels
-        self.labels = labels
-        self.comp_ids = comp_ids.astype(np.int64)
-
-        self.k = len(labels)
-        self.tables = [_hash.Int64HashTable(ngroups) for _ in range(self.k)]
-
-        self._populate_tables()
-
-    def _populate_tables(self):
-        for labs, table in zip(self.labels, self.tables):
-            table.map(self.comp_ids, labs.astype(np.int64))
-
-    def get_key(self, comp_id):
-        return tuple(level[table.get_item(comp_id)]
-                     for table, level in zip(self.tables, self.levels))
-
-
-def _get_indices_dict(label_list, keys):
-    shape = list(map(len, keys))
-
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-    ngroups = ((group_index.size and group_index.max()) + 1) \
-        if _int64_overflow_possible(shape) \
-        else np.prod(shape, dtype='i8')
-
-    sorter = _get_group_index_sorter(group_index, ngroups)
-
-    sorted_labels = [lab.take(sorter) for lab in label_list]
-    group_index = group_index.take(sorter)
-
-    return lib.indices_fast(sorter, group_index, keys, sorted_labels)
-
-
-# ----------------------------------------------------------------------
-# sorting levels...cleverly?
-
-def _get_group_index_sorter(group_index, ngroups):
-    """
-    _algos.groupsort_indexer implements `counting sort` and it is at least
-    O(ngroups), where
-        ngroups = prod(shape)
-        shape = map(len, keys)
-    that is, linear in the number of combinations (cartesian product) of unique
-    values of groupby keys. This can be huge when doing multi-key groupby.
-    np.argsort(kind='mergesort') is O(count x log(count)) where count is the
-    length of the data-frame;
-    Both algorithms are `stable` sort and that is necessary for correctness of
-    groupby operations. e.g. consider:
-        df.groupby(key)[col].transform('first')
-    """
-    count = len(group_index)
-    alpha = 0.0  # taking complexities literally; there may be
-    beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
-                                   (count * np.log(count))))
-    if do_groupsort:
-        sorter, _ = _algos.groupsort_indexer(_ensure_int64(group_index),
-                                             ngroups)
-        return _ensure_platform_int(sorter)
-    else:
-        return group_index.argsort(kind='mergesort')
-
-
-def _compress_group_index(group_index, sort=True):
-    """
-    Group_index is offsets into cartesian product of all possible labels. This
-    space can be huge, so this function compresses it, by computing offsets
-    (comp_ids) into the list of unique labels (obs_group_ids).
-    """
-
-    size_hint = min(len(group_index), _hash._SIZE_HINT_LIMIT)
-    table = _hash.Int64HashTable(size_hint)
-
-    group_index = _ensure_int64(group_index)
-
-    # note, group labels come out ascending (ie, 1,2,3 etc)
-    comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
-
-    if sort and len(obs_group_ids) > 0:
-        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
-
-    return comp_ids, obs_group_ids
-
-
-def _reorder_by_uniques(uniques, labels):
-    # sorter is index where elements ought to go
-    sorter = uniques.argsort()
-
-    # reverse_indexer is where elements came from
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-    mask = labels < 0
-
-    # move labels to right locations (ie, unsort ascending labels)
-    labels = algos.take_nd(reverse_indexer, labels, allow_fill=False)
-    np.putmask(labels, mask, -1)
-
-    # sort observed ids
-    uniques = algos.take_nd(uniques, sorter, allow_fill=False)
-
-    return uniques, labels
-
-
-def numpy_groupby(data, labels, axis=0):
-    s = np.argsort(labels)
-    keys, inv = np.unique(labels, return_inverse=True)
-    i = inv.take(s)
-    groups_at = np.where(i != np.concatenate(([-1], i[:-1])))[0]
-    ordered_data = data.take(s, axis=axis)
-    group_sums = np.add.reduceat(ordered_data, groups_at, axis=axis)
-
-    return group_sums

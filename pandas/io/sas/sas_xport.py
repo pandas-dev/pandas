@@ -14,7 +14,7 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas import compat
 import struct
 import numpy as np
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import warnings
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"

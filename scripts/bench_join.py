@@ -1,6 +1,6 @@
 from pandas.compat import range, lrange
 import numpy as np
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas import *
 from copy import deepcopy
 import time

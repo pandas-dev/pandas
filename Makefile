@@ -1,4 +1,4 @@
-tseries: pandas/lib.pyx pandas/tslib.pyx pandas/hashtable.pyx
+tseries: pandas/_libs/lib.pyx pandas/_libs/tslib.pyx pandas/_libs/hashtable.pyx
 	python setup.py build_ext --inplace
 
 .PHONY : develop build clean clean_pyc tseries doc
@@ -8,9 +8,6 @@ clean:
 
 clean_pyc:
 	-find . -name '*.py[co]' -exec rm {} \;
-
-sparse: pandas/src/sparse.pyx
-	python setup.py build_ext --inplace
 
 build: clean_pyc
 	python setup.py build_ext --inplace

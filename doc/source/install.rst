@@ -23,18 +23,6 @@ Officially Python 2.7, 3.4, 3.5, and 3.6
 Installing pandas
 -----------------
 
-Trying out pandas, no installation required!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The easiest way to start experimenting with pandas doesn't involve installing
-pandas at all.
-
-`Wakari <https://wakari.io>`__ is a free service that provides a hosted
-`IPython Notebook <http://ipython.org/notebook.html>`__ service in the cloud.
-
-Simply create an account, and have access to pandas from within your brower via
-an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
-
 .. _install.anaconda:
 
 Installing pandas with Anaconda
@@ -188,8 +176,8 @@ Running the test suite
 pandas is equipped with an exhaustive set of unit tests covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
 everything is working (and you have all of the dependencies, soft and hard,
-installed), make sure you have `nose
-<https://nose.readthedocs.io/en/latest/>`__ and run:
+installed), make sure you have `pytest
+<http://doc.pytest.org/en/latest/>`__ and run:
 
 ::
 
@@ -214,8 +202,8 @@ installed), make sure you have `nose
 Dependencies
 ------------
 
-* `setuptools <http://pythonhosted.org/setuptools>`__
-* `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
+* `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
 
@@ -226,10 +214,11 @@ Recommended Dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.1 or higher (excluding a buggy 2.4.4). Version 2.4.6 or higher is highly recommended.
+  If installed, must be Version 2.4.6 or higher.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
-  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
+  must be Version 1.0.0 or higher.
 
 .. note::
 
@@ -244,17 +233,18 @@ Optional Dependencies
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
   version. Version 0.23 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
-    - `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-    - `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-    - `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
+  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
+  * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting
+* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
@@ -272,11 +262,8 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* Google's `python-gflags <<https://github.com/google/python-gflags/>`__ ,
-  `oauth2client <https://github.com/google/oauth2client>`__ ,
-  `httplib2 <http://pypi.python.org/pypi/httplib2>`__
-  and `google-api-python-client <http://github.com/google/google-api-python-client>`__
-  : Needed for :mod:`~pandas.io.gbq`
+* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
+
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
@@ -285,7 +272,7 @@ Optional Dependencies
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
   * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML Table Parsing <gotchas.html>`
+  * Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
     for reasons as to why you should probably **not** take this approach.
 
   .. warning::

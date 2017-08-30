@@ -1,4 +1,6 @@
+python=3.5*
 python-dateutil
 pytz
-numpy
+nomkl
+numpy=1.11.3
 cython

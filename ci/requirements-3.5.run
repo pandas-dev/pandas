@@ -1,6 +1,5 @@
-python-dateutil
 pytz
-numpy
+numpy=1.11.3
 openpyxl
 xlsxwriter
 xlrd
@@ -16,6 +15,6 @@ bottleneck
 sqlalchemy
 pymysql
 psycopg2
-xarray
 s3fs
 beautifulsoup4
+ipython
