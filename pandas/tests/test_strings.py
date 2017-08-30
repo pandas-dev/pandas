@@ -2025,13 +2025,14 @@ class TestStringMethods(object):
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 3
 
-        idx = Index(['some_unequal_splits', 'one_of_these_things_is_not'])
-        result = idx.str.split('_', expand=True)
-        exp = MultiIndex.from_tuples([('some', 'unequal', 'splits', NA, NA, NA
-                                       ), ('one', 'of', 'these', 'things',
-                                           'is', 'not')])
-        tm.assert_index_equal(result, exp)
-        assert result.nlevels == 6
+        with self.assertRaises(ValueError):
+            idx = Index(['some_unequal_splits', 'one_of_these_things_is_not'])
+            result = idx.str.split('_', expand=True)
+            exp = MultiIndex.from_tuples([('some', 'unequal', 'splits', NA, NA, NA
+                                        ), ('one', 'of', 'these', 'things',
+                                            'is', 'not')])
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.nlevels, 6)
 
         with tm.assert_raises_regex(ValueError, "expand must be"):
             idx.str.split('_', expand="not_a_boolean")

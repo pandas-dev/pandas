@@ -1726,6 +1726,21 @@ class TestMultiIndex(Base):
                                           names=['a', 'b'])
         tm.assert_index_equal(result, expected)
 
+    def test_equal_length(self):
+        # Test _check_equal_length
+        from pandas.indexes.multi import _check_equal_length
+
+        seqs = [[1, 2, 3], [2, 3, 4], [0, 1, 0]]
+        self.assertTrue(_check_equal_length(seqs))
+
+        seqs[-1].append(1)
+        self.assertFalse(_check_equal_length(seqs))
+
+        # Test TypeError
+        seqs = [None]
+        with self.assertRaises(TypeError):
+            _check_equal_length(seqs)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.values.argsort()

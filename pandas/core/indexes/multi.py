@@ -5,6 +5,7 @@ import warnings
 from functools import partial
 from sys import getsizeof
 
+
 import numpy as np
 from pandas._libs import index as libindex, lib, Timestamp
 
@@ -1088,11 +1089,10 @@ class MultiIndex(Index):
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
-        # Check if lengths of all arrays are equal or not,
+        # Check if lengths of all arrays are equal length or not,
         # raise ValueError, if not
-        for i in range(1, len(arrays)):
-            if len(arrays[i]) != len(arrays[i - 1]):
-                raise ValueError('all arrays must be same length')
+        if not _check_equal_length(arrays):
+            raise ValueError('all arrays must be same length')
 
         from pandas.core.categorical import _factorize_from_iterables
 
@@ -1112,6 +1112,7 @@ class MultiIndex(Index):
         ----------
         tuples : list / sequence of tuple-likes
             Each tuple is the index of one row/column.
+            A ValueError will be raised if all tuples are not the same length.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level)
@@ -2673,6 +2674,28 @@ def _sparsify(label_list, start=0, sentinel=''):
         prev = cur
 
     return lzip(*result)
+
+
+def _check_equal_length(seq_of_seqs):
+    """
+    Ensure that all sequences in seq_of_seqs are the same length.
+
+    Since this function is time critical, it does zero error checking.
+    A TypeError will be raised if inner sequence does not support len().
+
+    Return True if all sequences are the same length, otherwise False
+    If seq_of_seqs is empty return True as well.
+    """
+    seq_it = iter(seq_of_seqs)
+    try:
+        L0 = len(next(seq_it))
+    except StopIteration:
+        return True
+    else:
+        for seq in seq_it:
+            if len(seq) != L0:
+                return False
+        return True
 
 
 def _get_na_rep(dtype):
