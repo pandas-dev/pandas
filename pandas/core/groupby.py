@@ -170,8 +170,9 @@ _series_apply_whitelist = ((_common_apply_whitelist |
                             {'nlargest', 'nsmallest'}) -
                            {'boxplot'}) | frozenset(['dtype', 'unique'])
 
-_dataframe_apply_whitelist = (_common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith', 'boxplot']))
+_dataframe_apply_whitelist = ((_common_apply_whitelist |
+                              frozenset(['dtypes', 'corrwith'])) -
+                              {'boxplot'})
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
