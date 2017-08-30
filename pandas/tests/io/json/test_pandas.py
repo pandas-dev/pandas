@@ -996,7 +996,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         """ Fixture for test_read_s3_jsonl"""
         boto3 = pytest.importorskip('boto3')
         moto.mock_s3().start()   # Start and stop mocking only once, surrounding the test run
-                            # to ensure single context is kept.
+                                 # to ensure single context is kept.
 
         conn = boto3.client('s3')
         conn.create_bucket(Bucket='testbucket')
