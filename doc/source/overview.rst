@@ -37,7 +37,7 @@ Data Structures
 
     1, "Series", "1D labeled homogeneously-typed array"
     2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
-    3, "Panel", "General 3Dlabeled, also size-mutable array"
+    3, "Panel", "General 3D labeled, also size-mutable array"
 
 Why more than one data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,10 +119,7 @@ The list of the  Core Team members and more detailed information can be found on
 Institutional Partners
 ----------------------
 
-Institutional Partners are companies and universities that support the project by employing contributors. Current Institutional Partners include:
-
-* `Continuum Analytics <https://www.anaconda.com/>`__
-* `Two Sigma <https://www.twosigma.com/>`__
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__
 
 License
 -------
