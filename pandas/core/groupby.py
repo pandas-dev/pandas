@@ -63,6 +63,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
 
+from pandas.plotting._core import boxplot_frame_groupby
+
 from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
 from pandas._libs.lib import count_level_2d
 
@@ -169,7 +171,7 @@ _series_apply_whitelist = ((_common_apply_whitelist |
                            {'boxplot'}) | frozenset(['dtype', 'unique'])
 
 _dataframe_apply_whitelist = (_common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith']))
+                              frozenset(['dtypes', 'corrwith', 'boxplot']))
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
@@ -4280,9 +4282,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results.index = _default_index(len(results))
         return results
 
-
-from pandas.plotting._core import boxplot_frame_groupby  # noqa
-DataFrameGroupBy.boxplot = boxplot_frame_groupby
+    boxplot = boxplot_frame_groupby
 
 
 class PanelGroupBy(NDFrameGroupBy):
