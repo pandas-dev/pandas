@@ -3,7 +3,7 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import (
+from pandas._libs.tslib import (  # noqa
     parse_time_string,
     _format_is_iso,
     _DATEUTIL_LEXER_SPLIT,
@@ -22,11 +22,9 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
-    ABCDataFrame, ABCDateOffset)
+    ABCDataFrame)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
-
-import pandas.compat as compat
 
 
 def _infer_tzinfo(start, end):
