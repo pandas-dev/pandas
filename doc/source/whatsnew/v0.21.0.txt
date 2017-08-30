@@ -274,6 +274,30 @@ named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical
 
 The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
 
+.. _whatsnew_210.api.multiindex_single:
+
+MultiIndex Constructor with a Single Level
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``MultiIndex`` constructors no longer squeeze a MultiIndex with all
+length-one levels down to a regular ``Index``. This affects all the
+``MultiIndex`` constructors. (:issue:`17178`)
+
+Previous behavior:
+
+.. code-block:: ipython
+
+   In [2]: pd.MultiIndex.from_tuples([('a',), ('b',)])
+   Out[2]: Index(['a', 'b'], dtype='object')
+
+Length 1 levels are no longer special-cased. They behave exactly as if you had
+length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
+``MultiIndex`` constructors:
+
+.. ipython:: python
+
+   pd.MultiIndex.from_tuples([('a',), ('b',)])
+
 .. _whatsnew_0210.api:
 
 Other API Changes
