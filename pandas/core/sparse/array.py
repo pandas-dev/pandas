@@ -248,7 +248,7 @@ class SparseArray(PandasObject, np.ndarray):
                 sp_index.ngaps > 0):
             # if float fill_value is being included in dense repr,
             # convert values to float
-            data = data.astype(float)
+            data = data.astype(float, copy=True)
 
         result = data.view(cls)
 
