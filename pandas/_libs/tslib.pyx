@@ -1054,6 +1054,8 @@ cdef class _Timestamp(datetime):
             int ndim
 
         if isinstance(other, _Timestamp):
+            if isinstance(other, _NaT):
+                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, datetime):
             if self.nanosecond == 0:
@@ -2620,8 +2622,6 @@ cdef class _Timedelta(timedelta):
             int ndim
 
         if isinstance(other, _Timedelta):
-            if isinstance(other, _NaT):
-                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, timedelta):
             ots = Timedelta(other)
