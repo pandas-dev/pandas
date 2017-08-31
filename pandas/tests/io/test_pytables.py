@@ -4576,53 +4576,6 @@ class TestHDFStore(Base):
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
 
-    def test_legacy_table_read(self):
-        # legacy table types
-        with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy_table.h5'),
-                mode='r') as store:
-
-            with catch_warnings(record=True):
-                store.select('df1')
-                store.select('df2')
-                store.select('wp1')
-
-                # force the frame
-                store.select('df2', typ='legacy_frame')
-
-                # old version warning
-                pytest.raises(
-                    Exception, store.select, 'wp1', 'minor_axis=B')
-
-                df2 = store.select('df2')
-                result = store.select('df2', 'index>df2.index[2]')
-                expected = df2[df2.index > df2.index[2]]
-                assert_frame_equal(expected, result)
-
-    def test_legacy_0_10_read(self):
-        # legacy from 0.10
-        with catch_warnings(record=True):
-            path = tm.get_data_path('legacy_hdf/legacy_0.10.h5')
-            with ensure_clean_store(path, mode='r') as store:
-                str(store)
-                for k in store.keys():
-                    store.select(k)
-
-    def test_legacy_0_11_read(self):
-        # legacy from 0.11
-        path = os.path.join('legacy_hdf', 'legacy_table_0.11.h5')
-        with ensure_clean_store(tm.get_data_path(path), mode='r') as store:
-            str(store)
-            assert 'df' in store
-            assert 'df1' in store
-            assert 'mi' in store
-            df = store.select('df')
-            df1 = store.select('df1')
-            mi = store.select('mi')
-            assert isinstance(df, DataFrame)
-            assert isinstance(df1, DataFrame)
-            assert isinstance(mi, DataFrame)
-
     def test_copy(self):
 
         with catch_warnings(record=True):
@@ -4687,31 +4640,6 @@ class TestHDFStore(Base):
                 do_copy(f=path, propindexes=False)
             finally:
                 safe_remove(path)
-
-    def test_legacy_table_write(self):
-        pytest.skip("cannot write legacy tables")
-
-        store = HDFStore(tm.get_data_path(
-            'legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
-
-        df = tm.makeDataFrame()
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['foo', 'bar'])
-        df = DataFrame(np.random.randn(10, 3), index=index,
-                       columns=['A', 'B', 'C'])
-        store.append('mi', df)
-
-        df = DataFrame(dict(A='foo', B='bar'), index=lrange(10))
-        store.append('df', df, data_columns=['B'], min_itemsize={'A': 200})
-        store.append('wp', wp)
-
-        store.close()
 
     def test_store_datetime_fractional_secs(self):
 
