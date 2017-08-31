@@ -42,7 +42,6 @@ df_whitelist = frozenset([
     'pct_change',
     'skew',
     'plot',
-    'boxplot',
     'hist',
     'median',
     'dtypes',
