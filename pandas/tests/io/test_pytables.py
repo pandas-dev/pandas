@@ -4599,15 +4599,6 @@ class TestHDFStore(Base):
                 expected = df2[df2.index > df2.index[2]]
                 assert_frame_equal(expected, result)
 
-    def test_legacy_0_10_read(self):
-        # legacy from 0.10
-        with catch_warnings(record=True):
-            path = tm.get_data_path('legacy_hdf/legacy_0.10.h5')
-            with ensure_clean_store(path, mode='r') as store:
-                str(store)
-                for k in store.keys():
-                    store.select(k)
-
     def test_legacy_0_11_read(self):
         # legacy from 0.11
         path = os.path.join('legacy_hdf', 'legacy_table_0.11.h5')
@@ -4627,13 +4618,9 @@ class TestHDFStore(Base):
 
         with catch_warnings(record=True):
 
-            def do_copy(f=None, new_f=None, keys=None,
+            def do_copy(f, new_f=None, keys=None,
                         propindexes=True, **kwargs):
                 try:
-                    if f is None:
-                        f = tm.get_data_path(os.path.join('legacy_hdf',
-                                                          'legacy_0.10.h5'))
-
                     store = HDFStore(f, 'r')
 
                     if new_f is None:
@@ -4670,10 +4657,6 @@ class TestHDFStore(Base):
                     except:
                         pass
                     safe_remove(new_f)
-
-            do_copy()
-            do_copy(keys=['/a', '/b', '/df1_mixed'])
-            do_copy(propindexes=False)
 
             # new table
             df = tm.makeDataFrame()
