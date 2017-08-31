@@ -102,9 +102,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("{%s}")
+        fmt = u("{{{body}}}")
     else:
-        fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
+        fmt = u("[{body}]") if hasattr(seq, '__setitem__') else u("({body})")
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -123,7 +123,7 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     elif isinstance(seq, tuple) and len(seq) == 1:
         body += ','
 
-    return fmt % body
+    return fmt.format(body=body)
 
 
 def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
@@ -131,10 +131,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u("{%s}")
+    fmt = u("{{{things}}}")
     pairs = []
 
-    pfmt = u("%s: %s")
+    pfmt = u("{key}: {val}")
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -142,16 +142,17 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
         nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt %
-                     (pprint_thing(k, _nest_lvl + 1,
-                                   max_seq_items=max_seq_items, **kwds),
-                      pprint_thing(v, _nest_lvl + 1,
-                                   max_seq_items=max_seq_items, **kwds)))
+        pairs.append(
+            pfmt.format(
+                key=pprint_thing(k, _nest_lvl + 1,
+                                 max_seq_items=max_seq_items, **kwds),
+                val=pprint_thing(v, _nest_lvl + 1,
+                                 max_seq_items=max_seq_items, **kwds)))
 
     if nitems < len(seq):
-        return fmt % (", ".join(pairs) + ", ...")
+        return fmt.format(things=", ".join(pairs) + ", ...")
     else:
-        return fmt % ", ".join(pairs)
+        return fmt.format(things=", ".join(pairs))
 
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
@@ -221,10 +222,10 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                              max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
-            fmt = "'%s'"
+            fmt = u("'{thing}'")
         else:
-            fmt = "u'%s'"
-        result = fmt % as_escaped_unicode(thing)
+            fmt = u("u'{thing}'")
+        result = fmt.format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 

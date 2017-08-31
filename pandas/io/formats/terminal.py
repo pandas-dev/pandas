@@ -124,4 +124,4 @@ def _get_terminal_size_linux():
 
 if __name__ == "__main__":
     sizex, sizey = get_terminal_size()
-    print('width = %s height = %s' % (sizex, sizey))
+    print('width = {w} height = {h}'.format(w=sizex, h=sizey))
