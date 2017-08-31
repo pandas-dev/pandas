@@ -1267,6 +1267,8 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_categorical_dtype(dtype):
+            # TODO: I suspect that this could be optimized when dtype
+            # is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter,
                 na_hashset, self.c_encoding)
@@ -1278,8 +1280,18 @@ cdef class TextReader:
                 indexer = cats.get_indexer(unsorted)
                 codes = take_1d(indexer, codes, fill_value=-1)
 
-            return Categorical(codes, categories=cats, ordered=False,
-                               fastpath=True), na_count
+            cat = Categorical(codes, categories=cats, ordered=False,
+                              fastpath=True)
+
+            if isinstance(dtype, CategoricalDtype):
+                if dtype.categories is None:
+                    # skip recoding
+                    if dtype.ordered:
+                        cat = cat.set_ordered(ordered=dtype.ordered)
+                else:
+                    cat = cat.set_categories(dtype.categories,
+                                             ordered=dtype.ordered)
+            return cat, na_count
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
@@ -2230,8 +2242,11 @@ def _concatenate_chunks(list chunks):
             if common_type == np.object:
                 warning_columns.append(str(name))
 
-        if is_categorical_dtype(dtypes.pop()):
-            result[name] = union_categoricals(arrs, sort_categories=True)
+        dtype = dtypes.pop()
+        if is_categorical_dtype(dtype):
+            sort_categories = isinstance(dtype, str)
+            result[name] = union_categoricals(arrs,
+                                              sort_categories=sort_categories)
         else:
             result[name] = np.concatenate(arrs)
 

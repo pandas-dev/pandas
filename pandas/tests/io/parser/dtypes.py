@@ -149,6 +149,51 @@ one,two
         for actual, expected in zip(actuals, expecteds):
             tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('categories', [
+        ['a', 'b', 'c'],
+        ['a', 'c', 'b'],
+        ['a', 'b', 'c', 'd'],
+    ])
+    def test_categorical_categoricaldtype(self, categories, ordered):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expected = pd.DataFrame({
+            "a": [1, 1, 1, 2],
+            "b": Categorical(['a', 'b', 'b', 'c'],
+                             categories=categories,
+                             ordered=ordered)
+        })
+        dtype = {"b": CategoricalDtype(categories=categories,
+                                       ordered=ordered)}
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        cats = ['a', 'b', 'c']
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'],
+                                                    categories=cats)}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'],
+                                                    categories=cats)},
+                                  index=[2, 3])]
+        dtype = CategoricalDtype(cats)
+        actuals = self.read_csv(StringIO(data), dtype={'b': dtype},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
+
     def test_empty_pass_dtype(self):
         data = 'one,two'
         result = self.read_csv(StringIO(data), dtype={'one': 'u1'})

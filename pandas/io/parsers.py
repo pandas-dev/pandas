@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
@@ -1607,7 +1608,11 @@ class ParserBase(object):
             # as strings
             if not is_object_dtype(values):
                 values = astype_nansafe(values, str)
-            values = Categorical(values)
+            if isinstance(cast_type, CategoricalDtype):
+                values = Categorical(values, categories=cast_type.categories,
+                                     ordered=cast_type.ordered)
+            else:
+                values = Categorical(values)
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True)

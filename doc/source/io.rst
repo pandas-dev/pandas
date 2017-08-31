@@ -452,7 +452,8 @@ Specifying Categorical dtype
 
 .. versionadded:: 0.19.0
 
-``Categorical`` columns can be parsed directly by specifying ``dtype='category'``
+``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
+``dtype=CategoricalDtype(categories, ordered)``.
 
 .. ipython:: python
 
@@ -467,6 +468,18 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 .. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
+
+Specifying ``dtype='cateogry'`` will result in a ``Categorical`` that is
+unordered, and whose ``categories`` are the unique values observed in the data.
+For more control on the categories and order, create a
+:class:`~pandas.api.types.CategoricalDtype` ahead of time.
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   dtype = CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
+   pd.read_csv(StringIO(data), dtype={'col1': dtype}).dtypes
 
 .. note::
 
