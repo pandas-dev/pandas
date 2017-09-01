@@ -182,6 +182,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
+
 @deprecate_kwarg(old_arg_name='utc', new_arg_name='tz',
                  mapping={True: 'UTC'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
