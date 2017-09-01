@@ -2454,20 +2454,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         ---------
-        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index = pd.%(target_klass)s(list('abc'))
         >>> unique_index.get_loc('b')
         1
 
-        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index = pd.%(target_klass)s(list('abbc'))
         >>> monotonic_index.get_loc('b')
         slice(1, 3, None)
 
-        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index = pd.%(target_klass)s(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
     """
 
-    @Appender(_index_shared_docs['get_loc'])
+    @Appender(_index_shared_docs['get_loc'] % _index_doc_kwargs)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None:
             if tolerance is not None:
