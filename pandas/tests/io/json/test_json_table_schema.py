@@ -349,15 +349,16 @@ class TestTableOrient(object):
 
     def test_make_field_datetime(self):
         data = [1., 2., 3.]
-        kinds = [pd.Series(pd.to_datetime(data), name='values'),
-                 pd.to_datetime(data)]
+        kinds = [pd.Series(pd.to_datetime(data, unit='ns'), name='values'),
+                 pd.to_datetime(data, unit='ns')]
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "values", "type": 'datetime'}
             assert result == expected
 
-        kinds = [pd.Series(pd.to_datetime(data, utc=True), name='values'),
-                 pd.to_datetime(data, utc=True)]
+        kinds = [pd.Series(pd.to_datetime(data, unit='ns', utc=True),
+                           name='values'),
+                 pd.to_datetime(data, unit='ns', utc=True)]
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "values", "type": 'datetime', "tz": "UTC"}

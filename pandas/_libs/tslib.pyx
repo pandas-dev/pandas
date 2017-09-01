@@ -31,7 +31,7 @@ cdef extern from "Python.h":
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
-                   is_timedelta64_object, INT64_MAX)
+                   is_bool_object, is_timedelta64_object, INT64_MAX)
 cimport util
 
 # this is our datetime.pxd
@@ -2242,6 +2242,9 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     m = cast_from_unit(None, unit)
 
     if is_raise:
+        if np.issubdtype(values.dtype, np.bool_):
+            raise TypeError("{0} is not convertible to datetime"
+                            .format(values.dtype))
 
         # try a quick conversion to i8
         # if we have nulls that are not type-compat
@@ -2275,6 +2278,16 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             val = values[i]
 
             if _checknull_with_nat(val):
+                iresult[i] = NPY_NAT
+
+            elif is_bool_object(val):
+                if is_raise:
+                    raise TypeError(
+                        "{0} is not convertible to datetime"
+                        .format(values.dtype)
+                    )
+                elif is_ignore:
+                    raise AssertionError
                 iresult[i] = NPY_NAT
 
             elif is_integer_object(val) or is_float_object(val):
@@ -2320,7 +2333,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             else:
 
                 if is_raise:
-                    raise ValueError("non convertible value {0}"
+                    raise ValueError("non convertible value {0} "
                                      "with the unit '{1}'".format(
                                          val,
                                          unit))
@@ -2344,6 +2357,8 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
         if _checknull_with_nat(val):
             oresult[i] = NaT
+        elif is_bool_object(val):
+            oresult[i] = val
         elif is_integer_object(val) or is_float_object(val):
 
             if val != val or val == NPY_NAT:

@@ -25,6 +25,35 @@ from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     compat)
 
 
+@pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
+def units(request):
+    return request.param
+
+
+@pytest.fixture
+def epoch_1960():
+    # for origin as 1960-01-01
+    return Timestamp('1960-01-01')
+
+
+@pytest.fixture
+def units_from_epochs():
+    return list(range(5))
+
+
+@pytest.fixture(params=[epoch_1960(),
+                        epoch_1960().to_pydatetime(),
+                        epoch_1960().to_datetime64(),
+                        str(epoch_1960())])
+def epochs(request):
+    return request.param
+
+
+@pytest.fixture
+def julian_dates():
+    return pd.date_range('2014-1-1', periods=10).to_julian_date().values
+
+
 class TimeConversionFormats(object):
 
     def test_to_datetime_format(self):
@@ -344,25 +373,6 @@ class TestToDatetime(object):
                                     dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
 
-    def test_datetime_bool(self):
-        # GH13176
-        with pytest.raises(TypeError):
-            to_datetime(False)
-        assert to_datetime(False, errors="coerce") is NaT
-        assert to_datetime(False, errors="ignore") is False
-        with pytest.raises(TypeError):
-            to_datetime(True)
-        assert to_datetime(True, errors="coerce") is NaT
-        assert to_datetime(True, errors="ignore") is True
-        with pytest.raises(TypeError):
-            to_datetime([False, datetime.today()])
-        with pytest.raises(TypeError):
-            to_datetime(['20130101', True])
-        tm.assert_index_equal(to_datetime([0, False, NaT, 0.0],
-                                          errors="coerce"),
-                              DatetimeIndex([to_datetime(0), NaT,
-                                             NaT, to_datetime(0)]))
-
     def test_datetime_invalid_datatype(self):
         # GH13176
 
@@ -372,7 +382,27 @@ class TestToDatetime(object):
             pd.to_datetime(pd.to_datetime)
 
 
-class ToDatetimeUnit(object):
+class TestToDatetimeUnit(object):
+
+    def test_datetime_bool(self, units):
+        # GH13176
+        with pytest.raises(TypeError):
+            to_datetime(False, unit=units)
+        assert to_datetime(False, unit=units, errors="coerce") is NaT
+        assert (not to_datetime(False, unit=units, errors="ignore"))
+        with pytest.raises(TypeError):
+            to_datetime(True, unit=units)
+        assert to_datetime(True, unit=units, errors="coerce") is NaT
+        assert to_datetime(True, unit=units, errors="ignore")
+        with pytest.raises(TypeError):
+            to_datetime([False, datetime.today()], unit=units)
+        with pytest.raises(TypeError):
+            to_datetime([True, '20130101'], unit=units)
+
+        tm.assert_index_equal(to_datetime([0, False, NaT, 0.0],
+                                          errors="coerce"),
+                              DatetimeIndex([to_datetime(0, unit=units), NaT,
+                                             NaT, to_datetime(0, unit=units)]))
 
     def test_unit(self):
         # GH 11758
@@ -447,10 +477,10 @@ class ToDatetimeUnit(object):
         arr1 = [1.434692e+18, 1.432766e+18]
         arr2 = np.array(arr1).astype('int64')
         for errors in ['ignore', 'raise', 'coerce']:
-            result = pd.to_datetime(arr1, errors=errors)
+            result = pd.to_datetime(arr1, unit='ns', errors=errors)
             tm.assert_index_equal(result, expected)
 
-            result = pd.to_datetime(arr2, errors=errors)
+            result = pd.to_datetime(arr2, unit='ns', errors=errors)
             tm.assert_index_equal(result, expected)
 
         # but we want to make sure that we are coercing
@@ -459,7 +489,7 @@ class ToDatetimeUnit(object):
                                   '2015-06-19 05:33:20',
                                   '2015-05-27 22:33:20'])
         arr = ['foo', 1.434692e+18, 1.432766e+18]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, unit='ns', errors='coerce')
         tm.assert_index_equal(result, expected)
 
         expected = DatetimeIndex(['2015-06-19 05:33:20',
@@ -467,7 +497,7 @@ class ToDatetimeUnit(object):
                                   'NaT',
                                   'NaT'])
         arr = [1.434692e+18, 1.432766e+18, 'foo', 'NaT']
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, unit='ns', errors='coerce')
         tm.assert_index_equal(result, expected)
 
     def test_unit_mixed(self):
@@ -475,21 +505,21 @@ class ToDatetimeUnit(object):
         # mixed integers/datetimes
         expected = DatetimeIndex(['2013-01-01', 'NaT', 'NaT'])
         arr = [pd.Timestamp('20130101'), 1.434692e+18, 1.432766e+18]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, unit='ns', errors='coerce')
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError):
-            pd.to_datetime(arr, errors='raise')
+            pd.to_datetime(arr, unit='ns', errors='raise')
 
         expected = DatetimeIndex(['NaT',
                                   'NaT',
                                   '2013-01-01'])
         arr = [1.434692e+18, 1.432766e+18, pd.Timestamp('20130101')]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, unit='ns', errors='coerce')
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError):
-            pd.to_datetime(arr, errors='raise')
+            pd.to_datetime(arr, unit='ns', errors='raise')
 
     def test_dataframe(self):
 
@@ -1524,35 +1554,6 @@ def test_normalize_date():
 
     result = normalize_date(value)
     assert (result == datetime(2012, 9, 7))
-
-
-@pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
-def units(request):
-    return request.param
-
-
-@pytest.fixture
-def epoch_1960():
-    # for origin as 1960-01-01
-    return Timestamp('1960-01-01')
-
-
-@pytest.fixture
-def units_from_epochs():
-    return list(range(5))
-
-
-@pytest.fixture(params=[epoch_1960(),
-                        epoch_1960().to_pydatetime(),
-                        epoch_1960().to_datetime64(),
-                        str(epoch_1960())])
-def epochs(request):
-    return request.param
-
-
-@pytest.fixture
-def julian_dates():
-    return pd.date_range('2014-1-1', periods=10).to_julian_date().values
 
 
 class TestOrigin(object):

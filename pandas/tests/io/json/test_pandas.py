@@ -181,7 +181,7 @@ class TestPandasContainer(object):
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
                 unser.index = DatetimeIndex(
-                    unser.index.values.astype('i8') * 1e6)
+                    unser.index.values.astype('i8') * 1e6, unit='ns')
             if orient == "records":
                 # index is not captured in this orientation
                 tm.assert_almost_equal(df.values, unser.values,
@@ -832,7 +832,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         result = pd.read_json(frame.to_json(date_unit='ns'))
         result['a'] = pd.to_timedelta(result.a, unit='ns')
-        result['c'] = pd.to_datetime(result.c)
+        result['c'] = pd.to_datetime(result.c, unit='ns')
         assert_frame_equal(frame, result)
 
     def test_mixed_timedelta_datetime(self):

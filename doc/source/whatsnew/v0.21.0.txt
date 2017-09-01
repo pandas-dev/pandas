@@ -131,13 +131,89 @@ Other Enhancements
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 
-
-
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0210.api_breaking.pandas_to_datetime:
+
+Numerical values need an explicit unit in pd.to_datetime
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :func:`to_datetime` requires an unit with numerical arg (scalar or iterable), if not provided it raises an error (:issue:`15836`)
+For example:
+
+.. ipython:: python
+
+    # Old behaviour:
+    In [1]: pd.to_datetime(42)
+    Out[1]: Timestamp('1970-01-01 00:00:00.000000042')
+
+    # New behaviour
+    In [1]: pd.to_datetime(42)
+    ---------------------------------------------------------------------------
+    ValueError                                Traceback (most recent call last)
+    <ipython-input-1-a8ad7fa1924c> in <module>()
+    ----> 1 pd.to_datetime(42)
+
+    /home/anthony/src/pandas/pandas/core/tools/datetimes.py in to_datetime(arg, errors, dayfirst, yearfirst, utc, box, format, exact, unit, infer_datetime_format, origin)
+        461     elif ((not isinstance(arg, DataFrame)) and
+        462           (check_numerical_arg() and unit is None and format is None)):
+    --> 463         raise ValueError("a unit is required in case of numerical arg")
+        464 
+        465     # handle origin
+
+    ValueError: a unit is required in case of numerical arg
+
+    In [2]: pd.to_datetime(42, unit='ns')
+    Out[2]: Timestamp('1970-01-01 00:00:00.000000042')
+
+Furthermore, this change fixes a bug with boolean values.
+
+.. ipython:: python
+    # Old behaviour
+    In [1]: pd.to_datetime(True, unit='ms')
+    Out[1]: Timestamp('1970-01-01 00:00:00.001000')
+
+    # New behaviour
+    In [2]: pd.to_datetime(True, unit='ms')
+    ---------------------------------------------------------------------------
+    TypeError                                 Traceback (most recent call last)
+    <ipython-input-9-d7a95ef3ecc2> in <module>()
+    ----> 1 pd.to_datetime(True, unit='ms')
+
+    /home/anthony/src/pandas/pandas/core/tools/datetimes.py in to_datetime(arg, errors, dayfirst, yearfirst, utc, box, format, exact, unit, infer_datetime_format, origin)
+        533         result = _convert_listlike(arg, box, format)
+        534     else:
+    --> 535         result = _convert_listlike(np.array([arg]), box, format)[0]
+        536 
+        537     return result
+
+    /home/anthony/src/pandas/pandas/core/tools/datetimes.py in _convert_listlike(arg, box, format, name, tz)
+        374             arg = getattr(arg, 'values', arg)
+        375             result = tslib.array_with_unit_to_datetime(arg, unit,
+    --> 376                                                        errors=errors)
+        377             if box:
+        378                 if errors == 'ignore':
+
+    /home/anthony/src/pandas/pandas/_libs/tslib.pyx in pandas._libs.tslib.array_with_unit_to_datetime()
+       2210 
+       2211 
+    -> 2212 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
+       2213     """
+       2214     convert the ndarray according to the unit
+
+    /home/anthony/src/pandas/pandas/_libs/tslib.pyx in pandas._libs.tslib.array_with_unit_to_datetime()
+       2246             raise TypeError("{0} is not convertible to datetime"
+       2247                             .format(values.dtype))
+    -> 2248 
+       2249         # try a quick conversion to i8
+       2250         # if we have nulls that are not type-compat
+
+    TypeError: bool is not convertible to datetime
+
+Now boolean values raise an error everytime.
 
 .. _whatsnew_0210.api_breaking.deps:
 
