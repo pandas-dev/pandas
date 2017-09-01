@@ -1267,7 +1267,7 @@ cdef class _Timestamp(datetime):
         return datetime.__sub__(self, other)
 
     cdef int64_t _maybe_convert_value_to_local(self):
-        """Convert UTC i8 value to local i8 value if tz exists"
+        """Convert UTC i8 value to local i8 value if tz exists"""
         val = self.value
         if self.tz is not None and not _is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
