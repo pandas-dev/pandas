@@ -225,13 +225,16 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         .. versionadded: 0.16.1
 
     utc : boolean, default None
-        .. deprecated
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
+
+        .. deprecated: 0.21.0
+
     tz : pytz.timezone or dateutil.tz.tzfile, default None
         Define the timezone.
 
-        .. versionadded
+        .. versionadded: 0.21.0
+        
     box : boolean, default True
 
         - If True returns a DatetimeIndex

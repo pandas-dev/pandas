@@ -132,7 +132,6 @@ Other Enhancements
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 
 
-
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
@@ -327,6 +326,10 @@ Deprecations
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
+
+
+- :func: `to_datetime` now takes ``tz`` keyword argument, ``utc`` argument is deprecated (:issue:`13712`)
+
 
 .. _whatsnew_0210.prior_deprecations:
 
