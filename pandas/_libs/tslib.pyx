@@ -2622,8 +2622,6 @@ cdef class _Timedelta(timedelta):
             int ndim
 
         if isinstance(other, _Timedelta):
-            if isinstance(other, _NaT):
-                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, timedelta):
             ots = Timedelta(other)
@@ -3882,7 +3880,7 @@ fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
           'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
           'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
-          'nanoseconds', 'qyear', 'quarter']
+          'nanoseconds', 'qyear']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -4620,7 +4618,6 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, count = 0
-        int isleap
         pandas_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
@@ -5270,7 +5267,6 @@ cpdef _isleapyear_arr(ndarray years):
 def monthrange(int64_t year, int64_t month):
     cdef:
         int64_t days
-        int64_t day_of_week
 
     if month < 1 or month > 12:
         raise ValueError("bad month number 0; must be 1-12")
