@@ -821,13 +821,9 @@ class SQLTable(PandasObject):
 
                 if (col_type is datetime or col_type is date or
                         col_type is DatetimeTZDtype):
-                    if col_type is DatetimeTZDtype:
-                        # Convert tz-aware Datetime SQL columns to UTC
-                        self.frame[col_name] = _handle_date_column(df_col,
-                                                                   utc=True)
-                    else:
-                        self.frame[col_name] = _handle_date_column(df_col)
-
+                    # Convert tz-aware Datetime SQL columns to UTC
+                    utc = col_type is DatetimeTZDtype
+                    self.frame[col_name] = _handle_date_column(df_col, utc=utc)
                 elif col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)

@@ -1314,7 +1314,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         expected = sql.read_sql_table("types_test_data", self.conn)
         col = expected.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
-        # Removed ".astype('datetime64[ns, UTC]')"after GH 6415 was fixed
         tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
