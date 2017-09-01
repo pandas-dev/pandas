@@ -364,6 +364,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if is_datetime64tz_dtype(arg):
             if not isinstance(arg, DatetimeIndex):
                 return DatetimeIndex(arg, tz=tz, name=name)
+            if tz:
+                arg = arg.tz_convert(None).tz_localize(tz)
             return arg
 
         elif is_datetime64_ns_dtype(arg):

@@ -273,14 +273,19 @@ class TestToDatetime(object):
     def test_to_datetime_tz_kw(self):
         # See gh-13712
         for tz in [None, 'US/Eastern', 'Asia/Tokyo', 'UTC']:
-            start = pd.Timestamp('2014-01-01', tz=tz)
-            end = pd.Timestamp('2014-01-03', tz=tz)
+            data = ['20140101 000000', '20140102 000000', '20140103 000000']
+            start = pd.Timestamp(data[0], tz=tz)
+            end = pd.Timestamp(data[-1], tz=tz)
             date_range = pd.bdate_range(start, end)
 
-            result = pd.to_datetime(date_range, tz=tz)
+            result = pd.to_datetime(data, format='%Y%m%d %H%M%S', tz=tz)
             expected = pd.DatetimeIndex(data=date_range)
-            tm.assert_index_equal(result, expected)
-            assert result.tz == expected.tz
+            tm.assert_numpy_array_equal(result.values, expected.values)
+
+            if result.tz is None:
+                assert expected.tz is None
+            else:
+                assert result.tz.zone == expected.tz.zone
 
     def test_to_datetime_tz_psycopg2(self):
 
