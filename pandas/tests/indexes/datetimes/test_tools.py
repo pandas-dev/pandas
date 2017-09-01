@@ -25,7 +25,7 @@ from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     compat)
 
 
-class TimeConversionFormats(object):
+class TestTimeConversionFormats(object):
 
     def test_to_datetime_format(self):
         values = ['1/1/2000', '1/2/2000', '1/3/2000']
@@ -372,7 +372,7 @@ class TestToDatetime(object):
             pd.to_datetime(pd.to_datetime)
 
 
-class ToDatetimeUnit(object):
+class TestToDatetimeUnit(object):
 
     def test_unit(self):
         # GH 11758
@@ -566,7 +566,10 @@ class ToDatetimeUnit(object):
         df2 = DataFrame({'year': [2015, 2016],
                          'month': [2, 20],
                          'day': [4, 5]})
-        with pytest.raises(ValueError):
+
+        msg = ("cannot assemble the datetimes: time data .+ does not "
+               "match format '%Y%m%d' \(match\)")
+        with tm.assert_raises_regex(ValueError, msg):
             to_datetime(df2)
         result = to_datetime(df2, errors='coerce')
         expected = Series([Timestamp('20150204 00:00:00'),
@@ -574,26 +577,31 @@ class ToDatetimeUnit(object):
         assert_series_equal(result, expected)
 
         # extra columns
-        with pytest.raises(ValueError):
+        msg = ("extra keys have been passed to the datetime assemblage: "
+               "\[foo\]")
+        with tm.assert_raises_regex(ValueError, msg):
             df2 = df.copy()
             df2['foo'] = 1
             to_datetime(df2)
 
         # not enough
+        msg = ('to assemble mappings requires at least that \[year, month, '
+               'day\] be specified: \[.+\] is missing')
         for c in [['year'],
                   ['year', 'month'],
                   ['year', 'month', 'second'],
                   ['month', 'day'],
                   ['year', 'day', 'second']]:
-            with pytest.raises(ValueError):
+            with tm.assert_raises_regex(ValueError, msg):
                 to_datetime(df[c])
 
         # duplicates
+        msg = 'cannot assemble with duplicate keys'
         df2 = DataFrame({'year': [2015, 2016],
                          'month': [2, 20],
                          'day': [4, 5]})
         df2.columns = ['year', 'year', 'day']
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             to_datetime(df2)
 
         df2 = DataFrame({'year': [2015, 2016],
@@ -601,7 +609,7 @@ class ToDatetimeUnit(object):
                          'day': [4, 5],
                          'hour': [4, 5]})
         df2.columns = ['year', 'month', 'day', 'day']
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             to_datetime(df2)
 
     def test_dataframe_dtypes(self):
@@ -632,7 +640,7 @@ class ToDatetimeUnit(object):
             to_datetime(df)
 
 
-class ToDatetimeMisc(object):
+class TestToDatetimeMisc(object):
 
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
