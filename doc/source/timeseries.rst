@@ -189,9 +189,9 @@ or ``format``, use ``to_datetime`` if these are required.
 
 Providing a Format Argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-A specific ``format`` argument can be passed in addition to the datetime string.
-It will potentially speed up the conversion considerably and on versions later
-then 0.13.0.
+
+In addition to the required datetime string, a ``format`` argument can be passed to ensure specific parsing.
+It will potentially speed up the conversion considerably.
 
 For example:
 
