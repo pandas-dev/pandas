@@ -606,14 +606,15 @@ class _TestSQLApi(PandasSQLTest):
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
-
+        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
+        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['IntDateCol'])
@@ -631,8 +632,9 @@ class _TestSQLApi(PandasSQLTest):
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 index_col='DateCol',
                                 parse_dates=['DateCol', 'IntDateCol'])
-
-        assert issubclass(df.index.dtype.type, np.datetime64)
+        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
+        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
+        assert issubclass(df.index.dtype.type, utc_dtype)
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
     def test_timedelta(self):
@@ -1319,18 +1321,19 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_date_parsing(self):
         # No Parsing
         df = sql.read_sql_table("types_test_data", self.conn)
-
+        # Now that GH 6415 is fixed, dates are automatically parsed to UTC
+        utc_dtype = pd.core.dtypes.dtypes.DatetimeTZDtypeType
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates=['DateCol'])
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
         df = sql.read_sql_table("types_test_data", self.conn, parse_dates={
             'DateCol': {'format': '%Y-%m-%d %H:%M:%S'}})
-        assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert issubclass(df.DateCol.dtype.type, utc_dtype)
 
         df = sql.read_sql_table(
             "types_test_data", self.conn, parse_dates=['IntDateCol'])

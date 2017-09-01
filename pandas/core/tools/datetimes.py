@@ -345,6 +345,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     tz = 'utc' if utc else None
 
+    def _maybe_convert_to_utc(arg, utc):
+        if utc:
+            if isinstance(arg, ABCSeries):
+                arg = arg.dt.tz_localize('UTC')
+            elif isinstance(arg, DatetimeIndex):
+                if arg.tz is None:
+                    arg = arg.tz_localize('UTC')
+                else:
+                    arg = arg.tz_convert('UTC')
+        return arg
+
     def _convert_listlike(arg, box, format, name=None, tz=tz):
 
         if isinstance(arg, (list, tuple)):
@@ -364,7 +375,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     return DatetimeIndex(arg, tz=tz, name=name)
                 except ValueError:
                     pass
-
+            arg = _maybe_convert_to_utc(arg, utc)
             return arg
 
         elif unit is not None:
@@ -383,12 +394,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         elif getattr(arg, 'ndim', 1) > 1:
             raise TypeError('arg must be a string, datetime, list, tuple, '
                             '1-d array, or Series')
-
+        # _ensure_object converts Series to numpy array, need to reconvert
+        # upon return
+        arg_is_series = isinstance(arg, ABCSeries)
         arg = _ensure_object(arg)
         require_iso8601 = False
 
         if infer_datetime_format and format is None:
-            format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+            format = _guess_datetime_format_for_array(arg,
+                                                      dayfirst=dayfirst)
 
         if format is not None:
             # There is a special fast-path for iso8601 formatted
@@ -415,7 +429,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(arg, format, exact=exact,
+                        result = tslib.array_strptime(arg, format,
+                                                      exact=exact,
                                                       errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
@@ -439,9 +454,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     yearfirst=yearfirst,
                     require_iso8601=require_iso8601
                 )
-
             if is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz=tz, name=name)
+            # GH 6415
+            elif arg_is_series:
+                result = _maybe_convert_to_utc(Series(result, name=name), utc)
             return result
 
         except ValueError as e:
@@ -516,7 +533,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
+        values = _convert_listlike(arg, False, format, name=arg.name)
         result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)

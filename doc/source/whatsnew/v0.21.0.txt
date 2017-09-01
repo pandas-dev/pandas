@@ -298,6 +298,39 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
    pd.MultiIndex.from_tuples([('a',), ('b',)])
 
+.. _whatsnew_0210.api.utc_localization_with_series:
+
+UTC Localization with Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  Previous Behavior
+
+  .. ipython:: python
+
+     s = Series(['20130101 00:00:00'] * 10)
+
+  .. code-block:: python
+
+     In [12]: pd.to_datetime(s, utc=True)
+     Out[12]:
+     0   2013-01-01
+     1   2013-01-01
+     2   2013-01-01
+     3   2013-01-01
+     4   2013-01-01
+     5   2013-01-01
+     6   2013-01-01
+     7   2013-01-01
+     8   2013-01-01
+     9   2013-01-01
+     dtype: datetime64[ns]
+
+  New Behavior
+
+  .. ipython:: python
+
+     pd.to_datetime(s, utc=True)
+
 .. _whatsnew_0210.api:
 
 Other API Changes
@@ -363,10 +396,13 @@ Conversion
 
 - Bug in assignment against datetime-like data with ``int`` may incorrectly convert to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
+<<<<<<< 062f6f118fe4ea439ae255a8ff886a532e20ecdb
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
 - Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
+=======
+>>>>>>> BUG: to_datetime not localizing Series when utc=True (#6415)
 
 Indexing
 ^^^^^^^^
