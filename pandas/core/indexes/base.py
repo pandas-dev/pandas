@@ -2529,15 +2529,20 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_level_values(self, level):
         """
         Return an Index of values for requested level, equal to the length
-        of the index
+        of the index.
 
         Parameters
         ----------
-        level : int
+        level : int or level name
 
         Returns
         -------
-        values : Index
+        self : Index
+
+        See also
+        ---------
+        pandas.MultiIndex.get_level_values : get values for a level of a
+                                             MultiIndex
         """
 
         self._validate_index_level(level)

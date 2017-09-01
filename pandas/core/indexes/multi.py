@@ -882,7 +882,7 @@ class MultiIndex(Index):
     def get_level_values(self, level):
         """
         Return vector of label values for requested level,
-        equal to the length of the index
+        equal to the length of the index.
 
         Parameters
         ----------
@@ -891,6 +891,24 @@ class MultiIndex(Index):
         Returns
         -------
         values : Index
+
+        Examples
+        ---------
+
+        Create a MultiIndex:
+
+        >>> i1 = pd.Index(list('abc'), name='level_1')
+        >>> i2 = pd.CategoricalIndex(list('def'), name='level_2')
+        >>> mi = pd.MultiIndex.from_arrays((i1, i2))
+
+        Get level values by supplying level as either integer or name:
+
+        >>> mi.get_level_values(1)
+        CategoricalIndex(['d', 'e', 'f'], categories=['d', 'e', 'f'],
+                         ordered=False, name='level_2',
+                         dtype='category')
+        >>> mi.get_level_values('level_1')
+        Index(['a', 'b', 'c'], dtype='object', name='level_1')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
