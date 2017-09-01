@@ -67,8 +67,8 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
-   If you want to consider ``inf`` and ``-inf``
-   to be "NA" in computations, you can use the ``mode.use_inf_as_na`` option to archieve it.
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
 
 .. _missing.isna:
 
