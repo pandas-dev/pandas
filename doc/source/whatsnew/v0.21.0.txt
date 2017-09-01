@@ -371,6 +371,8 @@ Removal of prior version deprecations/changes
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
 - :func:`eval` and :func:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 - The function ``get_offset_name`` has been dropped in favor of the ``.freqstr`` attribute for an offset (:issue:`11834`)
+- pandas no longer tests for compatibility with hdf5-files created with pandas < 0.11 (:issue:`17404`).
+
 
 
 .. _whatsnew_0210.performance:
