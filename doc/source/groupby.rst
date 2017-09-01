@@ -140,7 +140,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-pandas Index objects support duplicate values. If a
+Note that pandas Index objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:

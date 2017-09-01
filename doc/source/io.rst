@@ -3878,7 +3878,7 @@ create a new table!)
 Iterator
 ++++++++
 
-You can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
+Note that you can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
@@ -4418,6 +4418,44 @@ Now you can import the ``DataFrame`` into R:
    ``data.frame`` object from all matching nodes, so use this only as a
    starting point if you have stored multiple ``DataFrame`` objects to a
    single HDF5 file.
+
+Backwards Compatibility
+'''''''''''''''''''''''
+
+0.10.1 of ``HDFStore`` can read tables created in a prior version of pandas,
+however query terms using the
+prior (undocumented) methodology are unsupported. ``HDFStore`` will
+issue a warning if you try to use a legacy-format file. You must
+read in the entire file and write it out using the new format, using the
+method ``copy`` to take advantage of the updates. The group attribute
+``pandas_version`` contains the version information. ``copy`` takes a
+number of options, please see the docstring.
+
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
+
+.. ipython:: python
+   :okwarning:
+
+   # a legacy store
+   legacy_store = pd.HDFStore(legacy_file_path,'r')
+   legacy_store
+
+   # copy (and return the new handle)
+   new_store = legacy_store.copy('store_new.h5')
+   new_store
+   new_store.close()
+
+.. ipython:: python
+   :suppress:
+
+   legacy_store.close()
+   import os
+   os.remove('store_new.h5')
 
 
 Performance

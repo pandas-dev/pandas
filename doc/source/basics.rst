@@ -251,8 +251,8 @@ replace NaN with some other value using ``fillna`` if you wish).
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
-Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
-``le``, and ``ge`` whose behavior is analogous to the binary
+Note that Series and DataFrame have the binary comparison methods eq, ne, lt, gt,
+le, and ge whose behavior is analogous to the binary
 arithmetic operations described above:
 
 .. ipython:: python
