@@ -375,17 +375,14 @@ class Block(PandasObject):
         return result
 
     def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+               axis=0, mgr=None):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if not self._can_hold_na:
-            if inplace:
-                return self
-            else:
-                return self.copy()
+            return self if inplace else self.copy()
 
         mask = isna(self.values)
         if limit is not None:
@@ -396,8 +393,7 @@ class Block(PandasObject):
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
-
+            mask[mask.cumsum(int(axis == 0 and self.ndim > 1)) > limit] = False
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
             values, _, _, _ = self._try_coerce_args(self.values, value)
@@ -2381,8 +2377,8 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+    def fillna(self, value, axis=0, limit=None, inplace=False,
+               downcast=None, mgr=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
             raise NotImplementedError("specifying a limit for 'fillna' has "
@@ -2859,7 +2855,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+               axis=0, mgr=None):
         # we may need to upcast our fill to match our dtype
         if limit is not None:
             raise NotImplementedError("specifying a limit for 'fillna' has "

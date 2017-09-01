@@ -465,6 +465,36 @@ class TestDataFrameMissingData(TestData):
         expected.values[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_fillna_axis(self):
+        # GH 17399
+        # with limit
+        df = DataFrame(np.random.randn(10, 4))
+        df.iloc[1:4, 1:4] = nan
+        expected = df.copy()
+        expected.iloc[1:4, 1:3] = 0
+        result = df.fillna(value=0, limit=2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # with no limit
+        expected = df.copy()
+        expected.iloc[1:4, 1:4] = 0
+        result = df.fillna(value=0, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # with method, limit
+        expected = df.copy()
+        for c in lrange(1, 3):
+            expected.iloc[1:4, c] = expected.iloc[1:4, 0]
+        result = df.fillna(method='ffill', limit=2, axis=1)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, df.ffill(limit=2, axis=1))
+
+        # with inplace
+        expected = df.copy()
+        expected.fillna(value=0, limit=2, axis=1, inplace=True)
+        result = df.fillna(value=0, limit=2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 

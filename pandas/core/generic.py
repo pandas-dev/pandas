@@ -4758,8 +4758,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._data.fillna(value=value, limit=limit,
-                                             inplace=inplace,
+                new_data = self._data.fillna(value=value, axis=axis,
+                                             limit=limit, inplace=inplace,
                                              downcast=downcast)
             elif isinstance(value, DataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
