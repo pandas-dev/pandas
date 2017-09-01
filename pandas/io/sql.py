@@ -99,24 +99,24 @@ def _convert_params(sql, params):
     return args
 
 
-def _handle_date_column(col, format=None):
+def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
         return to_datetime(col, errors='ignore', **format)
     else:
         if format in ['D', 's', 'ms', 'us', 'ns']:
-            return to_datetime(col, errors='coerce', unit=format, utc=True)
+            return to_datetime(col, errors='coerce', unit=format, utc=utc)
         elif (issubclass(col.dtype.type, np.floating) or
               issubclass(col.dtype.type, np.integer)):
             # parse dates as timestamp
             format = 's' if format is None else format
-            return to_datetime(col, errors='coerce', unit=format, utc=True)
+            return to_datetime(col, errors='coerce', unit=format, utc=utc)
         elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
             return (to_datetime(col, errors='coerce')
                     .astype('datetime64[ns, UTC]'))
         else:
-            return to_datetime(col, errors='coerce', format=format, utc=True)
+            return to_datetime(col, errors='coerce', format=format, utc=utc)
 
 
 def _parse_date_columns(data_frame, parse_dates):
@@ -821,8 +821,9 @@ class SQLTable(PandasObject):
 
                 if (col_type is datetime or col_type is date or
                         col_type is DatetimeTZDtype):
-                    self.frame[col_name] = _handle_date_column(df_col)
-
+                    # Convert tz-aware Datetime SQL columns to UTC
+                    utc = col_type is DatetimeTZDtype
+                    self.frame[col_name] = _handle_date_column(df_col, utc=utc)
                 elif col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)

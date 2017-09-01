@@ -2137,7 +2137,7 @@ Thur,Lunch,Yes,51.51,17"""
                           '2011-07-19 08:00:00', '2011-07-19 09:00:00'],
              'value': range(6)})
         df.index = pd.to_datetime(df.pop('datetime'), utc=True)
-        df.index = df.index.tz_localize('UTC').tz_convert('US/Pacific')
+        df.index = df.index.tz_convert('US/Pacific')
 
         expected = pd.DatetimeIndex(['2011-07-19 07:00:00',
                                      '2011-07-19 08:00:00',
