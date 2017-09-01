@@ -1266,7 +1266,7 @@ cdef class _Timestamp(datetime):
         # same timezone if specified)
         return datetime.__sub__(self, other)
 
-    cpdef _maybe_convert_value_to_local(self):
+    cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"
         val = self.value
         if self.tz is not None and not _is_utc(self.tz):
@@ -1274,11 +1274,15 @@ cdef class _Timestamp(datetime):
         return val
 
     cpdef _get_field(self, field):
+        cdef:
+            int64_t val
         val = self._maybe_convert_value_to_local()
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
     cpdef _get_named_field(self, field):
+        cdef:
+            int64_t val
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64), field)
         return out[0]
