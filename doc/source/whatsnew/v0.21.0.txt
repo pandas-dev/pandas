@@ -298,6 +298,36 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
    pd.MultiIndex.from_tuples([('a',), ('b',)])
 
+.. _whatsnew_0210.api.utc_localization_with_series:
+
+UTC Localization with Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
+
+  Previous Behavior
+
+  .. ipython:: python
+
+     s = Series(['20130101 00:00:00'] * 3)
+
+  .. code-block:: ipython
+
+     In [12]: pd.to_datetime(s, utc=True)
+     Out[12]:
+     0   2013-01-01
+     1   2013-01-01
+     2   2013-01-01
+     dtype: datetime64[ns]
+
+  New Behavior
+
+  .. ipython:: python
+
+     pd.to_datetime(s, utc=True)
+
+Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
+
 .. _whatsnew_0210.api:
 
 Other API Changes
