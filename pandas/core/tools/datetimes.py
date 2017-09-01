@@ -605,7 +605,7 @@ def _assemble_from_unit_mappings(arg, errors):
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{excess}]".format(','.join(excess=excess)))
+                         "[{excess}]".format(excess=','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows
