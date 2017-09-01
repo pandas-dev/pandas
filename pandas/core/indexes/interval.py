@@ -689,6 +689,34 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(self, key, method=None):
+        """Get integer location for requested label.
+
+        Parameters
+        ----------
+        key : label
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+
+        Returns
+        -------
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> index = pd.IntervalIndex.from_intervals([pd.Interval(0, 1), pd.Interval(1, 2)])
+        >>> index.get_loc(1)
+        0
+        >>> index.get_loc(1,5)  # a point inside an interval
+        1
+
+        >>> overlapping_index = pd.IntervalIndex.from_intervals([pd.Interval(0, 2), pd.Interval(1, 2)])
+        >>> overlapping_index .get_loc(1.5)
+        array([0, 1], dtype=int64)
+        """
         self._check_method(method)
 
         original_key = key

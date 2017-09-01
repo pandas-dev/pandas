@@ -1966,6 +1966,19 @@ class MultiIndex(Index):
         Returns
         -------
         loc : int, slice object or boolean mask
+
+        Examples
+        ---------
+        >>> mi = pd.MultiIndex.from_array([list('abc'), list('def')])
+        >>> mi.get_loc('b')
+        slice(1, 2, None)
+        >>> mi.get_loc(('b', 'e'))
+        1
+
+        See also
+        --------
+        get_locs : Given a tuple of slices/lists/labels/boolean indexer to a level-wise
+        spec, produce an indexer to extract those locations
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
