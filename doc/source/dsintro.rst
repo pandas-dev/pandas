@@ -698,7 +698,7 @@ DataFrame in tabular form, though it won't always fit the console width:
 
    print(baseball.iloc[-20:, :12].to_string())
 
-Note that wide DataFrames will be printed across multiple rows by
+Wide DataFrames will be printed across multiple rows by
 default:
 
 .. ipython:: python
@@ -845,11 +845,9 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 
 .. note::
 
-   Unfortunately Panel, being less commonly used than Series and DataFrame,
+   Panel, being less commonly used than Series and DataFrame,
    has been slightly neglected feature-wise. A number of methods and options
-   available in DataFrame are not available in Panel. This will get worked
-   on, of course, in future releases. And faster if you join me in working on
-   the codebase.
+   available in DataFrame are not available in Panel.
 
 .. _dsintro.to_panel:
 
