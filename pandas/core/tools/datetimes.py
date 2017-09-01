@@ -234,7 +234,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         Define the timezone.
 
         .. versionadded: 0.21.0
-        
+
     box : boolean, default True
 
         - If True returns a DatetimeIndex
