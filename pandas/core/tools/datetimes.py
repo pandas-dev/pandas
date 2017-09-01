@@ -20,6 +20,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
+from pandas.util._decorators import deprecate_kwarg
 
 import pandas.compat as compat
 
@@ -181,10 +182,12 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
-
+@deprecate_kwarg(old_arg_name='utc', new_arg_name='tz',
+                 mapping={True: 'UTC'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='unix'):
+                box=True, format=None, exact=True,
+                unit=None, infer_datetime_format=False, origin='unix',
+                tz=None):
     """
     Convert argument to datetime.
 
@@ -221,8 +224,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         .. versionadded: 0.16.1
 
     utc : boolean, default None
+        .. deprecated
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
+    tz : pytz.timezone or dateutil.tz.tzfile, default None
+        Define the timezone.
+
+        .. versionadded
     box : boolean, default True
 
         - If True returns a DatetimeIndex
@@ -343,8 +351,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     """
     from pandas.core.indexes.datetimes import DatetimeIndex
 
-    tz = 'utc' if utc else None
-
     def _convert_listlike(arg, box, format, name=None, tz=tz):
 
         if isinstance(arg, (list, tuple)):
@@ -354,8 +360,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if is_datetime64tz_dtype(arg):
             if not isinstance(arg, DatetimeIndex):
                 return DatetimeIndex(arg, tz=tz, name=name)
-            if utc:
-                arg = arg.tz_convert(None).tz_localize('UTC')
             return arg
 
         elif is_datetime64_ns_dtype(arg):
@@ -431,6 +435,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                             result = arg
 
             if result is None and (format is None or infer_datetime_format):
+                if tz == 'utc' or tz == 'UTC':
+                    utc = True
+                else:
+                    utc = False
                 result = tslib.array_to_datetime(
                     arg,
                     errors=errors,

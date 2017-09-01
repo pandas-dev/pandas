@@ -270,6 +270,18 @@ class TestToDatetime(object):
         expected = pd.DatetimeIndex(data=date_range)
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_tz(self):
+        # See gh-13712
+        for tz in [None, 'US/Eastern', 'Asia/Tokyo', 'UTC']:
+            start = pd.Timestamp('2014-01-01', tz=tz)
+            end = pd.Timestamp('2014-01-03', tz=tz)
+            date_range = pd.bdate_range(start, end)
+
+            result = pd.to_datetime(date_range, tz=tz)
+            expected = pd.DatetimeIndex(data=date_range)
+            tm.assert_index_equal(result, expected)
+            assert result.tz == expected.tz
+
     def test_to_datetime_tz_psycopg2(self):
 
         # xref 8260
