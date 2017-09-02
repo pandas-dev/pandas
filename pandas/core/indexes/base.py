@@ -2533,11 +2533,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        level : int or level name
+        level : int or str
+            ``level`` is either the integer position of the level in the 
+            MultiIndex, or the name of the level.
 
         Returns
         -------
-        self : Index
+        values : Index
+            Because there is only one level when the index has one level,
+            the return value is always self in this case. 
 
         See also
         ---------
