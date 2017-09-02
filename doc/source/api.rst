@@ -1438,6 +1438,15 @@ Categorical Components
 
 .. _api.intervalindex:
 
+Interval
+--------
+
+.. autosummary::
+    :toctree: generated/
+    :template: autosummary/class_without_autosummary.rst
+
+    Interval
+
 IntervalIndex
 -------------
 
@@ -1566,6 +1575,22 @@ Conversion
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
+
+Period
+------
+
+.. autosummary::
+    :toctree: generated/
+
+    Period
+
+Timestamp
+---------
+
+.. autosummary::
+   :toctree: generated/
+
+   Timestamp
 
 TimedeltaIndex
 --------------
