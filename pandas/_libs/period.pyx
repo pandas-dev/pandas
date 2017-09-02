@@ -870,10 +870,6 @@ cdef class _Period(object):
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
-    cdef _field(self, alias):
-        base, mult = frequencies.get_freq_code(self.freq)
-        return get_period_field(alias, self.ordinal, base)
-
     @property
     def year(self):
         base, mult = frequencies.get_freq_code(self.freq)
