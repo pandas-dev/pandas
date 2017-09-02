@@ -6,7 +6,7 @@ cimport cython
 
 import numpy as np
 cimport numpy as np
-np.import_array() # Without this, `is_integer_object` causes segfaults
+np.import_array()  # Without this, `is_integer_object` causes segfaults
 
 from util cimport is_integer_object
 
@@ -153,9 +153,9 @@ _period_code_map = {
 }
 
 # Yearly aliases; careful not to put these in _reverse_period_code_map
-_period_code_map.update({'Y'+key[1:]: _period_code_map[key] 
-                for key in _period_code_map
-                if key.startswith('A-')})
+_period_code_map.update({'Y' + key[1:]: _period_code_map[key]
+                         for key in _period_code_map
+                         if key.startswith('A-')})
 
 _period_code_map.update({
     "Q": 2000,  # Quarterly - December year end (default quarterly)
@@ -186,6 +186,7 @@ _lite_rule_alias = {
     'ns': 'N'}
 
 _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
+
 
 @cython.ccall
 def _period_str_to_code(freqstr):
