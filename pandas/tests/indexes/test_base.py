@@ -1438,7 +1438,7 @@ class TestIndex(Base):
         result = self.strIndex.get_level_values(0)
         tm.assert_index_equal(result, self.strIndex)
 
-        # GH 17414
+        # test for name (GH 17414)
         index_with_name = self.strIndex.copy()
         index_with_name.name = 'a'
         result = index_with_name.get_level_values('a')
