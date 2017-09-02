@@ -1773,7 +1773,7 @@ Evaluation order matters
 
 Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
 If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
-exception will be raised.
+warning will be issued.
 
 You can control the action of a chained assignment via the option ``mode.chained_assignment``,
 which can take the values ``['raise','warn',None]``, where showing a warning is the default.

@@ -3058,13 +3058,17 @@ any pickled pandas object (or any other pickled object) from file:
 
    Loading pickled data received from untrusted sources can be unsafe.
 
-   See: http://docs.python.org/2.7/library/pickle.html
+   See: https://docs.python.org/3.6/library/pickle.html
 
 .. warning::
 
-   Pickled data must
-   be read with ``pd.read_pickle``, rather than the default python ``pickle.load``.
-   See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   Several internal refactorings over time have done to pandas while preserving
+   compatibility with pickles created with prior versions. However, in such
+   cases, where there are changes to the data structures between pandas
+   versions, pickled data must be read with ``pd.read_pickle`` to be read
+   correctly, rather than the default python ``pickle.load``. It is therefore
+   recommended to read pickled dataframes, series etc. using
+   ``pd.read_pickle``. See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
@@ -3851,11 +3855,7 @@ create a new table!)
 Iterator
 ++++++++
 
-<<<<<<< HEAD
 You can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
-=======
-Note that you can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
->>>>>>> Cleaned references to versions <0.12 in docs
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
