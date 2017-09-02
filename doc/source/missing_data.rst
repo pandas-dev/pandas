@@ -67,9 +67,8 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
-   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-   considered to be "NA" in computations. This is no longer the case by
-   default; use the ``mode.use_inf_as_na`` option to recover it.
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
 
 .. _missing.isna:
 
@@ -485,8 +484,8 @@ respectively:
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. New in v0.8
-is the ``replace`` method in Series/DataFrame that provides an efficient yet
+Often times we want to replace arbitrary values with other values. The
+``replace`` method in Series/DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
