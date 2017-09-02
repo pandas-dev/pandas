@@ -1069,8 +1069,7 @@ Offset Aliases
 ~~~~~~~~~~~~~~
 
 A number of string aliases are given to useful common time series
-frequencies. We will refer to these aliases as *offset aliases*
-(referred to as *time rules* prior to v0.8.0).
+frequencies. We will refer to these aliases as *offset aliases*.
 
 .. csv-table::
     :header: "Alias", "Description"
