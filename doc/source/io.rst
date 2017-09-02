@@ -364,7 +364,7 @@ warn_bad_lines : boolean, default ``True``
 Specifying column data types
 ''''''''''''''''''''''''''''
 
-Starting with v0.10, you can indicate the data type for the whole DataFrame or
+You can indicate the data type for the whole DataFrame or
 individual columns:
 
 .. ipython:: python
@@ -3346,7 +3346,7 @@ Read/Write API
 ''''''''''''''
 
 ``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
-similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
+similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
 
@@ -3791,7 +3791,7 @@ indexed dimension as the ``where``.
 
 .. note::
 
-   Indexes are automagically created (starting ``0.10.1``) on the indexables
+   Indexes are automagically created on the indexables
    and any data columns you specify. This behavior can be turned off by passing
    ``index=False`` to ``append``.
 
@@ -3878,7 +3878,7 @@ create a new table!)
 Iterator
 ++++++++
 
-Starting in ``0.11.0``, you can pass, ``iterator=True`` or ``chunksize=number_in_a_chunk``
+You can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
@@ -3986,8 +3986,8 @@ of rows in an object.
 Multiple Table Queries
 ++++++++++++++++++++++
 
-New in 0.10.1 are the methods ``append_to_multiple`` and
-``select_as_multiple``, that can perform appending/selecting from
+The methods ``append_to_multiple`` and
+``select_as_multiple`` can perform appending/selecting from
 multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
 queries. The other table(s) are data tables with an index matching the
@@ -4291,7 +4291,7 @@ Pass ``min_itemsize`` on the first table creation to a-priori specify the minimu
 ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
 allow all *indexables* or *data_columns* to have this min_itemsize.
 
-Starting in 0.11.0, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
+Passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
 
 .. note::
 

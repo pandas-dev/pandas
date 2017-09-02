@@ -73,7 +73,7 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    Starting in v0.8.0, pandas supports non-unique index values. If an operation
+    pandas supports non-unique index values. If an operation
     that does not support duplicate index values is attempted, an exception
     will be raised at that time. The reason for being lazy is nearly all performance-based
     (there are many instances in computations, like parts of GroupBy, where the index
@@ -698,7 +698,7 @@ DataFrame in tabular form, though it won't always fit the console width:
 
    print(baseball.iloc[-20:, :12].to_string())
 
-New since 0.10.0, wide DataFrames will now be printed across multiple rows by
+Wide DataFrames will be printed across multiple rows by
 default:
 
 .. ipython:: python
@@ -845,19 +845,16 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 
 .. note::
 
-   Unfortunately Panel, being less commonly used than Series and DataFrame,
+   Panel, being less commonly used than Series and DataFrame,
    has been slightly neglected feature-wise. A number of methods and options
-   available in DataFrame are not available in Panel. This will get worked
-   on, of course, in future releases. And faster if you join me in working on
-   the codebase.
+   available in DataFrame are not available in Panel.
 
 .. _dsintro.to_panel:
 
 From DataFrame using ``to_panel`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This method was introduced in v0.7 to replace ``LongPanel.to_long``, and converts
-a DataFrame with a two-level index to a Panel.
+``to_panel`` converts a DataFrame with a two-level index to a Panel.
 
 .. ipython:: python
    :okwarning:

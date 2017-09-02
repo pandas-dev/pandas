@@ -66,8 +66,6 @@ See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 Different Choices for Indexing
 ------------------------------
 
-.. versionadded:: 0.11.0
-
 Object selection has had a number of user-requested additions in order to
 support more explicit location based indexing. Pandas now supports three types
 of multi-axis indexing.

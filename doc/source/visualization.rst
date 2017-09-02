@@ -306,8 +306,6 @@ subplots:
    df.diff().hist(color='k', alpha=0.5, bins=50)
 
 
-.. versionadded:: 0.10.0
-
 The ``by`` keyword can be specified to plot grouped histograms:
 
 .. ipython:: python
@@ -831,8 +829,6 @@ and take a :class:`Series` or :class:`DataFrame` as an argument.
 Scatter Matrix Plot
 ~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.7.3
-
 You can create a scatter plot matrix using the
 ``scatter_matrix`` method in ``pandas.plotting``:
 
@@ -858,8 +854,6 @@ You can create a scatter plot matrix using the
 
 Density Plot
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.8.0
 
 You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFrame.plot.kde` methods.
 

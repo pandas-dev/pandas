@@ -251,8 +251,8 @@ replace NaN with some other value using ``fillna`` if you wish).
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
-Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
-le, and ge to Series and DataFrame whose behavior is analogous to the binary
+Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
+``le``, and ``ge`` whose behavior is analogous to the binary
 arithmetic operations described above:
 
 .. ipython:: python
@@ -1908,7 +1908,7 @@ each type in a ``DataFrame``:
 
    dft.get_dtype_counts()
 
-Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0).
+Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
 or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
@@ -2137,7 +2137,7 @@ gotchas
 ~~~~~~~
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
-The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
 See also :ref:`Support for integer NA <gotchas.intna>`
 
 .. ipython:: python
