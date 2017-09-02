@@ -915,7 +915,7 @@ cdef class _Period(object):
         return pweekday(self.ordinal, base)
 
     @property
-    def dayofweek(self):
+    def weekday(self):
         return self.dayofweek
 
     @property
