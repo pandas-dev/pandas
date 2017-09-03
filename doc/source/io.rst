@@ -3062,13 +3062,15 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   Several internal refactorings over time have done to pandas while preserving
-   compatibility with pickles created with prior versions. However, in such
-   cases, where there are changes to the data structures between pandas
-   versions, pickled data must be read with ``pd.read_pickle`` to be read
-   correctly, rather than the default python ``pickle.load``. It is therefore
-   recommended to read pickled dataframes, series etc. using
-   ``pd.read_pickle``. See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   Several internal refactorings have been done while still preserving
+   compatibility with pickles created with older versions of pandas. However,
+   for such cases, pickled dataframes, series etc, must be read with
+   ``pd.read_pickle``, rather than ``pickle.load``.
+
+   See `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   for some examples of compatibility-breaking changes. See
+   `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
