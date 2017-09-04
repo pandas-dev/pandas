@@ -381,7 +381,7 @@ class TestDataFramePlots(TestPlotBase):
                                         ylabelsize=7)
 
     def test_subplots_timeseries_y_axis(self):
-        # tests for fix of issue #16953
+        # GH16953
         testdata = DataFrame({"numeric": np.array([1, 2, 5]),
                               "timedelta": [pd.Timedelta(10, unit="s"),
                                             pd.Timedelta(10, unit="m"),
