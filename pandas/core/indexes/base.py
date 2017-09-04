@@ -1201,6 +1201,12 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_monotonic_increasing
 
     @property
+    def _is_strictly_monotonic(self):
+        """ Checks if the index is sorted """
+        return (self._is_strictly_monotonic_increasing or
+                self._is_strictly_monotonic_decreasing)
+
+    @property
     def is_monotonic_increasing(self):
         """
         return if the index is monotonic increasing (only equal or

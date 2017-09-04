@@ -119,6 +119,26 @@ def _is_normalized(dt):
         return False
     return True
 
+
+def index_offsets_equal(first, second):
+    """
+    Checks if the two indexes have an offset, and if they equal each other
+    Parameters
+    ----------
+    first: Index
+    second: Index
+
+    Returns
+    -------
+    bool
+    """
+    first = getattr(first, 'offset', None)
+    second = getattr(second, 'offset', None)
+    are_offsets_equal = True
+    if first is None or second is None or first != second:
+        are_offsets_equal = False
+    return are_offsets_equal
+
 # ---------------------------------------------------------------------
 # DateOffset
 
