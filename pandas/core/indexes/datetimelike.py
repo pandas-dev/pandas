@@ -29,6 +29,10 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 import pandas.io.formats.printing as printing
 
+from pandas.tseries.offsets import index_offsets_equal
+import pandas.tseries.frequencies as frequencies
+
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
@@ -571,6 +575,94 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
         result.name = self.name
         return result
+
+    def _intersect_ascending(self, other):
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        end = min(left[-1], right[-1])
+        start = right[0]
+
+        if end < start:
+            return []
+        return left.values[slice(*left.slice_locs(start, end))]
+
+    def _intersect_descending(self, other):
+        # this is essentially a flip of _intersect_ascending
+        if self[0] >= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        start = min(left[0], right[0])
+        end = right[-1]
+
+        if end > start:
+            return Index()
+        return left.values[slice(*left.slice_locs(start, end))]
+
+    def intersection(self, other):
+        """
+        Specialized intersection for DateTimeIndexOpsMixin objects.
+        May be much faster than Index.intersection.
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        Index
+            A shallow copied intersection between the two things passed in
+        """
+        self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_consensus_name(other)
+
+        lengths = len(self), len(other)
+        if lengths[0] == 0:
+            return self
+        if lengths[1] == 0:
+            return other
+
+        if not isinstance(other, Index):
+            result = Index.intersection(self, other)
+            return result
+        elif (index_offsets_equal(self, other) or
+                (not self._is_strictly_monotonic or
+                    not other._is_strictly_monotonic)):
+            result = Index.intersection(self, other)
+            result = self._shallow_copy(result._values, name=result.name,
+                                        tz=getattr(self, 'tz', None),
+                                        freq=None
+                                        )
+            if result.freq is None:
+                result.offset = frequencies.to_offset(result.inferred_freq)
+            return result
+
+        # handle intersecting things like this
+        # idx1 = pd.to_timedelta((1, 2, 3, 4, 5, 6, 7, 8), unit='s')
+        # idx2 = pd.to_timedelta((2, 3, 4, 8), unit='s')
+        if lengths[0] != lengths[1] and (
+                max(self) != max(other) or min(self) != min(other)):
+            return Index.intersection(self, other)
+
+        # coerce into same order
+        self_ascending = self.is_monotonic_increasing
+        if self_ascending != other.is_monotonic_increasing:
+            other = other.sort_values(ascending=self_ascending)
+
+        if self_ascending:
+            intersected_slice = self._intersect_ascending(other)
+        else:
+            intersected_slice = self._intersect_descending(other)
+
+        intersected = self._shallow_copy(intersected_slice)
+        return intersected._get_consensus_name(other)
 
 
 def wrap_arithmetic_op(self, other, result):

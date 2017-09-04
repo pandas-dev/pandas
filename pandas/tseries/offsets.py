@@ -103,6 +103,41 @@ def apply_wraps(func):
     return wrapper
 
 
+def apply_index_wraps(func):
+    @functools.wraps(func)
+    def wrapper(self, other):
+        result = func(self, other)
+        if self.normalize:
+            result = result.to_period('D').to_timestamp()
+        return result
+    return wrapper
+
+
+def _is_normalized(dt):
+    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
+            dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
+        return False
+    return True
+
+
+def index_offsets_equal(first, second):
+    """
+    Checks if the two indexes have an offset, and if they equal each other
+    Parameters
+    ----------
+    first: Index
+    second: Index
+
+    Returns
+    -------
+    bool
+    """
+    first = getattr(first, 'freq', None)
+    second = getattr(second, 'freq', None)
+    are_offsets_equal = True
+    if first is None or second is None or first != second:
+        are_offsets_equal = False
+    return are_offsets_equal
 # ---------------------------------------------------------------------
 # DateOffset
 
