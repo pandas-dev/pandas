@@ -380,6 +380,25 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45,
                                         ylabelsize=7)
 
+    def test_subplots_timeseries_y_axis(self):
+        # tests for fix of issue #16953
+        testdata = DataFrame({"numeric": np.array([1, 2, 5]),
+                              "timedelta": [pd.Timedelta(10, unit="s"),
+                                            pd.Timedelta(10, unit="m"),
+                                            pd.Timedelta(10, unit="h")],
+                              "datetime": [pd.to_datetime("2017-08-01 00:00:00"),
+                                           pd.to_datetime("2017-08-01 02:00:00"),
+                                           pd.to_datetime("2017-08-02 00:00:00")],
+                              "text": ["This", "should", "fail"]})
+        ax_numeric = testdata.plot(y="numeric")
+        assert (ax_numeric.get_lines()[0].get_data()[1] == testdata["numeric"].values).all()
+        ax_timedelta = testdata.plot(y="timedelta")
+        assert (ax_timedelta.get_lines()[0].get_data()[1] == testdata["timedelta"].values).all()
+        ax_datetime = testdata.plot(y="datetime")
+        assert (ax_datetime.get_lines()[0].get_data()[1] == testdata["datetime"].values).all()
+        with pytest.raises(TypeError):
+            testdata.plot(y="text")
+
     @pytest.mark.slow
     def test_subplots_layout(self):
         # GH 6667
