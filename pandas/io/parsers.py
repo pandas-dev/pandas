@@ -2125,6 +2125,8 @@ class PythonParser(ParserBase):
 
                 self.pos += 1
                 self.line_pos += 1
+                if self.encoding is not None:
+                    line = line.decode(self.encoding)
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
                 if self.encoding is not None:
