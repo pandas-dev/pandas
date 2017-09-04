@@ -19,7 +19,8 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_number,
     is_hashable,
-    is_iterator)
+    is_iterator,
+    is_numeric_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
@@ -829,11 +830,18 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
-    def __init__(self, data, x, y, s=None, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, s_grow=1, c=None, **kwargs):
         if s is None:
-            # hide the matplotlib default for size, in case we want to change
-            # the handling of this argument later
+            # Set default size if no argument is given
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            # Handle the case where s is a label of a column of the df
+            # The data is normalized to 200 * s_grow
+            size_data = data.loc[:, s].values
+            if is_numeric_dtype(size_data):
+                s = 200 * s_grow * size_data / size_data.max()
+            else:
+                raise TypeError('s needs to be of numeric dtype')
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
