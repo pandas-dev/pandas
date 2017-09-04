@@ -342,7 +342,9 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data._convert(datetime=True)._get_numeric_data()
+        # fix of issue #16953
+        data = data.select_dtypes(include=[np.number, "datetime", "timedelta"])
+        numeric_data = data._convert(datetime=True)
 
         try:
             is_empty = numeric_data.empty
