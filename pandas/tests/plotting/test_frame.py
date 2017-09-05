@@ -413,7 +413,8 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError):
             testdata.plot(y="text")
 
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason='not support for period, categorical, '
+                       'datetime_mixed_tz')
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
