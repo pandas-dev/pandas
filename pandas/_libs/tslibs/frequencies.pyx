@@ -11,8 +11,7 @@ np.import_array()  # Without this, `is_integer_object` causes segfaults
 from util cimport is_integer_object
 
 
-@cython.ccall
-def get_freq_code(freqstr):
+cpdef get_freq_code(freqstr):
     """
     Return freq str or tuple to freq code and stride (mult)
 
@@ -70,8 +69,7 @@ opattern = re.compile(
 )
 
 
-@cython.ccall
-def _base_and_stride(freqstr):
+cpdef _base_and_stride(freqstr):
     """
     Return base freq and stride info from string representation
 
@@ -188,8 +186,7 @@ _lite_rule_alias = {
 _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
 
 
-@cython.ccall
-def _period_str_to_code(freqstr):
+cpdef _period_str_to_code(freqstr):
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
