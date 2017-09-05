@@ -248,8 +248,6 @@ as an attribute:
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
 
-   - The ``Series/Panel`` accesses are available starting in 0.13.0.
-
 If you are using the IPython environment, you may also use tab-completion to
 see these accessible attributes.
 
@@ -529,7 +527,6 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
 .. ipython:: python
 
     # these are allowed in python/numpy.
-    # Only works in Pandas starting from v0.14.0.
     x = list('abcdef')
     x
     x[4:10]
@@ -539,14 +536,8 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
     s.iloc[4:10]
     s.iloc[8:10]
 
-.. note::
-
-    Prior to v0.14.0, ``iloc`` would not accept out of bounds indexers for
-    slices, e.g. a value that exceeds the length of the object being indexed.
-
-
-Note that this could result in an empty axis (e.g. an empty DataFrame being
-returned)
+Note that using slices that go out of bounds can result in
+an empty axis (e.g. an empty DataFrame being returned)
 
 .. ipython:: python
 
@@ -744,8 +735,6 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
 
 Setting With Enlargement
 ------------------------
-
-.. versionadded:: 0.13
 
 The ``.loc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
 
@@ -1020,8 +1009,6 @@ partial setting via ``.loc`` (but on the contents rather than the axis labels)
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-.. versionadded:: 0.13
-
 Where can also accept ``axis`` and ``level`` parameters to align the input when
 performing the ``where``.
 
@@ -1063,8 +1050,6 @@ as condition and ``other`` argument.
 
 The :meth:`~pandas.DataFrame.query` Method (Experimental)
 ---------------------------------------------------------
-
-.. versionadded:: 0.13
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using an expression.
@@ -1506,8 +1491,6 @@ The name, if set, will be shown in the console display:
 Setting metadata
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
-
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
 ``labels``).
@@ -1790,7 +1773,7 @@ Evaluation order matters
 
 Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
 If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
-exception will be raised (this raise/warn behavior is new starting in 0.13.0)
+warning will be issued.
 
 You can control the action of a chained assignment via the option ``mode.chained_assignment``,
 which can take the values ``['raise','warn',None]``, where showing a warning is the default.

@@ -107,7 +107,7 @@ following command::
 
 To install a specific pandas version::
 
-    conda install pandas=0.13.1
+    conda install pandas=0.20.3
 
 To install other packages, IPython for example::
 

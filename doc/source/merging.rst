@@ -1053,8 +1053,6 @@ As you can see, this drops any rows where there was no match.
 Joining a single Index to a Multi-index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
 You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
 The level will match on the name of the index of the singly-indexed frame against
 a level name of the multi-indexed frame.

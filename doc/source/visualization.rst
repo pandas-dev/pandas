@@ -512,8 +512,6 @@ Compare to:
 Area Plot
 ~~~~~~~~~
 
-.. versionadded:: 0.14
-
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
@@ -549,8 +547,6 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 
 Scatter Plot
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.13
 
 Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
 Scatter plot requires numeric columns for x and y axis.
@@ -619,8 +615,6 @@ See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 Hexagonal Bin Plot
 ~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14
-
 You can create hexagonal bin plots with :meth:`DataFrame.plot.hexbin`.
 Hexbin plots can be a useful alternative to scatter plots if your data are
 too dense to plot each point individually.
@@ -681,8 +675,6 @@ See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
 
 Pie plot
 ~~~~~~~~
-
-.. versionadded:: 0.14
 
 You can create a pie plot with :meth:`DataFrame.plot.pie` or :meth:`Series.plot.pie`.
 If your data includes any ``NaN``, they will be automatically filled with 0.
@@ -1365,8 +1357,6 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 Plotting With Error Bars
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14
-
 Plotting with error bars is now supported in the :meth:`DataFrame.plot` and :meth:`Series.plot`
 
 Horizontal and vertical errorbars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot()`. The error values can be specified using a variety of formats.
@@ -1406,8 +1396,6 @@ Here is an example of one way to easily plot group means with standard deviation
 
 Plotting Tables
 ~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.14
 
 Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :meth:`Series.plot` with a ``table`` keyword. The ``table`` keyword can accept ``bool``, :class:`DataFrame` or :class:`Series`. The simple way to draw a table is to specify ``table=True``. Data will be transposed to meet matplotlib's default layout.
 
@@ -1584,10 +1572,6 @@ indices, thereby extending date and time support to practically all plot types
 available in matplotlib. Although this formatting does not provide the same
 level of refinement you would get when plotting via pandas, it can be faster
 when plotting a large number of points.
-
-.. note::
-
-    The speed up for large data sets only applies to pandas 0.14.0 and later.
 
 .. ipython:: python
    :suppress:

@@ -347,7 +347,7 @@ That is because NaNs do not compare as equals:
 
    np.nan == np.nan
 
-So, as of v0.13.1, NDFrames (such as Series, DataFrames, and Panels)
+So, NDFrames (such as Series, DataFrames, and Panels)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
@@ -1104,10 +1104,6 @@ Applying with a ``Panel`` will pass a ``Series`` to the applied function. If the
 function returns a ``Series``, the result of the application will be a ``Panel``. If the applied function
 reduces to a scalar, the result of the application will be a ``DataFrame``.
 
-.. note::
-
-   Prior to 0.13.1 ``apply`` on a ``Panel`` would only work on ``ufuncs`` (e.g. ``np.sum/np.max``).
-
 .. ipython:: python
 
    import pandas.util.testing as tm
@@ -1800,8 +1796,6 @@ Series has the :meth:`~Series.searchsorted` method, which works similar to
 smallest / largest values
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
 ``Series`` has the :meth:`~Series.nsmallest` and :meth:`~Series.nlargest` methods which return the
 smallest or largest :math:`n` values. For a large ``Series`` this can be much
 faster than sorting the entire Series and calling ``head(n)`` on the result.
@@ -2167,8 +2161,6 @@ Selecting columns based on ``dtype``
 ------------------------------------
 
 .. _basics.selectdtypes:
-
-.. versionadded:: 0.14.1
 
 The :meth:`~DataFrame.select_dtypes` method implements subsetting of columns
 based on their ``dtype``.

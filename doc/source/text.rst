@@ -211,8 +211,6 @@ Extracting Substrings
 Extract first match in each subject (extract)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 0.13.0
-
 .. warning::
 
    In version 0.18.0, ``extract`` gained the ``expand`` argument. When

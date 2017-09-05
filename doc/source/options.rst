@@ -306,7 +306,7 @@ display.float_format                None         The callable should accept a fl
                                                  See core.format.EngFormatter for an example.
 display.large_repr                  truncate     For DataFrames exceeding max_rows/max_cols,
                                                  the repr (and HTML repr) can show
-                                                 a truncated table (the default from 0.13),
+                                                 a truncated table (the default),
                                                  or switch to the view from df.info()
                                                  (the behaviour in earlier versions of pandas).
                                                  allowable settings, ['truncate', 'info']
