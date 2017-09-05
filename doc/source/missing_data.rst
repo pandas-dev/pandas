@@ -263,8 +263,6 @@ and ``bfill()`` is equivalent to ``fillna(method='bfill')``
 Filling with a PandasObject
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.12
-
 You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
 must match the columns of the frame you wish to fill. The
 use case of this is to fill a DataFrame with the mean of that column.
@@ -279,8 +277,6 @@ use case of this is to fill a DataFrame with the mean of that column.
 
         dff.fillna(dff.mean())
         dff.fillna(dff.mean()['B':'C'])
-
-.. versionadded:: 0.13
 
 Same result as above, but is aligning the 'fill' value which is
 a Series in this case.
@@ -319,11 +315,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 
 Interpolation
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.13.0
-
-  :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
-  revamped interpolation methods and functionality.
 
 .. versionadded:: 0.17.0
 
