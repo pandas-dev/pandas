@@ -720,8 +720,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
                versionadded="",
                other='DataFrame.melt'))
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
-         value_name='value', col_level=None):
-    # TODO: what about the existing index?
+         value_name='value', col_level=None, keep_index=False):
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
@@ -779,7 +778,22 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
-    return DataFrame(mdata, columns=mcolumns)
+    result = DataFrame(mdata, columns=mcolumns)
+
+    if keep_index:
+        orig_index_values = list(np.tile(frame.index.get_values(), K))
+
+        if len(frame.index.names) == len(set(frame.index.names)):
+            orig_index_names = frame.index.names
+        else:
+            orig_index_names = ["original_index_{i}".format(i=i)
+                                for i in range(len(frame.index.names))]
+
+        result[orig_index_names] = DataFrame(orig_index_values)
+
+        result = result.set_index(orig_index_names + list(var_name))
+
+    return result
 
 
 def lreshape(data, groups, dropna=True, label=None):
