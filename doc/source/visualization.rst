@@ -229,8 +229,6 @@ To get horizontal bar plots, use the ``barh`` method:
 Histograms
 ~~~~~~~~~~
 
-.. versionadded:: 0.15.0
-
 Histogram can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Series.plot.hist` methods.
 
 .. ipython:: python
@@ -327,8 +325,6 @@ The ``by`` keyword can be specified to plot grouped histograms:
 
 Box Plots
 ~~~~~~~~~
-
-.. versionadded:: 0.15.0
 
 Boxplot can be drawn calling :meth:`Series.plot.box` and :meth:`DataFrame.plot.box`,
 or :meth:`DataFrame.boxplot` to visualize the distribution of values within each column.

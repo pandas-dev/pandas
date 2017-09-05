@@ -505,8 +505,6 @@ For more details and examples see :ref:`the reshaping documentation
 |factor|_
 ~~~~~~~~~
 
-.. versionadded:: 0.15
-
 pandas has a data type for categorical data.
 
 .. code-block:: r

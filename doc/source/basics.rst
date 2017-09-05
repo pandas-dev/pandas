@@ -719,8 +719,6 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 Tablewise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.2
-
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
 However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
 Compare the following
@@ -1860,8 +1858,10 @@ dtypes
 ------
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``, ``category`` (in >= 0.15.0), and ``object``. In addition these dtypes
-have item sizes, e.g. ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>` for more detail on ``datetime64[ns, tz]`` dtypes.
+``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``,
+``category`` and ``object``. In addition these dtypes have item sizes, e.g.
+``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
+for more detail on ``datetime64[ns, tz]`` dtypes.
 
 A convenient :attr:`~DataFrame.dtypes` attribute for DataFrames returns a Series with the data type of each column.
 
