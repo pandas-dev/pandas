@@ -6312,6 +6312,10 @@ class DataFrame(NDFrame):
         Name to use for the 'value' column.
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
+    keep_index : boolean, optional, default False
+        If True, the original index is reused.
+        In the resulting MulitIndex the names of the unpivoted columns
+        are added as an additional level to ensure uniqueness.
 
     Returns
     -------
@@ -6396,6 +6400,7 @@ class DataFrame(NDFrame):
         var_name=None,
         value_name="value",
         col_level=None,
+        keep_index=False,
     ):
         from pandas.core.reshape.melt import melt
 
@@ -6406,6 +6411,7 @@ class DataFrame(NDFrame):
             var_name=var_name,
             value_name=value_name,
             col_level=col_level,
+            keep_index=keep_index,
         )
 
     # ----------------------------------------------------------------------
