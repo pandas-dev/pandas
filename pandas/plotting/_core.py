@@ -342,10 +342,12 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        # GH16953
+        # GH16953, _convert is needed as fallback, for ``Series``
+        # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
         numeric_data = data.select_dtypes(include=[np.number,
                                                    "datetime",
+                                                   "datetimetz",
                                                    "timedelta"])
 
         try:
