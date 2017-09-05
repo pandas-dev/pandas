@@ -6,20 +6,18 @@ from cpython cimport (
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
-from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
-                    NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
+from numpy cimport int64_t, ndarray
 import numpy as np
 
 from libc.stdlib cimport free
 
-from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
 
 from datetime cimport (
+    PyDateTime_Check, PyDate_Check,
     is_leapyear,
-    PyDateTime_IMPORT,
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -27,11 +25,16 @@ from datetime cimport (
     INT32_MIN)
 
 
-cimport util, lib
+cimport util
+from util cimport (
+    is_integer_object,
+    is_period_object,
+    is_string_object,
+    is_datetime64_object)
 
-from lib cimport is_null_datetimelike, is_period
-from pandas._libs import tslib, lib
-from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
+from lib cimport is_null_datetimelike
+from pandas._libs import tslib
+from pandas._libs.tslib import (Timestamp, iNaT,
                                 NaT, _get_utcoffset)
 from tslib cimport (
     maybe_get_tz,
@@ -328,7 +331,6 @@ cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
 cdef object _period_strftime(int64_t value, int freq, object fmt):
-    import sys
 
     cdef:
         Py_ssize_t i
@@ -485,7 +487,7 @@ def extract_freq(ndarray[object] values):
 
         try:
             # now Timestamp / NaT has freq attr
-            if is_period(p):
+            if is_period_object(p):
                 return p.freq
         except AttributeError:
             pass
@@ -706,7 +708,7 @@ cdef class _Period(object):
             return self
 
     def __richcmp__(self, other, op):
-        if isinstance(other, Period):
+        if is_period_object(other):
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -728,8 +730,7 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, Timedelta)):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
@@ -752,34 +753,32 @@ cdef class _Period(object):
             return NotImplemented
 
     def __add__(self, other):
-        if isinstance(self, Period):
+        if is_period_object(self):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset,
-                                  Timedelta)):
+                                  offsets.DateOffset)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
-            elif lib.is_integer(other):
+            elif is_integer_object(other):
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             else:  # pragma: no cover
                 return NotImplemented
-        elif isinstance(other, Period):
+        elif is_period_object(other):
             return other + self
         else:
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(self, Period):
+        if is_period_object(self):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset,
-                                  Timedelta)):
+                                  offsets.DateOffset)):
                 neg_other = -other
                 return self + neg_other
-            elif lib.is_integer(other):
+            elif is_integer_object(other):
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            elif isinstance(other, Period):
+            elif is_period_object(other):
                 if other.freq != self.freq:
                     msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                     raise IncompatibleFrequency(msg)
@@ -788,7 +787,7 @@ cdef class _Period(object):
                 return -other.__sub__(self)
             else:  # pragma: no cover
                 return NotImplemented
-        elif isinstance(other, Period):
+        elif is_period_object(other):
             if self is NaT:
                 return NaT
             return NotImplemented
@@ -1136,7 +1135,7 @@ class Period(_Period):
             raise ValueError(("Only value or ordinal but not both should be "
                               "given but not both"))
         elif ordinal is not None:
-            if not lib.is_integer(ordinal):
+            if not is_integer_object(ordinal):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
                 raise ValueError('Must supply freq for ordinal value')
@@ -1160,7 +1159,7 @@ class Period(_Period):
                 ordinal = _ordinal_from_fields(year, month, quarter, day,
                                                hour, minute, second, freq)
 
-        elif isinstance(value, Period):
+        elif is_period_object(value):
             other = value
             if freq is None or frequencies.get_freq_code(
                     freq) == frequencies.get_freq_code(other.freq):
@@ -1173,8 +1172,8 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in tslib._nat_strings:
             ordinal = iNaT
 
-        elif isinstance(value, compat.string_types) or lib.is_integer(value):
-            if lib.is_integer(value):
+        elif is_string_object(value) or is_integer_object(value):
+            if is_integer_object(value):
                 value = str(value)
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)
@@ -1186,15 +1185,15 @@ class Period(_Period):
                     raise ValueError(
                         "Invalid frequency or could not infer: %s" % reso)
 
-        elif isinstance(value, datetime):
+        elif PyDateTime_Check(value):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, np.datetime64):
+        elif is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, date):
+        elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
