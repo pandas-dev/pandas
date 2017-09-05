@@ -177,7 +177,7 @@ you can pass the ``dayfirst`` flag:
 
 .. note::
    Specifying a ``format`` argument will potentially speed up the conversion
-   considerably and on versions later then 0.13.0 explicitly specifying
+   considerably and explicitly specifying
    a format string of '%Y%m%d' takes a faster path still.
 
 If you pass a single string to ``to_datetime``, it returns single ``Timestamp``.
@@ -1946,9 +1946,11 @@ These can easily be converted to a ``PeriodIndex``
 Time Zone Handling
 ------------------
 
-Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
-``dateutil`` support is new in 0.14.1 and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
-Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
+Pandas provides rich support for working with timestamps in different time
+zones using ``pytz`` and ``dateutil`` libraries. ``dateutil`` currently is only
+supported for fixed offset and tzfile zones. The default library is ``pytz``.
+Support for ``dateutil`` is provided for compatibility with other
+applications e.g. if you use ``dateutil`` in other python packages.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
