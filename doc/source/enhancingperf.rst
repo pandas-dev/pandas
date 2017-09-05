@@ -214,7 +214,9 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 .. warning::
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
-   to a cython function. Instead pass the actual ``ndarray`` using the ``.values`` attribute of the Series.
+   to a cython function. Instead pass the actual ``ndarray`` using the
+   ``.values`` attribute of the Series. The reason is that the cython
+   definition is specific to an ndarray and not the passed Series.
 
    So, do not do this:
 
@@ -398,10 +400,8 @@ Read more in the `numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
-Expression Evaluation via :func:`~pandas.eval` (Experimental)
--------------------------------------------------------------
-
-.. versionadded:: 0.13
+Expression Evaluation via :func:`~pandas.eval`
+-----------------------------------------------
 
 The top-level function :func:`pandas.eval` implements expression evaluation of
 :class:`~pandas.Series` and :class:`~pandas.DataFrame` objects.
@@ -538,10 +538,8 @@ Now let's do the same thing but with comparisons:
    of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
    operations in plain Python.
 
-The ``DataFrame.eval`` method (Experimental)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.13
+The ``DataFrame.eval`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the top level :func:`pandas.eval` function you can also
 evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
