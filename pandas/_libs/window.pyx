@@ -56,7 +56,13 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-from skiplist cimport *
+from skiplist cimport (
+    skiplist_t,
+    skiplist_init,
+    skiplist_destroy,
+    skiplist_get,
+    skiplist_insert,
+    skiplist_remove)
 
 cdef extern from "../src/headers/math.h":
     double sqrt(double x) nogil
@@ -1428,15 +1434,16 @@ def roll_generic(ndarray[float64_t, cast=True] input,
     if n == 0:
         return input
 
+    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
+                                      np.array([0.] * offset)]),
+                      win, minp, index, closed)[offset:]
+
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
                                                                closed,
                                                                floor=0)
-    output = np.empty(N, dtype=float)
 
-    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
-                                      np.array([0.] * offset)]),
-                      win, minp, index, closed)[offset:]
+    output = np.empty(N, dtype=float)
 
     if is_variable:
 

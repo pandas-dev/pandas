@@ -365,24 +365,36 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
-
-        # determined by cat ordering
-        idx = self.create_index()
+        # Determined by cat ordering.
+        idx = CategoricalIndex(list("cab"), categories=list("cab"))
         expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
-            idx.get_indexer(idx, method='invalid')
+        with tm.assert_raises_regex(ValueError, "Invalid fill method"):
+            idx.get_indexer(idx, method="invalid")
 
     def test_reindexing(self):
+        np.random.seed(123456789)
 
         ci = self.create_index()
         oidx = Index(np.array(ci))
 
         for n in [1, 2, 5, len(ci)]:
             finder = oidx[np.random.randint(0, len(ci), size=n)]
+            expected = oidx.get_indexer_non_unique(finder)[0]
+
+            actual = ci.get_indexer(finder)
+            tm.assert_numpy_array_equal(expected, actual)
+
+        # see gh-17323
+        #
+        # Even when indexer is equal to the
+        # members in the index, we should
+        # respect duplicates instead of taking
+        # the fast-track path.
+        for finder in [list("aabbca"), list("aababca")]:
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
@@ -426,6 +438,38 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(res, Index(['a', 'b']), exact=True)
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
+
+    def test_is_monotonic(self):
+        c = CategoricalIndex([1, 2, 3])
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], ordered=True)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        assert not c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # non lexsorted categories
+        categories = [9, 0, 1, 2, 3]
+
+        c = CategoricalIndex([9, 0], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
+
+        c = CategoricalIndex([0, 1], categories=categories)
+        assert c.is_monotonic_increasing
+        assert not c.is_monotonic_decreasing
 
     def test_duplicates(self):
 

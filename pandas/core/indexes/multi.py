@@ -91,12 +91,6 @@ class MultiIndex(Index):
             raise ValueError('Length of levels and labels must be the same.')
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
-        if len(levels) == 1:
-            if names:
-                name = names[0]
-            else:
-                name = None
-            return Index(levels[0], name=name, copy=True).take(labels[0])
 
         result = object.__new__(MultiIndex)
 
@@ -465,9 +459,13 @@ class MultiIndex(Index):
         *this is in internal routine*
 
         """
+
+        # for implementations with no useful getsizeof (PyPy)
+        objsize = 24
+
         level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
         label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i) for i in self.names))
+        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -1080,10 +1078,6 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(arrays) == 1:
-            name = None if names is None else names[0]
-            return Index(arrays[0], name=name)
-
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):

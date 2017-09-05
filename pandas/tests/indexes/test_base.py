@@ -17,7 +17,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
-from pandas.core.index import _get_combined_index
+from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -662,6 +662,15 @@ class TestIndex(Base):
         second.name = 'B'
         intersect = first.intersection(second)
         assert intersect.name is None
+
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        i1 = Index(dt_dates, dtype=object)
+        i2 = Index(['aa'], dtype=object)
+        res = i2.intersection(i1)
+
+        assert len(res) == 0
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -2103,3 +2112,19 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+
+class TestIndexUtils(object):
+
+    @pytest.mark.parametrize('data, names, expected', [
+        ([[1, 2, 3]], None, Index([1, 2, 3])),
+        ([[1, 2, 3]], ['name'], Index([1, 2, 3], name='name')),
+        ([['a', 'a'], ['c', 'd']], None,
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]])),
+        ([['a', 'a'], ['c', 'd']], ['L1', 'L2'],
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]],
+                    names=['L1', 'L2'])),
+    ])
+    def test_ensure_index_from_sequences(self, data, names, expected):
+        result = _ensure_index_from_sequences(data, names)
+        tm.assert_index_equal(result, expected)

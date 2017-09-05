@@ -317,9 +317,9 @@ class TestSeriesAggregate(TestData):
 
         # test when mixed w/ callable reducers
         result = s.agg(['size', 'count', 'mean'])
-        expected = Series(OrderedDict({'size': 3.0,
-                                       'count': 2.0,
-                                       'mean': 1.5}))
+        expected = Series(OrderedDict([('size', 3.0),
+                                       ('count', 2.0),
+                                       ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
 

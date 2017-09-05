@@ -13,10 +13,7 @@ import pandas.util.testing as tm
 class CompressionTests(object):
 
     def test_zip(self):
-        try:
-            import zipfile
-        except ImportError:
-            pytest.skip('need zipfile to run')
+        import zipfile
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
@@ -65,10 +62,7 @@ class CompressionTests(object):
                               f, compression='zip')
 
     def test_gzip(self):
-        try:
-            import gzip
-        except ImportError:
-            pytest.skip('need gzip to run')
+        import gzip
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
@@ -94,10 +88,7 @@ class CompressionTests(object):
             tm.assert_frame_equal(result, expected)
 
     def test_bz2(self):
-        try:
-            import bz2
-        except ImportError:
-            pytest.skip('need bz2 to run')
+        import bz2
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()

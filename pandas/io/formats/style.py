@@ -230,7 +230,7 @@ class Styler(object):
             # ... except maybe the last for columns.names
             name = self.data.columns.names[r]
             cs = [BLANK_CLASS if name is None else INDEX_NAME_CLASS,
-                  "level%s" % r]
+                  "level{lvl}".format(lvl=r)]
             name = BLANK_VALUE if name is None else name
             row_es.append({"type": "th",
                            "value": name,
@@ -240,7 +240,8 @@ class Styler(object):
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
-                    cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
+                    cs = [COL_HEADING_CLASS, "level{lvl}".format(lvl=r),
+                          "col{col}".format(col=c)]
                     cs.extend(cell_context.get(
                         "col_headings", {}).get(r, {}).get(c, []))
                     es = {
@@ -264,7 +265,7 @@ class Styler(object):
 
             for c, name in enumerate(self.data.index.names):
                 cs = [INDEX_NAME_CLASS,
-                      "level%s" % c]
+                      "level{lvl}".format(lvl=c)]
                 name = '' if name is None else name
                 index_header_row.append({"type": "th", "value": name,
                                          "class": " ".join(cs)})
@@ -281,7 +282,8 @@ class Styler(object):
         for r, idx in enumerate(self.data.index):
             row_es = []
             for c, value in enumerate(rlabels[r]):
-                rid = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
+                rid = [ROW_HEADING_CLASS, "level{lvl}".format(lvl=c),
+                       "row{row}".format(row=r)]
                 es = {
                     "type": "th",
                     "is_visible": _is_visible(r, c, idx_lengths),
@@ -298,7 +300,8 @@ class Styler(object):
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
-                cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
+                cs = [DATA_CLASS, "row{row}".format(row=r),
+                      "col{col}".format(col=c)]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
@@ -317,7 +320,8 @@ class Styler(object):
                     else:
                         props.append(['', ''])
                 cellstyle.append({'props': props,
-                                  'selector': "row%s_col%s" % (r, c)})
+                                  'selector': "row{row}_col{col}"
+                                  .format(row=r, col=c)})
             body.append(row_es)
 
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
@@ -512,22 +516,23 @@ class Styler(object):
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
                 raise TypeError(
-                    "Function {!r} must return a DataFrame when "
-                    "passed to `Styler.apply` with axis=None".format(func))
+                    "Function {func!r} must return a DataFrame when "
+                    "passed to `Styler.apply` with axis=None"
+                    .format(func=func))
             if not (result.index.equals(data.index) and
                     result.columns.equals(data.columns)):
-                msg = ('Result of {!r} must have identical index and columns '
-                       'as the input'.format(func))
+                msg = ('Result of {func!r} must have identical index and '
+                       'columns as the input'.format(func=func))
                 raise ValueError(msg)
 
         result_shape = result.shape
         expected_shape = self.data.loc[subset].shape
         if result_shape != expected_shape:
-            msg = ("Function {!r} returned the wrong shape.\n"
-                   "Result has shape: {}\n"
-                   "Expected shape:   {}".format(func,
-                                                 result.shape,
-                                                 expected_shape))
+            msg = ("Function {func!r} returned the wrong shape.\n"
+                   "Result has shape: {res}\n"
+                   "Expected shape:   {expect}".format(func=func,
+                                                       res=result.shape,
+                                                       expect=expected_shape))
             raise ValueError(msg)
         self._update_ctx(result)
         return self
@@ -771,7 +776,8 @@ class Styler(object):
 
     @staticmethod
     def _highlight_null(v, null_color):
-        return 'background-color: %s' % null_color if pd.isna(v) else ''
+        return ('background-color: {color}'.format(color=null_color)
+                if pd.isna(v) else '')
 
     def highlight_null(self, null_color='red'):
         """
@@ -839,7 +845,8 @@ class Styler(object):
             # https://github.com/matplotlib/matplotlib/issues/5427
             normed = norm(s.values)
             c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            return ['background-color: %s' % color for color in c]
+            return ['background-color: {color}'.format(color=color)
+                    for color in c]
 
     def set_properties(self, subset=None, **kwargs):
         """
@@ -1182,6 +1189,6 @@ def _maybe_wrap_formatter(formatter):
     elif callable(formatter):
         return formatter
     else:
-        msg = "Expected a template string or callable, got {} instead".format(
-            formatter)
+        msg = ("Expected a template string or callable, got {formatter} "
+               "instead".format(formatter=formatter))
         raise TypeError(msg)

@@ -184,6 +184,7 @@ class DateOffset(object):
     )
     _use_relativedelta = False
     _adjust_dst = False
+    _typ = "dateoffset"
 
     # default for prior pickles
     normalize = False
@@ -260,10 +261,10 @@ class DateOffset(object):
         """
 
         if not type(self) is DateOffset:
-            raise NotImplementedError("DateOffset subclass %s "
+            raise NotImplementedError("DateOffset subclass {name} "
                                       "does not have a vectorized "
-                                      "implementation"
-                                      % (self.__class__.__name__,))
+                                      "implementation".format(
+                                          name=self.__class__.__name__))
         relativedelta_fast = set(['years', 'months', 'weeks',
                                   'days', 'hours', 'minutes',
                                   'seconds', 'microseconds'])
@@ -294,10 +295,10 @@ class DateOffset(object):
             return i + (self._offset * self.n)
         else:
             # relativedelta with other keywords
+            kwd = set(self.kwds) - relativedelta_fast
             raise NotImplementedError("DateOffset with relativedelta "
-                                      "keyword(s) %s not able to be "
-                                      "applied vectorized" %
-                                      (set(self.kwds) - relativedelta_fast),)
+                                      "keyword(s) {kwd} not able to be "
+                                      "applied vectorized".format(kwd=kwd))
 
     def isAnchored(self):
         return (self.n == 1)
@@ -338,19 +339,20 @@ class DateOffset(object):
                 if attr not in exclude:
                     attrs.append('='.join((attr, repr(getattr(self, attr)))))
 
+        plural = ''
         if abs(self.n) != 1:
             plural = 's'
-        else:
-            plural = ''
 
-        n_str = ""
+        n_str = ''
         if self.n != 1:
-            n_str = "%s * " % self.n
+            n_str = '{n} * '.format(n=self.n)
 
-        out = '<%s' % n_str + className + plural
+        attrs_str = ''
         if attrs:
-            out += ': ' + ', '.join(attrs)
-        out += '>'
+            attrs_str = ': ' + ', '.join(attrs)
+
+        repr_content = ''.join([n_str, className, plural, attrs_str])
+        out = '<{content}>'.format(content=repr_content)
         return out
 
     @property
@@ -500,7 +502,7 @@ class DateOffset(object):
             return repr(self)
 
         if self.n != 1:
-            fstr = '%d%s' % (self.n, code)
+            fstr = '{n}{code}'.format(n=self.n, code=code)
         else:
             fstr = code
 
@@ -508,7 +510,7 @@ class DateOffset(object):
 
     @property
     def nanos(self):
-        raise ValueError("{0} is a non-fixed frequency".format(self))
+        raise ValueError("{name} is a non-fixed frequency".format(name=self))
 
 
 class SingleConstructorOffset(DateOffset):
@@ -517,7 +519,7 @@ class SingleConstructorOffset(DateOffset):
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
-            raise ValueError("Bad freq suffix %s" % suffix)
+            raise ValueError("Bad freq suffix {suffix}".format(suffix=suffix))
         return cls()
 
 
@@ -530,21 +532,21 @@ class BusinessMixin(object):
     def __repr__(self):
         className = getattr(self, '_outputName', self.__class__.__name__)
 
+        plural = ''
         if abs(self.n) != 1:
             plural = 's'
-        else:
-            plural = ''
 
-        n_str = ""
+        n_str = ''
         if self.n != 1:
-            n_str = "%s * " % self.n
+            n_str = '{n} * '.format(n=self.n)
 
-        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        repr_content = ''.join([n_str, className, plural, self._repr_attrs()])
+        out = '<{content}>'.format(content=repr_content)
         return out
 
     def _repr_attrs(self):
         if self.offset:
-            attrs = ['offset=%s' % repr(self.offset)]
+            attrs = ['offset={offset!r}'.format(offset=self.offset)]
         else:
             attrs = None
         out = ''
@@ -600,7 +602,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return repr(self)
 
         if self.n != 1:
-            fstr = '%d%s' % (self.n, code)
+            fstr = '{n}{code}'.format(n=self.n, code=code)
         else:
             fstr = code
 
@@ -776,12 +778,12 @@ class BusinessHourMixin(BusinessMixin):
             # create dummy datetime to calcurate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
         else:
             self.daytime = False
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 2, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
 
     @apply_wraps
     def rollback(self, dt):
@@ -905,7 +907,7 @@ class BusinessHourMixin(BusinessMixin):
             op = self._prev_opening_time(dt)
         else:
             op = self._next_opening_time(dt)
-        span = tslib.tot_seconds(dt - op)
+        span = (dt - op).total_seconds()
         if span <= businesshours:
             return True
         else:
@@ -1108,7 +1110,8 @@ class MonthOffset(SingleConstructorOffset):
         if self.isAnchored:
             return self.rule_code
         else:
-            return "%s-%s" % (self.rule_code, _int_to_month[self.n])
+            return "{code}-{month}".format(code=self.rule_code,
+                                           month=_int_to_month[self.n])
 
 
 class MonthEnd(MonthOffset):
@@ -1175,9 +1178,9 @@ class SemiMonthOffset(DateOffset):
         else:
             self.day_of_month = int(day_of_month)
         if not self._min_day_of_month <= self.day_of_month <= 27:
-            raise ValueError('day_of_month must be '
-                             '{}<=day_of_month<=27, got {}'.format(
-                                 self._min_day_of_month, self.day_of_month))
+            msg = 'day_of_month must be {min}<=day_of_month<=27, got {day}'
+            raise ValueError(msg.format(min=self._min_day_of_month,
+                                        day=self.day_of_month))
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
@@ -1189,7 +1192,7 @@ class SemiMonthOffset(DateOffset):
 
     @property
     def rule_code(self):
-        suffix = '-{}'.format(self.day_of_month)
+        suffix = '-{day_of_month}'.format(day_of_month=self.day_of_month)
         return self._prefix + suffix
 
     @apply_wraps
@@ -1575,8 +1578,8 @@ class Week(DateOffset):
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise ValueError('Day must be 0<=day<=6, got %d' %
-                                 self.weekday)
+                raise ValueError('Day must be 0<=day<=6, got {day}'
+                                 .format(day=self.weekday))
 
         self._inc = timedelta(weeks=1)
         self.kwds = kwds
@@ -1629,7 +1632,7 @@ class Week(DateOffset):
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
-            suffix = '-%s' % (_int_to_weekday[self.weekday])
+            suffix = '-{weekday}'.format(weekday=_int_to_weekday[self.weekday])
         return self._prefix + suffix
 
     @classmethod
@@ -1695,11 +1698,11 @@ class WeekOfMonth(DateOffset):
             raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got %d' %
-                             self.weekday)
+            raise ValueError('Day must be 0<=day<=6, got {day}'
+                             .format(day=self.weekday))
         if self.week < 0 or self.week > 3:
-            raise ValueError('Week must be 0<=day<=3, got %d' %
-                             self.week)
+            raise ValueError('Week must be 0<=week<=3, got {week}'
+                             .format(week=self.week))
 
         self.kwds = kwds
 
@@ -1745,15 +1748,18 @@ class WeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%d%s' % (self._prefix, self.week + 1,
-                            _int_to_weekday.get(self.weekday, ''))
+        weekday = _int_to_weekday.get(self.weekday, '')
+        return '{prefix}-{week}{weekday}'.format(prefix=self._prefix,
+                                                 week=self.week + 1,
+                                                 weekday=weekday)
 
     _prefix = 'WOM'
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError("Prefix %r requires a suffix." % (cls._prefix))
+            raise ValueError("Prefix {prefix!r} requires a suffix."
+                             .format(prefix=cls._prefix))
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
@@ -1788,8 +1794,8 @@ class LastWeekOfMonth(DateOffset):
             raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got %d' %
-                             self.weekday)
+            raise ValueError('Day must be 0<=day<=6, got {day}'
+                             .format(day=self.weekday))
 
         self.kwds = kwds
 
@@ -1828,14 +1834,17 @@ class LastWeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_weekday.get(self.weekday, ''))
+        weekday = _int_to_weekday.get(self.weekday, '')
+        return '{prefix}-{weekday}'.format(prefix=self._prefix,
+                                           weekday=weekday)
 
     _prefix = 'LWOM'
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError("Prefix %r requires a suffix." % (cls._prefix))
+            raise ValueError("Prefix {prefix!r} requires a suffix."
+                             .format(prefix=cls._prefix))
         # TODO: handle n here...
         weekday = _weekday_to_int[suffix]
         return cls(weekday=weekday)
@@ -1875,7 +1884,8 @@ class QuarterOffset(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_month[self.startingMonth])
+        month = _int_to_month[self.startingMonth]
+        return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -2044,8 +2054,7 @@ class QuarterBegin(QuarterOffset):
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
-        # freq_month = self.startingMonth
-        freqstr = 'Q-%s' % (_int_to_month[freq_month],)
+        freqstr = 'Q-{month}'.format(month=_int_to_month[freq_month])
         return self._beg_apply_index(i, freqstr)
 
 
@@ -2070,7 +2079,8 @@ class YearOffset(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_month[self.month])
+        month = _int_to_month[self.month]
+        return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
 class BYearEnd(YearOffset):
@@ -2245,7 +2255,7 @@ class YearBegin(YearOffset):
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.month == 1 else self.month - 1
-        freqstr = 'A-%s' % (_int_to_month[freq_month],)
+        freqstr = 'A-{month}'.format(month=_int_to_month[freq_month])
         return self._beg_apply_index(i, freqstr)
 
     def onOffset(self, dt):
@@ -2311,7 +2321,8 @@ class FY5253(DateOffset):
             raise ValueError('N cannot be 0')
 
         if self.variation not in ["nearest", "last"]:
-            raise ValueError('%s is not a valid variation' % self.variation)
+            raise ValueError('{variation} is not a valid variation'
+                             .format(variation=self.variation))
 
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
@@ -2437,8 +2448,9 @@ class FY5253(DateOffset):
 
     @property
     def rule_code(self):
+        prefix = self._get_prefix()
         suffix = self.get_rule_code_suffix()
-        return "%s-%s" % (self._get_prefix(), suffix)
+        return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
 
     def _get_prefix(self):
         return self._prefix
@@ -2450,9 +2462,11 @@ class FY5253(DateOffset):
             return self._suffix_prefix_last
 
     def get_rule_code_suffix(self):
-        return '%s-%s-%s' % (self._get_suffix_prefix(),
-                             _int_to_month[self.startingMonth],
-                             _int_to_weekday[self.weekday])
+        prefix = self._get_suffix_prefix()
+        month = _int_to_month[self.startingMonth]
+        weekday = _int_to_weekday[self.weekday]
+        return '{prefix}-{month}-{weekday}'.format(prefix=prefix, month=month,
+                                                   weekday=weekday)
 
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
@@ -2462,7 +2476,7 @@ class FY5253(DateOffset):
             variation = "last"
         else:
             raise ValueError(
-                "Unable to parse varion_code: %s" % (varion_code,))
+                "Unable to parse varion_code: {code}".format(code=varion_code))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
@@ -2627,8 +2641,9 @@ class FY5253Quarter(DateOffset):
     @property
     def rule_code(self):
         suffix = self._offset.get_rule_code_suffix()
-        return "%s-%s" % (self._prefix,
-                          "%s-%d" % (suffix, self.qtr_with_extra_week))
+        qtr = self.qtr_with_extra_week
+        return "{prefix}-{suffix}-{qtr}".format(prefix=self._prefix,
+                                                suffix=suffix, qtr=qtr)
 
     @classmethod
     def _from_name(cls, *args):
@@ -2711,8 +2726,8 @@ class Tick(SingleConstructorOffset):
         except ApplyTypeError:
             return NotImplemented
         except OverflowError:
-            raise OverflowError("the add operation between {} and {} "
-                                "will overflow".format(self, other))
+            raise OverflowError("the add operation between {self} and {other} "
+                                "will overflow".format(self=self, other=other))
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
@@ -2770,7 +2785,8 @@ class Tick(SingleConstructorOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
-        raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
+        raise ApplyTypeError('Unhandled type: {type_str}'
+                             .format(type_str=type(other).__name__))
 
     _prefix = 'undefined'
 
@@ -2920,7 +2936,8 @@ def generate_range(start=None, end=None, periods=None,
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
-                raise ValueError('Offset %s did not increment date' % offset)
+                raise ValueError('Offset {offset} did not increment date'
+                                 .format(offset=offset))
             cur = next_date
     else:
         while cur >= end:
@@ -2929,7 +2946,8 @@ def generate_range(start=None, end=None, periods=None,
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date >= cur:
-                raise ValueError('Offset %s did not decrement date' % offset)
+                raise ValueError('Offset {offset} did not decrement date'
+                                 .format(offset=offset))
             cur = next_date
 
 
