@@ -32,7 +32,7 @@ except:
 
 
 from cython cimport Py_ssize_t
-from cpython cimport PyFloat_Check, PyString_Check, PyUnicode_Check
+from cpython cimport PyFloat_Check
 
 cimport cython
 
@@ -50,32 +50,18 @@ from datetime cimport (
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime)
 
-cdef int64_t NPY_NAT = np.iinfo(np.int64).min
+from util cimport is_string_object, get_nat
 
-# TODO: cdef
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+cdef int64_t NPY_NAT = util.get_nat()
+
+cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 
-# Redundant with tslib
-@cython.returns(cython.bint)
-@cython.locals(val=object)
-@cython.inline
-@cython.cfunc
-def _checknull_with_nat(val):
+cdef inline bint _checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return (val is None or
             (PyFloat_Check(val) and val != val) or
             (isinstance(val, datetime) and not val == val))
-
-
-@cython.returns(cython.bint)
-@cython.locals(obj=object)
-@cython.inline
-@cython.cfunc
-def is_string_object(obj):
-    # ported from `util` to avoid dependency.  Also equivalent to
-    # `isinstance(obj, string_types)`
-    return PyString_Check(obj) or PyUnicode_Check(obj)
 
 
 def array_strptime(ndarray[object] values, object fmt,
@@ -308,9 +294,9 @@ def array_strptime(ndarray[object] values, object fmt,
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
         if julian == -1 and week_of_year != -1 and weekday != -1:
-            week_starts_mon = True if week_of_year_start == 0 else False
+            week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
-                                              week_starts_mon)
+                                              week_starts_Mon)
         # Cannot pre-calculate datetime_date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
@@ -609,10 +595,8 @@ _CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
 
-@cython.returns(int)
-@cython.locals(year=int, week_of_year=int, day_of_week=int, week_start_mon=int)
-@cython.cfunc
-def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_mon):
+cdef _calc_julian_from_U_or_W(int year, int week_of_year,
+                              int day_of_week, int week_starts_Mon):
     """Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
     assumes the week starts on Sunday or Monday (6 or 0)."""
@@ -624,10 +608,10 @@ def _calc_julian_from_U_or_W(year, week_of_year, day_of_week, week_starts_mon):
     # If we are dealing with the %U directive (week starts on Sunday), it's
     # easier to just shift the view to Sunday being the first day of the
     # week.
-    if not week_starts_mon:
+    if not week_starts_Mon:
         first_weekday = (first_weekday + 1) % 7
         day_of_week = (day_of_week + 1) % 7
-    
+
     # Need to watch out for a week 0 (when the first day of the year is not
     # the same as that specified by %U or %W).
     week_0_length = (7 - first_weekday) % 7
