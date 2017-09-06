@@ -249,7 +249,11 @@ def test_tab_completion(mframe):
          'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
          'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
          'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+<<<<<<< HEAD
          'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe',
+=======
+         'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding',
+>>>>>>> e99897c... ENH: gb.is_monotonic_increasing, is_monotonic_decreasing  #17015
          'is_monotonic_increasing', 'is_monotonic_decreasing'])
     assert results == expected
 

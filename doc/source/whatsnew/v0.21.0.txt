@@ -323,6 +323,7 @@ Various enhancements
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
+<<<<<<< HEAD
 
 - Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
 - Support for `PEP 519 -- Adding a file system path protocol
@@ -347,6 +348,10 @@ Various enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
 - :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
+=======
+- :func: groupby.is_monotonic_increasing and .is_monotonic_decreasing extend Series.is_monotonic_increasing to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
+
+>>>>>>> e99897c... ENH: gb.is_monotonic_increasing, is_monotonic_decreasing  #17015
 
 .. _whatsnew_0210.api_breaking:
 
