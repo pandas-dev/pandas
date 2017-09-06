@@ -432,7 +432,7 @@ I/O
 Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
-
+- Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
