@@ -858,6 +858,9 @@ class NaTType(_NaT):
         return (__nat_unpickle, (None, ))
 
     def total_seconds(self):
+        """
+        Total duration of timedelta in seconds (to ns precision)
+        """
         # GH 10939
         return np.nan
 
