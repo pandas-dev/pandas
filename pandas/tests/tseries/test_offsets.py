@@ -1952,6 +1952,10 @@ class CustomBusinessMonthBase(object):
         _check_roundtrip(self._object(2))
         _check_roundtrip(self._object() * 2)
 
+    def test_copy(self):
+        off = self._object(weekmask='Mon Wed Fri')
+        assert off == off.copy()
+
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _object = CBMonthEnd
