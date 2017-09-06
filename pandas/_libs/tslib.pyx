@@ -1278,19 +1278,15 @@ cdef class _Timestamp(datetime):
     cpdef _get_field(self, field):
         cdef:
             int64_t val
-            ndarray[int64_t] date_array = np.empty(1, dtype=np.int64)
         val = self._maybe_convert_value_to_local()
-        date_array[0] = val
-        out = get_date_field(date_array, field)
+        out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
     cpdef _get_named_field(self, field):
         cdef:
             int64_t val
-            ndarray[int64_t] date_array = np.empty(1, dtype=np.int64)
         val = self._maybe_convert_value_to_local()
-        date_array[0] = val
-        out = get_date_name_field(date_array, field)
+        out = get_date_name_field(np.array([val], dtype=np.int64), field)
         return out[0]
 
     cpdef _get_start_end_field(self, field):
