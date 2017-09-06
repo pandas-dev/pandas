@@ -204,7 +204,7 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        doc : tree-like
+        doc : parser object
             The DOM from which to parse the table element.
 
         match : str or regular expression
@@ -221,7 +221,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tables : list of node-like
+        tables : list of HTML table elements
             A list of <table> elements to be parsed into raw data.
         """
         raise AbstractMethodError(self)
@@ -231,7 +231,7 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        obj : node-like
+        obj : an HTML element
             A DOM node.
 
         Returns
@@ -246,16 +246,16 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        obj : node-like
+        obj : an HTML element
             A DOM node.
 
-        tag : string
+        tag : str
             Tag to be checked for equality
 
         Returns
         -------
         boolean
-            Does the object match tag 'tag'?
+            boolean indicating if the object is equal to tag 'tag'
         """
         raise AbstractMethodError(self)
 
@@ -265,16 +265,16 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        obj : node-like
+        obj : an HTML element
             A DOM node.
 
-        tag : string
+        tag : str
             Tag to be found in this DOM
 
         Returns
         -------
         boolean
-            Does the object contain tag 'tag'?
+            boolean indicating if the object contains tag 'tag'
         """
         raise AbstractMethodError(self)
 
@@ -283,11 +283,11 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        obj : node-like
+        obj : an HTML row element
 
         Returns
         -------
-        columns : list of node-like
+        columns : list of HTML td elements
             These are the elements of each row, i.e., the columns.
         """
         raise AbstractMethodError(self)
@@ -297,13 +297,13 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        table : node-like
+        table : an HTML table element
             A table element that contains row elements.
 
         Returns
         -------
-        rows : list of node-like
-            A list row elements of a table, usually <tr> or <th> elements.
+        rows : list of HTML row elements
+            A list of row elements of a table, usually <tr> or <th> elements.
         """
         raise AbstractMethodError(self)
 
@@ -312,12 +312,12 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        table : node-like
+        table : an HTML table element
             A table element that contains row elements.
 
         Returns
         -------
-        thead : node-like
+        thead : an HTML thead element
             A <thead>...</thead> element.
         """
         raise AbstractMethodError(self)
@@ -327,12 +327,12 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        table : node-like
+        table : an HTML table element
             A table element that contains row elements.
 
         Returns
         -------
-        tbody : node-like
+        tbody : an HTML tbody element
             A <tbody>...</tbody> element.
         """
         raise AbstractMethodError(self)
@@ -342,12 +342,12 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        table : node-like
+        table : an HTML table element
             A table element that contains row elements.
 
         Returns
         -------
-        tfoot : node-like
+        tfoot : an HTML tfoot element
             A <tfoot>...</tfoot> element.
         """
         raise AbstractMethodError(self)
@@ -384,17 +384,17 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        table_html : node-like
+        table_html : an HTML table element
             A single table element
 
         Returns
         -------
-        header, body, footer
-        header : list of list of node-like
+        tuple of (header, body, footer)
+        header : list of list of HTML header elements
              List of rows, each of which is a list of parsed header elements
-        body : list of list of node-like
+        body : list of list of HTML body elements
              List of rows, each of which is a list of parsed body elements
-        footer : list of list of node-like
+        footer : list of list of HTML footer elements
              List of rows, each of which is a list of parsed footer elements
         """
         header_rows = []
@@ -441,8 +441,8 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        rows : list of list of node-like
-            List of rows, each of which is a list of nodes
+        rows : list of list of HTML td elements
+            List of rows, each of which is a list of elements in that row
 
         fill_rowspan : boolean
             Should a rowspan fill every item in the rowspan (True) or only the
@@ -450,9 +450,9 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        res : list of list of node-like
-            List of rows, each of which is a list of nodes, respecting
-            colspan/rowspan
+        res : list of list of HTML td elements
+            List of rows, each of which is a list of elements in that row,
+            respecting colspan/rowspan
         """
         res = []
         saved_span = []
