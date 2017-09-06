@@ -409,16 +409,17 @@ _offset_to_period_map = {
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 for __prefix in need_suffix:
     for _m in tslib._MONTHS:
-        _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
-            _offset_to_period_map[__prefix]
+        _alias = '{prefix}-{month}'.format(prefix=__prefix, month=_m)
+        _offset_to_period_map[_alias] = _offset_to_period_map[__prefix]
 for __prefix in ['A', 'Q']:
     for _m in tslib._MONTHS:
-        _alias = '%s-%s' % (__prefix, _m)
+        _alias = '{prefix}-{month}'.format(prefix=__prefix, month=_m)
         _offset_to_period_map[_alias] = _alias
 
 _days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 for _d in _days:
-    _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
+    _alias = 'W-{day}'.format(day=_d)
+    _offset_to_period_map[_alias] = _alias
 
 
 def get_period_alias(offset_str):
@@ -587,7 +588,7 @@ def _base_and_stride(freqstr):
     groups = opattern.match(freqstr)
 
     if not groups:
-        raise ValueError("Could not evaluate %s" % freqstr)
+        raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
 
     stride = groups.group(1)
 
@@ -775,8 +776,8 @@ def infer_freq(index, warn=True):
         if not (is_datetime64_dtype(values) or
                 is_timedelta64_dtype(values) or
                 values.dtype == object):
-            raise TypeError("cannot infer freq from a non-convertible "
-                            "dtype on a Series of {0}".format(index.dtype))
+            raise TypeError("cannot infer freq from a non-convertible dtype "
+                            "on a Series of {dtype}".format(dtype=index.dtype))
         index = values
 
     if is_period_arraylike(index):
@@ -789,7 +790,7 @@ def infer_freq(index, warn=True):
     if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
             raise TypeError("cannot infer freq from a non-convertible index "
-                            "type {0}".format(type(index)))
+                            "type {type}".format(type=type(index)))
         index = index.values
 
     if not isinstance(index, pd.DatetimeIndex):
@@ -956,15 +957,17 @@ class _FrequencyInferer(object):
         if annual_rule:
             nyears = self.ydiffs[0]
             month = _month_aliases[self.rep_stamp.month]
-            return _maybe_add_count('%s-%s' % (annual_rule, month), nyears)
+            alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
+            return _maybe_add_count(alias, nyears)
 
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
             mod_dict = {0: 12, 2: 11, 1: 10}
             month = _month_aliases[mod_dict[self.rep_stamp.month % 3]]
-            return _maybe_add_count('%s-%s' % (quarterly_rule, month),
-                                    nquarters)
+            alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
+                                              month=month)
+            return _maybe_add_count(alias, nquarters)
 
         monthly_rule = self._get_monthly_rule()
         if monthly_rule:
@@ -974,8 +977,8 @@ class _FrequencyInferer(object):
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
-                return _maybe_add_count('W-%s' % alias, days / 7)
+                day = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                return _maybe_add_count('W-{day}'.format(day=day), days / 7)
             else:
                 return _maybe_add_count('D', days)
 
@@ -1048,7 +1051,7 @@ class _FrequencyInferer(object):
         week = week_of_months[0] + 1
         wd = _weekday_rule_aliases[weekdays[0]]
 
-        return 'WOM-%d%s' % (week, wd)
+        return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
 
 
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
@@ -1058,15 +1061,16 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
-                return _maybe_add_count('W-%s' % alias, days / 7)
+                wd = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                alias = 'W-{weekday}'.format(weekday=wd)
+                return _maybe_add_count(alias, days / 7)
             else:
                 return _maybe_add_count('D', days)
 
 
 def _maybe_add_count(base, count):
     if count != 1:
-        return '%d%s' % (count, base)
+        return '{count}{base}'.format(count=int(count), base=base)
     else:
         return base
 

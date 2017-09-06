@@ -13,7 +13,7 @@ from pandas.compat import (
 )
 
 from pandas import compat
-from pandas.compat.numpy import function as nv, _np_version_under1p8
+from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name
 
 from pandas.core.dtypes.common import (
@@ -62,6 +62,8 @@ from pandas.util._validators import validate_kwargs
 import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
+
+from pandas.plotting._core import boxplot_frame_groupby
 
 from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
 from pandas._libs.lib import count_level_2d
@@ -168,8 +170,9 @@ _series_apply_whitelist = ((_common_apply_whitelist |
                             {'nlargest', 'nsmallest'}) -
                            {'boxplot'}) | frozenset(['dtype', 'unique'])
 
-_dataframe_apply_whitelist = (_common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith']))
+_dataframe_apply_whitelist = ((_common_apply_whitelist |
+                              frozenset(['dtypes', 'corrwith'])) -
+                              {'boxplot'})
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
@@ -2629,13 +2632,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     try:
         if isinstance(obj, DataFrame):
-            all_in_columns = all(g in obj.columns for g in keys)
+            all_in_columns_index = all(g in obj.columns or g in obj.index.names
+                                       for g in keys)
         else:
-            all_in_columns = False
+            all_in_columns_index = False
     except Exception:
-        all_in_columns = False
+        all_in_columns_index = False
 
-    if not any_callable and not all_in_columns and \
+    if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
         keys = [com._asarray_tuplesafe(keys)]
@@ -3257,11 +3261,7 @@ class SeriesGroupBy(GroupBy):
             d = np.diff(np.r_[idx, len(ids)])
             if dropna:
                 m = ids[lab == -1]
-                if _np_version_under1p8:
-                    mi, ml = algorithms.factorize(m)
-                    d[ml] = d[ml] - np.bincount(mi)
-                else:
-                    np.add.at(d, m, -1)
+                np.add.at(d, m, -1)
                 acc = rep(d)[mask]
             else:
                 acc = rep(d)
@@ -4283,9 +4283,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results.index = _default_index(len(results))
         return results
 
-
-from pandas.plotting._core import boxplot_frame_groupby  # noqa
-DataFrameGroupBy.boxplot = boxplot_frame_groupby
+    boxplot = boxplot_frame_groupby
 
 
 class PanelGroupBy(NDFrameGroupBy):

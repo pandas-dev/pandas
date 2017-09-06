@@ -2,16 +2,13 @@ from datetime import datetime, date, timedelta
 import operator
 
 from cpython cimport (
+    PyUnicode_Check,
     PyObject_RichCompareBool,
-    Py_EQ, Py_NE,
-)
+    Py_EQ, Py_NE)
 
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
-
-cdef extern from "datetime_helper.h":
-    double total_seconds(object)
 
 from libc.stdlib cimport free
 
@@ -19,19 +16,29 @@ from pandas import compat
 from pandas.compat import PY2
 
 cimport cython
-from datetime cimport *
+
+from datetime cimport (
+    is_leapyear,
+    PyDateTime_IMPORT,
+    pandas_datetimestruct,
+    pandas_datetimestruct_to_datetime,
+    pandas_datetime_to_datetimestruct,
+    PANDAS_FR_ns,
+    INT32_MIN)
+
+
 cimport util, lib
+
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT, have_pytz, _get_utcoffset)
+                                NaT, _get_utcoffset)
 from tslib cimport (
     maybe_get_tz,
     _is_utc,
     _is_tzlocal,
     _get_dst_info,
-    _nat_scalar_rules,
-)
+    _nat_scalar_rules)
 
 from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
@@ -111,26 +118,6 @@ initialize_daytime_conversion_factor_matrix()
 
 # Period logic
 #----------------------------------------------------------------------
-
-cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
-    """
-    Get freq+multiple ordinal value from corresponding freq-only ordinal value.
-    For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
-    integer).
-    """
-    if mult == 1:
-        return period_ord
-
-    return (period_ord - 1) // mult
-
-cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
-    """
-    Get freq-only ordinal value from corresponding freq+multiple ordinal.
-    """
-    if mult == 1:
-        return period_ord_w_mult
-
-    return period_ord_w_mult * mult + 1;
 
 
 @cython.wraparound(False)
@@ -562,7 +549,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
                                               &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(_get_utcoffset(tz, dt).total_seconds()) * 1000000000
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             curr_reso = _reso_stamp(&dts)
@@ -610,9 +597,6 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
 
-    if not have_pytz:
-        raise Exception('Could not find pytz module')
-
     if _is_utc(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
@@ -632,7 +616,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                                               &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            delta = int(_get_utcoffset(tz, dt).total_seconds()) * 1000000000
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
@@ -683,12 +667,16 @@ class IncompatibleFrequency(ValueError):
 
 cdef class _Period(object):
 
-    cdef public:
+    cdef readonly:
         int64_t ordinal
         object freq
 
     _comparables = ['name', 'freqstr']
     _typ = 'period'
+
+    def __cinit__(self, ordinal, freq):
+        self.ordinal = ordinal
+        self.freq = freq
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
@@ -713,9 +701,8 @@ cdef class _Period(object):
         if ordinal == iNaT:
             return NaT
         else:
-            self = _Period.__new__(cls)
-            self.ordinal = ordinal
-            self.freq = cls._maybe_convert_freq(freq)
+            freq = cls._maybe_convert_freq(freq)
+            self = _Period.__new__(cls, ordinal, freq)
             return self
 
     def __richcmp__(self, other, op):
@@ -767,7 +754,7 @@ cdef class _Period(object):
     def __add__(self, other):
         if isinstance(self, Period):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
+                                  offsets.DateOffset,
                                   Timedelta)):
                 return self._add_delta(other)
             elif other is NaT:
@@ -785,7 +772,7 @@ cdef class _Period(object):
     def __sub__(self, other):
         if isinstance(self, Period):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.Tick, offsets.DateOffset,
+                                  offsets.DateOffset,
                                   Timedelta)):
                 neg_other = -other
                 return self + neg_other

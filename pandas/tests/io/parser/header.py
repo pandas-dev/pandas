@@ -286,3 +286,10 @@ q,r,s,t,u,v
             self.read_csv(StringIO(data), sep=',', header=['a', 'b'])
         with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), sep=',', header='string_header')
+
+    def test_singleton_header(self):
+        # See GH #7757
+        data = """a,b,c\n0,1,2\n1,2,3"""
+        df = self.read_csv(StringIO(data), header=[0])
+        expected = DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
+        tm.assert_frame_equal(df, expected)
