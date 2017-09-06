@@ -40,7 +40,7 @@ from tslib cimport (
     _get_dst_info,
     _nat_scalar_rules)
 
-from tslibs.parsing import parse_time_string, NAT_SENTINEL
+from .parsing import parse_time_string, NAT_SENTINEL
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
