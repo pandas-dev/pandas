@@ -537,15 +537,12 @@ class TestMultiIndex(Base):
             self.index.astype(np.dtype(int))
 
     def test_constructor_single_level(self):
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]], names=['first'])
-        assert isinstance(single_level, Index)
-        assert not isinstance(single_level, MultiIndex)
-        assert single_level.name == 'first'
-
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]])
-        assert single_level.name is None
+        result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                            labels=[[0, 1, 2, 3]], names=['first'])
+        assert isinstance(result, MultiIndex)
+        expected = Index(['foo', 'bar', 'baz', 'qux'], name='first')
+        tm.assert_index_equal(result.levels[0], expected)
+        assert result.names == ['first']
 
     def test_constructor_no_levels(self):
         tm.assert_raises_regex(ValueError, "non-zero number "
@@ -768,8 +765,9 @@ class TestMultiIndex(Base):
 
         # 1 level
         result = MultiIndex.from_arrays(arrays=[[]], names=['A'])
+        assert isinstance(result, MultiIndex)
         expected = Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # N levels
         for N in [2, 3]:
@@ -830,7 +828,7 @@ class TestMultiIndex(Base):
         # 1 level
         result = MultiIndex.from_product([[]], names=['A'])
         expected = pd.Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # 2 levels
         l1 = [[], ['foo', 'bar', 'baz'], []]

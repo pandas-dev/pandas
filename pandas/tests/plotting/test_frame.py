@@ -380,6 +380,82 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45,
                                         ylabelsize=7)
 
+    def test_subplots_timeseries_y_axis(self):
+        # GH16953
+        data = {"numeric": np.array([1, 2, 5]),
+                "timedelta": [pd.Timedelta(-10, unit="s"),
+                              pd.Timedelta(10, unit="m"),
+                              pd.Timedelta(10, unit="h")],
+                "datetime_no_tz": [pd.to_datetime("2017-08-01 00:00:00"),
+                                   pd.to_datetime("2017-08-01 02:00:00"),
+                                   pd.to_datetime("2017-08-02 00:00:00")],
+                "datetime_all_tz": [pd.to_datetime("2017-08-01 00:00:00",
+                                                   utc=True),
+                                    pd.to_datetime("2017-08-01 02:00:00",
+                                                   utc=True),
+                                    pd.to_datetime("2017-08-02 00:00:00",
+                                                   utc=True)],
+                "text": ["This", "should", "fail"]}
+        testdata = DataFrame(data)
+
+        ax_numeric = testdata.plot(y="numeric")
+        assert (ax_numeric.get_lines()[0].get_data()[1] ==
+                testdata["numeric"].values).all()
+        ax_timedelta = testdata.plot(y="timedelta")
+        assert (ax_timedelta.get_lines()[0].get_data()[1] ==
+                testdata["timedelta"].values).all()
+        ax_datetime_no_tz = testdata.plot(y="datetime_no_tz")
+        assert (ax_datetime_no_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_no_tz"].values).all()
+        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
+        assert (ax_datetime_all_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_all_tz"].values).all()
+        with pytest.raises(TypeError):
+            testdata.plot(y="text")
+
+    @pytest.mark.xfail(reason='not support for period, categorical, '
+                       'datetime_mixed_tz')
+    def test_subplots_timeseries_y_axis_not_supported(self):
+        """
+        This test will fail for:
+            period:
+                since period isn't yet implemented in ``select_dtypes``
+                and because it will need a custom value converter +
+                tick formater (as was done for x-axis plots)
+
+            categorical:
+                 because it will need a custom value converter +
+                 tick formater (also doesn't work for x-axis, as of now)
+
+            datetime_mixed_tz:
+                because of the way how pandas handels ``Series`` of
+                ``datetime`` objects with different timezone,
+                generally converting ``datetime`` objects in a tz-aware
+                form could help with this problem
+        """
+        data = {"numeric": np.array([1, 2, 5]),
+                "period": [pd.Period('2017-08-01 00:00:00', freq='H'),
+                           pd.Period('2017-08-01 02:00', freq='H'),
+                           pd.Period('2017-08-02 00:00:00', freq='H')],
+                "categorical": pd.Categorical(["c", "b", "a"],
+                                              categories=["a", "b", "c"],
+                                              ordered=False),
+                "datetime_mixed_tz": [pd.to_datetime("2017-08-01 00:00:00",
+                                                     utc=True),
+                                      pd.to_datetime("2017-08-01 02:00:00"),
+                                      pd.to_datetime("2017-08-02 00:00:00")]}
+        testdata = pd.DataFrame(data)
+        ax_period = testdata.plot(x="numeric", y="period")
+        assert (ax_period.get_lines()[0].get_data()[1] ==
+                testdata["period"].values).all()
+        ax_categorical = testdata.plot(x="numeric", y="categorical")
+        assert (ax_categorical.get_lines()[0].get_data()[1] ==
+                testdata["categorical"].values).all()
+        ax_datetime_mixed_tz = testdata.plot(x="numeric",
+                                             y="datetime_mixed_tz")
+        assert (ax_datetime_mixed_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_mixed_tz"].values).all()
+
     @pytest.mark.slow
     def test_subplots_layout(self):
         # GH 6667
