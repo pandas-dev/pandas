@@ -107,7 +107,24 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
 
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
-    """See tslib.parse_time_string.__doc__"""    
+    """
+    Try hard to parse datetime string, leveraging dateutil plus some extra
+    goodies like quarter recognition.
+
+    Parameters
+    ----------
+    arg : compat.string_types
+    freq : str or DateOffset, default None
+        Helps with interpreting time string if supplied
+    dayfirst : bool, default None
+        If None uses default from print_config
+    yearfirst : bool, default None
+        If None uses default from print_config
+
+    Returns
+    -------
+    datetime, datetime/dateutil.parser._result, str
+    """
     if not isinstance(arg, string_types):
         return arg
 
@@ -121,9 +138,14 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         from pandas.core.config import get_option
         yearfirst = get_option("display.date_yearfirst")
 
-    return parse_datetime_string_with_reso(arg, freq=freq,
-                                                 dayfirst=dayfirst,
-                                                 yearfirst=yearfirst)
+    res = parse_datetime_string_with_reso(arg, freq=freq,
+                                          dayfirst=dayfirst,
+                                          yearfirst=yearfirst)
+    if res[0] is NAT_SENTINEL:
+        from pandas._libs.tslib import NaT
+        res = (NaT,) + res[1:]
+    return res
+
 
 
 def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
@@ -349,10 +371,7 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
 
 
 # The canonical place for this appears to be in frequencies.pyx.
-@cython.returns(object)
-@cython.locals(source=object, default=object)
-@cython.ccall
-def _get_rule_month(source, default='DEC'):
+cpdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
 
