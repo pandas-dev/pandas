@@ -2856,6 +2856,7 @@ CDay = CustomBusinessDay
 # ---------------------------------------------------------------------
 # Business Calendar helpers
 
+
 def _get_calendar(weekmask, holidays, calendar):
     """Generate busdaycalendar"""
     if isinstance(calendar, np.busdaycalendar):
