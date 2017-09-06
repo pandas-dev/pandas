@@ -38,7 +38,8 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='unix'):
+                unit=None, infer_datetime_format=False, origin='unix',
+                cache=True):
     """
     Convert argument to datetime.
 
@@ -111,7 +112,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded: 0.20.0
+    cache_datetime : boolean, default False
+        If True, use a cache of unique, converted dates to apply the datetime
+        conversion. Produces signficant speed-ups when parsing duplicate date.
 
+        .. versionadded: 0.20.2
     Returns
     -------
     ret : datetime if parsing succeeded.
@@ -201,6 +206,16 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     def _convert_listlike(arg, box, format, name=None, tz=tz):
 
+        datetime_cache = None
+        if cache and is_list_like(arg) and not isinstance(arg, DatetimeIndex):
+            unique_dates = algorithms.unique(arg)
+            if len(unique_dates) != len(arg):
+                datetime_cache = Series(pd.to_datetime(unique_dates,
+                     errors=errors, dayfirst=dayfirst,
+                     yearfirst=yearfirst, utc=utc, box=box, format=format,
+                     exact=exact, unit=unit,
+                     infer_datetime_format=infer_datetime_format,
+                     origin=origin, cache=False), index=unique_dates)
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
 
