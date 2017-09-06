@@ -1438,6 +1438,12 @@ class TestIndex(Base):
         result = self.strIndex.get_level_values(0)
         tm.assert_index_equal(result, self.strIndex)
 
+        # test for name (GH 17414)
+        index_with_name = self.strIndex.copy()
+        index_with_name.name = 'a'
+        result = index_with_name.get_level_values('a')
+        tm.assert_index_equal(result, index_with_name)
+
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
         assert idx.name == idx[1:].name
