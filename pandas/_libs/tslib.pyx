@@ -1268,6 +1268,8 @@ cdef class _Timestamp(datetime):
 
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
+        cdef:
+            int64_t val
         val = self.value
         if self.tz is not None and not _is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
@@ -1276,15 +1278,19 @@ cdef class _Timestamp(datetime):
     cpdef _get_field(self, field):
         cdef:
             int64_t val
+            ndarray[int64_t] date_array = np.empty(1, dtype=np.int64)
         val = self._maybe_convert_value_to_local()
-        out = get_date_field(np.array([val], dtype=np.int64), field)
+        date_array[0] = val
+        out = get_date_field(date_array, field)
         return int(out[0])
 
     cpdef _get_named_field(self, field):
         cdef:
             int64_t val
+            ndarray[int64_t] date_array = np.empty(1, dtype=np.int64)
         val = self._maybe_convert_value_to_local()
-        out = get_date_name_field(np.array([val], dtype=np.int64), field)
+        date_array[0] = val
+        out = get_date_name_field(date_array, field)
         return out[0]
 
     cpdef _get_start_end_field(self, field):
