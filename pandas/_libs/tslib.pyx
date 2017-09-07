@@ -545,10 +545,6 @@ class Timestamp(_Timestamp):
     weekofyear = week
 
     @property
-    def microsecond(self):
-        return self._get_field('us')
-
-    @property
     def quarter(self):
         return self._get_field('q')
 
