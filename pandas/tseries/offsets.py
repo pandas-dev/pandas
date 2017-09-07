@@ -592,7 +592,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self.offset = kwds.setdefault('offset', timedelta(0))
 
     @property
     def freqstr(self):
@@ -708,9 +708,9 @@ class BusinessHourMixin(BusinessMixin):
         kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
         kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self.start = kwds.get('start', '09:00')
-        self.end = kwds.get('end', '17:00')
+        self.offset = kwds.setdefault('offset', timedelta(0))
+        self.start = kwds['start']
+        self.end = kwds['end']
 
     def _validate_time(self, t_input):
         from datetime import time as dt_time
@@ -977,7 +977,7 @@ class CustomBusinessDay(BusinessDay):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self.offset = kwds.setdefault('offset', timedelta(0))
         calendar, holidays = self.get_calendar(weekmask=weekmask,
                                                holidays=holidays,
                                                calendar=calendar)
@@ -1470,7 +1470,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self.offset = kwds.setdefault('offset', timedelta(0))
         self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
                                        weekmask=weekmask, holidays=holidays,
                                        calendar=calendar, **kwds)
@@ -1530,7 +1530,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self.offset = kwds.setdefault('offset', timedelta(0))
         self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
                                        weekmask=weekmask, holidays=holidays,
                                        calendar=calendar, **kwds)
@@ -1574,7 +1574,7 @@ class Week(DateOffset):
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds.get('weekday', None)
+        self.weekday = kwds.setdefault('weekday', None)
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
@@ -1864,8 +1864,8 @@ class QuarterOffset(DateOffset):
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth',
-                                      self._default_startingMonth)
+        self.startingMonth = kwds.setdefault('startingMonth',
+                                             self._default_startingMonth)
 
         self.kwds = kwds
 
@@ -1988,7 +1988,8 @@ class QuarterEnd(QuarterOffset):
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth', 3)
+        self.startingMonth = kwds.setdefault('startingMonth',
+                                             self._default_startingMonth)
 
         self.kwds = kwds
 
@@ -2063,7 +2064,7 @@ class YearOffset(DateOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, **kwds):
-        self.month = kwds.get('month', self._default_month)
+        self.month = kwds.setdefault('month', self._default_month)
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
@@ -2738,7 +2739,7 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta == other.delta
         else:
-            return DateOffset.__eq__(self, other)
+            return False
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2754,7 +2755,7 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta != other.delta
         else:
-            return DateOffset.__ne__(self, other)
+            return True
 
     @property
     def delta(self):
