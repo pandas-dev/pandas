@@ -6,7 +6,7 @@ cimport cython
 
 import numpy as np
 cimport numpy as np
-np.import_array()  # Without this, `is_integer_object` causes segfaults
+np.import_array()
 
 from util cimport is_integer_object
 
