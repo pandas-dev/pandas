@@ -50,6 +50,7 @@ from datetime cimport (
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime)
 
+cimport util
 from util cimport is_string_object, get_nat
 
 cdef int64_t NPY_NAT = util.get_nat()
