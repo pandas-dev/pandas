@@ -555,6 +555,14 @@ class TestTimestamp(object):
         for end in ends:
             assert getattr(ts, end)
 
+    @pytest.mark.parametrize('data, expected',
+                             [(Timestamp('2017-08-28 23:00:00'), 'Monday'),
+                              (Timestamp('2017-08-28 23:00:00', tz='EST'),
+                               'Monday')])
+    def test_weekday_name(self, data, expected):
+        # GH 17354
+        assert data.weekday_name == expected
+
     def test_pprint(self):
         # GH12622
         import pprint

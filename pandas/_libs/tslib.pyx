@@ -532,9 +532,7 @@ class Timestamp(_Timestamp):
 
     @property
     def weekday_name(self):
-        out = get_date_name_field(
-            np.array([self.value], dtype=np.int64), 'weekday_name')
-        return out[0]
+        return self._get_named_field('weekday_name')
 
     @property
     def dayofyear(self):
@@ -1269,12 +1267,28 @@ cdef class _Timestamp(datetime):
         # same timezone if specified)
         return datetime.__sub__(self, other)
 
-    cpdef _get_field(self, field):
+    cdef int64_t _maybe_convert_value_to_local(self):
+        """Convert UTC i8 value to local i8 value if tz exists"""
+        cdef:
+            int64_t val
         val = self.value
         if self.tz is not None and not _is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
+        return val
+
+    cpdef _get_field(self, field):
+        cdef:
+            int64_t val
+        val = self._maybe_convert_value_to_local()
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
+
+    cpdef _get_named_field(self, field):
+        cdef:
+            int64_t val
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64), field)
+        return out[0]
 
     cpdef _get_start_end_field(self, field):
         month_kw = self.freq.kwds.get(

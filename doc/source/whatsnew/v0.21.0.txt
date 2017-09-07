@@ -399,6 +399,7 @@ Conversion
 - Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
+- Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
 
 Indexing
 ^^^^^^^^
