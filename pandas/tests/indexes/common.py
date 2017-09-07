@@ -565,9 +565,6 @@ class Base(object):
 
             if isinstance(idx, CategoricalIndex):
                 pass
-            elif isinstance(idx, RangeIndex):
-                pytest.xfail(reason='intersection fails for decreasing '
-                                    'RangeIndex (GH 17296)')
             else:
                 assert tm.equalContents(intersect, second)
 
