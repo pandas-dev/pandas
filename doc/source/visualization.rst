@@ -10,7 +10,7 @@
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   matplotlib.style.use('seaborn')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -24,12 +24,12 @@ We use the standard convention for referencing the matplotlib API:
 
    import matplotlib.pyplot as plt
 
-The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4):
+The plots in this document are made using matplotlib's ``seaborn`` style (new in version 1.5):
 
 .. code-block:: python
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   matplotlib.style.use('seaborn')
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -134,7 +134,7 @@ For example, a bar plot can be created the following way:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.iloc[5].plot(kind='bar'); plt.axhline(0, color='k')
+   df.iloc[5].plot(kind='bar');
 
 .. versionadded:: 0.17.0
 
@@ -1048,6 +1048,18 @@ be colored differently.
 
 Plot Formatting
 ---------------
+
+Setting the plot style
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+From version 1.5 and up, matplotlib offers a range of preconfigured plotting style. Setting the
+style can be used to easily give the plots the general look that you want.
+Setting the style is as easy as calling ``matplotlib.style.use(my_plot_style)`` before
+creating your plot. For example you could do ``matplotlib.style.use('ggplot')`` for ggplot-style
+plots.
+
+You can see the various available style names at ``matplotlib.style.available`` and it's very
+easy to try them out.
 
 Most plotting methods have a set of keyword arguments that control the
 layout and formatting of the returned plot:
