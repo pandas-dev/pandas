@@ -1438,15 +1438,6 @@ Categorical Components
 
 .. _api.intervalindex:
 
-Interval
---------
-
-.. autosummary::
-    :toctree: generated/
-    :template: autosummary/class_without_autosummary.rst
-
-    Interval
-
 IntervalIndex
 -------------
 
@@ -1576,22 +1567,6 @@ Conversion
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
 
-Period
-------
-
-.. autosummary::
-    :toctree: generated/
-
-    Period
-
-Timestamp
----------
-
-.. autosummary::
-   :toctree: generated/
-
-   Timestamp
-
 TimedeltaIndex
 --------------
 
@@ -1623,6 +1598,201 @@ Conversion
    TimedeltaIndex.round
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
+
+.. currentmodule:: pandas
+
+Scalars
+-------
+
+Period
+~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period
+
+Attributes
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period.day
+    Period.dayofweek
+    Period.dayofyear
+    Period.days_in_month
+    Period.daysinmonth
+    Period.end_time
+    Period.freq
+    Period.freqstr
+    Period.hour
+    Period.is_leap_year
+    Period.minute
+    Period.month
+    Period.now
+    Period.ordinal
+    Period.quarter
+    Period.qyear
+    Period.second
+    Period.start_time
+    Period.strftime
+    Period.week
+    Period.weekday
+    Period.weekofyear
+    Period.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period.asfreq
+    Period.strftime
+    Period.to_timestamp
+
+Timestamp
+~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp.asm8
+    Timestamp.day
+    Timestamp.dayofweek
+    Timestamp.dayofyear
+    Timestamp.days_in_month
+    Timestamp.daysinmonth
+    Timestamp.hour
+    Timestamp.is_leap_year
+    Timestamp.is_month_end
+    Timestamp.is_month_start
+    Timestamp.is_quarter_end
+    Timestamp.is_quarter_start
+    Timestamp.is_year_end
+    Timestamp.is_year_start
+    Timestamp.max
+    Timestamp.microsecond
+    Timestamp.min
+    Timestamp.month
+    Timestamp.nanosecond
+    Timestamp.quarter
+    Timestamp.resolution
+    Timestamp.second
+    Timestamp.tz
+    Timestamp.tzinfo
+    Timestamp.value
+    Timestamp.weekday_name
+    Timestamp.weekofyear
+    Timestamp.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp.astimezone
+    Timestamp.ceil
+    Timestamp.combine
+    Timestamp.ctime
+    Timestamp.date
+    Timestamp.dst
+    Timestamp.floor
+    Timestamp.freq
+    Timestamp.freqstr
+    Timestamp.from_ordinal
+    Timestamp.fromtimestamp
+    Timestamp.isocalendar
+    Timestamp.isoformat
+    Timestamp.isoweekday
+    Timestamp.normalize
+    Timestamp.now
+    Timestamp.replace
+    Timestamp.round
+    Timestamp.strftime
+    Timestamp.strptime
+    Timestamp.time
+    Timestamp.timetuple
+    Timestamp.timetz
+    Timestamp.to_datetime64
+    Timestamp.to_julian_date
+    Timestamp.to_period
+    Timestamp.to_pydatetime
+    Timestamp.today
+    Timestamp.toordinal
+    Timestamp.tz_convert
+    Timestamp.tz_localize
+    Timestamp.tzname
+    Timestamp.utcfromtimestamp
+    Timestamp.utcnow
+    Timestamp.utcoffset
+    Timestamp.utctimetuple
+    Timestamp.weekday
+
+Interval
+~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Interval
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Interval.closed
+    Interval.closed_left
+    Interval.closed_right
+    Interval.left
+    Interval.mid
+    Interval.open_left
+    Interval.open_right
+    Interval.right
+
+Timedelta
+~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timedelta
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Timedelta.asm8
+    Timedelta.components
+    Timedelta.days
+    Timedelta.delta
+    Timedelta.freq
+    Timedelta.is_populated
+    Timedelta.max
+    Timedelta.microseconds
+    Timedelta.min
+    Timedelta.nanoseconds
+    Timedelta.resolution
+    Timedelta.seconds
+    Timedelta.value
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Timedelta.ceil
+    Timedelta.floor
+    Timedelta.isoformat
+    Timedelta.round
+    Timdelta.to_pytimedelta
+    Timedelta.to_timedelta64
+    Timedelta.total_seconds
+    Timedelta.view
 
 Window
 ------
