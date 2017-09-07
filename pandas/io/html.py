@@ -296,7 +296,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        rows : a list of row elements of a table, usually <tr> or <th> elements.
+        rows : a list of row elements of a table, usually <tr> or <th>
+        elements.
         """
         raise AbstractMethodError(self)
 
@@ -376,9 +377,11 @@ class _HtmlFrameParser(object):
         Returns
         -------
         tuple of (header, body, footer)
-        header : list of rows, each of which is a list of parsed header elements
+        header : list of rows, each of which is a list of parsed header
+        elements
         body : list of rows, each of which is a list of parsed body elements
-        footer : list of rows, each of which is a list of parsed footer elements
+        footer : list of rows, each of which is a list of parsed footer
+        elements
         """
         header_rows = []
         body_rows = []
