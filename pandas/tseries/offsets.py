@@ -2321,7 +2321,7 @@ class FY5253(DateOffset):
                              .format(variation=self.variation))
 
     @cache_readonly
-    def _rd_forward(self):
+    def _relativedelta_forward(self):
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
             return relativedelta(weekday=weekday_offset)
@@ -2329,7 +2329,7 @@ class FY5253(DateOffset):
             return None
 
     @cache_readonly
-    def _rd_backward(self):
+    def _relativedelta_backward(self):
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
             return relativedelta(weekday=weekday_offset(-1))
@@ -2445,8 +2445,8 @@ class FY5253(DateOffset):
         if target_date.weekday() == self.weekday:
             return target_date
         else:
-            forward = target_date + self._rd_forward
-            backward = target_date + self._rd_backward
+            forward = target_date + self._relativedelta_forward
+            backward = target_date + self._relativedelta_backward
 
             if forward - target_date < target_date - backward:
                 return forward
