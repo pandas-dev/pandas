@@ -181,7 +181,9 @@ class TestFloat64Index(Numeric):
 
     def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
-                            float=Float64Index(np.arange(5) * 2.5))
+                            float=Float64Index(np.arange(5) * 2.5),
+                            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
+                            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5))
         self.setup_indices()
 
     def create_index(self):
@@ -654,7 +656,8 @@ class TestInt64Index(NumericInt):
     _holder = Int64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
+        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)),
+                            index_dec=Int64Index(np.arange(19, -1, -1)))
         self.setup_indices()
 
     def create_index(self):
@@ -949,8 +952,9 @@ class TestUInt64Index(NumericInt):
     _holder = UInt64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
-                                               2**63 + 20, 2**63 + 25]))
+        vals = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+        self.indices = dict(index=UInt64Index(vals),
+                            index_dec=UInt64Index(reversed(vals)))
         self.setup_indices()
 
     def create_index(self):

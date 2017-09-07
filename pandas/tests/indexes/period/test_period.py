@@ -18,7 +18,9 @@ class TestPeriodIndex(DatetimeLike):
     _multiprocess_can_split_ = True
 
     def setup_method(self, method):
-        self.indices = dict(index=tm.makePeriodIndex(10))
+        self.indices = dict(index=tm.makePeriodIndex(10),
+                            index_dec=period_range('20130101', periods=10,
+                                                   freq='D')[::-1])
         self.setup_indices()
 
     def create_index(self):

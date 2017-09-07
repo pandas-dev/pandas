@@ -3465,7 +3465,7 @@ class Index(IndexOpsMixin, PandasObject):
             # everything for it to work (element ordering, search side and
             # resulting value).
             pos = self[::-1].searchsorted(label, side='right' if side == 'left'
-                                          else 'right')
+                                          else 'left')
             return len(self) - pos
 
         raise ValueError('index must be monotonic increasing or decreasing')

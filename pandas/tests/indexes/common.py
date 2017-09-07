@@ -11,6 +11,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
                     notna, isna)
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas._libs.tslib import iNaT
@@ -138,9 +139,14 @@ class Base(object):
             if isinstance(index, IntervalIndex):
                 continue
 
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
+            if index.is_unique or isinstance(index, CategoricalIndex):
+                indexer = index.get_indexer(index[0:2])
+                assert isinstance(indexer, np.ndarray)
+                assert indexer.dtype == np.intp
+            else:
+                e = "Reindexing only valid with uniquely valued Index objects"
+                with tm.assert_raises_regex(InvalidIndexError, e):
+                    indexer = index.get_indexer(index[0:2])
 
             indexer, _ = index.get_indexer_non_unique(index[0:2])
             assert isinstance(indexer, np.ndarray)
@@ -632,7 +638,8 @@ class Base(object):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
                     assert result.__class__ == answer.__class__
-                    tm.assert_numpy_array_equal(result.asi8, answer.asi8)
+                    tm.assert_numpy_array_equal(result.sort_values().asi8,
+                                                answer.sort_values().asi8)
                 else:
                     result = first.difference(case)
                     assert tm.equalContents(result, answer)
@@ -954,3 +961,47 @@ class Base(object):
         if index.is_unique:
             joined = index.join(index, how=how)
             assert (index == joined).all()
+
+    def test_searchsorted_monotonic(self):
+        # GH17271
+        for index in self.indices.values():
+            # not implemented for tuple searches in MultiIndex
+            # or Intervals searches in IntervalIndex
+            if isinstance(index, (MultiIndex, IntervalIndex)):
+                continue
+
+            # nothing to test if the index is empty
+            if index.empty:
+                continue
+            value = index[0]
+
+            # determine the expected results (handle dupes for 'right')
+            expected_left, expected_right = 0, (index == value).argmin()
+            if expected_right == 0:
+                # all values are the same, expected_right should be length
+                expected_right = len(index)
+
+            # test _searchsorted_monotonic in all cases
+            # test searchsorted only for increasing
+            if index.is_monotonic_increasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
+
+                ss_left = index.searchsorted(value, side='left')
+                assert expected_left == ss_left
+
+                ss_right = index.searchsorted(value, side='right')
+                assert expected_right == ss_right
+            elif index.is_monotonic_decreasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
+            else:
+                # non-monotonic should raise.
+                with pytest.raises(ValueError):
+                    index._searchsorted_monotonic(value, side='left')
