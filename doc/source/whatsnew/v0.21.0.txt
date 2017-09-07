@@ -417,6 +417,7 @@ Indexing
 - Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
+- Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 
 I/O
 ^^^
