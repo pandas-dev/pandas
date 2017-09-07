@@ -610,6 +610,21 @@ class TestRangeIndex(Numeric):
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
+        # reversed (GH 17296)
+        result = other.intersection(self.index)
+        tm.assert_index_equal(result, expected)
+
+        # GH 17296: intersect two decreasing RangeIndexes
+        first = RangeIndex(10, -2, -2)
+        other = RangeIndex(5, -4, -1)
+        expected = first.astype(int).intersection(other.astype(int))
+        result = first.intersection(other).astype(int)
+        tm.assert_index_equal(result, expected)
+
+        # reversed
+        result = other.intersection(first).astype(int)
+        tm.assert_index_equal(result, expected)
+
         index = RangeIndex(5)
 
         # intersect of non-overlapping indices
