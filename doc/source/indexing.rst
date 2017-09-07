@@ -49,12 +49,6 @@ advanced indexing.
 
 .. warning::
 
-   In 0.15.0 ``Index`` has internally been refactored to no longer subclass ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
-.. warning::
-
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
@@ -660,7 +654,6 @@ For getting *multiple* indexers, using ``.get_indexer``
 
 Selecting Random Samples
 ------------------------
-.. versionadded::0.16.1
 
 A random selection of rows or columns from a Series, DataFrame, or Panel with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
 
@@ -1510,8 +1503,6 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-.. versionadded:: 0.15.0
-
 ``set_names``, ``set_levels``, and ``set_labels`` also take an optional
 `level`` argument
 
@@ -1526,11 +1517,6 @@ Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.set_ops:
-
-.. warning::
-
-   In 0.15.0. the set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain
-   index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``.
 
 The two main operations are ``union (|)``, ``intersection (&)``
 These can be directly called as instance methods or used via overloaded

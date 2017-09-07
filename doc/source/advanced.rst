@@ -26,12 +26,6 @@ See the :ref:`Indexing and Selecting Data <indexing>` for general indexing docum
    should be avoided.  See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`
 
-.. warning::
-
-   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
 .. _advanced.hierarchical:
@@ -638,12 +632,9 @@ In the following sub-sections we will highlite some other index types.
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.1
-
-We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
-indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
-and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
-setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+``CategoricalIndex`` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical``
+and allows efficient indexing and storage of an index with a large number of duplicated elements.
 
 .. ipython:: python
 

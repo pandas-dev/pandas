@@ -655,7 +655,7 @@ the quarter end:
 Categoricals
 ------------
 
-Since version 0.15, pandas can include categorical data in a ``DataFrame``. For full docs, see the
+pandas can include categorical data in a ``DataFrame``. For full docs, see the
 :ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
 
 .. ipython:: python
