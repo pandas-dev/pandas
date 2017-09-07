@@ -1571,10 +1571,10 @@ class Week(DateOffset):
     """
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds.get('weekday', None)
+        self.weekday = weekday
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
@@ -1582,7 +1582,7 @@ class Week(DateOffset):
                                  .format(day=self.weekday))
 
         self._inc = timedelta(weeks=1)
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday}
 
     def isAnchored(self):
         return (self.n == 1 and self.weekday is not None)
@@ -1674,9 +1674,9 @@ class WeekOfMonth(DateOffset):
     Parameters
     ----------
     n : int
-    week : {0, 1, 2, 3, ...}
+    week : {0, 1, 2, 3, ...}, default None
         0 is 1st week of month, 1 2nd week, etc.
-    weekday : {0, 1, ..., 6}
+    weekday : {0, 1, ..., 6}, default None
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1688,11 +1688,11 @@ class WeekOfMonth(DateOffset):
 
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, week=None, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds['weekday']
-        self.week = kwds['week']
+        self.weekday = weekday
+        self.week = week
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
@@ -1704,7 +1704,7 @@ class WeekOfMonth(DateOffset):
             raise ValueError('Week must be 0<=week<=3, got {week}'
                              .format(week=self.week))
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'week': week}
 
     @apply_wraps
     def apply(self, other):
@@ -1774,8 +1774,8 @@ class LastWeekOfMonth(DateOffset):
 
     Parameters
     ----------
-    n : int
-    weekday : {0, 1, ..., 6}
+    n : int, default 1
+    weekday : {0, 1, ..., 6}, default None
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1783,12 +1783,13 @@ class LastWeekOfMonth(DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
+
     """
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds['weekday']
+        self.weekday = weekday
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
@@ -1797,7 +1798,7 @@ class LastWeekOfMonth(DateOffset):
             raise ValueError('Day must be 0<=day<=6, got {day}'
                              .format(day=self.weekday))
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday}
 
     @apply_wraps
     def apply(self, other):
@@ -1861,13 +1862,14 @@ class QuarterOffset(DateOffset):
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, startingMonth=None):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth',
-                                      self._default_startingMonth)
+        if startingMonth is None:
+            startingMonth = self._default_startingMonth
+        self.startingMonth = startingMonth
 
-        self.kwds = kwds
+        self.kwds = {'startingMonth': startingMonth}
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -1984,13 +1986,6 @@ class QuarterEnd(QuarterOffset):
     _outputName = 'QuarterEnd'
     _default_startingMonth = 3
     _prefix = 'Q'
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.n = n
-        self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth', 3)
-
-        self.kwds = kwds
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
