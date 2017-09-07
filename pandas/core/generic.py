@@ -1265,7 +1265,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         path_or_buf : the path or buffer to write the result string
-            if this is None, return a StringIO of the converted string
+            if this is None, return the converted string
         orient : string
 
             * Series
