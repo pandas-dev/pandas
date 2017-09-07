@@ -328,6 +328,13 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
+.. _whatsnew_0210.api.restricting_dateoffset_keywords
+
+Restricting DateOffset Keywords
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, subclasses :class:`Week`, :class:`WeekOfMonth`, :class:`LastWeekOfMonth`, :class:`QuarterOffset`, :class:`QuarterEnd`, :class:`QuarterBegin`, :class:`BQuarterEnd`, and :class:`BQuarterBegin`, will allow only specific arguments.  (:issue:`17176`).
+
 .. _whatsnew_0210.api:
 
 Other API Changes
