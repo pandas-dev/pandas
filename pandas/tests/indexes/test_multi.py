@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
@@ -2571,12 +2571,21 @@ class TestMultiIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_not_pypy(self):
         idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
         tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
                                     np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_pypy(self):
+        idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
+        tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
+                                    np.array([False, True]))
+        tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
+                                    np.array([False, True]))
 
     def test_isin_level_kwarg(self):
         idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(

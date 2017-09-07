@@ -9,7 +9,7 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY36)
+                           text_type, zip, PY3, PY36, PYPY)
 import operator
 import numpy as np
 
@@ -1370,13 +1370,21 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_not_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, True]))
+
+    def test_isin_nan_common(self):
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([np.nan]),
                                     np.array([False, True]))
         tm.assert_numpy_array_equal(Index(['a', pd.NaT]).isin([pd.NaT]),
                                     np.array([False, True]))
-        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
-                                    np.array([False, False]))
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([pd.NaT]),
                                     np.array([False, False]))
 
