@@ -147,7 +147,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     return res
 
 
-
 def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
                                     yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime
