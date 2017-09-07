@@ -382,7 +382,7 @@ Performance Improvements
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
-
+- :attr:`Timestamp.microsecond` no longer re-computes on attribute access (:issue:`17331`)
 
 .. _whatsnew_0210.bug_fixes:
 
