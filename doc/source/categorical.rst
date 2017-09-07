@@ -16,13 +16,6 @@
 Categorical Data
 ****************
 
-.. versionadded:: 0.15
-
-.. note::
-    While there was `pandas.Categorical` in earlier versions, the ability to use
-    categorical data in `Series` and `DataFrame` is new.
-
-
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
@@ -294,10 +287,6 @@ Sorting and Order
 -----------------
 
 .. _categorical.sort:
-
-.. warning::
-
-   The default for construction has changed in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a `TypeError`.
@@ -803,13 +792,11 @@ Following table summarizes the results of ``Categoricals`` related concatenation
 Getting Data In/Out
 -------------------
 
-.. versionadded:: 0.15.2
+You can write data that contains ``category`` dtypes to a ``HDFStore``.
+See :ref:`here <io.hdf5-categorical>` for an example and caveats.
 
-Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype was implemented
-in 0.15.2. See :ref:`here <io.hdf5-categorical>` for an example and caveats.
-
-Writing data to and reading data from *Stata* format files was implemented in
-0.15.2. See :ref:`here <io.stata-categorical>` for an example and caveats.
+It is also possible to write data to and reading data from *Stata* format files.
+See :ref:`here <io.stata-categorical>` for an example and caveats.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 categorical (categories and ordering). So if you read back the CSV file you have to convert the
@@ -928,32 +915,6 @@ an ``object`` dtype is a constant times the length of the data.
       s.astype('category').nbytes
 
 
-Old style constructor usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In earlier versions than pandas 0.15, a `Categorical` could be constructed by passing in precomputed
-`codes` (called then `labels`) instead of values with categories. The `codes` were interpreted as
-pointers to the categories with `-1` as `NaN`. This type of constructor usage is replaced by
-the special constructor :func:`Categorical.from_codes`.
-
-Unfortunately, in some special cases, using code which assumes the old style constructor usage
-will work with the current pandas version, resulting in subtle bugs:
-
-.. code-block:: python
-
-    >>> cat = pd.Categorical([1,2], [1,2,3])
-    >>> # old version
-    >>> cat.get_values()
-    array([2, 3], dtype=int64)
-    >>> # new version
-    >>> cat.get_values()
-    array([1, 2], dtype=int64)
-
-.. warning::
-    If you used `Categoricals` with older versions of pandas, please audit your code before
-    upgrading and change your code to use the :func:`~pandas.Categorical.from_codes`
-    constructor.
-
 `Categorical` is not a `numpy` array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -982,8 +943,7 @@ Dtype comparisons work:
     dtype == np.str_
     np.str_ == dtype
 
-To check if a Series contains Categorical data, with pandas 0.16 or later, use
-``hasattr(s, 'cat')``:
+To check if a Series contains Categorical data, use ``hasattr(s, 'cat')``:
 
 .. ipython:: python
 
@@ -1023,13 +983,13 @@ basic type) and applying along columns will also convert to object.
 Categorical Index
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.1
-
-A new ``CategoricalIndex`` index type is introduced in version 0.16.1. See the
-:ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+``CategoricalIndex`` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical``
+and allows efficient indexing and storage of an index with a large number of duplicated elements.
+See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
 explanation.
 
-Setting the index, will create create a ``CategoricalIndex``
+Setting the index will create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -1040,10 +1000,6 @@ Setting the index, will create create a ``CategoricalIndex``
     df.index
     # This now sorts by the categories order
     df.sort_index()
-
-In previous versions (<0.16.1) there is no index of type ``category``, so
-setting the index to categorical column will convert the categorical data to a
-"normal" dtype first and therefore remove any custom ordering of the categories.
 
 Side Effects
 ~~~~~~~~~~~~

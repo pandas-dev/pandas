@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.4, 3.5, and 3.6
+Officially Python 2.7, 3.5, and 3.6.
 
 Installing pandas
 -----------------
@@ -183,21 +183,17 @@ installed), make sure you have `pytest
 
     >>> import pandas as pd
     >>> pd.test()
-    Running unit tests for pandas
-    pandas version 0.18.0
-    numpy version 1.10.2
-    pandas is installed in pandas
-    Python version 2.7.11 |Continuum Analytics, Inc.|
-       (default, Dec  6 2015, 18:57:58) [GCC 4.2.1 (Apple Inc. build 5577)]
-    nose version 1.3.7
+    running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
+    ============================= test session starts =============================
+    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
+    collected 12145 items / 3 skipped
+
     ..................................................................S......
     ........S................................................................
     .........................................................................
 
-    ----------------------------------------------------------------------
-    Ran 9252 tests in 368.339s
-
-    OK (SKIP=117)
+    ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
 
 Dependencies
 ------------
