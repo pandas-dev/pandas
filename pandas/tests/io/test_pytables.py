@@ -2011,7 +2011,7 @@ class TestHDFStore(Base):
         df['string'] = 'foo'
         df['float322'] = 1.
         df['float322'] = df['float322'].astype('float32')
-        df['boolean'] = df['float322'] > 0
+        df['bool'] = df['float322'] > 0
         df['time1'] = Timestamp('20130101')
         df['time2'] = Timestamp('20130102')
         check(df, tm.assert_frame_equal)
@@ -2141,7 +2141,7 @@ class TestHDFStore(Base):
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
-            df1['boolean'] = df1['float32'] > 0
+            df1['bool'] = df1['float32'] > 0
             df1['time1'] = Timestamp('20130101')
             df1['time2'] = Timestamp('20130102')
 
