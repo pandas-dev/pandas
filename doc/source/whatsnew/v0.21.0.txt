@@ -67,8 +67,8 @@ Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New users are often flummoxed by the relationship between column operations and attribute
-access on ``DataFrame`` instances (:issue:`5904` & :issue:`7175`). Two specific instances
-of this confusion include attempting to create a new column by setting into an attribute:
+access on ``DataFrame`` instances (:issue:`7175`). One specific instance
+of this confusion is attempting to create a new column by setting into an attribute:
 
 .. code-block:: ipython
 
@@ -86,25 +86,7 @@ This does not raise any obvious exceptions, but also does not create a new colum
   1  2.0
   2  3.0
 
-The second source of confusion is creating a column whose name collides with a method or
-attribute already in the instance namespace:
-
-.. code-block:: ipython
-
-  In[4]: df['sum'] = [5., 7., 9.]
-
-This does not permit that column to be accessed as an attribute:
-
-.. code-block:: ipython
-
-  In[5]: df.sum
-  Out[5]:
-  <bound method DataFrame.sum of    one  sum
-  0  1.0  5.0
-  1  2.0  7.0
-  2  3.0  9.0>
-
-Both of these now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
 
 .. _whatsnew_0210.enhancements.other:
 

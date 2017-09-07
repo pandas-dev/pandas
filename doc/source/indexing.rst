@@ -269,21 +269,6 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
     1  2.0
     2  3.0
 
-Similarly, it is possible to create a column with a name which collides with one of Pandas's
-built-in methods or attributes, which can cause confusion later when attempting to access
-that column as an attribute. This behavior now warns:
-
-.. code-block:: ipython
-
-    In[4]: df['sum'] = [5., 7., 9.]
-    UserWarning: Column name 'sum' collides with a built-in method, which will cause unexpected attribute behavior
-    In[5]: df.sum
-    Out[5]:
-    <bound method DataFrame.sum of    one  sum
-    0  1.0  5.0
-    1  2.0  7.0
-    2  3.0  9.0>
-
 Slicing ranges
 --------------
 
