@@ -1953,6 +1953,7 @@ class CustomBusinessMonthBase(object):
         _check_roundtrip(self._object() * 2)
 
     def test_copy(self):
+        # GH 17452
         off = self._object(weekmask='Mon Wed Fri')
         assert off == off.copy()
 
