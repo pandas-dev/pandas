@@ -1102,7 +1102,7 @@ cdef class _Period(object):
 
 class Period(_Period):
     """
-    Represents an period of time
+    Represents a period of time
 
     Parameters
     ----------
