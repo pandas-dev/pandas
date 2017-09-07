@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -483,12 +484,14 @@ ext_data = {
                                     + _pxi_dep['hashtable'])},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
-                    'depends': tseries_depends,
+                    'depends': tseries_depends + \
+                               ['pandas/_libs/tslibs/timezones.pyx'],
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c',
                                 'pandas/_libs/src/period_helper.c']},
     '_libs.period': {'pyxfile': '_libs/period',
-                     'depends': tseries_depends,
+                     'depends': tseries_depends + \
+                                ['pandas/_libs/tslibs/timezones.pyx'],
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
@@ -496,7 +499,8 @@ ext_data = {
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c'],
                     'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
-                    'depends': _pxi_dep['index']},
+                    'depends': _pxi_dep['index'] + \
+                               ['pandas/_libs/tslibs/timezones.pyx']},
     '_libs.algos': {'pyxfile': '_libs/algos',
                     'pxdfiles': ['_libs/src/util', '_libs/algos', '_libs/hashtable'],
                     'depends': _pxi_dep['algos']},
@@ -528,6 +532,7 @@ ext_data = {
                       'depends': ['pandas/_libs/testing.pyx']},
     '_libs.hashing': {'pyxfile': '_libs/hashing',
                       'depends': ['pandas/_libs/hashing.pyx']},
+    '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     'io.sas._sas': {'pyxfile': 'io/sas/sas'},
     }
 

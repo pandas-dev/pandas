@@ -32,14 +32,15 @@ cimport util, lib
 
 from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
-from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT, _get_utcoffset)
-from tslib cimport (
-    maybe_get_tz,
-    _is_utc,
-    _is_tzlocal,
+from pandas._libs.tslib import Timedelta, Timestamp, iNaT, NaT
+from tslib cimport _nat_scalar_rules
+
+from tslibs.timezones cimport (
+    _get_utcoffset,
     _get_dst_info,
-    _nat_scalar_rules)
+    _is_tzlocal,
+    _is_utc,
+    maybe_get_tz)
 
 from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
@@ -116,6 +117,7 @@ cdef extern from "period_helper.h":
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
 
 initialize_daytime_conversion_factor_matrix()
+
 
 # Period logic
 #----------------------------------------------------------------------

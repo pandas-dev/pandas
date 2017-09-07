@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
 
+from tslibs.timezones cimport _get_utcoffset, _is_utc
+
 from cpython cimport PyTuple_Check, PyList_Check
 
 cdef extern from "datetime.h":
@@ -554,13 +556,10 @@ cdef inline _to_i8(object val):
             # Save the original date value so we can get the utcoffset from it.
             ival = _pydatetime_to_dts(val, &dts)
             if tzinfo is not None and not _is_utc(tzinfo):
-                offset = tslib._get_utcoffset(tzinfo, val)
+                offset = _get_utcoffset(tzinfo, val)
                 ival -= tslib._delta_to_nanoseconds(offset)
             return ival
         return val
-
-cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _du_utc)
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):
