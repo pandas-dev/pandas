@@ -220,8 +220,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tables : list of HTML table elements
-            A list of <table> elements to be parsed into raw data.
+        tables : A list of HTML <table> elements to be parsed into raw data.
         """
         raise AbstractMethodError(self)
 
@@ -251,7 +250,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        boolean
+        is_tag_equal : boolean
             boolean indicating if the object is equal to tag 'tag'
         """
         raise AbstractMethodError(self)
@@ -377,11 +376,11 @@ class _HtmlFrameParser(object):
         Returns
         -------
         tuple of (header, body, footer)
-        header : list of rows, each of which is a list of parsed header
-        elements
+        header : list of rows, each of which is a list of parsed
+                 header elements
         body : list of rows, each of which is a list of parsed body elements
-        footer : list of rows, each of which is a list of parsed footer
-        elements
+        footer : list of rows, each of which is a list of parsed
+                 footer elements
         """
         header_rows = []
         body_rows = []
@@ -395,7 +394,7 @@ class _HtmlFrameParser(object):
                 footer_rows = self._extract_tr(
                     self._extract_tfoot(table_html)[0])
         else:
-            # otherwise we need to split the body into header/body/foot
+            # Otherwise we need to split the body into header/body/foot.
             body_rows = self._extract_tr(table_html)
             if body_rows == []:
                 # empty table, just return nothing
@@ -413,8 +412,9 @@ class _HtmlFrameParser(object):
         header = self._expand_colspan_rowspan(header_rows, fill_rowspan=False)
         body = self._expand_colspan_rowspan(body_rows, fill_rowspan=True)
         footer = self._expand_colspan_rowspan(footer_rows, fill_rowspan=False)
-        # the below line is lifted from _parse_raw_tfoot. Not sure what it
-        # does.
+
+        # The below line is lifted from _parse_raw_tfoot. Not sure what
+        # it does.
         footer = np.atleast_1d(np.array(footer).squeeze(
         )) if footer and len(footer) == 1 else footer
         return header, body, footer
