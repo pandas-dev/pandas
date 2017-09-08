@@ -341,7 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
-                 'panads/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
