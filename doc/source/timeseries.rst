@@ -203,7 +203,7 @@ For example:
 
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
-For further format options see: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+For further `to_datetime` format options see: <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior>
 
 Assembling datetime from multiple DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
