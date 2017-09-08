@@ -187,6 +187,8 @@ or ``format``, use ``to_datetime`` if these are required.
 
     pd.Timestamp('2010/11/12')
 
+For further `Timestamp` argument options see: <https://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-stamps-vs-time-spans>
+
 Providing a Format Argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
