@@ -409,7 +409,7 @@ JSOBJ Object_npyEndObject(void *prv, JSOBJ obj) {
 }
 
 int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
-    PyObject *label;
+    PyObject *label, *labels;
     npy_intp labelidx;
     // add key to label array, value to values array
     NpyArrContext *npyarr = (NpyArrContext *)obj;
@@ -424,11 +424,11 @@ int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
     if (!npyarr->labels[labelidx]) {
         npyarr->labels[labelidx] = PyList_New(0);
     }
-
+    labels = npyarr->labels[labelidx];
     // only fill label array once, assumes all column labels are the same
     // for 2-dimensional arrays.
-    if (PyList_GET_SIZE(npyarr->labels[labelidx]) <= npyarr->elcount) {
-        PyList_Append(npyarr->labels[labelidx], label);
+    if (PyList_Check(labels) && PyList_GET_SIZE(labels) <= npyarr->elcount) {
+        PyList_Append(labels, label);
     }
 
     if (((JSONObjectDecoder *)npyarr->dec)->arrayAddItem(prv, obj, value)) {
@@ -439,16 +439,16 @@ int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
 }
 
 int Object_objectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
-    PyDict_SetItem(obj, name, value);
+    int ret = PyDict_SetItem(obj, name, value);
     Py_DECREF((PyObject *)name);
     Py_DECREF((PyObject *)value);
-    return 1;
+    return ret == 0 ? 1 : 0;
 }
 
 int Object_arrayAddItem(void *prv, JSOBJ obj, JSOBJ value) {
-    PyList_Append(obj, value);
+    int ret = PyList_Append(obj, value);
     Py_DECREF((PyObject *)value);
-    return 1;
+    return ret == 0 ? 1 : 0;
 }
 
 JSOBJ Object_newString(void *prv, wchar_t *start, wchar_t *end) {

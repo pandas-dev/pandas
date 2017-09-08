@@ -26,12 +26,6 @@ See the :ref:`Indexing and Selecting Data <indexing>` for general indexing docum
    should be avoided.  See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`
 
-.. warning::
-
-   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
 .. _advanced.hierarchical:
@@ -270,9 +264,6 @@ Passing a list of labels or tuples works similar to reindexing:
 Using slicers
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
-In 0.14.0 we added a new way to slice multi-indexed objects.
 You can slice a multi-index by providing multiple indexers.
 
 You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
@@ -384,7 +375,7 @@ selecting data at a particular level of a MultiIndex easier.
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[(slice(None),'one'),:]
 
 You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
@@ -397,7 +388,7 @@ providing the axis argument
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[:,(slice(None),'one')]
 
 :meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys
@@ -408,10 +399,8 @@ providing the axis argument
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[:,('bar','one')]
-
-.. versionadded:: 0.13.0
 
 You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
 the level that was selected
@@ -643,12 +632,9 @@ In the following sub-sections we will highlite some other index types.
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.1
-
-We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
-indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
-and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
-setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+``CategoricalIndex`` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical``
+and allows efficient indexing and storage of an index with a large number of duplicated elements.
 
 .. ipython:: python
 
@@ -742,16 +728,6 @@ Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``ND
 
 Float64Index
 ~~~~~~~~~~~~
-
-.. note::
-
-   As of 0.14.0, ``Float64Index`` is backed by a native ``float64`` dtype
-   array. Prior to 0.14.0, ``Float64Index`` was backed by an ``object`` dtype
-   array. Using a ``float64`` dtype in the backend speeds up arithmetic
-   operations by about 30x and boolean indexing operations on the
-   ``Float64Index`` itself are about 2x as fast.
-
-.. versionadded:: 0.13.0
 
 By default a ``Float64Index`` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
 This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
