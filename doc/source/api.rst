@@ -1704,7 +1704,7 @@ Methods
     Timestamp.floor
     Timestamp.freq
     Timestamp.freqstr
-    Timestamp.from_ordinal
+    Timestamp.fromordinal
     Timestamp.fromtimestamp
     Timestamp.isocalendar
     Timestamp.isoformat
@@ -1769,9 +1769,7 @@ Properties
     Timedelta.asm8
     Timedelta.components
     Timedelta.days
-    Timedelta.delta
     Timedelta.freq
-    Timedelta.is_populated
     Timedelta.max
     Timedelta.microseconds
     Timedelta.min
@@ -1789,10 +1787,9 @@ Methods
     Timedelta.floor
     Timedelta.isoformat
     Timedelta.round
-    Timdelta.to_pytimedelta
+    Timedelta.to_pytimedelta
     Timedelta.to_timedelta64
     Timedelta.total_seconds
-    Timedelta.view
 
 Window
 ------
