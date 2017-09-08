@@ -10,6 +10,7 @@ from cpython cimport (
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
+import_array()
 
 from libc.stdlib cimport free
 
