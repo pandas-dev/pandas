@@ -67,8 +67,8 @@ from khash cimport (
     kh_init_int64, kh_int64_t,
     kh_resize_int64, kh_get_int64)
 
-from . import parsing  # noqa
-from .parsing import ( # noqa
+from .tslibs import parsing  # noqa
+from .tslibs.parsing import ( # noqa
     DateParseError,
     _format_is_iso,
     _DATEUTIL_LEXER_SPLIT,

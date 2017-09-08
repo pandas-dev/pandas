@@ -331,7 +331,6 @@ class CheckSDist(sdist_class):
     _pyxfiles = ['pandas/_libs/lib.pyx',
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
-                 'pandas/_libs/parsing.pyx',
                  'pandas/_libs/period.pyx',
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
@@ -342,7 +341,8 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
-                 'panads/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/parsing.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -483,7 +483,6 @@ ext_data = {
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
                                     + _pxi_dep['hashtable'])},
-    '_libs.parsing': {'pyxfile': '_libs/parsing'},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
@@ -495,6 +494,7 @@ ext_data = {
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
+    '_libs.tslibs.parsing': {'pyxfile': '_libs/tslibs/parsing'},
     '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
                                  'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
