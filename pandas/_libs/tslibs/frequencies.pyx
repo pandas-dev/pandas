@@ -150,6 +150,9 @@ _period_code_map = {
     "N": 12000,       # Nanosecondly
 }
 
+_reverse_period_code_map = {
+    _period_code_map[key]: key for key in _period_code_map}
+
 # Yearly aliases; careful not to put these in _reverse_period_code_map
 _period_code_map.update({'Y' + key[1:]: _period_code_map[key]
                          for key in _period_code_map
