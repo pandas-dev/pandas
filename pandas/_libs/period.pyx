@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime, date, timedelta
 import operator
 
@@ -1102,7 +1103,7 @@ cdef class _Period(object):
 
 class Period(_Period):
     """
-    Represents an period of time
+    Represents a period of time
 
     Parameters
     ----------

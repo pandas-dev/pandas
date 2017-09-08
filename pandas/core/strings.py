@@ -16,7 +16,7 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -1452,7 +1452,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1920,20 +1925,4 @@ class StringMethods(NoNewAttributesMixin):
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(data)
-
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    str = AccessorProperty(StringMethods)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

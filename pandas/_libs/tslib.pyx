@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
 import warnings
@@ -543,9 +544,7 @@ class Timestamp(_Timestamp):
 
     @property
     def weekday_name(self):
-        out = get_date_name_field(
-            np.array([self.value], dtype=np.int64), 'weekday_name')
-        return out[0]
+        return self._get_named_field('weekday_name')
 
     @property
     def dayofyear(self):
@@ -556,10 +555,6 @@ class Timestamp(_Timestamp):
         return self._get_field('woy')
 
     weekofyear = week
-
-    @property
-    def microsecond(self):
-        return self._get_field('us')
 
     @property
     def quarter(self):
@@ -840,8 +835,6 @@ class NaTType(_NaT):
         cdef _NaT base
 
         base = _NaT.__new__(cls, 1, 1, 1)
-        base._day = -1
-        base._month = -1
         base.value = NPY_NAT
 
         return base
@@ -869,6 +862,9 @@ class NaTType(_NaT):
         return (__nat_unpickle, (None, ))
 
     def total_seconds(self):
+        """
+        Total duration of timedelta in seconds (to ns precision)
+        """
         # GH 10939
         return np.nan
 
@@ -1279,21 +1275,37 @@ cdef class _Timestamp(datetime):
         # same timezone if specified)
         return datetime.__sub__(self, other)
 
-    cpdef _get_field(self, field):
+    cdef int64_t _maybe_convert_value_to_local(self):
+        """Convert UTC i8 value to local i8 value if tz exists"""
+        cdef:
+            int64_t val
         val = self.value
         if self.tz is not None and not _is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
+        return val
+
+    cpdef _get_field(self, field):
+        cdef:
+            int64_t val
+            ndarray[int32_t] out
+        val = self._maybe_convert_value_to_local()
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
+
+    cpdef _get_named_field(self, field):
+        cdef:
+            int64_t val
+            ndarray[object] out
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64), field)
+        return out[0]
 
     cpdef _get_start_end_field(self, field):
         month_kw = self.freq.kwds.get(
             'startingMonth', self.freq.kwds.get(
                 'month', 12)) if self.freq else 12
         freqstr = self.freqstr if self.freq else None
-        val = self.value
-        if self.tz is not None and not _is_utc(self.tz):
-            val = tz_convert_single(self.value, 'UTC', self.tz)
+        val = self._maybe_convert_value_to_local()
         out = get_start_end_field(
             np.array([val], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
@@ -2362,8 +2374,6 @@ cdef class _Timedelta(timedelta):
             int ndim
 
         if isinstance(other, _Timedelta):
-            if isinstance(other, _NaT):
-                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
         elif isinstance(other, timedelta):
             ots = Timedelta(other)
@@ -3622,7 +3632,7 @@ fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
           'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
           'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
-          'nanoseconds', 'qyear', 'quarter']
+          'nanoseconds', 'qyear']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -3634,8 +3644,9 @@ for field in fields:
 _nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
                 'today', 'round', 'floor', 'ceil', 'tz_convert',
                 'tz_localize']
-_nan_methods = ['weekday', 'isoweekday', 'total_seconds']
-_implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
+_nan_methods = ['weekday', 'isoweekday']
+_implemented_methods = [
+    'to_datetime', 'to_datetime64', 'isoformat', 'total_seconds']
 _implemented_methods.extend(_nat_methods)
 _implemented_methods.extend(_nan_methods)
 
@@ -3663,7 +3674,7 @@ for _method_name in _nat_methods:
         def f(*args, **kwargs):
             return NaT
         f.__name__ = func_name
-        f.__doc__ = _get_docstring(_method_name)
+        f.__doc__ = _get_docstring(func_name)
         return f
 
     setattr(NaTType, _method_name, _make_nat_func(_method_name))
@@ -3675,7 +3686,7 @@ for _method_name in _nan_methods:
         def f(*args, **kwargs):
             return np.nan
         f.__name__ = func_name
-        f.__doc__ = _get_docstring(_method_name)
+        f.__doc__ = _get_docstring(func_name)
         return f
 
     setattr(NaTType, _method_name, _make_nan_func(_method_name))
@@ -3693,7 +3704,7 @@ for _maybe_method_name in dir(NaTType):
             def f(*args, **kwargs):
                 raise ValueError("NaTType does not support " + func_name)
             f.__name__ = func_name
-            f.__doc__ = _get_docstring(_method_name)
+            f.__doc__ = _get_docstring(func_name)
             return f
 
         setattr(NaTType, _maybe_method_name,
@@ -4360,7 +4371,6 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, count = 0
-        int isleap
         pandas_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
@@ -5010,7 +5020,6 @@ cpdef _isleapyear_arr(ndarray years):
 def monthrange(int64_t year, int64_t month):
     cdef:
         int64_t days
-        int64_t day_of_week
 
     if month < 1 or month > 12:
         raise ValueError("bad month number 0; must be 1-12")

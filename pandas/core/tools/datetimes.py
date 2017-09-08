@@ -386,7 +386,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
+        values = _convert_listlike(arg._values, True, format)
         result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
@@ -475,7 +475,7 @@ def _assemble_from_unit_mappings(arg, errors):
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{excess}]".format(','.join(excess=excess)))
+                         "[{excess}]".format(excess=','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows

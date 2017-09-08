@@ -569,8 +569,6 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-.. versionadded:: 0.15.0
-
 :func:`get_dummies` also accepts a DataFrame. By default all categorical
 variables (categorical in the statistical sense,
 those with `object` or `categorical` dtype) are encoded as dummy variables.
@@ -675,4 +673,4 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`. This feature was introduced in version 0.15.
+    :ref:`API documentation <api.categorical>`.
