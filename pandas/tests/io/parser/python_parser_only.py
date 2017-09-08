@@ -232,7 +232,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                                error_bad_lines=False,
                                warn_bad_lines=True,
                                engine='python',
-                               iterator=True,
                                tupleize_cols=True)
         tm.assert_frame_equal(result, expected)
 
