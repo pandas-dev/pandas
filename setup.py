@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'panads/_libs/tslibs/frequencies.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -492,6 +493,8 @@ ext_data = {
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
+    '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
+                                 'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c'],
@@ -653,6 +656,7 @@ setup(name=DISTNAME,
                 'pandas.io.formats',
                 'pandas.io.clipboard',
                 'pandas._libs',
+                'pandas._libs.tslibs',
                 'pandas.plotting',
                 'pandas.stats',
                 'pandas.types',

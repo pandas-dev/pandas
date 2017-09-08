@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
-    is_integer,
     is_period_arraylike,
     is_timedelta64_dtype,
     is_datetime64_dtype)
@@ -21,6 +20,7 @@ import pandas.tseries.offsets as offsets
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
+from pandas._libs.tslibs.frequencies import get_freq_code, _base_and_stride
 from pytz import AmbiguousTimeError
 
 
@@ -298,58 +298,6 @@ def get_freq(freq):
     return freq
 
 
-def get_freq_code(freqstr):
-    """
-    Return freq str or tuple to freq code and stride (mult)
-
-    Parameters
-    ----------
-    freqstr : str or tuple
-
-    Returns
-    -------
-    return : tuple of base frequency code and stride (mult)
-
-    Example
-    -------
-    >>> get_freq_code('3D')
-    (6000, 3)
-
-    >>> get_freq_code('D')
-    (6000, 1)
-
-    >>> get_freq_code(('D', 3))
-    (6000, 3)
-    """
-    if isinstance(freqstr, DateOffset):
-        freqstr = (freqstr.rule_code, freqstr.n)
-
-    if isinstance(freqstr, tuple):
-        if (is_integer(freqstr[0]) and
-                is_integer(freqstr[1])):
-            # e.g., freqstr = (2000, 1)
-            return freqstr
-        else:
-            # e.g., freqstr = ('T', 5)
-            try:
-                code = _period_str_to_code(freqstr[0])
-                stride = freqstr[1]
-            except:
-                if is_integer(freqstr[1]):
-                    raise
-                code = _period_str_to_code(freqstr[1])
-                stride = freqstr[0]
-            return code, stride
-
-    if is_integer(freqstr):
-        return (freqstr, 1)
-
-    base, stride = _base_and_stride(freqstr)
-    code = _period_str_to_code(base)
-
-    return code, stride
-
-
 def _get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
     if mult == 1:
@@ -575,31 +523,6 @@ def to_offset(freq):
 opattern = re.compile(
     r'([\-]?\d*|[\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
-
-
-def _base_and_stride(freqstr):
-    """
-    Return base freq and stride info from string representation
-
-    Examples
-    --------
-    _freq_and_stride('5Min') -> 'Min', 5
-    """
-    groups = opattern.match(freqstr)
-
-    if not groups:
-        raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
-
-    stride = groups.group(1)
-
-    if len(stride):
-        stride = int(stride)
-    else:
-        stride = 1
-
-    base = groups.group(2)
-
-    return (base, stride)
 
 
 def get_base_alias(freqstr):
