@@ -453,8 +453,6 @@ available to insert at a particular location in the columns:
 Assigning New Columns in Method Chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.0
-
 Inspired by `dplyr's
 <http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
 ``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
