@@ -112,6 +112,7 @@ Other Enhancements
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
+- :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
 
 
 
