@@ -1039,8 +1039,8 @@ def interval_range(start=None, end=None, freq=None, periods=None,
         Left bound for generating data
     end : string or datetime-like, default None
         Right bound for generating data
-    freq : interger, string or DateOffset, default 1
-    periods : interger, default None
+    freq : integer, string or DateOffset, default 1
+    periods : integer, default None
     name : str, default None
         Name of the resulting index
     closed : string, default 'right'
@@ -1048,34 +1048,26 @@ def interval_range(start=None, end=None, freq=None, periods=None,
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Exactly two of start, end, or periods must be specified
 
     Returns
     -------
     rng : IntervalIndex
     """
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Must specify exactly two of start, end, or periods')
 
     if freq is None:
         freq = 1
-
     if start is None:
-        if periods is None or end is None:
-            raise ValueError("must specify 2 of start, end, periods")
         start = end - periods * freq
     if end is None:
-        if periods is None or start is None:
-            raise ValueError("must specify 2 of start, end, periods")
         end = start + periods * freq
-    if periods is None:
-        if start is None or end is None:
-            raise ValueError("must specify 2 of start, end, periods")
-        pass
 
     # must all be same units or None
     arr = np.array([start, end, freq])
     if is_object_dtype(arr):
         raise ValueError("start, end, freq need to be the same type")
 
-    return IntervalIndex.from_breaks(np.arange(start, end, freq),
-                                     name=name,
-                                     closed=closed)
+    return IntervalIndex.from_breaks(np.arange(start, end + 1, freq),
+                                     name=name, closed=closed, **kwargs)

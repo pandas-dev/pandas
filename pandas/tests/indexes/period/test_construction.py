@@ -440,7 +440,7 @@ class TestPeriodIndex(object):
         with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start, end=end_intv)
 
-        msg = 'Must specify 2 of start, end, periods'
+        msg = 'Must specify exactly two of start, end, or periods'
         with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start)
 

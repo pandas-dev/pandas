@@ -234,7 +234,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset, closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Must specify two of start, end, or periods')
+            msg = 'Must specify exactly two of start, end, or periods'
+            raise ValueError(msg)
 
         if start is not None:
             start = Timedelta(start)
@@ -985,7 +986,7 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     Notes
     -----
-    2 of start, end, or periods must be specified.
+    Exactly two of start, end, or periods must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.

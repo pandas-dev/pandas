@@ -721,40 +721,66 @@ class TestIntervalIndex(Base):
 
 class TestIntervalRange(object):
 
-    def test_construction(self):
-        result = interval_range(0, 5, name='foo', closed='both')
+    @pytest.mark.parametrize('closed', ['left', 'right', 'neither', 'both'])
+    def test_construction(self, closed):
+        # combinations of start/end/periods without freq
         expected = IntervalIndex.from_breaks(
-            np.arange(0, 5), name='foo', closed='both')
+            np.arange(0, 6), name='foo', closed=closed)
+
+        result = interval_range(start=0, end=5, name='foo', closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(start=0, periods=5, name='foo', closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(end=5, periods=5, name='foo', closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # combinations of start/end/periods with freq
+        expected = IntervalIndex.from_tuples([(0, 2), (2, 4), (4, 6)],
+                                             name='foo', closed=closed)
+
+        result = interval_range(start=0, end=6, freq=2, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(start=0, periods=3, freq=2, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(end=6, periods=3, freq=2, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # output truncates early if freq causes end to be skipped.
+        result = interval_range(start=0, end=7, freq=2, name='foo',
+                                closed=closed)
         tm.assert_index_equal(result, expected)
 
     def test_errors(self):
-
         # not enough params
-        def f():
-            interval_range(0)
+        with pytest.raises(ValueError):
+            interval_range(start=0)
 
-        pytest.raises(ValueError, f)
+        with pytest.raises(ValueError):
+            interval_range(end=5)
 
-        def f():
+        with pytest.raises(ValueError):
             interval_range(periods=2)
 
-        pytest.raises(ValueError, f)
-
-        def f():
+        with pytest.raises(ValueError):
             interval_range()
 
-        pytest.raises(ValueError, f)
+        # too many params
+        with pytest.raises(ValueError):
+            interval_range(start=0, end=5, periods=6)
 
         # mixed units
-        def f():
-            interval_range(0, Timestamp('20130101'), freq=2)
+        with pytest.raises(ValueError):
+            interval_range(start=0, end=Timestamp('20130101'), freq=2)
 
-        pytest.raises(ValueError, f)
-
-        def f():
-            interval_range(0, 10, freq=Timedelta('1day'))
-
-        pytest.raises(ValueError, f)
+        with pytest.raises(ValueError):
+            interval_range(start=0, end=10, freq=Timedelta('1day'))
 
 
 class TestIntervalTree(object):

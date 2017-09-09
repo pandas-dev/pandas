@@ -107,8 +107,8 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        pytest.raises(ValueError, date_range, start, end, freq='s',
-                      periods=10)
+        with pytest.raises(ValueError):
+            date_range(start, end, periods=10, freq='s')
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -146,14 +146,26 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
+        with pytest.raises(ValueError):
+            date_range(start='1/1/2000')
 
-        pytest.raises(ValueError, date_range, '1/1/2000')
-        pytest.raises(ValueError, date_range, end='1/1/2000')
-        pytest.raises(ValueError, date_range, periods=10)
+        with pytest.raises(ValueError):
+            date_range(end='1/1/2000')
 
-        pytest.raises(ValueError, date_range, '1/1/2000', freq='H')
-        pytest.raises(ValueError, date_range, end='1/1/2000', freq='H')
-        pytest.raises(ValueError, date_range, periods=10, freq='H')
+        with pytest.raises(ValueError):
+            date_range(periods=10)
+
+        with pytest.raises(ValueError):
+            date_range(start='1/1/2000', freq='H')
+
+        with pytest.raises(ValueError):
+            date_range(end='1/1/2000', freq='H')
+
+        with pytest.raises(ValueError):
+            date_range(periods=10, freq='H')
+
+        with pytest.raises(ValueError):
+            date_range()
 
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349

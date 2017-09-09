@@ -1051,8 +1051,8 @@ PeriodIndex._add_datetimelike_methods()
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
-    if com._count_not_none(start, end, periods) < 2:
-        raise ValueError('Must specify 2 of start, end, periods')
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Must specify exactly two of start, end, or periods')
 
     if freq is not None:
         _, mult = _gfc(freq)
@@ -1160,7 +1160,6 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
 
-
     Parameters
     ----------
     start : starting value, period-like, optional
@@ -1171,6 +1170,13 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
         Frequency alias
     name : str, default None
         Name for the resulting PeriodIndex
+
+    Notes
+    -----
+    Exactly two of start, end, or periods must be specified
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------

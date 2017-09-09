@@ -412,7 +412,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Must specify two of start, end, or periods')
+            msg = 'Must specify exactly two of start, end, or periods'
+            raise ValueError(msg)
 
         _normalized = True
 
@@ -2030,7 +2031,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Exactly two of start, end, or periods must be specified
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2073,7 +2074,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Exactly two of start, end, or periods must be specified
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2127,7 +2128,7 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Exactly two of start, end, or periods must be specified
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
