@@ -759,27 +759,31 @@ class TestIntervalRange(object):
 
     def test_errors(self):
         # not enough params
-        with pytest.raises(ValueError):
+        msg = ('Of the three parameters, start, end, and periods, '
+               'exactly two must be specified')
+
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(end=5)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(periods=2)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range()
 
         # too many params
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=5, periods=6)
 
         # mixed units
-        with pytest.raises(ValueError):
+        msg = 'start, end, freq need to be the same type'
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=Timestamp('20130101'), freq=2)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=10, freq=Timedelta('1day'))
 
 

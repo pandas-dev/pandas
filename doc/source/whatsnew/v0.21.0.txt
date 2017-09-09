@@ -358,7 +358,7 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
-.. _whatsnew_0200.api.consistency_of_range_functions:
+.. _whatsnew_0210.api.consistency_of_range_functions:
 
 Consistency of Range Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -386,11 +386,11 @@ New Behavior:
 
   In [2]: pd.interval_range(start=0, end=4, periods=6)
   ---------------------------------------------------------------------------
-  ValueError: Must specify exactly two of start, end, or periods
+  ValueError: Of the three parameters, start, end, and periods, exactly two must be specified
 
   In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
   ---------------------------------------------------------------------------
-  ValueError: Must specify exactly two of start, end, or periods
+  ValueError: Of the three parameters, start, end, and periods, exactly two must be specified
 
 Additionally, the endpoint parameter ``end`` was not included in the intervals produced by ``interval_range``.  However, all other range functions include ``end`` in their output.  To promote consistency among the range functions, ``interval_range`` will now include ``end`` as the right endpoint of the final interval, except if ``freq`` is specified in a way which skips ``end``.
 

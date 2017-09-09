@@ -35,18 +35,20 @@ class TestPeriodRange(object):
 
     def test_errors(self):
         # not enough params
-        with pytest.raises(ValueError):
+        msg = ('Of the three parameters, start, end, and periods, '
+               'exactly two must be specified')
+        with tm.assert_raises_regex(ValueError, msg):
             period_range(start='2017Q1')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             period_range(end='2017Q1')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             period_range(periods=5)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             period_range()
 
         # too many params
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             period_range(start='2017Q1', end='2018Q1', periods=8, freq='Q')

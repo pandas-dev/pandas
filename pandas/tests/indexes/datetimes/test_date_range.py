@@ -107,7 +107,9 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        with pytest.raises(ValueError):
+        msg = ('Of the three parameters, start, end, and periods, '
+               'exactly two must be specified')
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(start, end, periods=10, freq='s')
 
     def test_date_range_businesshour(self):
@@ -146,25 +148,28 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
-        with pytest.raises(ValueError):
+        msg = ('Of the three parameters, start, end, and periods, '
+               'exactly two must be specified')
+
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(start='1/1/2000')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(end='1/1/2000')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(periods=10)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(start='1/1/2000', freq='H')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(end='1/1/2000', freq='H')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range(periods=10, freq='H')
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range()
 
     def test_compat_replace(self):

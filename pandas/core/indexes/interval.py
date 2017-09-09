@@ -1048,14 +1048,16 @@ def interval_range(start=None, end=None, freq=None, periods=None,
 
     Notes
     -----
-    Exactly two of start, end, or periods must be specified
+    Of the three parameters, ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     Returns
     -------
     rng : IntervalIndex
     """
     if com._count_not_none(start, end, periods) != 2:
-        raise ValueError('Must specify exactly two of start, end, or periods')
+        raise ValueError('Of the three parameters, start, end, and periods, '
+                         'exactly two must be specified')
 
     if freq is None:
         freq = 1
