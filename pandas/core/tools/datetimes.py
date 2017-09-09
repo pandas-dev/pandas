@@ -206,16 +206,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     def _convert_listlike(arg, box, format, name=None, tz=tz):
 
-        datetime_cache = None
-        if cache and is_list_like(arg) and not isinstance(arg, DatetimeIndex):
-            unique_dates = algorithms.unique(arg)
-            if len(unique_dates) != len(arg):
-                datetime_cache = Series(pd.to_datetime(unique_dates,
-                     errors=errors, dayfirst=dayfirst,
-                     yearfirst=yearfirst, utc=utc, box=box, format=format,
-                     exact=exact, unit=unit,
-                     infer_datetime_format=infer_datetime_format,
-                     origin=origin, cache=False), index=unique_dates)
+
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
 
@@ -381,18 +372,43 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             arg = np.asarray(arg)
         arg = arg + offset
 
+    convert_cache = None
+    if cache and is_list_like(arg) and not isinstance(arg, DatetimeIndex):
+        # unique currently cannot determine dates that are out of bounds
+        # use the cache only if the data is a string and there are more than 10**5 values
+        unique_dates = algorithms.unique(arg)
+        if len(unique_dates) != len(arg):
+            from pandas import Series
+            cache_data = _convert_listlike(unique_dates, True, format)
+            convert_cache = Series(cache_data, index=unique_dates)
+
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, True, format)
-        result = Series(values, index=arg.index, name=arg.name)
+        if convert_cache is not None:
+            result = arg.map(convert_cache)
+        else:
+            from pandas import Series
+            values = _convert_listlike(arg._values, True, format)
+            result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _convert_listlike(arg, box, format, name=arg.name)
+        if convert_cache is not None:
+            from pandas import Series
+            result = Series(arg).map(convert_cache).values
+            if box:
+                result = DatetimeIndex(result, tz=tz, name=arg.name)
+        else:
+            result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
-        result = _convert_listlike(arg, box, format)
+        if convert_cache is not None:
+            from pandas import Series
+            result = Series(arg).map(convert_cache).values
+            if box:
+                result = DatetimeIndex(result, tz=tz)
+        else:
+            result = _convert_listlike(arg, box, format)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
 
