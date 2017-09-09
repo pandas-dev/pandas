@@ -268,7 +268,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        boolean
+        does_tag_contain : boolean
             boolean indicating if the object contains tag 'tag'
         """
         raise AbstractMethodError(self)

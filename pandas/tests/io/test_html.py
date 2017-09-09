@@ -640,6 +640,7 @@ class TestReadHtml(ReadHtmlMixin):
         tm.assert_frame_equal(expected, res)
 
     def test_colspan_rowspan_are_1(self):
+        # GH17054
         expected = """<table>
                         <thead>
                             <tr>
@@ -669,6 +670,7 @@ class TestReadHtml(ReadHtmlMixin):
         tm.assert_frame_equal(expected, res)
 
     def test_colspan_rowspan_are_more_than_1(self):
+        # GH17054
         expected = """<table>
                         <thead>
                             <tr>
@@ -711,6 +713,7 @@ class TestReadHtml(ReadHtmlMixin):
         tm.assert_frame_equal(expected, res)
 
     def test_header_should_be_inferred_from_th_elements(self):
+        # GH17054
         expected = """<table>
                         <thead>
                             <tr>
