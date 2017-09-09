@@ -220,7 +220,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tables : A list of HTML <table> elements to be parsed into raw data.
+        tables : list of HTML <table> elements to be parsed into raw data.
         """
         raise AbstractMethodError(self)
 
@@ -295,7 +295,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        rows : a list of row elements of a table, usually <tr> or <th>
+        rows : list of row elements of a table, usually <tr> or <th>
         elements.
         """
         raise AbstractMethodError(self)
