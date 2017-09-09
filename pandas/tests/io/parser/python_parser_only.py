@@ -226,7 +226,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                               'b': [1, 8],
                               'c': [2, 9]})
 
-        # We expect no error to be thrown, and the
+        # We expect the third line in the data to be
+        # skipped because it is malformed
+        # but we do not expect any errors to occur
         result = self.read_csv(StringIO(data), header=0,
                                sep=None,
                                error_bad_lines=False,
