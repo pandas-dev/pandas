@@ -1626,8 +1626,8 @@ class TestPivotAnnual(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert isleapyear(2004)
 
-    def test_issue_13292(self):
-        # The below shouldn't raise an exception anymore.
+    def test_pivot_margins_name_unicode(self):
+        # issue #13292
         frame = pd.DataFrame({'foo': [1, 2, 3]})
         pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
                        margins_name=u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae')

@@ -9,7 +9,7 @@ from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import Index, _get_objs_combined_axis
-from pandas.compat import range, lrange, zip, u
+from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
 from pandas.util._decorators import Appender, Substitution
@@ -145,7 +145,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    msg = u('Conflicting name "{name}" in margins').format(name=margins_name)
+    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)
