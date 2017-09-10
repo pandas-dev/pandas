@@ -35,6 +35,12 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
+@pytest.fixture
+def strio_lines_json_df():
+    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    return StringIO(df.to_json(lines=True, orient="records"))
+
+
 class TestPandasContainer(object):
 
     def setup_method(self, method):
@@ -1032,18 +1038,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
-    def test_read_jsonchunks(self):
+    def test_read_jsonchunks(self, strio_lines_json_df):
         # GH17048: memory usage when lines=True
-        df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-
-        def get_strio():
-            return StringIO(df.to_json(lines=True, orient="records"))
 
         def test_with_chunksize(c):
-            iterator = pd.read_json(get_strio(), lines=True, chunksize=c)
+            iterator = pd.read_json(strio_lines_json_df, lines=True, chunksize=c)
             return pd.concat(iterator)
 
-        unchunked = pd.read_json(get_strio(), lines=True)
+        unchunked = pd.read_json(strio_lines_json_df, lines=True)
 
         chunked = test_with_chunksize(1)
 
@@ -1068,7 +1070,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(get_strio(), lines=False, chunksize=2)
+            pd.read_json(strio_lines_json_df, lines=False, chunksize=2)
 
         # Test that reading in Series also works
         s = pd.Series({'A': 1, 'B': 2})
@@ -1083,11 +1085,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert_series_equal(chunked, unchunked)
 
-        chunks = list(pd.read_json(get_strio(), lines=True, chunksize=2))
+        chunks = list(pd.read_json(strio_lines_json_df, lines=True, chunksize=2))
         assert chunks[0].shape == (2, 2)
         assert chunks[1].shape == (1, 2)
 
         with ensure_clean('test.json') as path:
+            df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
             df.to_json(path, lines=True, orient="records")
             chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
             unchunked = pd.read_json(path, lines=True)
