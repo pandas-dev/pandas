@@ -150,7 +150,6 @@ _period_code_map = {
     "N": 12000,       # Nanosecondly
 }
 
-
 _reverse_period_code_map = {
     _period_code_map[key]: key for key in _period_code_map}
 
