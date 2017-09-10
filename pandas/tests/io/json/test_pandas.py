@@ -35,7 +35,6 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-@pytest.fixture
 def strio_lines_json_df():
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
     return StringIO(df.to_json(lines=True, orient="records"))
@@ -43,6 +42,7 @@ def strio_lines_json_df():
 
 def json_lines_to_df_chunked(jlines, chunksize):
     return pd.concat(pd.read_json(jlines, lines=True, chunksize=chunksize))
+
 
 class TestPandasContainer(object):
 
@@ -1054,7 +1054,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         chunked_float = json_lines_to_df_chunked(strio_lines_json_df(), 1.0)
         assert_frame_equal(chunked_float, unchunked)
 
-    def test_readjson_chunksize_requires_lines():
+    def test_readjson_chunksize_requires_lines(self):
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_json(strio_lines_json_df(), lines=False, chunksize=2)
