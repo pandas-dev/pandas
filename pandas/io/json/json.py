@@ -358,18 +358,19 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             exists = False
 
         if exists:
-            fh, handles = _get_handle(filepath_or_buffer, 'r',
-                                      encoding=encoding)
             if lines and chunksize:
-                return JsonLineReader(fh, chunksize, **kwargs)
+                return JsonLineReader(filepath_or_buffer, chunksize,
+                                      encoding, **kwargs)
             else:
+                fh, handles = _get_handle(filepath_or_buffer, 'r',
+                                          encoding=encoding)
                 json = fh.read()
                 fh.close()
         else:
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
         if lines and chunksize:
-            return JsonLineReader(filepath_or_buffer, chunksize, **kwargs)
+            return JsonLineReader(filepath_or_buffer, chunksize, encoding, **kwargs)
         else:
             json = filepath_or_buffer.read()
     else:
@@ -412,14 +413,22 @@ class JsonLineReader(BaseIterator):
     This is so that `read_json(lines=True)` will return an identical object to
     `read_json(lines=True, chunksize=n)`.
     """
-    def __init__(self, fh, chunksize, **kwargs):
-        self.fh = fh
+    def __init__(self, filepath_or_buffer, chunksize, encoding, **kwargs):
+
+        try:
+            self.iterator, _ = _get_handle(filepath_or_buffer, 'r',
+                                           encoding=encoding)
+        except:
+            if hasattr(filepath_or_buffer, 'read'):
+                self.iterator = filepath_or_buffer
+            else:
+                raise ValueError("cannot read json from given input")
         self.chunksize = chunksize
         self.kwargs = kwargs
         self.nrows_seen = 0
 
     def __next__(self):
-        lines = list(islice(self.fh, self.chunksize))
+        lines = list(islice(self.iterator, self.chunksize))
         if lines:
             lines_json = '[' + ','.join(lines) + ']'
             obj = _get_obj(json=lines_json, **self.kwargs)
@@ -432,7 +441,7 @@ class JsonLineReader(BaseIterator):
 
         else:
             try:
-                self.fh.close()
+                self.iterator.close()
             except IOError:
                 pass
             raise StopIteration
