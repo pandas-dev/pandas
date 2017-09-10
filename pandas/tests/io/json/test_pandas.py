@@ -41,6 +41,9 @@ def strio_lines_json_df():
     return StringIO(df.to_json(lines=True, orient="records"))
 
 
+def json_lines_to_df_chunked(jlines, chunksize):
+    return pd.concat(pd.read_json(jlines, lines=True, chunksize=chunksize))
+
 class TestPandasContainer(object):
 
     def setup_method(self, method):
@@ -1038,41 +1041,26 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
-    def test_read_jsonchunks(self, strio_lines_json_df):
+    def test_readjson_chunks(self):
+        """Basic test that read_json(chunks=True) gives the same result as
+        read_json(chunks=False)"""
         # GH17048: memory usage when lines=True
 
-        def test_with_chunksize(c):
-            iterator = pd.read_json(strio_lines_json_df, lines=True, chunksize=c)
-            return pd.concat(iterator)
-
-        unchunked = pd.read_json(strio_lines_json_df, lines=True)
-
-        chunked = test_with_chunksize(1)
+        unchunked = pd.read_json(strio_lines_json_df(), lines=True)
+        chunked = json_lines_to_df_chunked(strio_lines_json_df(), 1)
 
         assert_frame_equal(chunked, unchunked)
 
-        chunked_float = test_with_chunksize(1.0)
+        chunked_float = json_lines_to_df_chunked(strio_lines_json_df(), 1.0)
         assert_frame_equal(chunked_float, unchunked)
 
-        msg = r"'chunksize' must be an integer >=1"
-
-        with tm.assert_raises_regex(ValueError, msg):
-            test_with_chunksize(0)
-
-        with tm.assert_raises_regex(ValueError, msg):
-            test_with_chunksize(-1)
-
-        with tm.assert_raises_regex(ValueError, msg):
-            test_with_chunksize(-2.2)
-
-        with tm.assert_raises_regex(ValueError, msg):
-            test_with_chunksize('foo')
-
+    def test_readjson_chunksize_requires_lines():
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio_lines_json_df, lines=False, chunksize=2)
+            pd.read_json(strio_lines_json_df(), lines=False, chunksize=2)
 
-        # Test that reading in Series also works
+    def test_readjson_chunks_series(self):
+        """Test reading line-format JSON to Series with chunksize param"""
         s = pd.Series({'A': 1, 'B': 2})
 
         strio = StringIO(s.to_json(lines=True, orient="records"))
@@ -1085,16 +1073,37 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert_series_equal(chunked, unchunked)
 
-        chunks = list(pd.read_json(strio_lines_json_df, lines=True, chunksize=2))
+    def test_readjson_each_chunk(self):
+        """Other tests check that the final result of read_json(chunksize=True)
+        is correct. This checks that the intermediate chunks read in are correct.
+        """
+        chunks = list(pd.read_json(strio_lines_json_df(), lines=True, chunksize=2))
         assert chunks[0].shape == (2, 2)
         assert chunks[1].shape == (1, 2)
 
+    def test_readjson_chunks_from_file(self):
         with ensure_clean('test.json') as path:
             df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
             df.to_json(path, lines=True, orient="records")
             chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
             unchunked = pd.read_json(path, lines=True)
             assert_frame_equal(unchunked, chunked)
+
+    def test_readjson_invalid_chunksize(self):
+        msg = r"'chunksize' must be an integer >=1"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            json_lines_to_df_chunked(strio_lines_json_df(), 0)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            json_lines_to_df_chunked(strio_lines_json_df(), -1)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            json_lines_to_df_chunked(strio_lines_json_df(), -2.2)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            json_lines_to_df_chunked(strio_lines_json_df(), 'foo')
+
 
     def test_latin_encoding(self):
         if compat.PY2:
