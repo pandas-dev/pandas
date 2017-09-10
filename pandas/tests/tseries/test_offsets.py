@@ -113,8 +113,7 @@ class Base(object):
         # create instance from offset class
         if klass is FY5253:
             klass = klass(n=value, startingMonth=1, weekday=1,
-                          variation='last',
-                          normalize=normalize)
+                          variation='last', normalize=normalize)
         elif klass is FY5253Quarter:
             klass = klass(n=value, startingMonth=1, weekday=1,
                           qtr_with_extra_week=1, variation='last',
