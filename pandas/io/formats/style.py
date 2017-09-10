@@ -618,6 +618,10 @@ class Styler(object):
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.where
+
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
                            (func, subset), kwargs))
