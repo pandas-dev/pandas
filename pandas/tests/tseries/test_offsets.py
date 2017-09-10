@@ -111,7 +111,10 @@ class Base(object):
 
     def _get_offset(self, klass, value=1, normalize=False):
         # create instance from offset class
-        if klass is FY5253 or klass is FY5253Quarter:
+        if klass is FY5253:
+            klass = klass(n=value, startingMonth=1, weekday=1,
+                          variation='last', normalize=normalize)
+        elif klass is FY5253Quarter:
             klass = klass(n=value, startingMonth=1, weekday=1,
                           qtr_with_extra_week=1, variation='last',
                           normalize=normalize)
@@ -2629,7 +2632,7 @@ class TestMonthEnd(Base):
 
     def test_day_of_month(self):
         dt = datetime(2007, 1, 1)
-        offset = MonthEnd(day=20)
+        offset = MonthEnd()
 
         result = dt + offset
         assert result == Timestamp(2007, 1, 31)
@@ -3678,7 +3681,7 @@ class TestFY5253NearestEndMonthQuarter(Base):
             1, startingMonth=8, weekday=WeekDay.THU,
             qtr_with_extra_week=4)
         offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest", qtr_with_extra_week=4)
+                          variation="nearest")
 
         tests = [
             # From Wikipedia
