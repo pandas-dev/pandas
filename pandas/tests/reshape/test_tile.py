@@ -326,6 +326,12 @@ class TestCut(object):
                                                                 ordered=True)
         tm.assert_series_equal(result, expected)
 
+    def test_qcut_labels_true(self):
+        # issue 13318
+        values = list(range(10))
+        with tm.assert_raises_regex(ValueError, "True"):
+            qcut(values, 5, labels=True)
+
     def test_qcut_duplicates_bin(self):
         # GH 7751
         values = [0, 0, 0, 0, 1, 2, 3]
