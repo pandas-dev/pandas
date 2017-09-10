@@ -1160,14 +1160,14 @@ resetting indexes.
 .. note::
 
    When DataFrames are merged on a string that matches an index level in both
-   frames then the index level is preserved as an index level in the resulting
+   frames, the index level is preserved as an index level in the resulting
    DataFrame.
 
 .. note::
 
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, then a
+   warning is issued and the column takes precedence. This will result in an
+   ambiguity error in a future version.
 
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -816,6 +816,25 @@ class _MergeOperation(object):
             x, (np.ndarray, Series)) and len(x) == len(right)
 
         def get_key_vals(df, key):
+            """
+            Return an array of values from a DataFrame corresponding to a
+            given key. This is a wrapper for
+            ``DataFrame._get_column_or_level_values()`` with `axis` and
+            `op_description` defined by the merge operation
+
+            Parameters
+            ----------
+            df: DataFrame
+            key: int or object
+
+            Returns
+            -------
+            values: array
+
+            See Also
+            --------
+            DataFrame._get_column_or_level_values
+            """
             return df._get_column_or_level_values(key, axis=self.axis,
                                                   op_description="merge on")
 

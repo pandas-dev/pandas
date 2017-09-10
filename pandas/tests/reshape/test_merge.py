@@ -1359,6 +1359,8 @@ class TestMergeMulti(object):
         pytest.raises(NotImplementedError, f)
 
     def test_merge_on_index_and_column(self):
+        # GH14355
+
         # Construct DataFrames
         df1 = DataFrame(dict(
             outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
