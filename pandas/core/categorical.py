@@ -399,6 +399,12 @@ class Categorical(PandasObject):
         """ return the size of a single category """
         return self.categories.itemsize
 
+    def tolist(self):
+        """
+        return a list of my values
+        """
+        return np.array(self).tolist()
+
     def reshape(self, new_shape, *args, **kwargs):
         """
         .. deprecated:: 0.19.0

@@ -253,6 +253,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    def __iter__(self):
+        """ iterate like Categorical """
+        return self._data.__iter__()
+
     @property
     def codes(self):
         return self._data.codes
