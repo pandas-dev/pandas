@@ -411,6 +411,7 @@ I/O
 - Bug in :func:`read_csv` when called with a single-element list ``header`` would return a ``DataFrame`` of all NaN values (:issue:`7757`)
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
+- Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
 
 Plotting
 ^^^^^^^^
