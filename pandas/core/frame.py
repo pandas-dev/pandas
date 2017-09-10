@@ -4069,23 +4069,97 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
     def first_valid_index(self):
         """
-        Return label for first non-NA/null value
+        Return index for first non-NA/null value.
+        If all elements are non-NA/null, returns None.
+        Also returns None for empty DataFrame.
+
+        Examples
+        --------
+
+        When no null value in a DataFrame, returns first index.
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df.first_valid_index()
+        0
+
+        When all elements in first row are null, returns second index.
+
+        >>> df = DataFrame({'A': [None, 2, 3], 'B': [None, 'b', 'f']})
+        >>> df.first_valid_index()
+        1
+
+        When only part of elements in first row are null, recognized as valid.
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': [None, 'b', 'f']})
+        >>> df.first_valid_index()
+        0
+
+        When all elements in a dataframe are null, returns None
+
+        >>> df = DataFrame({'A': [None, None, None], 'B': [None, None, None]})
+        >>> df.first_valid_index()
+
+        Returns None for empty DataFrame
+
+        >>> df = DataFrame()
+        >>> df.first_valid_index()
+
         """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
     def last_valid_index(self):
         """
-        Return label for last non-NA/null value
+        Return index for last non-NA/null value.
+        If all elements are non-NA/null, returns None.
+        Also returns None for empty DataFrame.
+
+        Examples
+        --------
+
+        When no null value in a DataFrame, returns last index.
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df.last_valid_index()
+        2
+
+        When all elements in last row are null, returns second from last index.
+
+        >>> df = DataFrame({'A': [1, 2, None], 'B': ['a', 'b', None]})
+        >>> df.last_valid_index()
+        1
+
+        When only part of elements in last row are null, recognized as valid.
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', None]})
+        >>> df.last_valid_index()
+        2
+
+        When all elements in a dataframe are null, returns None
+
+        >>> df = DataFrame({'A': [None, None, None], 'B': [None, None, None]})
+        >>> df.last_valid_index()
+
+        Returns None for empty DataFrame
+
+        >>> df = DataFrame()
+        >>> df.last_valid_index()
+
         """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping
