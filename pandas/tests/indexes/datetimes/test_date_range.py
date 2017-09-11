@@ -107,7 +107,7 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        msg = ('Of the three parameters, start, end, and periods, '
+        msg = ('Of the three parameters: start, end, and periods, '
                'exactly two must be specified')
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start, end, periods=10, freq='s')
@@ -148,7 +148,7 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
-        msg = ('Of the three parameters, start, end, and periods, '
+        msg = ('Of the three parameters: start, end, and periods, '
                'exactly two must be specified')
 
         with tm.assert_raises_regex(ValueError, msg):

@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_interval_dtype,
     is_scalar,
+    is_float,
     is_integer)
 from pandas.core.indexes.base import (
     Index, _ensure_index,
@@ -1028,27 +1029,30 @@ class IntervalIndex(IntervalMixin, Index):
 IntervalIndex._add_logical_methods_disabled()
 
 
-def interval_range(start=None, end=None, freq=None, periods=None,
+def interval_range(start=None, end=None, periods=None, freq=None,
                    name=None, closed='right', **kwargs):
     """
     Return a fixed frequency IntervalIndex
 
     Parameters
     ----------
-    start : string or datetime-like, default None
-        Left bound for generating data
-    end : string or datetime-like, default None
-        Right bound for generating data
-    freq : integer, string or DateOffset, default 1
+    start : numeric, string, or datetime-like, default None
+        Left bound for generating intervals
+    end : numeric, string, or datetime-like, default None
+        Right bound for generating intervals
     periods : integer, default None
-    name : str, default None
-        Name of the resulting index
+        Number of intervals to generate
+    freq : numeric, string, or DateOffset, default 1
+        The length of each interval. Must be consistent with the
+        type of start and end
+    name : string, default None
+        Name of the resulting IntervalIndex
     closed : string, default 'right'
         options are: 'left', 'right', 'both', 'neither'
 
     Notes
     -----
-    Of the three parameters, ``start``, ``end``, and ``periods``, exactly two
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
     must be specified.
 
     Returns
@@ -1056,20 +1060,30 @@ def interval_range(start=None, end=None, freq=None, periods=None,
     rng : IntervalIndex
     """
     if com._count_not_none(start, end, periods) != 2:
-        raise ValueError('Of the three parameters, start, end, and periods, '
+        raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    if freq is None:
-        freq = 1
-    if start is None:
-        start = end - periods * freq
-    if end is None:
-        end = start + periods * freq
-
     # must all be same units or None
-    arr = np.array([start, end, freq])
+    arr = np.array(list(com._not_none(start, end, freq)))
     if is_object_dtype(arr):
         raise ValueError("start, end, freq need to be the same type")
 
-    return IntervalIndex.from_breaks(np.arange(start, end + 1, freq),
+    if freq is None:
+        freq = 1
+
+    if periods is None:
+        periods = int((end - start) // freq)
+    elif is_float(periods):
+        periods = int(periods)
+    elif not is_integer(periods):
+        msg = 'periods must be a number, got {periods}'
+        raise ValueError(msg.format(periods=periods))
+
+    if start is None:
+        start = end - periods * freq
+
+    # force end to be consistent with freq (truncate if freq skips over end)
+    end = start + periods * freq
+
+    return IntervalIndex.from_breaks(np.arange(start, end + freq, freq),
                                      name=name, closed=closed, **kwargs)

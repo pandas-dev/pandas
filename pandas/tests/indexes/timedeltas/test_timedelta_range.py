@@ -51,7 +51,7 @@ class TestTimedeltas(object):
 
     def test_errors(self):
         # not enough params
-        msg = ('Of the three parameters, start, end, and periods, '
+        msg = ('Of the three parameters: start, end, and periods, '
                'exactly two must be specified')
         with tm.assert_raises_regex(ValueError, msg):
             timedelta_range(start='0 days')

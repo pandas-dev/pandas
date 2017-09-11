@@ -180,8 +180,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise ValueError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -234,7 +234,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset, closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Of the three parameters, start, end, and '
+            raise ValueError('Of the three parameters: start, end, and '
                              'periods, exactly two must be specified')
 
         if start is not None:
@@ -961,22 +961,22 @@ def _generate_regular_range(start, end, periods, offset):
 def timedelta_range(start=None, end=None, periods=None, freq='D',
                     name=None, closed=None):
     """
-    Return a fixed frequency timedelta index, with day as the default
+    Return a fixed frequency TimedeltaIndex, with day as the default
     frequency
 
     Parameters
     ----------
     start : string or timedelta-like, default None
-        Left bound for generating dates
-    end : string or datetime-like, default None
-        Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+        Left bound for generating timedeltas
+    end : string or timedelta-like, default None
+        Right bound for generating timedeltas
+    periods : integer, default None
+        Number of timedeltas to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
-    name : str, default None
-        Name of the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting TimedeltaIndex
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
@@ -986,12 +986,11 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     Notes
     -----
-    Of the three parameters, ``start``, ``end``, and ``periods``, exactly two
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
     must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
     """
     return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name,
-                          closed=closed)
+                          freq=freq, name=name, closed=closed)

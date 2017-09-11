@@ -753,13 +753,21 @@ class TestIntervalRange(object):
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
-        result = interval_range(start=0, end=7, freq=2, name='foo',
+        expected = IntervalIndex.from_tuples([(0.0, 1.5), (1.5, 3.0)],
+                                             name='foo', closed=closed)
+        result = interval_range(start=0, end=4, freq=1.5, name='foo',
                                 closed=closed)
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_coverage(self):
+        # float value for periods
+        expected = pd.interval_range(start=0, periods=10)
+        result = pd.interval_range(start=0, periods=10.5)
         tm.assert_index_equal(result, expected)
 
     def test_errors(self):
         # not enough params
-        msg = ('Of the three parameters, start, end, and periods, '
+        msg = ('Of the three parameters: start, end, and periods, '
                'exactly two must be specified')
 
         with tm.assert_raises_regex(ValueError, msg):
@@ -778,8 +786,16 @@ class TestIntervalRange(object):
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=5, periods=6)
 
+        # invalid periods
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(start=0, periods='foo')
+
         # mixed units
         msg = 'start, end, freq need to be the same type'
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(start=Timestamp('20130101'), end=10, freq=2)
+
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=Timestamp('20130101'), freq=2)
 
