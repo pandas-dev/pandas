@@ -2162,6 +2162,119 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
+    # -------------------------------------------------------------------------
+    # Column and Index Mixing
+    #
+    # A collection of helpers methods for DataFrame operations that accept
+    # mix of column and index levels.  All such operations should utilize
+    # these methods as much as possible so that we have consistent precedence
+    # and validation logic.
+    #
+    # General Notes:
+    #
+    #   - If a column and index level share the same name, the column takes
+    #     precedence
+    #
+    #   - These methods assume axis=1
+    #
+    #   - Only string keys may be used to reference index levels.
+
+    def _get_column_or_level_values(self, key):
+        """
+        Return an array of values from a DataFrame column or named index level
+
+        Parameters
+        ----------
+        key: str or object
+            Label of column or index level. If `key` is present in the frame as
+            a column label, the corresponding column is chosen. Otherwise,
+            if `key` is a string and the is present in the frame as the name
+            of an index level, the corresponding index level is chosen.
+            Otherwise, a ``KeyError`` is raised.
+
+        Returns
+        -------
+        values: np.ndarray
+
+        Raises
+        ------
+        KeyError
+            if `key` matches neither a column label nor an index level name
+
+        See Also
+        --------
+        DataFrame._get_column_or_level_values
+        """
+        if key in self:
+            if key in self.index.names:
+                warnings.warn(
+                    ("'{key}' is both a column name and an index level.\n"
+                     "Defaulting to column, but this will raise an "
+                     "ambiguity error in a future version"
+                     ).format(key=key),
+                    FutureWarning, stacklevel=2)
+
+            values = self[key]._values
+        elif key in self.index.names:
+            values = self.index.get_level_values(key)._values
+        else:
+            raise KeyError(key)
+
+        return values
+
+    def _is_index_reference(self, key):
+        """
+        Test whether a key is an index level reference
+
+        To be considered an index level reference `key` must be a string that
+        matches the name of an index level and does NOT match the label
+        of any column.
+
+        Parameters
+        ----------
+        key: str or object
+            Label of column or index level
+
+        Returns
+        -------
+        is_index: bool
+        """
+        return (isinstance(key, compat.string_types) and
+                key not in self.columns and
+                key in self.index.names)
+
+    def _drop_columns_or_levels(self, drop_keys):
+        """
+        Drop columns or levels from the dataframe
+
+        Parameters
+        ----------
+        drop_keys: single label or list-like of labels
+
+        Returns
+        -------
+        dropped: DataFrame
+        """
+        drop_keys = com._maybe_make_list(drop_keys)
+
+        # Perform copy upfront and then use inplace operations below.
+        # This ensures that we always perform exactly one copy.
+        # ``copy`` and/or ``inplace`` options could be added in the future.
+        dropped = self.copy()
+
+        # Handle dropping index levels
+        levels_to_reset = [k for k in drop_keys if self._is_index_reference(k)]
+        if levels_to_reset:
+            dropped.reset_index(levels_to_reset, inplace=True)
+
+        # Handle dropping columns
+        cols_to_drop = [k for k in drop_keys if not self._is_index_reference(k)]
+        if cols_to_drop:
+            dropped.drop(drop_keys, axis=1, inplace=True)
+
+        return dropped
+
+
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 

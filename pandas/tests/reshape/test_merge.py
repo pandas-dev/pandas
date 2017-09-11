@@ -1448,6 +1448,11 @@ class TestMergeMulti(object):
             assert_frame_equal(result, expected)
 
             # Same result when index/column order is flipped
+            expected = (df1.reset_index()
+                        .merge(df2.reset_index(),
+                               on=['inner', 'outer'], how=how)
+                        .set_index(['inner', 'outer']))
+
             result = df1.merge(df2, on=['inner', 'outer'], how=how)
             assert_frame_equal(result, expected)
 
