@@ -1052,8 +1052,8 @@ Plot Formatting
 Setting the plot style
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-From version 1.5 and up, matplotlib offers a range of preconfigured plotting style. Setting the
-style can be used to easily give the plots the general look that you want.
+From version 1.5 and up, matplotlib offers a range of preconfigured plotting styles. Setting the
+style can be used to easily give plots the general look that you want.
 Setting the style is as easy as calling ``matplotlib.style.use(my_plot_style)`` before
 creating your plot. For example you could do ``matplotlib.style.use('ggplot')`` for ggplot-style
 plots.
