@@ -2838,39 +2838,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'Series'})
     def first_valid_index(self):
-        """
-        Return index for first non-NA/null value.
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty Series.
-
-        Examples
-        --------
-
-        When no null value in a Series, returns first index.
-
-        >>> s = Series([3, 4, 5])
-        >>> s.first_valid_index()
-        0
-
-        When first element is null, returns second index.
-
-        >>> s = Series([None, 4, 5])
-        >>> s.first_valid_index()
-        1
-
-        When all elements are null, returns None
-
-        >>> s = Series([None, None, None])
-        >>> s.first_valid_index()
-
-
-        Returns None for empty Series
-
-        >>> s = Series()
-        >>> s.first_valid_index()
-
-        """
         if len(self) == 0:
             return None
 
@@ -2881,39 +2851,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return self.index[i]
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
-        """
-        Return index for last non-NA/null value
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty Series.
-
-        Examples
-        --------
-
-        When no null value in a Series, returns last index.
-
-        >>> s = Series([3, 4, 5])
-        >>> s.last_valid_index()
-        2
-
-        When last element is null, returns second from the last index.
-
-        >>> s = Series([3, 4, None])
-        >>> s.last_valid_index()
-        1
-
-        When all elements are null, returns None
-
-        >>> s = Series([None, None, None])
-        >>> s.last_valid_index()
-
-
-        Returns None for empty Series
-
-        >>> s = Series()
-        >>> s.last_valid_index()
-
-        """
         if len(self) == 0:
             return None
 

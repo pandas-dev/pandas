@@ -440,7 +440,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 
-        # GH17400
+        # GH17400: no valid entries
         frame[:] = nan
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None

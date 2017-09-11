@@ -4073,88 +4073,18 @@ class DataFrame(NDFrame):
         is_valid = self.count(1) > 0
         return self.index[is_valid]
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return index for first non-NA/null value.
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty DataFrame.
-
-        Examples
-        --------
-
-        When no null value in a DataFrame, returns first index.
-
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.first_valid_index()
-        0
-
-        When all elements in first row are null, returns second index.
-
-        >>> df = DataFrame({'A': [None, 2, 3], 'B': [None, 'b', 'f']})
-        >>> df.first_valid_index()
-        1
-
-        When only part of elements in first row are null, recognized as valid.
-
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': [None, 'b', 'f']})
-        >>> df.first_valid_index()
-        0
-
-        When all elements in a dataframe are null, returns None
-
-        >>> df = DataFrame({'A': [None, None, None], 'B': [None, None, None]})
-        >>> df.first_valid_index()
-
-        Returns None for empty DataFrame
-
-        >>> df = DataFrame()
-        >>> df.first_valid_index()
-
-        """
         if len(self) == 0:
             return None
 
         valid_indices = self._get_valid_indices()
         return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return index for last non-NA/null value.
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty DataFrame.
-
-        Examples
-        --------
-
-        When no null value in a DataFrame, returns last index.
-
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.last_valid_index()
-        2
-
-        When all elements in last row are null, returns second from last index.
-
-        >>> df = DataFrame({'A': [1, 2, None], 'B': ['a', 'b', None]})
-        >>> df.last_valid_index()
-        1
-
-        When only part of elements in last row are null, recognized as valid.
-
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', None]})
-        >>> df.last_valid_index()
-        2
-
-        When all elements in a dataframe are null, returns None
-
-        >>> df = DataFrame({'A': [None, None, None], 'B': [None, None, None]})
-        >>> df.last_valid_index()
-
-        Returns None for empty DataFrame
-
-        >>> df = DataFrame()
-        >>> df.last_valid_index()
-
-        """
         if len(self) == 0:
             return None
 
