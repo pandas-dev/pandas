@@ -304,10 +304,9 @@ display.float_format                None         The callable should accept a fl
                                                  This is used in some places like
                                                  SeriesFormatter.
                                                  See core.format.EngFormatter for an example.
-display.height                      60           Deprecated. Use `display.max_rows` instead.
 display.large_repr                  truncate     For DataFrames exceeding max_rows/max_cols,
                                                  the repr (and HTML repr) can show
-                                                 a truncated table (the default from 0.13),
+                                                 a truncated table (the default),
                                                  or switch to the view from df.info()
                                                  (the behaviour in earlier versions of pandas).
                                                  allowable settings, ['truncate', 'info']
@@ -323,7 +322,6 @@ display.latex.multicolumn_format    'l'          Alignment of multicolumn labels
 display.latex.multirow              False        Combines rows when using a MultiIndex.
                                                  Centered instead of top-aligned,
                                                  separated by clines.
-display.line_width                  80           Deprecated. Use `display.width` instead.
 display.max_columns                 20           max_rows and max_columns are used
                                                  in __repr__() methods to decide if
                                                  to_string() or info() is used to
@@ -400,7 +398,7 @@ display.width                       80           Width of the display in charact
 display.html.table_schema           False        Whether to publish a Table Schema
                                                  representation for frontends that
                                                  support it.
-html.border                         1            A ``border=value`` attribute is
+display.html.border                 1            A ``border=value`` attribute is
                                                  inserted in the ``<table>`` tag
                                                  for the DataFrame HTML repr.
 io.excel.xls.writer                 xlwt         The default Excel writer engine for
@@ -416,15 +414,18 @@ io.hdf.default_format               None         default format writing format, 
                                                  'table'
 io.hdf.dropna_table                 True         drop ALL nan rows when appending
                                                  to a table
+io.parquet.engine                   None         The engine to use as a default for
+                                                 parquet reading and writing. If None
+                                                 then try 'pyarrow' and 'fastparquet'
 mode.chained_assignment             warn         Raise an exception, warn, or no
                                                  action if trying to use chained
                                                  assignment, The default is warn
 mode.sim_interactive                False        Whether to simulate interactive mode
                                                  for purposes of testing.
-mode.use_inf_as_null                False        True means treat None, NaN, -INF,
-                                                 INF as null (old way), False means
+mode.use_inf_as_na                  False        True means treat None, NaN, -INF,
+                                                 INF as NA (old way), False means
                                                  None and NaN are null, but INF, -INF
-                                                 are not null (new way).
+                                                 are not NA (new way).
 compute.use_bottleneck              True         Use the bottleneck library to accelerate
                                                  computation if it is installed.
 compute.use_numexpr                 True         Use the numexpr library to accelerate

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, IntervalIndex, Interval
+from pandas.compat import product
 import pandas.util.testing as tm
 
 
@@ -14,16 +15,6 @@ class TestIntervalIndex(object):
     def test_loc_with_scalar(self):
 
         s = self.s
-        expected = 0
-
-        result = s.loc[0.5]
-        assert result == expected
-
-        result = s.loc[1]
-        assert result == expected
-
-        with pytest.raises(KeyError):
-            s.loc[0]
 
         expected = s.iloc[:3]
         tm.assert_series_equal(expected, s.loc[:3])
@@ -42,16 +33,6 @@ class TestIntervalIndex(object):
     def test_getitem_with_scalar(self):
 
         s = self.s
-        expected = 0
-
-        result = s[0.5]
-        assert result == expected
-
-        result = s[1]
-        assert result == expected
-
-        with pytest.raises(KeyError):
-            s[0]
 
         expected = s.iloc[:3]
         tm.assert_series_equal(expected, s[:3])
@@ -66,6 +47,41 @@ class TestIntervalIndex(object):
 
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
+
+    @pytest.mark.parametrize('direction, closed',
+                             product(('increasing', 'decreasing'),
+                                     ('left', 'right', 'neither', 'both')))
+    def test_nonoverlapping_monotonic(self, direction, closed):
+        tpls = [(0, 1), (2, 3), (4, 5)]
+        if direction == 'decreasing':
+            tpls = reversed(tpls)
+
+        idx = IntervalIndex.from_tuples(tpls, closed=closed)
+        s = Series(list('abc'), idx)
+
+        for key, expected in zip(idx.left, s):
+            if idx.closed_left:
+                assert s[key] == expected
+                assert s.loc[key] == expected
+            else:
+                with pytest.raises(KeyError):
+                    s[key]
+                with pytest.raises(KeyError):
+                    s.loc[key]
+
+        for key, expected in zip(idx.right, s):
+            if idx.closed_right:
+                assert s[key] == expected
+                assert s.loc[key] == expected
+            else:
+                with pytest.raises(KeyError):
+                    s[key]
+                with pytest.raises(KeyError):
+                    s.loc[key]
+
+        for key, expected in zip(idx.mid, s):
+            assert s[key] == expected
+            assert s.loc[key] == expected
 
     def test_with_interval(self):
 
@@ -109,10 +125,10 @@ class TestIntervalIndex(object):
 
         # slice of interval
         with pytest.raises(NotImplementedError):
-            result = s.loc[Interval(3, 6):]
+            s.loc[Interval(3, 6):]
 
         with pytest.raises(NotImplementedError):
-            result = s[Interval(3, 6):]
+            s[Interval(3, 6):]
 
         expected = s.iloc[3:5]
         result = s[[Interval(3, 6)]]

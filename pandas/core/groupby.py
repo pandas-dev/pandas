@@ -13,7 +13,7 @@ from pandas.compat import (
 )
 
 from pandas import compat
-from pandas.compat.numpy import function as nv, _np_version_under1p8
+from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name
 
 from pandas.core.dtypes.common import (
@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     _ensure_categorical,
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.missing import isnull, notnull, _maybe_fill
+from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index)
@@ -62,6 +62,8 @@ from pandas.util._validators import validate_kwargs
 import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
+
+from pandas.plotting._core import boxplot_frame_groupby
 
 from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
 from pandas._libs.lib import count_level_2d
@@ -168,8 +170,9 @@ _series_apply_whitelist = ((_common_apply_whitelist |
                             {'nlargest', 'nsmallest'}) -
                            {'boxplot'}) | frozenset(['dtype', 'unique'])
 
-_dataframe_apply_whitelist = (_common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith']))
+_dataframe_apply_whitelist = ((_common_apply_whitelist |
+                              frozenset(['dtypes', 'corrwith'])) -
+                              {'boxplot'})
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
@@ -530,10 +533,11 @@ class _GroupBy(PandasObject, SelectionMixin):
         if not self.grouper.is_monotonic:
             index = Index(np.concatenate(
                 self._get_indices(self.grouper.result_index)))
-            result.set_axis(self.axis, index)
+            result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        result.set_axis(self.axis, self.obj._get_axis(self.axis))
+        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis,
+                        inplace=True)
         return result
 
     def _dir_additions(self):
@@ -1167,7 +1171,7 @@ class GroupBy(_GroupBy):
             def first(x):
 
                 x = np.asarray(x)
-                x = x[notnull(x)]
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[0]
@@ -1182,7 +1186,7 @@ class GroupBy(_GroupBy):
             def last(x):
 
                 x = np.asarray(x)
-                x = x[notnull(x)]
+                x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
                 return x[-1]
@@ -2356,7 +2360,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def result_index(self):
-        if len(self.binlabels) != 0 and isnull(self.binlabels[0]):
+        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 
         return self.binlabels
@@ -2628,13 +2632,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     try:
         if isinstance(obj, DataFrame):
-            all_in_columns = all(g in obj.columns for g in keys)
+            all_in_columns_index = all(g in obj.columns or g in obj.index.names
+                                       for g in keys)
         else:
-            all_in_columns = False
+            all_in_columns_index = False
     except Exception:
-        all_in_columns = False
+        all_in_columns_index = False
 
-    if not any_callable and not all_in_columns and \
+    if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
         keys = [com._asarray_tuplesafe(keys)]
@@ -3113,13 +3118,13 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notnull(x, *args, **kwargs):
+        def true_and_notna(x, *args, **kwargs):
             b = wrapper(x, *args, **kwargs)
-            return b and notnull(b)
+            return b and notna(b)
 
         try:
             indices = [self._get_index(name) for name, group in self
-                       if true_and_notnull(group)]
+                       if true_and_notna(group)]
         except ValueError:
             raise TypeError("the filter must return a boolean result")
         except TypeError:
@@ -3141,9 +3146,9 @@ class SeriesGroupBy(GroupBy):
                 'val.dtype must be object, got %s' % val.dtype
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
-            _isnull = lambda a: a == -1
+            _isna = lambda a: a == -1
         else:
-            _isnull = isnull
+            _isna = isna
 
         ids, val = ids[sorter], val[sorter]
 
@@ -3153,7 +3158,7 @@ class SeriesGroupBy(GroupBy):
         inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = _isnull(val)
+        mask = _isna(val)
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -3256,11 +3261,7 @@ class SeriesGroupBy(GroupBy):
             d = np.diff(np.r_[idx, len(ids)])
             if dropna:
                 m = ids[lab == -1]
-                if _np_version_under1p8:
-                    mi, ml = algorithms.factorize(m)
-                    d[ml] = d[ml] - np.bincount(mi)
-                else:
-                    np.add.at(d, m, -1)
+                np.add.at(d, m, -1)
                 acc = rep(d)[mask]
             else:
                 acc = rep(d)
@@ -3315,7 +3316,7 @@ class SeriesGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
-        mask = (ids != -1) & ~isnull(val)
+        mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or None)
 
@@ -3869,7 +3870,7 @@ class NDFrameGroupBy(GroupBy):
             if res.shape == res_fast.shape:
                 res_r = res.values.ravel()
                 res_fast_r = res_fast.values.ravel()
-                mask = notnull(res_r)
+                mask = notna(res_r)
             if (res_r[mask] == res_fast_r[mask]).all():
                 path = fast_path
 
@@ -3949,8 +3950,8 @@ class NDFrameGroupBy(GroupBy):
                 pass
 
             # interpret the result of the filter
-            if is_bool(res) or (is_scalar(res) and isnull(res)):
-                if res and notnull(res):
+            if is_bool(res) or (is_scalar(res) and isna(res)):
+                if res and notna(res):
                     indices.append(self._get_index(name))
             else:
                 # non scalars aren't allowed
@@ -4203,13 +4204,13 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.core.dtypes.missing import _isnull_ndarraylike as isnull
+        from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = ((mask & ~isnull(blk.get_values())) for blk in data.blocks)
+        val = ((mask & ~isna(blk.get_values())) for blk in data.blocks)
         loc = (blk.mgr_locs for blk in data.blocks)
 
         counter = partial(count_level_2d, labels=ids, max_bin=ngroups, axis=1)
@@ -4282,9 +4283,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results.index = _default_index(len(results))
         return results
 
-
-from pandas.plotting._core import boxplot_frame_groupby  # noqa
-DataFrameGroupBy.boxplot = boxplot_frame_groupby
+    boxplot = boxplot_frame_groupby
 
 
 class PanelGroupBy(NDFrameGroupBy):

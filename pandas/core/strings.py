@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -16,7 +16,7 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -101,7 +101,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arrays = _get_array_list(arr, others)
 
         n = _length_check(arrays)
-        masks = np.array([isnull(x) for x in arrays])
+        masks = np.array([isna(x) for x in arrays])
         cats = None
 
         if na_rep is None:
@@ -129,12 +129,12 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         return result
     else:
         arr = np.asarray(arr, dtype=object)
-        mask = isnull(arr)
+        mask = isna(arr)
         if na_rep is None and mask.any():
             if sep == '':
                 na_rep = ''
             else:
-                return sep.join(arr[notnull(arr)])
+                return sep.join(arr[notna(arr)])
         return sep.join(np.where(mask, na_rep, arr))
 
 
@@ -165,7 +165,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
-        mask = isnull(arr)
+        mask = isna(arr)
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
@@ -1391,7 +1391,7 @@ class StringMethods(NoNewAttributesMixin):
     def __iter__(self):
         i = 0
         g = self.get(i)
-        while g.notnull().any():
+        while g.notna().any():
             yield g
             i += 1
             g = self.get(i)
@@ -1452,7 +1452,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1890,18 +1895,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
+    @classmethod
+    def _make_accessor(cls, data):
         from pandas.core.index import Index
 
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
             # it's neither a string series not a categorical series with
             # strings inside the categories.
             # this really should exclude all series with any non-string values
@@ -1910,30 +1911,18 @@ class StringAccessorMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index):
+        elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
             # see scc/inferrence.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
+            if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
                 raise AttributeError(message)
-            if self.nlevels > 1:
+            if data.nlevels > 1:
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(self)
-
-    str = AccessorProperty(StringMethods, _make_str_accessor)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

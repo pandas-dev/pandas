@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_scalar)
-from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
@@ -91,12 +91,6 @@ class MultiIndex(Index):
             raise ValueError('Length of levels and labels must be the same.')
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
-        if len(levels) == 1:
-            if names:
-                name = names[0]
-            else:
-                name = None
-            return Index(levels[0], name=name, copy=True).take(labels[0])
 
         result = object.__new__(MultiIndex)
 
@@ -465,9 +459,13 @@ class MultiIndex(Index):
         *this is in internal routine*
 
         """
+
+        # for implementations with no useful getsizeof (PyPy)
+        objsize = 24
+
         level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
         label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i) for i in self.names))
+        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -783,8 +781,8 @@ class MultiIndex(Index):
 
     @Appender(ibase._index_shared_docs['fillna'])
     def fillna(self, value=None, downcast=None):
-        # isnull is not implemented for MultiIndex
-        raise NotImplementedError('isnull is not defined for MultiIndex')
+        # isna is not implemented for MultiIndex
+        raise NotImplementedError('isna is not defined for MultiIndex')
 
     @Appender(_index_shared_docs['dropna'])
     def dropna(self, how='any'):
@@ -884,15 +882,34 @@ class MultiIndex(Index):
     def get_level_values(self, level):
         """
         Return vector of label values for requested level,
-        equal to the length of the index
+        equal to the length of the index.
 
         Parameters
         ----------
-        level : int or level name
+        level : int or str
+            ``level`` is either the integer position of the level in the
+            MultiIndex, or the name of the level.
 
         Returns
         -------
         values : Index
+            ``values`` is a level of this MultiIndex converted to
+            a single :class:`Index` (or subclass thereof).
+
+        Examples
+        ---------
+
+        Create a MultiIndex:
+
+        >>> mi = pd.MultiIndex.from_arrays((list('abc'), list('def')))
+        >>> mi.names = ['level_1', 'level_2']
+
+        Get level values by supplying level as either integer or name:
+
+        >>> mi.get_level_values(0)
+        Index(['a', 'b', 'c'], dtype='object', name='level_1')
+        >>> mi.get_level_values('level_2')
+        Index(['d', 'e', 'f'], dtype='object', name='level_2')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -920,7 +937,7 @@ class MultiIndex(Index):
 
             else:
                 # weird all NA case
-                formatted = [pprint_thing(na if isnull(x) else x,
+                formatted = [pprint_thing(na if isna(x) else x,
                                           escape_chars=('\t', '\r', '\n'))
                              for x in algos.take_1d(lev._values, lab)]
             stringified_levels.append(formatted)
@@ -1080,10 +1097,6 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(arrays) == 1:
-            name = None if names is None else names[0]
-            return Index(arrays[0], name=name)
-
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
@@ -1697,7 +1710,8 @@ class MultiIndex(Index):
                 raise ValueError("level must have same length as ascending")
 
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(self.labels, orders=ascending)
+            indexer = lexsort_indexer([self.labels[lev] for lev in level],
+                                      orders=ascending)
 
         # level ordering
         else:

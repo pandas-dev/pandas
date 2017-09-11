@@ -8,7 +8,10 @@ xlrd
 xlwt
 scipy
 feather-format
+pyarrow
 numexpr
 pytables
 matplotlib
 blosc
+fastparquet
+pyarrow

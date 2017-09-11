@@ -21,9 +21,10 @@ from pandas.core.dtypes.common import (
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.index import Index, MultiIndex, RangeIndex
+from pandas.core.index import (Index, MultiIndex, RangeIndex,
+                               _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
@@ -63,8 +64,6 @@ object with a read() method (such as a file handle or StringIO)
     file. For file URLs, a host is expected. For instance, a local file could
     be file ://localhost/path/to/table.csv
 %s
-delimiter : str, default ``None``
-    Alternative argument name for sep.
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\s+'``. If this option
@@ -210,11 +209,11 @@ chunksize : int, default None
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
-    '.zip', or 'xz', respectively, and no decompression otherwise. If using
-    'zip', the ZIP file must contain only one data file to be read in.
-    Set to None for no decompression.
+    For on-the-fly decompression of on-disk data. If 'infer' and
+    `filepath_or_buffer` is path-like, then detect compression from the
+    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+    decompression). If using 'zip', the ZIP file must contain only one data
+    file to be read in. Set to None for no decompression.
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
@@ -316,7 +315,9 @@ _sep_doc = r"""sep : str, default {default}
     be used automatically. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``"""
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
+delimiter : str, default ``None``
+    Alternative argument name for sep."""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -341,15 +342,16 @@ colspecs : list of pairs (int, int) or 'infer'. optional
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
+delimiter : str, default ``'\t' + ' '``
+    Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
 """
 
 _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame
 
 %s
-
-Also, 'delimiter' is used to specify the filler character of the
-fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
@@ -486,18 +488,18 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skipfooter'])
-_python_unsupported = set([
+_c_unsupported = {'skipfooter'}
+_python_unsupported = {
     'low_memory',
     'buffer_lines',
     'float_precision',
-])
-_deprecated_args = set([
+}
+_deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
-])
+}
 
 
 def _make_parser_function(name, sep=','):
@@ -1317,14 +1319,18 @@ class ParserBase(object):
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = {}
+            counts = defaultdict(int)
 
             for i, col in enumerate(names):
-                cur_count = counts.get(col, 0)
+                cur_count = counts[col]
 
-                if cur_count > 0:
-                    names[i] = '%s.%d' % (col, cur_count)
+                while cur_count > 0:
+                    counts[col] = cur_count + 1
 
+                    col = '%s.%d' % (col, cur_count)
+                    cur_count = counts[col]
+
+                names[i] = col
                 counts[col] = cur_count + 1
 
         return names
@@ -1439,7 +1445,8 @@ class ParserBase(object):
             arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
-        index = MultiIndex.from_arrays(arrays, names=self.index_names)
+        names = self.index_names
+        index = _ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1531,7 +1538,7 @@ class ParserBase(object):
         if try_num_bool:
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isnull(result).sum()
+                na_count = isna(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
@@ -1709,6 +1716,7 @@ class CParserWrapper(ParserBase):
             # A set of integers will be converted to a list in
             # the correct order every single time.
             usecols = list(self.usecols)
+            usecols.sort()
         elif (callable(self.usecols) or
                 self.usecols_dtype not in ('empty', None)):
             # The names attribute should have the correct columns
@@ -1803,7 +1811,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = MultiIndex.from_arrays(arrays)
+            index = _ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -2278,10 +2286,11 @@ class PythonParser(ParserBase):
         if self.header is not None:
             header = self.header
 
-            # we have a mi columns, so read an extra line
             if isinstance(header, (list, tuple, np.ndarray)):
-                have_mi_columns = True
-                header = list(header) + [header[-1] + 1]
+                have_mi_columns = len(header) > 1
+                # we have a mi columns, so read an extra line
+                if have_mi_columns:
+                    header = list(header) + [header[-1] + 1]
             else:
                 have_mi_columns = False
                 header = [header]
@@ -2329,11 +2338,17 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = {}
+                    counts = defaultdict(int)
+
                     for i, col in enumerate(this_columns):
-                        cur_count = counts.get(col, 0)
-                        if cur_count > 0:
-                            this_columns[i] = '%s.%d' % (col, cur_count)
+                        cur_count = counts[col]
+
+                        while cur_count > 0:
+                            counts[col] = cur_count + 1
+                            col = "%s.%d" % (col, cur_count)
+                            cur_count = counts[col]
+
+                        this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
 
@@ -2821,7 +2836,9 @@ class PythonParser(ParserBase):
             for row_num, actual_len in bad_lines:
                 msg = ('Expected %d fields in line %d, saw %d' %
                        (col_len, row_num + 1, actual_len))
-                if len(self.delimiter) > 1 and self.quoting != csv.QUOTE_NONE:
+                if (self.delimiter and
+                        len(self.delimiter) > 1 and
+                        self.quoting != csv.QUOTE_NONE):
                     # see gh-13374
                     reason = ('Error could possibly be due to quotes being '
                               'ignored when a multi-char delimiter is used.')
@@ -3126,9 +3143,8 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [Series([], dtype=dtype[index_name])
-                 for index_name in index_names]
-        index = MultiIndex.from_arrays(index, names=index_names)
+        data = [Series([], dtype=dtype[name]) for name in index_names]
+        index = _ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
         for i, n in enumerate(index_col):
             columns.pop(n - i)

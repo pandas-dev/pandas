@@ -6,7 +6,7 @@ import pytz
 import numpy as np
 from pandas import (NaT, Index, Timestamp, Timedelta, Period,
                     DatetimeIndex, PeriodIndex,
-                    TimedeltaIndex, Series, isnull)
+                    TimedeltaIndex, Series, isna)
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
 
@@ -95,7 +95,7 @@ def test_identity(klass):
     result = klass('NaT')
     assert result is NaT
 
-    assert isnull(klass('nat'))
+    assert isna(klass('nat'))
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta, Period])
@@ -108,7 +108,7 @@ def test_equality(klass):
     klass('NAT').value == iNaT
     klass(None).value == iNaT
     klass(np.nan).value == iNaT
-    assert isnull(klass('nat'))
+    assert isna(klass('nat'))
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta])
@@ -247,3 +247,8 @@ def test_nat_arithmetic_index():
         tm.assert_index_equal(right + left, exp)
         tm.assert_index_equal(left - right, exp)
         tm.assert_index_equal(right - left, exp)
+
+
+def test_nat_pinned_docstrings():
+    # GH17327
+    assert NaT.ctime.__doc__ == datetime.ctime.__doc__

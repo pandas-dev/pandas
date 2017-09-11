@@ -83,7 +83,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
         nan_value = {{neg_nan_value}}
 
     {{if dtype == 'object'}}
-    mask = lib.isnullobj(values)
+    mask = lib.isnaobj(values)
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
@@ -259,7 +259,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
         nan_value = {{neg_nan_value}}
 
     {{if dtype == 'object'}}
-    mask = lib.isnullobj2d(values)
+    mask = lib.isnaobj2d(values)
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}

@@ -40,8 +40,9 @@ def _check_engine(engine):
             engine = 'python'
 
     if engine not in _engines:
-        raise KeyError('Invalid engine {0!r} passed, valid engines are'
-                       ' {1}'.format(engine, list(_engines.keys())))
+        valid = list(_engines.keys())
+        raise KeyError('Invalid engine {engine!r} passed, valid engines are'
+                       ' {valid}'.format(engine=engine, valid=valid))
 
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
@@ -69,8 +70,8 @@ def _check_parser(parser):
       * If an invalid parser is passed
     """
     if parser not in _parsers:
-        raise KeyError('Invalid parser {0!r} passed, valid parsers are'
-                       ' {1}'.format(parser, _parsers.keys()))
+        raise KeyError('Invalid parser {parser!r} passed, valid parsers are'
+                       ' {valid}'.format(parser=parser, valid=_parsers.keys()))
 
 
 def _check_resolvers(resolvers):
@@ -78,8 +79,8 @@ def _check_resolvers(resolvers):
         for resolver in resolvers:
             if not hasattr(resolver, '__getitem__'):
                 name = type(resolver).__name__
-                raise TypeError('Resolver of type %r does not implement '
-                                'the __getitem__ method' % name)
+                raise TypeError('Resolver of type {name!r} does not implement '
+                                'the __getitem__ method'.format(name=name))
 
 
 def _check_expression(expr):

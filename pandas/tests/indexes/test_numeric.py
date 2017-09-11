@@ -7,7 +7,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import (date_range, notnull, Series, Index, Float64Index,
+from pandas import (date_range, notna, Series, Index, Float64Index,
                     Int64Index, UInt64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -181,7 +181,9 @@ class TestFloat64Index(Numeric):
 
     def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
-                            float=Float64Index(np.arange(5) * 2.5))
+                            float=Float64Index(np.arange(5) * 2.5),
+                            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
+                            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5))
         self.setup_indices()
 
     def create_index(self):
@@ -228,11 +230,11 @@ class TestFloat64Index(Numeric):
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -654,7 +656,8 @@ class TestInt64Index(NumericInt):
     _holder = Int64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
+        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)),
+                            index_dec=Int64Index(np.arange(19, -1, -1)))
         self.setup_indices()
 
     def create_index(self):
@@ -717,7 +720,7 @@ class TestInt64Index(NumericInt):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -949,8 +952,9 @@ class TestUInt64Index(NumericInt):
     _holder = UInt64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
-                                               2**63 + 20, 2**63 + 25]))
+        vals = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+        self.indices = dict(index=UInt64Index(vals),
+                            index_dec=UInt64Index(reversed(vals)))
         self.setup_indices()
 
     def create_index(self):

@@ -49,12 +49,6 @@ advanced indexing.
 
 .. warning::
 
-   In 0.15.0 ``Index`` has internally been refactored to no longer subclass ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
-.. warning::
-
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
@@ -66,8 +60,6 @@ See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 Different Choices for Indexing
 ------------------------------
 
-.. versionadded:: 0.11.0
-
 Object selection has had a number of user-requested additions in order to
 support more explicit location based indexing. Pandas now supports three types
 of multi-axis indexing.
@@ -78,8 +70,10 @@ of multi-axis indexing.
     *label* of the index. This use is **not** an integer position along the
     index)
   - A list or array of labels ``['a', 'b', 'c']``
-  - A slice object with labels ``'a':'f'``, (note that contrary to usual python
-    slices, **both** the start and the stop are included!)
+  - A slice object with labels ``'a':'f'`` (note that contrary to usual python
+    slices, **both** the start and the stop are included, when present in the
+    index! - also see :ref:`Slicing with labels
+    <indexing.slicing_with_labels>`)
   - A boolean array
   - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
     that returns valid output for indexing (one of the above)
@@ -225,10 +219,6 @@ as an attribute:
    dfa.A
    panel.one
 
-You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
-if you try to use attribute access to create a new column, it fails silently, creating a new attribute rather than a
-new column.
-
 .. ipython:: python
 
    sa.a = 5
@@ -252,8 +242,6 @@ new column.
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
 
-   - The ``Series/Panel`` accesses are available starting in 0.13.0.
-
 If you are using the IPython environment, you may also use tab-completion to
 see these accessible attributes.
 
@@ -264,6 +252,22 @@ You can also assign a ``dict`` to a row of a ``DataFrame``:
    x = pd.DataFrame({'x': [1, 2, 3], 'y': [3, 4, 5]})
    x.iloc[1] = dict(x=9, y=99)
    x
+
+You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful;
+if you try to use attribute access to create a new column, it creates a new attribute rather than a
+new column. In 0.21.0 and later, this will raise a ``UserWarning``:
+
+.. code-block:: ipython
+
+    In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+    In[2]: df.two = [4, 5, 6]
+    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
+    In[3]: df
+    Out[3]:
+       one
+    0  1.0
+    1  2.0
+    2  3.0
 
 Slicing ranges
 --------------
@@ -330,13 +334,16 @@ Selection By Label
      dfl.loc['20130102':'20130104']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
+**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
 - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
 - A list or array of labels ``['a', 'b', 'c']``
-- A slice object with labels ``'a':'f'`` (note that contrary to usual python slices, **both** the start and the stop are included!)
+- A slice object with labels ``'a':'f'`` (note that contrary to usual python
+  slices, **both** the start and the stop are included, when present in the
+  index! - also See :ref:`Slicing with labels
+  <indexing.slicing_with_labels>`)
 - A boolean array
 - A ``callable``, see :ref:`Selection By Callable <indexing.callable>`
 
@@ -389,6 +396,34 @@ For getting a value explicitly (equiv to deprecated ``df.get_value('a','A')``)
 
    # this is also equivalent to ``df1.at['a','A']``
    df1.loc['a', 'A']
+
+.. _indexing.slicing_with_labels:
+
+Slicing with labels
+~~~~~~~~~~~~~~~~~~~
+
+When using ``.loc`` with slices, if both the start and the stop labels are
+present in the index, then elements *located* between the two (including them)
+are returned:
+
+.. ipython:: python
+
+   s = pd.Series(list('abcde'), index=[0,3,2,5,4])
+   s.loc[3:5]
+
+If at least one of the two is absent, but the index is sorted, and can be
+compared against start and stop labels, then slicing will still work as
+expected, by selecting labels which *rank* between the two:
+
+.. ipython:: python
+
+   s.sort_index()
+   s.sort_index().loc[1:6]
+
+However, if at least one of the two is absent *and* the index is not sorted, an
+error will be raised (since doing otherwise would be computationally expensive,
+as well as potentially ambiguous for mixed type indexes). For instance, in the
+above example, ``s.loc[1:6]`` would raise ``KeyError``.
 
 .. _indexing.integer:
 
@@ -471,7 +506,6 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
 .. ipython:: python
 
     # these are allowed in python/numpy.
-    # Only works in Pandas starting from v0.14.0.
     x = list('abcdef')
     x
     x[4:10]
@@ -481,14 +515,8 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
     s.iloc[4:10]
     s.iloc[8:10]
 
-.. note::
-
-    Prior to v0.14.0, ``iloc`` would not accept out of bounds indexers for
-    slices, e.g. a value that exceeds the length of the object being indexed.
-
-
-Note that this could result in an empty axis (e.g. an empty DataFrame being
-returned)
+Note that using slices that go out of bounds can result in
+an empty axis (e.g. an empty DataFrame being returned)
 
 .. ipython:: python
 
@@ -611,7 +639,6 @@ For getting *multiple* indexers, using ``.get_indexer``
 
 Selecting Random Samples
 ------------------------
-.. versionadded::0.16.1
 
 A random selection of rows or columns from a Series, DataFrame, or Panel with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
 
@@ -686,8 +713,6 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
 
 Setting With Enlargement
 ------------------------
-
-.. versionadded:: 0.13
 
 The ``.loc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
 
@@ -962,8 +987,6 @@ partial setting via ``.loc`` (but on the contents rather than the axis labels)
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-.. versionadded:: 0.13
-
 Where can also accept ``axis`` and ``level`` parameters to align the input when
 performing the ``where``.
 
@@ -1005,8 +1028,6 @@ as condition and ``other`` argument.
 
 The :meth:`~pandas.DataFrame.query` Method (Experimental)
 ---------------------------------------------------------
-
-.. versionadded:: 0.13
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using an expression.
@@ -1448,8 +1469,6 @@ The name, if set, will be shown in the console display:
 Setting metadata
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
-
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
 ``labels``).
@@ -1469,8 +1488,6 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-.. versionadded:: 0.15.0
-
 ``set_names``, ``set_levels``, and ``set_labels`` also take an optional
 `level`` argument
 
@@ -1485,11 +1502,6 @@ Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.set_ops:
-
-.. warning::
-
-   In 0.15.0. the set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain
-   index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``.
 
 The two main operations are ``union (|)``, ``intersection (&)``
 These can be directly called as instance methods or used via overloaded
@@ -1732,7 +1744,7 @@ Evaluation order matters
 
 Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
 If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
-exception will be raised (this raise/warn behavior is new starting in 0.13.0)
+warning will be issued.
 
 You can control the action of a chained assignment via the option ``mode.chained_assignment``,
 which can take the values ``['raise','warn',None]``, where showing a warning is the default.

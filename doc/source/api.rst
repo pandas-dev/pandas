@@ -109,6 +109,14 @@ Feather
 
    read_feather
 
+Parquet
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_parquet
+
 SAS
 ~~~
 
@@ -187,7 +195,9 @@ Top-level missing data
 .. autosummary::
    :toctree: generated/
 
+   isna
    isnull
+   notna
    notnull
 
 Top-level conversions
@@ -270,9 +280,10 @@ Conversion
    :toctree: generated/
 
    Series.astype
+   Series.infer_objects
    Series.copy
-   Series.isnull
-   Series.notnull
+   Series.isna
+   Series.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -409,6 +420,7 @@ Reindexing / Selection / Label manipulation
    Series.reset_index
    Series.sample
    Series.select
+   Series.set_axis
    Series.take
    Series.tail
    Series.truncate
@@ -777,9 +789,10 @@ Conversion
 
    DataFrame.astype
    DataFrame.convert_objects
+   DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.isnull
-   DataFrame.notnull
+   DataFrame.isna
+   DataFrame.notna
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -1096,8 +1109,8 @@ Conversion
 
    Panel.astype
    Panel.copy
-   Panel.isnull
-   Panel.notnull
+   Panel.isna
+   Panel.notna
 
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
@@ -1340,8 +1353,8 @@ Missing Values
 
    Index.fillna
    Index.dropna
-   Index.isnull
-   Index.notnull
+   Index.isna
+   Index.notna
 
 Conversion
 ~~~~~~~~~~
@@ -1585,6 +1598,198 @@ Conversion
    TimedeltaIndex.round
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
+
+.. currentmodule:: pandas
+
+Scalars
+-------
+
+Period
+~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period
+
+Attributes
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period.day
+    Period.dayofweek
+    Period.dayofyear
+    Period.days_in_month
+    Period.daysinmonth
+    Period.end_time
+    Period.freq
+    Period.freqstr
+    Period.hour
+    Period.is_leap_year
+    Period.minute
+    Period.month
+    Period.now
+    Period.ordinal
+    Period.quarter
+    Period.qyear
+    Period.second
+    Period.start_time
+    Period.strftime
+    Period.week
+    Period.weekday
+    Period.weekofyear
+    Period.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Period.asfreq
+    Period.strftime
+    Period.to_timestamp
+
+Timestamp
+~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp.asm8
+    Timestamp.day
+    Timestamp.dayofweek
+    Timestamp.dayofyear
+    Timestamp.days_in_month
+    Timestamp.daysinmonth
+    Timestamp.hour
+    Timestamp.is_leap_year
+    Timestamp.is_month_end
+    Timestamp.is_month_start
+    Timestamp.is_quarter_end
+    Timestamp.is_quarter_start
+    Timestamp.is_year_end
+    Timestamp.is_year_start
+    Timestamp.max
+    Timestamp.microsecond
+    Timestamp.min
+    Timestamp.month
+    Timestamp.nanosecond
+    Timestamp.quarter
+    Timestamp.resolution
+    Timestamp.second
+    Timestamp.tz
+    Timestamp.tzinfo
+    Timestamp.value
+    Timestamp.weekday_name
+    Timestamp.weekofyear
+    Timestamp.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timestamp.astimezone
+    Timestamp.ceil
+    Timestamp.combine
+    Timestamp.ctime
+    Timestamp.date
+    Timestamp.dst
+    Timestamp.floor
+    Timestamp.freq
+    Timestamp.freqstr
+    Timestamp.fromordinal
+    Timestamp.fromtimestamp
+    Timestamp.isocalendar
+    Timestamp.isoformat
+    Timestamp.isoweekday
+    Timestamp.normalize
+    Timestamp.now
+    Timestamp.replace
+    Timestamp.round
+    Timestamp.strftime
+    Timestamp.strptime
+    Timestamp.time
+    Timestamp.timetuple
+    Timestamp.timetz
+    Timestamp.to_datetime64
+    Timestamp.to_julian_date
+    Timestamp.to_period
+    Timestamp.to_pydatetime
+    Timestamp.today
+    Timestamp.toordinal
+    Timestamp.tz_convert
+    Timestamp.tz_localize
+    Timestamp.tzname
+    Timestamp.utcfromtimestamp
+    Timestamp.utcnow
+    Timestamp.utcoffset
+    Timestamp.utctimetuple
+    Timestamp.weekday
+
+Interval
+~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Interval
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Interval.closed
+    Interval.closed_left
+    Interval.closed_right
+    Interval.left
+    Interval.mid
+    Interval.open_left
+    Interval.open_right
+    Interval.right
+
+Timedelta
+~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    Timedelta
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Timedelta.asm8
+    Timedelta.components
+    Timedelta.days
+    Timedelta.freq
+    Timedelta.max
+    Timedelta.microseconds
+    Timedelta.min
+    Timedelta.nanoseconds
+    Timedelta.resolution
+    Timedelta.seconds
+    Timedelta.value
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree generated/
+
+    Timedelta.ceil
+    Timedelta.floor
+    Timedelta.isoformat
+    Timedelta.round
+    Timedelta.to_pytimedelta
+    Timedelta.to_timedelta64
+    Timedelta.total_seconds
 
 Window
 ------
@@ -1857,6 +2062,7 @@ Style Application
 
    Styler.apply
    Styler.applymap
+   Styler.where
    Styler.format
    Styler.set_precision
    Styler.set_table_styles

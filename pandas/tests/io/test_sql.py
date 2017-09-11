@@ -33,7 +33,7 @@ from datetime import datetime, date, time
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype)
-from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
+from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
@@ -602,7 +602,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
-        # Test date parsing in read_sq
+        # Test date parsing in read_sql
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -1271,11 +1271,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
-                assert col[0] == Timestamp('2000-01-01 08:00:00', tz='UTC')
-
                 # "2000-06-01 00:00:00-07:00" should convert to
                 # "2000-06-01 07:00:00"
-                assert col[1] == Timestamp('2000-06-01 07:00:00', tz='UTC')
+                # GH 6415
+                expected_data = [Timestamp('2000-01-01 08:00:00', tz='UTC'),
+                                 Timestamp('2000-06-01 07:00:00', tz='UTC')]
+                expected = Series(expected_data, name=col.name)
+                tm.assert_series_equal(col, expected)
 
             else:
                 raise AssertionError("DateCol loaded with incorrect type "
@@ -1298,6 +1300,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                                self.conn, parse_dates=['DateColWithTz'])
         if not hasattr(df, 'DateColWithTz'):
             pytest.skip("no column with datetime with time zone")
+        col = df.DateColWithTz
+        assert is_datetime64tz_dtype(col.dtype)
+        assert str(col.dt.tz) == 'UTC'
         check(df.DateColWithTz)
 
         df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
@@ -1307,9 +1312,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == 'UTC'
         expected = sql.read_sql_table("types_test_data", self.conn)
-        tm.assert_series_equal(df.DateColWithTz,
-                               expected.DateColWithTz
-                               .astype('datetime64[ns, UTC]'))
+        col = expected.DateColWithTz
+        assert is_datetime64tz_dtype(col.dtype)
+        tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
         # this might or might not be converted depending on the postgres driver
@@ -1388,8 +1393,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         df.to_sql('test_date', self.conn, index=False)
         res = read_sql_table('test_date', self.conn)
+        result = res['a']
+        expected = to_datetime(df['a'])
         # comes back as datetime64
-        tm.assert_series_equal(res['a'], to_datetime(df['a']))
+        tm.assert_series_equal(result, expected)
 
     def test_datetime_time(self):
         # test support for datetime.time
@@ -1530,7 +1537,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypea, sqlalchemy.TEXT)
         assert isinstance(sqltypeb, sqlalchemy.TEXT)
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
                 'Int': Series([1, None], dtype='object'),
@@ -1538,7 +1545,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
         returned_df = sql.read_sql_table(tbl, self.conn)  # noqa
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
@@ -2005,7 +2012,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         assert self._get_sqlite_column_type(
             'single_dtype_test', 'B') == 'STRING'
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
 
@@ -2016,7 +2023,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
 
         assert self._get_sqlite_column_type(tbl, 'Bool') == 'INTEGER'
@@ -2069,7 +2076,7 @@ def format_query(sql, *args):
     """
     processed_args = []
     for arg in args:
-        if isinstance(arg, float) and isnull(arg):
+        if isinstance(arg, float) and isna(arg):
             arg = None
 
         formatter = _formatters[type(arg)]

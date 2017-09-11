@@ -19,12 +19,12 @@ import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame,
-                    Timestamp, CategoricalIndex, isnull,
+                    Timestamp, CategoricalIndex, isna,
                     date_range, DatetimeIndex,
                     period_range, PeriodIndex,
                     timedelta_range, TimedeltaIndex, NaT,
                     Interval, IntervalIndex)
-from pandas.compat import range, lrange, u, PY3
+from pandas.compat import range, lrange, u, PY3, PYPY
 from pandas.core.config import option_context
 
 
@@ -111,6 +111,16 @@ class TestCategorical(object):
         # which maps to the -1000 category
         result = c.codes[np.array([100000]).astype(np.int64)]
         tm.assert_numpy_array_equal(result, np.array([5], dtype='int8'))
+
+    def test_constructor_empty(self):
+        # GH 17248
+        c = Categorical([])
+        expected = Index([])
+        tm.assert_index_equal(c.categories, expected)
+
+        c = Categorical([], categories=[1, 2, 3])
+        expected = pd.Int64Index([1, 2, 3])
+        tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_unsortable(self):
 
@@ -233,7 +243,7 @@ class TestCategorical(object):
         # the original type" feature to try to cast the array interface result
         # to...
 
-        # vals = np.asarray(cat[cat.notnull()])
+        # vals = np.asarray(cat[cat.notna()])
         # assert is_integer_dtype(vals)
 
         # corner cases
@@ -309,7 +319,7 @@ class TestCategorical(object):
                                                 categories=ci.categories))
 
     def test_constructor_with_generator(self):
-        # This was raising an Error in isnull(single_val).any() because isnull
+        # This was raising an Error in isna(single_val).any() because isna
         # returned a scalar for a generator
         xrange = range
 
@@ -606,7 +616,7 @@ class TestCategorical(object):
         cat = Categorical(labels, categories, fastpath=True)
         repr(cat)
 
-        tm.assert_numpy_array_equal(isnull(cat), labels == -1)
+        tm.assert_numpy_array_equal(isna(cat), labels == -1)
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -1118,10 +1128,10 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0],
                                                        dtype=np.int8))
 
-    def test_isnull(self):
+    def test_isna(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])
-        res = c.isnull()
+        res = c.isna()
 
         tm.assert_numpy_array_equal(res, exp)
 
@@ -1448,10 +1458,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat = pd.Categorical(['foo', 'foo', 'bar'])
         assert cat.memory_usage(deep=True) > cat.nbytes
 
-        # sys.getsizeof will call the .memory_usage with
-        # deep=True, and add on some GC overhead
-        diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
-        assert abs(diff) < 100
+        if not PYPY:
+            # sys.getsizeof will call the .memory_usage with
+            # deep=True, and add on some GC overhead
+            diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
+            assert abs(diff) < 100
 
     def test_searchsorted(self):
         # https://github.com/pandas-dev/pandas/issues/8420
@@ -2780,7 +2791,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'int64': np.random.randint(100, size=n)})
         df['category'] = Series(np.array(list('abcdefghij')).take(
             np.random.randint(0, 10, size=n))).astype('category')
-        df.isnull()
+        df.isna()
         buf = compat.StringIO()
         df.info(buf=buf)
 

@@ -36,7 +36,7 @@ When / why does data become missing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some might quibble over our usage of *missing*. By "missing" we simply mean
-**null** or "not present for whatever reason". Many data sets simply arrive with
+**NA** ("not available") or "not present for whatever reason". Many data sets simply arrive with
 missing data, either because it exists and was not collected or it never
 existed. For example, in a collection of financial time series, some of the time
 series might start on different dates. Thus, values prior to the start date
@@ -63,27 +63,26 @@ to handling missing data. While ``NaN`` is the default missing value marker for
 reasons of computational speed and convenience, we need to be able to easily
 detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
-arise and we wish to also consider that "missing" or "null".
+arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
-   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-   considered to be "null" in computations. This is no longer the case by
-   default; use the ``mode.use_inf_as_null`` option to recover it.
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
 
-.. _missing.isnull:
+.. _missing.isna:
 
 To make detecting missing values easier (and across different array dtypes),
-pandas provides the :func:`~pandas.core.common.isnull` and
-:func:`~pandas.core.common.notnull` functions, which are also methods on
+pandas provides the :func:`isna` and
+:func:`notna` functions, which are also methods on
 ``Series`` and ``DataFrame`` objects:
 
 .. ipython:: python
 
    df2['one']
-   pd.isnull(df2['one'])
-   df2['four'].notnull()
-   df2.isnull()
+   pd.isna(df2['one'])
+   df2['four'].notna()
+   df2.isna()
 
 .. warning::
 
@@ -206,7 +205,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **fillna** function can "fill in" NA values with non-null data in a couple
+The **fillna** function can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -220,7 +219,7 @@ of ways, which we illustrate:
 **Fill gaps forward or backward**
 
 Using the same filling arguments as :ref:`reindexing <basics.reindexing>`, we
-can propagate non-null values forward or backward:
+can propagate non-NA values forward or backward:
 
 .. ipython:: python
 
@@ -264,8 +263,6 @@ and ``bfill()`` is equivalent to ``fillna(method='bfill')``
 Filling with a PandasObject
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.12
-
 You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
 must match the columns of the frame you wish to fill. The
 use case of this is to fill a DataFrame with the mean of that column.
@@ -281,14 +278,12 @@ use case of this is to fill a DataFrame with the mean of that column.
         dff.fillna(dff.mean())
         dff.fillna(dff.mean()['B':'C'])
 
-.. versionadded:: 0.13
-
 Same result as above, but is aligning the 'fill' value which is
 a Series in this case.
 
 .. ipython:: python
 
-        dff.where(pd.notnull(dff), dff.mean(), axis='columns')
+        dff.where(pd.notna(dff), dff.mean(), axis='columns')
 
 
 .. _missing_data.dropna:
@@ -320,11 +315,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 
 Interpolation
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.13.0
-
-  :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
-  revamped interpolation methods and functionality.
 
 .. versionadded:: 0.17.0
 
@@ -485,8 +475,8 @@ respectively:
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. New in v0.8
-is the ``replace`` method in Series/DataFrame that provides an efficient yet
+Often times we want to replace arbitrary values with other values. The
+``replace`` method in Series/DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
@@ -540,7 +530,7 @@ String/Regular Expression Replacement
    <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
-Replace the '.' with ``nan`` (str -> str)
+Replace the '.' with ``NaN`` (str -> str)
 
 .. ipython:: python
 

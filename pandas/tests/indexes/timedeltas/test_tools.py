@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
-from pandas import (Series, Timedelta, to_timedelta, isnull,
+from pandas import (Series, Timedelta, to_timedelta, isna,
                     TimedeltaIndex)
 from pandas._libs.tslib import iNaT
 
@@ -31,7 +31,7 @@ class TestTimedeltas(object):
         assert result.astype('int64') == iNaT
 
         result = to_timedelta(['', ''])
-        assert isnull(result).all()
+        assert isna(result).all()
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, 's')]))

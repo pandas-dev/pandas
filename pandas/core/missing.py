@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 
 def mask_missing(arr, values_to_mask):
@@ -36,7 +36,7 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
-    na_mask = isnull(values_to_mask)
+    na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
     mask = None
@@ -63,9 +63,9 @@ def mask_missing(arr, values_to_mask):
 
     if na_mask.any():
         if mask is None:
-            mask = isnull(arr)
+            mask = isna(arr)
         else:
-            mask |= isnull(arr)
+            mask |= isna(arr)
 
     return mask
 
@@ -88,8 +88,8 @@ def clean_fill_method(method, allow_nearest=False):
         valid_methods.append('nearest')
         expecting = 'pad (ffill), backfill (bfill) or nearest'
     if method not in valid_methods:
-        msg = ('Invalid fill method. Expecting %s. Got %s' %
-               (expecting, method))
+        msg = ('Invalid fill method. Expecting {expecting}. Got {method}'
+               .format(expecting=expecting, method=method))
         raise ValueError(msg)
     return method
 
@@ -104,8 +104,8 @@ def clean_interp_method(method, **kwargs):
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
     if method not in valid:
-        raise ValueError("method must be one of {0}."
-                         "Got '{1}' instead.".format(valid, method))
+        raise ValueError("method must be one of {valid}. Got '{method}' "
+                         "instead.".format(valid=valid, method=method))
 
     return method
 
@@ -122,7 +122,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     """
     # Treat the original, non-scipy methods first.
 
-    invalid = isnull(yvalues)
+    invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -146,8 +146,10 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        raise ValueError('Invalid limit_direction: expecting one of %r, got '
-                         '%r.' % (valid_limit_directions, limit_direction))
+        msg = ('Invalid limit_direction: expecting one of {valid!r}, '
+               'got {invalid!r}.')
+        raise ValueError(msg.format(valid=valid_limit_directions,
+                                    invalid=limit_direction))
 
     from pandas import Series
     ys = Series(yvalues)
@@ -248,7 +250,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         # TODO: Why is DatetimeIndex being imported here?
         from pandas import DatetimeIndex  # noqa
     except ImportError:
-        raise ImportError('{0} interpolation requires Scipy'.format(method))
+        raise ImportError('{method} interpolation requires SciPy'
+                          .format(method=method))
 
     new_x = np.asarray(new_x)
 
@@ -466,7 +469,8 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_inplace_%s' % dtype.name, None)
+        name = 'pad_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_1d_datetime
     elif is_integer_dtype(values):
@@ -476,10 +480,11 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.pad_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for pad_1d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
     return values
@@ -490,7 +495,8 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_inplace_%s' % dtype.name, None)
+        name = 'backfill_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_1d_datetime
     elif is_integer_dtype(values):
@@ -500,10 +506,11 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.backfill_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for backfill_1d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
@@ -515,7 +522,8 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype.name, None)
+        name = 'pad_2d_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_2d_datetime
     elif is_integer_dtype(values):
@@ -525,10 +533,11 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         _method = algos.pad_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for pad_2d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -544,7 +553,8 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype.name, None)
+        name = 'backfill_2d_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_2d_datetime
     elif is_integer_dtype(values):
@@ -554,10 +564,11 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         _method = algos.backfill_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for backfill_2d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):

@@ -11,17 +11,19 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
     is_integer,
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.common import AbstractMethodError, isnull, _try_sort
+from pandas.core.dtypes.generic import ABCSeries
+
+from pandas.core.common import AbstractMethodError, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
-from pandas.core.series import Series, remove_na
+
 from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
@@ -334,13 +336,19 @@ class MPLPlot(object):
     def _compute_plot_data(self):
         data = self.data
 
-        if isinstance(data, Series):
+        if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data._convert(datetime=True)._get_numeric_data()
+        # GH16953, _convert is needed as fallback, for ``Series``
+        # with ``dtype == object``
+        data = data._convert(datetime=True, timedelta=True)
+        numeric_data = data.select_dtypes(include=[np.number,
+                                                   "datetime",
+                                                   "datetimetz",
+                                                   "timedelta"])
 
         try:
             is_empty = numeric_data.empty
@@ -379,6 +387,11 @@ class MPLPlot(object):
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
+
+            if hasattr(ax, 'right_ax'):
+                self._apply_axis_properties(ax.right_ax.yaxis,
+                                            fontsize=self.fontsize)
+
         elif self.orientation == 'horizontal':
             if self._need_to_set_index:
                 yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
@@ -386,6 +399,10 @@ class MPLPlot(object):
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
+
+            if hasattr(ax, 'right_ax'):
+                self._apply_axis_properties(ax.right_ax.yaxis,
+                                            fontsize=self.fontsize)
         else:  # pragma no cover
             raise ValueError
 
@@ -545,7 +562,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
-                self.data = self.data[notnull(self.data.index)]
+                self.data = self.data[notna(self.data.index)]
                 self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
             else:
@@ -558,7 +575,7 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
-        mask = isnull(y)
+        mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
@@ -1281,7 +1298,7 @@ class HistPlot(LinePlot):
             # create common bin edge
             values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
-            values = values[~isnull(values)]
+            values = values[~isna(values)]
 
             hist, self.bins = np.histogram(
                 values, bins=self.bins,
@@ -1296,7 +1313,7 @@ class HistPlot(LinePlot):
               stacking_id=None, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isnull(y)]
+        y = y[~isna(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + \
@@ -1376,7 +1393,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
 
-        y = remove_na(y)
+        y = remove_na_arraylike(y)
 
         if LooseVersion(spv) >= '0.11.0':
             gkde = gaussian_kde(y, bw_method=bw_method)
@@ -1495,13 +1512,13 @@ class BoxPlot(LinePlot):
     @classmethod
     def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
         if y.ndim == 2:
-            y = [remove_na(v) for v in y]
+            y = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
             #   if any cols are empty
             # GH 8181
             y = [v if v.size > 0 else np.array([np.nan]) for v in y]
         else:
-            y = remove_na(y)
+            y = remove_na_arraylike(y)
         bp = ax.boxplot(y, **kwds)
 
         if return_type == 'dict':
@@ -1566,6 +1583,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
+            from pandas.core.series import Series
             self._return_obj = Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
@@ -1969,7 +1987,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na(v) for v in values]
+        values = [remove_na_arraylike(v) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)
@@ -2023,6 +2041,18 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         ax.grid(grid)
 
     return result
+
+
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
+                  grid=True, figsize=None, layout=None,
+                  return_type=None, **kwds):
+    import matplotlib.pyplot as plt
+    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                 grid=grid, rot=rot, figsize=figsize, layout=layout,
+                 return_type=return_type, **kwds)
+    plt.draw_if_interactive()
+    return ax
 
 
 def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
@@ -2317,6 +2347,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
+        from pandas.core.series import Series
         ret = Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
@@ -2388,7 +2419,6 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     _axes = _flatten(axes)
 
-    result = Series()
     ax_values = []
 
     for i, col in enumerate(columns):
@@ -2401,6 +2431,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         ax_values.append(re_plotf)
         ax.grid(grid)
 
+    from pandas.core.series import Series
     result = Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985

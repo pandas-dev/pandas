@@ -476,9 +476,23 @@ No,No,No"""
         # iterating through a file-like).
         tar_path = os.path.join(self.dirpath, "tar_csv" + tar_suffix)
 
-        tar = tarfile.open(tar_path, "r")
-        data_file = tar.extractfile("tar_data.csv")
+        with tarfile.open(tar_path, "r") as tar:
+            data_file = tar.extractfile("tar_data.csv")
 
-        out = self.read_csv(data_file)
-        expected = pd.DataFrame({"a": [1]})
-        tm.assert_frame_equal(out, expected)
+            out = self.read_csv(data_file)
+            expected = pd.DataFrame({"a": [1]})
+            tm.assert_frame_equal(out, expected)
+
+    @pytest.mark.high_memory
+    def test_bytes_exceed_2gb(self):
+        """Read from a "CSV" that has a column larger than 2GB.
+
+        GH 16798
+        """
+        if self.low_memory:
+            pytest.skip("not a high_memory test")
+
+        csv = StringIO('strings\n' + '\n'.join(
+            ['x' * (1 << 20) for _ in range(2100)]))
+        df = self.read_csv(csv, low_memory=False)
+        assert not df.empty

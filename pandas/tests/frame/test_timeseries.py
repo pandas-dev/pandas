@@ -281,7 +281,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
             shifted.append(df)
 
         # sanity check the base case
-        nulls = shifted[0].isnull().sum()
+        nulls = shifted[0].isna().sum()
         assert_series_equal(nulls, Series(range(1, 6), dtype='int64'))
 
         # check all answers are the same

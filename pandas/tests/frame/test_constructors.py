@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
                            OrderedDict, is_platform_little_endian)
 from pandas import compat
-from pandas import (DataFrame, Index, Series, isnull,
+from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
                     date_range)
 import pandas as pd
@@ -224,7 +224,7 @@ class TestDataFrameConstructors(TestData):
 
         assert len(frame) == len(self.ts2)
         assert 'col1' not in frame
-        assert isnull(frame['col3']).all()
+        assert isna(frame['col3']).all()
 
         # Corner cases
         assert len(DataFrame({})) == 0
@@ -279,12 +279,12 @@ class TestDataFrameConstructors(TestData):
         tuples = [(2, 3), (3, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        assert pd.isnull(df).values.ravel().all()
+        assert pd.isna(df).values.ravel().all()
 
         tuples = [(3, 3), (2, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        assert pd.isnull(df).values.ravel().all()
+        assert pd.isna(df).values.ravel().all()
 
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
@@ -625,7 +625,7 @@ class TestDataFrameConstructors(TestData):
 
         assert len(frame.index) == 2
         assert len(frame.columns) == 3
-        assert isnull(frame).values.all()
+        assert isna(frame).values.all()
 
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
@@ -1496,7 +1496,7 @@ class TestDataFrameConstructors(TestData):
                 df.iloc[:, i]
 
             # allow single nans to succeed
-            indexer = np.arange(len(df.columns))[isnull(df.columns)]
+            indexer = np.arange(len(df.columns))[isna(df.columns)]
 
             if len(indexer) == 1:
                 tm.assert_series_equal(df.iloc[:, indexer[0]],
@@ -1966,7 +1966,7 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
 
         # it works!
         d = DataFrame({'A': 'foo', 'B': ts}, index=dr)
-        assert d['B'].isnull().all()
+        assert d['B'].isna().all()
 
     def test_frame_timeseries_to_records(self):
         index = date_range('1/1/2000', periods=10)

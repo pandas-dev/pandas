@@ -382,7 +382,7 @@ class TestDataFrameDataTypes(TestData):
         assert_series_equal(result, expected)
 
         # compat, GH 8722
-        with option_context('use_inf_as_null', True):
+        with option_context('use_inf_as_na', True):
             df = DataFrame([[1]])
             result = df.dtypes
             assert_series_equal(result, Series({0: np.dtype('int64')}))

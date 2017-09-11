@@ -614,7 +614,7 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_read_from_file_url(self):
 
         # FILE
@@ -2400,8 +2400,10 @@ class TestExcelWriterEngineTests(object):
 
 
 @pytest.mark.parametrize('engine', [
-    pytest.mark.xfail('xlwt', reason='xlwt does not support '
-                                     'openpyxl-compatible style dicts'),
+    pytest.param('xlwt',
+                 marks=pytest.mark.xfail(reason='xlwt does not support '
+                                                'openpyxl-compatible '
+                                                'style dicts')),
     'xlsxwriter',
     'openpyxl',
 ])

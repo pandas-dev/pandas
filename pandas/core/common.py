@@ -18,7 +18,7 @@ from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
 from pandas.core.dtypes import common
 
@@ -187,7 +187,7 @@ def is_bool_indexer(key):
             key = np.asarray(_values_from_object(key))
 
             if not lib.is_bool_array(key):
-                if isnull(key).any():
+                if isna(key).any():
                     raise ValueError('cannot index with vector containing '
                                      'NA / NaN values')
                 return False
@@ -629,3 +629,17 @@ def _random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
+
+
+def _get_distinct_objs(objs):
+    """
+    Return a list with distinct elements of "objs" (different ids).
+    Preserves order.
+    """
+    ids = set()
+    res = []
+    for obj in objs:
+        if not id(obj) in ids:
+            ids.add(id(obj))
+            res.append(obj)
+    return res

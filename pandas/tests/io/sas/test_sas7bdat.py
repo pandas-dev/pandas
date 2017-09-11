@@ -139,8 +139,8 @@ def test_productsales():
     fname = os.path.join(dirpath, "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding='utf-8')
     fname = os.path.join(dirpath, "productsales.csv")
-    df0 = pd.read_csv(fname)
-    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
+    df0 = pd.read_csv(fname, parse_dates=['MONTH'])
+    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
@@ -163,3 +163,14 @@ def test_airline():
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0, check_exact=False)
+
+
+def test_date_time():
+    # Support of different SAS date/datetime formats (PR #15871)
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "datetime.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "datetime.csv")
+    df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
+                                          'DateTimeHi', 'Taiw'])
+    tm.assert_frame_equal(df, df0)

@@ -13,9 +13,8 @@ from numpy import nan, inf
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, bdate_range,
-                    NaT, date_range, timedelta_range,
-                    _np_version_under1p8)
+from pandas import (Index, Series, DataFrame, isna, bdate_range,
+                    NaT, date_range, timedelta_range)
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
@@ -687,14 +686,13 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, exp)
 
         # odd numpy behavior with scalar timedeltas
-        if not _np_version_under1p8:
-            result = td1[0] + dt1
-            exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td1[0] + dt1
+        exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
-            result = td2[0] + dt2
-            exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td2[0] + dt2
+        exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
@@ -999,7 +997,7 @@ class TestSeriesOperators(TestData):
             # boolean &, |, ^ should work with object arrays and propagate NAs
 
         ops = ['and_', 'or_', 'xor']
-        mask = s.isnull()
+        mask = s.isna()
         for bool_op in ops:
             f = getattr(operator, bool_op)
 
@@ -1720,8 +1718,8 @@ class TestSeriesOperators(TestData):
             a = a.reindex(exp_index)
             b = b.reindex(exp_index)
 
-            amask = isnull(a)
-            bmask = isnull(b)
+            amask = isna(a)
+            bmask = isna(b)
 
             exp_values = []
             for i in range(len(exp_index)):
@@ -1787,8 +1785,8 @@ class TestSeriesOperators(TestData):
 
         result = s + s.shift(1)
         result2 = s.shift(1) + s
-        assert isnull(result[0])
-        assert isnull(result2[0])
+        assert isna(result[0])
+        assert isna(result2[0])
 
         s = Series(['foo', 'bar', 'baz', np.nan])
         result = 'prefix_' + s
@@ -1857,3 +1855,50 @@ class TestSeriesOperators(TestData):
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "test_input,error_type",
+        [
+            (pd.Series([]), ValueError),
+
+            # For strings, or any Series with dtype 'O'
+            (pd.Series(['foo', 'bar', 'baz']), TypeError),
+            (pd.Series([(1,), (2,)]), TypeError),
+
+            # For mixed data types
+            (
+                pd.Series(['foo', 'foo', 'bar', 'bar', None, np.nan, 'baz']),
+                TypeError
+            ),
+        ]
+    )
+    def test_assert_argminmax_raises(self, test_input, error_type):
+        """
+        Cases where ``Series.argmax`` and related should raise an exception
+        """
+        with pytest.raises(error_type):
+            test_input.argmin()
+        with pytest.raises(error_type):
+            test_input.argmin(skipna=False)
+        with pytest.raises(error_type):
+            test_input.argmax()
+        with pytest.raises(error_type):
+            test_input.argmax(skipna=False)
+
+    def test_argminmax_with_inf(self):
+        # For numeric data with NA and Inf (GH #13595)
+        s = pd.Series([0, -np.inf, np.inf, np.nan])
+
+        assert s.argmin() == 1
+        assert np.isnan(s.argmin(skipna=False))
+
+        assert s.argmax() == 2
+        assert np.isnan(s.argmax(skipna=False))
+
+        # Using old-style behavior that treats floating point nan, -inf, and
+        # +inf as missing
+        with pd.option_context('mode.use_inf_as_na', True):
+            assert s.argmin() == 0
+            assert np.isnan(s.argmin(skipna=False))
+            assert s.argmax() == 0
+            np.isnan(s.argmax(skipna=False))

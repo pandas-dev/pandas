@@ -6,7 +6,6 @@ from __future__ import division
 from warnings import warn, catch_warnings
 import numpy as np
 
-from pandas import compat, _np_version_under1p8
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
@@ -27,10 +26,9 @@ from pandas.core.dtypes.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import common as com
-from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
 
@@ -38,7 +36,6 @@ from pandas._libs.tslib import iNaT
 # --------------- #
 # dtype access    #
 # --------------- #
-
 def _ensure_data(values, dtype=None):
     """
     routine to ensure that our data is of the correct
@@ -66,6 +63,8 @@ def _ensure_data(values, dtype=None):
 
     # we check some simple dtypes first
     try:
+        if is_object_dtype(dtype):
+            return _ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos suppport uint8 directly (see TODO)
@@ -113,7 +112,8 @@ def _ensure_data(values, dtype=None):
 
         return values.asi8, dtype, 'int64'
 
-    elif is_categorical_dtype(values) or is_categorical_dtype(dtype):
+    elif (is_categorical_dtype(values) and
+          (is_categorical_dtype(dtype) or dtype is None)):
         values = getattr(values, 'values', values)
         values = values.codes
         dtype = 'category'
@@ -149,6 +149,12 @@ def _reconstruct_data(values, dtype, original):
         pass
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
+    elif is_bool_dtype(dtype):
+        values = values.astype(dtype)
+
+        # we only support object dtypes bool Index
+        if isinstance(original, Index):
+            values = values.astype(object)
     elif dtype is not None:
         values = values.astype(dtype)
 
@@ -163,6 +169,8 @@ def _ensure_arraylike(values):
                                ABCIndexClass, ABCSeries)):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
+            if isinstance(values, tuple):
+                values = list(values)
             values = lib.list_to_object_array(values)
         else:
             values = np.asarray(values)
@@ -385,12 +393,12 @@ def isin(comps, values):
 
     if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(comps).__name__))
+                        " to isin(), you passed a [{comps_type}]"
+                        .format(comps_type=type(comps).__name__))
     if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(values).__name__))
+                        " to isin(), you passed a [{values_type}]"
+                        .format(values_type=type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = lib.list_to_object_array(list(values))
@@ -398,11 +406,12 @@ def isin(comps, values):
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
-    # GH11232
-    # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
-    if (_np_version_under1p8 and compat.PY3) or len(comps) > 1000000:
+
+    # GH16012
+    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
     elif is_integer_dtype(comps):
         try:
@@ -417,111 +426,13 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isnull(values).any()
+            checknull = isna(values).any()
             f = lambda x, y: htable.ismember_float64(x, y, checknull)
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
 
     return f(comps, values)
-
-
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
-    """
-    Sort ``values`` and reorder corresponding ``labels``.
-    ``values`` should be unique if ``labels`` is not None.
-    Safe for use with mixed types (int, str), orders ints before strs.
-
-    .. versionadded:: 0.19.0
-
-    Parameters
-    ----------
-    values : list-like
-        Sequence; must be unique if ``labels`` is not None.
-    labels : list_like
-        Indices to ``values``. All out of bound indices are treated as
-        "not found" and will be masked with ``na_sentinel``.
-    na_sentinel : int, default -1
-        Value in ``labels`` to mark "not found".
-        Ignored when ``labels`` is None.
-    assume_unique : bool, default False
-        When True, ``values`` are assumed to be unique, which can speed up
-        the calculation. Ignored when ``labels`` is None.
-
-    Returns
-    -------
-    ordered : ndarray
-        Sorted ``values``
-    new_labels : ndarray
-        Reordered ``labels``; returned when ``labels`` is not None.
-
-    Raises
-    ------
-    TypeError
-        * If ``values`` is not list-like or if ``labels`` is neither None
-        nor list-like
-        * If ``values`` cannot be sorted
-    ValueError
-        * If ``labels`` is not None and ``values`` contain duplicates.
-    """
-    if not is_list_like(values):
-        raise TypeError("Only list-like objects are allowed to be passed to"
-                        "safe_sort as values")
-    values = np.asarray(values)
-
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, string_types) for x in values],
-                           dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return _ensure_object(np.concatenate([nums, strs]))
-
-    sorter = None
-    if compat.PY3 and lib.infer_dtype(values) == 'mixed-integer':
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
-    else:
-        try:
-            sorter = values.argsort()
-            ordered = values.take(sorter)
-        except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
-
-    # labels:
-
-    if labels is None:
-        return ordered
-
-    if not is_list_like(labels):
-        raise TypeError("Only list-like objects or None are allowed to be"
-                        "passed to safe_sort as labels")
-    labels = _ensure_platform_int(np.asarray(labels))
-
-    from pandas import Index
-    if not assume_unique and not Index(values).is_unique:
-        raise ValueError("values should be unique if labels is not None")
-
-    if sorter is None:
-        # mixed types
-        (hash_klass, _), values = _get_data_algo(values, _hashtables)
-        t = hash_klass(len(values))
-        t.map_locations(values)
-        sorter = _ensure_platform_int(t.lookup(ordered))
-
-    reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-    mask = (labels < -len(values)) | (labels >= len(values)) | \
-        (labels == na_sentinel)
-
-    # (Out of bound indices will be masked with `na_sentinel` next, so we may
-    # deal with them here without performance loss using `mode='wrap'`.)
-    new_labels = reverse_indexer.take(labels, mode='wrap')
-    np.putmask(new_labels, mask, na_sentinel)
-
-    return ordered, _ensure_platform_int(new_labels)
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
@@ -563,6 +474,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     uniques = uniques.to_array()
 
     if sort and len(uniques) > 0:
+        from pandas.core.sorting import safe_sort
         uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
                                     assume_unique=True)
 
@@ -616,7 +528,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
-        result = result[result.index.notnull()]
+        result = result[result.index.notna()]
         result.index = result.index.astype('interval')
         result = result.sort_index()
 
@@ -684,9 +596,9 @@ def _value_counts_arraylike(values, dropna):
         f = getattr(htable, "value_count_{dtype}".format(dtype=ndtype))
         keys, counts = f(values, dropna)
 
-        mask = isnull(values)
+        mask = isna(values)
         if not dropna and mask.any():
-            if not isnull(keys).any():
+            if not isna(keys).any():
                 keys = np.insert(keys, 0, np.NaN)
                 counts = np.insert(counts, 0, mask.sum())
 
@@ -759,7 +671,7 @@ def mode(values):
     try:
         result = np.sort(result)
     except TypeError as e:
-        warn("Unable to sort modes: %s" % e)
+        warn("Unable to sort modes: {error}".format(error=e))
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
@@ -947,7 +859,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
     """
     x = np.asarray(x)
-    mask = isnull(x)
+    mask = isna(x)
 
     x = x[~mask]
 
