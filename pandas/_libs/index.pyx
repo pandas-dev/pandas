@@ -17,6 +17,7 @@ cimport tslib
 
 from hashtable cimport HashTable
 
+from tslibs.timezones cimport _is_utc
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
@@ -32,9 +33,6 @@ cdef extern from "datetime.h":
 
 cdef int64_t iNaT = util.get_nat()
 
-from dateutil.tz import tzutc as _du_utc
-import pytz
-UTC = pytz.utc
 
 PyDateTime_IMPORT
 
@@ -558,9 +556,6 @@ cdef inline _to_i8(object val):
                 ival -= tslib._delta_to_nanoseconds(offset)
             return ival
         return val
-
-cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _du_utc)
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):
