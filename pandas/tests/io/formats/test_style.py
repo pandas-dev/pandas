@@ -265,6 +265,64 @@ class TestStyler(object):
                             col in self.df.loc[slice_].columns)
             assert result == expected
 
+    def test_where_with_one_style(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+
+        result = self.df.style.where(f, style1)._compute().ctx
+        expected = dict(((r, c),
+                        [style1 if f(self.df.loc[row, col]) else ''])
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns))
+        assert result == expected
+
+    def test_where_subset(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+        style2 = 'baz: foo'
+
+        slices = [pd.IndexSlice[:], pd.IndexSlice[:, ['A']],
+                  pd.IndexSlice[[1], :], pd.IndexSlice[[1], ['A']],
+                  pd.IndexSlice[:2, ['A', 'B']]]
+
+        for slice_ in slices:
+            result = self.df.style.where(f, style1, style2,
+                                         subset=slice_)._compute().ctx
+            expected = dict(((r, c),
+                            [style1 if f(self.df.loc[row, col]) else style2])
+                            for r, row in enumerate(self.df.index)
+                            for c, col in enumerate(self.df.columns)
+                            if row in self.df.loc[slice_].index and
+                            col in self.df.loc[slice_].columns)
+            assert result == expected
+
+    def test_where_subset_compare_with_applymap(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+        style2 = 'baz: foo'
+
+        def g(x):
+            return style1 if f(x) else style2
+
+        slices = [pd.IndexSlice[:], pd.IndexSlice[:, ['A']],
+                  pd.IndexSlice[[1], :], pd.IndexSlice[[1], ['A']],
+                  pd.IndexSlice[:2, ['A', 'B']]]
+
+        for slice_ in slices:
+            result = self.df.style.where(f, style1, style2,
+                                         subset=slice_)._compute().ctx
+            expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
+            assert result == expected
+
     def test_empty(self):
         df = pd.DataFrame({'A': [1, 0]})
         s = df.style
