@@ -34,9 +34,9 @@ from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
                                 NaT, _get_utcoffset)
+from tslibs.timezones cimport _is_utc
 from tslib cimport (
     maybe_get_tz,
-    _is_utc,
     _is_tzlocal,
     _get_dst_info,
     _nat_scalar_rules)

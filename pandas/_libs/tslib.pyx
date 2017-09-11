@@ -107,6 +107,8 @@ cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
 
+from tslibs.timezones cimport _is_utc
+
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
@@ -1713,8 +1715,6 @@ def _localize_pydatetime(object dt, object tz):
 def get_timezone(tz):
     return _get_zone(tz)
 
-cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 cdef inline object _get_zone(object tz):
     """
