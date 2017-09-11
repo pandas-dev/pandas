@@ -356,8 +356,9 @@ class ToDatetime(object):
 
         self.s = Series((['19MAY11', '19MAY11:00:00:00'] * 100000))
         self.s2 = self.s.str.replace(':\\S+$', '')
-        self.numeric_data = Series([range(100000)])
-        self.datetime_data = [dt.datetime(2010, 1, 1)] * 100000
+        self.dup_numeric_data = Series([1000] * 100000)
+        self.dup_string_data = ['2013-01-01'] * 100000
+        self.dup_datetime_data = [dt.datetime(2010, 1, 1)] * 100000
 
     def time_format_YYYYMMDD(self):
         to_datetime(self.stringsD, format='%Y%m%d')
@@ -383,11 +384,14 @@ class ToDatetime(object):
     def time_format_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
 
-    def time_cache_numeric_data(self):
-        to_datetime(self.numeric_data)
+    def time_cache_dup_numeric_data(self):
+        to_datetime(self.dup_numeric_data, unit='s')
 
-    def time_cache_datetime_data(self):
-        to_datetime(self.datetime_data)
+    def time_cache_dup_datetime_data(self):
+        to_datetime(self.dup_datetime_data)
+
+    def time_cache_dup_string_data(self):
+        to_datetime(self.dup_string_data)
 
 
 class Offsets(object):
