@@ -2263,17 +2263,18 @@ class DataFrame(NDFrame):
         dropped = self.copy()
 
         # Handle dropping index levels
-        levels_to_reset = [k for k in drop_keys if self._is_index_reference(k)]
+        levels_to_reset = [k for k in drop_keys
+                           if self._is_index_reference(k)]
         if levels_to_reset:
             dropped.reset_index(levels_to_reset, inplace=True)
 
         # Handle dropping columns
-        cols_to_drop = [k for k in drop_keys if not self._is_index_reference(k)]
+        cols_to_drop = [k for k in drop_keys
+                        if not self._is_index_reference(k)]
         if cols_to_drop:
             dropped.drop(drop_keys, axis=1, inplace=True)
 
         return dropped
-
 
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
