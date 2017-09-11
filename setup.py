@@ -475,7 +475,7 @@ ext_data = {
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
                                     + _pxi_dep['hashtable'])},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
-                    'pxdfiles': ['_libs/src/util', '_libs/lib'],
+                    'pxdfiles': ['_libs/src/util'],
                     'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c',
