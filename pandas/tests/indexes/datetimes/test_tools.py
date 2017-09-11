@@ -371,6 +371,38 @@ class TestToDatetime(object):
             pd.to_datetime(bool)
         with pytest.raises(TypeError):
             pd.to_datetime(pd.to_datetime)
+    
+    @pytest.mark.parametrize("utc", [True, None])
+    @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
+    @pytest.mark.parametrize("box", [True, False])
+    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index])
+    def test_to_datetime_cache(self, utc, format, box, constructor):
+        date = '20130101 00:00:00'
+        test_dates = [date] * 10**5
+        data = constructor(test_dates)
+        result = pd.to_datetime(data, utc=utc, format=format, box=box)
+        expected = pd.to_datetime(data, utc=utc, format=format, box=box,
+                                  cache=False)
+        if box:
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("utc", [True, None])
+    @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
+    def test_to_datetime_cache_series(self, utc, format):
+        date = '20130101 00:00:00'
+        test_dates = [date] * 10**5
+        data = pd.Series(test_dates)
+        result = pd.to_datetime(data, utc=utc, format=format, cache=True)
+        expected = pd.to_datetime(data, utc=utc, format=format)
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_cache_scalar(self):
+        date = '20130101 00:00:00'
+        result = pd.to_datetime(date, cache=True)
+        expected = pd.Timestamp('20130101 00:00:00')
+        assert result == expected
 
     @pytest.mark.parametrize('date, format',
                              [('2017-20', '%Y-%W'),

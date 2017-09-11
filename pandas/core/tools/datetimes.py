@@ -21,7 +21,8 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_scalar,
-    is_numeric_dtype)
+    is_numeric_dtype,
+    is_string_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
     ABCDataFrame)
@@ -373,14 +374,19 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         arg = arg + offset
 
     convert_cache = None
-    if cache and is_list_like(arg) and not isinstance(arg, DatetimeIndex):
+    if cache and is_list_like(arg):
+        # Create a cache only if there are more than 10k values and the user
+        # passes in datestrings
+        min_cache_threshold = 10**5
+        if len(arg) >= min_cache_threshold and is_string_dtype(arg):
         # unique currently cannot determine dates that are out of bounds
-        # use the cache only if the data is a string and there are more than 10**5 values
-        unique_dates = algorithms.unique(arg)
-        if len(unique_dates) != len(arg):
-            from pandas import Series
-            cache_data = _convert_listlike(unique_dates, True, format)
-            convert_cache = Series(cache_data, index=unique_dates)
+        # recurison errors with datetime
+            unique_dates = algorithms.unique(arg)
+            # Essentially they need to all be the same value
+            if len(unique_dates) == 1:
+                from pandas import Series
+                cache_data = _convert_listlike(unique_dates, True, format)
+                convert_cache = Series(cache_data, index=unique_dates)
 
     if isinstance(arg, tslib.Timestamp):
         result = arg
