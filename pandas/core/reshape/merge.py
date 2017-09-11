@@ -524,7 +524,6 @@ class _MergeOperation(object):
         self.right_index = right_index
 
         self.indicator = indicator
-        self.has_common_index_levels = False
 
         if isinstance(self.indicator, compat.string_types):
             self.indicator_name = self.indicator
@@ -651,7 +650,6 @@ class _MergeOperation(object):
         left_has_missing = None
         right_has_missing = None
 
-        new_index_values = {}
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
@@ -719,25 +717,7 @@ class _MergeOperation(object):
                 if name in result:
                     result[name] = key_col
                 else:
-                    if name and name in result.index.names:
-                        new_index_values[name] = key_col
-                    else:
-                        result.insert(
-                            i, name or 'key_{i}'.format(i=i), key_col)
-
-        if new_index_values:
-            # Create new index for result
-            index_arrays = [new_index_values[n]
-                            if n in new_index_values
-                            else result.index.get_level_values(i)
-                            for (i, n) in enumerate(result.index.names)]
-
-            if len(index_arrays) == 1:
-                new_index = Index(index_arrays[0], name=result.index.name)
-            else:
-                new_index = MultiIndex.from_arrays(index_arrays,
-                                                   names=result.index.names)
-            result.index = new_index
+                    result.insert(i, name or 'key_{i}'.format(i=i), key_col)
 
     def _get_join_indexers(self):
         """ return the join indexers """
@@ -780,10 +760,7 @@ class _MergeOperation(object):
                     join_index = self.left.index.take(left_indexer)
                     right_indexer = np.array([-1] * len(join_index))
             else:
-                if not self.has_common_index_levels:
-                    join_index = Index(np.arange(len(left_indexer)))
-                else:
-                    join_index = self.left.index.take(left_indexer)
+                join_index = Index(np.arange(len(left_indexer)))
 
         if len(join_index) == 0:
             join_index = join_index.astype(object)
@@ -815,29 +792,6 @@ class _MergeOperation(object):
         is_rkey = lambda x: isinstance(
             x, (np.ndarray, Series)) and len(x) == len(right)
 
-        def get_key_vals(df, key):
-            """
-            Return an array of values from a DataFrame corresponding to a
-            given key. This is a wrapper for
-            ``DataFrame._get_column_or_level_values()`` with `axis` and
-            `op_description` defined by the merge operation
-
-            Parameters
-            ----------
-            df: DataFrame
-            key: int or object
-
-            Returns
-            -------
-            values: array
-
-            See Also
-            --------
-            DataFrame._get_column_or_level_values
-            """
-            return df._get_column_or_level_values(key, axis=self.axis,
-                                                  op_description="merge on")
-
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
@@ -858,7 +812,7 @@ class _MergeOperation(object):
                         join_names.append(None)  # what to do?
                     else:
                         if rk is not None:
-                            right_keys.append(get_key_vals(right, rk))
+                            right_keys.append(right[rk]._values)
                             join_names.append(rk)
                         else:
                             # work-around for merge_asof(right_index=True)
@@ -867,7 +821,7 @@ class _MergeOperation(object):
                 else:
                     if not is_rkey(rk):
                         if rk is not None:
-                            right_keys.append(get_key_vals(right, rk))
+                            right_keys.append(right[rk]._values)
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
@@ -880,7 +834,7 @@ class _MergeOperation(object):
                     else:
                         right_keys.append(rk)
                     if lk is not None:
-                        left_keys.append(get_key_vals(left, lk))
+                        left_keys.append(left[lk]._values)
                         join_names.append(lk)
                     else:
                         # work-around for merge_asof(left_index=True)
@@ -892,7 +846,7 @@ class _MergeOperation(object):
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    left_keys.append(get_key_vals(left, k))
+                    left_keys.append(left[k]._values)
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [lev._values.take(lab)
@@ -906,7 +860,7 @@ class _MergeOperation(object):
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    right_keys.append(get_key_vals(right, k))
+                    right_keys.append(right[k]._values)
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [lev._values.take(lab)
@@ -915,49 +869,10 @@ class _MergeOperation(object):
             else:
                 left_keys = [self.left.index.values]
 
-        # Reset index levels that are not common to both DataFrames
-        common_index_levels = [(li, ri) for (li, ri) in
-                               zip(self.left_on, self.right_on) if
-                               isinstance(li, compat.string_types) and
-                               li not in self.left and
-                               isinstance(ri, compat.string_types) and
-                               ri not in self.right]
-
-        if common_index_levels:
-            common_levels_right, common_levels_left = (
-                zip(*common_index_levels)
-            )
-
-            reset_left = [lev for lev in self.left.index.names
-                          if lev not in common_levels_left]
-            if reset_left:
-                self.left.reset_index(
-                    reset_left,
-                    inplace=True)
-
-            reset_right = [lev for lev in self.right.index.names
-                           if lev not in common_levels_right]
-            if reset_right:
-                self.right.reset_index(
-                    reset_right,
-                    inplace=True)
-
-            self.has_common_index_levels = True
-
         if left_drop:
-            # Determine index levels to reset before dropping
-            levels_to_reset = [level for level in left_drop
-                               if level not in self.left]
-            if levels_to_reset:
-                self.left = self.left.reset_index(levels_to_reset)
             self.left = self.left.drop(left_drop, axis=1)
 
         if right_drop:
-            # Determine index levels to reset before dropping
-            levels_to_reset = [level for level in right_drop
-                               if level not in self.right]
-            if levels_to_reset:
-                self.right = self.right.reset_index(levels_to_reset)
             self.right = self.right.drop(right_drop, axis=1)
 
         return left_keys, right_keys, join_names
