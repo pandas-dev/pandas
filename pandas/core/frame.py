@@ -2163,21 +2163,24 @@ class DataFrame(NDFrame):
         return self.where(key)
 
     # -------------------------------------------------------------------------
-    # Column and Index Mixing
+    # Column and Index Combination Helpers
     #
-    # A collection of helpers methods for DataFrame operations that accept
-    # mix of column and index levels.  All such operations should utilize
-    # these methods as much as possible so that we have consistent precedence
-    # and validation logic.
+    # A collection of helper methods for DataFrame operations that accept a
+    # combination of columns and index levels.  All such operations should
+    # utilize/extend these methods when possible so that we have consistent
+    # precedence and validation logic throughout the library.
     #
     # General Notes:
     #
     #   - If a column and index level share the same name, the column takes
-    #     precedence
+    #     precedence. Currently a ``FutureWarning`` should be issued in this
+    #     situation. In a future version we will convert this into an
+    #     exception.
     #
     #   - These methods assume axis=1
     #
     #   - Only string keys may be used to reference index levels.
+    #
 
     def _get_column_or_level_values(self, key):
         """
@@ -2200,10 +2203,6 @@ class DataFrame(NDFrame):
         ------
         KeyError
             if `key` matches neither a column label nor an index level name
-
-        See Also
-        --------
-        DataFrame._get_column_or_level_values
         """
         if key in self:
             self._check_column_or_level_ambiguity(key)

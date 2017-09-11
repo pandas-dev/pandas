@@ -649,7 +649,7 @@ class _MergeOperation(object):
 
     def _maybe_restore_index_levels(self, result):
         """
-        Restore index levels specified as `on` parameters to the index
+        Restore index levels specified as `on` parameters
 
         Here we check for cases where `self.left_on` and `self.right_on` pairs
         each reference an index level in their respective DataFrames. The

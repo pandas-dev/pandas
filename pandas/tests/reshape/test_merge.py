@@ -70,6 +70,7 @@ class TestMerge(object):
 
     def test_merge_index_as_on_arg(self):
         # GH14355
+
         left = self.df.set_index('key1')
         right = self.df2.set_index('key1')
         result = merge(left, right, on='key1')
@@ -1447,7 +1448,7 @@ class TestMergeMulti(object):
             result = df1.merge(df2, on=['outer', 'inner'], how=how)
             assert_frame_equal(result, expected)
 
-            # Same result when index/column order is flipped
+            # Flip index/column order
             expected = (df1.reset_index()
                         .merge(df2.reset_index(),
                                on=['inner', 'outer'], how=how)
