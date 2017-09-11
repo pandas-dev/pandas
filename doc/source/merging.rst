@@ -504,7 +504,7 @@ the data in DataFrame.
 See the :ref:`cookbook<cookbook.merge>` for some advanced strategies.
 
 Users who are familiar with SQL but new to pandas might be interested in a
-:ref:`comparison with SQL<compare_with_sql.join>`.
+:ref:`comparison with SQL<F>`.
 
 pandas provides a single function, ``merge``, as the entry point for all
 standard database join operations between DataFrame objects:
@@ -1122,8 +1122,11 @@ This is not Implemented via ``join`` at-the-moment, however it can be done using
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+.. _merging.merge_on_columns_and_levels:
+
 Merging on a combination of columns and index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 0.21
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
