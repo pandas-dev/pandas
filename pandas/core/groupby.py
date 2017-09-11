@@ -2679,16 +2679,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
-                if gpr in obj.index.names:
-                    warnings.warn(
-                        ("'%s' is both a column name and an index level.\n"
-                         "Defaulting to column but "
-                         "this will raise an ambiguity error in a "
-                         "future version") % gpr,
-                        FutureWarning, stacklevel=5)
+                obj._check_column_or_level_ambiguity(gpr)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif gpr in obj.index.names:
+            elif obj._is_index_reference(gpr):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)

@@ -2206,21 +2206,52 @@ class DataFrame(NDFrame):
         DataFrame._get_column_or_level_values
         """
         if key in self:
-            if key in self.index.names:
-                warnings.warn(
-                    ("'{key}' is both a column name and an index level.\n"
-                     "Defaulting to column, but this will raise an "
-                     "ambiguity error in a future version"
-                     ).format(key=key),
-                    FutureWarning, stacklevel=2)
-
+            self._check_column_or_level_ambiguity(key)
             values = self[key]._values
-        elif key in self.index.names:
+        elif self._is_index_reference(key):
             values = self.index.get_level_values(key)._values
         else:
             raise KeyError(key)
 
         return values
+
+    def _check_column_or_level_ambiguity(self, key):
+        """
+        Check whether `key` matches both a column label and an index level
+        and issue a ``FutureWarning`` if this is the case.
+
+        Note: This method will be altered to raise an ambiguity exception in
+        a future version.
+
+        Parameters
+        ----------
+        key: str or object
+            Label of column or index level
+
+        Returns
+        -------
+        ambiguous: bool
+
+        Raises
+        ------
+        FutureWarning
+            if `key` is ambiguous. This will become an ambiguity error in a
+            future version
+
+        """
+        if (isinstance(key, compat.string_types) and
+                key in self.columns and
+                key in self.index.names):
+
+            warnings.warn(
+                ("'{key}' is both a column name and an index level.\n"
+                 "Defaulting to column, but this will raise an "
+                 "ambiguity error in a future version"
+                 ).format(key=key), FutureWarning)
+
+            return True
+        else:
+            return False
 
     def _is_index_reference(self, key):
         """

@@ -662,6 +662,10 @@ class _MergeOperation(object):
         ----------
         result: DataFrame
             merge result
+
+        Returns
+        -------
+        None
         """
         names_to_restore = []
         for name, left_key, right_key in zip(self.join_names,
