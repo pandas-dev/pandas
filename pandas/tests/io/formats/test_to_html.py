@@ -1871,7 +1871,6 @@ class TestToHTML(object):
         assert "tbody tr th:only-of-type" in result
         assert "vertical-align: middle;" in result
         assert "thead th" in result
-        assert "text-align: right;" in result
 
     def test_to_html_notebook_has_no_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
@@ -1879,7 +1878,6 @@ class TestToHTML(object):
         assert "tbody tr th:only-of-type" not in result
         assert "vertical-align: middle;" not in result
         assert "thead th" not in result
-        assert "text-align: right;" not in result
 
     def test_to_html_with_index_names_false(self):
         # gh-16493
