@@ -3,7 +3,7 @@ from decimal import Decimal
 cimport util
 cimport cython
 from tslib import NaT
-from tslibs.timezones cimport _get_zone
+from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -901,13 +901,13 @@ cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
-            base_tz = _get_zone(getattr(base_val, 'tzinfo', None))
+            base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
 
             for j in range(i, n):
                 val = values[j]
                 if val is not NaT:
                     tz = getattr(val, 'tzinfo', None)
-                    if base_tz != tz and base_tz != _get_zone(tz):
+                    if base_tz != tz and base_tz != get_timezone(tz):
                         return False
             break
 
