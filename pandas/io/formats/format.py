@@ -48,6 +48,7 @@ import numpy as np
 import itertools
 import csv
 from functools import partial
+import os
 
 common_docstring = """
     Parameters
@@ -1498,6 +1499,9 @@ class CSVFormatter(object):
                  decimal='.'):
 
         self.obj = obj
+        
+        if path_or_buf is not None:
+            os.makedirs(os.path.dirname(path_or_buf), exist_ok=True)
 
         if path_or_buf is None:
             path_or_buf = StringIO()
