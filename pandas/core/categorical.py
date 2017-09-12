@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_bool,
     is_list_like, is_sequence,
     is_scalar)
-from pandas.core.common import is_null_slice
+from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
 from pandas.core.base import (PandasObject, PandasDelegate,
@@ -403,6 +403,8 @@ class Categorical(PandasObject):
         """
         return a list of my values
         """
+        if is_datetimelike(self.categories):
+            return [_maybe_box_datetimelike(x) for x in self]
         return np.array(self).tolist()
 
     def reshape(self, new_shape, *args, **kwargs):

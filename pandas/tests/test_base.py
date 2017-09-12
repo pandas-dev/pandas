@@ -1054,10 +1054,7 @@ class TestToIterable(object):
         ('timedelta64[ns]', Timedelta)]
 
     @pytest.mark.parametrize(
-        'dtype, rdtype',
-        dtypes + [
-            ('object', object),
-            ('category', object)])
+        'dtype, rdtype', dtypes)
     @pytest.mark.parametrize(
         'method',
         [
@@ -1072,6 +1069,43 @@ class TestToIterable(object):
         # coerce iteration to underlying python / pandas types
         s = typ([1], dtype=dtype)
         result = method(s)[0]
+        assert isinstance(result, rdtype)
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype, obj',
+        [
+            ('object', object, 'a'),
+            ('object', (int, long), 1),
+            ('category', object, 'a'),
+            ('category', (int, long), 1)])
+    @pytest.mark.parametrize(
+        'method',
+        [
+            lambda x: x.tolist(),
+            lambda x: list(x),
+            lambda x: list(x.__iter__()),
+        ], ids=['tolist', 'list', 'iter'])
+    @pytest.mark.parametrize('typ', [Series, Index])
+    def test_iterable_object_and_category(self, typ, method,
+                                          dtype, rdtype, obj):
+        # gh-10904
+        # gh-13258
+        # coerce iteration to underlying python / pandas types
+        s = typ([obj], dtype=dtype)
+        result = method(s)[0]
+        assert isinstance(result, rdtype)
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype', dtypes)
+    def test_iterable_items(self, dtype, rdtype):
+        # gh-13258
+        # test items / iteritems yields the correct boxed scalars
+        # this only applies to series
+        s = Series([1], dtype=dtype)
+        _, result = list(s.items())[0]
+        assert isinstance(result, rdtype)
+
+        _, result = list(s.iteritems())[0]
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
@@ -1102,3 +1136,40 @@ class TestToIterable(object):
 
         result = method(i)[0]
         assert isinstance(result, Timestamp)
+
+    def test_iter_box(self):
+        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
+        s = pd.Series(vals)
+        assert s.dtype == 'datetime64[ns]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timestamp)
+            assert res.tz is None
+            assert res == exp
+
+        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+                pd.Timestamp('2011-01-02', tz='US/Eastern')]
+        s = pd.Series(vals)
+
+        assert s.dtype == 'datetime64[ns, US/Eastern]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timestamp)
+            assert res.tz == exp.tz
+            assert res == exp
+
+        # timedelta
+        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
+        s = pd.Series(vals)
+        assert s.dtype == 'timedelta64[ns]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timedelta)
+            assert res == exp
+
+        # period (object dtype, not boxed)
+        vals = [pd.Period('2011-01-01', freq='M'),
+                pd.Period('2011-01-02', freq='M')]
+        s = pd.Series(vals)
+        assert s.dtype == 'object'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Period)
+            assert res.freq == 'M'
+            assert res == exp
