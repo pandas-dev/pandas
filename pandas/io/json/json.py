@@ -370,7 +370,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
         if lines and chunksize:
-            return JsonLineReader(filepath_or_buffer, chunksize, encoding, **kwargs)
+            return JsonLineReader(filepath_or_buffer, chunksize, encoding,
+                                  **kwargs)
         else:
             json = filepath_or_buffer.read()
     else:

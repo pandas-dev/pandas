@@ -1074,10 +1074,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_series_equal(chunked, unchunked)
 
     def test_readjson_each_chunk(self):
-        """Other tests check that the final result of read_json(chunksize=True)
-        is correct. This checks that the intermediate chunks read in are correct.
         """
-        chunks = list(pd.read_json(strio_lines_json_df(), lines=True, chunksize=2))
+        Other tests check that the final result of read_json(chunksize=True) is
+        correct. This checks that the intermediate chunks read in are correct.
+        """
+        chunks = list(
+            pd.read_json(strio_lines_json_df(), lines=True, chunksize=2)
+        )
         assert chunks[0].shape == (2, 2)
         assert chunks[1].shape == (1, 2)
 
@@ -1103,7 +1106,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         with tm.assert_raises_regex(ValueError, msg):
             json_lines_to_df_chunked(strio_lines_json_df(), 'foo')
-
 
     def test_latin_encoding(self):
         if compat.PY2:
