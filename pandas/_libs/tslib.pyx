@@ -107,7 +107,13 @@ cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
 
-from tslibs.timezones cimport _is_utc
+from tslibs.timezones cimport (
+    _is_utc, _is_tzlocal,
+    _treat_tz_as_dateutil, _treat_tz_as_pytz,
+    _get_zone,
+    _get_utcoffset)
+from tslibs.timezones import get_timezone, _get_utcoffset  # noqa
+
 
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
@@ -233,10 +239,6 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
                 result[i] = timedelta(microseconds=int(value) / 1000)
 
     return result
-
-
-cdef inline bint _is_tzlocal(object tz):
-    return isinstance(tz, _dateutil_tzlocal)
 
 
 cdef inline bint _is_fixed_offset(object tz):
@@ -1443,11 +1445,6 @@ cdef class _TSObject:
         def __get__(self):
             return self.value
 
-cpdef _get_utcoffset(tzinfo, obj):
-    try:
-        return tzinfo._utcoffset
-    except AttributeError:
-        return tzinfo.utcoffset(obj)
 
 # helper to extract datetime and int64 from several different possibilities
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -1710,48 +1707,6 @@ def _localize_pydatetime(object dt, object tz):
         return tz.localize(dt)
     except AttributeError:
         return dt.replace(tzinfo=tz)
-
-
-def get_timezone(tz):
-    return _get_zone(tz)
-
-
-cdef inline object _get_zone(object tz):
-    """
-    We need to do several things here:
-    1) Distinguish between pytz and dateutil timezones
-    2) Not be over-specific (e.g. US/Eastern with/without DST is same *zone*
-       but a different tz object)
-    3) Provide something to serialize when we're storing a datetime object
-       in pytables.
-
-    We return a string prefaced with dateutil if it's a dateutil tz, else just
-    the tz name. It needs to be a string so that we can serialize it with
-    UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
-    """
-    if _is_utc(tz):
-        return 'UTC'
-    else:
-        if _treat_tz_as_dateutil(tz):
-            if '.tar.gz' in tz._filename:
-                raise ValueError(
-                    'Bad tz filename. Dateutil on python 3 on windows has a '
-                    'bug which causes tzfile._filename to be the same for all '
-                    'timezone files. Please construct dateutil timezones '
-                    'implicitly by passing a string like "dateutil/Europe'
-                    '/London" when you construct your pandas objects instead '
-                    'of passing a timezone object. See '
-                    'https://github.com/pandas-dev/pandas/pull/7362')
-            return 'dateutil/' + tz._filename
-        else:
-            # tz is a pytz timezone or unknown.
-            try:
-                zone = tz.zone
-                if zone is None:
-                    return tz
-                return zone
-            except AttributeError:
-                return tz
 
 
 cpdef inline object maybe_get_tz(object tz):
@@ -4284,13 +4239,6 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
 
 # Timezone data caches, key is the pytz string or dateutil file name.
 dst_cache = {}
-
-cdef inline bint _treat_tz_as_pytz(object tz):
-    return hasattr(tz, '_utc_transition_times') and hasattr(
-        tz, '_transition_info')
-
-cdef inline bint _treat_tz_as_dateutil(object tz):
-    return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
 def _p_tz_cache_key(tz):
