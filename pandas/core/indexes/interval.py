@@ -28,12 +28,12 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds)
 
 from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
-from pandas.tseries.offsets import DateOffset
 from pandas.tseries.frequencies import to_offset
 
 import pandas.core.indexes.base as ibase
@@ -1107,24 +1107,29 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    # assume datetime-like unless we find numeric start or end
-    is_datetime_interval = True
+    iv_type = {'numeric': True, 'timestamp': True, 'timedelta': True}
 
+    start = com._maybe_box_datetimelike(start)
     if is_number(start):
-        is_datetime_interval = False
+        iv_type.update({k: False for k in iv_type if k != 'numeric'})
+    elif isinstance(start, Timestamp):
+        iv_type.update({k: False for k in iv_type if k != 'timestamp'})
+    elif isinstance(start, Timedelta):
+        iv_type.update({k: False for k in iv_type if k != 'timedelta'})
     elif start is not None:
-        try:
-            start = Timestamp(start)
-        except (TypeError, ValueError):
-            raise ValueError('start must be numeric or datetime-like')
+        msg = 'start must be numeric or datetime-like, got {start}'
+        raise ValueError(msg.format(start=start))
 
+    end = com._maybe_box_datetimelike(end)
     if is_number(end):
-        is_datetime_interval = False
+        iv_type.update({k: False for k in iv_type if k != 'numeric'})
+    elif isinstance(end, Timestamp):
+        iv_type.update({k: False for k in iv_type if k != 'timestamp'})
+    elif isinstance(end, Timedelta):
+        iv_type.update({k: False for k in iv_type if k != 'timedelta'})
     elif end is not None:
-        try:
-            end = Timestamp(end)
-        except (TypeError, ValueError):
-            raise ValueError('end must be numeric or datetime-like')
+        msg = 'end must be numeric or datetime-like, got {end}'
+        raise ValueError(msg.format(end=end))
 
     if is_float(periods):
         periods = int(periods)
@@ -1132,23 +1137,22 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         msg = 'periods must be a number, got {periods}'
         raise TypeError(msg.format(periods=periods))
 
-    if is_datetime_interval:
-        freq = freq or 'D'
-        if not isinstance(freq, DateOffset):
-            try:
-                freq = to_offset(freq)
-            except ValueError:
-                raise ValueError('freq must be convertible to DateOffset when '
-                                 'start/end are datetime-like')
+    freq = freq or (1 if iv_type['numeric'] else 'D')
+    if is_number(freq):
+        iv_type.update({k: False for k in iv_type if k != 'numeric'})
     else:
-        freq = freq or 1
+        try:
+            freq = to_offset(freq)
+            iv_type['numeric'] = False
+        except ValueError:
+            raise ValueError('freq must be numeric or convertible to '
+                             'DateOffset, got {freq}'.format(freq=freq))
 
     # verify type compatibility
-    is_numeric_interval = all(map(is_number, com._not_none(start, end, freq)))
-    if not is_datetime_interval and not is_numeric_interval:
+    if not any(iv_type.values()):
         raise TypeError("start, end, freq need to be type compatible")
 
-    if is_numeric_interval:
+    if iv_type['numeric']:
         if periods is None:
             periods = int((end - start) // freq)
 
@@ -1160,10 +1164,16 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
         # end + freq for inclusive endpoint
         breaks = np.arange(start, end + freq, freq)
-    else:
+    elif iv_type['timestamp']:
         # add one to account for interval endpoints (n breaks = n-1 intervals)
         if periods is not None:
             periods += 1
         breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+    else:
+        # add one to account for interval endpoints (n breaks = n-1 intervals)
+        if periods is not None:
+            periods += 1
+        breaks = timedelta_range(start=start, end=end, periods=periods,
+                                 freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
