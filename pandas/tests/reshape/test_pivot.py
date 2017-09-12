@@ -1625,3 +1625,13 @@ class TestPivotAnnual(object):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert isleapyear(2004)
+
+    def test_pivot_margins_name_unicode(self):
+        # issue #13292
+        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        frame = pd.DataFrame({'foo': [1, 2, 3]})
+        table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
+                               margins_name=greek)
+        index = pd.Index([1, 2, 3, greek], dtype='object', name='foo')
+        expected = pd.DataFrame(index=index)
+        tm.assert_frame_equal(table, expected)
