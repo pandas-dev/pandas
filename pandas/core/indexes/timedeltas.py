@@ -181,7 +181,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 periods = int(periods)
             elif not is_integer(periods):
                 msg = 'periods must be a number, got {periods}'
-                raise ValueError(msg.format(periods=periods))
+                raise TypeError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -971,7 +971,7 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
     end : string or timedelta-like, default None
         Right bound for generating timedeltas
     periods : integer, default None
-        Number of timedeltas to generate
+        Number of periods to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
     name : string, default None
@@ -991,6 +991,29 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    Examples
+    --------
+
+    >>> pd.timedelta_range(start='1 day', periods=4)
+    TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq='D')
+
+    The ``closed`` parameter specifies which endpoint is included.  The default
+    behavior is to include both endpoints.
+
+    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')
+    TimedeltaIndex(['2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq='D')
+
+    The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
+    Only fixed frequencies can be passed, non-fixed frequencies such as
+    'M' (month end) will raise.
+
+    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')
+    TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
+                    '1 days 18:00:00', '2 days 00:00:00'],
+                   dtype='timedelta64[ns]', freq='6H')
     """
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name, closed=closed)

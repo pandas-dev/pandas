@@ -200,7 +200,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 periods = int(periods)
             elif not is_integer(periods):
                 msg = 'periods must be a number, got {periods}'
-                raise ValueError(msg.format(periods=periods))
+                raise TypeError(msg.format(periods=periods))
 
         if name is None and hasattr(data, 'name'):
             name = data.name

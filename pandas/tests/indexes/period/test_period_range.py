@@ -87,3 +87,8 @@ class TestPeriodRange(object):
 
         with tm.assert_raises_regex(ValueError, msg):
             period_range(start='2017Q1', end=NaT)
+
+        # invalid periods param
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            period_range(start='2017Q1', periods='foo')

@@ -2,10 +2,10 @@ from __future__ import division
 
 import pytest
 import numpy as np
-
+import datetime
 from pandas import (Interval, IntervalIndex, Index, isna,
                     interval_range, Timestamp, Timedelta,
-                    compat)
+                    compat, date_range, DateOffset)
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
@@ -722,7 +722,7 @@ class TestIntervalIndex(Base):
 class TestIntervalRange(object):
 
     @pytest.mark.parametrize('closed', ['left', 'right', 'neither', 'both'])
-    def test_construction(self, closed):
+    def test_construction_from_numeric(self, closed):
         # combinations of start/end/periods without freq
         expected = IntervalIndex.from_breaks(
             np.arange(0, 6), name='foo', closed=closed)
@@ -759,11 +759,107 @@ class TestIntervalRange(object):
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('closed', ['left', 'right', 'neither', 'both'])
+    def test_construction_from_timestamp(self, closed):
+        # combinations of start/end/periods without freq
+        start, end = Timestamp('2017-01-01'), Timestamp('2017-01-06')
+        expected = IntervalIndex.from_breaks(date_range(start=start, end=end),
+                                             name='foo', closed=closed)
+
+        result = interval_range(start=start, end=end, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(start=start, periods=5, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(end=end, periods=5, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # combinations of start/end/periods with fixed freq
+        freq = '2D'
+        start, end = Timestamp('2017-01-01'), Timestamp('2017-01-07')
+        breaks = date_range(start=start, end=end, freq=freq)
+        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+
+        result = interval_range(start=start, end=end, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(start=start, periods=3, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(end=end, periods=3, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # output truncates early if freq causes end to be skipped.
+        end = Timestamp('2017-01-08')
+        result = interval_range(start=start, end=end, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # combinations of start/end/periods with non-fixed freq
+        freq = 'M'
+        start, end = Timestamp('2017-01-01'), Timestamp('2017-12-31')
+        breaks = date_range(start=start, end=end, freq=freq)
+        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+
+        result = interval_range(start=start, end=end, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(start=start, periods=11, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(end=end, periods=11, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # output truncates early if freq causes end to be skipped.
+        end = Timestamp('2018-01-15')
+        result = interval_range(start=start, end=end, freq=freq, name='foo',
+                                closed=closed)
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_coverage(self):
         # float value for periods
         expected = pd.interval_range(start=0, periods=10)
         result = pd.interval_range(start=0, periods=10.5)
         tm.assert_index_equal(result, expected)
+
+        # equivalent datetime-like start/end
+        start, end = Timestamp('2017-01-01'), Timestamp('2017-01-15')
+        expected = pd.interval_range(start=start, end=end)
+
+        result = pd.interval_range(start=start.to_pydatetime(),
+                                   end=end.to_pydatetime())
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=start.date(), end=end.date())
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=str(start), end=str(end))
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=start.strftime('%Y-%m-%d'),
+                                   end=end.strftime('%Y-%m-%d'))
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=start.strftime('%m/%d/%y'),
+                                   end=end.strftime('%m/%d/%y'))
+        tm.assert_index_equal(result, expected)
+
+        # equivalent freq
+        equiv_freq = ['D', DateOffset(days=1), Timedelta(days=1),
+                      datetime.timedelta(days=1)]
+        for freq in equiv_freq:
+            result = pd.interval_range(start=start, end=end, freq=freq)
+            tm.assert_index_equal(result, expected)
 
     def test_errors(self):
         # not enough params
@@ -786,21 +882,40 @@ class TestIntervalRange(object):
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(start=0, end=5, periods=6)
 
-        # invalid periods
-        msg = 'periods must be a number, got foo'
-        with tm.assert_raises_regex(ValueError, msg):
-            interval_range(start=0, periods='foo')
-
         # mixed units
-        msg = 'start, end, freq need to be the same type'
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = 'start, end, freq need to be type compatible'
+        with tm.assert_raises_regex(TypeError, msg):
             interval_range(start=Timestamp('20130101'), end=10, freq=2)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             interval_range(start=0, end=Timestamp('20130101'), freq=2)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             interval_range(start=0, end=10, freq=Timedelta('1day'))
+
+        # invalid periods
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            interval_range(start=0, periods='foo')
+
+        # invalid start
+        msg = 'start must be numeric or datetime-like'
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(start='foo', periods=10)
+
+        # invalid end
+        msg = 'end must be numeric or datetime-like'
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(end=Interval(0, 1), periods=10)
+
+        # invalid freq for datetime-like
+        msg = ('freq must be convertible to DateOffset when start/end are '
+               'datetime-like')
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(start=Timestamp('20130101'), periods=10, freq='foo')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            interval_range(end=Timestamp('20130101'), periods=10, freq='foo')
 
 
 class TestIntervalTree(object):

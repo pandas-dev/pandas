@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_scalar,
     is_float,
+    is_number,
     is_integer)
 from pandas.core.indexes.base import (
     Index, _ensure_index,
@@ -26,11 +27,14 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
+from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.frequencies import to_offset
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -1030,21 +1034,22 @@ IntervalIndex._add_logical_methods_disabled()
 
 
 def interval_range(start=None, end=None, periods=None, freq=None,
-                   name=None, closed='right', **kwargs):
+                   name=None, closed='right'):
     """
     Return a fixed frequency IntervalIndex
 
     Parameters
     ----------
-    start : numeric, string, or datetime-like, default None
+    start : numeric or datetime-like, default None
         Left bound for generating intervals
-    end : numeric, string, or datetime-like, default None
+    end : numeric or datetime-like, default None
         Right bound for generating intervals
     periods : integer, default None
-        Number of intervals to generate
-    freq : numeric, string, or DateOffset, default 1
-        The length of each interval. Must be consistent with the
-        type of start and end
+        Number of periods to generate
+    freq : numeric, string, or DateOffset, default None
+        The length of each interval. Must be consistent with the type of start
+        and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
+        for numeric and 'D' (calendar daily) for datetime-like.
     name : string, default None
         Name of the resulting IntervalIndex
     closed : string, default 'right'
@@ -1058,32 +1063,107 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     Returns
     -------
     rng : IntervalIndex
+
+    Examples
+    --------
+
+    Numeric ``start`` and  ``end`` is supported.
+
+    >>> pd.interval_range(start=0, end=5)
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+                  closed='right', dtype='interval[int64]')
+
+    Additionally, datetime-like input is also supported.
+
+    >>> pd.interval_range(start='2017-01-01', end='2017-01-04')
+    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
+                   (2017-01-03, 2017-01-04]]
+                  closed='right', dtype='interval[datetime64[ns]]')
+
+    The ``freq`` parameter specifies the frequency between the left and right.
+    endpoints of the individual intervals within the ``IntervalIndex``.  For
+    numeric ``start`` and ``end``, the frequency must also be numeric.
+
+    >>> pd.interval_range(start=0, periods=4, freq=1.5)
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+                  closed='right', dtype='interval[float64]')
+
+    Similarly, for datetime-like ``start`` and ``end``, the frequency must be
+    convertible to a DateOffset.
+
+    >>> pd.interval_range(start='2017-01-01', periods=3, freq='MS')
+    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
+                   (2017-03-01, 2017-04-01]]
+                  closed='right', dtype='interval[datetime64[ns]]')
+
+    The ``closed`` parameter specifies which endpoints of the individual
+    intervals within the ``IntervalIndex`` are closed.
+
+    >>> pd.interval_range(end=5, periods=4, closed='both')
+    IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
+                  closed='both', dtype='interval[int64]')
     """
     if com._count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    # must all be same units or None
-    arr = np.array(list(com._not_none(start, end, freq)))
-    if is_object_dtype(arr):
-        raise ValueError("start, end, freq need to be the same type")
+    # assume datetime-like unless we find numeric start or end
+    is_datetime_interval = True
 
-    if freq is None:
-        freq = 1
+    if is_number(start):
+        is_datetime_interval = False
+    elif start is not None:
+        try:
+            start = Timestamp(start)
+        except (TypeError, ValueError):
+            raise ValueError('start must be numeric or datetime-like')
 
-    if periods is None:
-        periods = int((end - start) // freq)
-    elif is_float(periods):
+    if is_number(end):
+        is_datetime_interval = False
+    elif end is not None:
+        try:
+            end = Timestamp(end)
+        except (TypeError, ValueError):
+            raise ValueError('end must be numeric or datetime-like')
+
+    if is_float(periods):
         periods = int(periods)
-    elif not is_integer(periods):
+    elif not is_integer(periods) and periods is not None:
         msg = 'periods must be a number, got {periods}'
-        raise ValueError(msg.format(periods=periods))
+        raise TypeError(msg.format(periods=periods))
 
-    if start is None:
-        start = end - periods * freq
+    if is_datetime_interval:
+        freq = freq or 'D'
+        if not isinstance(freq, DateOffset):
+            try:
+                freq = to_offset(freq)
+            except ValueError:
+                raise ValueError('freq must be convertible to DateOffset when '
+                                 'start/end are datetime-like')
+    else:
+        freq = freq or 1
 
-    # force end to be consistent with freq (truncate if freq skips over end)
-    end = start + periods * freq
+    # verify type compatibility
+    is_numeric_interval = all(map(is_number, com._not_none(start, end, freq)))
+    if not is_datetime_interval and not is_numeric_interval:
+        raise TypeError("start, end, freq need to be type compatible")
 
-    return IntervalIndex.from_breaks(np.arange(start, end + freq, freq),
-                                     name=name, closed=closed, **kwargs)
+    if is_numeric_interval:
+        if periods is None:
+            periods = int((end - start) // freq)
+
+        if start is None:
+            start = end - periods * freq
+
+        # force end to be consistent with freq (lower if freq skips over end)
+        end = start + periods * freq
+
+        # end + freq for inclusive endpoint
+        breaks = np.arange(start, end + freq, freq)
+    else:
+        # add one to account for interval endpoints (n breaks = n-1 intervals)
+        if periods is not None:
+            periods += 1
+        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+
+    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

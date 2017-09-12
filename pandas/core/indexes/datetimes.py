@@ -293,7 +293,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 periods = int(periods)
             elif not is_integer(periods):
                 msg = 'periods must be a number, got {periods}'
-                raise ValueError(msg.format(periods=periods))
+                raise TypeError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -2015,7 +2015,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     end : string or datetime-like, default None
         Right bound for generating dates
     periods : integer, default None
-        Number of dates to generate
+        Number of periods to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
     tz : string, default None
@@ -2059,9 +2059,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     end : string or datetime-like, default None
         Right bound for generating dates
     periods : integer, default None
-        Number of dates to generate
+        Number of periods to generate
     freq : string or DateOffset, default 'B' (business daily)
-        Frequency strings can have multiples, e.g. '5, default
+        Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing
@@ -2109,7 +2109,7 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     end : string or datetime-like, default None
         Right bound for generating dates
     periods : integer, default None
-        Number of dates to generate
+        Number of periods to generate
     freq : string or DateOffset, default 'C' (CustomBusinessDay)
         Frequency strings can have multiples, e.g. '5H'
     tz : string, default None
