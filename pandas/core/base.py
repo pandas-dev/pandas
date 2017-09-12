@@ -8,7 +8,12 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_list_like,
+    is_scalar,
+    is_datetimelike)
+
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core import common as com
@@ -18,7 +23,8 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError
+from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
+
 from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
@@ -883,6 +889,21 @@ class IndexOpsMixin(object):
         numpy.ndarray.argmin
         """
         return nanops.nanargmin(self.values)
+
+    def tolist(self):
+        """
+        return a list of the values; box to scalars
+        """
+        return list(self.__iter__())
+
+    def __iter__(self):
+        """
+        provide iteration over the values; box to scalars
+        """
+        if is_datetimelike(self):
+            return (_maybe_box_datetimelike(x) for x in self._values)
+        else:
+            return iter(self._values.tolist())
 
     @cache_readonly
     def hasnans(self):

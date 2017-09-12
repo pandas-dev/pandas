@@ -407,8 +407,18 @@ class SparseArray(PandasObject, np.ndarray):
         return self.values
 
     def __iter__(self):
+        if np.issubdtype(self.dtype, np.floating):
+            boxer = float
+        elif np.issubdtype(self.dtype, np.integer):
+            boxer = int
+        else:
+            boxer = lambda x: x
+
         for i in range(len(self)):
-            yield self._get_val_at(i)
+            r = self._get_val_at(i)
+
+            # box em
+            yield boxer(r)
 
     def __getitem__(self, key):
         """

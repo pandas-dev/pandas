@@ -10,7 +10,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 
-from pandas.compat import StringIO, u, long
+from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -178,37 +178,3 @@ class TestSeriesIO(TestData):
         from_method = Series(ts.to_dict(collections.Counter))
         from_constructor = Series(collections.Counter(ts.iteritems()))
         tm.assert_series_equal(from_method, from_constructor)
-
-
-class TestSeriesToList(TestData):
-
-    def test_tolist(self):
-        rs = self.ts.tolist()
-        xp = self.ts.values.tolist()
-        assert_almost_equal(rs, xp)
-
-        # datetime64
-        s = Series(self.ts.index)
-        rs = s.tolist()
-        assert self.ts.index[0] == rs[0]
-
-    def test_tolist_np_int(self):
-        # GH10904
-        for t in ['int8', 'int16', 'int32', 'int64']:
-            s = pd.Series([1], dtype=t)
-            assert isinstance(s.tolist()[0], (int, long))
-
-    def test_tolist_np_uint(self):
-        # GH10904
-        for t in ['uint8', 'uint16']:
-            s = pd.Series([1], dtype=t)
-            assert isinstance(s.tolist()[0], int)
-        for t in ['uint32', 'uint64']:
-            s = pd.Series([1], dtype=t)
-            assert isinstance(s.tolist()[0], long)
-
-    def test_tolist_np_float(self):
-        # GH10904
-        for t in ['float16', 'float32', 'float64']:
-            s = pd.Series([1], dtype=t)
-            assert isinstance(s.tolist()[0], float)
