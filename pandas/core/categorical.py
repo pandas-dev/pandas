@@ -2076,7 +2076,7 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         if not is_categorical_dtype(data.dtype):
             raise AttributeError("Can only use .cat accessor with a "
                                  "'category' dtype")
-        return CategoricalAccessor(data.values, data.index, data.name)
+        return CategoricalAccessor(getattr(data, 'name', None), data.values, data.index)
 
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
