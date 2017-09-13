@@ -1107,12 +1107,12 @@ cdef class _Timestamp(datetime):
         try:
             stamp += self.strftime('%z')
             if self.tzinfo:
-                zone = _get_zone(self.tzinfo)
+                zone = get_timezone(self.tzinfo)
         except ValueError:
             year2000 = self.replace(year=2000)
             stamp += year2000.strftime('%z')
             if self.tzinfo:
-                zone = _get_zone(self.tzinfo)
+                zone = get_timezone(self.tzinfo)
 
         try:
             stamp += zone.strftime(' %%Z')
@@ -1770,10 +1770,10 @@ def datetime_to_datetime64(ndarray[object] values):
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if inferred_tz is not None:
-                    if _get_zone(val.tzinfo) != inferred_tz:
+                    if get_timezone(val.tzinfo) != inferred_tz:
                         raise ValueError('Array must be all same time zone')
                 else:
-                    inferred_tz = _get_zone(val.tzinfo)
+                    inferred_tz = get_timezone(val.tzinfo)
 
                 _ts = convert_to_tsobject(val, None, None, 0, 0)
                 iresult[i] = _ts.value
