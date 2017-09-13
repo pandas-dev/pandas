@@ -602,8 +602,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
-    .. versionadded:: 0.13.0
-
     Parameters
     ----------
     pat : string
@@ -1016,7 +1014,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1046,8 +1043,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------

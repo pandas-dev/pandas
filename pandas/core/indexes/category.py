@@ -33,8 +33,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
-    .. versionadded:: 0.16.1
-
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
