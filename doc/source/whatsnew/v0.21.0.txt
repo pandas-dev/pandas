@@ -190,19 +190,19 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
 
 .. _whatsnew_0210.api_breaking.iteration_scalars:
 
-Iteration of Series/Index will now return python scalars
+Iteration of Series/Index will now return Python scalars
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affect int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
+Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
 
 .. ipython:: python
 
-   s = Series([1, 2, 3])
+   s = pd.Series([1, 2, 3])
    s
 
 Previously:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: type(list(s)[0])
    Out[2]: numpy.int64
@@ -215,14 +215,14 @@ New Behaviour:
 
 Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
 
-.. ipython:: python
+.. ipython:: ipython
 
    d = {'a':[1], 'b':['b']}
-   df = DataFrame(d)
+   df = pd,DataFrame(d)
 
 Previously:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [8]: type(df.to_dict()['a'][0])
    Out[8]: numpy.int64

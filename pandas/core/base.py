@@ -892,18 +892,31 @@ class IndexOpsMixin(object):
 
     def tolist(self):
         """
-        return a list of the values; box to scalars
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        See Also
+        --------
+        numpy.tolist
         """
-        return list(self.__iter__())
+
+        if is_datetimelike(self):
+            return [_maybe_box_datetimelike(x) for x in self._values]
+        else:
+            return self._values.tolist()
 
     def __iter__(self):
         """
-        provide iteration over the values; box to scalars
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
         """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values.tolist())
+        return iter(self.tolist())
 
     @cache_readonly
     def hasnans(self):

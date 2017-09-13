@@ -576,12 +576,13 @@ class TestCategoricalIndex(Base):
             ci.isin(['c', 'a', 'b', np.nan]), np.array([True] * 6))
 
         # mismatched categorical -> coerced to ndarray so doesn't matter
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('abcdefghi'))), np.array([True] *
-                                                                    6))
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('defghi'))),
-            np.array([False] * 5 + [True]))
+        result = ci.isin(ci.set_categories(list('abcdefghi')))
+        expected = np.array([True] * 6)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ci.isin(ci.set_categories(list('defghi')))
+        expected = np.array([False] * 5 + [True])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
 
