@@ -12,6 +12,7 @@ http://www.statsmodels.org/devel/
 import numpy as np
 
 import sys
+import os
 import struct
 from dateutil.relativedelta import relativedelta
 
@@ -164,6 +165,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                convert_missing=False, preserve_dtypes=True, columns=None,
                order_categoricals=True, chunksize=None, iterator=False):
 
+    filepath_or_buffer = os.path.normpath(filepath_or_buffer)
     reader = StataReader(filepath_or_buffer,
                          convert_dates=convert_dates,
                          convert_categoricals=convert_categoricals,
