@@ -35,6 +35,7 @@ from pandas.core import common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import DateOffset
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -1033,6 +1034,24 @@ class IntervalIndex(IntervalMixin, Index):
 IntervalIndex._add_logical_methods_disabled()
 
 
+def _is_valid_endpoint(endpoint):
+    """helper for interval_range to check if start/end are valid types"""
+    return any([is_number(endpoint),
+                isinstance(endpoint, Timestamp),
+                isinstance(endpoint, Timedelta),
+                endpoint is None])
+
+
+def _is_type_compatible(a, b):
+    """helper for interval_range to check type compat of start/end/freq"""
+    is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
+    is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
+    return ((is_number(a) and is_number(b)) or
+            (is_ts_compat(a) and is_ts_compat(b)) or
+            (is_td_compat(a) and is_td_compat(b)) or
+            com._any_none(a, b))
+
+
 def interval_range(start=None, end=None, periods=None, freq=None,
                    name=None, closed='right'):
     """
@@ -1107,27 +1126,15 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    iv_type = {'numeric': True, 'timestamp': True, 'timedelta': True}
-
     start = com._maybe_box_datetimelike(start)
-    if is_number(start):
-        iv_type.update({k: False for k in iv_type if k != 'numeric'})
-    elif isinstance(start, Timestamp):
-        iv_type.update({k: False for k in iv_type if k != 'timestamp'})
-    elif isinstance(start, Timedelta):
-        iv_type.update({k: False for k in iv_type if k != 'timedelta'})
-    elif start is not None:
+    end = com._maybe_box_datetimelike(end)
+    endpoint = next(com._not_none(start, end))
+
+    if not _is_valid_endpoint(start):
         msg = 'start must be numeric or datetime-like, got {start}'
         raise ValueError(msg.format(start=start))
 
-    end = com._maybe_box_datetimelike(end)
-    if is_number(end):
-        iv_type.update({k: False for k in iv_type if k != 'numeric'})
-    elif isinstance(end, Timestamp):
-        iv_type.update({k: False for k in iv_type if k != 'timestamp'})
-    elif isinstance(end, Timedelta):
-        iv_type.update({k: False for k in iv_type if k != 'timedelta'})
-    elif end is not None:
+    if not _is_valid_endpoint(end):
         msg = 'end must be numeric or datetime-like, got {end}'
         raise ValueError(msg.format(end=end))
 
@@ -1137,22 +1144,21 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         msg = 'periods must be a number, got {periods}'
         raise TypeError(msg.format(periods=periods))
 
-    freq = freq or (1 if iv_type['numeric'] else 'D')
-    if is_number(freq):
-        iv_type.update({k: False for k in iv_type if k != 'numeric'})
-    else:
+    freq = freq or (1 if is_number(endpoint) else 'D')
+    if not is_number(freq):
         try:
             freq = to_offset(freq)
-            iv_type['numeric'] = False
         except ValueError:
             raise ValueError('freq must be numeric or convertible to '
                              'DateOffset, got {freq}'.format(freq=freq))
 
     # verify type compatibility
-    if not any(iv_type.values()):
+    if not all([_is_type_compatible(start, end),
+                _is_type_compatible(start, freq),
+                _is_type_compatible(end, freq)]):
         raise TypeError("start, end, freq need to be type compatible")
 
-    if iv_type['numeric']:
+    if is_number(endpoint):
         if periods is None:
             periods = int((end - start) // freq)
 
@@ -1164,7 +1170,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
         # end + freq for inclusive endpoint
         breaks = np.arange(start, end + freq, freq)
-    elif iv_type['timestamp']:
+    elif isinstance(endpoint, Timestamp):
         # add one to account for interval endpoints (n breaks = n-1 intervals)
         if periods is not None:
             periods += 1
