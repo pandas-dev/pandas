@@ -57,7 +57,7 @@ index : identifier of index column
     identifier of column that should be used as index of the DataFrame
 convert_missing : boolean, defaults to False
     Flag indicating whether to convert missing values to their Stata
-    representations.  If False, missing values are replaced with nans.
+    representations.  If False, missing values are replaced with nan.
     If True, columns containing missing values are returned with
     object data types and missing values are represented by
     StataMissingValue objects.
@@ -248,8 +248,9 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
     def convert_year_month_safe(year, month):
         """
         Convert year and month to datetimes, using pandas vectorized versions
-        when the date range falls within the range supported by pandas.  Other
-        wise it falls back to a slower but more robust method using datetime.
+        when the date range falls within the range supported by pandas.
+        Otherwise it falls back to a slower but more robust method
+        using datetime.
         """
         if year.max() < MAX_YEAR and year.min() > MIN_YEAR:
             return to_datetime(100 * year + month, format='%Y%m')
