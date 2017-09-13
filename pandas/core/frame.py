@@ -1479,8 +1479,6 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator. E.g. use ',' for
             European data
 
-            .. versionadded:: 0.16.0
-
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
@@ -2165,8 +2163,6 @@ class DataFrame(NDFrame):
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
-        .. versionadded:: 0.13
-
         Parameters
         ----------
         expr : string
@@ -2560,8 +2556,6 @@ class DataFrame(NDFrame):
         """
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
-
-        .. versionadded:: 0.16.0
 
         Parameters
         ----------

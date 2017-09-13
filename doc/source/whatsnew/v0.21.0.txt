@@ -526,4 +526,4 @@ Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 - Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
-- The documentation has had references to versions < v0.16 removed and cleaned up (:issue:`17442`, :issue:`17442` & :issue:`#17404`)
+- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)
