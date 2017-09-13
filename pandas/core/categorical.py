@@ -2068,7 +2068,7 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         method = getattr(self.categorical, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self.index)
+            return Series(res, index=self.index, name=self.name)
 
     @classmethod
     def _make_accessor(cls, data):
