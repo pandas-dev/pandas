@@ -892,8 +892,10 @@ class IndexOpsMixin(object):
 
     def tolist(self):
         """
-        return a list of the values. These are each a scalar type, which is
-        a python scalar (for str, int, float) or a pandas scalar
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
 
         See Also
@@ -908,8 +910,10 @@ class IndexOpsMixin(object):
 
     def __iter__(self):
         """
-        return an iterator of the values. These are each a scalar type,
-        which is a python scalar (for str, int, float) or a pandas scalar
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
         return iter(self.tolist())
