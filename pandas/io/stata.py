@@ -261,7 +261,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
 
     def convert_year_days_safe(year, days):
         """
-        Converts year (e.g. 1999) and days since the start of the year to
+        Converts year (e.g. 1999) and days since the start of the year to a
         datetime or datetime64 Series
         """
         if year.max() < (MAX_YEAR - 1) and year.min() > MIN_YEAR:
