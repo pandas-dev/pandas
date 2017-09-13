@@ -27,7 +27,7 @@ from numpy cimport (ndarray,
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-from cpython.math cimport sqrt, fabs
+from libc.math cimport sqrt, fabs
 
 # this is our util.pxd
 from util cimport numeric, get_nat
