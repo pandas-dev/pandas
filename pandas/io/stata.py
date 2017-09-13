@@ -164,6 +164,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                convert_missing=False, preserve_dtypes=True, columns=None,
                order_categoricals=True, chunksize=None, iterator=False):
 
+    filepath_or_buffer = filepath_or_buffer.replace('\\\\', '\\')
     reader = StataReader(filepath_or_buffer,
                          convert_dates=convert_dates,
                          convert_categoricals=convert_categoricals,
