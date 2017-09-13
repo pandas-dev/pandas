@@ -249,7 +249,8 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         """
         Convert year and month to datetimes, using pandas vectorized versions
         when the date range falls within the range supported by pandas.  
-        Otherwise it falls back to a slower but more robust method using datetime.
+        Otherwise it falls back to a slower but more robust method
+        using datetime.
         """
         if year.max() < MAX_YEAR and year.min() > MIN_YEAR:
             return to_datetime(100 * year + month, format='%Y%m')
