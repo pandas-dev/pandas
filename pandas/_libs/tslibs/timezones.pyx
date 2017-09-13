@@ -10,24 +10,24 @@ import pytz
 UTC = pytz.utc
 
 
-cdef inline bint _is_utc(object tz):
+cdef inline bint is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 
-cdef inline bint _is_tzlocal(object tz):
+cdef inline bint is_tzlocal(object tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint _treat_tz_as_pytz(object tz):
+cdef inline bint treat_tz_as_pytz(object tz):
     return hasattr(tz, '_utc_transition_times') and hasattr(
         tz, '_transition_info')
 
 
-cdef inline bint _treat_tz_as_dateutil(object tz):
+cdef inline bint treat_tz_as_dateutil(object tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
-cdef inline object _get_zone(object tz):
+cpdef inline object get_timezone(object tz):
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -40,10 +40,10 @@ cdef inline object _get_zone(object tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
-    if _is_utc(tz):
+    if is_utc(tz):
         return 'UTC'
     else:
-        if _treat_tz_as_dateutil(tz):
+        if treat_tz_as_dateutil(tz):
             if '.tar.gz' in tz._filename:
                 raise ValueError(
                     'Bad tz filename. Dateutil on python 3 on windows has a '
@@ -64,14 +64,10 @@ cdef inline object _get_zone(object tz):
             except AttributeError:
                 return tz
 
-
-def get_timezone(tz):
-    return _get_zone(tz)
-
 #----------------------------------------------------------------------
 # UTC Offsets
 
-cpdef _get_utcoffset(tzinfo, obj):
+cpdef get_utcoffset(tzinfo, obj):
     try:
         return tzinfo._utcoffset
     except AttributeError:
