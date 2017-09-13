@@ -2047,7 +2047,7 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
 
     """
 
-    def __init__(self, name, values, index):
+    def __init__(self, values, index, name):
         self.categorical = values
         self.index = index
         self.name = name
@@ -2076,8 +2076,8 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         if not is_categorical_dtype(data.dtype):
             raise AttributeError("Can only use .cat accessor with a "
                                  "'category' dtype")
-        return CategoricalAccessor(getattr(data, 'name', None),
-                                   data.values, data.index)
+        return CategoricalAccessor(data.values, data.index,
+                                   getattr(data, 'name', None),)
 
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
