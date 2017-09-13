@@ -57,7 +57,7 @@ index : identifier of index column
     identifier of column that should be used as index of the DataFrame
 convert_missing : boolean, defaults to False
     Flag indicating whether to convert missing values to their Stata
-    representations.  If False, missing values are replaced with nans.
+    representations.  If False, missing values are replaced with nan.
     If True, columns containing missing values are returned with
     object data types and missing values are represented by
     StataMissingValue objects.
