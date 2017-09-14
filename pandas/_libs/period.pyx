@@ -252,7 +252,7 @@ def period_ordinal(int y, int m, int d, int h, int min,
     return get_period_ordinal(y, m, d, h, min, s, us, ps, freq)
 
 
-cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
+cpdef period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     cdef:
         pandas_datetimestruct dts
         date_info dinfo
