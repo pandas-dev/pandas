@@ -6,7 +6,7 @@ import numpy as np
 cimport cython
 from cython cimport Py_ssize_t
 
-import_array()
+np.import_array()
 
 cimport util
 
