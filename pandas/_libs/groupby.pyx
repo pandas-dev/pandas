@@ -1,11 +1,11 @@
 # cython: profile=False
 
-cimport numpy as np
+cimport numpy as cnp
 import numpy as np
 
 cimport cython
 
-np.import_array()
+cnp.import_array()
 
 cimport util
 
