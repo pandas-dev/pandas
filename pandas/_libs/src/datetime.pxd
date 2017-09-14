@@ -164,7 +164,8 @@ cdef inline int64_t _date_to_datetime64(object val,
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
-cdef inline check_dts_bounds(pandas_datetimestruct *dts):
+cdef inline bint check_dts_bounds(pandas_datetimestruct *dts):
+    """Returns True if an error needs to be raised"""
     cdef:
         bint error = False
 
@@ -174,11 +175,4 @@ cdef inline check_dts_bounds(pandas_datetimestruct *dts):
     elif (dts.year >= 2262 and
           cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
         error = True
-
-    if error:
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-
-        raise ValueError(
-            'Out of bounds nanosecond timestamp: %s' % fmt)
+    return error

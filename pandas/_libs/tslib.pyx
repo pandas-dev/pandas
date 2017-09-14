@@ -1772,15 +1772,10 @@ class OutOfBoundsDatetime(ValueError):
     pass
 
 cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
-    # Retaining this is a kludge because I haven't figured out how
-    # to subclass `ValueError` in a pxd file.
-    try:
-        check_dts_bounds(dts)
-    except ValueError:
+    if check_dts_bounds(dts):
         fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
                                                dts.day, dts.hour,
                                                dts.min, dts.sec)
-
         raise OutOfBoundsDatetime(
             'Out of bounds nanosecond timestamp: %s' % fmt)
 
@@ -5120,7 +5115,3 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
         raise ValueError("day must be None, 'start' or 'end'")
 
     return np.asarray(out)
-
-#----------------------------------------------------------------------
-# Don't even ask
-from tslibs.strptime import array_strptime

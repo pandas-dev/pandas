@@ -332,13 +332,17 @@ def array_strptime(ndarray[object] values, object fmt,
         dts.ps = ns * 1000
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        try:
-            check_dts_bounds(&dts)
-        except ValueError:
+        if check_dts_bounds(&dts):
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            raise
+            else:
+                from pandas._libs.tslib import OutOfBoundsDatetime
+                fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
+                                               dts.day, dts.hour,
+                                               dts.min, dts.sec)
+                raise OutOfBoundsDatetime(
+                    'Out of bounds nanosecond timestamp: %s' % fmt)
 
     return result
 
