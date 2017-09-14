@@ -356,9 +356,17 @@ class ToDatetime(object):
 
         self.s = Series((['19MAY11', '19MAY11:00:00:00'] * 100000))
         self.s2 = self.s.str.replace(':\\S+$', '')
-        self.dup_numeric_data = Series([1000] * 100000)
-        self.dup_string_data = ['2013-01-01'] * 100000
-        self.dup_datetime_data = [dt.datetime(2010, 1, 1)] * 100000
+        self.dup_numeric_data_10_5 = Series([1000] * 100000)
+        self.dup_string_data_10_5 = ['2013-01-01 01:00:00'] * 100000
+        self.dup_datetime_data_10_5 = [dt.datetime(2010, 1, 1)] * 100000
+
+        self.dup_numeric_data_10_3 = Series([1000] * 100)
+        self.dup_string_data_10_3 = ['2013-01-01 01:00:00'] * 100
+        self.dup_datetime_data_10_3 = [dt.datetime(2010, 1, 1)] * 100
+
+        self.dup_numeric_data_10_7 = Series([1000] * 10**7)
+        self.dup_string_data_10_7 = ['2013-01-01 01:00:00'] * 10**7
+        self.dup_datetime_data_10_7 = [dt.datetime(2010, 1, 1)] * 10**7
 
     def time_format_YYYYMMDD(self):
         to_datetime(self.stringsD, format='%Y%m%d')
@@ -384,14 +392,32 @@ class ToDatetime(object):
     def time_format_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
 
-    def time_cache_dup_numeric_data(self):
-        to_datetime(self.dup_numeric_data, unit='s')
+    def time_cache_dup_numeric_data_10_3(self):
+        to_datetime(self.dup_numeric_data_10_3, unit='s')
 
-    def time_cache_dup_datetime_data(self):
-        to_datetime(self.dup_datetime_data)
+    def time_cache_dup_datetime_data_10_3(self):
+        to_datetime(self.dup_datetime_data_10_3)
 
-    def time_cache_dup_string_data(self):
-        to_datetime(self.dup_string_data)
+    def time_cache_dup_string_data_10_3(self):
+        to_datetime(self.dup_string_data_10_3)
+
+    def time_cache_dup_numeric_data_10_5(self):
+        to_datetime(self.dup_numeric_data_10_5, unit='s')
+
+    def time_cache_dup_datetime_data_10_5(self):
+        to_datetime(self.dup_datetime_data_10_5)
+
+    def time_cache_dup_string_data_10_5(self):
+        to_datetime(self.dup_string_data_10_5)
+
+    def time_cache_dup_numeric_data_10_7(self):
+        to_datetime(self.dup_numeric_data_10_7, unit='s')
+
+    def time_cache_dup_datetime_data_10_7(self):
+        to_datetime(self.dup_datetime_data_10_7)
+
+    def time_cache_dup_string_data_10_7(self):
+        to_datetime(self.dup_string_data_10_7)
 
 
 class Offsets(object):
