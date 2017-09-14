@@ -777,8 +777,9 @@ class Categorical(PandasObject):
                 # remove all _codes which are larger and set to -1/NaN
                 self._codes[self._codes >= len(new_categories)] = -1
         else:
-            values = cat.__array__()
-            cat._codes = _get_codes_for_values(values, new_categories)
+            codes = _recode_for_categories(self.codes, self.categories,
+                                           new_categories)
+            cat._codes = codes
         cat._categories = new_categories
 
         if ordered is None:
@@ -2111,6 +2112,38 @@ def _get_codes_for_values(values, categories):
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)
+
+
+def _recode_for_categories(codes, old_categories, new_categories):
+    """
+    Convert a set of codes for to a new set of categories
+
+    Parameters
+    ----------
+    codes : array
+    old_categories, new_categories : Index
+
+    Returns
+    -------
+    new_codes : array
+
+    Examples
+    --------
+    >>> old_cat = pd.Index(['b', 'a', 'c'])
+    >>> new_cat = pd.Index(['a', 'b'])
+    >>> codes = np.array([0, 1, 1, 2])
+    >>> _recode_for_categories(codes, old_cat, new_cat)
+    array([ 1,  0,  0, -1])
+    """
+    from pandas.core.algorithms import take_1d
+
+    if len(old_categories) == 0:
+        # All null anyway, so just retain the nulls
+        return codes
+    indexer = coerce_indexer_dtype(new_categories.get_indexer(old_categories),
+                                   new_categories)
+    new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
+    return new_codes
 
 
 def _convert_to_list_like(list_like):

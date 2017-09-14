@@ -67,6 +67,9 @@ class Categoricals2(object):
     def time_rendering(self):
         str(self.sel)
 
+    def time_set_categories(self):
+        self.ts.cat.set_categories(self.ts.cat.categories[::2])
+
 
 class Categoricals3(object):
     goal_time = 0.2
