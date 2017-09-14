@@ -1577,7 +1577,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month\n\n.. versionadded:: 0.16.0")
+        "The number of days in the month")
     daysinmonth = days_in_month
     is_month_start = _field_accessor(
         'is_month_start',

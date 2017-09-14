@@ -15,12 +15,18 @@ class TablePlotter(object):
         self.font_size = font_size
 
     def _shape(self, df):
-        """Calcurate table chape considering index levels"""
+        """
+        Calculate table chape considering index levels.
+        """
+
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
     def _get_cells(self, left, right, vertical):
-        """Calcurate appropriate figure size based on left and right data"""
+        """
+        Calculate appropriate figure size based on left and right data.
+        """
+
         if vertical:
             # calcurate required number of cells
             vcells = max(sum([self._shape(l)[0] for l in left]),

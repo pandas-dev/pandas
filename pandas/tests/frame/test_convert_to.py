@@ -5,6 +5,7 @@ import collections
 import numpy as np
 
 from pandas import compat
+from pandas.compat import long
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 
@@ -236,3 +237,15 @@ class TestDataFrameConvertTo(TestData):
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_dict_box_scalars(self):
+        # 14216
+        # make sure that we are boxing properly
+        d = {'a': [1], 'b': ['b']}
+
+        result = DataFrame(d).to_dict()
+        assert isinstance(list(result['a'])[0], (int, long))
+        assert isinstance(list(result['b'])[0], (int, long))
+
+        result = DataFrame(d).to_dict(orient='records')
+        assert isinstance(result[0]['a'], (int, long))

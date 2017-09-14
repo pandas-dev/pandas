@@ -16,7 +16,7 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -602,8 +602,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
-    .. versionadded:: 0.13.0
-
     Parameters
     ----------
     pat : string
@@ -1016,7 +1014,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1046,8 +1043,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1452,7 +1447,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1920,20 +1920,4 @@ class StringMethods(NoNewAttributesMixin):
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(data)
-
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    str = AccessorProperty(StringMethods)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
@@ -537,15 +537,12 @@ class TestMultiIndex(Base):
             self.index.astype(np.dtype(int))
 
     def test_constructor_single_level(self):
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]], names=['first'])
-        assert isinstance(single_level, Index)
-        assert not isinstance(single_level, MultiIndex)
-        assert single_level.name == 'first'
-
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]])
-        assert single_level.name is None
+        result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                            labels=[[0, 1, 2, 3]], names=['first'])
+        assert isinstance(result, MultiIndex)
+        expected = Index(['foo', 'bar', 'baz', 'qux'], name='first')
+        tm.assert_index_equal(result.levels[0], expected)
+        assert result.names == ['first']
 
     def test_constructor_no_levels(self):
         tm.assert_raises_regex(ValueError, "non-zero number "
@@ -768,8 +765,9 @@ class TestMultiIndex(Base):
 
         # 1 level
         result = MultiIndex.from_arrays(arrays=[[]], names=['A'])
+        assert isinstance(result, MultiIndex)
         expected = Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # N levels
         for N in [2, 3]:
@@ -830,7 +828,7 @@ class TestMultiIndex(Base):
         # 1 level
         result = MultiIndex.from_product([[]], names=['A'])
         expected = pd.Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # 2 levels
         l1 = [[], ['foo', 'bar', 'baz'], []]
@@ -2573,12 +2571,21 @@ class TestMultiIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_not_pypy(self):
         idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
         tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
                                     np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_pypy(self):
+        idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
+        tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
+                                    np.array([False, True]))
+        tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
+                                    np.array([False, True]))
 
     def test_isin_level_kwarg(self):
         idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
