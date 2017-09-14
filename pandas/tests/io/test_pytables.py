@@ -2011,7 +2011,7 @@ class TestHDFStore(Base):
         df['string'] = 'foo'
         df['float322'] = 1.
         df['float322'] = df['float322'].astype('float32')
-        df['boolean'] = df['float322'] > 0
+        df['bool'] = df['float322'] > 0
         df['time1'] = Timestamp('20130101')
         df['time2'] = Timestamp('20130102')
         check(df, tm.assert_frame_equal)
@@ -2141,7 +2141,7 @@ class TestHDFStore(Base):
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
-            df1['boolean'] = df1['float32'] > 0
+            df1['bool'] = df1['float32'] > 0
             df1['time1'] = Timestamp('20130101')
             df1['time2'] = Timestamp('20130102')
 
@@ -4599,41 +4599,13 @@ class TestHDFStore(Base):
                 expected = df2[df2.index > df2.index[2]]
                 assert_frame_equal(expected, result)
 
-    def test_legacy_0_10_read(self):
-        # legacy from 0.10
-        with catch_warnings(record=True):
-            path = tm.get_data_path('legacy_hdf/legacy_0.10.h5')
-            with ensure_clean_store(path, mode='r') as store:
-                str(store)
-                for k in store.keys():
-                    store.select(k)
-
-    def test_legacy_0_11_read(self):
-        # legacy from 0.11
-        path = os.path.join('legacy_hdf', 'legacy_table_0.11.h5')
-        with ensure_clean_store(tm.get_data_path(path), mode='r') as store:
-            str(store)
-            assert 'df' in store
-            assert 'df1' in store
-            assert 'mi' in store
-            df = store.select('df')
-            df1 = store.select('df1')
-            mi = store.select('mi')
-            assert isinstance(df, DataFrame)
-            assert isinstance(df1, DataFrame)
-            assert isinstance(mi, DataFrame)
-
     def test_copy(self):
 
         with catch_warnings(record=True):
 
-            def do_copy(f=None, new_f=None, keys=None,
+            def do_copy(f, new_f=None, keys=None,
                         propindexes=True, **kwargs):
                 try:
-                    if f is None:
-                        f = tm.get_data_path(os.path.join('legacy_hdf',
-                                                          'legacy_0.10.h5'))
-
                     store = HDFStore(f, 'r')
 
                     if new_f is None:
@@ -4670,10 +4642,6 @@ class TestHDFStore(Base):
                     except:
                         pass
                     safe_remove(new_f)
-
-            do_copy()
-            do_copy(keys=['/a', '/b', '/df1_mixed'])
-            do_copy(propindexes=False)
 
             # new table
             df = tm.makeDataFrame()

@@ -216,8 +216,6 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 SparseSeries
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.16.0
-
 A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseSeries`` indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
 
 The method requires a ``MultiIndex`` with two or more levels.

@@ -47,9 +47,9 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy_helper.h>         // NOLINT(build/include_order)
 #include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
-#include <datetime_helper.h>      // NOLINT(build/include_order)
 #include <np_datetime.h>          // NOLINT(build/include_order)
 #include <np_datetime_strings.h>  // NOLINT(build/include_order)
+#include "datetime.h"
 
 static PyObject *type_decimal;
 
@@ -327,6 +327,23 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     }
 
     return ret;
+}
+
+static npy_int64 get_long_attr(PyObject *o, const char *attr) {
+  npy_int64 long_val;
+  PyObject *value = PyObject_GetAttrString(o, attr);
+  long_val = (PyLong_Check(value) ?
+              PyLong_AsLongLong(value) : PyInt_AS_LONG(value));
+  Py_DECREF(value);
+  return long_val;
+}
+
+static npy_float64 total_seconds(PyObject *td) {
+  npy_float64 double_val;
+  PyObject *value = PyObject_CallMethod(td, "total_seconds", NULL);
+  double_val = PyFloat_AS_DOUBLE(value);
+  Py_DECREF(value);
+  return double_val;
 }
 
 static PyObject *get_item(PyObject *obj, Py_ssize_t i) {

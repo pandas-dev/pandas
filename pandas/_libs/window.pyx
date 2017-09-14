@@ -1,55 +1,29 @@
 # cython: profile=False
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from numpy cimport *
+from cython cimport Py_ssize_t
+
 cimport numpy as np
 import numpy as np
 
 cimport cython
 
-import_array()
+np.import_array()
 
 cimport util
 
 from libc.stdlib cimport malloc, free
 
-from numpy cimport NPY_INT8 as NPY_int8
-from numpy cimport NPY_INT16 as NPY_int16
-from numpy cimport NPY_INT32 as NPY_int32
-from numpy cimport NPY_INT64 as NPY_int64
-from numpy cimport NPY_FLOAT16 as NPY_float16
-from numpy cimport NPY_FLOAT32 as NPY_float32
-from numpy cimport NPY_FLOAT64 as NPY_float64
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+from numpy cimport ndarray, double_t, int64_t, float64_t
 
-int8 = np.dtype(np.int8)
-int16 = np.dtype(np.int16)
-int32 = np.dtype(np.int32)
-int64 = np.dtype(np.int64)
-float16 = np.dtype(np.float16)
-float32 = np.dtype(np.float32)
-float64 = np.dtype(np.float64)
-
-cdef np.int8_t MINint8 = np.iinfo(np.int8).min
-cdef np.int16_t MINint16 = np.iinfo(np.int16).min
-cdef np.int32_t MINint32 = np.iinfo(np.int32).min
-cdef np.int64_t MINint64 = np.iinfo(np.int64).min
-cdef np.float16_t MINfloat16 = np.NINF
 cdef np.float32_t MINfloat32 = np.NINF
 cdef np.float64_t MINfloat64 = np.NINF
 
-cdef np.int8_t MAXint8 = np.iinfo(np.int8).max
-cdef np.int16_t MAXint16 = np.iinfo(np.int16).max
-cdef np.int32_t MAXint32 = np.iinfo(np.int32).max
-cdef np.int64_t MAXint64 = np.iinfo(np.int64).max
-cdef np.float16_t MAXfloat16 = np.inf
 cdef np.float32_t MAXfloat32 = np.inf
 cdef np.float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
-cdef double nan = NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b

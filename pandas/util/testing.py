@@ -1909,7 +1909,11 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # convert tuples to index
     if nentries == 1:
+        # we have a single level of tuples, i.e. a regular Index
         index = Index(tuples[0], name=names[0])
+    elif nlevels == 1:
+        name = None if names is None else names[0]
+        index = Index((x[0] for x in tuples), name=name)
     else:
         index = MultiIndex.from_tuples(tuples, names=names)
     return index
