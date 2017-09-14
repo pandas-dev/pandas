@@ -1044,11 +1044,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH17048: memory usage when lines=True
 
         unchunked = pd.read_json(StringIO(lines_json_df), lines=True)
-        chunked = pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1))
+        chunked = pd.concat(
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1)
+        )
 
         assert_frame_equal(chunked, unchunked)
 
-        chunked_float = pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1.0))
+        chunked_float = pd.concat(
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1.0)
+        )
         assert_frame_equal(chunked_float, unchunked)
 
     def test_readjson_chunksize_requires_lines(self, lines_json_df):
@@ -1093,16 +1097,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         msg = r"'chunksize' must be an integer >=1"
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=0))
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=0)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-1))
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-1)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-2.2))
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-2.2)
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize='foo'))
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize='foo')
 
     def test_latin_encoding(self):
         if compat.PY2:
