@@ -109,7 +109,8 @@ from tslibs.timezones cimport (
 from tslibs.timezones import (  # noqa
     get_timezone, get_utcoffset, maybe_get_tz,
     _p_tz_cache_key, dst_cache,
-    _unbox_utcoffsets
+    _unbox_utcoffsets,
+    _dateutil_gettz
     )
 
 
