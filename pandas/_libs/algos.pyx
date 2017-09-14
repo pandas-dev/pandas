@@ -6,7 +6,7 @@ import numpy as np
 cimport cython
 from cython cimport Py_ssize_t
 
-import_array()
+np.import_array()
 
 cdef float64_t FP_ERR = 1e-13
 
