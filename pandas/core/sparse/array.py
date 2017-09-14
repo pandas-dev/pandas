@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
+    is_object_dtype,
     is_integer_dtype,
     is_bool_dtype,
     is_list_like,
@@ -789,7 +790,16 @@ def make_sparse(arr, kind='block', fill_value=None):
         if is_string_dtype(arr):
             arr = arr.astype(object)
 
-        mask = arr != fill_value
+        if is_object_dtype(arr.dtype):
+            mask = []
+            for e in arr:
+                if type(e) is type(fill_value):
+                    mask.append(e != fill_value)
+                else:
+                    mask.append(True)
+            mask = np.array(mask)
+        else:
+            mask = arr != fill_value
 
     length = len(arr)
     if length != mask.size:
