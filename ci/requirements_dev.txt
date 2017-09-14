@@ -5,3 +5,4 @@ cython
 pytest>=3.1.0
 pytest-cov
 flake8
+moto

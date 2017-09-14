@@ -1,33 +1,32 @@
 # pylint: disable=E1101
-
-from pandas.compat import u, range, map, openpyxl_compat, BytesIO, iteritems
-from datetime import datetime, date, time
-import sys
+import functools
+import operator
 import os
+import sys
+import warnings
+from datetime import datetime, date, time
 from distutils.version import LooseVersion
 from functools import partial
-
-import warnings
 from warnings import catch_warnings
-import operator
-import functools
-import pytest
 
-from numpy import nan
 import numpy as np
+import pytest
+from numpy import nan
+import moto
 
 import pandas as pd
+import pandas.util.testing as tm
 from pandas import DataFrame, Index, MultiIndex
-from pandas.io.formats.excel import ExcelFormatter
-from pandas.io.parsers import read_csv
+from pandas.compat import u, range, map, openpyxl_compat, BytesIO, iteritems
+from pandas.core.config import set_option, get_option
+from pandas.io.common import URLError
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _Openpyxl1Writer,
     _Openpyxl20Writer, _Openpyxl22Writer, register_writer, _XlsxWriter
 )
-from pandas.io.common import URLError
+from pandas.io.formats.excel import ExcelFormatter
+from pandas.io.parsers import read_csv
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
-from pandas.core.config import set_option, get_option
-import pandas.util.testing as tm
 
 
 def _skip_if_no_xlrd():
@@ -65,13 +64,6 @@ def _skip_if_no_excelsuite():
     _skip_if_no_xlrd()
     _skip_if_no_xlwt()
     _skip_if_no_openpyxl()
-
-
-def _skip_if_no_s3fs():
-    try:
-        import s3fs  # noqa
-    except ImportError:
-        pytest.skip('s3fs not installed, skipping')
 
 
 _seriesd = tm.getSeriesData()
@@ -605,14 +597,22 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @tm.network(check_before_test=True)
     def test_read_from_s3_url(self):
-        _skip_if_no_s3fs()
+        boto3 = pytest.importorskip('boto3')
+        pytest.importorskip('s3fs')
 
-        url = ('s3://pandas-test/test1' + self.ext)
-        url_table = read_excel(url)
-        local_table = self.get_exceldf('test1')
-        tm.assert_frame_equal(url_table, local_table)
+        with moto.mock_s3():
+            conn = boto3.resource("s3", region_name="us-east-1")
+            conn.create_bucket(Bucket="pandas-test")
+            file_name = os.path.join(self.dirpath, 'test1' + self.ext)
+            with open(file_name, 'rb') as f:
+                conn.Bucket("pandas-test").put_object(Key="test1" + self.ext,
+                                                      Body=f)
+
+            url = ('s3://pandas-test/test1' + self.ext)
+            url_table = read_excel(url)
+            local_table = self.get_exceldf('test1')
+            tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
     def test_read_from_file_url(self):
