@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
-    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -114,8 +113,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
-             generic.NDFrame,):
+class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -1096,14 +1094,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 with open(buf, 'w') as f:
                     f.write(result)
 
-    def __iter__(self):
-        """ provide iteration over the values of the Series
-        box values if necessary """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values)
-
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
@@ -1118,10 +1108,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def keys(self):
         """Alias for index"""
         return self.index
-
-    def tolist(self):
-        """ Convert Series to a nested list """
-        return list(self.asobject)
 
     def to_dict(self, into=dict):
         """
@@ -2923,18 +2909,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     # Categorical methods
     cat = base.AccessorProperty(CategoricalAccessor)
 
-    def _dir_deletions(self):
-        return self._accessors
-
-    def _dir_additions(self):
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
+    # String Methods
+    str = base.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

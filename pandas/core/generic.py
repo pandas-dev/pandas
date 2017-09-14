@@ -192,8 +192,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _dir_additions(self):
         """ add the string-like attributes from the info_axis """
-        return set([c for c in self._info_axis
-                    if isinstance(c, string_types) and isidentifier(c)])
+        additions = set([c for c in self._info_axis
+                         if isinstance(c, string_types) and isidentifier(c)])
+        return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
     def _constructor_sliced(self):
@@ -1264,7 +1265,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         path_or_buf : the path or buffer to write the result string
-            if this is None, return a StringIO of the converted string
+            if this is None, return the converted string
         orient : string
 
             * Series
@@ -1904,10 +1905,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return result
 
     def _set_item(self, key, value):
-        if isinstance(key, str) and callable(getattr(self, key, None)):
-            warnings.warn("Column name '{key}' collides with a built-in "
-                          "method, which will cause unexpected attribute "
-                          "behavior".format(key=key), stacklevel=3)
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -2350,8 +2347,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If True, do operation inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-
-            .. versionadded:: 0.16.1
 
         Returns
         -------
@@ -3073,8 +3068,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Returns a random sample of items from an axis of object.
 
-        .. versionadded:: 0.16.1
-
         Parameters
         ----------
         n : int, optional
@@ -3230,8 +3223,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['pipe'] = ("""
         Apply func(self, \*args, \*\*kwargs)
-
-        .. versionadded:: 0.16.2
 
         Parameters
         ----------
@@ -3440,8 +3431,8 @@ class NDFrame(PandasObject, SelectionMixin):
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
                 if isinstance(self, ABCDataFrame) and (is_list_like(value)):
-                    warnings.warn("Pandas doesn't allow Series to be assigned "
-                                  "into nonexistent columns - see "
+                    warnings.warn("Pandas doesn't allow columns to be "
+                                  "created via a new attribute name - see "
                                   "https://pandas.pydata.org/pandas-docs/"
                                   "stable/indexing.html#attribute-access",
                                   stacklevel=2)

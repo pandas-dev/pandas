@@ -177,7 +177,7 @@ you can pass the ``dayfirst`` flag:
 
 .. note::
    Specifying a ``format`` argument will potentially speed up the conversion
-   considerably and on versions later then 0.13.0 explicitly specifying
+   considerably and explicitly specifying
    a format string of '%Y%m%d' takes a faster path still.
 
 If you pass a single string to ``to_datetime``, it returns single ``Timestamp``.
@@ -1069,8 +1069,7 @@ Offset Aliases
 ~~~~~~~~~~~~~~
 
 A number of string aliases are given to useful common time series
-frequencies. We will refer to these aliases as *offset aliases*
-(referred to as *time rules* prior to v0.8.0).
+frequencies. We will refer to these aliases as *offset aliases*.
 
 .. csv-table::
     :header: "Alias", "Description"
@@ -1706,6 +1705,15 @@ has multiplied span.
 
    pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
 
+If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
+endpoints for a ``PeriodIndex`` with frequency matching that of the
+``PeriodIndex`` constructor.
+
+.. ipython:: python
+
+   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
+                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
 
@@ -1947,9 +1955,11 @@ These can easily be converted to a ``PeriodIndex``
 Time Zone Handling
 ------------------
 
-Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
-``dateutil`` support is new in 0.14.1 and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
-Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
+Pandas provides rich support for working with timestamps in different time
+zones using ``pytz`` and ``dateutil`` libraries. ``dateutil`` currently is only
+supported for fixed offset and tzfile zones. The default library is ``pytz``.
+Support for ``dateutil`` is provided for compatibility with other
+applications e.g. if you use ``dateutil`` in other python packages.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~

@@ -2,6 +2,35 @@ import pandas as pd
 from pandas import Series, Period, PeriodIndex, date_range
 
 
+class PeriodProperties(object):
+    def setup(self):
+        self.per = Period('2012-06-01', freq='M')
+
+    def time_year(self):
+        self.per.year
+
+    def time_month(self):
+        self.per.month
+
+    def time_quarter(self):
+        self.per.quarter
+
+    def time_day(self):
+        self.per.day
+
+    def time_hour(self):
+        self.per.hour
+
+    def time_minute(self):
+        self.per.second
+
+    def time_second(self):
+        self.per.second
+
+    def time_leap_year(self):
+        self.per.is_leapyear
+
+
 class Constructor(object):
     goal_time = 0.2
 

@@ -33,8 +33,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
-    .. versionadded:: 0.16.1
-
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
@@ -252,6 +250,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
+
+    def tolist(self):
+        return self._data.tolist()
 
     @property
     def codes(self):
@@ -487,7 +488,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':

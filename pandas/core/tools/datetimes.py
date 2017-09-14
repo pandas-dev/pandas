@@ -489,13 +489,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+            offset = tslib.Timestamp(origin)
         except tslib.OutOfBoundsDatetime:
             raise tslib.OutOfBoundsDatetime(
                 "origin {origin} is Out of Bounds".format(origin=origin))
         except ValueError:
             raise ValueError("origin {origin} cannot be converted "
                              "to a Timestamp".format(origin=origin))
+
+        if offset.tz is not None:
+            raise ValueError(
+                "origin offset {} must be tz-naive".format(offset))
+        offset -= tslib.Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
@@ -511,7 +516,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
+        values = _convert_listlike(arg._values, True, format)
         result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
@@ -600,7 +605,7 @@ def _assemble_from_unit_mappings(arg, errors):
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{excess}]".format(','.join(excess=excess)))
+                         "[{excess}]".format(excess=','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows

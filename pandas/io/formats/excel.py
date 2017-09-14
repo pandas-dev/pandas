@@ -132,10 +132,12 @@ class CSSToExcelConverter(object):
 
     def build_border(self, props):
         return {side: {
-            'style': self._border_style(props.get('border-%s-style' % side),
-                                        props.get('border-%s-width' % side)),
+            'style': self._border_style(props.get('border-{side}-style'
+                                        .format(side=side)),
+                                        props.get('border-{side}-width'
+                                        .format(side=side))),
             'color': self.color_to_excel(
-                props.get('border-%s-color' % side)),
+                props.get('border-{side}-color'.format(side=side))),
         } for side in ['top', 'right', 'bottom', 'left']}
 
     def _border_style(self, style, width):
@@ -302,7 +304,8 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn('Unhandled colour format: %r' % val, CSSWarning)
+            warnings.warn('Unhandled colour format: {val!r}'.format(val=val),
+                          CSSWarning)
 
 
 class ExcelFormatter(object):
@@ -369,7 +372,7 @@ class ExcelFormatter(object):
             if lib.isposinf_scalar(val):
                 val = self.inf_rep
             elif lib.isneginf_scalar(val):
-                val = '-%s' % self.inf_rep
+                val = '-{inf}'.format(inf=self.inf_rep)
             elif self.float_format is not None:
                 val = float(self.float_format % val)
         return val
@@ -434,8 +437,9 @@ class ExcelFormatter(object):
             colnames = self.columns
             if has_aliases:
                 if len(self.header) != len(self.columns):
-                    raise ValueError('Writing %d cols but got %d aliases' %
-                                     (len(self.columns), len(self.header)))
+                    raise ValueError('Writing {cols} cols but got {alias} '
+                                     'aliases'.format(cols=len(self.columns),
+                                                      alias=len(self.header)))
                 else:
                     colnames = self.header
 
