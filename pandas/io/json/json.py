@@ -267,11 +267,12 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         .. versionadded:: 0.19.0
 
     chunksize: integer, default None
-        If `lines=True`, how many lines to read into memory at a time.
+        Return JsonLineReader object for iteration.
+        See the `line-delimted json docs
+        <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
+        for more information on ``chunksize``.
+        This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-        Passing a chunksize helps with memory usage, but is slower.
-        Also note this is different from the `chunksize` parameter in
-            `read_csv`, which returns a FileTextReader.
         If the JSON input is a string, this argument has no effect.
 
         .. versionadded:: 0.21.0
