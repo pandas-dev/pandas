@@ -218,7 +218,7 @@ Furthermore this will now correctly box the results of iteration for :func:`Data
 .. ipython:: ipython
 
    d = {'a':[1], 'b':['b']}
-   df = pd,DataFrame(d)
+   df = pd.DataFrame(d)
 
 Previously:
 
@@ -357,6 +357,59 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
      pd.to_datetime(s, utc=True)
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
+
+.. _whatsnew_0210.api.consistency_of_range_functions:
+
+Consistency of Range Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, there were some inconsistencies between the various range functions: func:`date_range`, func:`bdate_range`, func:`cdate_range`, func:`period_range`, func:`timedelta_range`, and func:`interval_range`. (:issue:`17471`).
+
+One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [2]: pd.interval_range(start=0, end=4, periods=6)
+  Out[2]:
+  IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                closed='right',
+                dtype='interval[int64]')
+
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
+  Out[3]: PeriodIndex(['2017Q1', '2017Q2', '2017Q3', '2017Q4', '2018Q1', '2018Q2'], dtype='period[Q-DEC]', freq='Q-DEC')
+
+New Behavior:
+
+.. code-block:: ipython
+
+  In [2]: pd.interval_range(start=0, end=4, periods=6)
+  ---------------------------------------------------------------------------
+  ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
+
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  ---------------------------------------------------------------------------
+  ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
+
+Additionally, the endpoint parameter ``end`` was not included in the intervals produced by ``interval_range``.  However, all other range functions include ``end`` in their output.  To promote consistency among the range functions, ``interval_range`` will now include ``end`` as the right endpoint of the final interval, except if ``freq`` is specified in a way which skips ``end``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [4]: pd.interval_range(start=0, end=4)
+  Out[4]:
+  IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                closed='right',
+                dtype='interval[int64]')
+
+
+New Behavior:
+
+  .. ipython:: python
+
+     pd.interval_range(start=0, end=4)
 
 .. _whatsnew_0210.api:
 

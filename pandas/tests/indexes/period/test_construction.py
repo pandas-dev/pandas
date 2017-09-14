@@ -436,11 +436,12 @@ class TestPeriodIndex(object):
         start = Period('02-Apr-2005', 'B')
         end_intv = Period('2006-12-31', ('w', 1))
 
-        msg = 'Start and end must have same freq'
+        msg = 'start and end must have same freq'
         with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start, end=end_intv)
 
-        msg = 'Must specify 2 of start, end, periods'
+        msg = ('Of the three parameters: start, end, and periods, '
+               'exactly two must be specified')
         with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start)
 

@@ -307,8 +307,9 @@ class TestDatetimeIndex(object):
         exp = date_range('1/1/2000', periods=10)
         tm.assert_index_equal(rng, exp)
 
-        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
-                      periods='foo', freq='D')
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            DatetimeIndex(start='1/1/2000', periods='foo', freq='D')
 
         pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
                       end='1/10/2000')

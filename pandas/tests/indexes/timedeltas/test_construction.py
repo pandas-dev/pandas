@@ -50,8 +50,9 @@ class TestTimedeltaIndex(object):
         exp = timedelta_range('1 days', periods=10)
         tm.assert_index_equal(rng, exp)
 
-        pytest.raises(ValueError, TimedeltaIndex, start='1 days',
-                      periods='foo', freq='D')
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            TimedeltaIndex(start='1 days', periods='foo', freq='D')
 
         pytest.raises(ValueError, TimedeltaIndex, start='1 days',
                       end='10 days')
