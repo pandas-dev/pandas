@@ -56,6 +56,13 @@ class TestCategorical(object):
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_getname_category(self):
+        result = 'A'
+        s = pd.Series([1, 2, 3], name='A').astype('category')
+        s = s.cat.set_categories([1, 2, 3])
+        expected = s.astype('category').name
+        tm.assert_almost_equal(result, expected)
+
     def test_getitem_category_type(self):
         # GH 14580
         # test iloc() on Series with Categorical data
