@@ -26,6 +26,7 @@ from pandas import (Categorical, Index, Series, DataFrame,
                     Interval, IntervalIndex)
 from pandas.compat import range, lrange, u, PY3, PYPY
 from pandas.core.config import option_context
+from pandas.core.categorical import _recode_for_categories
 
 
 class TestCategorical(object):
@@ -962,6 +963,67 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Shorten
         with pytest.raises(ValueError):
             cat.rename_categories([1, 2])
+
+    @pytest.mark.parametrize('codes, old, new, expected', [
+        ([0, 1], ['a', 'b'], ['a', 'b'], [0, 1]),
+        ([0, 1], ['b', 'a'], ['b', 'a'], [0, 1]),
+        ([0, 1], ['a', 'b'], ['b', 'a'], [1, 0]),
+        ([0, 1], ['b', 'a'], ['a', 'b'], [1, 0]),
+        ([0, 1, 0, 1], ['a', 'b'], ['a', 'b', 'c'], [0, 1, 0, 1]),
+        ([0, 1, 2, 2], ['a', 'b', 'c'], ['a', 'b'], [0, 1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['a', 'b', 'c'], [0, 1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['b'], [-1, 0, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['d'], [-1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], [], [-1, -1, -1]),
+        ([-1, -1], [], ['a', 'b'], [-1, -1]),
+        ([1, 0], ['b', 'a'], ['a', 'b'], [0, 1]),
+    ])
+    def test_recode_to_categories(self, codes, old, new, expected):
+        codes = np.asanyarray(codes, dtype=np.int8)
+        expected = np.asanyarray(expected, dtype=np.int8)
+        old = Index(old)
+        new = Index(new)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_recode_to_categories_large(self):
+        N = 1000
+        codes = np.arange(N)
+        old = Index(codes)
+        expected = np.arange(N - 1, -1, -1, dtype=np.int16)
+        new = Index(expected)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('values, categories, new_categories', [
+        # No NaNs, same cats, same order
+        (['a', 'b', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['a', 'b', 'a'], ['a', 'b'], ['b', 'a'],),
+        # Same, unsorted
+        (['b', 'a', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['b', 'a', 'a'], ['a', 'b'], ['b', 'a'],),
+        # NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a', 'b']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b', 'a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        # Introduce NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        # No overlap
+        (['a', 'b', 'c'], ['a', 'b'], ['d', 'e']),
+    ])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_set_categories_many(self, values, categories, new_categories,
+                                 ordered):
+        c = Categorical(values, categories)
+        expected = Categorical(values, new_categories, ordered)
+        result = c.set_categories(new_categories, ordered=ordered)
+        tm.assert_categorical_equal(result, expected)
 
     def test_reorder_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)

@@ -218,9 +218,18 @@ Top-level dealing with datetimelike
    to_timedelta
    date_range
    bdate_range
+   cdate_range
    period_range
    timedelta_range
    infer_freq
+
+Top-level dealing with intervals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   interval_range
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
@@ -2062,6 +2071,7 @@ Style Application
 
    Styler.apply
    Styler.applymap
+   Styler.where
    Styler.format
    Styler.set_precision
    Styler.set_table_styles
