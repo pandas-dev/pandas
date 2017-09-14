@@ -11,7 +11,7 @@ from pandas.core.common import AbstractMethodError
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
-from pandas.utils._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 
 import functools
 import operator
