@@ -12,6 +12,7 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _stringify_path, BaseIterator)
 from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
+from pandas.core.reshape import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
@@ -267,7 +268,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         .. versionadded:: 0.19.0
 
     chunksize: integer, default None
-        Return JsonLineReader object for iteration.
+        Return JsonReader object for iteration.
         See the `line-delimted json docs
         <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
         for more information on ``chunksize``.
@@ -342,98 +343,119 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
 
-    # These kwargs are only needed by the Parsers, so we just wrap them up and
-    # pass them down.
-    kwargs = {"typ": typ, "orient": orient, "dtype": dtype,
-              "convert_axes": convert_axes, "convert_dates": convert_dates,
-              "keep_default_dates": keep_default_dates, "numpy": numpy,
-              "precise_float": precise_float, "date_unit": date_unit}
+    json_reader = JsonReader(
+        filepath_or_buffer, orient=orient, typ=typ, dtype=dtype,
+        convert_axes=convert_axes, convert_dates=convert_dates,
+        keep_default_dates=keep_default_dates, numpy=numpy,
+        precise_float=precise_float, date_unit=date_unit, encoding=encoding,
+        lines=lines, chunksize=chunksize
+    )
 
-    if isinstance(filepath_or_buffer, compat.string_types):
-        try:
-            exists = os.path.exists(filepath_or_buffer)
+    if chunksize:
+        return json_reader
 
-        # if the filepath is too long will raise here
-        # 5874
-        except (TypeError, ValueError):
-            exists = False
-
-        if exists:
-            if lines and chunksize:
-                return JsonLineReader(filepath_or_buffer, chunksize,
-                                      encoding, **kwargs)
-            else:
-                fh, handles = _get_handle(filepath_or_buffer, 'r',
-                                          encoding=encoding)
-                json = fh.read()
-                fh.close()
-        else:
-            json = filepath_or_buffer
-    elif hasattr(filepath_or_buffer, 'read'):
-        if lines and chunksize:
-            return JsonLineReader(filepath_or_buffer, chunksize, encoding,
-                                  **kwargs)
-        else:
-            json = filepath_or_buffer.read()
     else:
-        json = filepath_or_buffer
+        return json_reader.read()
 
-    if lines:
+
+class JsonReader(BaseIterator):
+    """
+    Reads a JSON document to a pandas object.
+
+    If initialized with ``lines=True`` and ``chunksize``, can be iterated over
+    ``chunksize`` lines at a time.
+    """
+    def __init__(
+        self, filepath_or_buffer, orient, typ, dtype, convert_axes,
+        convert_dates, keep_default_dates, numpy, precise_float, date_unit,
+        encoding, lines, chunksize, raw_json=False
+    ):
+
+        self.path_or_buf = filepath_or_buffer
+        self.orient = orient
+        self.typ = typ
+        self.dtype = dtype
+        self.convert_axes = convert_axes
+        self.convert_dates = convert_dates
+        self.keep_default_dates = keep_default_dates
+        self.numpy = numpy
+        self.precise_float = precise_float
+        self.date_unit = date_unit
+        self.encoding = encoding
+        self.lines = lines
+        self.chunksize = chunksize
+        self.nrows_seen = 0
+        self.raw_json = False
+
+        if isinstance(filepath_or_buffer, compat.string_types):
+            try:
+                exists = os.path.exists(filepath_or_buffer)
+
+            # if the filepath is too long will raise here
+            # 5874
+            except (TypeError, ValueError):
+                exists = False
+
+            if exists:
+                self.data, _ = _get_handle(filepath_or_buffer, 'r',
+                                           encoding=encoding)
+            else:
+                self.raw_json = True
+                self.data = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, 'read'):
+                self.data = filepath_or_buffer
+        else:
+            self.raw_json = True
+            self.data = filepath_or_buffer
+
+        if self.raw_json and lines:
+            self.data = self.combine_lines(self.data)
+
+    def combine_lines(self, data):
+        """Combines a multi-line JSON document into a single document"""
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
-        lines = list(StringIO(json.strip()))
-        json = '[' + ','.join(lines) + ']'
+        lines = list(StringIO(data.strip()))
+        return '[' + ','.join(lines) + ']'
 
-    return _get_obj(json, **kwargs)
-
-
-def _get_obj(json, **kwargs):
-    typ = kwargs['typ']
-    dtype = kwargs['dtype']
-    kwargs = {k: v for k, v in kwargs.items() if k != 'typ'}
-    obj = None
-    if typ == 'frame':
-        obj = FrameParser(json, **kwargs).parse()
-
-    if typ == 'series' or obj is None:
-        if not isinstance(dtype, bool):
-            dtype = dict(data=dtype)
-        obj = SeriesParser(json, **kwargs).parse()
-
-    return obj
-
-
-class JsonLineReader(BaseIterator):
-    """
-    Iterates over a JSON document that is formatted with one JSON record per
-    line. The `chunksize` initialization parameter controls how many lines are
-    read per iteration.
-
-    We explicitly override the index on the return value so that the index of
-    the resulting object will be like `range(len(obj))`. If we didn't do this,
-    it would have index like `range(chunksize) * number_chunks.`
-    This is so that `read_json(lines=True)` will return an identical object to
-    `read_json(lines=True, chunksize=n)`.
-    """
-    def __init__(self, filepath_or_buffer, chunksize, encoding, **kwargs):
-
-        try:
-            self.iterator, _ = _get_handle(filepath_or_buffer, 'r',
-                                           encoding=encoding)
-        except:
-            if hasattr(filepath_or_buffer, 'read'):
-                self.iterator = filepath_or_buffer
+    def read(self):
+        """Read the whole JSON input into a pandas object"""
+        if self.raw_json:
+            return self._get_obj(self.data)
+        elif self.lines and self.chunksize:
+            return concat(self)
+        else:
+            if self.lines:
+                return self._get_obj(self.combine_lines(self.data.read()))
             else:
-                raise ValueError("cannot read json from given input")
-        self.chunksize = chunksize
-        self.kwargs = kwargs
-        self.nrows_seen = 0
+                return self._get_obj(self.data.read())
+
+    def _get_obj(self, json):
+        typ = self.typ
+        dtype = self.dtype
+        kwargs = {
+            "orient": self.orient, "dtype": self.dtype,
+            "convert_axes": self.convert_axes,
+            "convert_dates": self.convert_dates,
+            "keep_default_dates": self.keep_default_dates, "numpy": self.numpy,
+            "precise_float": self.precise_float, "date_unit": self.date_unit
+        }
+        obj = None
+        if typ == 'frame':
+            obj = FrameParser(json, **kwargs).parse()
+
+        if typ == 'series' or obj is None:
+            if not isinstance(dtype, bool):
+                dtype = dict(data=dtype)
+            obj = SeriesParser(json, **kwargs).parse()
+
+        return obj
 
     def __next__(self):
-        lines = list(islice(self.iterator, self.chunksize))
+        lines = list(islice(self.data, self.chunksize))
         if lines:
             lines_json = '[' + ','.join(lines) + ']'
-            obj = _get_obj(json=lines_json, **self.kwargs)
+            obj = self._get_obj(lines_json)
 
             # Make sure that the returned objects have the right index
             obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
@@ -443,7 +465,7 @@ class JsonLineReader(BaseIterator):
 
         else:
             try:
-                self.iterator.close()
+                self.data.close()
             except IOError:
                 pass
             raise StopIteration
