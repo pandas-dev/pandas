@@ -35,13 +35,10 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-def strio_lines_json_df():
+@pytest.fixture
+def lines_json_df():
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-    return StringIO(df.to_json(lines=True, orient="records"))
-
-
-def json_lines_to_df_chunked(jlines, chunksize):
-    return pd.concat(pd.read_json(jlines, lines=True, chunksize=chunksize))
+    return df.to_json(lines=True, orient="records")
 
 
 class TestPandasContainer(object):
@@ -1041,23 +1038,23 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
-    def test_readjson_chunks(self):
+    def test_readjson_chunks(self, lines_json_df):
         """Basic test that read_json(chunks=True) gives the same result as
         read_json(chunks=False)"""
         # GH17048: memory usage when lines=True
 
-        unchunked = pd.read_json(strio_lines_json_df(), lines=True)
-        chunked = json_lines_to_df_chunked(strio_lines_json_df(), 1)
+        unchunked = pd.read_json(StringIO(lines_json_df), lines=True)
+        chunked = pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1))
 
         assert_frame_equal(chunked, unchunked)
 
-        chunked_float = json_lines_to_df_chunked(strio_lines_json_df(), 1.0)
+        chunked_float = pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=1.0))
         assert_frame_equal(chunked_float, unchunked)
 
-    def test_readjson_chunksize_requires_lines(self):
+    def test_readjson_chunksize_requires_lines(self, lines_json_df):
         msg = "chunksize should only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(strio_lines_json_df(), lines=False, chunksize=2)
+            pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
 
     def test_readjson_chunks_series(self):
         """Test reading line-format JSON to Series with chunksize param"""
@@ -1073,13 +1070,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert_series_equal(chunked, unchunked)
 
-    def test_readjson_each_chunk(self):
+    def test_readjson_each_chunk(self, lines_json_df):
         """
         Other tests check that the final result of read_json(chunksize=True) is
         correct. This checks that the intermediate chunks read in are correct.
         """
         chunks = list(
-            pd.read_json(strio_lines_json_df(), lines=True, chunksize=2)
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=2)
         )
         assert chunks[0].shape == (2, 2)
         assert chunks[1].shape == (1, 2)
@@ -1092,20 +1089,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             unchunked = pd.read_json(path, lines=True)
             assert_frame_equal(unchunked, chunked)
 
-    def test_readjson_invalid_chunksize(self):
+    def test_readjson_invalid_chunksize(self, lines_json_df):
         msg = r"'chunksize' must be an integer >=1"
 
         with tm.assert_raises_regex(ValueError, msg):
-            json_lines_to_df_chunked(strio_lines_json_df(), 0)
+            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=0))
 
         with tm.assert_raises_regex(ValueError, msg):
-            json_lines_to_df_chunked(strio_lines_json_df(), -1)
+            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-1))
 
         with tm.assert_raises_regex(ValueError, msg):
-            json_lines_to_df_chunked(strio_lines_json_df(), -2.2)
+            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize=-2.2))
 
         with tm.assert_raises_regex(ValueError, msg):
-            json_lines_to_df_chunked(strio_lines_json_df(), 'foo')
+            pd.concat(pd.read_json(StringIO(lines_json_df), lines=True, chunksize='foo'))
 
     def test_latin_encoding(self):
         if compat.PY2:
