@@ -360,11 +360,9 @@ class JsonReader(BaseIterator):
     ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
     whole document.
     """
-    def __init__(
-        self, filepath_or_buffer, orient, typ, dtype, convert_axes,
-        convert_dates, keep_default_dates, numpy, precise_float, date_unit,
-        encoding, lines, chunksize, raw_json=False
-    ):
+    def __init__(self, filepath_or_buffer, orient, typ, dtype, convert_axes,
+                 convert_dates, keep_default_dates, numpy, precise_float,
+                 date_unit, encoding, lines, chunksize, raw_json=False):
 
         self.path_or_buf = filepath_or_buffer
         self.orient = orient
@@ -391,8 +389,7 @@ class JsonReader(BaseIterator):
             try:
                 exists = os.path.exists(filepath_or_buffer)
 
-            # if the filepath is too long will raise here
-            # 5874
+            # gh-5874: if the filepath is too long will raise here
             except (TypeError, ValueError):
                 exists = False
 
@@ -469,7 +466,7 @@ class JsonReader(BaseIterator):
             lines_json = '[' + ','.join(lines) + ']'
             obj = self._get_object_parser(lines_json)
 
-            # Make sure that the returned objects have the right index
+            # Make sure that the returned objects have the right index.
             obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
             self.nrows_seen += len(obj)
 
