@@ -349,8 +349,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     if chunksize:
         return json_reader
 
-    else:
-        return json_reader.read()
+    return json_reader.read()
 
 
 class JsonReader(BaseIterator):
