@@ -192,3 +192,18 @@ class read_csv_from_s3(object):
             ext = ".bz2"
         pd.read_csv(self.big_fname + ext, nrows=10,
                     compression=compression, engine=engine)
+
+class read_json_lines(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 1000000
+        self.C = 5
+        self.df = DataFrame(dict([('float{0}'.format(i), randn(self.N)) for i in range(self.C)]))
+        self.df.to_json("__test__.json",orient="records",lines=True)
+
+    def time_read_json_lines(self):
+        pd.read_json("__test__.json", lines=True)
+
+    def time_read_json_lines_chunk(self):
+        pd.read_json("__test__.json", lines=True, chunksize=self.N/4)
