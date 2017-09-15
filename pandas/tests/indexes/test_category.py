@@ -125,6 +125,16 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_create_categorical(self):
+        # https://github.com/pandas-dev/pandas/pull/17513
+        # The public CI constructor doesn't hit this code path with
+        # instances of CategoricalIndex, but we still want to test the code
+        ci = CategoricalIndex(['a', 'b', 'c'])
+        # First ci is self, second ci is data.
+        result = CategoricalIndex._create_categorical(ci, ci)
+        expected = Categorical(['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_disallow_set_ops(self):
 
         # GH 10039
