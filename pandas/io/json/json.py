@@ -363,7 +363,8 @@ class JsonReader(BaseIterator):
     Reads a JSON document to a pandas object.
 
     If initialized with ``lines=True`` and ``chunksize``, can be iterated over
-    ``chunksize`` lines at a time.
+    ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
+    whole document.
     """
     def __init__(
         self, filepath_or_buffer, orient, typ, dtype, convert_axes,
@@ -426,9 +427,11 @@ class JsonReader(BaseIterator):
             return concat(self)
         else:
             if self.lines:
-                return self._get_obj(self.combine_lines(self.data.read()))
+                to_return = self._get_obj(self.combine_lines(self.data.read()))
             else:
-                return self._get_obj(self.data.read())
+                to_return = self._get_obj(self.data.read())
+            self.__close__()
+            return to_return
 
     def _get_obj(self, json):
         typ = self.typ
@@ -451,6 +454,12 @@ class JsonReader(BaseIterator):
 
         return obj
 
+    def __close__(self):
+        try:
+            self.data.close()
+        except IOError:
+            pass
+
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))
         if lines:
@@ -464,10 +473,7 @@ class JsonReader(BaseIterator):
             return obj
 
         else:
-            try:
-                self.data.close()
-            except IOError:
-                pass
+            self.__close__()
             raise StopIteration
 
 
