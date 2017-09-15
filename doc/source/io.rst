@@ -3077,7 +3077,7 @@ Compressed pickle files
 
 .. versionadded:: 0.20.0
 
-:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+:func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
 `zip`` file supports read only and must contain only one data file
 to be read in.
@@ -4515,8 +4515,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
-                      'h': pd.date_range('20130101', periods=3, freq='ns')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
 
    df
    df.dtypes

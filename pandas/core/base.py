@@ -8,7 +8,12 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_list_like,
+    is_scalar,
+    is_datetimelike)
+
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core import common as com
@@ -18,7 +23,8 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError
+from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
+
 from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
@@ -883,6 +889,34 @@ class IndexOpsMixin(object):
         numpy.ndarray.argmin
         """
         return nanops.nanargmin(self.values)
+
+    def tolist(self):
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        See Also
+        --------
+        numpy.tolist
+        """
+
+        if is_datetimelike(self):
+            return [_maybe_box_datetimelike(x) for x in self._values]
+        else:
+            return self._values.tolist()
+
+    def __iter__(self):
+        """
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+        """
+        return iter(self.tolist())
 
     @cache_readonly
     def hasnans(self):

@@ -585,12 +585,6 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     # ops compat
-    def tolist(self):
-        """
-        return a list of the Index values
-        """
-        return list(self.values)
-
     @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
@@ -1600,9 +1594,6 @@ class Index(IndexOpsMixin, PandasObject):
         if self._data is None:
             return False
         return is_datetime_array(_ensure_object(self.values))
-
-    def __iter__(self):
-        return iter(self.values)
 
     def __reduce__(self):
         d = dict(data=self._data)

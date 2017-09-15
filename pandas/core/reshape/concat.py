@@ -72,7 +72,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     The keys, levels, and names arguments are all optional.
 
     A walkthrough of how this method fits in with other tools for combining
-    panda objects can be found `here
+    pandas objects can be found `here
     <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
 
     See Also

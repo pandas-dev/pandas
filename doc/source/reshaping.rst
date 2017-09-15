@@ -156,7 +156,7 @@ the level numbers:
    stacked.unstack('second')
 
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
-levels involved. Hence a call to ``stack`` and then ``unstack``, or viceversa,
+levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
 will result in a **sorted** copy of the original DataFrame or Series:
 
 .. ipython:: python
