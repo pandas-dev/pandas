@@ -178,9 +178,9 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
-    def to_html(self, filename, mode='w'):
+    def to_html(self, buf=None, mode='w'):
         """
-        to_html(filename, mode='w')
+        to_html(buf, mode='w')
         Write pandas.io.formats.style.Styler to HTML file
         Parameters
         ----------
@@ -190,8 +190,10 @@ class Styler(object):
             File i/o mode used as open(filename, mode)
 
         """
-        with open('test.html', 'w') as fid:
-            fid.write(self._repr_html_())
+        if buf is None: # print to stdout instead of writing to file
+            return self.render()
+        with open(buf, 'w') as fid:
+            fid.write(self.render())
 
     def _translate(self):
         """

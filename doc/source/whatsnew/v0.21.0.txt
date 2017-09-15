@@ -113,7 +113,7 @@ Other Enhancements
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
-- :func:`Styler.to_html` has been implemented. It is analagous to `DataFrame.to_html` with the additional styling preserved.
+- :func:`Styler.to_html` has been implemented. It is analagous to `DataFrame.to_html` with the additional styling preserved. (:issue:`17545`)
 
 
 
