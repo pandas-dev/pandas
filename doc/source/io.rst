@@ -101,7 +101,7 @@ delim_whitespace : boolean, default False
 Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++
 
-header : int or list of ints, default ``'infer'``
+header : int or list of ints, default ``'None'``
   Row number(s) to use as the column names, and the start of the data. Default
   behavior is as if ``header=0`` if no ``names`` passed, otherwise as if
   ``header=None``. Explicitly pass ``header=0`` to be able to replace existing
