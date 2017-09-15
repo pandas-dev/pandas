@@ -403,7 +403,7 @@ class JsonReader(BaseIterator):
                 self.raw_json = True
                 self.data = filepath_or_buffer
         elif hasattr(filepath_or_buffer, 'read'):
-                self.data = filepath_or_buffer
+            self.data = filepath_or_buffer
         else:
             self.raw_json = True
             self.data = filepath_or_buffer
@@ -422,15 +422,15 @@ class JsonReader(BaseIterator):
                 return self._get_obj(self.combine_lines(self.data))
             else:
                 return self._get_obj(self.data)
-        elif self.lines and self.chunksize:
+        if self.lines and self.chunksize:
             return concat(self)
+
+        if self.lines:
+            to_return = self._get_obj(self.combine_lines(self.data.read()))
         else:
-            if self.lines:
-                to_return = self._get_obj(self.combine_lines(self.data.read()))
-            else:
-                to_return = self._get_obj(self.data.read())
-            self.__close__()
-            return to_return
+            to_return = self._get_obj(self.data.read())
+        self.__close__()
+        return to_return
 
     def _get_obj(self, json):
         typ = self.typ
