@@ -599,7 +599,7 @@ class TestGroupBy(object):
              'td': [nan, td(days=1), td(days=2), td(days=3), nan]})
         df_test.dt = pd.to_datetime(df_test.dt)
         df_test['group'] = 'A'
-        df_ref = df_test[df_test.dt.notnull()]
+        df_ref = df_test[df_test.dt.notna()]
 
         grouped_test = df_test.groupby('group')
         grouped_ref = df_ref.groupby('group')

@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
@@ -109,7 +109,7 @@ def _dt_index_cmp(opname, nat_result=False):
                 isinstance(other, compat.string_types)):
             other = _to_m8(other, tz=self.tz)
             result = func(other)
-            if isnull(other):
+            if isna(other):
                 result.fill(nat_result)
         else:
             if isinstance(other, list):
@@ -197,8 +197,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False (DEPRECATED)
-        Attempt to infer fall dst-transition hours based on order
+    infer_dst : boolean, default False
+        .. deprecated:: 0.15.0
+           Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
 
@@ -291,8 +292,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise TypeError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -411,7 +412,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Must specify two of start, end, or periods')
+            raise ValueError('Of the three parameters: start, end, and '
+                             'periods, exactly two must be specified')
 
         _normalized = True
 
@@ -1472,7 +1474,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # the bounds need swapped if index is reverse sorted and has a
             # length > 1 (is_monotonic_decreasing gives True for empty
             # and length 1 index)
-            if self.is_monotonic_decreasing and len(self) > 1:
+            if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == 'left' else lower
             return lower if side == 'left' else upper
         else:
@@ -1576,7 +1578,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month\n\n.. versionadded:: 0.16.0")
+        "The number of days in the month")
     daysinmonth = days_in_month
     is_month_start = _field_accessor(
         'is_month_start',
@@ -1818,8 +1820,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             .. versionadded:: 0.19.0
 
-        infer_dst : boolean, default False (DEPRECATED)
-            Attempt to infer fall dst-transition hours based on order
+        infer_dst : boolean, default False
+            .. deprecated:: 0.15.0
+               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -1880,7 +1883,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Select values between particular times of day (e.g., 9:00-9:30AM).
 
         Return values of the index between two times.  If start_time or
-        end_time are strings then tseres.tools.to_time is used to convert to
+        end_time are strings then tseries.tools.to_time is used to convert to
         a time object.
 
         Parameters
@@ -2002,7 +2005,7 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency datetime index, with day (calendar) as the default
+    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
     frequency
 
     Parameters
@@ -2011,24 +2014,25 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
-    tz : string or None
+    tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name of the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2045,7 +2049,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                 normalize=True, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency datetime index, with business day as the default
+    Return a fixed frequency DatetimeIndex, with business day as the default
     frequency
 
     Parameters
@@ -2054,8 +2058,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
@@ -2063,15 +2067,16 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name for the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2089,7 +2094,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
                 normalize=True, name=None, closed=None, **kwargs):
     """
-    **EXPERIMENTAL** Return a fixed frequency datetime index, with
+    **EXPERIMENTAL** Return a fixed frequency DatetimeIndex, with
     CustomBusinessDay as the default frequency
 
     .. warning:: EXPERIMENTAL
@@ -2103,29 +2108,30 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'C' (CustomBusinessDay)
         Frequency strings can have multiples, e.g. '5H'
-    tz : string or None
+    tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name for the resulting index
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    weekmask : string, Default 'Mon Tue Wed Thu Fri'
         weekmask of valid business days, passed to ``numpy.busdaycalendar``
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
-    closed : string or None, default None
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.

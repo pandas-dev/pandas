@@ -13,9 +13,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     _ensure_int64)
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
+from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
@@ -51,7 +51,7 @@ def _td_index_cmp(opname, nat_result=False):
                 # failed to parse as timedelta
                 raise TypeError(msg.format(type(other)))
             result = func(other)
-            if isnull(other):
+            if isna(other):
                 result.fill(nat_result)
         else:
             if not is_list_like(other):
@@ -180,8 +180,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise TypeError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -234,7 +234,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset, closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Must specify two of start, end, or periods')
+            raise ValueError('Of the three parameters: start, end, and '
+                             'periods, exactly two must be specified')
 
         if start is not None:
             start = Timedelta(start)
@@ -331,7 +332,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
             if _is_convertible_to_td(other):
                 other = Timedelta(other)
-                if isnull(other):
+                if isna(other):
                     raise NotImplementedError(
                         "division by pd.NaT not implemented")
 
@@ -430,7 +431,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         hasnans = self.hasnans
         if hasnans:
             def f(x):
-                if isnull(x):
+                if isna(x):
                     return [np.nan] * len(columns)
                 return x.components
         else:
@@ -516,7 +517,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                     result.freq = to_offset(result.inferred_freq)
             return result
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
@@ -527,7 +529,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 pass
 
         return Index.join(self, other, how=how, level=level,
-                          return_indexers=return_indexers)
+                          return_indexers=return_indexers,
+                          sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -680,11 +683,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
-
-        if is_bool_indexer(key):
+        if is_list_like(key):
             raise TypeError
 
-        if isnull(key):
+        if isna(key):
             key = NaT
 
         if tolerance is not None:
@@ -959,22 +961,22 @@ def _generate_regular_range(start, end, periods, offset):
 def timedelta_range(start=None, end=None, periods=None, freq='D',
                     name=None, closed=None):
     """
-    Return a fixed frequency timedelta index, with day as the default
+    Return a fixed frequency TimedeltaIndex, with day as the default
     frequency
 
     Parameters
     ----------
     start : string or timedelta-like, default None
-        Left bound for generating dates
-    end : string or datetime-like, default None
-        Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+        Left bound for generating timedeltas
+    end : string or timedelta-like, default None
+        Right bound for generating timedeltas
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
-    name : str, default None
-        Name of the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting TimedeltaIndex
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
@@ -984,11 +986,34 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     Notes
     -----
-    2 of start, end, or periods must be specified.
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    Examples
+    --------
+
+    >>> pd.timedelta_range(start='1 day', periods=4)
+    TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq='D')
+
+    The ``closed`` parameter specifies which endpoint is included.  The default
+    behavior is to include both endpoints.
+
+    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')
+    TimedeltaIndex(['2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq='D')
+
+    The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
+    Only fixed frequencies can be passed, non-fixed frequencies such as
+    'M' (month end) will raise.
+
+    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')
+    TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
+                    '1 days 18:00:00', '2 days 00:00:00'],
+                   dtype='timedelta64[ns]', freq='6H')
     """
     return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name,
-                          closed=closed)
+                          freq=freq, name=name, closed=closed)

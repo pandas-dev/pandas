@@ -513,7 +513,8 @@ standard database join operations between DataFrame objects:
 
     pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None,
              left_index=False, right_index=False, sort=True,
-             suffixes=('_x', '_y'), copy=True, indicator=False)
+             suffixes=('_x', '_y'), copy=True, indicator=False,
+             validate=None)
 
 - ``left``: A DataFrame object
 - ``right``: Another DataFrame object
@@ -550,6 +551,20 @@ standard database join operations between DataFrame objects:
   observation's merge key is found in both.
 
   .. versionadded:: 0.17.0
+
+- ``validate`` : string, default None.
+  If specified, checks if merge is of specified type.
+
+  * "one_to_one" or "1:1": checks if merge keys are unique in both
+    left and right datasets.
+  * "one_to_many" or "1:m": checks if merge keys are unique in left
+    dataset.
+  * "many_to_one" or "m:1": checks if merge keys are unique in right
+    dataset.
+  * "many_to_many" or "m:m": allowed, but does not result in checks.
+
+  .. versionadded:: 0.21.0
+
 
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
 and ``right`` is a subclass of DataFrame, the return type will still be
@@ -711,10 +726,40 @@ Here is another example with duplicate join keys in DataFrames:
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+
 .. warning::
 
-  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions,
-  may result in memory overflow. It is the user' s responsibility to manage duplicate values in keys before joining large DataFrames.
+  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions, which may result in memory overflow. It is the user' s responsibility to manage duplicate values in keys before joining large DataFrames.
+
+.. _merging.validation:
+
+Checking for duplicate keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.21.0
+
+Users can use the ``validate`` argument to automatically check whether there are unexpected duplicates in their merge keys. Key uniqueness is checked before merge operations and so should protect against memory overflows. Checking key uniqueness is also a good way to ensure user data structures are as expected. 
+
+In the following example, there are duplicate values of ``B`` in the right DataFrame. As this is not a one-to-one merge -- as specified in the ``validate`` argument -- an exception will be raised.
+
+
+.. ipython:: python
+
+  left = pd.DataFrame({'A' : [1,2], 'B' : [1, 2]})
+  right = pd.DataFrame({'A' : [4,5,6], 'B': [2, 2, 2]})
+
+.. code-block:: ipython
+
+  In [53]: result = pd.merge(left, right, on='B', how='outer', validate="one_to_one")
+  ...
+  MergeError: Merge keys are not unique in right dataset; not a one-to-one merge    
+
+If the user is aware of the duplicates in the right `DataFrame` but wants to ensure there are no duplicates in the left DataFrame, one can use the `validate='one_to_many'` argument instead, which will not raise an exception. 
+
+.. ipython:: python
+
+   pd.merge(left, right, on='B', how='outer', validate="one_to_many")
+
 
 .. _merging.indicator:
 
@@ -1008,8 +1053,6 @@ As you can see, this drops any rows where there was no match.
 Joining a single Index to a Multi-index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
 You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
 The level will match on the name of the index of the singly-indexed frame against
 a level name of the multi-indexed frame.
@@ -1286,7 +1329,7 @@ By default we are taking the asof of the quotes.
                  on='time',
                  by='ticker')
 
-We only asof within ``2ms`` betwen the quote time and the trade time.
+We only asof within ``2ms`` between the quote time and the trade time.
 
 .. ipython:: python
 
@@ -1295,8 +1338,8 @@ We only asof within ``2ms`` betwen the quote time and the trade time.
                  by='ticker',
                  tolerance=pd.Timedelta('2ms'))
 
-We only asof within ``10ms`` betwen the quote time and the trade time and we exclude exact matches on time.
-Note that though we exclude the exact matches (of the quotes), prior quotes DO propogate to that point
+We only asof within ``10ms`` between the quote time and the trade time and we exclude exact matches on time.
+Note that though we exclude the exact matches (of the quotes), prior quotes DO propagate to that point
 in time.
 
 .. ipython:: python

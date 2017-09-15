@@ -1,6 +1,8 @@
 import pytest
 from itertools import product
 from collections import defaultdict
+import warnings
+from datetime import datetime
 
 import numpy as np
 from numpy import nan
@@ -13,7 +15,8 @@ from pandas.core.sorting import (is_int64_overflow_possible,
                                  decons_group_index,
                                  get_group_index,
                                  nargsort,
-                                 lexsort_indexer)
+                                 lexsort_indexer,
+                                 safe_sort)
 
 
 class TestSorting(object):
@@ -302,9 +305,9 @@ class TestMerge(object):
         out = DataFrame(vals, columns=list('ABCDEFG') + ['left', 'right'])
         out = align(out)
 
-        jmask = {'left': out['left'].notnull(),
-                 'right': out['right'].notnull(),
-                 'inner': out['left'].notnull() & out['right'].notnull(),
+        jmask = {'left': out['left'].notna(),
+                 'right': out['right'].notna(),
+                 'inner': out['left'].notna() & out['right'].notna(),
                  'outer': np.ones(len(out), dtype='bool')}
 
         for how in 'left', 'right', 'outer', 'inner':
@@ -340,3 +343,96 @@ def test_decons():
     shape = (10000, 10000)
     label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
     testit(label_list, shape)
+
+
+class TestSafeSort(object):
+
+    def test_basic_sort(self):
+        values = [3, 1, 2, 0, 4]
+        result = safe_sort(values)
+        expected = np.array([0, 1, 2, 3, 4])
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = list("baaacb")
+        result = safe_sort(values)
+        expected = np.array(list("aaabbc"), dtype='object')
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = []
+        result = safe_sort(values)
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_labels(self):
+        values = [3, 1, 2, 0, 4]
+        expected = np.array([0, 1, 2, 3, 4])
+
+        labels = [0, 1, 1, 2, 3, 0, -1, 4]
+        result, result_labels = safe_sort(values, labels)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # na_sentinel
+        labels = [0, 1, 1, 2, 3, 0, 99, 4]
+        result, result_labels = safe_sort(values, labels,
+                                          na_sentinel=99)
+        expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        # out of bound indices
+        labels = [0, 101, 102, 2, 3, 0, 99, 4]
+        result, result_labels = safe_sort(values, labels)
+        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        labels = []
+        result, result_labels = safe_sort(values, labels)
+        expected_labels = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_mixed_integer(self):
+        values = np.array(['b', 1, 0, 'a', 0, 'b'], dtype=object)
+        result = safe_sort(values)
+        expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        values = np.array(['b', 1, 0, 'a'], dtype=object)
+        labels = [0, 1, 2, 3, 0, -1, 1]
+        result, result_labels = safe_sort(values, labels)
+        expected = np.array([0, 1, 'a', 'b'], dtype=object)
+        expected_labels = np.array([3, 1, 0, 2, 3, -1, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_mixed_integer_from_list(self):
+        values = ['b', 1, 0, 'a', 0, 'b']
+        result = safe_sort(values)
+        expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_unsortable(self):
+        # GH 13714
+        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        if compat.PY2 and not pd._np_version_under1p10:
+            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
+            with warnings.catch_warnings():
+                pytest.raises(TypeError, safe_sort, arr)
+        else:
+            pytest.raises(TypeError, safe_sort, arr)
+
+    def test_exceptions(self):
+        with tm.assert_raises_regex(TypeError,
+                                    "Only list-like objects are allowed"):
+            safe_sort(values=1)
+
+        with tm.assert_raises_regex(TypeError,
+                                    "Only list-like objects or None"):
+            safe_sort(values=[0, 1, 2], labels=1)
+
+        with tm.assert_raises_regex(ValueError,
+                                    "values should be unique"):
+            safe_sort(values=[0, 1, 2, 1], labels=[0, 1])

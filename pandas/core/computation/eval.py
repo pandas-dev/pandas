@@ -3,7 +3,6 @@
 """Top level ``eval`` module.
 """
 
-import warnings
 import tokenize
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.computation import _NUMEXPR_INSTALLED
@@ -41,8 +40,9 @@ def _check_engine(engine):
             engine = 'python'
 
     if engine not in _engines:
-        raise KeyError('Invalid engine {0!r} passed, valid engines are'
-                       ' {1}'.format(engine, list(_engines.keys())))
+        valid = list(_engines.keys())
+        raise KeyError('Invalid engine {engine!r} passed, valid engines are'
+                       ' {valid}'.format(engine=engine, valid=valid))
 
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
@@ -70,8 +70,8 @@ def _check_parser(parser):
       * If an invalid parser is passed
     """
     if parser not in _parsers:
-        raise KeyError('Invalid parser {0!r} passed, valid parsers are'
-                       ' {1}'.format(parser, _parsers.keys()))
+        raise KeyError('Invalid parser {parser!r} passed, valid parsers are'
+                       ' {valid}'.format(parser=parser, valid=_parsers.keys()))
 
 
 def _check_resolvers(resolvers):
@@ -79,8 +79,8 @@ def _check_resolvers(resolvers):
         for resolver in resolvers:
             if not hasattr(resolver, '__getitem__'):
                 name = type(resolver).__name__
-                raise TypeError('Resolver of type %r does not implement '
-                                'the __getitem__ method' % name)
+                raise TypeError('Resolver of type {name!r} does not implement '
+                                'the __getitem__ method'.format(name=name))
 
 
 def _check_expression(expr):
@@ -148,7 +148,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=None):
+         target=None, inplace=False):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -205,19 +205,39 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     level : int, optional
         The number of prior stack frames to traverse and add to the current
         scope. Most users will **not** need to change this parameter.
-    target : a target object for assignment, optional, default is None
-        essentially this is a passed in resolver
-    inplace : bool, default True
-        If expression mutates, whether to modify object inplace or return
-        copy with mutation.
-
-        WARNING: inplace=None currently falls back to to True, but
-        in a future version, will default to False.  Use inplace=True
-        explicitly rather than relying on the default.
+    target : object, optional, default None
+        This is the target object for assignment. It is used when there is
+        variable assignment in the expression. If so, then `target` must
+        support item assignment with string keys, and if a copy is being
+        returned, it must also support `.copy()`.
+    inplace : bool, default False
+        If `target` is provided, and the expression mutates `target`, whether
+        to modify `target` inplace. Otherwise, return a copy of `target` with
+        the mutation.
 
     Returns
     -------
     ndarray, numeric scalar, DataFrame, Series
+
+    Raises
+    ------
+    ValueError
+        There are many instances where such an error can be raised:
+
+        - `target=None`, but the expression is multiline.
+        - The expression is multiline, but not all them have item assignment.
+          An example of such an arrangement is this:
+
+          a = b + 1
+          a + 2
+
+          Here, there are expressions on different lines, making it multiline,
+          but the last line has no variable assigned to the output of `a + 2`.
+        - `inplace=True`, but the expression is missing item assignment.
+        - Item assignment is provided, but the `target` does not support
+          string item assignment.
+        - Item assignment is provided and `inplace=False`, but the `target`
+          does not support the `.copy()` method
 
     Notes
     -----
@@ -232,8 +252,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     pandas.DataFrame.query
     pandas.DataFrame.eval
     """
-    inplace = validate_bool_kwarg(inplace, 'inplace')
-    first_expr = True
+
+    inplace = validate_bool_kwarg(inplace, "inplace")
+
     if isinstance(expr, string_types):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
@@ -245,7 +266,10 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         raise ValueError("multi-line expressions are only valid in the "
                          "context of data, use DataFrame.eval")
 
+    ret = None
     first_expr = True
+    target_modified = False
+
     for expr in exprs:
         expr = _convert_expression(expr)
         engine = _check_engine(engine)
@@ -266,28 +290,33 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
-        if parsed_expr.assigner is None and multi_line:
-            raise ValueError("Multi-line expressions are only valid"
-                             " if all expressions contain an assignment")
+        if parsed_expr.assigner is None:
+            if multi_line:
+                raise ValueError("Multi-line expressions are only valid"
+                                 " if all expressions contain an assignment")
+            elif inplace:
+                raise ValueError("Cannot operate inplace "
+                                 "if there is no assignment")
 
         # assign if needed
         if env.target is not None and parsed_expr.assigner is not None:
-            if inplace is None:
-                warnings.warn(
-                    "eval expressions containing an assignment currently"
-                    "default to operating inplace.\nThis will change in "
-                    "a future version of pandas, use inplace=True to "
-                    "avoid this warning.",
-                    FutureWarning, stacklevel=3)
-                inplace = True
+            target_modified = True
 
             # if returning a copy, copy only on the first assignment
             if not inplace and first_expr:
-                target = env.target.copy()
+                try:
+                    target = env.target.copy()
+                except AttributeError:
+                    raise ValueError("Cannot return a copy of the target")
             else:
                 target = env.target
 
-            target[parsed_expr.assigner] = ret
+            # TypeError is most commonly raised (e.g. int, list), but you
+            # get IndexError if you try to do this assignment on np.ndarray.
+            try:
+                target[parsed_expr.assigner] = ret
+            except (TypeError, IndexError):
+                raise ValueError("Cannot assign expression output to target")
 
             if not resolvers:
                 resolvers = ({parsed_expr.assigner: ret},)
@@ -304,7 +333,6 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
             ret = None
             first_expr = False
 
-    if not inplace and inplace is not None:
-        return target
-
-    return ret
+    # We want to exclude `inplace=None` as being False.
+    if inplace is False:
+        return target if target_modified else ret

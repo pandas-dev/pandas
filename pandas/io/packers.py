@@ -61,7 +61,7 @@ from pandas.core.sparse.api import SparseSeries, SparseDataFrame
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.errors import PerformanceWarning
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _stringify_path
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
@@ -149,6 +149,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         for a in args:
             fh.write(pack(a, **kwargs))
 
+    path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, mode) as fh:
             writer(fh)

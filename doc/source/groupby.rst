@@ -140,7 +140,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-Starting with 0.8, pandas Index objects now support duplicate values. If a
+pandas Index objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -287,8 +287,6 @@ chosen level:
 .. ipython:: python
 
    s.sum(level='second')
-
-.. versionadded:: 0.6
 
 Grouping with multiple levels is supported.
 
@@ -563,7 +561,7 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. note::
 
-    If you pass a dict to ``aggregate``, the ordering of the output colums is
+    If you pass a dict to ``aggregate``, the ordering of the output columns is
     non-deterministic. If you want to be sure the output columns will be in a specific
     order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
 
@@ -768,8 +766,6 @@ missing values with the ``ffill()`` method.
 Filtration
 ----------
 
-.. versionadded:: 0.12
-
 The ``filter`` method returns a subset of the original object. Suppose we
 want to take only elements that belong to groups with a group sum greater
 than 2.
@@ -860,8 +856,6 @@ In this example, we chopped the collection of time series into yearly chunks
 then independently called :ref:`fillna <missing_data.fillna>` on the
 groups.
 
-.. versionadded:: 0.14.1
-
 The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
 
 .. ipython:: python
@@ -933,7 +927,7 @@ The dimension of the returned result can also change:
 
         d = pd.DataFrame({"a":["x", "y"], "b":[1,2]})
         def identity(df):
-            print df
+            print(df)
             return df
 
         d.groupby("a").apply(identity)
@@ -1050,19 +1044,6 @@ Just like for a DataFrame or Series you can call head and tail on a groupby:
 
 This shows the first or last n rows from each group.
 
-.. warning::
-
-   Before 0.14.0 this was implemented with a fall-through apply,
-   so the result would incorrectly respect the as_index flag:
-
-   .. code-block:: python
-
-       >>> g.head(1):  # was equivalent to g.apply(lambda x: x.head(1))
-             A  B
-        A
-        1 0  1  2
-        5 2  5  6
-
 .. _groupby.nth:
 
 Taking the nth row of each group
@@ -1115,19 +1096,41 @@ You can also select multiple rows from each group by specifying multiple nth val
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
-
 To see the order in which each row appears within its group, use the
 ``cumcount`` method:
 
 .. ipython:: python
 
-   df = pd.DataFrame(list('aaabba'), columns=['A'])
-   df
+   dfg = pd.DataFrame(list('aaabba'), columns=['A'])
+   dfg
 
-   df.groupby('A').cumcount()
+   dfg.groupby('A').cumcount()
 
-   df.groupby('A').cumcount(ascending=False)  # kwarg only
+   dfg.groupby('A').cumcount(ascending=False)
+
+.. _groupby.ngroup:
+
+Enumerate groups
+~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.2
+
+To see the ordering of the groups (as opposed to the order of rows
+within a group given by ``cumcount``) you can use the ``ngroup``
+method.
+
+Note that the numbers given to the groups match the order in which the
+groups would be seen when iterating over the groupby object, not the
+order they are first observed.
+
+.. ipython:: python
+
+   dfg = pd.DataFrame(list('aaabba'), columns=['A'])
+   dfg
+
+   dfg.groupby('A').ngroup()
+
+   dfg.groupby('A').ngroup(ascending=False)
 
 Plotting
 ~~~~~~~~
@@ -1176,14 +1179,41 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
+.. _groupby.multicolumn_factorization:
+
+Multi-column factorization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By using ``.ngroup()``, we can extract information about the groups in
+a way similar to :func:`factorize` (as described further in the
+:ref:`reshaping API <reshaping.factorize>`) but which applies
+naturally to multiple columns of mixed type and different
+sources. This can be useful as an intermediate categorical-like step
+in processing, when the relationships between the group rows are more
+important than their content, or as input to an algorithm which only
+accepts the integer encoding. (For more information about support in
+pandas for full categorical data, see the :ref:`Categorical
+introduction <categorical>` and the
+:ref:`API documentation <api.categorical>`.)
+
+.. ipython:: python
+
+    dfg = pd.DataFrame({"A": [1, 1, 2, 3, 2], "B": list("aaaba")})
+
+    dfg
+
+    dfg.groupby(["A", "B"]).ngroup()
+
+    dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
+
 Groupby by Indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Resampling produces new hypothetical samples(resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
+Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
+In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
-In the following examples, **df.index // 5** returns a binary array which is used to determine what get's selected for the groupby operation.
+In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 
 .. note:: The below example shows how we can downsample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 

@@ -22,8 +22,8 @@ Frequently Asked Questions (FAQ)
 
 DataFrame memory usage
 ----------------------
-As of pandas version 0.15.0, the memory usage of a dataframe (including
-the index) is shown when accessing the ``info`` method of a dataframe. A
+The memory usage of a dataframe (including the index)
+is shown when accessing the ``info`` method of a dataframe. A
 configuration option, ``display.memory_usage`` (see :ref:`options`),
 specifies if the dataframe's memory usage will be displayed when
 invoking the ``df.info()`` method.
@@ -144,7 +144,7 @@ To evaluate single-element pandas objects in a boolean context, use the method `
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
-Bitwise boolean operators like ``==`` and ``!=`` will return a boolean ``Series``,
+Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
 which is almost always what you want anyways.
 
 .. code-block:: python
@@ -194,7 +194,7 @@ For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
 general, we were given the difficult choice between either
 
 - A *masked array* solution: an array of data and an array of boolean values
-  indicating whether a value
+  indicating whether a value is there or is missing
 - Using a special sentinel value, bit pattern, or set of sentinel values to
   denote ``NA`` across the dtypes
 
@@ -202,7 +202,7 @@ For many reasons we chose the latter. After years of production use it has
 proven, at least in my opinion, to be the best decision given the state of
 affairs in NumPy and Python in general. The special value ``NaN``
 (Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions ``isnull`` and ``notnull`` which can be used across the dtypes to
+functions ``isna`` and ``notna`` which can be used across the dtypes to
 detect NA values.
 
 However, it comes with it a couple of trade-offs which I most certainly have
@@ -247,16 +247,16 @@ dtype in order to store the NAs. These are summarized by this table:
    ``integer``, cast to ``float64``
    ``boolean``, cast to ``object``
 
-While this may seem like a heavy trade-off, I have found very few
-cases where this is an issue in practice. Some explanation for the motivation
-here in the next section.
+While this may seem like a heavy trade-off, I have found very few cases where
+this is an issue in practice i.e. storing values greater than 2**53. Some
+explanation for the motivation is in the next section.
 
 Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<http://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
+<https://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
    :header: "Typeclass","Dtypes"
@@ -305,7 +305,7 @@ the ``DataFrame.copy`` method. If you are doing a lot of copying of DataFrame
 objects shared among threads, we recommend holding locks inside the threads
 where the data copying occurs.
 
-See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
+See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
 
 
@@ -332,5 +332,5 @@ using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+<https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
 details.

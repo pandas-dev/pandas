@@ -251,8 +251,8 @@ replace NaN with some other value using ``fillna`` if you wish).
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
-Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
-le, and ge to Series and DataFrame whose behavior is analogous to the binary
+Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
+``le``, and ``ge`` whose behavior is analogous to the binary
 arithmetic operations described above:
 
 .. ipython:: python
@@ -347,7 +347,7 @@ That is because NaNs do not compare as equals:
 
    np.nan == np.nan
 
-So, as of v0.13.1, NDFrames (such as Series, DataFrames, and Panels)
+So, NDFrames (such as Series, DataFrames, and Panels)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
@@ -444,7 +444,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 
 .. ipython:: python
 
-   combiner = lambda x, y: np.where(pd.isnull(x), y, x)
+   combiner = lambda x, y: np.where(pd.isna(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
@@ -511,7 +511,7 @@ optional ``level`` parameter which applies only if the object has a
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``count``, Number of non-null observations
+    ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
     ``mad``, Mean absolute deviation
@@ -541,7 +541,7 @@ will exclude NAs on Series input by default:
    np.mean(df['one'].values)
 
 ``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-null values:
+number of unique non-NA values:
 
 .. ipython:: python
 
@@ -718,8 +718,6 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 Tablewise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.16.2
 
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
 However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
@@ -925,7 +923,7 @@ Passing a named function will yield that name for the row:
 Aggregating with a dict
 +++++++++++++++++++++++
 
-Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFame.agg``
+Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFrame.agg``
 allows you to customize which functions are applied to which columns. Note that the results
 are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
 
@@ -1103,10 +1101,6 @@ Applying with a Panel
 Applying with a ``Panel`` will pass a ``Series`` to the applied function. If the applied
 function returns a ``Series``, the result of the application will be a ``Panel``. If the applied function
 reduces to a scalar, the result of the application will be a ``DataFrame``.
-
-.. note::
-
-   Prior to 0.13.1 ``apply`` on a ``Panel`` would only work on ``ufuncs`` (e.g. ``np.sum/np.max``).
 
 .. ipython:: python
 
@@ -1800,8 +1794,6 @@ Series has the :meth:`~Series.searchsorted` method, which works similar to
 smallest / largest values
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
 ``Series`` has the :meth:`~Series.nsmallest` and :meth:`~Series.nlargest` methods which return the
 smallest or largest :math:`n` values. For a large ``Series`` this can be much
 faster than sorting the entire Series and calling ``head(n)`` on the result.
@@ -1866,8 +1858,10 @@ dtypes
 ------
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``, ``category`` (in >= 0.15.0), and ``object``. In addition these dtypes
-have item sizes, e.g. ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>` for more detail on ``datetime64[ns, tz]`` dtypes.
+``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``,
+``category`` and ``object``. In addition these dtypes have item sizes, e.g.
+``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
+for more detail on ``datetime64[ns, tz]`` dtypes.
 
 A convenient :attr:`~DataFrame.dtypes` attribute for DataFrames returns a Series with the data type of each column.
 
@@ -1908,7 +1902,7 @@ each type in a ``DataFrame``:
 
    dft.get_dtype_counts()
 
-Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0).
+Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
 or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
@@ -2024,7 +2018,29 @@ object conversion
 ~~~~~~~~~~~~~~~~~
 
 pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
-The following functions are available for one dimensional object arrays or scalars:
+In cases where the data is already of the correct type, but stored in an ``object`` array, the
+:meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects` methods can be used to soft convert
+to the correct type.
+
+  .. ipython:: python
+
+     import datetime
+     df = pd.DataFrame([[1, 2],
+                        ['a', 'b'],
+                        [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]])
+     df = df.T
+     df
+     df.dtypes
+
+Because the data was transposed the original inference stored all columns as object, which
+``infer_objects`` will correct.
+
+  .. ipython:: python
+
+     df.infer_objects().dtypes
+
+The following functions are available for one dimensional object arrays or scalars to perform
+hard conversion of objects to a specified type:
 
 - :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
 
@@ -2115,7 +2131,7 @@ gotchas
 ~~~~~~~
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
-The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
 See also :ref:`Support for integer NA <gotchas.intna>`
 
 .. ipython:: python
@@ -2145,8 +2161,6 @@ Selecting columns based on ``dtype``
 ------------------------------------
 
 .. _basics.selectdtypes:
-
-.. versionadded:: 0.14.1
 
 The :meth:`~DataFrame.select_dtypes` method implements subsetting of columns
 based on their ``dtype``.
@@ -2229,7 +2243,3 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     numpy hierarchy and wont show up with the above function.
-
-.. note::
-
-   The ``include`` and ``exclude`` parameters must be non-string sequences.

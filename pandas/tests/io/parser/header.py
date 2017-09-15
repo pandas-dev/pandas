@@ -277,3 +277,19 @@ q,r,s,t,u,v
         tm.assert_index_equal(df.columns, Index(lrange(5)))
 
         tm.assert_index_equal(df2.columns, Index(names))
+
+    def test_non_int_header(self):
+        # GH 16338
+        msg = 'header must be integer or list of integers'
+        data = """1,2\n3,4"""
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header=['a', 'b'])
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header='string_header')
+
+    def test_singleton_header(self):
+        # See GH #7757
+        data = """a,b,c\n0,1,2\n1,2,3"""
+        df = self.read_csv(StringIO(data), header=[0])
+        expected = DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
+        tm.assert_frame_equal(df, expected)

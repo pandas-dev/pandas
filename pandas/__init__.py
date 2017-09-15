@@ -28,7 +28,7 @@ try:
                              tslib as _tslib)
 except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
-    module = str(e).lstrip('cannot import name ')
+    module = str(e).replace('cannot import name ', '')
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
                       "'python setup.py build_ext --inplace --force' to build "

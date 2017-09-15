@@ -7,7 +7,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import (date_range, notnull, Series, Index, Float64Index,
+from pandas import (date_range, notna, Series, Index, Float64Index,
                     Int64Index, UInt64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -181,7 +181,9 @@ class TestFloat64Index(Numeric):
 
     def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
-                            float=Float64Index(np.arange(5) * 2.5))
+                            float=Float64Index(np.arange(5) * 2.5),
+                            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
+                            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5))
         self.setup_indices()
 
     def create_index(self):
@@ -228,11 +230,11 @@ class TestFloat64Index(Numeric):
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -371,6 +373,14 @@ class TestFloat64Index(Numeric):
         assert idx.get_loc(1) == 1
         pytest.raises(KeyError, idx.slice_locs, np.nan)
 
+    def test_get_loc_missing_nan(self):
+        # GH 8569
+        idx = Float64Index([1, 2])
+        assert idx.get_loc(1) == 0
+        pytest.raises(KeyError, idx.get_loc, 3)
+        pytest.raises(KeyError, idx.get_loc, np.nan)
+        pytest.raises(KeyError, idx.get_loc, [np.nan])
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in i
@@ -465,16 +475,36 @@ class NumericInt(Numeric):
     def test_is_monotonic(self):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
+        assert self.index._is_strictly_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
         assert not index.is_monotonic
-        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = self._holder([1])
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
+
+    def test_is_strictly_monotonic(self):
+        index = self._holder([1, 1, 2, 3])
+        assert index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_increasing
+
+        index = self._holder([3, 2, 1, 1])
+        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_decreasing
+
+        index = self._holder([1, 1])
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
 
     def test_logical_compat(self):
         idx = self.create_index()
@@ -626,7 +656,8 @@ class TestInt64Index(NumericInt):
     _holder = Int64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
+        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)),
+                            index_dec=Int64Index(np.arange(19, -1, -1)))
         self.setup_indices()
 
     def create_index(self):
@@ -689,7 +720,7 @@ class TestInt64Index(NumericInt):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -921,8 +952,9 @@ class TestUInt64Index(NumericInt):
     _holder = UInt64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
-                                               2**63 + 20, 2**63 + 25]))
+        vals = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+        self.indices = dict(index=UInt64Index(vals),
+                            index_dec=UInt64Index(reversed(vals)))
         self.setup_indices()
 
     def create_index(self):

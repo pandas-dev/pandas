@@ -33,6 +33,31 @@ class TestDateRanges(TestData):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         assert len(rng) == 4
 
+    @pytest.mark.parametrize("freq", ["AS", "YS"])
+    def test_begin_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-01-01", "2014-01-01",
+                                "2015-01-01", "2016-01-01",
+                                "2017-01-01"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
+    @pytest.mark.parametrize("freq", ["A", "Y"])
+    def test_end_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-12-31", "2014-12-31",
+                                "2015-12-31", "2016-12-31"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
+    @pytest.mark.parametrize("freq", ["BA", "BY"])
+    def test_business_end_year_alias(self, freq):
+        # see gh-9313
+        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        exp = pd.DatetimeIndex(["2013-12-31", "2014-12-31",
+                                "2015-12-31", "2016-12-30"], freq=freq)
+        tm.assert_index_equal(rng, exp)
+
     def test_date_range_negative_freq(self):
         # GH 11018
         rng = date_range('2011-12-31', freq='-2A', periods=3)
@@ -82,8 +107,10 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        pytest.raises(ValueError, date_range, start, end, freq='s',
-                      periods=10)
+        msg = ('Of the three parameters: start, end, and periods, '
+               'exactly two must be specified')
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(start, end, periods=10, freq='s')
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -121,14 +148,29 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
+        msg = ('Of the three parameters: start, end, and periods, '
+               'exactly two must be specified')
 
-        pytest.raises(ValueError, date_range, '1/1/2000')
-        pytest.raises(ValueError, date_range, end='1/1/2000')
-        pytest.raises(ValueError, date_range, periods=10)
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(start='1/1/2000')
 
-        pytest.raises(ValueError, date_range, '1/1/2000', freq='H')
-        pytest.raises(ValueError, date_range, end='1/1/2000', freq='H')
-        pytest.raises(ValueError, date_range, periods=10, freq='H')
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(end='1/1/2000')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(periods=10)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(start='1/1/2000', freq='H')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(end='1/1/2000', freq='H')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range(periods=10, freq='H')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            date_range()
 
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
@@ -206,8 +248,13 @@ class TestBusinessDateRange(object):
         bdate_range(START, END, freq=BDay())
         bdate_range(START, periods=20, freq=BDay())
         bdate_range(end=START, periods=20, freq=BDay())
-        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
-        pytest.raises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
+
+        msg = 'periods must be a number, got B'
+        with tm.assert_raises_regex(TypeError, msg):
+            date_range('2011-1-1', '2012-1-1', 'B')
+
+        with tm.assert_raises_regex(TypeError, msg):
+            bdate_range('2011-1-1', '2012-1-1', 'B')
 
     def test_naive_aware_conflicts(self):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
@@ -485,8 +532,13 @@ class TestCustomDateRange(object):
         cdate_range(START, END, freq=CDay())
         cdate_range(START, periods=20, freq=CDay())
         cdate_range(end=START, periods=20, freq=CDay())
-        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
-        pytest.raises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
+
+        msg = 'periods must be a number, got C'
+        with tm.assert_raises_regex(TypeError, msg):
+            date_range('2011-1-1', '2012-1-1', 'C')
+
+        with tm.assert_raises_regex(TypeError, msg):
+            cdate_range('2011-1-1', '2012-1-1', 'C')
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=CDay())

@@ -3,6 +3,7 @@
 from distutils.version import LooseVersion
 from pandas import DataFrame, RangeIndex, Int64Index
 from pandas.compat import range
+from pandas.io.common import _stringify_path
 
 
 def _try_import():
@@ -18,7 +19,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge\n"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     try:
         feather.__version__ >= LooseVersion('0.3.1')
@@ -28,7 +29,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     return feather
 
@@ -40,9 +41,10 @@ def to_feather(df, path):
     Parameters
     ----------
     df : DataFrame
-    path : string
-        File path
+    path : string file path, or file-like object
+
     """
+    path = _stringify_path(path)
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
@@ -81,7 +83,7 @@ def to_feather(df, path):
     feather.write_dataframe(df, path)
 
 
-def read_feather(path):
+def read_feather(path, nthreads=1):
     """
     Load a feather-format object from the file path
 
@@ -89,8 +91,11 @@ def read_feather(path):
 
     Parameters
     ----------
-    path : string
-        File path
+    path : string file path, or file-like object
+    nthreads : int, default 1
+        Number of CPU threads to use when reading to pandas.DataFrame
+
+       .. versionadded 0.21.0
 
     Returns
     -------
@@ -99,4 +104,9 @@ def read_feather(path):
     """
 
     feather = _try_import()
-    return feather.read_dataframe(path)
+    path = _stringify_path(path)
+
+    if feather.__version__ < LooseVersion('0.4.0'):
+        return feather.read_dataframe(path)
+
+    return feather.read_dataframe(path, nthreads=nthreads)

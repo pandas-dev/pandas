@@ -10,7 +10,7 @@ from pandas.compat import range, u, PY3
 
 import numpy as np
 
-from pandas import (notnull, Series, Index, Float64Index,
+from pandas import (notna, Series, Index, Float64Index,
                     Int64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -25,7 +25,8 @@ class TestRangeIndex(Numeric):
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
     def setup_method(self, method):
-        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'))
+        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
+                            index_dec=RangeIndex(18, -1, -2, name='bar'))
         self.setup_indices()
 
     def create_index(self):
@@ -172,16 +173,16 @@ class TestRangeIndex(Numeric):
         copy = RangeIndex(orig)
         copy.name = 'copy'
 
-        assert orig.name, 'original'
-        assert copy.name, 'copy'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
 
         new = Index(copy)
-        assert new.name, 'copy'
+        assert new.name == 'copy'
 
         new.name = 'new'
-        assert orig.name, 'original'
-        assert new.name, 'copy'
-        assert new.name, 'new'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
+        assert new.name == 'new'
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
@@ -273,7 +274,7 @@ class TestRangeIndex(Numeric):
             expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         else:
             expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
-        assert result, expected
+        assert result == expected
 
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
@@ -331,25 +332,35 @@ class TestRangeIndex(Numeric):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert self.index._is_strictly_monotonic_increasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
         assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 2)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(2, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -600,6 +611,21 @@ class TestRangeIndex(Numeric):
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
+        # reversed (GH 17296)
+        result = other.intersection(self.index)
+        tm.assert_index_equal(result, expected)
+
+        # GH 17296: intersect two decreasing RangeIndexes
+        first = RangeIndex(10, -2, -2)
+        other = RangeIndex(5, -4, -1)
+        expected = first.astype(int).intersection(other.astype(int))
+        result = first.intersection(other).astype(int)
+        tm.assert_index_equal(result, expected)
+
+        # reversed
+        result = other.intersection(first).astype(int)
+        tm.assert_index_equal(result, expected)
+
         index = RangeIndex(5)
 
         # intersect of non-overlapping indices
@@ -628,15 +654,6 @@ class TestRangeIndex(Numeric):
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
-
-    def test_intersect_str_dates(self):
-        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
-
-        i1 = Index(dt_dates, dtype=object)
-        i2 = Index(['aa'], dtype=object)
-        res = i2.intersection(i1)
-
-        assert len(res) == 0
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -919,7 +936,7 @@ class TestRangeIndex(Numeric):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 

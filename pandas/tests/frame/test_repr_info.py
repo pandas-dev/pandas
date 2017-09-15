@@ -8,9 +8,10 @@ import sys
 
 from numpy import nan
 import numpy as np
+import pytest
 
 from pandas import (DataFrame, compat, option_context)
-from pandas.compat import StringIO, lrange, u
+from pandas.compat import StringIO, lrange, u, PYPY
 import pandas.io.formats.format as fmt
 import pandas as pd
 
@@ -40,7 +41,7 @@ class TestDataFrameReprInfoEtc(TestData):
         foo = repr(self.mixed_frame)  # noqa
         self.mixed_frame.info(verbose=False, buf=buf)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
@@ -87,7 +88,7 @@ class TestDataFrameReprInfoEtc(TestData):
         with option_context('display.show_dimensions', 'truncate'):
             assert "2 rows x 2 columns" not in repr(df)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_big(self):
         # big one
         biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
@@ -322,23 +323,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # excluded column with object dtype, so estimate is accurate
         assert not re.match(r"memory usage: [^+]+\+", res[-1])
 
-        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
-        df_with_object_index.info(buf=buf, memory_usage=True)
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+\+", res[-1])
-
-        df_with_object_index.info(buf=buf, memory_usage='deep')
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+$", res[-1])
-
-        assert (df_with_object_index.memory_usage(
-            index=True, deep=True).sum() > df_with_object_index.memory_usage(
-            index=True).sum())
-
-        df_object = pd.DataFrame({'a': ['a']})
-        assert (df_object.memory_usage(deep=True).sum() >
-                df_object.memory_usage().sum())
-
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
         data = {}
@@ -347,6 +331,15 @@ class TestDataFrameReprInfoEtc(TestData):
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         df.columns = dtypes
+
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        df_with_object_index.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
+
+        df_with_object_index.info(buf=buf, memory_usage='deep')
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+$", res[-1])
 
         # Ensure df size is as expected
         # (cols * rows * bytes) + index size
@@ -376,9 +369,47 @@ class TestDataFrameReprInfoEtc(TestData):
         df.memory_usage(index=True)
         df.index.values.nbytes
 
+        mem = df.memory_usage(deep=True).sum()
+        assert mem > 0
+
+    @pytest.mark.skipif(PYPY,
+                        reason="on PyPy deep=True doesn't change result")
+    def test_info_memory_usage_deep_not_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() >
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() >
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(not PYPY,
+                        reason="on PyPy deep=True does not change result")
+    def test_info_memory_usage_deep_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() ==
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() ==
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
+    def test_usage_via_getsizeof(self):
+        df = DataFrame(
+            data=1,
+            index=pd.MultiIndex.from_product(
+                [['a'], range(1000)]),
+            columns=['A']
+        )
+        mem = df.memory_usage(deep=True).sum()
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
-        diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
+        diff = mem - sys.getsizeof(df)
         assert abs(diff) < 100
 
     def test_info_memory_usage_qualified(self):

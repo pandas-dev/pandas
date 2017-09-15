@@ -3,7 +3,6 @@ from pandas.compat import PY2
 import pandas.util.testing as tm
 import os
 import io
-import pytest
 import numpy as np
 
 
@@ -66,7 +65,6 @@ class TestSAS7BDAT(object):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
-    @pytest.mark.xfail(reason="read_sas currently doesn't work with pathlib")
     def test_path_pathlib(self):
         tm._skip_if_no_pathlib()
         from pathlib import Path
@@ -77,7 +75,6 @@ class TestSAS7BDAT(object):
                 df = pd.read_sas(fname, encoding='utf-8')
                 tm.assert_frame_equal(df, df0)
 
-    @pytest.mark.xfail(reason="read_sas currently doesn't work with localpath")
     def test_path_localpath(self):
         tm._skip_if_no_localpath()
         from py.path import local as LocalPath
@@ -142,8 +139,8 @@ def test_productsales():
     fname = os.path.join(dirpath, "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding='utf-8')
     fname = os.path.join(dirpath, "productsales.csv")
-    df0 = pd.read_csv(fname)
-    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
+    df0 = pd.read_csv(fname, parse_dates=['MONTH'])
+    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
@@ -166,3 +163,14 @@ def test_airline():
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0, check_exact=False)
+
+
+def test_date_time():
+    # Support of different SAS date/datetime formats (PR #15871)
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "datetime.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "datetime.csv")
+    df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
+                                          'DateTimeHi', 'Taiw'])
+    tm.assert_frame_equal(df, df0)

@@ -10,7 +10,8 @@ import numpy as np
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notnull, isnull)
+                    notna, isna)
+from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas._libs.tslib import iNaT
@@ -131,6 +132,25 @@ class Base(object):
 
         with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
+
+    def test_get_indexer_consistency(self):
+        # See GH 16819
+        for name, index in self.indices.items():
+            if isinstance(index, IntervalIndex):
+                continue
+
+            if index.is_unique or isinstance(index, CategoricalIndex):
+                indexer = index.get_indexer(index[0:2])
+                assert isinstance(indexer, np.ndarray)
+                assert indexer.dtype == np.intp
+            else:
+                e = "Reindexing only valid with uniquely valued Index objects"
+                with tm.assert_raises_regex(InvalidIndexError, e):
+                    indexer = index.get_indexer(index[0:2])
+
+            indexer, _ = index.get_indexer_non_unique(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
 
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
@@ -500,7 +520,7 @@ class Base(object):
 
     def test_where(self):
         i = self.create_index()
-        result = i.where(notnull(i))
+        result = i.where(notna(i))
         expected = i
         tm.assert_index_equal(result, expected)
 
@@ -618,7 +638,8 @@ class Base(object):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
                     assert result.__class__ == answer.__class__
-                    tm.assert_numpy_array_equal(result.asi8, answer.asi8)
+                    tm.assert_numpy_array_equal(result.sort_values().asi8,
+                                                answer.sort_values().asi8)
                 else:
                     result = first.difference(case)
                     assert tm.equalContents(result, answer)
@@ -656,11 +677,7 @@ class Base(object):
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
                 with tm.assert_raises_regex(TypeError, msg):
-                    result = first.symmetric_difference([1, 2, 3])
-
-        # 12591 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            first.sym_diff(second)
+                    first.symmetric_difference([1, 2, 3])
 
     def test_insert_base(self):
 
@@ -874,7 +891,7 @@ class Base(object):
                 pass
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
                     idx.fillna(idx[0])
             else:
@@ -909,31 +926,82 @@ class Base(object):
 
     def test_nulls(self):
         # this is really a smoke test for the methods
-        # as these are adequantely tested for function elsewhere
+        # as these are adequately tested for function elsewhere
 
         for name, index in self.indices.items():
             if len(index) == 0:
                 tm.assert_numpy_array_equal(
-                    index.isnull(), np.array([], dtype=bool))
+                    index.isna(), np.array([], dtype=bool))
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
-                msg = "isnull is not defined for MultiIndex"
+                msg = "isna is not defined for MultiIndex"
                 with tm.assert_raises_regex(NotImplementedError, msg):
-                    idx.isnull()
+                    idx.isna()
             else:
 
                 if not index.hasnans:
                     tm.assert_numpy_array_equal(
-                        index.isnull(), np.zeros(len(index), dtype=bool))
+                        index.isna(), np.zeros(len(index), dtype=bool))
                     tm.assert_numpy_array_equal(
-                        index.notnull(), np.ones(len(index), dtype=bool))
+                        index.notna(), np.ones(len(index), dtype=bool))
                 else:
-                    result = isnull(index)
-                    tm.assert_numpy_array_equal(index.isnull(), result)
-                    tm.assert_numpy_array_equal(index.notnull(), ~result)
+                    result = isna(index)
+                    tm.assert_numpy_array_equal(index.isna(), result)
+                    tm.assert_numpy_array_equal(index.notna(), ~result)
 
     def test_empty(self):
         # GH 15270
         index = self.create_index()
         assert not index.empty
         assert index[:0].empty
+
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self_unique(self, how):
+        index = self.create_index()
+        if index.is_unique:
+            joined = index.join(index, how=how)
+            assert (index == joined).all()
+
+    def test_searchsorted_monotonic(self):
+        # GH17271
+        for index in self.indices.values():
+            # not implemented for tuple searches in MultiIndex
+            # or Intervals searches in IntervalIndex
+            if isinstance(index, (MultiIndex, IntervalIndex)):
+                continue
+
+            # nothing to test if the index is empty
+            if index.empty:
+                continue
+            value = index[0]
+
+            # determine the expected results (handle dupes for 'right')
+            expected_left, expected_right = 0, (index == value).argmin()
+            if expected_right == 0:
+                # all values are the same, expected_right should be length
+                expected_right = len(index)
+
+            # test _searchsorted_monotonic in all cases
+            # test searchsorted only for increasing
+            if index.is_monotonic_increasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
+
+                ss_left = index.searchsorted(value, side='left')
+                assert expected_left == ss_left
+
+                ss_right = index.searchsorted(value, side='right')
+                assert expected_right == ss_right
+            elif index.is_monotonic_decreasing:
+                ssm_left = index._searchsorted_monotonic(value, side='left')
+                assert expected_left == ssm_left
+
+                ssm_right = index._searchsorted_monotonic(value, side='right')
+                assert expected_right == ssm_right
+            else:
+                # non-monotonic should raise.
+                with pytest.raises(ValueError):
+                    index._searchsorted_monotonic(value, side='left')

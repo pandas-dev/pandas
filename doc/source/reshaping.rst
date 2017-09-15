@@ -156,7 +156,7 @@ the level numbers:
    stacked.unstack('second')
 
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
-levels involved. Hence a call to ``stack`` and then ``unstack``, or viceversa,
+levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
 will result in a **sorted** copy of the original DataFrame or Series:
 
 .. ipython:: python
@@ -265,7 +265,7 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The top-level :func:``melt` and :func:`~DataFrame.melt` functions are useful to
+The top-level :func:`melt` and :func:`~DataFrame.melt` functions are useful to
 massage a DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "unpivoted" to the
 row axis, leaving just two non-identifier columns, "variable" and "value". The
@@ -569,8 +569,6 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-.. versionadded:: 0.15.0
-
 :func:`get_dummies` also accepts a DataFrame. By default all categorical
 variables (categorical in the statistical sense,
 those with `object` or `categorical` dtype) are encoded as dummy variables.
@@ -636,7 +634,7 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
-
+.. _reshaping.factorize:
 
 Factorizing values
 ------------------
@@ -675,4 +673,4 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`. This feature was introduced in version 0.15.
+    :ref:`API documentation <api.categorical>`.

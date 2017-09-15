@@ -256,12 +256,6 @@ Panels
 
    pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
 
-   #Assignment using Transpose  (pandas < 0.15)
-   pf = pf.transpose(2,0,1)
-   pf['E'] = pd.DataFrame(data, rng, cols)
-   pf = pf.transpose(1,2,0);pf
-
-   #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
@@ -776,11 +770,17 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`TimeGrouping of values grouped across time
-<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+`Using Grouper instead of TimeGrouper for time grouping of values
+<https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
 
-`TimeGrouping #2
-<http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
+`Time grouping with some missing values
+<https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
+
+`Valid frequency arguments to Grouper
+<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+
+`Grouping using a MultiIndex
+<https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
 <https://github.com/pandas-dev/pandas/issues/3791>`__
@@ -812,7 +812,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
 
-ignore_index is needed in pandas < v0.13, and depending on df construction
+Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 

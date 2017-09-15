@@ -125,15 +125,7 @@ def _new_PeriodIndex(cls, **d):
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc. A value of 1 is the
-    period containing the Gregorian proleptic datetime Jan 1, 0001 00:00:00.
-    This ordinal representation is from the scikits.timeseries project.
-
-    For instance,
-        # construct period for day 1/1/1 and get the first second
-        i = Period(year=1,month=1,day=1,freq='D').asfreq('S', 'S')
-        i.ordinal
-        ===> 1
+    time such as particular years, quarters, months, etc.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
@@ -207,8 +199,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise TypeError(msg.format(periods=periods))
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -566,7 +558,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def to_datetime(self, dayfirst=False):
         """
-        DEPRECATED: use :meth:`to_timestamp` instead.
+        .. deprecated:: 0.19.0
+           Use :meth:`to_timestamp` instead.
 
         Cast to DatetimeIndex.
         """
@@ -919,14 +912,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                               self[loc:].asi8))
         return self._shallow_copy(idx)
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
         self._assert_can_do_setop(other)
 
         result = Int64Index.join(self, other, how=how, level=level,
-                                 return_indexers=return_indexers)
+                                 return_indexers=return_indexers,
+                                 sort=sort)
 
         if return_indexers:
             result, lidx, ridx = result
@@ -1056,8 +1051,9 @@ PeriodIndex._add_datetimelike_methods()
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
-    if com._count_not_none(start, end, periods) < 2:
-        raise ValueError('Must specify 2 of start, end, periods')
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
 
     if freq is not None:
         _, mult = _gfc(freq)
@@ -1071,9 +1067,9 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     is_end_per = isinstance(end, Period)
 
     if is_start_per and is_end_per and start.freq != end.freq:
-        raise ValueError('Start and end must have same freq')
+        raise ValueError('start and end must have same freq')
     if (start is tslib.NaT or end is tslib.NaT):
-        raise ValueError('Start and end must not be NaT')
+        raise ValueError('start and end must not be NaT')
 
     if freq is None:
         if is_start_per:
@@ -1162,24 +1158,55 @@ def pnow(freq=None):
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
-    Return a fixed frequency datetime index, with day (calendar) as the default
+    Return a fixed frequency PeriodIndex, with day (calendar) as the default
     frequency
-
 
     Parameters
     ----------
-    start : starting value, period-like, optional
-    end : ending value, period-like, optional
-    periods : int, default None
-        Number of periods in the index
-    freq : str/DateOffset, default 'D'
+    start : string or period-like, default None
+        Left bound for generating periods
+    end : string or period-like, default None
+        Right bound for generating periods
+    periods : integer, default None
+        Number of periods to generate
+    freq : string or DateOffset, default 'D' (calendar daily)
         Frequency alias
-    name : str, default None
-        Name for the resulting PeriodIndex
+    name : string, default None
+        Name of the resulting PeriodIndex
+
+    Notes
+    -----
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
     prng : PeriodIndex
+
+    Examples
+    --------
+
+    >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
+    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
+                 '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',
+                 '2017-10', '2017-11', '2017-12', '2018-01'],
+                dtype='period[M]', freq='M')
+
+    If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
+    endpoints for a ``PeriodIndex`` with frequency matching that of the
+    ``period_range`` constructor.
+
+    >>> pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+    ...                 end=pd.Period('2017Q2', freq='Q'), freq='M')
+    PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
+                dtype='period[M]', freq='M')
     """
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
+
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)

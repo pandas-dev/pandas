@@ -19,13 +19,14 @@ import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame,
-                    Timestamp, CategoricalIndex, isnull,
+                    Timestamp, CategoricalIndex, isna,
                     date_range, DatetimeIndex,
                     period_range, PeriodIndex,
                     timedelta_range, TimedeltaIndex, NaT,
                     Interval, IntervalIndex)
-from pandas.compat import range, lrange, u, PY3
+from pandas.compat import range, lrange, u, PY3, PYPY
 from pandas.core.config import option_context
+from pandas.core.categorical import _recode_for_categories
 
 
 class TestCategorical(object):
@@ -111,6 +112,16 @@ class TestCategorical(object):
         # which maps to the -1000 category
         result = c.codes[np.array([100000]).astype(np.int64)]
         tm.assert_numpy_array_equal(result, np.array([5], dtype='int8'))
+
+    def test_constructor_empty(self):
+        # GH 17248
+        c = Categorical([])
+        expected = Index([])
+        tm.assert_index_equal(c.categories, expected)
+
+        c = Categorical([], categories=[1, 2, 3])
+        expected = pd.Int64Index([1, 2, 3])
+        tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_unsortable(self):
 
@@ -233,7 +244,7 @@ class TestCategorical(object):
         # the original type" feature to try to cast the array interface result
         # to...
 
-        # vals = np.asarray(cat[cat.notnull()])
+        # vals = np.asarray(cat[cat.notna()])
         # assert is_integer_dtype(vals)
 
         # corner cases
@@ -309,7 +320,7 @@ class TestCategorical(object):
                                                 categories=ci.categories))
 
     def test_constructor_with_generator(self):
-        # This was raising an Error in isnull(single_val).any() because isnull
+        # This was raising an Error in isna(single_val).any() because isna
         # returned a scalar for a generator
         xrange = range
 
@@ -585,9 +596,8 @@ class TestCategorical(object):
         tm.assert_numpy_array_equal(np.argsort(c), expected,
                                     check_dtype=False)
 
-        msg = "the 'kind' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               c, kind='mergesort')
+        tm.assert_numpy_array_equal(np.argsort(c, kind='mergesort'), expected,
+                                    check_dtype=False)
 
         msg = "the 'axis' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.argsort,
@@ -607,7 +617,7 @@ class TestCategorical(object):
         cat = Categorical(labels, categories, fastpath=True)
         repr(cat)
 
-        tm.assert_numpy_array_equal(isnull(cat), labels == -1)
+        tm.assert_numpy_array_equal(isna(cat), labels == -1)
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -735,6 +745,17 @@ Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
             assert _rep(c) == expected
+
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; c = pd.Categorical([])"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('c.', 1))
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
@@ -943,6 +964,67 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with pytest.raises(ValueError):
             cat.rename_categories([1, 2])
 
+    @pytest.mark.parametrize('codes, old, new, expected', [
+        ([0, 1], ['a', 'b'], ['a', 'b'], [0, 1]),
+        ([0, 1], ['b', 'a'], ['b', 'a'], [0, 1]),
+        ([0, 1], ['a', 'b'], ['b', 'a'], [1, 0]),
+        ([0, 1], ['b', 'a'], ['a', 'b'], [1, 0]),
+        ([0, 1, 0, 1], ['a', 'b'], ['a', 'b', 'c'], [0, 1, 0, 1]),
+        ([0, 1, 2, 2], ['a', 'b', 'c'], ['a', 'b'], [0, 1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['a', 'b', 'c'], [0, 1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['b'], [-1, 0, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['d'], [-1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], [], [-1, -1, -1]),
+        ([-1, -1], [], ['a', 'b'], [-1, -1]),
+        ([1, 0], ['b', 'a'], ['a', 'b'], [0, 1]),
+    ])
+    def test_recode_to_categories(self, codes, old, new, expected):
+        codes = np.asanyarray(codes, dtype=np.int8)
+        expected = np.asanyarray(expected, dtype=np.int8)
+        old = Index(old)
+        new = Index(new)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_recode_to_categories_large(self):
+        N = 1000
+        codes = np.arange(N)
+        old = Index(codes)
+        expected = np.arange(N - 1, -1, -1, dtype=np.int16)
+        new = Index(expected)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('values, categories, new_categories', [
+        # No NaNs, same cats, same order
+        (['a', 'b', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['a', 'b', 'a'], ['a', 'b'], ['b', 'a'],),
+        # Same, unsorted
+        (['b', 'a', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['b', 'a', 'a'], ['a', 'b'], ['b', 'a'],),
+        # NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a', 'b']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b', 'a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        # Introduce NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        # No overlap
+        (['a', 'b', 'c'], ['a', 'b'], ['d', 'e']),
+    ])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_set_categories_many(self, values, categories, new_categories,
+                                 ordered):
+        c = Categorical(values, categories)
+        expected = Categorical(values, new_categories, ordered)
+        result = c.set_categories(new_categories, ordered=ordered)
+        tm.assert_categorical_equal(result, expected)
+
     def test_reorder_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         old = cat.copy()
@@ -1108,10 +1190,10 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0],
                                                        dtype=np.int8))
 
-    def test_isnull(self):
+    def test_isna(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])
-        res = c.isnull()
+        res = c.isna()
 
         tm.assert_numpy_array_equal(res, exp)
 
@@ -1438,10 +1520,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat = pd.Categorical(['foo', 'foo', 'bar'])
         assert cat.memory_usage(deep=True) > cat.nbytes
 
-        # sys.getsizeof will call the .memory_usage with
-        # deep=True, and add on some GC overhead
-        diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
-        assert abs(diff) < 100
+        if not PYPY:
+            # sys.getsizeof will call the .memory_usage with
+            # deep=True, and add on some GC overhead
+            diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
+            assert abs(diff) < 100
 
     def test_searchsorted(self):
         # https://github.com/pandas-dev/pandas/issues/8420
@@ -2770,7 +2853,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'int64': np.random.randint(100, size=n)})
         df['category'] = Series(np.array(list('abcdefghij')).take(
             np.random.randint(0, 10, size=n))).astype('category')
-        df.isnull()
+        df.isna()
         buf = compat.StringIO()
         df.info(buf=buf)
 
@@ -3055,12 +3138,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         c = Categorical(["a", "b", "b", "a"], ordered=False)
         cat = Series(c.copy())
-
-        # 'order' was deprecated in gh-10726
-        # 'sort' was deprecated in gh-12882
-        for func in ('order', 'sort'):
-            with tm.assert_produces_warning(FutureWarning):
-                getattr(c, func)()
 
         # sort in the categories order
         expected = Series(
@@ -3987,7 +4064,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = df.copy()
 
         # object-cat
-        # note that we propogate the category
+        # note that we propagate the category
         # because we don't have any matching rows
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')

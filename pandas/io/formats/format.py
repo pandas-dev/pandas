@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 
 from textwrap import dedent
 
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_float_dtype,
@@ -47,6 +47,7 @@ import numpy as np
 
 import itertools
 import csv
+from functools import partial
 
 common_docstring = """
     Parameters
@@ -109,7 +110,7 @@ class CategoricalFormatter(object):
         if self.length:
             if footer:
                 footer += ', '
-            footer += "Length: %d" % len(self.categorical)
+            footer += "Length: {length}".format(length=len(self.categorical))
 
         level_info = self.categorical._repr_categories_info()
 
@@ -135,7 +136,7 @@ class CategoricalFormatter(object):
 
         fmt_values = self._get_formatted_values()
 
-        result = ['%s' % i for i in fmt_values]
+        result = [u('{i}').format(i=i) for i in fmt_values]
         result = [i.strip() for i in result]
         result = u(', ').join(result)
         result = [u('[') + result + u(']')]
@@ -191,7 +192,7 @@ class SeriesFormatter(object):
         footer = u('')
 
         if getattr(self.series.index, 'freq', None) is not None:
-            footer += 'Freq: %s' % self.series.index.freqstr
+            footer += 'Freq: {freq}'.format(freq=self.series.index.freqstr)
 
         if self.name is not False and name is not None:
             if footer:
@@ -199,20 +200,21 @@ class SeriesFormatter(object):
 
             series_name = pprint_thing(name,
                                        escape_chars=('\t', '\r', '\n'))
-            footer += ("Name: %s" % series_name) if name is not None else ""
+            footer += ((u"Name: {sname}".format(sname=series_name))
+                       if name is not None else "")
 
         if (self.length is True or
                 (self.length == 'truncate' and self.truncate_v)):
             if footer:
                 footer += ', '
-            footer += 'Length: %d' % len(self.series)
+            footer += 'Length: {length}'.format(length=len(self.series))
 
         if self.dtype is not False and self.dtype is not None:
             name = getattr(self.tr_series.dtype, 'name', None)
             if name:
                 if footer:
                     footer += ', '
-                footer += 'dtype: %s' % pprint_thing(name)
+                footer += u'dtype: {typ}'.format(typ=pprint_thing(name))
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -237,7 +239,8 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.tr_series._values, None,
+        values_to_format = self.tr_series._formatting_values()
+        return format_array(values_to_format, None,
                             float_format=self.float_format, na_rep=self.na_rep)
 
     def to_string(self):
@@ -369,7 +372,10 @@ class DataFrameFormatter(TableFormatter):
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.', **kwds):
         self.frame = frame
-        self.buf = _expand_user(buf) if buf is not None else StringIO()
+        if buf is not None:
+            self.buf = _expand_user(_stringify_path(buf))
+        else:
+            self.buf = StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -505,8 +511,10 @@ class DataFrameFormatter(TableFormatter):
         else:
             if is_list_like(self.header):
                 if len(self.header) != len(self.columns):
-                    raise ValueError(('Writing %d cols but got %d aliases'
-                                      % (len(self.columns), len(self.header))))
+                    raise ValueError(('Writing {ncols} cols but got {nalias} '
+                                      'aliases'
+                                      .format(ncols=len(self.columns),
+                                              nalias=len(self.header))))
                 str_columns = [[label] for label in self.header]
             else:
                 str_columns = self._get_formatted_column_labels(frame)
@@ -574,10 +582,10 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (u('Empty %s\nColumns: %s\nIndex: %s') %
-                         (type(self.frame).__name__,
-                          pprint_thing(frame.columns),
-                          pprint_thing(frame.index)))
+            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+                         .format(name=type(self.frame).__name__,
+                         col=pprint_thing(frame.columns),
+                         idx=pprint_thing(frame.index)))
             text = info_line
         else:
 
@@ -626,8 +634,8 @@ class DataFrameFormatter(TableFormatter):
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
-            self.buf.write("\n\n[%d rows x %d columns]" %
-                           (len(frame), len(frame.columns)))
+            self.buf.write("\n\n[{nrows} rows x {ncols} columns]"
+                           .format(nrows=len(frame), ncols=len(frame.columns)))
 
     def _join_multiline(self, *strcols):
         lwidth = self.line_width
@@ -691,7 +699,8 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
-        return format_array(frame.iloc[:, i]._values, formatter,
+        values_to_format = frame.iloc[:, i]._formatting_values()
+        return format_array(values_to_format, formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
                             space=self.col_space, decimal=self.decimal)
 
@@ -800,7 +809,8 @@ class DataFrameFormatter(TableFormatter):
 
         # empty space for columns
         if show_col_names:
-            col_header = ['%s' % x for x in self._get_column_name_list()]
+            col_header = ['{x}'.format(x=x)
+                          for x in self._get_column_name_list()]
         else:
             col_header = [''] * columns.nlevels
 
@@ -842,6 +852,7 @@ class LatexFormatter(TableFormatter):
                  multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
@@ -855,9 +866,10 @@ class LatexFormatter(TableFormatter):
 
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (u('Empty %s\nColumns: %s\nIndex: %s') %
-                         (type(self.frame).__name__, self.frame.columns,
-                          self.frame.index))
+            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+                         .format(name=type(self.frame).__name__,
+                                 col=self.frame.columns,
+                                 idx=self.frame.index))
             strcols = [[info_line]]
         else:
             strcols = self.fmt._to_str_columns()
@@ -900,14 +912,16 @@ class LatexFormatter(TableFormatter):
                 column_format = index_format + column_format
         elif not isinstance(column_format,
                             compat.string_types):  # pragma: no cover
-            raise AssertionError('column_format must be str or unicode, not %s'
-                                 % type(column_format))
+            raise AssertionError('column_format must be str or unicode, '
+                                 'not {typ}'.format(typ=type(column_format)))
 
         if not self.longtable:
-            buf.write('\\begin{tabular}{%s}\n' % column_format)
+            buf.write('\\begin{{tabular}}{{{fmt}}}\n'
+                      .format(fmt=column_format))
             buf.write('\\toprule\n')
         else:
-            buf.write('\\begin{longtable}{%s}\n' % column_format)
+            buf.write('\\begin{{longtable}}{{{fmt}}}\n'
+                      .format(fmt=column_format))
             buf.write('\\toprule\n')
 
         ilevels = self.frame.index.nlevels
@@ -940,6 +954,11 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if self.bold_rows and self.fmt.index:
+                # bold row labels
+                crow = ['\\textbf{{{x}}}'.format(x=x)
+                        if j < ilevels and x.strip() not in ['', '{}'] else x
+                        for j, x in enumerate(crow)]
             if i < clevels and self.fmt.header and self.multicolumn:
                 # sum up columns to multicolumns
                 crow = self._format_multicolumn(crow, ilevels)
@@ -975,9 +994,9 @@ class LatexFormatter(TableFormatter):
         def append_col():
             # write multicolumn if needed
             if ncol > 1:
-                row2.append('\\multicolumn{{{0:d}}}{{{1:s}}}{{{2:s}}}'
-                            .format(ncol, self.multicolumn_format,
-                                    coltext.strip()))
+                row2.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
+                            .format(ncol=ncol, fmt=self.multicolumn_format,
+                                    txt=coltext.strip()))
             # don't modify where not needed
             else:
                 row2.append(coltext)
@@ -1016,8 +1035,8 @@ class LatexFormatter(TableFormatter):
                         break
                 if nrow > 1:
                     # overwrite non-multirow entry
-                    row[j] = '\\multirow{{{0:d}}}{{*}}{{{1:s}}}'.format(
-                        nrow, row[j].strip())
+                    row[j] = '\\multirow{{{nrow:d}}}{{*}}{{{row:s}}}'.format(
+                        nrow=nrow, row=row[j].strip())
                     # save when to end the current block with \cline
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
@@ -1028,7 +1047,8 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{0:d}-{1:d}}}\n'.format(cl[1], icol))
+                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                          .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
@@ -1055,7 +1075,7 @@ class HTMLFormatter(TableFormatter):
                              self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
-            border = get_option('html.border')
+            border = get_option('display.html.border')
         self.border = border
 
     def write(self, s, indent=0):
@@ -1065,7 +1085,8 @@ class HTMLFormatter(TableFormatter):
     def write_th(self, s, indent=0, tags=None):
         if self.fmt.col_space is not None and self.fmt.col_space > 0:
             tags = (tags or "")
-            tags += 'style="min-width: %s;"' % self.fmt.col_space
+            tags += ('style="min-width: {colspace};"'
+                     .format(colspace=self.fmt.col_space))
 
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
@@ -1074,9 +1095,9 @@ class HTMLFormatter(TableFormatter):
 
     def _write_cell(self, s, kind='td', indent=0, tags=None):
         if tags is not None:
-            start_tag = '<%s %s>' % (kind, tags)
+            start_tag = '<{kind} {tags}>'.format(kind=kind, tags=tags)
         else:
-            start_tag = '<%s>' % kind
+            start_tag = '<{kind}>'.format(kind=kind)
 
         if self.escape:
             # escape & first to prevent double escaping of &
@@ -1085,7 +1106,8 @@ class HTMLFormatter(TableFormatter):
         else:
             esc = {}
         rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write('%s%s</%s>' % (start_tag, rs, kind), indent)
+        self.write(u'{start}{rs}</{kind}>'
+                   .format(start=start_tag, rs=rs, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
                  align=None, tags=None, nindex_levels=0):
@@ -1095,7 +1117,8 @@ class HTMLFormatter(TableFormatter):
         if align is None:
             self.write('<tr>', indent)
         else:
-            self.write('<tr style="text-align: %s;">' % align, indent)
+            self.write('<tr style="text-align: {align};">'
+                       .format(align=align), indent)
         indent += indent_delta
 
         for i, s in enumerate(line):
@@ -1135,8 +1158,8 @@ class HTMLFormatter(TableFormatter):
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
             if not isinstance(self.classes, (list, tuple)):
-                raise AssertionError('classes must be list or tuple, '
-                                     'not %s' % type(self.classes))
+                raise AssertionError('classes must be list or tuple, not {typ}'
+                                     .format(typ=type(self.classes)))
             _classes.extend(self.classes)
 
         if self.notebook:
@@ -1148,12 +1171,11 @@ class HTMLFormatter(TableFormatter):
             except (ImportError, AttributeError):
                 pass
 
-            self.write('<div{0}>'.format(div_style))
+            self.write('<div{style}>'.format(style=div_style))
 
         self.write_style()
-        self.write('<table border="%s" class="%s">' % (self.border,
-                                                       ' '.join(_classes)),
-                   indent)
+        self.write('<table border="{border}" class="{cls}">'
+                   .format(border=self.border, cls=' '.join(_classes)), indent)
 
         indent += self.indent_delta
         indent = self._write_header(indent)
@@ -1162,8 +1184,10 @@ class HTMLFormatter(TableFormatter):
         self.write('</table>', indent)
         if self.should_show_dimensions:
             by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>%d rows %s %d columns</p>') %
-                       (len(frame), by, len(frame.columns)))
+            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
+                       .format(rows=len(frame),
+                               by=by,
+                               cols=len(frame.columns)))
 
         if self.notebook:
             self.write('</div>')
@@ -1188,7 +1212,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(single_column_table(self.columns.names))
                 else:
                     row.append('')
-                style = "text-align: %s;" % self.fmt.justify
+                style = "text-align: {just};".format(just=self.fmt.justify)
                 row.extend([single_column_table(c, self.fmt.justify, style)
                             for c in self.columns])
             else:
@@ -1203,7 +1227,7 @@ class HTMLFormatter(TableFormatter):
         indent += self.indent_delta
 
         if isinstance(self.columns, MultiIndex):
-            template = 'colspan="%d" halign="left"'
+            template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
                 # GH3547
@@ -1271,7 +1295,7 @@ class HTMLFormatter(TableFormatter):
                 for i, v in enumerate(values):
                     if i in records:
                         if records[i] > 1:
-                            tags[j] = template % records[i]
+                            tags[j] = template.format(span=records[i])
                     else:
                         continue
                     j += 1
@@ -1289,7 +1313,9 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if self.fmt.has_index_names and self.fmt.index:
+        if all((self.fmt.has_index_names,
+                self.fmt.index,
+                self.fmt.show_index_names)):
             row = ([x if x is not None else ''
                     for x in self.frame.index.names] +
                    [''] * min(len(self.columns), self.max_cols))
@@ -1359,7 +1385,7 @@ class HTMLFormatter(TableFormatter):
                           nindex_levels=1)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
-        template = 'rowspan="%d" valign="top"'
+        template = 'rowspan="{span}" valign="top"'
 
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
@@ -1434,7 +1460,7 @@ class HTMLFormatter(TableFormatter):
                 for records, v in zip(level_lengths, idx_values[i]):
                     if i in records:
                         if records[i] > 1:
-                            tags[j] = template % records[i]
+                            tags[j] = template.format(span=records[i])
                     else:
                         sparse_offset += 1
                         continue
@@ -1551,7 +1577,7 @@ class CSVFormatter(object):
         self.data_index = obj.index
         if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
                 date_format is not None):
-            self.data_index = Index([x.strftime(date_format) if notnull(x) else
+            self.data_index = Index([x.strftime(date_format) if notna(x) else
                                      '' for x in self.data_index])
 
         self.nlevels = getattr(self.data_index, 'nlevels', 1)
@@ -1602,8 +1628,9 @@ class CSVFormatter(object):
             return
         if has_aliases:
             if len(header) != len(cols):
-                raise ValueError(('Writing %d cols but got %d aliases'
-                                  % (len(cols), len(header))))
+                raise ValueError(('Writing {ncols} cols but got {nalias} '
+                                 'aliases'.format(ncols=len(cols),
+                                                  nalias=len(header))))
             else:
                 write_cols = header
         else:
@@ -1777,8 +1804,9 @@ class GenericArrayFormatter(object):
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
-                fmt_str = '%% .%dg' % get_option("display.precision")
-                float_format = lambda x: fmt_str % x
+                fmt_str = ('{{x: .{prec:d}g}}'
+                           .format(prec=get_option("display.precision")))
+                float_format = lambda x: fmt_str.format(x=x)
         else:
             float_format = self.float_format
 
@@ -1794,10 +1822,10 @@ class GenericArrayFormatter(object):
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return '%s' % x
+                return u'{x}'.format(x=x)
             else:
                 # object dtype
-                return '%s' % formatter(x)
+                return u'{x}'.format(x=formatter(x))
 
         vals = self.values
         if isinstance(vals, Index):
@@ -1805,17 +1833,17 @@ class GenericArrayFormatter(object):
         elif isinstance(vals, ABCSparseArray):
             vals = vals.values
 
-        is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
+        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
         leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append(u' {v}'.format(v=_format(v)))
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append(u' {v}'.format(v=_format(v)))
 
         return fmt_values
 
@@ -1851,10 +1879,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
             def base_formatter(v):
-                return (float_format % v) if notnull(v) else self.na_rep
+                return float_format(value=v) if notna(v) else self.na_rep
         else:
             def base_formatter(v):
-                return str(v) if notnull(v) else self.na_rep
+                return str(v) if notna(v) else self.na_rep
 
         if self.decimal != '.':
             def decimal_formatter(v):
@@ -1866,7 +1894,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             return decimal_formatter
 
         def formatter(value):
-            if notnull(value):
+            if notna(value):
                 if abs(value) > threshold:
                     return decimal_formatter(value)
                 else:
@@ -1896,7 +1924,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
-            mask = isnull(values)
+            mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
             values = np.array(values, dtype='object')
@@ -1912,10 +1940,14 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
-        if self.float_format is None and self.fixed_width:
-            float_format = '%% .%df' % self.digits
+        if self.float_format is None:
+            if self.fixed_width:
+                float_format = partial('{value: .{digits:d}f}'.format,
+                                       digits=self.digits)
+            else:
+                float_format = self.float_format
         else:
-            float_format = self.float_format
+            float_format = lambda value: self.float_format % value
 
         formatted_values = format_values_with(float_format)
 
@@ -1942,7 +1974,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                 (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = '%% .%de' % self.digits
+            float_format = partial('{value: .{digits:d}e}'.format,
+                                   digits=self.digits)
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1958,7 +1991,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 class IntArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '% d' % x)
+        formatter = self.formatter or (lambda x: '{x: d}'.format(x=x))
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -2010,7 +2043,7 @@ class PeriodArrayFormatter(IntArrayFormatter):
             # periods may contains different freq
             values = Index(self.values, dtype='object').to_native_types()
 
-        formatter = self.formatter or (lambda x: '%s' % x)
+        formatter = self.formatter or (lambda x: '{x}'.format(x=x))
         fmt_values = [formatter(x) for x in values]
         return fmt_values
 
@@ -2210,7 +2243,7 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
             x = Timedelta(x)
         result = x._repr_base(format=format)
         if box:
-            result = "'{0}'".format(result)
+            result = "'{res}'".format(res=result)
         return result
 
     return _formatter
@@ -2265,12 +2298,12 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 def single_column_table(column, align=None, style=None):
     table = '<table'
     if align is not None:
-        table += (' align="%s"' % align)
+        table += (' align="{align}"'.format(align=align))
     if style is not None:
-        table += (' style="%s"' % style)
+        table += (' style="{style}"'.format(style=style))
     table += '><tbody>'
     for i in column:
-        table += ('<tr><td>%s</td></tr>' % str(i))
+        table += ('<tr><td>{i!s}</td></tr>'.format(i=i))
     table += '</tbody></table>'
     return table
 
@@ -2278,7 +2311,7 @@ def single_column_table(column, align=None, style=None):
 def single_row_table(row):  # pragma: no cover
     table = '<table><tbody><tr>'
     for i in row:
-        table += ('<td>%s</td>' % str(i))
+        table += ('<td>{i!s}</td>'.format(i=i))
     table += '</tr></tbody></table>'
     return table
 
@@ -2372,18 +2405,19 @@ class EngFormatter(object):
             prefix = self.ENG_PREFIXES[int_pow10]
         else:
             if int_pow10 < 0:
-                prefix = 'E-%02d' % (-int_pow10)
+                prefix = 'E-{pow10:02d}'.format(pow10=-int_pow10)
             else:
-                prefix = 'E+%02d' % int_pow10
+                prefix = 'E+{pow10:02d}'.format(pow10=int_pow10)
 
         mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u("% g%s")
+            format_str = u("{mant: g}{prefix}")
         else:
-            format_str = (u("%% .%if%%s") % self.accuracy)
+            format_str = (u("{{mant: .{acc:d}f}}{{prefix}}")
+                          .format(acc=self.accuracy))
 
-        formatted = format_str % (mant, prefix)
+        formatted = format_str.format(mant=mant, prefix=prefix)
 
         return formatted  # .strip()
 

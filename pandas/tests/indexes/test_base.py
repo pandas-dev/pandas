@@ -9,15 +9,15 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY36)
+                           text_type, zip, PY3, PY36, PYPY)
 import operator
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, isnull)
-from pandas.core.index import _get_combined_index
+                    PeriodIndex, isna)
+from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -46,7 +46,8 @@ class TestIndex(Base):
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
                             tuples=MultiIndex.from_tuples(lzip(
-                                ['foo', 'bar', 'baz'], [1, 2, 3])))
+                                ['foo', 'bar', 'baz'], [1, 2, 3])),
+                            repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
 
     def create_index(self):
@@ -188,7 +189,6 @@ class TestIndex(Base):
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike(object):
-
             def __init__(self, array):
                 self.array = array
 
@@ -246,7 +246,6 @@ class TestIndex(Base):
                      [np.timedelta64('nat'), np.nan],
                      [pd.NaT, np.timedelta64('nat')],
                      [np.timedelta64('nat'), pd.NaT]]:
-
             tm.assert_index_equal(Index(data), exp)
             tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
 
@@ -506,7 +505,7 @@ class TestIndex(Base):
     def test_asof(self):
         d = self.dateIndex[0]
         assert self.dateIndex.asof(d) == d
-        assert isnull(self.dateIndex.asof(d - timedelta(1)))
+        assert isna(self.dateIndex.asof(d - timedelta(1)))
 
         d = self.dateIndex[-1]
         assert self.dateIndex.asof(d + timedelta(1)) == d
@@ -664,6 +663,15 @@ class TestIndex(Base):
         second.name = 'B'
         intersect = first.intersection(second)
         assert intersect.name is None
+
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        i1 = Index(dt_dates, dtype=object)
+        i2 = Index(['aa'], dtype=object)
+        res = i2.intersection(i1)
+
+        assert len(res) == 0
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -1330,8 +1338,10 @@ class TestIndex(Base):
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
-        assert not index.is_monotonic
+        assert not index.is_monotonic_increasing
         assert not index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -1360,13 +1370,21 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_not_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, True]))
+
+    def test_isin_nan_common(self):
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([np.nan]),
                                     np.array([False, True]))
         tm.assert_numpy_array_equal(Index(['a', pd.NaT]).isin([pd.NaT]),
                                     np.array([False, True]))
-        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
-                                    np.array([False, False]))
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([pd.NaT]),
                                     np.array([False, False]))
 
@@ -1407,6 +1425,15 @@ class TestIndex(Base):
         # Float64Index overrides isin, so must be checked separately
         check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
 
+    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    def test_isin_empty(self, empty):
+        # see gh-16991
+        idx = Index(["a", "b"])
+        expected = np.array([False, False])
+
+        result = idx.isin(empty)
+        tm.assert_numpy_array_equal(expected, result)
+
     def test_boolean_cmp(self):
         values = [1, 2, 3, 4]
 
@@ -1419,6 +1446,12 @@ class TestIndex(Base):
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
         tm.assert_index_equal(result, self.strIndex)
+
+        # test for name (GH 17414)
+        index_with_name = self.strIndex.copy()
+        index_with_name.name = 'a'
+        result = index_with_name.get_level_values('a')
+        tm.assert_index_equal(result, index_with_name)
 
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
@@ -1800,6 +1833,25 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
                 assert coerce(idx) == expected
 
+    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
+    @pytest.mark.parametrize('delta', [1, 0, -1])
+    def test_addsub_arithmetic(self, dtype, delta):
+        # GH 8142
+        delta = dtype(delta)
+        idx = pd.Index([10, 11, 12], dtype=dtype)
+        result = idx + delta
+        expected = pd.Index(idx.values + delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        # this subtraction used to fail
+        result = idx - delta
+        expected = pd.Index(idx.values - delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(idx + idx, 2 * idx)
+        tm.assert_index_equal(idx - idx, 0 * idx)
+        assert not (idx - idx).empty
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -1818,7 +1870,7 @@ class TestMixedIntIndex(Base):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = idx.argsort()
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -1831,7 +1883,7 @@ class TestMixedIntIndex(Base):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assert_raises_regex(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>|<' not supported"):
                 result = np.argsort(idx)
         elif PY3:
             with tm.assert_raises_regex(TypeError, "unorderable types"):
@@ -2030,6 +2082,8 @@ class TestMixedIntIndex(Base):
         for index in examples:
             assert not index.is_monotonic_increasing
             assert not index.is_monotonic_decreasing
+            assert not index._is_strictly_monotonic_increasing
+            assert not index._is_strictly_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
@@ -2073,3 +2127,19 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+
+class TestIndexUtils(object):
+
+    @pytest.mark.parametrize('data, names, expected', [
+        ([[1, 2, 3]], None, Index([1, 2, 3])),
+        ([[1, 2, 3]], ['name'], Index([1, 2, 3], name='name')),
+        ([['a', 'a'], ['c', 'd']], None,
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]])),
+        ([['a', 'a'], ['c', 'd']], ['L1', 'L2'],
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]],
+                    names=['L1', 'L2'])),
+    ])
+    def test_ensure_index_from_sequences(self, data, names, expected):
+        result = _ensure_index_from_sequences(data, names)
+        tm.assert_index_equal(result, expected)

@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.compat import lrange, lzip, u
 from pandas import (compat, DataFrame, Series, Index, MultiIndex,
-                    date_range, isnull)
+                    date_range, isna)
 import pandas as pd
 
 from pandas.util.testing import assert_frame_equal
@@ -61,6 +61,11 @@ class TestDataFrameSelectReindex(TestData):
         expected = Index(['e', 'f'], name='second')
         tm.assert_index_equal(dropped.columns, expected)
 
+        # GH 16398
+        dropped = df.drop([], errors='ignore')
+        expected = Index(['a', 'b', 'c'], name='first')
+        tm.assert_index_equal(dropped.index, expected)
+
     def test_drop_col_still_multiindex(self):
         arrays = [['a', 'b', 'c', 'top'],
                   ['', '', '', 'OD'],
@@ -100,6 +105,7 @@ class TestDataFrameSelectReindex(TestData):
                           columns=['a', 'a', 'b'])
         assert_frame_equal(nu_df.drop('a', axis=1), nu_df[['b']])
         assert_frame_equal(nu_df.drop('b', axis='columns'), nu_df['a'])
+        assert_frame_equal(nu_df.drop([]), nu_df)  # GH 16398
 
         nu_df = nu_df.set_index(pd.Index(['X', 'Y', 'X']))
         nu_df.columns = list('abc')
@@ -846,11 +852,11 @@ class TestDataFrameSelectReindex(TestData):
 
         reindexed = frame.reindex(np.arange(10))
         assert reindexed.values.dtype == np.object_
-        assert isnull(reindexed[0][1])
+        assert isna(reindexed[0][1])
 
         reindexed = frame.reindex(columns=lrange(3))
         assert reindexed.values.dtype == np.object_
-        assert isnull(reindexed[1]).all()
+        assert isna(reindexed[1]).all()
 
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])

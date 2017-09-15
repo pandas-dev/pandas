@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas.compat import lrange
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (DatetimeIndex, Index, date_range, Series, DataFrame,
-                    Timestamp, datetime, offsets, _np_version_under1p8)
+                    Timestamp, datetime, offsets)
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 
@@ -276,11 +276,7 @@ class TestDatetimeIndex(object):
                          np_datetime64_compat('2014-06-01 00:00Z'),
                          np_datetime64_compat('2014-07-01 00:00Z')])
 
-        if _np_version_under1p8:
-            # cannot test array because np.datetime('nat') returns today's date
-            cases = [(fidx1, fidx2), (didx1, didx2)]
-        else:
-            cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
+        cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
         # Check pd.NaT is handles as the same as np.nan
         with tm.assert_produces_warning(None):
@@ -771,3 +767,10 @@ class TestDatetimeIndex(object):
         left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
         exp = Timestamp('2015-01-02 00:00:00')
         assert left == exp
+
+    def test_slice_duplicate_monotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/16515
+        idx = pd.DatetimeIndex(['2017', '2017'])
+        result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
+        expected = Timestamp('2017-01-01')
+        assert result == expected

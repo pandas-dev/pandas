@@ -1,5 +1,6 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
+from collections import OrderedDict
 
 import pytest
 
@@ -20,6 +21,15 @@ from .common import TestData
 
 
 class SharedWithSparse(object):
+    """
+    A collection of tests Series and SparseSeries can share.
+
+    In generic tests on this class, use ``self._assert_series_equal()``
+    which is implemented in sub-classes.
+    """
+    def _assert_series_equal(self, left, right):
+        """Dispatch to series class dependent assertion"""
+        raise NotImplementedError
 
     def test_scalarop_preserve_name(self):
         result = self.ts * 2
@@ -117,8 +127,80 @@ class SharedWithSparse(object):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
 
+    def test_constructor_dict(self):
+        d = {'a': 0., 'b': 1., 'c': 2.}
+        result = self.series_klass(d)
+        expected = self.series_klass(d, index=sorted(d.keys()))
+        self._assert_series_equal(result, expected)
+
+        result = self.series_klass(d, index=['b', 'c', 'd', 'a'])
+        expected = self.series_klass([1, 2, np.nan, 0],
+                                     index=['b', 'c', 'd', 'a'])
+        self._assert_series_equal(result, expected)
+
+    def test_constructor_subclass_dict(self):
+        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+        series = self.series_klass(data)
+        expected = self.series_klass(dict(compat.iteritems(data)))
+        self._assert_series_equal(series, expected)
+
+    def test_constructor_ordereddict(self):
+        # GH3283
+        data = OrderedDict(
+            ('col%s' % i, np.random.random()) for i in range(12))
+
+        series = self.series_klass(data)
+        expected = self.series_klass(list(data.values()), list(data.keys()))
+        self._assert_series_equal(series, expected)
+
+        # Test with subclass
+        class A(OrderedDict):
+            pass
+
+        series = self.series_klass(A(data))
+        self._assert_series_equal(series, expected)
+
+    def test_constructor_dict_multiindex(self):
+        d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
+        _d = sorted(d.items())
+        result = self.series_klass(d)
+        expected = self.series_klass(
+            [x[1] for x in _d],
+            index=pd.MultiIndex.from_tuples([x[0] for x in _d]))
+        self._assert_series_equal(result, expected)
+
+        d['z'] = 111.
+        _d.insert(0, ('z', d['z']))
+        result = self.series_klass(d)
+        expected = self.series_klass([x[1] for x in _d],
+                                     index=pd.Index([x[0] for x in _d],
+                                                    tupleize_cols=False))
+        result = result.reindex(index=expected.index)
+        self._assert_series_equal(result, expected)
+
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = self.series_klass(
+            data=['A', 'B', 'C'],
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+
+        result = self.series_klass(
+            data={pd.to_timedelta(0, unit='s'): 'A',
+                  pd.to_timedelta(10, unit='s'): 'B',
+                  pd.to_timedelta(20, unit='s'): 'C'},
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+        self._assert_series_equal(result, expected)
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
+
+    series_klass = Series
+    # SharedWithSparse tests use generic, series_klass-agnostic assertion
+    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_tab_completion(self):
         # GH 9910
@@ -163,43 +245,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         for i, val in enumerate(self.ts):
             assert val == self.ts[i]
 
-    def test_iter_box(self):
-        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
-        s = pd.Series(vals)
-        assert s.dtype == 'datetime64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz is None
-            assert res == exp
-
-        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                pd.Timestamp('2011-01-02', tz='US/Eastern')]
-        s = pd.Series(vals)
-
-        assert s.dtype == 'datetime64[ns, US/Eastern]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz == exp.tz
-            assert res == exp
-
-        # timedelta
-        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
-        s = pd.Series(vals)
-        assert s.dtype == 'timedelta64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timedelta)
-            assert res == exp
-
-        # period (object dtype, not boxed)
-        vals = [pd.Period('2011-01-01', freq='M'),
-                pd.Period('2011-01-02', freq='M')]
-        s = pd.Series(vals)
-        assert s.dtype == 'object'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Period)
-            assert res.freq == 'M'
-            assert res == exp
-
     def test_keys(self):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
@@ -218,6 +263,16 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         # assert is lazy (genrators don't define reverse, lists do)
         assert not hasattr(self.series.iteritems(), 'reverse')
+
+    def test_items(self):
+        for idx, val in self.series.items():
+            assert val == self.series[idx]
+
+        for idx, val in self.ts.items():
+            assert val == self.ts[idx]
+
+        # assert is lazy (genrators don't define reverse, lists do)
+        assert not hasattr(self.series.items(), 'reverse')
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))

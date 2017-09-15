@@ -33,8 +33,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
-    .. versionadded:: 0.16.1
-
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
@@ -132,6 +130,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
         -------
         Categorical
         """
+        if (isinstance(data, (ABCSeries, type(self))) and
+                is_categorical_dtype(data)):
+            data = data.values
+
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
             from pandas.core.categorical import Categorical
@@ -253,6 +255,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    def tolist(self):
+        return self._data.tolist()
+
     @property
     def codes(self):
         return self._data.codes
@@ -316,9 +321,18 @@ class CategoricalIndex(Index, base.PandasDelegate):
         # we are going to look things up with the codes themselves
         return self._engine_type(lambda: self.codes.astype('i8'), len(self))
 
+    # introspection
     @cache_readonly
     def is_unique(self):
         return not self.duplicated().any()
+
+    @property
+    def is_monotonic_increasing(self):
+        return Index(self.codes).is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        return Index(self.codes).is_monotonic_decreasing
 
     @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
     def unique(self):
@@ -419,7 +433,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
             raise ValueError("cannot reindex with a non-unique indexer")
 
         indexer, missing = self.get_indexer_non_unique(np.array(target))
-        new_target = self.take(indexer)
+
+        if len(self.codes):
+            new_target = self.take(indexer)
+        else:
+            new_target = target
 
         # filling in missing if needed
         if len(missing):
@@ -430,7 +448,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(
                     np.array(target))
-
             else:
 
                 codes = new_target.codes.copy()
@@ -475,7 +492,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
@@ -497,7 +514,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-
         return _ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -508,7 +524,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
             target = target.categories
 
         codes = self.categories.get_indexer(target)
-        return self._engine.get_indexer_non_unique(codes)
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return _ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -559,6 +576,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                            fill_value=fill_value,
                                            na_value=-1)
         return self._create_from_codes(taken)
+
+    def is_dtype_equal(self, other):
+        return self._data.is_dtype_equal(other)
 
     take_nd = take
 
@@ -618,7 +638,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat(self, to_concat, name):
+        # if calling index is category, don't check dtype of others
+        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
+
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories

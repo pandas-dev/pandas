@@ -18,7 +18,7 @@ from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
-from pandas import (Index, Series, DataFrame, isnull, Timestamp, NaT,
+from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  set_timezone)
@@ -552,8 +552,16 @@ class TestTimeZoneSupportPytz(object):
                            tz=tz, ambiguous='infer')
         assert times[0] == Timestamp('2013-10-26 23:00', tz=tz, freq="H")
 
-        if dateutil.__version__ != LooseVersion('2.6.0'):
-            # see gh-14621
+        if str(tz).startswith('dateutil'):
+            if dateutil.__version__ < LooseVersion('2.6.0'):
+                # see gh-14621
+                assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
+                                              tz=tz, freq="H")
+            elif dateutil.__version__ > LooseVersion('2.6.0'):
+                # fixed ambiguous behavior
+                assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
+                                              tz=tz, freq="H")
+        else:
             assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                           tz=tz, freq="H")
 
@@ -923,7 +931,7 @@ class TestTimeZoneSupportPytz(object):
         idx = to_datetime([Timestamp("2013-1-1", tz=self.tzstr('US/Eastern')),
                            NaT])
 
-        assert isnull(idx[1])
+        assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
 
@@ -1233,13 +1241,18 @@ class TestTimeZones(object):
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
-        # dateutil 2.6 buggy w.r.t. ambiguous=0
-        if dateutil.__version__ != LooseVersion('2.6.0'):
+        if dateutil.__version__ < LooseVersion('2.6.0'):
+            # dateutil 2.6 buggy w.r.t. ambiguous=0
             # see gh-14621
             # see https://github.com/dateutil/dateutil/issues/321
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
             assert str(result_pytz) == str(result_dateutil)
+        elif dateutil.__version__ > LooseVersion('2.6.0'):
+            # fixed ambiguous behavior
+            assert result_pytz.to_pydatetime().tzname() == 'GMT'
+            assert result_dateutil.to_pydatetime().tzname() == 'BST'
+            assert str(result_pytz) != str(result_dateutil)
 
         # 1 hour difference
         result_pytz = (Timestamp('2013-10-27 01:00:00')
