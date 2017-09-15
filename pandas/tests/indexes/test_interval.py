@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 
 from datetime import timedelta
-from pandas import (Interval, IntervalIndex, Index, isna,
-                    interval_range, Timestamp, Timedelta,
+from pandas import (Interval, IntervalIndex, Index, Int64Index, isna,
+                    interval_range, Timestamp, Timedelta, InvalidIndexError,
                     compat, date_range, timedelta_range, DateOffset)
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
@@ -555,17 +555,17 @@ class TestIntervalIndex(Base):
 
         # single queries
         queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-        expected = [(Int64Index([], dtype='int64'), array([0]))
-                    (Int64Index([0], dtype='int64'), array([]))
-                    (Int64Index([0], dtype='int64'), array([]))
-                    (Int64Index([0, 1], dtype='int64'), array([]))
-                    (Int64Index([0, 1], dtype='int64'), array([]))
-                    (Int64Index([0, 1, 2], dtype='int64'), array([]))
-                    (Int64Index([1, 2], dtype='int64'), array([]))
-                    (Int64Index([2], dtype='int64'), array([]))
-                    (Int64Index([2], dtype='int64'), array([]))
-                    (Int64Index([], dtype='int64'), array([0]))
-                    (Int64Index([], dtype='int64'), array([0]))]
+        expected = [(Int64Index([], dtype='int64'), np.array([0]))
+                    (Int64Index([0], dtype='int64'), np.array([]))
+                    (Int64Index([0], dtype='int64'), np.array([]))
+                    (Int64Index([0, 1], dtype='int64'), np.array([]))
+                    (Int64Index([0, 1], dtype='int64'), np.array([]))
+                    (Int64Index([0, 1, 2], dtype='int64'), np.array([]))
+                    (Int64Index([1, 2], dtype='int64'), np.array([]))
+                    (Int64Index([2], dtype='int64'), np.array([]))
+                    (Int64Index([2], dtype='int64'), np.array([]))
+                    (Int64Index([], dtype='int64'), np.array([0]))
+                    (Int64Index([], dtype='int64'), np.array([0]))]
 
         for query, expected_result in zip(queries, expected):
             result = index.get_indexer_non_unique([query])
@@ -594,9 +594,9 @@ class TestIntervalIndex(Base):
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
 
         # __contains__ requires perfect matches to intervals.
-        assert 0 not in i
-        assert 1 not in i
-        assert 2 not in i
+        assert 0 not in index
+        assert 1 not in index
+        assert 2 not in index
 
         assert Interval(0, 1, closed='right') in index
         assert Interval(0, 2, closed='right') not in index

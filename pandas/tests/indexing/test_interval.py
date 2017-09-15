@@ -48,7 +48,6 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
 
-
     @pytest.mark.parametrize('direction, closed',
                              product(('increasing', 'decreasing'),
                                      ('left', 'right', 'neither', 'both')))
