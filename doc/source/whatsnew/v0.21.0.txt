@@ -566,6 +566,7 @@ Categorical
 - Bug in the categorical constructor with empty values and categories causing
   the ``.categories`` to be an empty ``Float64Index`` rather than an empty
   ``Index`` with object dtype (:issue:`17248`)
+- Bug in preserving name in ``set_categories``. (:issue:`17509`)
 
 PyPy
 ^^^^
