@@ -472,9 +472,8 @@ class JsonReader(BaseIterator):
 
             return obj
 
-        else:
-            self.close()
-            raise StopIteration
+        self.close()
+        raise StopIteration
 
 
 class Parser(object):
