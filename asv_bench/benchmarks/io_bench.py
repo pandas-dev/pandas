@@ -193,6 +193,7 @@ class read_csv_from_s3(object):
         pd.read_csv(self.big_fname + ext, nrows=10,
                     compression=compression, engine=engine)
 
+
 class read_json_lines(object):
     goal_time = 0.2
 
@@ -206,4 +207,10 @@ class read_json_lines(object):
         pd.read_json("__test__.json", lines=True)
 
     def time_read_json_lines_chunk(self):
-        pd.read_json("__test__.json", lines=True, chunksize=self.N/4)
+        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N/4))
+
+    def peakmem_read_json_lines(self):
+        pd.read_json("__test__.json", lines=True)
+
+    def peakmem_read_json_lines_chunk(self):
+        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N/4))
