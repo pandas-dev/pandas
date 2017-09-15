@@ -178,6 +178,24 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
+
+    def to_html(self, filename, mode='w'):
+        """
+        to_html(filename, mode='w')
+        Write pandas.io.formats.style.Styler to HTML file
+        
+        
+        Parameters
+        ----------
+        filename : string or ExcelWriter object
+            Output filename
+        mode : string, default 'w'
+            File i/o mode used as open(filename, mode)
+
+        """
+        with open('test.html','w') as fid:
+            fid.write(self._repr_html_())
+
     def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
