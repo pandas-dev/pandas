@@ -180,8 +180,9 @@ class Styler(object):
 
     def to_html(self, buf=None, mode='w'):
         """
-        to_html(buf, mode='w')
+        see pull request #17545
         Write pandas.io.formats.style.Styler to HTML file
+
         Parameters
         ----------
         filename : string or ExcelWriter object
