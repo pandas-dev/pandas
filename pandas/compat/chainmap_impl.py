@@ -35,7 +35,7 @@ def recursive_repr(fillvalue='...'):
 class ChainMap(MutableMapping):
     """ A ChainMap groups multiple dicts (or other mappings) together
     to create a single, updatable view.
- 
+
     The underlying mappings are stored in a list.  That list is public and can
     be accessed / updated using the *maps* attribute.  There is no other state.
 
