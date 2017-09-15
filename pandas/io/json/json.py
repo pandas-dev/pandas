@@ -408,9 +408,6 @@ class JsonReader(BaseIterator):
             self.raw_json = True
             self.data = filepath_or_buffer
 
-        if self.raw_json and lines:
-            self.data = self.combine_lines(self.data)
-
     def combine_lines(self, data):
         """Combines a multi-line JSON document into a single document"""
         # If given a json lines file, we break the string into lines, add
@@ -421,7 +418,10 @@ class JsonReader(BaseIterator):
     def read(self):
         """Read the whole JSON input into a pandas object"""
         if self.raw_json:
-            return self._get_obj(self.data)
+            if self.lines:
+                return self._get_obj(self.combine_lines(self.data))
+            else:
+                return self._get_obj(self.data)
         elif self.lines and self.chunksize:
             return concat(self)
         else:
