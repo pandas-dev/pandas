@@ -3077,7 +3077,7 @@ Compressed pickle files
 
 .. versionadded:: 0.20.0
 
-:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+:func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
 `zip`` file supports read only and must contain only one data file
 to be read in.

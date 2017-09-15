@@ -1291,7 +1291,7 @@ Index
 -----
 
 **Many of these methods or variants thereof are available on the objects
-that contain an index (Series/Dataframe) and those should most likely be
+that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**
 
 .. autosummary::
