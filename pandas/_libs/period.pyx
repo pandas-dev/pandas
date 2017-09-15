@@ -35,7 +35,7 @@ from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
                                 NaT)
 from tslibs.timezones cimport (
-    is_utc, is_tzlocal, get_utcoffset, _get_dst_info, maybe_get_tz)
+    is_utc, is_tzlocal, get_utcoffset, get_dst_info, maybe_get_tz)
 from tslib cimport _nat_scalar_rules
 
 from tslibs.frequencies cimport get_freq_code
@@ -557,7 +557,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
                 reso = curr_reso
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = _get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
 
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
@@ -624,7 +624,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                                            dts.us, dts.ps, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = _get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
 
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
