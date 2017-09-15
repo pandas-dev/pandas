@@ -198,7 +198,7 @@ class read_json_lines(object):
     goal_time = 0.2
 
     def setup(self):
-        self.N = 1000000
+        self.N = 100000
         self.C = 5
         self.df = DataFrame(dict([('float{0}'.format(i), randn(self.N)) for i in range(self.C)]))
         self.df.to_json("__test__.json",orient="records",lines=True)
