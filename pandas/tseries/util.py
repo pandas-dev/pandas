@@ -16,7 +16,7 @@ def pivot_annual(series, freq=None):
     The output has as many rows as distinct years in the original series,
     and as many columns as the length of a leap year in the units corresponding
     to the original frequency (366 for daily frequency, 366*24 for hourly...).
-    The fist column of the output corresponds to Jan. 1st, 00:00:00,
+    The first column of the output corresponds to Jan. 1st, 00:00:00,
     while the last column corresponds to Dec, 31st, 23:59:59.
     Entries corresponding to Feb. 29th are masked for non-leap years.
 

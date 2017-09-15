@@ -1475,7 +1475,7 @@ _diff_special = {
 def diff(arr, n, axis=0):
     """
     difference of n between self,
-    analagoust to s-s.shift(n)
+    analogous to s-s.shift(n)
 
     Parameters
     ----------

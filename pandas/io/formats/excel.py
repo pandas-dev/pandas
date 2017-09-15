@@ -263,7 +263,7 @@ class CSSToExcelConverter(object):
                           else None),
             'strike': ('line-through' in decoration) or None,
             'color': self.color_to_excel(props.get('color')),
-            # shadow if nonzero digit before shadow colour
+            # shadow if nonzero digit before shadow color
             'shadow': (bool(re.search('^[^#(]*[1-9]',
                                       props['text-shadow']))
                        if 'text-shadow' in props else None),
@@ -304,7 +304,7 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn('Unhandled colour format: {val!r}'.format(val=val),
+            warnings.warn('Unhandled color format: {val!r}'.format(val=val),
                           CSSWarning)
 
 

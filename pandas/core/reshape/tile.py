@@ -359,7 +359,7 @@ def _preprocess_for_cut(x):
     """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
-    seperately
+    separately
     """
     x_is_series = isinstance(x, Series)
     series_index = None

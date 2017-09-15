@@ -561,7 +561,7 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. note::
 
-    If you pass a dict to ``aggregate``, the ordering of the output colums is
+    If you pass a dict to ``aggregate``, the ordering of the output columns is
     non-deterministic. If you want to be sure the output columns will be in a specific
     order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
 
@@ -1211,7 +1211,7 @@ Groupby by Indexer to 'resample' data
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
+In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 

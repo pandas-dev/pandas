@@ -329,7 +329,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
         if ncols > 1:
             for ax in axarr:
                 # only the first column should get y labels -> set all other to
-                # off as we only have labels in teh first column and we always
+                # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
                 if ax.is_first_col():
                     continue

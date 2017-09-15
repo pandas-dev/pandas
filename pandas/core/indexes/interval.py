@@ -918,7 +918,7 @@ class IntervalIndex(IntervalMixin, Index):
         except ValueError:
 
             # we need to coerce; migth have NA's in an
-            # interger dtype
+            # integer dtype
             new_left = taker(left.astype(float))
             new_right = taker(right.astype(float))
 

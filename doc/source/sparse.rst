@@ -132,7 +132,7 @@ dtype, ``fill_value`` default changes:
    s.to_sparse()
 
 You can change the dtype using ``.astype()``, the result is also sparse. Note that
-``.astype()`` also affects to the ``fill_value`` to keep its dense represantation.
+``.astype()`` also affects to the ``fill_value`` to keep its dense representation.
 
 
 .. ipython:: python

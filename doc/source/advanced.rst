@@ -625,7 +625,7 @@ Index Types
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
 are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
 
-In the following sub-sections we will highlite some other index types.
+In the following sub-sections we will highlight some other index types.
 
 .. _indexing.categoricalindex:
 
@@ -645,7 +645,7 @@ and allows efficient indexing and storage of an index with a large number of dup
    df.dtypes
    df.B.cat.categories
 
-Setting the index, will create create a ``CategoricalIndex``
+Setting the index, will create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -681,7 +681,7 @@ Groupby operations on the index will preserve the index nature as well
 Reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. ipython :: python
@@ -722,7 +722,7 @@ Int64Index and RangeIndex
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 
@@ -963,7 +963,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e'+1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design design to make label-based
+specific dates. To enable this, we made the design to make label-based
 slicing include both endpoints:
 
 .. ipython:: python

@@ -4064,7 +4064,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = df.copy()
 
         # object-cat
-        # note that we propogate the category
+        # note that we propagate the category
         # because we don't have any matching rows
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')

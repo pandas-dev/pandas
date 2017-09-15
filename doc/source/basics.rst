@@ -923,7 +923,7 @@ Passing a named function will yield that name for the row:
 Aggregating with a dict
 +++++++++++++++++++++++
 
-Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFame.agg``
+Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFrame.agg``
 allows you to customize which functions are applied to which columns. Note that the results
 are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
 

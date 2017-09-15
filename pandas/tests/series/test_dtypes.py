@@ -279,7 +279,7 @@ class TestSeriesDtypes(TestData):
         expected = Series([1., 2., 3., np.nan])
         tm.assert_series_equal(actual, expected)
 
-        # only soft conversions, uncovertable pass thru unchanged
+        # only soft conversions, unconvertable pass thru unchanged
         actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
                   .infer_objects())
         expected = Series([1, 2, 3, None, 'a'])

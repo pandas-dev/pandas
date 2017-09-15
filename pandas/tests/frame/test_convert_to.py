@@ -136,11 +136,11 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_column_names(self):
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue #11879. to_records used to raise an exception when used
-        # with column names containing non ascii caracters in Python 2
+        # with column names containing non-ascii characters in Python 2
         result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
-        # to be specified using dictionnary intsead of list of tuples.
+        # to be specified using dictionary instead of list of tuples.
         expected = np.rec.array(
             [(0, 1.0)],
             dtype={"names": ["index", u"accented_name_é"],

@@ -320,7 +320,7 @@ Interpolation
 
   The ``limit_direction`` keyword argument was added.
 
-Both Series and Dataframe objects have an ``interpolate`` method that, by default,
+Both Series and DataFrame objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
 
 .. ipython:: python

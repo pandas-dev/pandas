@@ -1144,7 +1144,7 @@ class TestDatetimeParsingWrappers(object):
                 exp = DatetimeIndex([pd.Timestamp(expected)])
                 tm.assert_index_equal(res, exp)
 
-            # these really need to have yearfist, but we don't support
+            # these really need to have yearfirst, but we don't support
             if not yearfirst:
                 result5 = Timestamp(date_str)
                 assert result5 == expected
