@@ -130,6 +130,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
         -------
         Categorical
         """
+        if (isinstance(data, (ABCSeries, type(self))) and
+                is_categorical_dtype(data)):
+            data = data.values
+
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
             from pandas.core.categorical import Categorical
@@ -251,9 +255,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
-    def __iter__(self):
-        """ iterate like Categorical """
-        return self._data.__iter__()
+    def tolist(self):
+        return self._data.tolist()
 
     @property
     def codes(self):

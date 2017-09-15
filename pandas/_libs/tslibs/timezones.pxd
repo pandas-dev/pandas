@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-cdef bint _is_utc(object tz)
-cdef bint _is_tzlocal(object tz)
+from numpy cimport ndarray
 
-cdef bint _treat_tz_as_pytz(object tz)
-cdef bint _treat_tz_as_dateutil(object tz)
+cdef bint is_utc(object tz)
+cdef bint is_tzlocal(object tz)
 
-cdef object _get_zone(object tz)
+cdef bint treat_tz_as_pytz(object tz)
+cdef bint treat_tz_as_dateutil(object tz)
 
-cpdef _get_utcoffset(tzinfo, obj)
+cpdef object get_timezone(object tz)
+cpdef object maybe_get_tz(object tz)
+
+cpdef get_utcoffset(tzinfo, obj)
+cdef bint _is_fixed_offset(object tz)
+
+cdef object _get_dst_info(object tz)

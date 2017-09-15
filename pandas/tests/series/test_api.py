@@ -245,43 +245,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         for i, val in enumerate(self.ts):
             assert val == self.ts[i]
 
-    def test_iter_box(self):
-        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
-        s = pd.Series(vals)
-        assert s.dtype == 'datetime64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz is None
-            assert res == exp
-
-        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                pd.Timestamp('2011-01-02', tz='US/Eastern')]
-        s = pd.Series(vals)
-
-        assert s.dtype == 'datetime64[ns, US/Eastern]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz == exp.tz
-            assert res == exp
-
-        # timedelta
-        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
-        s = pd.Series(vals)
-        assert s.dtype == 'timedelta64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timedelta)
-            assert res == exp
-
-        # period (object dtype, not boxed)
-        vals = [pd.Period('2011-01-01', freq='M'),
-                pd.Period('2011-01-02', freq='M')]
-        s = pd.Series(vals)
-        assert s.dtype == 'object'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Period)
-            assert res.freq == 'M'
-            assert res == exp
-
     def test_keys(self):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
