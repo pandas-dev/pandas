@@ -338,13 +338,13 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_loc_interval_updated_behavior(self):
 
-        for idx_side in ['right', 'left, both, neither']:
+        for idx_side in ['right', 'left', 'both', 'neither']:
 
             idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
             for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
                           [0, 2], [2.5, 3], [-1, 4]]:
-                for side in ['right', 'left, both, neither']:
+                for side in ['right', 'left', 'both', 'neither']:
 
                     if idx_side == side:
                         if bound == [0, 1]:
@@ -363,53 +363,22 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_loc_scalar_updated_behavior(self):
 
-        right = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='right')
+        scalars = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+        correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1}
+                    'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1}
+                    'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1}
+                    'neither': {0.5: 0, 2.5: 1} }
 
-        pytest.raises(KeyError, right.get_loc, -0.5)
-        pytest.raises(KeyError, right.get_loc, 0)
-        assert right.get_loc(0.5) == 0
-        assert right.get_loc(1) == 0
-        pytest.raises(KeyError, right.get_loc, 1.5)
-        pytest.raises(KeyError, right.get_loc, 2)
-        assert right.get_loc(2.5) == 1
-        assert right.get_loc(3) == 1
-        pytest.raises(KeyError, right.get_loc, 3.5)
+        for idx_side in ['right', 'left', 'both', 'neither']:
 
-        left = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='left')
+            idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-        pytest.raises(KeyError, left.get_loc, -0.5)
-        assert left.get_loc(0) == 0
-        assert left.get_loc(0.5) == 0
-        pytest.raises(KeyError, left.get_loc, 1)
-        pytest.raises(KeyError, left.get_loc, 1.5)
-        assert left.get_loc(2) == 1
-        assert left.get_loc(2.5) == 1
-        pytest.raises(KeyError, left.get_loc, 3)
-        pytest.raises(KeyError, left.get_loc, 3.5)
+            for scalar in scalars:
 
-        both = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='both')
-
-        pytest.raises(KeyError, both.get_loc, -0.5)
-        assert both.get_loc(0) == 0
-        assert both.get_loc(0.5) == 0
-        assert both.get_loc(1) == 0
-        pytest.raises(KeyError, both.get_loc, 1.5)
-        assert both.get_loc(2) == 1
-        assert both.get_loc(2.5) == 1
-        assert both.get_loc(3) == 1
-        pytest.raises(KeyError, both.get_loc, 3.5)
-
-        neither = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='neither')
-
-        pytest.raises(KeyError, neither.get_loc, -0.5)
-        pytest.raises(KeyError, neither.get_loc, 0)
-        assert neither.get_loc(0.5) == 0
-        pytest.raises(KeyError, neither.get_loc, 1)
-        pytest.raises(KeyError, neither.get_loc, 1.5)
-        pytest.raises(KeyError, neither.get_loc, 2)
-        assert neither.get_loc(2.5) == 1
-        pytest.raises(KeyError, neither.get_loc, 3)
-        pytest.raises(KeyError, neither.get_loc, 3.5)
+                if scalar in correct[idx_side].keys():
+                    assert idx.get_loc(scalar) == correct[idx_side][scalar]
+                else:
+                    pytest.raises(KeyError, idx.get_loc, scalar)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def slice_locs_with_interval_updated_behavior(self):
