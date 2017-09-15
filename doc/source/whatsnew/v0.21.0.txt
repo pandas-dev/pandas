@@ -363,7 +363,7 @@ Additionally, DataFrames with datetime columns that were parsed by :func:`read_s
 Consistency of Range Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, there were some inconsistencies between the various range functions: func:`date_range`, func:`bdate_range`, func:`cdate_range`, func:`period_range`, func:`timedelta_range`, and func:`interval_range`. (:issue:`17471`).
+In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`cdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
 
 One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
 
