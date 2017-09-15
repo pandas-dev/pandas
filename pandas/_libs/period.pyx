@@ -107,6 +107,8 @@ cdef extern from "period_helper.h":
     int pday(int64_t ordinal, int freq) except INT32_MIN
     int pweekday(int64_t ordinal, int freq) except INT32_MIN
     int pday_of_week(int64_t ordinal, int freq) except INT32_MIN
+    # TODO: pday_of_week and pweekday are identical.  Make one an alias instead
+    # of importing them separately.
     int pday_of_year(int64_t ordinal, int freq) except INT32_MIN
     int pweek(int64_t ordinal, int freq) except INT32_MIN
     int phour(int64_t ordinal, int freq) except INT32_MIN
@@ -868,58 +870,81 @@ cdef class _Period(object):
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
-    cdef _field(self, alias):
+    @property
+    def year(self):
         base, mult = get_freq_code(self.freq)
-        return get_period_field(alias, self.ordinal, base)
+        return pyear(self.ordinal, base)
 
-    property year:
-        def __get__(self):
-            return self._field(0)
-    property month:
-        def __get__(self):
-            return self._field(3)
-    property day:
-        def __get__(self):
-            return self._field(4)
-    property hour:
-        def __get__(self):
-            return self._field(5)
-    property minute:
-        def __get__(self):
-            return self._field(6)
-    property second:
-        def __get__(self):
-            return self._field(7)
-    property weekofyear:
-        def __get__(self):
-            return self._field(8)
-    property week:
-        def __get__(self):
-            return self.weekofyear
-    property dayofweek:
-        def __get__(self):
-            return self._field(10)
-    property weekday:
-        def __get__(self):
-            return self.dayofweek
-    property dayofyear:
-        def __get__(self):
-            return self._field(9)
-    property quarter:
-        def __get__(self):
-            return self._field(2)
-    property qyear:
-        def __get__(self):
-            return self._field(1)
-    property days_in_month:
-        def __get__(self):
-            return self._field(11)
-    property daysinmonth:
-        def __get__(self):
-            return self.days_in_month
-    property is_leap_year:
-        def __get__(self):
-            return bool(is_leapyear(self._field(0)))
+    @property
+    def month(self):
+        base, mult = get_freq_code(self.freq)
+        return pmonth(self.ordinal, base)
+
+    @property
+    def day(self):
+        base, mult = get_freq_code(self.freq)
+        return pday(self.ordinal, base)
+
+    @property
+    def hour(self):
+        base, mult = get_freq_code(self.freq)
+        return phour(self.ordinal, base)
+
+    @property
+    def minute(self):
+        base, mult = get_freq_code(self.freq)
+        return pminute(self.ordinal, base)
+
+    @property
+    def second(self):
+        base, mult = get_freq_code(self.freq)
+        return psecond(self.ordinal, base)
+
+    @property
+    def weekofyear(self):
+        base, mult = get_freq_code(self.freq)
+        return pweek(self.ordinal, base)
+
+    @property
+    def week(self):
+        return self.weekofyear
+
+    @property
+    def dayofweek(self):
+        base, mult = get_freq_code(self.freq)
+        return pweekday(self.ordinal, base)
+
+    @property
+    def weekday(self):
+        return self.dayofweek
+
+    @property
+    def dayofyear(self):
+        base, mult = get_freq_code(self.freq)
+        return pday_of_year(self.ordinal, base)
+
+    @property
+    def quarter(self):
+        base, mult = get_freq_code(self.freq)
+        return pquarter(self.ordinal, base)
+
+    @property
+    def qyear(self):
+        base, mult = get_freq_code(self.freq)
+        return pqyear(self.ordinal, base)
+
+    @property
+    def days_in_month(self):
+        base, mult = get_freq_code(self.freq)
+        return pdays_in_month(self.ordinal, base)
+
+    @property
+    def daysinmonth(self):
+        return self.days_in_month
+
+    @property
+    def is_leap_year(self):
+        return bool(is_leapyear(self.year))
 
     @classmethod
     def now(cls, freq=None):
