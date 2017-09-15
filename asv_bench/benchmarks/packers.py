@@ -97,12 +97,11 @@ class packers_read_json_lines(_Packers):
 class packers_read_json_lines_chunks(_Packers):
     def setup(self):
         self._setup()
-        self.df.to_json('abc.json', orient="records", lines=True)
-        self.df.index = np.arange(self.N)
+        self.df.to_json(self.f, orient="records", lines=True)
 
     def time_packers_read_json_lines_chunks(self):
         chunksize = int(self.C / 5.0)
-        pd.read_json('abc.json', lines=True, chunksize=chunksize)
+        next([c for c in pd.read_json(self.f, lines=True, chunksize=chunksize)])
 
 class packers_read_json_date_index(_Packers):
 
