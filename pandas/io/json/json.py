@@ -385,7 +385,7 @@ class JsonReader(BaseIterator):
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
-                raise ValueError("chunksize should only be passed if lines=True")
+                raise ValueError("chunksize can only be passed if lines=True")
 
         if isinstance(filepath_or_buffer, compat.string_types):
             try:
@@ -419,20 +419,24 @@ class JsonReader(BaseIterator):
         """Read the whole JSON input into a pandas object"""
         if self.raw_json:
             if self.lines:
-                return self._get_obj(self.combine_lines(self.data))
+                obj = self._get_object_parser(self.combine_lines(self.data))
             else:
-                return self._get_obj(self.data)
-        if self.lines and self.chunksize:
-            return concat(self)
-
-        if self.lines:
-            to_return = self._get_obj(self.combine_lines(self.data.read()))
+                obj = self._get_object_parser(self.data)
+        elif self.lines and self.chunksize:
+            obj = concat(self)
         else:
-            to_return = self._get_obj(self.data.read())
-        self.__close__()
-        return to_return
 
-    def _get_obj(self, json):
+            if self.lines:
+                obj = self._get_object_parser(
+                    self.combine_lines(self.data.read())
+                )
+            else:
+                obj = self._get_object_parser(self.data.read())
+        self.close()
+        return obj
+
+    def _get_object_parser(self, json):
+        """parses a json document into a pandas object"""
         typ = self.typ
         dtype = self.dtype
         kwargs = {
@@ -453,17 +457,17 @@ class JsonReader(BaseIterator):
 
         return obj
 
-    def __close__(self):
+    def close(self):
         try:
             self.data.close()
-        except IOError:
+        except (IOError, AttributeError):
             pass
 
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))
         if lines:
             lines_json = '[' + ','.join(lines) + ']'
-            obj = self._get_obj(lines_json)
+            obj = self._get_object_parser(lines_json)
 
             # Make sure that the returned objects have the right index
             obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
@@ -472,7 +476,7 @@ class JsonReader(BaseIterator):
             return obj
 
         else:
-            self.__close__()
+            self.close()
             raise StopIteration
 
 

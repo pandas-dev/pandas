@@ -1053,7 +1053,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             assert_frame_equal(chunked, unchunked)
 
     def test_readjson_chunksize_requires_lines(self, lines_json_df):
-        msg = "chunksize should only be passed if lines=True"
+        msg = "chunksize can only be passed if lines=True"
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
 
