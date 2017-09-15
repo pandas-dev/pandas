@@ -63,7 +63,7 @@ class TestCategorical(object):
         s = s.cat.set_categories([1, 2, 3])
         expected = s.astype('category').name
         tm.assert_almost_equal(result, expected)
- 
+
     def test_getitem_category_type(self):
         # GH 14580
         # test iloc() on Series with Categorical data
