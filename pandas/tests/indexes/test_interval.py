@@ -381,7 +381,7 @@ class TestIntervalIndex(Base):
                     pytest.raises(KeyError, idx.get_loc, scalar)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def slice_locs_with_interval_updated_behavior(self):
+    def test_slice_locs_with_interval_updated_behavior(self):
 
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
@@ -439,7 +439,7 @@ class TestIntervalIndex(Base):
             2, 4), end=Interval(0, 2)) == (2, 2)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def slice_locs_with_ints_and_floats_updated_behavior(self):
+    def test_slice_locs_with_ints_and_floats_updated_behavior(self):
 
         queries = [[0, 1], [0, 2], [0, 3], [3, 1], [3, 4], [0, 4]]
 
@@ -490,7 +490,7 @@ class TestIntervalIndex(Base):
             pytest.raises(InvalidIndexError, index.slice_locs, query)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def get_indexer_for_interval_updated_behavior(self):
+    def test_get_indexer_for_interval_updated_behavior(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='right')
@@ -524,7 +524,7 @@ class TestIntervalIndex(Base):
             tm.assert_numpy_array_equal(result, expect)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def get_indexer_for_ints_and_floats_updated_behavior(self):
+    def test_get_indexer_for_ints_and_floats_updated_behavior(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 1), (1, 2), (3, 4)], closed='right')
@@ -547,8 +547,10 @@ class TestIntervalIndex(Base):
             expect = np.array(expected_result, dtype='intp')
             tm.assert_numpy_array_equal(result, expect)
 
+        # what about an overlapping intervalindex?
+
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def get_indexer_non_unique_for_ints_and_floats_updated_behavior(self):
+    def test_get_indexer_non_unique_for_ints_and_floats_updated_behavior(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='left')
@@ -607,7 +609,7 @@ class TestIntervalIndex(Base):
         assert Interval(0, 1, closed='both') not in index
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def testcontains_updated_behavior(self):
+    def test_contains_method_updated_behavior(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
 
