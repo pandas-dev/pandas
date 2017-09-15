@@ -191,7 +191,7 @@ class Styler(object):
             File i/o mode used as open(filename, mode)
 
         """
-        if buf is None: # print to stdout instead of writing to file
+        if buf is None:  # print to stdout instead of writing to file
             return self.render()
         with open(buf, 'w') as fid:
             fid.write(self.render())
