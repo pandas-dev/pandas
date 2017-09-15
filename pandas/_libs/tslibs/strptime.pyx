@@ -339,8 +339,8 @@ def array_strptime(ndarray[object] values, object fmt,
             else:
                 from pandas._libs.tslib import OutOfBoundsDatetime
                 fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
+                                                       dts.day, dts.hour,
+                                                       dts.min, dts.sec)
                 raise OutOfBoundsDatetime(
                     'Out of bounds nanosecond timestamp: %s' % fmt)
 
