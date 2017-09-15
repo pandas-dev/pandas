@@ -1054,7 +1054,7 @@ as ``BusinessHour`` except that it skips specified custom holidays.
     # Tuesday after MLK Day (Monday is skipped because it's a holiday)
     dt + bhour_us * 2
 
-You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBusinessDay``.
+You can use keyword arguments supported by either ``BusinessHour`` and ``CustomBusinessDay``.
 
 .. ipython:: python
 
@@ -1088,7 +1088,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
     "Q", "quarter end frequency"
-    "BQ", "business quarter endfrequency"
+    "BQ", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "A, Y", "year end frequency"
@@ -1132,13 +1132,13 @@ For some frequencies you can specify an anchoring suffix:
     :header: "Alias", "Description"
     :widths: 15, 100
 
-    "W\-SUN", "weekly frequency (sundays). Same as 'W'"
-    "W\-MON", "weekly frequency (mondays)"
-    "W\-TUE", "weekly frequency (tuesdays)"
-    "W\-WED", "weekly frequency (wednesdays)"
-    "W\-THU", "weekly frequency (thursdays)"
-    "W\-FRI", "weekly frequency (fridays)"
-    "W\-SAT", "weekly frequency (saturdays)"
+    "W\-SUN", "weekly frequency (Sundays). Same as 'W'"
+    "W\-MON", "weekly frequency (Mondays)"
+    "W\-TUE", "weekly frequency (Tuesdays)"
+    "W\-WED", "weekly frequency (Wednesdays)"
+    "W\-THU", "weekly frequency (Thursdays)"
+    "W\-FRI", "weekly frequency (Fridays)"
+    "W\-SAT", "weekly frequency (Saturdays)"
     "(B)Q(S)\-DEC", "quarterly frequency, year ends in December. Same as 'Q'"
     "(B)Q(S)\-JAN", "quarterly frequency, year ends in January"
     "(B)Q(S)\-FEB", "quarterly frequency, year ends in February"

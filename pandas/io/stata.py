@@ -511,8 +511,8 @@ def _cast_to_stata_types(data):
     this range.  If the int64 values are outside of the range of those
     perfectly representable as float64 values, a warning is raised.
 
-    bool columns are cast to int8.  uint colums are converted to int of the
-    same size if there is no loss in precision, other wise are upcast to a
+    bool columns are cast to int8.  uint columns are converted to int of the
+    same size if there is no loss in precision, otherwise are upcast to a
     larger type.  uint64 is currently not supported since it is concerted to
     object in a DataFrame.
     """
