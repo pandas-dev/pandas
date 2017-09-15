@@ -1090,6 +1090,19 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             unchunked = pd.read_json(path, lines=True)
             assert_frame_equal(unchunked, chunked)
 
+    def test_readjson_chunks_closes(self):
+        for chunksize in [None, 1]:
+            with ensure_clean('test.json') as path:
+                df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+                df.to_json(path, lines=True, orient="records")
+                f = open(path, 'r')
+                if chunksize is not None:
+                    pd.concat(pd.read_json(f, lines=True, chunksize=chunksize))
+                else:
+                    pd.read_json(f, lines=True)
+                assert f.closed, \
+                    "didn't close file with chunksize = %s" % chunksize
+
     def test_readjson_invalid_chunksize(self, lines_json_df):
         msg = r"'chunksize' must be an integer >=1"
 
