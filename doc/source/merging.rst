@@ -86,12 +86,18 @@ some configurable handling of "what to do with the other axes":
   it is passed, in which case the values will be selected (see below). Any None
   objects will be dropped silently unless they are all None in which case a
   ValueError will be raised.
-- ``axis`` : {0, 1, ...}, default 0. The axis to concatenate along.
+- ``axis`` : {0, 1, ...}, default 0. The axis to concatenate along. 0 is the index
+  axis, 1 the column axis etc.
 - ``join`` : {'inner', 'outer'}, default 'outer'. How to handle indexes on
   other axis(es). Outer for union and inner for intersection.
 - ``ignore_index`` : boolean, default False. If True, do not use the index
-  values on the concatenation axis. The resulting axis will be labeled 0, ...,
-  n - 1. This is useful if you are concatenating objects where the
+  values on the concatenation axis. If the concatenation axis is 0, it is the
+  index axis and the index column is ignored. If the concatenation axis is 1,
+  it is the column axis and the column names are ignored.
+  The resulting axis after concatenation will be labeled 0, ..., n - 1.
+  That means that either the indices in the index column are replaced by 
+  new indices, column names are replaced by numbers etc.
+  This is useful if you are concatenating objects where the
   concatenation axis does not have meaningful indexing information. Note
   the index values on the other axes are still respected in the join.
 - ``join_axes`` : list of Index objects. Specific indexes to use for the other
