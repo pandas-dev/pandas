@@ -5,7 +5,7 @@ import numpy as np
 
 from datetime import timedelta
 from pandas import (Interval, IntervalIndex, Index, Int64Index, isna,
-                    interval_range, Timestamp, Timedelta, InvalidIndexError,
+                    interval_range, Timestamp, Timedelta,
                     compat, date_range, timedelta_range, DateOffset)
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
@@ -383,60 +383,50 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_interval_updated_behavior(self):
 
-        # increasing overlapping
+        # increasing monotonically
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(start=Interval(
-            0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
         assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(end=Interval(0, 2)) == (0, 1)
-        assert index.slice_locs(start=Interval(
-            2, 4), end=Interval(0, 2)) == (2, 1)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)
 
-        # decreasing overlapping
+        # decreasing monotonically
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        assert index.slice_locs(start=Interval(
-            0, 2), end=Interval(2, 4)) == (2, 1)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)
         assert index.slice_locs(start=Interval(0, 2)) == (2, 3)
         assert index.slice_locs(end=Interval(2, 4)) == (0, 1)
         assert index.slice_locs(end=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(start=Interval(
-            2, 4), end=Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(start=Interval(
-            0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
         assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(
-            2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        pytest.raises(KeyError, index.slice_locs(
-            start=Interval(0, 2), end=Interval(2, 4)))
+        pytest.raises(KeyError, index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)))
         pytest.raises(KeyError, index.slice_locs(start=Interval(0, 2)))
         assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
         pytest.raises(KeyError, index.slice_locs(end=Interval(0, 2)))
-        pytest.raises(KeyError, index.slice_locs(
-            start=Interval(2, 4), end=Interval(0, 2)))
+        pytest.raises(KeyError, index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)))
 
-        # different unsorted duplicates
+        # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(start=Interval(
-            0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(start=Interval(0, 2)) == (0, 4)
         assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
         assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(
-            2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_ints_and_floats_updated_behavior(self):
@@ -446,48 +436,46 @@ class TestIntervalIndex(Base):
         # increasing non-overlapping
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
 
-        assert index.slice_locs(0, 1) == (0)
-        assert index.slice_locs(0, 2) == (0, 1)
-        assert index.slice_locs(0, 3) == (0, 1)
-        assert index.slice_locs(3, 1) == ()
-        assert index.slice_locs(3, 4) == (2)
-        assert index.slice_locs(0, 4) == (0, 1, 2)
+        assert index.slice_locs(0, 1) == (0, 1)
+        assert index.slice_locs(0, 2) == (0, 2)
+        assert index.slice_locs(0, 3) == (0, 2)
+        assert index.slice_locs(3, 1) == (2, 1)
+        assert index.slice_locs(3, 4) == (2, 3)
+        assert index.slice_locs(0, 4) == (0, 3)
+
+        # decreasing non-overlapping
+        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
+        assert index.slice_locs(0, 1) == (3, 2)
+        assert index.slice_locs(0, 2) == (3, 1)
+        assert index.slice_locs(0, 3) == (3, 1)
+        assert index.slice_locs(3, 1) == (1, 2)
+        assert index.slice_locs(3, 4) == (1, 0)
+        assert index.slice_locs(0, 4) == (3, 0)
 
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
         for query in queries:
-            pytest.raises(InvalidIndexError, index.slice_locs, query)
-
-        # decreasing non-overlapping
-        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
-        # These were a little mind-bending to write, would appreciate a close
-        # review
-        assert index.slice_locs(0, 1) == (2)
-        assert index.slice_locs(0, 2) == (1, 2)
-        assert index.slice_locs(0, 3) == (1, 2)
-        assert index.slice_locs(3, 1) == (0, 1)
-        assert index.slice_locs(3, 4) == (0)
-        assert index.slice_locs(0, 4) == (0, 1, 2)
+            pytest.raises(KeyError, index.slice_locs, query)
 
         # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
         for query in queries:
-            pytest.raises(InvalidIndexError, index.slice_locs, query)
+            pytest.raises(KeyError, index.slice_locs, query)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
         for query in queries:
-            pytest.raises(InvalidIndexError, index.slice_locs, query)
+            pytest.raises(KeyError, index.slice_locs, query)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
         for query in queries:
-            pytest.raises(InvalidIndexError, index.slice_locs, query)
+            pytest.raises(KeyError, index.slice_locs, query)
 
-        # different unsorted duplicates
+        # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
         for query in queries:
-            pytest.raises(InvalidIndexError, index.slice_locs, query)
+            pytest.raises(KeyError, index.slice_locs, query)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_indexer_for_interval_updated_behavior(self):
@@ -547,7 +535,9 @@ class TestIntervalIndex(Base):
             expect = np.array(expected_result, dtype='intp')
             tm.assert_numpy_array_equal(result, expect)
 
-        # what about an overlapping intervalindex?
+        index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
+
+
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_indexer_non_unique_for_ints_and_floats_updated_behavior(self):
