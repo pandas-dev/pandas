@@ -245,7 +245,7 @@ class TestPeriodProperties(object):
             assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil(self):
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import dateutil_gettz as gettz
         from pandas._libs.tslib import maybe_get_tz
         for case in ['dateutil/Europe/Brussels', 'dateutil/Asia/Tokyo',
                      'dateutil/US/Pacific']:
@@ -264,7 +264,7 @@ class TestPeriodProperties(object):
             assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import dateutil_gettz as gettz
         p = Period('1/1/2005',
                    freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
         assert p.tz == gettz('Europe/Brussels')
