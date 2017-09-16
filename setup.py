@@ -429,7 +429,7 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = []#['reduce', 'inference', 'properties']
+lib_depends = []
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -454,32 +454,22 @@ if is_platform_windows():
 else:
     extra_compile_args=['-Wno-unused-function']
 
-#lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
-#                             'pandas/_libs/src/parse_helper.h',
-#                             'pandas/_libs/src/compat_helper.h']
-
-
-tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
-                   'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime.pxd']
+tseries_depends = []
 
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
-    '_libs.lib': {'pyxfile': '_libs/lib',
-                  'depends': lib_depends + tseries_depends},
+    '_libs.lib': {'pyxfile': '_libs/lib'},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'depends': _pxi_dep['hashtable']},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
-                    'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c']},
     '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.period': {'pyxfile': '_libs/period',
-                     'depends': (tseries_depends +
-                                 ['pandas/_libs/src/period_helper.h']),
+                     'depends': ['pandas/_libs/src/period_helper.h'],
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
