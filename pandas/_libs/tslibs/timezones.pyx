@@ -100,7 +100,7 @@ cpdef inline object maybe_get_tz(object tz):
             tz = _dateutil_tzlocal()
         elif tz.startswith('dateutil/'):
             zone = tz[9:]
-            tz = _dateutil_gettz(zone)
+            tz = dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
