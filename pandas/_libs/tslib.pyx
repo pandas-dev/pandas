@@ -105,12 +105,6 @@ from tslibs.timezones cimport (
     get_timezone, get_utcoffset, maybe_get_tz,
     get_dst_info
     )
-from tslibs.timezones import (  # noqa
-    get_timezone, get_utcoffset, maybe_get_tz,
-    p_tz_cache_key, dst_cache,
-    unbox_utcoffsets,
-    dateutil_gettz
-    )
 
 
 cdef inline object create_timestamp_from_ts(
