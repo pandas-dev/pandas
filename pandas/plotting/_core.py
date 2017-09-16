@@ -839,9 +839,13 @@ class ScatterPlot(PlanePlot):
             # The data is normalized to 200 * s_grow
             size_data = data.loc[:, s].values
             if is_numeric_dtype(size_data):
-                s = 200 * s_grow * size_data / size_data.max()
+                self.size_title = s
+                self.s_data_max = size_data.max()
+                self.s_grow = s_grow
+                self.bubble_points = 200
+                s = self.bubble_points * s_grow * size_data / self.s_data_max
             else:
-                raise TypeError('s needs to be of numeric dtype')
+                raise TypeError('s must be of numeric dtype')
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -850,12 +854,12 @@ class ScatterPlot(PlanePlot):
     def _make_plot(self):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
-
         c_is_column = is_hashable(c) and c in self.data.columns
 
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
 
+        # Plot bubble size scale if needed
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
@@ -896,6 +900,60 @@ class ScatterPlot(PlanePlot):
             err_kwds['ecolor'] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values,
                         linestyle='none', **err_kwds)
+
+    def _sci_notation(self, num):
+        scientific_notation = '{:e}'.format(num)
+        expnt = float(re.search(r'e([+-]\d*)$',
+                                scientific_notation).groups()[0])
+        coef = float(re.search(r'^([+-]?\d\.\d)',
+                               scientific_notation).groups()[0])
+        return coef, expnt
+
+    def _legend_bubbles(self, s_data_max, s_grow, bubble_points):
+        coef, expnt = self._sci_notation(s_data_max)
+        labels_catalog = {
+            (9, 10): [10, 5, 2.5, 1],
+            (7, 9): [8, 4, 2, 0.5],
+            (5.5, 7): [6, 3, 1.5, 0.5],
+            (4.5, 5.5): [5, 2, 1, 0.2],
+            (3.5, 4.5): [4, 2, 1, 0.2],
+            (2.5, 3.5): [3, 1, 0.5, 0.2],
+            (1.5, 2.5): [2, 1, 0.5, 0.2],
+            (0, 1.5): [1, 0.5, 0.25, 0.1]
+        }
+        for lower_bound, upper_bound in labels_catalog:
+            if (coef >= lower_bound) & (coef < upper_bound):
+                labels = 10**expnt * np.array(labels_catalog[lower_bound,
+                                                             upper_bound])
+                sizes = list(bubble_points * s_grow * labels / s_data_max)
+                labels = ['{:g}'.format(l) for l in labels]
+                return (sizes, labels)
+
+    def _make_legend(self):
+        ax = self.axes[0]
+        if hasattr(self, "size_title"):
+            size_title = self.size_title
+            s_data_max = self.s_data_max
+            s_grow = self.s_grow
+            bubble_points = self.bubble_points
+            import matplotlib.legend as legend
+            sizes, labels = self._legend_bubbles(s_data_max,
+                                                 s_grow,
+                                                 bubble_points)
+            bubbles = []
+            for size in sizes:
+                bubbles.append(ax.scatter([],
+                                          [],
+                                          s=size,
+                                          color='white',
+                                          edgecolor='gray'))
+            bubble_legend = legend.Legend(ax,
+                                          handles=bubbles,
+                                          labels=labels,
+                                          loc='lower right')
+            bubble_legend.set_title(size_title)
+            ax.add_artist(bubble_legend)
+        super()._make_legend()
 
 
 class HexBinPlot(PlanePlot):
