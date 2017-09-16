@@ -476,7 +476,7 @@ class TestStata(object):
         tm.assert_frame_equal(parsed_114, parsed_117)
 
     def test_timestamp_and_label(self):
-        original = DataFrame([(1,)], columns=['var'])
+        original = DataFrame([(1,)], columns=['variable'])
         time_stamp = datetime(2000, 2, 29, 14, 21)
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
@@ -1309,3 +1309,12 @@ class TestStata(object):
             dta_iter = pd.read_stata(path, iterator=True)
             value_labels = dta_iter.value_labels()
         assert value_labels == {'A': {0: 'A', 1: 'B', 2: 'C', 3: 'E'}}
+
+    def test_set_index(self):
+        # GH 17328
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        with tm.ensure_clean() as path:
+            df.to_stata(path)
+            reread = pd.read_stata(path, index_col='index')
+        tm.assert_frame_equal(df, reread)
