@@ -369,7 +369,6 @@ class TestIntervalIndex(Base):
                    'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
                    'neither': {0.5: 0, 2.5: 1}}
 
-
         for idx_side in ['right', 'left', 'both', 'neither']:
 
             idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
