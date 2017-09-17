@@ -74,7 +74,7 @@ class TestCategorical(object):
         expected = 'A'
         result = method(s).name
         assert result == expected
- 
+
     def test_getitem_category_type(self):
         # GH 14580
         # test iloc() on Series with Categorical data
