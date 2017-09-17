@@ -149,9 +149,9 @@ class MultiIndex(Index):
                                                           len(level)))
         for i, level in enumerate(levels):
             if len(level) != len(set(level)):
-                raise ValueError("Level values must be unique: %s "
-                                 "on level %d" % ([value for value
-                                                   in level], i))
+                raise ValueError("Level values must be unique: {0}"
+                                 " on level {1}".format([value for value
+                                                         in level], i))
 
     def _get_levels(self):
         return self._levels
