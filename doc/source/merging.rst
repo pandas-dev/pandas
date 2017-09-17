@@ -92,8 +92,8 @@ some configurable handling of "what to do with the other axes":
   other axis(es). Outer for union and inner for intersection.
 - ``ignore_index`` : boolean, default False. If True, do not use the index
   values on the concatenation axis. If the concatenation axis is 0, it is the
-  index axis and the index column is ignored. If the concatenation axis is 1,
-  it is the column axis and the column names are ignored.
+  index axis, and the index column is ignored. If the concatenation axis is 1,
+  it is the column axis, and the column names are ignored.
   The resulting axis after concatenation will be labeled 0, ..., n - 1.
   That means that either the indices in the index column are replaced by 
   new indices, column names are replaced by numbers etc.
