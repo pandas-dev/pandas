@@ -60,8 +60,7 @@ class TestCategorical(object):
     def test_getname_category(self):
         expected = 'A'
         s = pd.Series([1, 2, 3], name='A').astype('category')
-        s = s.cat.set_categories([1, 2, 3])
-        result = s.astype('category').name
+        result = s.cat.set_categories([1, 2, 3]).name
         tm.assert_almost_equal(result, expected)
 
     def test_getitem_category_type(self):
