@@ -28,6 +28,7 @@ New features
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
+- :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
