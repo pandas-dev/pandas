@@ -807,6 +807,20 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=['green'] * 5)
         tm.close()
 
+    def test_bar_user_colors(self):
+        df = pd.DataFrame({"A": range(4),
+                           "B": range(1, 5),
+                           "color": ['red', 'blue', 'blue', 'red']})
+        # This should *only* work when `y` is specified, else
+        # we use one color per column
+        ax = df.plot.bar(y='A', color=df['color'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.)]
+        assert result == expected
+
     @pytest.mark.slow
     def test_bar_linewidth(self):
         df = DataFrame(randn(5, 5))

@@ -258,6 +258,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = df.plot.bar(use_index=False, ax=ax)
         self._check_text_labels(ax.get_xticklabels(), ['0', '1', '2', '3'])
 
+    def test_bar_user_colors(self):
+        s = Series([1, 2, 3, 4])
+        ax = s.plot.bar(color=['red', 'blue', 'blue', 'red'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.)]
+        assert result == expected
+
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
         # Default rot 0
