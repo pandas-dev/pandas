@@ -698,8 +698,8 @@ class TestCategorical(object):
     def test_big_print(self):
         factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ['a', 'b', 'c'],
                              fastpath=True)
-        expected = ["[a, b, c, a, b, ..., b, c, a, b, c]", "Length: 600",
-                    "Categories (3, object): [a, b, c]"]
+        expected = ["[a, b, c, a, b,", " ...", " b, c, a, b, c]",
+                    "Length: 600", "Categories (3, object): [a, b, c]"]
         expected = "\n".join(expected)
 
         actual = repr(factor)
@@ -740,7 +740,9 @@ class TestCategorical(object):
 
         c = pd.Categorical(['aaaaa', 'bb', 'cccc'] * 20)
         expected = u"""\
-[aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
+[aaaaa, bb, cccc, aaaaa, bb,
+ ...
+ bb, cccc, aaaaa, bb, cccc]
 Length: 60
 Categories (3, object): [aaaaa, bb, cccc]"""
 
@@ -748,7 +750,9 @@ Categories (3, object): [aaaaa, bb, cccc]"""
 
         c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
         expected = u"""\
-[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+[ああああ, いいいいい, ううううううう, ああああ, いいいいい,
+ ...
+ いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
@@ -759,7 +763,9 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with option_context('display.unicode.east_asian_width', True):
 
             c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい,
+ ...
+ いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
@@ -2232,6 +2238,23 @@ class TestCategoricalAsBlock(object):
         assert exp == a.__unicode__()
 
     def test_categorical_repr(self):
+        c = pd.Categorical([])
+        exp = "[], Categories (0, object): []"
+
+        assert repr(c) == exp
+
+        c = pd.Categorical([1])
+        exp = """[1]
+Categories (1, int64): [1]"""
+
+        assert repr(c) == exp
+
+        c = pd.Categorical([1, 2])
+        exp = """[1, 2]
+Categories (2, int64): [1, 2]"""
+
+        assert repr(c) == exp
+
         c = pd.Categorical([1, 2, 3])
         exp = """[1, 2, 3]
 Categories (3, int64): [1, 2, 3]"""
@@ -2245,14 +2268,18 @@ Categories (3, int64): [1, 2, 3]"""
         assert repr(c) == exp
 
         c = pd.Categorical([1, 2, 3, 4, 5] * 10)
-        exp = """[1, 2, 3, 4, 5, ..., 1, 2, 3, 4, 5]
+        exp = """[1, 2, 3, 4, 5,
+ ...
+ 1, 2, 3, 4, 5]
 Length: 50
 Categories (5, int64): [1, 2, 3, 4, 5]"""
 
         assert repr(c) == exp
 
         c = pd.Categorical(np.arange(20))
-        exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
+        exp = """[0, 1, 2, 3, 4,
+ ...
+ 15, 16, 17, 18, 19]
 Length: 20
 Categories (20, int64): [0, 1, 2, 3, ..., 16, 17, 18, 19]"""
 
@@ -2273,44 +2300,65 @@ Categories (3, int64): [1 < 2 < 3]"""
         assert repr(c) == exp
 
         c = pd.Categorical([1, 2, 3, 4, 5] * 10, ordered=True)
-        exp = """[1, 2, 3, 4, 5, ..., 1, 2, 3, 4, 5]
+        exp = """[1, 2, 3, 4, 5,
+ ...
+ 1, 2, 3, 4, 5]
 Length: 50
 Categories (5, int64): [1 < 2 < 3 < 4 < 5]"""
 
         assert repr(c) == exp
 
         c = pd.Categorical(np.arange(20), ordered=True)
-        exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
+        exp = """[0, 1, 2, 3, 4,
+ ...
+ 15, 16, 17, 18, 19]
 Length: 20
 Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
 
         assert repr(c) == exp
 
     def test_categorical_repr_datetime(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=1)
+        c = pd.Categorical(idx)
+
+        exp = (
+            "[2011-01-01 09:00:00]\n"
+            "Categories (1, datetime64[ns]): [2011-01-01 09:00:00]")
+
+        assert repr(c) == exp
+
+        idx = pd.date_range('20110101 09:00:00', freq='H', periods=2)
+        c = pd.Categorical(idx)
+        exp = (
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00]\n"
+            "Categories (2, datetime64[ns]): "
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00]")
+
+        assert repr(c) == exp
+
         idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
         c = pd.Categorical(idx)
 
-        # TODO(wesm): exceeding 80 characters in the console is not good
-        # behavior
         exp = (
-            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, "
-            "2011-01-01 12:00:00, 2011-01-01 13:00:00]\n"
-            "Categories (5, datetime64[ns]): [2011-01-01 09:00:00, "
-            "2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
-            "                                 2011-01-01 12:00:00, "
-            "2011-01-01 13:00:00]""")
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00]\n"
+            "Categories (5, datetime64[ns]): "
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            "                                "
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00]""")
+
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
         exp = (
-            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, "
-            "2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00, "
-            "2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, "
-            "2011-01-01 13:00:00]\n"
-            "Categories (5, datetime64[ns]): [2011-01-01 09:00:00, "
-            "2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
-            "                                 2011-01-01 12:00:00, "
-            "2011-01-01 13:00:00]")
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00,\n"
+            " 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00,\n"
+            " 2011-01-01 13:00:00]\n"
+            "Categories (5, datetime64[ns]): "
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            "                                "
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00]")
 
         assert repr(c) == exp
 
@@ -2318,25 +2366,25 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
                             tz='US/Eastern')
         c = pd.Categorical(idx)
         exp = (
-            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, "
-            "2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, "
-            "2011-01-01 13:00:00-05:00]\n"
+            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
+            " 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
+            " 2011-01-01 13:00:00-05:00]\n"
             "Categories (5, datetime64[ns, US/Eastern]): "
             "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
-            "                                             "
-            "2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
-            "                                             "
-            "2011-01-01 13:00:00-05:00]")
+            "                                            "
+            " 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
+            "                                            "
+            " 2011-01-01 13:00:00-05:00]")
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
         exp = (
-            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, "
-            "2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, "
-            "2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00, "
-            "2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, "
-            "2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]\n"
+            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
+            " 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
+            " 2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00,\n"
+            " 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00,\n"
+            " 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]\n"
             "Categories (5, datetime64[ns, US/Eastern]): "
             "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
             "                                             "
@@ -2349,158 +2397,268 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
     def test_categorical_repr_datetime_ordered(self):
         idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
         c = pd.Categorical(idx, ordered=True)
-        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
-Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
-                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00]\n"
+            "Categories (5, datetime64[ns]): "
+            "[2011-01-01 09:00:00 < 2011-01-01 10:00:00 <"
+            " 2011-01-01 11:00:00 <\n"
+            "                                "
+            " 2011-01-01 12:00:00 < 2011-01-01 13:00:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
-Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
-                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,\n"
+            " 2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00,\n"
+            " 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00,\n"
+            " 2011-01-01 13:00:00]\n"
+            "Categories (5, datetime64[ns]): "
+            "[2011-01-01 09:00:00 < 2011-01-01 10:00:00 <"
+            " 2011-01-01 11:00:00 <\n"
+            "                                "
+            " 2011-01-01 12:00:00 < 2011-01-01 13:00:00]")  # noqa
 
         assert repr(c) == exp
 
         idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5,
                             tz='US/Eastern')
         c = pd.Categorical(idx, ordered=True)
-        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
-Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
-                                             2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
+            " 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
+            " 2011-01-01 13:00:00-05:00]\n"
+            "Categories (5, datetime64[ns, US/Eastern]): "
+            "[2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <\n"
+            "                                            "
+            " 2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <\n"
+            "                                            "
+            " 2011-01-01 13:00:00-05:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
-Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
-                                             2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,\n"
+            " 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,\n"
+            " 2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00,\n"
+            " 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00,\n"
+            " 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]\n"
+            "Categories (5, datetime64[ns, US/Eastern]): "
+            "[2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <\n"
+            "                                            "
+            " 2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <\n"
+            "                                            "
+            " 2011-01-01 13:00:00-05:00]")  # noqa
 
         assert repr(c) == exp
 
     def test_categorical_repr_period(self):
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
         c = pd.Categorical(idx)
-        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
-                            2011-01-01 13:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00,"
+            " 2011-01-01 12:00,\n"
+            " 2011-01-01 13:00]\n"
+            "Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00,"
+            " 2011-01-01 11:00, 2011-01-01 12:00,\n"
+            "                            2011-01-01 13:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
-        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
-                            2011-01-01 13:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00,"
+            " 2011-01-01 12:00,\n"
+            " 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00,"
+            " 2011-01-01 11:00,\n"
+            " 2011-01-01 12:00, 2011-01-01 13:00]\n"
+            "Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00,"
+            " 2011-01-01 11:00, 2011-01-01 12:00,\n"
+            "                            2011-01-01 13:00]")  # noqa
 
         assert repr(c) == exp
 
         idx = pd.period_range('2011-01', freq='M', periods=5)
         c = pd.Categorical(idx)
-        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
-Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
+        exp = (
+            "[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]\n"
+            "Categories (5, period[M]): [2011-01, 2011-02, 2011-03,"
+            " 2011-04, 2011-05]")
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
-        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
-Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""  # noqa
+        exp = (
+            "[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01,"
+            " 2011-02, 2011-03,\n"
+            " 2011-04, 2011-05]\n"
+            "Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04,"
+            " 2011-05]")  # noqa
 
         assert repr(c) == exp
 
     def test_categorical_repr_period_ordered(self):
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
         c = pd.Categorical(idx, ordered=True)
-        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
-                            2011-01-01 13:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00,"
+            " 2011-01-01 12:00,\n"
+            " 2011-01-01 13:00]\n"
+            "Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 <"
+            " 2011-01-01 11:00 < 2011-01-01 12:00 <\n"
+            "                            2011-01-01 13:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
-                            2011-01-01 13:00]"""  # noqa
+        exp = (
+            "[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00,"
+            " 2011-01-01 12:00,\n"
+            " 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00,"
+            " 2011-01-01 11:00,\n"
+            " 2011-01-01 12:00, 2011-01-01 13:00]\n"
+            "Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 <"
+            " 2011-01-01 11:00 < 2011-01-01 12:00 <\n"
+            "                            2011-01-01 13:00]")  # noqa
 
         assert repr(c) == exp
 
         idx = pd.period_range('2011-01', freq='M', periods=5)
         c = pd.Categorical(idx, ordered=True)
-        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
-Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
+        exp = (
+            "[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]\n"
+            "Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 <"
+            " 2011-04 < 2011-05]")
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
-Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""  # noqa
+        exp = (
+            "[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01, 2011-02,"
+            " 2011-03,\n"
+            " 2011-04, 2011-05]\n"
+            "Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 <"
+            " 2011-04 < 2011-05]")  # noqa
 
         assert repr(c) == exp
 
     def test_categorical_repr_timedelta(self):
         idx = pd.timedelta_range('1 days', periods=5)
         c = pd.Categorical(idx)
-        exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+        exp = (
+            "[1 days, 2 days, 3 days, 4 days, 5 days]\n"
+            "Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days,"
+            " 5 days]")
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
-        exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa
+        exp = (
+            "[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days,"
+            " 4 days,\n"
+            " 5 days]\n"
+            "Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days,"
+            " 5 days]")  # noqa
 
         assert repr(c) == exp
 
         idx = pd.timedelta_range('1 hours', periods=20)
         c = pd.Categorical(idx)
-        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
-Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
-                                   3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
-                                   18 days 01:00:00, 19 days 01:00:00]"""  # noqa
+        exp = (
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,"
+            " 3 days 01:00:00,\n"
+            " 4 days 01:00:00,\n"
+            " ...\n"
+            " 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00,"
+            " 18 days 01:00:00,\n"
+            " 19 days 01:00:00]\n"
+            "Length: 20\n"
+            "Categories (20, timedelta64[ns]): "
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,\n"
+            "                                  "
+            " 3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,\n"
+            "                                  "
+            " 18 days 01:00:00, 19 days 01:00:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx)
-        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
-Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
-                                   3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
-                                   18 days 01:00:00, 19 days 01:00:00]"""  # noqa
+        exp = (
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,"
+            " 3 days 01:00:00,\n"
+            " 4 days 01:00:00,\n"
+            " ...\n"
+            " 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00,"
+            " 18 days 01:00:00,\n"
+            " 19 days 01:00:00]\n"
+            "Length: 40\n"
+            "Categories (20, timedelta64[ns]): "
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,\n"
+            "                                  "
+            " 3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,\n"
+            "                                  "
+            " 18 days 01:00:00, 19 days 01:00:00]")  # noqa
 
         assert repr(c) == exp
 
     def test_categorical_repr_timedelta_ordered(self):
         idx = pd.timedelta_range('1 days', periods=5)
         c = pd.Categorical(idx, ordered=True)
-        exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+        exp = (
+            "[1 days, 2 days, 3 days, 4 days, 5 days]\n"
+            "Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days <"
+            " 4 days < 5 days]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+        exp = (
+            "[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days,"
+            " 4 days,\n"
+            " 5 days]\n"
+            "Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days <"
+            " 4 days < 5 days]")  # noqa
 
         assert repr(c) == exp
 
         idx = pd.timedelta_range('1 hours', periods=20)
         c = pd.Categorical(idx, ordered=True)
-        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
-Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
-                                   3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
-                                   18 days 01:00:00 < 19 days 01:00:00]"""  # noqa
+        exp = (
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,"
+            " 3 days 01:00:00,\n"
+            " 4 days 01:00:00,\n"
+            " ...\n"
+            " 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00,"
+            " 18 days 01:00:00,\n"
+            " 19 days 01:00:00]\n"
+            "Length: 20\n"
+            "Categories (20, timedelta64[ns]): "
+            "[0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <\n"
+            "                                  "
+            " 3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <\n"
+            "                                  "
+            " 18 days 01:00:00 < 19 days 01:00:00]")  # noqa
 
         assert repr(c) == exp
 
         c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
-        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
-Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
-                                   3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
-                                   18 days 01:00:00 < 19 days 01:00:00]"""  # noqa
+        exp = (
+            "[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,"
+            " 3 days 01:00:00,\n"
+            " 4 days 01:00:00,\n"
+            " ...\n"
+            " 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00,"
+            " 18 days 01:00:00,\n"
+            " 19 days 01:00:00]\n"
+            "Length: 40\n"
+            "Categories (20, timedelta64[ns]): "
+            "[0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <\n"
+            "                                  "
+            " 3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <\n"
+            "                                  "
+            " 18 days 01:00:00 < 19 days 01:00:00]")  # noqa
 
         assert repr(c) == exp
 
