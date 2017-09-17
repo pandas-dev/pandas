@@ -58,9 +58,46 @@ class TestCategorical(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_getname_category(self):
-        expected = 'A'
+
         s = pd.Series([1, 2, 3], name='A').astype('category')
+        # 'set_categories'
+        expected = 'A'
         result = s.cat.set_categories([1, 2, 3]).name
+        tm.assert_almost_equal(result, expected)
+
+        # 'reorder_categories'
+        expected = 'A'
+        result = s.cat.reorder_categories([2, 3, 1], ordered=True).name
+        tm.assert_almost_equal(result, expected)
+
+        # 'rename_categories'
+        expected = 'A'
+        result = s.cat.rename_categories([1,2,3]).name
+        tm.assert_almost_equal(result, expected)
+
+        # 'remove_unused_categories'
+        expected = 'A'
+        result = s.cat.remove_unused_categories().name
+        tm.assert_almost_equal(result, expected)
+
+        # 'remove_categories'
+        expected = 'A'
+        result = s.cat.remove_categories([2]).name
+        tm.assert_almost_equal(result, expected)
+
+        # 'add_categories'
+        expected = 'A'
+        result = s.cat.add_categories([4]).name
+        tm.assert_almost_equal(result, expected)
+
+        # 'as_ordered'
+        expected = 'A'
+        result = s.cat.as_ordered().name
+        tm.assert_almost_equal(result, expected)
+
+        # 'as_ordered'
+        expected = 'A'
+        result = s.cat.as_ordered().name
         tm.assert_almost_equal(result, expected)
 
     def test_getitem_category_type(self):
