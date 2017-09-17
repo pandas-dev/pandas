@@ -455,6 +455,10 @@ class Resampler(_GroupBy):
         limit : integer, optional
             limit of how many values to fill
 
+        Returns
+        -------
+        an upsampled Series
+
         See Also
         --------
         Series.fillna
@@ -462,6 +466,28 @@ class Resampler(_GroupBy):
         """
         return self._upsample('pad', limit=limit)
     ffill = pad
+
+    def nearest(self, limit=None):
+        """
+        Fill values with nearest neighbor starting from center
+
+        Parameters
+        ----------
+        limit : integer, optional
+            limit of how many values to fill
+
+            .. versionadded:: 0.21.0
+
+        Returns
+        -------
+        an upsampled Series
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
+        """
+        return self._upsample('nearest', limit=limit)
 
     def backfill(self, limit=None):
         """
@@ -471,6 +497,10 @@ class Resampler(_GroupBy):
         ----------
         limit : integer, optional
             limit of how many values to fill
+
+        Returns
+        -------
+        an upsampled Series
 
         See Also
         --------

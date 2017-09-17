@@ -1329,6 +1329,14 @@ class TestDatetimeIndex(Base):
         expected = ts.reindex(result.index, method='ffill', limit=2)
         assert_series_equal(result, expected)
 
+    def test_nearest_upsample_with_limit(self):
+        rng = date_range('1/1/2000', periods=3, freq='5t')
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        result = ts.resample('t').nearest(limit=2)
+        expected = ts.reindex(result.index, method='nearest', limit=2)
+        assert_series_equal(result, expected)
+
     def test_resample_ohlc(self):
         s = self.series
 
@@ -2934,6 +2942,24 @@ class TestResamplerGrouper(object):
         result = r['buyer'].count()
         assert_series_equal(result, expected)
 
+    def test_nearest(self):
+
+        # GH 17496
+        # Resample nearest
+        index = pd.date_range('1/1/2000', periods=3, freq='T')
+        result = pd.Series(range(3), index=index).resample('20s').nearest()
+
+        expected = pd.Series(
+            np.array([0, 0, 1, 1, 1, 2, 2]),
+            index=pd.DatetimeIndex(
+                ['2000-01-01 00:00:00', '2000-01-01 00:00:20',
+                 '2000-01-01 00:00:40', '2000-01-01 00:01:00',
+                 '2000-01-01 00:01:20', '2000-01-01 00:01:40',
+                 '2000-01-01 00:02:00'],
+                dtype='datetime64[ns]',
+                freq='20S'))
+        assert_series_equal(result, expected)
+
     def test_methods(self):
         g = self.frame.groupby('A')
         r = g.resample('2s')
@@ -2960,7 +2986,7 @@ class TestResamplerGrouper(object):
             expected = g.B.apply(lambda x: getattr(x.resample('2s'), f)())
             assert_series_equal(result, expected)
 
-        for f in ['backfill', 'ffill', 'asfreq']:
+        for f in ['nearest', 'backfill', 'ffill', 'asfreq']:
             result = getattr(r, f)()
             expected = g.apply(lambda x: getattr(x.resample('2s'), f)())
             assert_frame_equal(result, expected)
