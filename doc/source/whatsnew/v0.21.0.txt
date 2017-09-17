@@ -215,7 +215,7 @@ New Behaviour:
 
 Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
 
-.. ipython:: ipython
+.. ipython:: python
 
    d = {'a':[1], 'b':['b']}
    df = pd.DataFrame(d)
