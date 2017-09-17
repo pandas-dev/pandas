@@ -9,13 +9,6 @@ iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
-from pandas._libs.tslibs.parsing import (
-    try_parse_dates,
-    try_parse_date_and_time,
-    try_parse_year_month_day,
-    try_parse_datetime_components)
-
-
 from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
                    INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
                    INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)

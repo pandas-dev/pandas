@@ -12,7 +12,8 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas._libs import tslib, lib
+from pandas._libs import tslib
+from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import normalize_date
 from pandas.compat import lmap
@@ -1405,7 +1406,7 @@ class TestArrayToDatetime(object):
     def test_try_parse_dates(self):
         arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
 
-        result = lib.try_parse_dates(arr, dayfirst=True)
+        result = parsing.try_parse_dates(arr, dayfirst=True)
         expected = [parse(d, dayfirst=True) for d in arr]
         assert np.array_equal(result, expected)
 

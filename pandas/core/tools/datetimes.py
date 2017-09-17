@@ -3,6 +3,7 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
+from pandas._libs.tslibs import parsing
 from pandas._libs.tslib import (  # noqa
     parse_time_string,
     _format_is_iso,
@@ -523,9 +524,9 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        parsed = lib.try_parse_year_month_day(carg / 10000,
-                                              carg / 100 % 100,
-                                              carg % 100)
+        parsed = parsing.try_parse_year_month_day(carg / 10000,
+                                                  carg / 100 % 100,
+                                                  carg % 100)
         return tslib.array_to_datetime(parsed, errors=errors)
 
     def calc_with_mask(carg, mask):

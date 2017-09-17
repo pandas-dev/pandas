@@ -369,7 +369,6 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
     return ret, reso
 
 
-# The canonical place for this appears to be in frequencies.pyx.
 cpdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
@@ -527,7 +526,7 @@ def try_parse_datetime_components(ndarray[object] years,
 
 
 #----------------------------------------------------------------------
-# Miscellaneous functions moved from core.tools.datetimes
+# Miscellaneous
 
 _DATEUTIL_LEXER_SPLIT = None
 try:
