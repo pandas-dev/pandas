@@ -111,7 +111,7 @@ cpdef inline object maybe_get_tz(object tz):
     return tz
 
 
-def p_tz_cache_key(tz):
+def _p_tz_cache_key(tz):
     """ Python interface for cache function to facilitate testing."""
     return tz_cache_key(tz)
 

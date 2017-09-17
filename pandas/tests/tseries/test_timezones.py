@@ -1182,8 +1182,8 @@ class TestTimeZoneCacheKey(object):
             if tz_d is None:
                 # skip timezones that dateutil doesn't know about.
                 continue
-            assert (timezones.p_tz_cache_key(tz_p) !=
-                    timezones.p_tz_cache_key(tz_d))
+            assert (timezones._p_tz_cache_key(tz_p) !=
+                    timezones._p_tz_cache_key(tz_d))
 
 
 class TestTimeZones(object):
