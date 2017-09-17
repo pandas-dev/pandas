@@ -572,7 +572,7 @@ class TestTimedeltas(object):
         assert max_td.value == np.iinfo(np.int64).max
 
         # Beyond lower limit, a NAT before the Overflow
-        assert min_td - Timedelta(1, 'ns') is NaT
+        assert (min_td - Timedelta(1, 'ns')) is NaT
 
         with pytest.raises(OverflowError):
             min_td - Timedelta(2, 'ns')
