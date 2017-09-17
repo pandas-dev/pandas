@@ -1,16 +1,17 @@
 # cython: profile=False
 
-from numpy cimport *
-cimport numpy as np
+cimport numpy as cnp
 import numpy as np
 
 cimport cython
 
-import_array()
+cnp.import_array()
 
 cimport util
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+from numpy cimport (ndarray,
+                    double_t,
+                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float16_t, float32_t, float64_t)
 
 from libc.stdlib cimport malloc, free
