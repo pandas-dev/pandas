@@ -2441,10 +2441,24 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        loc : int if unique index, possibly slice or mask if not
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> unique_index = pd.%(klass)s(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+
+        >>> monotonic_index = pd.%(klass)s(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+
+        >>> non_monotonic_index = pd.%(klass)s(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True], dtype=bool)
     """
 
-    @Appender(_index_shared_docs['get_loc'])
+    @Appender(_index_shared_docs['get_loc'] % _index_doc_kwargs)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None:
             if tolerance is not None:
