@@ -50,8 +50,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         axis, and the column names are ignored. The resulting axis will be
         labeled 0, ..., n - 1. That means that either the indices in the
         index column are replaced by new indices, column names are replaced
-        by numbers etc. This is useful if you are concatenating objects 
-        where the concatenation axis does not have meaningful indexing 
+        by numbers etc. This is useful if you are concatenating objects
+        where the concatenation axis does not have meaningful indexing
         information. Note the index values on the other axes are still
         respected in the join.
     keys : sequence, default None
