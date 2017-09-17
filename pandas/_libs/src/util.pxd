@@ -2,6 +2,8 @@ from numpy cimport ndarray
 cimport numpy as cnp
 cimport cpython
 
+from cpython cimport PyString_Check, PyUnicode_Check
+
 cdef extern from "numpy_helper.h":
     inline void set_array_owndata(ndarray ao)
     inline void set_array_not_contiguous(ndarray ao)
@@ -10,7 +12,6 @@ cdef extern from "numpy_helper.h":
     inline int is_float_object(object)
     inline int is_complex_object(object)
     inline int is_bool_object(object)
-    inline int is_string_object(object)
     inline int is_datetime64_object(object)
     inline int is_timedelta64_object(object)
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
@@ -126,3 +127,6 @@ cdef inline bint _checknan(object val):
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'
+
+cdef inline bint is_string_object(object obj):
+    return PyString_Check(obj) or PyUnicode_Check(obj)
