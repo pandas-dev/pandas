@@ -2094,13 +2094,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
                 normalize=True, name=None, closed=None, **kwargs):
     """
-    **EXPERIMENTAL** Return a fixed frequency DatetimeIndex, with
-    CustomBusinessDay as the default frequency
-
-    .. warning:: EXPERIMENTAL
-
-        The CustomBusinessDay class is not officially supported and the API is
-        likely to change in future versions. Use this at your own risk.
+    Return a fixed frequency DatetimeIndex, with CustomBusinessDay as the
+    default frequency
 
     Parameters
     ----------

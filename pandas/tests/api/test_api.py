@@ -63,7 +63,7 @@ class TestPDApi(Base):
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
              'date_range', 'interval_range', 'eval',
-             'factorize', 'get_dummies',
+             'factorize', 'get_dummies', 'cdate_range',
              'infer_freq', 'isna', 'isnull', 'lreshape',
              'melt', 'notna', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',

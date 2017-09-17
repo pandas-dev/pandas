@@ -16,7 +16,8 @@ from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                PeriodIndex, NaT)
 from pandas.core.indexes.period import Period, period_range, pnow
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
-from pandas.core.indexes.datetimes import Timestamp, date_range, bdate_range
+from pandas.core.indexes.datetimes import (Timestamp, date_range, bdate_range,
+                                           cdate_range)
 from pandas.core.indexes.interval import Interval, interval_range
 
 from pandas.core.series import Series
