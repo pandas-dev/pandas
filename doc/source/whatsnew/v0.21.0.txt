@@ -583,6 +583,12 @@ PyPy
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size,
   so an approximation is used instead (:issue:`17228`)
 
+Documentation
+^^^^^^^^^^^^^
+
+- Improved docs for documentation contributors (:issue:`17579`)
+
+
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
