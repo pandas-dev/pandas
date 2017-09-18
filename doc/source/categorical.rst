@@ -146,6 +146,8 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
     df.describe()
     df["cat"].describe()
 
+.. _categorical.cat:
+
 Working with categories
 -----------------------
 
