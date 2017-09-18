@@ -571,6 +571,7 @@ Categorical
 - Bug in the categorical constructor with empty values and categories causing
   the ``.categories`` to be an empty ``Float64Index`` rather than an empty
   ``Index`` with object dtype (:issue:`17248`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^
