@@ -221,7 +221,7 @@ class _HtmlFrameParser(object):
 
         Raises
         ------
-        ValueError : If `match` does not match any text in the document.
+        ValueError : `match` does not match any text in the document.
 
         Returns
         -------
