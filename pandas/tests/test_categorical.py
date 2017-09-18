@@ -56,7 +56,7 @@ class TestCategorical(object):
         result = c.codes[np.array([100000]).astype(np.int64)]
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
- 
+
     @pytest.mark.parametrize(
         "method",
         [
