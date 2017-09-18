@@ -1132,6 +1132,9 @@ class HTMLFormatter(TableFormatter):
         self.write('</tr>', indent)
 
     def write_style(self):
+        # We use the "scoped" attribute here so that the desired 
+        # style properties for the data frame are not then applied 
+        # throughout the entire notebook
         template_first = """\
             <style scoped>"""
         template_last = """\
