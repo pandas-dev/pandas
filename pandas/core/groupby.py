@@ -326,12 +326,6 @@ class Grouper(object):
         self.grouper = ax
         return self.grouper
 
-    def _get_binner_for_grouping(self, obj):
-        """ default to the standard binner here """
-        group_axis = obj._get_axis(self.axis)
-        return Grouping(group_axis, None, obj=obj, name=self.key,
-                        level=self.level, sort=self.sort, in_axis=False)
-
     @property
     def groups(self):
         return self.grouper.groups
@@ -2460,6 +2454,15 @@ class Grouping(object):
             self.grouper, self._labels, self._group_index = \
                 index._get_grouper_for_level(self.grouper, level)
 
+        # a passed Grouper like
+        elif isinstance(self.grouper, Grouper):
+            # get the new grouper
+            _, grouper, _ = self.grouper._get_grouper(self.obj)
+            if self.name is None:
+                self.name = grouper.result_index.name
+            self.obj = self.grouper.obj
+            self.grouper = grouper
+
         else:
             if self.grouper is None and self.name is not None:
                 self.grouper = self.obj[self.name]
@@ -2482,15 +2485,6 @@ class Grouping(object):
                                            categories=c,
                                            ordered=self.grouper.ordered))
 
-            # a passed Grouper like
-            elif isinstance(self.grouper, Grouper):
-
-                # get the new grouper
-                grouper = self.grouper._get_binner_for_grouping(self.obj)
-                self.obj = self.grouper.obj
-                self.grouper = grouper
-                if self.name is None:
-                    self.name = grouper.name
 
             # we are done
             if isinstance(self.grouper, Grouping):
@@ -2536,8 +2530,11 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        values = _ensure_categorical(self.grouper)
-        return values._reverse_indexer()
+        if isinstance(self.grouper, BaseGrouper):
+            return self.grouper.indices
+        else:
+            values = _ensure_categorical(self.grouper)
+            return values._reverse_indexer()
 
     @property
     def labels(self):
@@ -2553,9 +2550,14 @@ class Grouping(object):
 
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
-            labels, uniques = algorithms.factorize(
-                self.grouper, sort=self.sort)
-            uniques = Index(uniques, name=self.name)
+            # for the situation of groupby list of groupers
+            if isinstance(self.grouper, BaseGrouper):
+                labels, _, _ = self.grouper.group_info
+                uniques = self.grouper.result_index
+            else:
+                labels, uniques = algorithms.factorize(
+                    self.grouper, sort=self.sort)
+                uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
 
