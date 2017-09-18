@@ -175,12 +175,8 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
-.. note::
-   Specifying a ``format`` argument will potentially speed up the conversion
-   considerably and explicitly specifying
-   a format string of '%Y%m%d' takes a faster path still.
-
 If you pass a single string to ``to_datetime``, it returns single ``Timestamp``.
+
 Also, ``Timestamp`` can accept the string input.
 Note that ``Timestamp`` doesn't accept string parsing option like ``dayfirst``
 or ``format``, use ``to_datetime`` if these are required.
@@ -190,6 +186,25 @@ or ``format``, use ``to_datetime`` if these are required.
     pd.to_datetime('2010/11/12')
 
     pd.Timestamp('2010/11/12')
+
+Providing a Format Argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the required datetime string, a ``format`` argument can be passed to ensure specific parsing.
+It will potentially speed up the conversion considerably.
+
+For example:
+
+.. ipython:: python
+
+    pd.to_datetime('2010/11/12', format='%Y/%m/%d')
+
+    pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
+
+For more information on how to specify the ``format`` options, see https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+Assembling datetime from multiple DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.18.1
 
