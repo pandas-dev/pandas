@@ -655,6 +655,50 @@ class TestSparseArray(object):
 
 class TestSparseArrayAnalytics(object):
 
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([True, True, True], True, False),
+        ([1, 2, 1], 1, 0),
+        ([1.0, 2.0, 1.0], 1.0, 0.0)
+    ])
+    def test_all(self, data, pos, neg):
+        # GH 17570
+        out = SparseArray(data).all()
+        assert out
+
+        out = SparseArray(data, fill_value=pos).all()
+        assert out
+
+        data[1] = neg
+        out = SparseArray(data).all()
+        assert not out
+
+        out = SparseArray(data, fill_value=pos).all()
+        assert not out
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([True, True, True], True, False),
+        ([1, 2, 1], 1, 0),
+        ([1.0, 2.0, 1.0], 1.0, 0.0)
+    ])
+    def test_numpy_all(self, data, pos, neg):
+        # GH 17570
+        out = np.all(SparseArray(data))
+        assert out
+
+        out = np.all(SparseArray(data, fill_value=pos))
+        assert out
+
+        data[1] = neg
+        out = np.all(SparseArray(data))
+        assert not out
+
+        out = np.all(SparseArray(data, fill_value=pos))
+        assert not out
+
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.all,
+                               SparseArray(data), out=out)
+
     def test_sum(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).sum()
