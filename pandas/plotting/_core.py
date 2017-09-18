@@ -2861,6 +2861,7 @@ class FramePlotMethods(BasePlotMethods):
         reduce_C_function : callable, optional
             Function of one argument that reduces all the values in a bin to
             a single number (e.g. `mean`, `max`, `sum`, `std`).
+            Only used if `C` is not `None`. Defaults to `mean`.
         gridsize : int, optional
             Number of bins.
         **kwds : optional
