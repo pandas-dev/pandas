@@ -506,6 +506,7 @@ Indexing
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
 - Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
+- Bug in adding ``DatetimeIndex`` with a ``TimedeltaIndex`` or a numpy array with ``dtype="timedelta64"`` (:issue:`17558`)
 
 I/O
 ^^^
