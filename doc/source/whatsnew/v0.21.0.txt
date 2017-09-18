@@ -28,6 +28,7 @@ New features
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
+- :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -67,8 +68,8 @@ Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 New users are often flummoxed by the relationship between column operations and attribute
-access on ``DataFrame`` instances (:issue:`5904` & :issue:`7175`). Two specific instances
-of this confusion include attempting to create a new column by setting into an attribute:
+access on ``DataFrame`` instances (:issue:`7175`). One specific instance
+of this confusion is attempting to create a new column by setting into an attribute:
 
 .. code-block:: ipython
 
@@ -86,25 +87,7 @@ This does not raise any obvious exceptions, but also does not create a new colum
   1  2.0
   2  3.0
 
-The second source of confusion is creating a column whose name collides with a method or
-attribute already in the instance namespace:
-
-.. code-block:: ipython
-
-  In[4]: df['sum'] = [5., 7., 9.]
-
-This does not permit that column to be accessed as an attribute:
-
-.. code-block:: ipython
-
-  In[5]: df.sum
-  Out[5]:
-  <bound method DataFrame.sum of    one  sum
-  0  1.0  5.0
-  1  2.0  7.0
-  2  3.0  9.0>
-
-Both of these now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
 
 .. _whatsnew_0210.enhancements.other:
 
@@ -125,11 +108,12 @@ Other Enhancements
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
+- :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
 
 
 
@@ -204,6 +188,53 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    In [4]: pd.eval("1 + 2", target=arr, inplace=True)
    ...
    ValueError: Cannot operate inplace if there is no assignment
+
+.. _whatsnew_0210.api_breaking.iteration_scalars:
+
+Iteration of Series/Index will now return Python scalars
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Previously:
+
+.. code-block:: ipython
+
+   In [2]: type(list(s)[0])
+   Out[2]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(list(s)[0])
+
+Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
+
+.. ipython:: python
+
+   d = {'a':[1], 'b':['b']}
+   df = pd.DataFrame(d)
+
+Previously:
+
+.. code-block:: ipython
+
+   In [8]: type(df.to_dict()['a'][0])
+   Out[8]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(df.to_dict()['a'][0])
+
+.. _whatsnew_0210.api_breaking.dtype_conversions:
 
 Dtype Conversions
 ^^^^^^^^^^^^^^^^^
@@ -298,6 +329,89 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
    pd.MultiIndex.from_tuples([('a',), ('b',)])
 
+.. _whatsnew_0210.api.utc_localization_with_series:
+
+UTC Localization with Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
+
+  Previous Behavior
+
+  .. ipython:: python
+
+     s = Series(['20130101 00:00:00'] * 3)
+
+  .. code-block:: ipython
+
+     In [12]: pd.to_datetime(s, utc=True)
+     Out[12]:
+     0   2013-01-01
+     1   2013-01-01
+     2   2013-01-01
+     dtype: datetime64[ns]
+
+  New Behavior
+
+  .. ipython:: python
+
+     pd.to_datetime(s, utc=True)
+
+Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
+
+.. _whatsnew_0210.api.consistency_of_range_functions:
+
+Consistency of Range Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`cdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
+
+One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [2]: pd.interval_range(start=0, end=4, periods=6)
+  Out[2]:
+  IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                closed='right',
+                dtype='interval[int64]')
+
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
+  Out[3]: PeriodIndex(['2017Q1', '2017Q2', '2017Q3', '2017Q4', '2018Q1', '2018Q2'], dtype='period[Q-DEC]', freq='Q-DEC')
+
+New Behavior:
+
+.. code-block:: ipython
+
+  In [2]: pd.interval_range(start=0, end=4, periods=6)
+  ---------------------------------------------------------------------------
+  ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
+
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  ---------------------------------------------------------------------------
+  ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
+
+Additionally, the endpoint parameter ``end`` was not included in the intervals produced by ``interval_range``.  However, all other range functions include ``end`` in their output.  To promote consistency among the range functions, ``interval_range`` will now include ``end`` as the right endpoint of the final interval, except if ``freq`` is specified in a way which skips ``end``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+  In [4]: pd.interval_range(start=0, end=4)
+  Out[4]:
+  IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                closed='right',
+                dtype='interval[int64]')
+
+
+New Behavior:
+
+  .. ipython:: python
+
+     pd.interval_range(start=0, end=4)
+
 .. _whatsnew_0210.api:
 
 Other API Changes
@@ -318,6 +432,7 @@ Other API Changes
 - :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
+- Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 
 
 .. _whatsnew_0210.deprecations:
@@ -327,6 +442,8 @@ Deprecations
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
+
+- :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 
 .. _whatsnew_0210.prior_deprecations:
 
@@ -341,6 +458,8 @@ Removal of prior version deprecations/changes
 - ``Categorical`` has dropped the ``.order()`` and ``.sort()`` methods in favor of ``.sort_values()`` (:issue:`12882`)
 - :func:`eval` and :func:`DataFrame.eval` have changed the default of ``inplace`` from ``None`` to ``False`` (:issue:`11149`)
 - The function ``get_offset_name`` has been dropped in favor of the ``.freqstr`` attribute for an offset (:issue:`11834`)
+- pandas no longer tests for compatibility with hdf5-files created with pandas < 0.11 (:issue:`17404`).
+
 
 
 .. _whatsnew_0210.performance:
@@ -350,23 +469,24 @@ Performance Improvements
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
-
+- Improved performance of :meth:`Categorical.set_categories` by not materializing the values (:issue:`17508`)
+- :attr:`Timestamp.microsecond` no longer re-computes on attribute access (:issue:`17331`)
+- Improved performance of the :class:`CategoricalIndex` for data that is already categorical dtype (:issue:`17513`)
 
 .. _whatsnew_0210.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
 
-
 Conversion
 ^^^^^^^^^^
 
 - Bug in assignment against datetime-like data with ``int`` may incorrectly convert to datetime-like (:issue:`14145`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
-- Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size, so an approximation is used instead (:issue:`17228`)
 - Fixed the return type of ``IntervalIndex.is_non_overlapping_monotonic`` to be a Python ``bool`` for consistency with similar attributes/methods.  Previously returned a ``numpy.bool_``. (:issue:`17237`)
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
+- Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
 
 Indexing
 ^^^^^^^^
@@ -384,6 +504,8 @@ Indexing
 - Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
+- Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
+- Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
 
 I/O
 ^^^
@@ -395,11 +517,15 @@ I/O
 - Bug in :func:`read_csv` when called with ``low_memory=False`` in which a CSV with at least one column > 2GB in size would incorrectly raise a ``MemoryError`` (:issue:`16798`).
 - Bug in :func:`read_csv` when called with a single-element list ``header`` would return a ``DataFrame`` of all NaN values (:issue:`7757`)
 - Bug in :func:`read_stata` where value labels could not be read when using an iterator (:issue:`16923`)
+- Bug in :func:`read_stata` where the index was not set (:issue:`16342`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
+- Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
 
 Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
+- Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
+- Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
 
 Groupby/Resample/Rolling
@@ -445,9 +571,20 @@ Categorical
 - Bug in the categorical constructor with empty values and categories causing
   the ``.categories`` to be an empty ``Float64Index`` rather than an empty
   ``Index`` with object dtype (:issue:`17248`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
 
+PyPy
+^^^^
+
+- Compatibility with PyPy in :func:`read_csv` with ``usecols=[<unsorted ints>]`` and
+  :func:`read_json` (:issue:`17351`)
+- Split tests into cases for CPython and PyPy where needed, which highlights the fragility
+  of index matching with ``float('nan')``, ``np.nan`` and ``NAT`` (:issue:`17351`)
+- Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size,
+  so an approximation is used instead (:issue:`17228`)
 
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 - Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
+- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)

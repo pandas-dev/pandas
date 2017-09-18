@@ -1716,6 +1716,7 @@ class CParserWrapper(ParserBase):
             # A set of integers will be converted to a list in
             # the correct order every single time.
             usecols = list(self.usecols)
+            usecols.sort()
         elif (callable(self.usecols) or
                 self.usecols_dtype not in ('empty', None)):
             # The names attribute should have the correct columns
@@ -2835,7 +2836,9 @@ class PythonParser(ParserBase):
             for row_num, actual_len in bad_lines:
                 msg = ('Expected %d fields in line %d, saw %d' %
                        (col_len, row_num + 1, actual_len))
-                if len(self.delimiter) > 1 and self.quoting != csv.QUOTE_NONE:
+                if (self.delimiter and
+                        len(self.delimiter) > 1 and
+                        self.quoting != csv.QUOTE_NONE):
                     # see gh-13374
                     reason = ('Error could possibly be due to quotes being '
                               'ignored when a multi-char delimiter is used.')

@@ -11,6 +11,7 @@ from pandas.core.common import AbstractMethodError
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas.util._decorators import cache_readonly
 
 import functools
 import operator
@@ -573,9 +574,9 @@ class BusinessMixin(object):
         """Reconstruct an instance from a pickled state"""
         self.__dict__ = state
         if 'weekmask' in state and 'holidays' in state:
-            calendar, holidays = self.get_calendar(weekmask=self.weekmask,
-                                                   holidays=self.holidays,
-                                                   calendar=None)
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
             self.kwds['calendar'] = self.calendar = calendar
             self.kwds['holidays'] = self.holidays = holidays
             self.kwds['weekmask'] = state['weekmask']
@@ -938,12 +939,14 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
         self.normalize = normalize
         super(BusinessHour, self).__init__(**kwds)
 
+    @cache_readonly
+    def next_bday(self):
         # used for moving to next businessday
         if self.n >= 0:
             nb_offset = 1
         else:
             nb_offset = -1
-        self.next_bday = BusinessDay(n=nb_offset)
+        return BusinessDay(n=nb_offset)
 
 
 class CustomBusinessDay(BusinessDay):
@@ -978,9 +981,9 @@ class CustomBusinessDay(BusinessDay):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        calendar, holidays = self.get_calendar(weekmask=weekmask,
-                                               holidays=holidays,
-                                               calendar=calendar)
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
         # CustomBusinessDay instances are identified by the
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
@@ -988,36 +991,6 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
-
-    def get_calendar(self, weekmask, holidays, calendar):
-        """Generate busdaycalendar"""
-        if isinstance(calendar, np.busdaycalendar):
-            if not holidays:
-                holidays = tuple(calendar.holidays)
-            elif not isinstance(holidays, tuple):
-                holidays = tuple(holidays)
-            else:
-                # trust that calendar.holidays and holidays are
-                # consistent
-                pass
-            return calendar, holidays
-
-        if holidays is None:
-            holidays = []
-        try:
-            holidays = holidays + calendar.holidays().tolist()
-        except AttributeError:
-            pass
-        holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
-                    holidays]
-        holidays = tuple(sorted(holidays))
-
-        kwargs = {'weekmask': weekmask}
-        if holidays:
-            kwargs['holidays'] = holidays
-
-        busdaycalendar = np.busdaycalendar(**kwargs)
-        return busdaycalendar, holidays
 
     @apply_wraps
     def apply(self, other):
@@ -1050,25 +1023,10 @@ class CustomBusinessDay(BusinessDay):
     def apply_index(self, i):
         raise NotImplementedError
 
-    @staticmethod
-    def _to_dt64(dt, dtype='datetime64'):
-        # Currently
-        # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
-        # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
-        # Thus astype is needed to cast datetime to datetime64[D]
-        if getattr(dt, 'tzinfo', None) is not None:
-            i8 = tslib.pydt_to_i8(dt)
-            dt = tslib.tz_convert_single(i8, 'UTC', dt.tzinfo)
-            dt = Timestamp(dt)
-        dt = np.datetime64(dt)
-        if dt.dtype.name != dtype:
-            dt = dt.astype(dtype)
-        return dt
-
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        day64 = self._to_dt64(dt, 'datetime64[D]')
+        day64 = _to_dt64(dt, 'datetime64[D]')
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
@@ -1087,19 +1045,25 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
         self.n = int(n)
         self.normalize = normalize
         super(CustomBusinessHour, self).__init__(**kwds)
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+    @cache_readonly
+    def next_bday(self):
         # used for moving to next businessday
         if self.n >= 0:
             nb_offset = 1
         else:
             nb_offset = -1
-        self.next_bday = CustomBusinessDay(n=nb_offset,
-                                           weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-
-        self.kwds['weekmask'] = self.next_bday.weekmask
-        self.kwds['holidays'] = self.next_bday.holidays
-        self.kwds['calendar'] = self.next_bday.calendar
+        return CustomBusinessDay(n=nb_offset,
+                                 weekmask=self.weekmask,
+                                 holidays=self.holidays,
+                                 calendar=self.calendar)
 
 
 class MonthOffset(SingleConstructorOffset):
@@ -1471,11 +1435,25 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
-                                       weekmask=weekmask, holidays=holidays,
-                                       calendar=calendar, **kwds)
-        self.m_offset = MonthEnd(n=1, normalize=normalize, **kwds)
-        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays']}
+        return MonthEnd(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -1531,11 +1509,27 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.normalize = normalize
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
-                                       weekmask=weekmask, holidays=holidays,
-                                       calendar=calendar, **kwds)
-        self.m_offset = MonthBegin(n=1, normalize=normalize, **kwds)
-        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
+
+        # _get_calendar does validation and possible transformation
+        # of calendar and holidays.
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        kwds['calendar'] = self.calendar = calendar
+        kwds['weekmask'] = self.weekmask = weekmask
+        kwds['holidays'] = self.holidays = holidays
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays']}
+        return MonthBegin(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -1570,6 +1564,7 @@ class Week(DateOffset):
         Always generate specific day of week. 0 for Monday
     """
     _adjust_dst = True
+    _inc = timedelta(weeks=1)
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1581,7 +1576,6 @@ class Week(DateOffset):
                 raise ValueError('Day must be 0<=day<=6, got {day}'
                                  .format(day=self.weekday))
 
-        self._inc = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -1985,13 +1979,6 @@ class QuarterEnd(QuarterOffset):
     _default_startingMonth = 3
     _prefix = 'Q'
 
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.n = n
-        self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth', 3)
-
-        self.kwds = kwds
-
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
 
@@ -2324,12 +2311,28 @@ class FY5253(DateOffset):
             raise ValueError('{variation} is not a valid variation'
                              .format(variation=self.variation))
 
+    @cache_readonly
+    def _relativedelta_forward(self):
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
-            self._rd_forward = relativedelta(weekday=weekday_offset)
-            self._rd_backward = relativedelta(weekday=weekday_offset(-1))
+            return relativedelta(weekday=weekday_offset)
         else:
-            self._offset_lwom = LastWeekOfMonth(n=1, weekday=self.weekday)
+            return None
+
+    @cache_readonly
+    def _relativedelta_backward(self):
+        if self.variation == "nearest":
+            weekday_offset = weekday(self.weekday)
+            return relativedelta(weekday=weekday_offset(-1))
+        else:
+            return None
+
+    @cache_readonly
+    def _offset_lwom(self):
+        if self.variation == "nearest":
+            return None
+        else:
+            return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
         return self.n == 1 \
@@ -2433,8 +2436,8 @@ class FY5253(DateOffset):
         if target_date.weekday() == self.weekday:
             return target_date
         else:
-            forward = target_date + self._rd_forward
-            backward = target_date + self._rd_backward
+            forward = target_date + self._relativedelta_forward
+            backward = target_date + self._relativedelta_backward
 
             if forward - target_date < target_date - backward:
                 return forward
@@ -2550,7 +2553,10 @@ class FY5253Quarter(DateOffset):
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
-        self._offset = FY5253(
+    @cache_readonly
+    def _offset(self):
+        kwds = self.kwds
+        return FY5253(
             startingMonth=kwds['startingMonth'],
             weekday=kwds["weekday"],
             variation=kwds["variation"])
@@ -2659,9 +2665,6 @@ class Easter(DateOffset):
     1583-4099.
     """
     _adjust_dst = True
-
-    def __init__(self, n=1, **kwds):
-        super(Easter, self).__init__(n, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -2860,6 +2863,54 @@ BMonthBegin = BusinessMonthBegin
 CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
+
+# ---------------------------------------------------------------------
+# Business Calendar helpers
+
+
+def _get_calendar(weekmask, holidays, calendar):
+    """Generate busdaycalendar"""
+    if isinstance(calendar, np.busdaycalendar):
+        if not holidays:
+            holidays = tuple(calendar.holidays)
+        elif not isinstance(holidays, tuple):
+            holidays = tuple(holidays)
+        else:
+            # trust that calendar.holidays and holidays are
+            # consistent
+            pass
+        return calendar, holidays
+
+    if holidays is None:
+        holidays = []
+    try:
+        holidays = holidays + calendar.holidays().tolist()
+    except AttributeError:
+        pass
+    holidays = [_to_dt64(dt, dtype='datetime64[D]') for dt in holidays]
+    holidays = tuple(sorted(holidays))
+
+    kwargs = {'weekmask': weekmask}
+    if holidays:
+        kwargs['holidays'] = holidays
+
+    busdaycalendar = np.busdaycalendar(**kwargs)
+    return busdaycalendar, holidays
+
+
+def _to_dt64(dt, dtype='datetime64'):
+    # Currently
+    # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
+    # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
+    # Thus astype is needed to cast datetime to datetime64[D]
+    if getattr(dt, 'tzinfo', None) is not None:
+        i8 = tslib.pydt_to_i8(dt)
+        dt = tslib.tz_convert_single(i8, 'UTC', dt.tzinfo)
+        dt = Timestamp(dt)
+    dt = np.datetime64(dt)
+    if dt.dtype.name != dtype:
+        dt = dt.astype(dtype)
+    return dt
 
 
 def _get_firstbday(wkday):

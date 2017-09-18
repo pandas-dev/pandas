@@ -52,7 +52,7 @@ class TestBuildSchema(object):
         result = build_table_schema(s)
         assert 'pandas_version' in result
 
-    def tets_series_unnamed(self):
+    def test_series_unnamed(self):
         result = build_table_schema(pd.Series([1, 2, 3]), version=False)
         expected = {'fields': [{'name': 'index', 'type': 'integer'},
                                {'name': 'values', 'type': 'integer'}],

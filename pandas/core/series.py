@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
-    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -1095,14 +1094,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, 'w') as f:
                     f.write(result)
 
-    def __iter__(self):
-        """ provide iteration over the values of the Series
-        box values if necessary """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values)
-
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
@@ -1117,10 +1108,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def keys(self):
         """Alias for index"""
         return self.index
-
-    def tolist(self):
-        """ Convert Series to a nested list """
-        return list(self.asobject)
 
     def to_dict(self, into=dict):
         """
