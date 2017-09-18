@@ -58,7 +58,7 @@ class TestCategorical(object):
         tm.assert_numpy_array_equal(result, expected)
  
     @pytest.mark.parametrize(
-        method",
+        "method",
         [
             lambda x: x.cat.set_categories([1, 2, 3]),
             lambda x: x.cat.reorder_categories([2, 3, 1], ordered=True),
