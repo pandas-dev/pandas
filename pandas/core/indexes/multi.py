@@ -148,8 +148,8 @@ class MultiIndex(Index):
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
         for i, level in enumerate(levels):
-            if len(level) != len(set(level)):
-                raise ValueError("Level values must be unique: {0}"
+            if not level.is_unique:
+                raise ValueError("Level values must be unique: {0!r}"
                                  " on level {1}".format([value for value
                                                          in level], i))
 

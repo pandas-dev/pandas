@@ -432,7 +432,7 @@ Other API Changes
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
-
+- :class:`MultiIndex` constructor now checks if the values of each level are unique when ``verify_integrity=True`` (:issue:`17464`)
 
 .. _whatsnew_0210.deprecations:
 
