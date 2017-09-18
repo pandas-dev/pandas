@@ -70,6 +70,7 @@ class TestCategorical(object):
             lambda x: x.cat.as_unordered(),
         ])
     def test_getname_categorical_accessor(self, method):
+        # https://github.com/pandas-dev/pandas/issues/17509
         s = pd.Series([1, 2, 3], name='A').astype('category')
         expected = 'A'
         result = method(s).name
