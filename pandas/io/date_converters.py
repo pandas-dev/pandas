@@ -3,6 +3,7 @@ from pandas.compat import range, map
 import numpy as np
 from pandas._libs.tslibs import parsing
 
+
 def parse_date_time(date_col, time_col):
     date_col = _maybe_cast(date_col)
     time_col = _maybe_cast(time_col)

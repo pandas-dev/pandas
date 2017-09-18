@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, time
 import numpy as np
 from collections import MutableMapping
 
-from pandas._libs import lib, tslib
+from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslib import (  # noqa
     parse_time_string,
