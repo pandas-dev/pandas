@@ -2852,10 +2852,12 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        x, y : label or position, optional
+        x, y : label or position
             Coordinates for each point.
         C : label or position, optional
             The value at each `(x, y)` point.
+            If `None` (default), the plot displays histogram counts
+            (number of `(x, y)` that fall in each bin).
         reduce_C_function : callable, optional
             Function of one argument that reduces all the values in a bin to
             a single number (e.g. `mean`, `max`, `sum`, `std`).
