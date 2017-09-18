@@ -196,6 +196,12 @@ class _HtmlFrameParser(object):
         self.encoding = encoding
 
     def parse_tables(self):
+        """Parse and return all tables from the DOM.
+
+        Returns
+        -------
+        tables : list of parsed (header, body, footer) tuples from tables
+        """
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
         return (self._build_table(table) for table in tables)
 
@@ -211,12 +217,11 @@ class _HtmlFrameParser(object):
 
         attrs : dict
             A dictionary of table attributes that can be used to disambiguate
-            mutliple tables on a page.
+            multiple tables on a page.
 
         Raises
         ------
-        ValueError
-            * If `match` does not match any text in the document.
+        ValueError : If `match` does not match any text in the document.
 
         Returns
         -------
