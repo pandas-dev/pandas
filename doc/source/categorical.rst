@@ -3,7 +3,7 @@
 .. currentmodule:: pandas
 
 .. ipython:: python
-   :suppress:
+   :suppress:
 
    import numpy as np
    import pandas as pd
@@ -144,8 +144,9 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
     cat = pd.Categorical(["a", "c", "c", np.nan], categories=["b", "a", "c"])
     df = pd.DataFrame({"cat":cat, "s":["a", "c", "c", np.nan]})
     df.describe()
-    df["cat"].describe()
+    df["cat"].describe()
 
+.. _categorical.cat:
 Working with categories
 -----------------------
 
