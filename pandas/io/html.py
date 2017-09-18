@@ -387,14 +387,17 @@ class _HtmlFrameParser(object):
         footer : list of rows, each of which is a list of parsed
                  footer elements
         """
+
         header_rows = []
         body_rows = []
         footer_rows = []
+
         # first, are there thead and tbody elements in the table?
         if (self._contains_tag(table_html, 'thead') and
                 self._contains_tag(table_html, 'tbody')):
             header_rows = self._extract_tr(self._extract_thead(table_html)[0])
             body_rows = self._extract_tr(self._extract_tbody(table_html)[0])
+
             if self._contains_tag(table_html, 'tfoot'):
                 footer_rows = self._extract_tr(
                     self._extract_tfoot(table_html)[0])
@@ -414,6 +417,7 @@ class _HtmlFrameParser(object):
                       self._extract_td(body_rows[-1])):
                 # this row should be a footer row, move it from body to footer
                 footer_rows.insert(0, body_rows.pop())
+
         header = self._expand_colspan_rowspan(header_rows, fill_rowspan=False)
         body = self._expand_colspan_rowspan(body_rows, fill_rowspan=True)
         footer = self._expand_colspan_rowspan(footer_rows, fill_rowspan=False)
@@ -443,6 +447,7 @@ class _HtmlFrameParser(object):
         res : list of rows, each of which is a list of elements in that row,
             respecting colspan/rowspan
         """
+
         res = []
         saved_span = []
         for row in rows:
