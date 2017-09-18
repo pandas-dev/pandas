@@ -29,6 +29,24 @@ import pandas as pd
 from pandas._libs.lib import Timestamp
 
 
+@pytest.fixture(params=[tm.makeUnicodeIndex(100),
+                        tm.makeStringIndex(100),
+                        tm.makeDateIndex(100),
+                        tm.makePeriodIndex(100),
+                        tm.makeTimedeltaIndex(100),
+                        tm.makeIntIndex(100),
+                        tm.makeUIntIndex(100),
+                        tm.makeFloatIndex(100),
+                        Index([True, False]),
+                        tm.makeCategoricalIndex(100),
+                        Index([]),
+                        MultiIndex.from_tuples(lzip(
+                            ['foo', 'bar', 'baz'], [1, 2, 3])),
+                        Index([0, 0, 1, 1, 2, 2])])
+def index(request):
+    return request.param
+
+
 class TestIndex(Base):
     _holder = Index
 
@@ -58,8 +76,8 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self):
-        super(TestIndex, self).test_copy_and_deepcopy()
+    def test_copy_and_deepcopy(self, index):
+        super(TestIndex, self).test_copy_and_deepcopy(index)
 
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
