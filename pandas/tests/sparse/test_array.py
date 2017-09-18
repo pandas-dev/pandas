@@ -699,6 +699,50 @@ class TestSparseArrayAnalytics(object):
         tm.assert_raises_regex(ValueError, msg, np.all,
                                SparseArray(data), out=out)
 
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([False, True, False], True, False),
+        ([0, 2, 0], 2, 0),
+        ([0.0, 2.0, 0.0], 2.0, 0.0)
+    ])
+    def test_any(self, data, pos, neg):
+        # GH 17570
+        out = SparseArray(data).any()
+        assert out
+
+        out = SparseArray(data, fill_value=pos).any()
+        assert out
+
+        data[1] = neg
+        out = SparseArray(data).any()
+        assert not out
+
+        out = SparseArray(data, fill_value=pos).any()
+        assert not out
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([False, True, False], True, False),
+        ([0, 2, 0], 2, 0),
+        ([0.0, 2.0, 0.0], 2.0, 0.0)
+    ])
+    def test_numpy_any(self, data, pos, neg):
+        # GH 17570
+        out = np.any(SparseArray(data))
+        assert out
+
+        out = np.any(SparseArray(data, fill_value=pos))
+        assert out
+
+        data[1] = neg
+        out = np.any(SparseArray(data))
+        assert not out
+
+        out = np.any(SparseArray(data, fill_value=pos))
+        assert not out
+
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.any,
+                               SparseArray(data), out=out)
+
     def test_sum(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).sum()
