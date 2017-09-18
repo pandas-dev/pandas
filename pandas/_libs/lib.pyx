@@ -67,6 +67,7 @@ import tslib
 from tslib import NaT, Timestamp, Timedelta
 import interval
 from interval import Interval
+from properties import AxisProperty, cache_readonly
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -1907,5 +1908,4 @@ cdef class BlockPlacement:
 
 
 include "reduce.pyx"
-include "properties.pyx"
 include "inference.pyx"
