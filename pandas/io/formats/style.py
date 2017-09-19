@@ -178,7 +178,7 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
-    def to_html(self, buf=None, mode='w', encoding='utf8'):
+    def to_html(self, buf=None, mode='w', encoding=None):
         """
         Write the styled DataFrame to html
 

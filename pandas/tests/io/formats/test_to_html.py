@@ -1893,53 +1893,54 @@ class TestToHTML(object):
         import os
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-        scratch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scratch_file)
-        with open(scratch_file, 'r') as fid:
-            actual = fid.read()
+        with tm.ensure_clean() as path:
+            df.to_html(buf=path)
+            with open(path, 'r') as fid:
+                actual = fid.read()
 
-        os.remove(scratch_file)
         expected = df.render()
         assert actual == expected
 
     def test_to_html_styler_file_append(self):
         import os
+        import pandas.util.testing as tm
+
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
 
-        scratch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scratch_file, mode='w')
-        df.to_html(buf=scratch_file, mode='a')
-        with open(scratch_file, 'r') as fid:
-            actual = fid.read()
-        os.remove(scratch_file)
+        with tm.ensure_clean() as path:
+            df.to_html(buf=path, mode='w')
+            df.to_html(buf=path, mode='a')
+            with open(path, 'r') as fid:
+                actual = fid.read()
         expected = df.render() + df.render()
         assert actual == expected
 
     def test_to_html_styler_file_encoding(self):
         import os
+        import pandas.util.testing as tm
+
         encoding='utf16'
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42  
 
-        scratch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scratch_file, encoding=encoding)
-        with open(scratch_file, 'r', encoding=encoding) as fid:
-            actual = fid.read()
+        with tm.ensure_clean() as path:
+            df.to_html(buf=path, encoding=encoding)
+            with open(path, 'r', encoding=encoding) as fid:
+                actual = fid.read()
 
-        os.remove(scratch_file)
         expected = df.render()
         assert actual == expected
 
     def test_to_html_styler_filelike(self):
         from pathlib import Path
+        import pandas.util.testing as tm
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-        scratch_file = '__test_to_html_styler_file_scatch.txt'
-        file_like = Path(scratch_file)
+        with tm.ensure_clean() as path:
+            file_like = Path(path)
+            df.to_html(buf=file_like)
+            with open(file_like, 'r') as fid:
+                actual = fid.read()
         expected = df.render()
-        df.to_html(buf=file_like)
-        with open(file_like, 'r') as fid:
-            actual = fid.read()
-        os.remove(scratch_file)
         assert actual == expected
