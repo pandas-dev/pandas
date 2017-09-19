@@ -525,6 +525,8 @@ Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
+- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`)(:issue:`11471`)
+- With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
 - Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
 

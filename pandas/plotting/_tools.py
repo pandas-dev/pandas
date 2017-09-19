@@ -361,8 +361,8 @@ def _get_xlim(lines):
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
-        left = min(x[0], left)
-        right = max(x[-1], right)
+        left = min(np.nanmin(x), left)
+        right = max(np.nanmax(x), right)
     return left, right
 
 
