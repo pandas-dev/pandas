@@ -2,11 +2,12 @@
 
 import pytest
 import datetime
+from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows
+from pandas.compat import PY3
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
@@ -42,8 +43,24 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if is_platform_windows():
-        pytest.skip("pyarrow-parquet not building on windows")
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_lt_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) >= '0.7.0':
+        pytest.skip("pyarrow is >= 0.7.0")
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_ge_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) < '0.7.0':
+        pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
 
@@ -302,10 +319,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         self.check_error_on_write(df, pa, ValueError)
 
-        # categorical
-        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_error_on_write(df, pa, NotImplementedError)
-
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
                                                    periods=3)})
@@ -314,6 +327,23 @@ class TestParquetPyArrow(Base):
         # mixed python objects
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
         self.check_error_on_write(df, pa, ValueError)
+
+    def test_categorical(self, pa_ge_070):
+        pa = pa_ge_070
+
+        # supported in >= 0.7.0
+        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
+
+        # de-serialized as object
+        expected = df.assign(a=df.a.astype(object))
+        self.check_round_trip(df, pa, expected)
+
+    def test_categorical_unsupported(self, pa_lt_070):
+        pa = pa_lt_070
+
+        # supported in >= 0.7.0
+        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
+        self.check_error_on_write(df, pa, NotImplementedError)
 
 
 class TestParquetFastParquet(Base):
