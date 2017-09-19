@@ -76,3 +76,27 @@ class TestDatetimeIndex(DatetimeLike):
         for case in cases:
             result = first.union(case)
             assert tm.equalContents(result, everything)
+
+    def test_add_dti_td(self):
+        # GH 17558
+        # Check that tz-aware DatetimeIndex + np.array(dtype="timedelta64")
+        # and DatetimeIndex + TimedeltaIndex work as expected
+        dti = pd.DatetimeIndex([pd.Timestamp("2017/01/01")],
+                               name="x").tz_localize('US/Eastern')
+
+        expected = pd.DatetimeIndex([pd.Timestamp("2017/01/01 01:00")],
+                                    name="x").tz_localize('US/Eastern')
+
+        td_np = np.array([np.timedelta64(1, 'h')], dtype="timedelta64[ns]")
+        results = [dti + td_np,     # add numpy array
+                   dti + td_np.astype(dtype="timedelta64[m]"),
+                   dti + pd.TimedeltaIndex(td_np, name=dti.name),
+                   dti + td_np[0],  # add timedelta scalar
+                   dti + pd.to_timedelta(td_np[0]),
+                   ]
+        for actual in results:
+            tm.assert_index_equal(actual, expected)
+
+        errmsg = r"cannot add DatetimeIndex and np.ndarray\[float64\]"
+        with tm.assert_raises_regex(TypeError, errmsg):
+            dti + np.array([0.1], dtype=np.float64)

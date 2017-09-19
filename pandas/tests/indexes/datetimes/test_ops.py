@@ -460,20 +460,6 @@ Freq: D"""
         with pytest.raises(TypeError):
             dti + dti_tz
 
-    def test_add_dti_ndarray(self):
-        # GH 17558
-        # Check that tz-aware DatetimeIndex + np.array(dtype="timedelta64")
-        # and DatetimeIndex + TimedeltaIndex work as expected
-        dti = pd.DatetimeIndex([pd.Timestamp("2017/01/01")])
-        dti = dti.tz_localize('US/Eastern')
-        expected = pd.DatetimeIndex([pd.Timestamp("2017/01/01 01:00")])
-        expected = expected.tz_localize('US/Eastern')
-
-        td_np = np.array([np.timedelta64(1, 'h')], dtype="timedelta64[ns]")
-        tm.assert_index_equal(dti + td_np, expected)
-        tm.assert_index_equal(dti + td_np[0], expected)
-        tm.assert_index_equal(dti + TimedeltaIndex(td_np), expected)
-
     def test_difference(self):
         for tz in self.tz:
             # diff
