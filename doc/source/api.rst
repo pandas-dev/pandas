@@ -2025,6 +2025,7 @@ Upsampling
    Resampler.backfill
    Resampler.bfill
    Resampler.pad
+   Resampler.nearest
    Resampler.fillna
    Resampler.asfreq
    Resampler.interpolate

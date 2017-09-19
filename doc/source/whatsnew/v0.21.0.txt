@@ -28,6 +28,7 @@ New features
   and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
+- :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -524,6 +525,8 @@ Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
+- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`)(:issue:`11471`)
+- With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
 - Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
 
@@ -570,6 +573,7 @@ Categorical
 - Bug in the categorical constructor with empty values and categories causing
   the ``.categories`` to be an empty ``Float64Index`` rather than an empty
   ``Index`` with object dtype (:issue:`17248`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^
