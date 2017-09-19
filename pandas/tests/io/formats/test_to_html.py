@@ -1893,12 +1893,12 @@ class TestToHTML(object):
         import os
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-        scatch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scatch_file)
-        with open(scatch_file, 'r') as fid:
+        scratch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scratch_file)
+        with open(scratch_file, 'r') as fid:
             actual = fid.read()
 
-        os.remove(scatch_file)
+        os.remove(scratch_file)
         expected = df.render()
         assert actual == expected
 
@@ -1907,12 +1907,12 @@ class TestToHTML(object):
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
 
-        scatch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scatch_file, mode='w')
-        df.to_html(buf=scatch_file, mode='a')
-        with open(scatch_file, 'r') as fid:
+        scratch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scratch_file, mode='w')
+        df.to_html(buf=scratch_file, mode='a')
+        with open(scratch_file, 'r') as fid:
             actual = fid.read()
-        os.remove(scatch_file)
+        os.remove(scratch_file)
         expected = df.render() + df.render()
         assert actual == expected
 
@@ -1922,12 +1922,12 @@ class TestToHTML(object):
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42  
 
-        scatch_file = '__test_to_html_styler_file_scatch.txt'
-        df.to_html(buf=scatch_file, encoding=encoding)
-        with open(scatch_file, 'r', encoding=encoding) as fid:
+        scratch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scratch_file, encoding=encoding)
+        with open(scratch_file, 'r', encoding=encoding) as fid:
             actual = fid.read()
 
-        os.remove(scatch_file)
+        os.remove(scratch_file)
         expected = df.render()
         assert actual == expected
 
@@ -1935,10 +1935,11 @@ class TestToHTML(object):
         from pathlib import Path
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-        scatch_file = '__test_to_html_styler_file_scatch.txt'
-        file_like = Path(scatch_file)
+        scratch_file = '__test_to_html_styler_file_scatch.txt'
+        file_like = Path(scratch_file)
         expected = df.render()
         df.to_html(buf=file_like)
         with open(file_like, 'r') as fid:
             actual = fid.read()
+        os.remove(scratch_file)
         assert actual == expected
