@@ -1882,39 +1882,64 @@ class TestToHTML(object):
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
 
-    def test_to_html_styler(self):
-        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style.applymap(
-            lambda x: 'color: {}'.format(
-                'red' if x < 0 else 'black'))
+    def test_to_html_styler_basic(self):
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-        expected = (
-            '<style  type="text/css" >\n    '
-            '#T_42row0_col0 {\n            '
-            'color:  red;\n        '
-            '}    #T_42row0_col1 {\n            '
-            'color:  red;\n        '
-            '}    #T_42row1_col0 {\n            '
-            'color:  black;\n        '
-            '}    #T_42row1_col1 {\n            '
-            'color:  black;\n        '
-            '}</style>  \n'
-            '<table id="T_42" > \n'
-            '<thead>    <tr> \n        '
-            '<th class="blank level0" ></th> \n        '
-            '<th class="col_heading level0 col0" >A</th> \n        '
-            '<th class="col_heading level0 col1" >B</th> \n    '
-            '</tr></thead> \n'
-            '<tbody>    <tr> \n        '
-            '<th id="T_42level0_row0" class="'
-            'row_heading level0 row0" >0</th> \n        '
-            '<td id="T_42row0_col0" class="data row0 col0" >-1</td> \n        '
-            '<td id="T_42row0_col1" class="data row0 col1" >-2</td> \n    '
-            '</tr>    <tr> \n        '
-            '<th id="T_42level0_row1"'
-            ' class="row_heading level0 row1" >1</th> \n        '
-            '<td id="T_42row1_col0" class="data row1 col0" >1</td> \n        '
-            '<td id="T_42row1_col1" class="data row1 col1" >2</td> \n    '
-            '</tr></tbody> \n'
-            '</table> ')
+        expected = df.render()
+        actual = df.to_html()
+        assert actual == expected
+
+    def test_to_html_styler_file(self):
+        import os
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file)
+        with open(scatch_file, 'r') as fid:
+            actual = fid.read()
+
+        os.remove(scatch_file)
+        expected = df.render()
+        with open('expected.txt','w') as fid:
+            fid.write(expected)
+        with open('actual.txt','w') as fid:
+            fid.write(actual)
+        assert actual == expected
+
+    def test_to_html_styler_file_append(self):
+        import os
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file, mode='w')
+        df.to_html(buf=scatch_file, mode='a')
+        with open(scatch_file, 'r') as fid:
+            actual = fid.read()
+        os.remove(scatch_file)
+        expected = df.render() + df.render()
+        assert actual == expected
+
+    def test_to_html_styler_file_encoding(self):
+        import os
+        encoding='utf16'
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42  
+
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file, encoding=encoding)
+        with open(scatch_file, 'r', encoding=encoding) as fid:
+            actual = fid.read()
+
+        os.remove(scatch_file)
+        expected = df.render()
+        assert actual == expected
+
+    def test_to_html_styler_filelike(self):
+        import io
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+
+        expected = df.render()
         actual = df.to_html()
         assert actual == expected

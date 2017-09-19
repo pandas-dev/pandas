@@ -178,22 +178,21 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
-    def to_html(self, buf=None, mode='w'):
+    def to_html(self, buf=None, mode='w', encoding='utf8'):
         """
-        see pull request #17545
-        Write pandas.io.formats.style.Styler to HTML file
+        Write the styled DataFrame to html
 
         Parameters
         ----------
-        filename : string or ExcelWriter object
-            Output filename
-        mode : string, default 'w'
-            File i/o mode used as open(filename, mode)
+        filename : str or file-like, optional
+            Filename or buffer to write to. Prints to stdout by default
+        mode : str, default 'w'
+            File mode to open with when ``filename`` is a string
 
         """
         if buf is None:  # print to stdout instead of writing to file
             return self.render()
-        with open(buf, 'w') as fid:
+        with open(buf, mode, encoding=encoding) as fid:
             fid.write(self.render())
 
     def _translate(self):
