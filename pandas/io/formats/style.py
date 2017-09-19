@@ -178,6 +178,23 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
+    def to_html(self, buf=None, mode='w', encoding='utf8'):
+        """
+        Write the styled DataFrame to html
+
+        Parameters
+        ----------
+        filename : str or file-like, optional
+            Filename or buffer to write to. Prints to stdout by default
+        mode : str, default 'w'
+            File mode to open with when ``filename`` is a string
+
+        """
+        if buf is None:  # print to stdout instead of writing to file
+            return self.render()
+        with open(buf, mode, encoding=encoding) as fid:
+            fid.write(self.render())
+
     def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`

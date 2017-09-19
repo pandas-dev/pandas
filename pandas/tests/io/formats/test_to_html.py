@@ -1881,3 +1881,64 @@ class TestToHTML(object):
                                                         name='myindexname'))
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
+
+    def test_to_html_styler_basic(self):
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+        expected = df.render()
+        actual = df.to_html()
+        assert actual == expected
+
+    def test_to_html_styler_file(self):
+        import os
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file)
+        with open(scatch_file, 'r') as fid:
+            actual = fid.read()
+
+        os.remove(scatch_file)
+        expected = df.render()
+        assert actual == expected
+
+    def test_to_html_styler_file_append(self):
+        import os
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file, mode='w')
+        df.to_html(buf=scatch_file, mode='a')
+        with open(scatch_file, 'r') as fid:
+            actual = fid.read()
+        os.remove(scatch_file)
+        expected = df.render() + df.render()
+        assert actual == expected
+
+    def test_to_html_styler_file_encoding(self):
+        import os
+        encoding='utf16'
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42  
+
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        df.to_html(buf=scatch_file, encoding=encoding)
+        with open(scatch_file, 'r', encoding=encoding) as fid:
+            actual = fid.read()
+
+        os.remove(scatch_file)
+        expected = df.render()
+        assert actual == expected
+
+    def test_to_html_styler_filelike(self):
+        from pathlib import Path
+        df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
+        df.uuid = 42
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        file_like = Path(scatch_file)
+        expected = df.render()
+        df.to_html(buf=file_like)
+        with open(file_like, 'r') as fid:
+            actual = fid.read()
+        assert actual == expected
