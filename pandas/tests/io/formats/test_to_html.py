@@ -1900,10 +1900,6 @@ class TestToHTML(object):
 
         os.remove(scatch_file)
         expected = df.render()
-        with open('expected.txt','w') as fid:
-            fid.write(expected)
-        with open('actual.txt','w') as fid:
-            fid.write(actual)
         assert actual == expected
 
     def test_to_html_styler_file_append(self):
@@ -1936,10 +1932,13 @@ class TestToHTML(object):
         assert actual == expected
 
     def test_to_html_styler_filelike(self):
-        import io
+        from pathlib import Path
         df = pd.DataFrame({"A": [-1, 1], "B": [-2, 2]}).style
         df.uuid = 42
-
+        scatch_file = '__test_to_html_styler_file_scatch.txt'
+        file_like = Path(scatch_file)
         expected = df.render()
-        actual = df.to_html()
+        df.to_html(buf=file_like)
+        with open(file_like, 'r') as fid:
+            actual = fid.read()
         assert actual == expected
