@@ -615,6 +615,9 @@ class TestCategoricalDtypeParametrized(object):
         with tm.assert_raises_regex(TypeError, 'ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
+        with tm.assert_raises_regex(TypeError, 'collection'):
+            CategoricalDtype('category')
+
     def test_mixed(self):
         a = CategoricalDtype(['a', 'b', 1, 2])
         b = CategoricalDtype(['a', 'b', '1', '2'])

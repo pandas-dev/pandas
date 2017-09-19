@@ -222,6 +222,7 @@ class Categorical(PandasObject):
     Categorical.order
     Categorical.min
     Categorical.max
+    pandas.api.types.CategoricalDtype
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
