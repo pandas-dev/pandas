@@ -826,26 +826,43 @@ class TestSeriesAnalytics(TestData):
 
     def test_cov(self):
         # full overlap
-        tm.assert_almost_equal(self.ts.cov(self.ts), self.ts.std() ** 2)
+        tm.assert_almost_equal(self.ts.cov(self.ts, ddof=1),
+                               self.ts.std(ddof=1) ** 2)
+        tm.assert_almost_equal(self.ts.cov(self.ts, ddof=0),
+                               self.ts.std(ddof=0) ** 2)
 
         # partial overlap
-        tm.assert_almost_equal(self.ts[:15].cov(self.ts[5:]),
-                               self.ts[5:15].std() ** 2)
+        tm.assert_almost_equal(self.ts[:15].cov(self.ts[5:], ddof=1),
+                               self.ts[5:15].std(ddof=1) ** 2)
+        tm.assert_almost_equal(self.ts[:15].cov(self.ts[5:], ddof=0),
+                               self.ts[5:15].std(ddof=0) ** 2)
 
         # No overlap
-        assert np.isnan(self.ts[::2].cov(self.ts[1::2]))
+        assert np.isnan(self.ts[::2].cov(self.ts[1::2], ddof=1))
+        assert np.isnan(self.ts[::2].cov(self.ts[1::2], ddof=0))
 
         # all NA
         cp = self.ts[:10].copy()
         cp[:] = np.nan
-        assert isna(cp.cov(cp))
+        assert isna(cp.cov(cp, ddof=1))
+        assert isna(cp.cov(cp, ddof=0))
 
         # min_periods
-        assert isna(self.ts[:15].cov(self.ts[5:], min_periods=12))
+        assert isna(self.ts[:15].cov(self.ts[5:], min_periods=12, ddof=1))
+        assert isna(self.ts[:15].cov(self.ts[5:], min_periods=12, ddof=0))
 
         ts1 = self.ts[:15].reindex(self.ts.index)
         ts2 = self.ts[5:].reindex(self.ts.index)
-        assert isna(ts1.cov(ts2, min_periods=12))
+        assert isna(ts1.cov(ts2, min_periods=12, ddof=1))
+        assert isna(ts1.cov(ts2, min_periods=12, ddof=0))
+
+        # N - ddof == 0
+        ts1 = self.ts[:1]
+        tm.assert_produces_warning(ts1.cov(ts1, ddof=1))
+        assert isna(ts1.cov(ts1, ddof=1))
+
+        # N - ddof == 1
+        assert ts1.cov(ts1, ddof=0) == 0
 
     def test_count(self):
         assert self.ts.count() == len(self.ts)

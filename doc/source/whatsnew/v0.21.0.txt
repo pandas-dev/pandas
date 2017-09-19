@@ -103,6 +103,7 @@ Other Enhancements
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
+- :func:`DataFrame.cov()` and :func:`Series.cov()` now accept the parameter ``ddof``, making them consistent with ``.var()`` and ``.std()``. This allows the user to change degrees of freedom from the default value (1). (:issue:`16227`)
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
@@ -114,8 +115,6 @@ Other Enhancements
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
-
-
 
 .. _whatsnew_0210.api_breaking:
 

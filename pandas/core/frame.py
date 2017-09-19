@@ -5285,15 +5285,20 @@ class DataFrame(NDFrame):
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods=None):
+    def cov(self, min_periods=None, ddof=1):
         """
-        Compute pairwise covariance of columns, excluding NA/null values
+        Compute pairwise covariance of columns, excluding NA/null values.
 
         Parameters
         ----------
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result.
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -5302,23 +5307,33 @@ class DataFrame(NDFrame):
         Notes
         -----
         `y` contains the covariance matrix of the DataFrame's time series.
-        The covariance is normalized by N-1 (unbiased estimator).
+        The covariance is normalized by ``N-ddof``. For the default ``ddof``
+        value of 1, that results in N-1 (unbiased estimator).
         """
+        if ddof < 0:
+            raise ValueError('ddof ({}) must be >= 0'.format(ddof))
+
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
         mat = numeric_df.values
 
         if notna(mat).all():
+            fill_nan = False
             if min_periods is not None and min_periods > len(mat):
+                fill_nan = True
+            if len(mat) - ddof <= 0:
+                fill_nan = True
+                warnings.warn("N - ddof <= 0 for input ddof.", RuntimeWarning)
+            if fill_nan:
                 baseCov = np.empty((mat.shape[1], mat.shape[1]))
                 baseCov.fill(np.nan)
             else:
-                baseCov = np.cov(mat.T)
+                baseCov = np.cov(mat.T, ddof=ddof)
             baseCov = baseCov.reshape((len(cols), len(cols)))
         else:
             baseCov = libalgos.nancorr(_ensure_float64(mat), cov=True,
-                                       minp=min_periods)
+                                       minp=min_periods, ddof=ddof)
 
         return self._constructor(baseCov, index=idx, columns=cols)
 

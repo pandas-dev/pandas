@@ -1433,7 +1433,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return nanops.nancorr(this.values, other.values, method=method,
                               min_periods=min_periods)
 
-    def cov(self, other, min_periods=None):
+    def cov(self, other, min_periods=None, ddof=1):
         """
         Compute covariance with Series, excluding missing values
 
@@ -1442,18 +1442,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         other : Series
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
         covariance : float
 
-        Normalized by N-1 (unbiased estimator).
+        Notes
+        -----
+        The returned covariance is normalized by ``N-ddof``. For the default
+        ``ddof`` value of 1, that results in N-1 (unbiased estimator).
         """
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return np.nan
         return nanops.nancov(this.values, other.values,
-                             min_periods=min_periods)
+                             min_periods=min_periods, ddof=ddof)
 
     def diff(self, periods=1):
         """
