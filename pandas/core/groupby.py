@@ -1730,13 +1730,14 @@ class BaseGrouper(object):
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True,
-                 mutated=False):
+                 mutated=False, indexer=None):
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self.groupings = groupings
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
+        self.indexer = indexer
 
     @property
     def shape(self):
@@ -2282,11 +2283,12 @@ def generate_bins_generic(values, binner, closed):
 
 class BinGrouper(BaseGrouper):
 
-    def __init__(self, bins, binlabels, filter_empty=False, mutated=False):
+    def __init__(self, bins, binlabels, filter_empty=False, mutated=False, indexer=None):
         self.bins = _ensure_int64(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
+        self.indexer = indexer
 
     @cache_readonly
     def groups(self):
@@ -2554,6 +2556,9 @@ class Grouping(object):
             if isinstance(self.grouper, BaseGrouper):
                 labels, _, _ = self.grouper.group_info
                 uniques = self.grouper.result_index
+                if self.grouper.indexer is not None:
+                    sorter = np.lexsort((labels, self.grouper.indexer))
+                    labels = labels[sorter]
             else:
                 labels, uniques = algorithms.factorize(
                     self.grouper, sort=self.sort)

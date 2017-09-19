@@ -250,7 +250,7 @@ class Resampler(_GroupBy):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
-        bin_grouper = BinGrouper(bins, binlabels)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
     def _assure_grouper(self):
@@ -879,7 +879,14 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper)
+            if len(new_index) == 0:
+                bins = []
+            else:
+                i8 = memb.asi8
+                rng = np.arange(i8[0], i8[-1] + 1)
+                bins = memb.searchsorted(rng, side='right')
+            grouper = BinGrouper(bins, new_index, indexer=self.groupby.indexer)
+            return self._groupby_and_aggregate(how, grouper=grouper)
         elif is_superperiod(ax.freq, self.freq):
             if how == 'ohlc':
                 # GH #13083
