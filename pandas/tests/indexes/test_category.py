@@ -125,6 +125,16 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_create_categorical(self):
+        # https://github.com/pandas-dev/pandas/pull/17513
+        # The public CI constructor doesn't hit this code path with
+        # instances of CategoricalIndex, but we still want to test the code
+        ci = CategoricalIndex(['a', 'b', 'c'])
+        # First ci is self, second ci is data.
+        result = CategoricalIndex._create_categorical(ci, ci)
+        expected = Categorical(['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_disallow_set_ops(self):
 
         # GH 10039
@@ -576,12 +586,13 @@ class TestCategoricalIndex(Base):
             ci.isin(['c', 'a', 'b', np.nan]), np.array([True] * 6))
 
         # mismatched categorical -> coerced to ndarray so doesn't matter
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('abcdefghi'))), np.array([True] *
-                                                                    6))
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('defghi'))),
-            np.array([False] * 5 + [True]))
+        result = ci.isin(ci.set_categories(list('abcdefghi')))
+        expected = np.array([True] * 6)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ci.isin(ci.set_categories(list('defghi')))
+        expected = np.array([False] * 5 + [True])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
 

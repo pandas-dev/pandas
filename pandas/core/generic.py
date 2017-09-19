@@ -2348,8 +2348,6 @@ class NDFrame(PandasObject, SelectionMixin):
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
-            .. versionadded:: 0.16.1
-
         Returns
         -------
         dropped : type of caller
@@ -3070,8 +3068,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Returns a random sample of items from an axis of object.
 
-        .. versionadded:: 0.16.1
-
         Parameters
         ----------
         n : int, optional
@@ -3227,8 +3223,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['pipe'] = ("""
         Apply func(self, \*args, \*\*kwargs)
-
-        .. versionadded:: 0.16.2
 
         Parameters
         ----------

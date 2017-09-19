@@ -2,7 +2,8 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT, get_timezone
+from tslib import NaT
+from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 

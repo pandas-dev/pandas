@@ -605,7 +605,7 @@ class HDFStore(StringMixin):
 
         except (Exception) as e:
 
-            # trying to read from a non-existant file causes an error which
+            # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == 'r' and 'Unable to open/create file' in str(e):
                 raise IOError(str(e))
@@ -1621,7 +1621,7 @@ class IndexCol(StringMixin):
 
     def maybe_set_size(self, min_itemsize=None, **kwargs):
         """ maybe set a string col itemsize:
-               min_itemsize can be an interger or a dict with this columns name
+               min_itemsize can be an integer or a dict with this columns name
                with an integer size """
         if _ensure_decoded(self.kind) == u('string'):
 
@@ -1712,11 +1712,11 @@ class IndexCol(StringMixin):
             self.__dict__.update(idx)
 
     def get_attr(self):
-        """ set the kind for this colummn """
+        """ set the kind for this column """
         self.kind = getattr(self.attrs, self.kind_attr, None)
 
     def set_attr(self):
-        """ set the kind for this colummn """
+        """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
     def read_metadata(self, handler):
@@ -2160,14 +2160,14 @@ class DataCol(IndexCol):
         return self
 
     def get_attr(self):
-        """ get the data for this colummn """
+        """ get the data for this column """
         self.values = getattr(self.attrs, self.kind_attr, None)
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
         self.set_kind()
 
     def set_attr(self):
-        """ set the data for this colummn """
+        """ set the data for this column """
         setattr(self.attrs, self.kind_attr, self.values)
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:

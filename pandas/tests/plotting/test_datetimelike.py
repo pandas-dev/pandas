@@ -347,7 +347,7 @@ class TestTSPlot(TestPlotBase):
             assert int(result[0]) == expected[0].ordinal
             assert int(result[1]) == expected[1].ordinal
 
-            # datetim
+            # datetime
             expected = (Period('1/1/2000', ax.freq),
                         Period('4/1/2000', ax.freq))
             ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))

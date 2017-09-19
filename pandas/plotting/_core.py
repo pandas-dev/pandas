@@ -1150,6 +1150,9 @@ class BarPlot(MPLPlot):
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
+        # we have to treat a series differently than a
+        # 1-column DataFrame w.r.t. color handling
+        self._is_series = isinstance(data, ABCSeries)
         self.bar_width = kwargs.pop('width', 0.5)
         pos = kwargs.pop('position', 0.5)
         kwargs.setdefault('align', 'center')
@@ -1204,7 +1207,10 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
-            kwds['color'] = colors[i % ncolors]
+            if self._is_series:
+                kwds['color'] = colors
+            else:
+                kwds['color'] = colors[i % ncolors]
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
