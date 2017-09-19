@@ -3,13 +3,16 @@
 Contributing to the documentation
 =================================
 
-Whether you are someone who loves writing, teaching, or development, 
-contributing to the documentation is a huge value. While some familiarity
-with **pandas** is helpful, we don't expect you to be an expert to
-contribute documentation. In fact, new users of **pandas** can provide
-helpful improvements and clarify things that are confusing to them. By
-improving the documentation even a small bit, you will be helping the
-next person while gaining experience yourself.
+If you're not the developer type, contributing to the documentation is equally
+as valuable to us. You don't even have to be an expert on
+*pandas* to do so! Something as simple as rewriting small passages for clarity
+as you reference the docs is a simple but effective way to contribute. The
+next person to read that passage will be in your debt!
+
+Actually, there are sections of the docs that are worse off by being written
+by experts. If something in the docs doesn't make sense to you, updating the
+relevant section after you figure it out is a simple way to ensure it will
+help the next person.
 
 .. contents:: Table of contents:
    :local:
