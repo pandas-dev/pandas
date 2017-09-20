@@ -202,17 +202,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             # Override compression based on Content-Encoding header
             compression = 'gzip'
         reader = BytesIO(req.read())
-        if compat.PY3:
-            return TextIOWrapper(reader, encoding=encoding), encoding, compression
-        else:
-            return reader, encoding, compression
+        return reader, encoding, compression
 
     if _is_s3_url(filepath_or_buffer):
         from pandas.io import s3
-        ret = s3.get_filepath_or_buffer(filepath_or_buffer,
+        return s3.get_filepath_or_buffer(filepath_or_buffer,
                                         encoding=encoding,
                                         compression=compression)
-        return TextIOWrapper(ret[0], encoding=encoding), ret[1], ret[2]
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,

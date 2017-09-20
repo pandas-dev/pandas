@@ -340,12 +340,21 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
             json = filepath_or_buffer
     elif hasattr(filepath_or_buffer, 'read'):
         json = filepath_or_buffer.read()
+
     else:
         json = filepath_or_buffer
 
     if lines:
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
+
+        """
+            Handle encoded bytes arrays in PY3 and bytes objects from certain
+            readables before using StringIO.
+        """
+        if isinstance(json, bytes):
+            json = json.decode('utf-8')
+
         lines = list(StringIO(json.strip()))
         json = '[' + ','.join(lines) + ']'
 
