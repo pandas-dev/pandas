@@ -168,10 +168,10 @@ _common_apply_whitelist = frozenset([
 
 _series_apply_whitelist = ((_common_apply_whitelist |
                             {'nlargest', 'nsmallest'}) -
-                           {'boxplot'}) | frozenset(['dtype', 'unique'])
+                           {'boxplot'}) | frozenset(['unique'])
 
 _dataframe_apply_whitelist = ((_common_apply_whitelist |
-                              frozenset(['dtypes', 'corrwith'])) -
+                              frozenset(['corrwith'])) -
                               {'boxplot'})
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
@@ -2782,13 +2782,6 @@ def _whitelist_method_generator(klass, whitelist):
     \"""
     f = %(self)s.__getattr__('%(name)s')
     return f(%(args)s)"""
-    property_wrapper_template = \
-        """@property
-def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
-    return self.__getattr__('%(name)s')"""
     for name in whitelist:
         # don't override anything that was explicitly defined
         # in the base class
@@ -2811,8 +2804,8 @@ def %(name)s(self) :
                       'self': args[0],
                       'args': ','.join(args_by_name)}
         else:
-            wrapper_template = property_wrapper_template
-            params = {'name': name, 'doc': doc}
+            msg = 'property %s should be implemented directly.' % name
+            raise ValueError(msg)
         yield wrapper_template % params
 
 
@@ -2823,6 +2816,14 @@ class SeriesGroupBy(GroupBy):
     for _def_str in _whitelist_method_generator(Series,
                                                 _series_apply_whitelist):
         exec(_def_str)
+
+    @property
+    def dtype(self):
+        """
+         return the dtype object of the underlying data
+        """
+        self._set_group_selection()
+        return self.apply(lambda x: x.dtype)
 
     @property
     def _selection_name(self):
@@ -3979,6 +3980,16 @@ class DataFrameGroupBy(NDFrameGroupBy):
         exec(_def_str)
 
     _block_agg_axis = 1
+
+    @property
+    def dtypes(self):
+        """
+        Return the dtypes in this object.
+        """
+        # need to setup the selection
+        # as are not passed directly but in the grouper
+        self._set_group_selection()
+        return self.apply(lambda x: x.dtypes)
 
     _agg_doc = dedent("""
     Examples
