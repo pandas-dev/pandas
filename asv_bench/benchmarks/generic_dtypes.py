@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pandas._libs.dtypes import generic
+from pandas.core.dtypes import generic
 
 abcs = [getattr(generic, name) for name in dir(generic)
         if name.startswith('ABC')]
