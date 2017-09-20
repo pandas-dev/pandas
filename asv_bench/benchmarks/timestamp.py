@@ -87,4 +87,3 @@ class TimestampOps(object):
 
     def time_to_pydatetime_tz(self):
         self.ts_tz.to_pydatetime()
-
