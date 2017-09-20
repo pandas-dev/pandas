@@ -58,3 +58,15 @@ class TimestampProperties(object):
 
     def time_microsecond(self):
         self.ts.microsecond
+
+
+class TimestampMethods(object):
+    def setup(self):
+        self.ts = Timestamp('2017-08-25 08:16:14')
+        self.ts_tz = Timestamp('2017-08-25 08:16:14', tz='Europe/Brussels')
+
+    def time_to_pydatetime(self):
+        self.ts.to_pydatetime()
+
+    def time_to_pydatetime_tz(self):
+        self.ts_tz.to_pydatetime()
