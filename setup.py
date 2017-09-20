@@ -478,6 +478,7 @@ libraries = ['m'] if not is_platform_windows() else []
 ext_data = {
     '_libs.lib': {'pyxfile': '_libs/lib',
                   'depends': lib_depends + tseries_depends},
+    '_libs.dtypes.generic': {'pyxfile': '_libs/dtypes/generic', 'include': []},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
