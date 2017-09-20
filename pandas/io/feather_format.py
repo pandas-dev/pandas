@@ -19,7 +19,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge\n"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     try:
         feather.__version__ >= LooseVersion('0.3.1')
@@ -29,7 +29,7 @@ def _try_import():
                           "you can install via conda\n"
                           "conda install feather-format -c conda-forge"
                           "or via pip\n"
-                          "pip install feather-format\n")
+                          "pip install -U feather-format\n")
 
     return feather
 
@@ -41,8 +41,7 @@ def to_feather(df, path):
     Parameters
     ----------
     df : DataFrame
-    path : string
-        File path
+    path : string file path, or file-like object
 
     """
     path = _stringify_path(path)
@@ -92,8 +91,7 @@ def read_feather(path, nthreads=1):
 
     Parameters
     ----------
-    path : string
-        File path
+    path : string file path, or file-like object
     nthreads : int, default 1
         Number of CPU threads to use when reading to pandas.DataFrame
 

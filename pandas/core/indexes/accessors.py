@@ -63,23 +63,21 @@ def maybe_to_datetimelike(data, copy=False):
         data = orig.values.categories
 
     if is_datetime64_dtype(data.dtype):
-        return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer'),
+        return DatetimeDelegate(DatetimeIndex(data, copy=copy),
                                 index, name=name, orig=orig)
     elif is_datetime64tz_dtype(data.dtype):
-        return DatetimeDelegate(DatetimeIndex(data, copy=copy, freq='infer',
-                                              ambiguous='infer'),
+        return DatetimeDelegate(DatetimeIndex(data, copy=copy),
                                 index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaDelegate(TimedeltaIndex(data, copy=copy,
-                                                freq='infer'), index,
+        return TimedeltaDelegate(TimedeltaIndex(data, copy=copy), index,
                                  name=name, orig=orig)
+
     else:
         if is_period_arraylike(data):
             return PeriodDelegate(PeriodIndex(data, copy=copy), index,
                                   name=name, orig=orig)
         if is_datetime_arraylike(data):
-            return DatetimeDelegate(DatetimeIndex(data, copy=copy,
-                                                  freq='infer'), index,
+            return DatetimeDelegate(DatetimeIndex(data, copy=copy), index,
                                     name=name, orig=orig)
 
     raise TypeError("cannot convert an object of type {0} to a "
@@ -178,6 +176,10 @@ class DatetimeDelegate(BaseDatetimeDelegate):
     def to_pydatetime(self):
         return self.values.to_pydatetime()
 
+    @property
+    def freq(self):
+        return self.values.inferred_freq
+
 
 @accessors.wrap_delegate_names(delegate=TimedeltaIndex,
                                accessors=TimedeltaIndex._datetimelike_ops,
@@ -214,6 +216,10 @@ class TimedeltaDelegate(BaseDatetimeDelegate):
 
         """
         return self.values.components.set_index(self.index)
+
+    @property
+    def freq(self):
+        return self.values.inferred_freq
 
 
 @accessors.wrap_delegate_names(delegate=PeriodIndex,

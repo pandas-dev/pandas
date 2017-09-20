@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems
+from pandas.compat import StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
@@ -680,7 +680,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
 
         s1 = pd.Series([], dtype='category')
-        s2 = pd.Series([])
+        s2 = pd.Series([], dtype='object')
 
         # different dtype => not-category
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
@@ -1943,6 +1943,17 @@ bar2,12,13,14,15
                            columns=[0, 1, 2],
                            index=exp_idx)
         tm.assert_frame_equal(result, exp)
+
+    def test_concat_order(self):
+        # GH 17344
+        dfs = [pd.DataFrame(index=range(3), columns=['a', 1, None])]
+        dfs += [pd.DataFrame(index=range(3), columns=[None, 1, 'a'])
+                for i in range(100)]
+        result = pd.concat(dfs).columns
+        expected = dfs[0].columns
+        if PY2:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

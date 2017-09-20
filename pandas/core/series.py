@@ -10,7 +10,6 @@ import types
 import warnings
 from textwrap import dedent
 
-from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
@@ -24,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
-    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -74,6 +72,8 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+
+import pandas.plotting._core as gfx
 
 __all__ = ['Series']
 
@@ -217,13 +217,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                             data = np.nan
                     # GH #12169
                     elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
-                        data = ([data.get(i, nan) for i in index]
+                        data = ([data.get(i, np.nan) for i in index]
                                 if data else np.nan)
                     else:
                         data = lib.fast_multiget(data, index.values,
                                                  default=np.nan)
                 except TypeError:
-                    data = ([data.get(i, nan) for i in index]
+                    data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)
 
             elif isinstance(data, SingleBlockManager):
@@ -404,6 +404,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _values(self):
         """ return the internal repr of this data """
         return self._data.internal_values()
+
+    def _formatting_values(self):
+        """Return the values that can be formatted (used by SeriesFormatter
+        and DataFrameFormatter)
+        """
+        return self._data.formatting_values()
 
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
@@ -1097,22 +1103,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, 'w') as f:
                     f.write(result)
 
-    def __iter__(self):
-        """ provide iteration over the values of the Series
-        box values if necessary """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values)
-
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
         """
         return zip(iter(self.index), iter(self))
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -1120,10 +1117,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def keys(self):
         """Alias for index"""
         return self.index
-
-    def tolist(self):
-        """ Convert Series to a nested list """
-        return list(self.asobject)
 
     def to_dict(self, into=dict):
         """
@@ -1693,7 +1686,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=nan):
+    def combine(self, other, func, fill_value=np.nan):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
@@ -2799,7 +2792,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def isnull(self):
         return super(Series, self).isnull()
 
-    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return super(Series, self).notna()
 
@@ -2917,25 +2910,34 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
-    def _dir_deletions(self):
-        return self._accessors
+    # -------------------------------------------------------------------------
+    # Datetimelike delegation methods
+    dt = base.AccessorProperty(CombinedDatetimelikeDelegate)
 
-    def _dir_additions(self):
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
+    # -------------------------------------------------------------------------
+    # Categorical methods
+    cat = base.AccessorProperty(CategoricalDelegate)
+
+    # String Methods
+    str = base.AccessorProperty(strings.StringDelegate)
+
+    # ----------------------------------------------------------------------
+    # Add plotting methods to Series
+    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
+                                 gfx.SeriesPlotMethods)
+    hist = gfx.hist_series
+
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
-_INDEX_TYPES = ndarray, Index, list, tuple
+
+# Add arithmetic!
+ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
+ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
@@ -3108,17 +3110,3 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-# ----------------------------------------------------------------------
-# Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
-
-Series.plot = accessors.AccessorProperty(_gfx.SeriesPlotMethods,
-                                         _gfx.SeriesPlotMethods)
-Series.hist = _gfx.hist_series
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)

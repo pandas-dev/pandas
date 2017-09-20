@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
@@ -152,7 +152,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
-                                          "in the {0} constructor"
+                                          " in the {0} constructor"
                                           .format(self.__class__.__name__))
 
         return dtype
@@ -192,8 +192,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _dir_additions(self):
         """ add the string-like attributes from the info_axis """
-        return set([c for c in self._info_axis
-                    if isinstance(c, string_types) and isidentifier(c)])
+        additions = set([c for c in self._info_axis
+                         if isinstance(c, string_types) and isidentifier(c)])
+        return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
     def _constructor_sliced(self):
@@ -1207,7 +1208,7 @@ class NDFrame(PandasObject, SelectionMixin):
     columns : sequence, optional
         Columns to write
     header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
+        Write out the column names. If a list of strings is given it is
         assumed to be aliases for the column names
     index : boolean, default True
         Write row names (index)
@@ -1264,7 +1265,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         path_or_buf : the path or buffer to write the result string
-            if this is None, return a StringIO of the converted string
+            if this is None, return the converted string
         orient : string
 
             * Series
@@ -1702,8 +1703,9 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
             """
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names.')
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names.')
     @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1826,11 +1828,8 @@ it is assumed to be aliases for the column names.')
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
-
-        numpy < 1.8 has an issue with object arrays and aliasing
-        GH6026
         """
-        self._data.set(item, value, check=pd._np_version_under1p8)
+        self._data.set(item, value, check=False)
 
     @property
     def _is_cached(self):
@@ -2058,18 +2057,77 @@ it is assumed to be aliases for the column names.')
 
     def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         """
-        Analogous to ndarray.take
+        Return the elements in the given *positional* indices along an axis.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
 
         Parameters
         ----------
-        indices : list / array of ints
+        indices : array-like
+            An array of ints indicating which positions to take.
         axis : int, default 0
-        convert : translate neg to pos indices (default)
-        is_copy : mark the returned frame as a copy
+            The axis on which to select elements. "0" means that we are
+            selecting rows, "1" means that we are selecting columns, etc.
+        convert : bool, default True
+            Whether to convert negative indices to positive ones, just as with
+            indexing into Python lists. For example, if `-1` was passed in,
+            this index would be converted ``n - 1``.
+        is_copy : bool, default True
+            Whether to return a copy of the original object or not.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+                               ('parrot', 'bird',     24.0),
+                               ('lion',   'mammal',   80.5),
+                               ('monkey', 'mammal', np.nan)],
+                              columns=('name', 'class', 'max_speed'),
+                              index=[0, 2, 3, 1])
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        2  parrot    bird       24.0
+        3    lion  mammal       80.5
+        1  monkey  mammal        NaN
+
+        Take elements at positions 0 and 3 along the axis 0 (default).
+
+        Note how the actual indices selected (0 and 1) do not correspond to
+        our selected indices 0 and 3. That's because we are selecting the 0th
+        and 3rd rows, not rows whose indices equal 0 and 3.
+
+        >>> df.take([0, 3])
+        0  falcon    bird      389.0
+        1  monkey  mammal        NaN
+
+        Take elements at indices 1 and 2 along the axis 1 (column selection).
+
+        >>> df.take([1, 2], axis=1)
+            class  max_speed
+        0    bird      389.0
+        2    bird       24.0
+        3  mammal       80.5
+        1  mammal        NaN
+
+        We may take elements using negative integers for positive indices,
+        starting from the end of the object, just like with Python lists.
+
+        >>> df.take([-1, -2])
+             name   class  max_speed
+        1  monkey  mammal        NaN
+        3    lion  mammal       80.5
 
         Returns
         -------
         taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        numpy.ndarray.take
+        numpy.take
         """
         nv.validate_take(tuple(), kwargs)
         self._consolidate_inplace()
@@ -2289,8 +2347,6 @@ it is assumed to be aliases for the column names.')
             If True, do operation inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-
-            .. versionadded:: 0.16.1
 
         Returns
         -------
@@ -2973,14 +3029,36 @@ it is assumed to be aliases for the column names.')
 
     def head(self, n=5):
         """
-        Returns first n rows
+        Return the first n rows.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Number of rows to select.
+
+        Returns
+        -------
+        obj_head : type of caller
+            The first n rows of the caller object.
         """
+
         return self.iloc[:n]
 
     def tail(self, n=5):
         """
-        Returns last n rows
+        Return the last n rows.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Number of rows to select.
+
+        Returns
+        -------
+        obj_tail : type of caller
+            The last n rows of the caller object.
         """
+
         if n == 0:
             return self.iloc[0:0]
         return self.iloc[-n:]
@@ -2989,8 +3067,6 @@ it is assumed to be aliases for the column names.')
                random_state=None, axis=None):
         """
         Returns a random sample of items from an axis of object.
-
-        .. versionadded:: 0.16.1
 
         Parameters
         ----------
@@ -3147,8 +3223,6 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['pipe'] = ("""
         Apply func(self, \*args, \*\*kwargs)
-
-        .. versionadded:: 0.16.2
 
         Parameters
         ----------
@@ -3356,6 +3430,12 @@ it is assumed to be aliases for the column names.')
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
+                    warnings.warn("Pandas doesn't allow columns to be "
+                                  "created via a new attribute name - see "
+                                  "https://pandas.pydata.org/pandas-docs/"
+                                  "stable/indexing.html#attribute-access",
+                                  stacklevel=2)
                 object.__setattr__(self, name, value)
 
     # ----------------------------------------------------------------------
@@ -3599,8 +3679,7 @@ it is assumed to be aliases for the column names.')
                      mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
+        Cast a pandas object to a specified dtype ``dtype``.
 
         Parameters
         ----------
@@ -3609,6 +3688,10 @@ it is assumed to be aliases for the column names.')
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
+        copy : bool, default True.
+            Return a copy when ``copy=True`` (be very careful setting
+            ``copy=False`` as changes to values then may propagate to other
+            pandas objects).
         errors : {'raise', 'ignore'}, default 'raise'.
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -3625,6 +3708,52 @@ it is assumed to be aliases for the column names.')
         Returns
         -------
         casted : type of caller
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2], dtype='int32')
+        >>> ser
+        0    1
+        1    2
+        dtype: int32
+        >>> ser.astype('int64')
+        0    1
+        1    2
+        dtype: int64
+
+        Convert to categorical type:
+
+        >>> ser.astype('category')
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [1, 2]
+
+        Convert to ordered categorical type with custom ordering:
+
+        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        0    1
+        1    2
+        dtype: category
+        Categories (2, int64): [2 < 1]
+
+        Note that using ``copy=False`` and changing data on a new
+        pandas object may propagate changes:
+
+        >>> s1 = pd.Series([1,2])
+        >>> s2 = s1.astype('int', copy=False)
+        >>> s2[0] = 10
+        >>> s1  # note that s1[0] has changed too
+        0    10
+        1     2
+        dtype: int64
+
+        See also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Convert argument to a numeric type.
+        numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -3994,7 +4123,8 @@ it is assumed to be aliases for the column names.')
                         continue
                     obj = result[k]
                     obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
-                return result
+                return result if not inplace else None
+
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
@@ -4534,7 +4664,7 @@ it is assumed to be aliases for the column names.')
     # Action Methods
 
     _shared_docs['isna'] = """
-        Return a boolean same-sized object indicating if the values are na.
+        Return a boolean same-sized object indicating if the values are NA.
 
         See Also
         --------
@@ -4553,7 +4683,7 @@ it is assumed to be aliases for the column names.')
 
     _shared_docs['notna'] = """
         Return a boolean same-sized object indicating if the values are
-        not na.
+        not NA.
 
         See Also
         --------
@@ -4599,9 +4729,6 @@ it is assumed to be aliases for the column names.')
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if axis is not None:
             axis = self._get_axis_number(axis)
-
-        if np.any(isna(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
 
         # method is self.le for upper bound and self.ge for lower bound
         if is_scalar(threshold) and is_number(threshold):
@@ -4682,6 +4809,14 @@ it is assumed to be aliases for the column names.')
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
+        # GH 17276
+        # numpy doesn't like NaN as a clip value
+        # so ignore
+        if np.any(pd.isnull(lower)):
+            lower = None
+        if np.any(pd.isnull(upper)):
+            upper = None
+
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
@@ -4698,7 +4833,6 @@ it is assumed to be aliases for the column names.')
         if upper is not None:
             if inplace:
                 result = self
-
             result = result.clip_upper(upper, axis, inplace=inplace)
 
         return result

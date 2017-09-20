@@ -6,7 +6,6 @@ from __future__ import division
 from warnings import warn, catch_warnings
 import numpy as np
 
-from pandas import compat, _np_version_under1p8
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
@@ -170,6 +169,8 @@ def _ensure_arraylike(values):
                                ABCIndexClass, ABCSeries)):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
+            if isinstance(values, tuple):
+                values = list(values)
             values = lib.list_to_object_array(values)
         else:
             values = np.asarray(values)
@@ -392,12 +393,12 @@ def isin(comps, values):
 
     if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(comps).__name__))
+                        " to isin(), you passed a [{comps_type}]"
+                        .format(comps_type=type(comps).__name__))
     if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(values).__name__))
+                        " to isin(), you passed a [{values_type}]"
+                        .format(values_type=type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = lib.list_to_object_array(list(values))
@@ -405,14 +406,12 @@ def isin(comps, values):
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
-    # GH11232
-    # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
+
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if ((_np_version_under1p8 and compat.PY3) or len(comps) > 1000000 and
-       not is_object_dtype(comps)):
+    if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
     elif is_integer_dtype(comps):
         try:
@@ -672,7 +671,7 @@ def mode(values):
     try:
         result = np.sort(result)
     except TypeError as e:
-        warn("Unable to sort modes: %s" % e)
+        warn("Unable to sort modes: {error}".format(error=e))
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
@@ -1476,7 +1475,7 @@ _diff_special = {
 def diff(arr, n, axis=0):
     """
     difference of n between self,
-    analagoust to s-s.shift(n)
+    analogous to s-s.shift(n)
 
     Parameters
     ----------

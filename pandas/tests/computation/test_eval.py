@@ -38,13 +38,14 @@ _scalar_skip = 'in', 'not in'
 
 
 @pytest.fixture(params=(
-    pytest.mark.skipif(engine == 'numexpr' and not _USE_NUMEXPR,
-                       reason='numexpr enabled->{enabled}, '
-                              'installed->{installed}'.format(
-                                  enabled=_USE_NUMEXPR,
-                                  installed=_NUMEXPR_INSTALLED))(engine)
-                       for engine in _engines  # noqa
-))
+    pytest.param(engine,
+                 marks=pytest.mark.skipif(
+                     engine == 'numexpr' and not _USE_NUMEXPR,
+                     reason='numexpr enabled->{enabled}, '
+                            'installed->{installed}'.format(
+                                enabled=_USE_NUMEXPR,
+                                installed=_NUMEXPR_INSTALLED)))
+                 for engine in _engines))  # noqa
 def engine(request):
     return request.param
 

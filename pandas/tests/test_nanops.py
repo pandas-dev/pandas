@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import Series, isna, _np_version_under1p9
+from pandas import Series, isna
 from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -340,15 +340,13 @@ class TestnanopsDataFrame(object):
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        # numpy < 1.9.0 is not computing this correctly
-        if not _np_version_under1p9:
-            for a in [2 ** 55, -2 ** 55, 20150515061816532]:
-                s = Series(a, index=range(500), dtype=np.int64)
-                result = s.mean()
-                np_result = s.values.mean()
-                assert result == a
-                assert result == np_result
-                assert result.dtype == np.float64
+        for a in [2 ** 55, -2 ** 55, 20150515061816532]:
+            s = Series(a, index=range(500), dtype=np.int64)
+            result = s.mean()
+            np_result = s.values.mean()
+            assert result == a
+            assert result == np_result
+            assert result.dtype == np.float64
 
     def test_returned_dtype(self):
 

@@ -16,7 +16,6 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core import accessors
 
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
@@ -604,8 +603,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
-    .. versionadded:: 0.13.0
-
     Parameters
     ----------
     pat : string
@@ -1046,7 +1043,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1076,8 +1072,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1518,7 +1512,12 @@ class StringMethods(accessors.PandasDelegate, NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1942,34 +1941,10 @@ class StringMethods(accessors.PandasDelegate, NoNewAttributesMixin):
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringDelegate(data)
 
-    # TODO: Should we explicitly subclass PandasDelegate to clarify its
-    # role, even though it isn't actually needed?
-    # _delegate_method is really simple in this case:
-    # getattr(self.values, name)(*args, **kwargs)
-    # possibly wrapped in an Index.
+        return cls(data)
 
 
 StringDelegate = StringMethods
 # Alias to mirror CategoricalDelegate and CombinedDatetimelikeDelegate
 
-
-# TODO: This is only mixed in to Index (this PR takes it out of Series)
-# and the _dir_additions/_dir_deletions won't play nicely with
-# any other class this gets mixed into that *does* implement its own
-# _dir_additions/_dir_deletions.  This should be deprecated.
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    str = accessors.AccessorProperty(StringDelegate)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()

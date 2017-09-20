@@ -48,8 +48,6 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
-    .. versionadded:: 0.16.1
-
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
@@ -150,6 +148,10 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         -------
         Categorical
         """
+        if (isinstance(data, (ABCSeries, type(self))) and
+                is_categorical_dtype(data)):
+            data = data.values
+
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
             data = Categorical(data, categories=categories, ordered=ordered)
@@ -270,6 +272,9 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    def tolist(self):
+        return self._data.tolist()
+
     @property
     def codes(self):
         return self._data.codes
@@ -333,9 +338,18 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         # we are going to look things up with the codes themselves
         return self._engine_type(lambda: self.codes.astype('i8'), len(self))
 
+    # introspection
     @cache_readonly
     def is_unique(self):
         return not self.duplicated().any()
+
+    @property
+    def is_monotonic_increasing(self):
+        return Index(self.codes).is_monotonic_increasing
+
+    @property
+    def is_monotonic_decreasing(self):
+        return Index(self.codes).is_monotonic_decreasing
 
     @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
     def unique(self):
@@ -494,7 +508,7 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
@@ -640,7 +654,11 @@ class CategoricalIndex(Index, accessors.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat(self, to_concat, name):
+        # if calling index is category, don't check dtype of others
+        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
+
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories

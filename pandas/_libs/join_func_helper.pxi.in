@@ -9,6 +9,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # asof_join_by
 #----------------------------------------------------------------------
 
+from hashtable cimport PyObjectHashTable, UInt64HashTable, Int64HashTable
+
 {{py:
 
 # table_type, by_dtype
@@ -23,7 +25,6 @@ on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
 }}
 
 
-from hashtable cimport *
 
 {{for table_type, by_dtype in by_dtypes}}
 {{for on_dtype in on_dtypes}}
