@@ -7,9 +7,11 @@
 """define generic base classes for pandas objects"""
 
 
-# define abstract base classes to enable isinstance type checking on our
-# objects
 def create_pandas_abc_type(name, attr, comp):
+    """
+    define abstract base classes to enable isinstance type checking on our
+    objects
+    """
     comp = set(comp)
 
     if len(comp) == 1:
@@ -71,10 +73,3 @@ ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
 ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period",))
 ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ",
                                        ("dateoffset",))
-ABCTick = create_pandas_abc_type("ABCTick", "_typ", ("tick",))
-
-ABCBlockManager = create_pandas_abc_type("ABCBlockManager", "_typ",
-                                         ("blockmanager",))
-ABCNDFrame = create_pandas_abc_type("ABCNDFrame", "_typ", ("ndframe",))
-ABCGroupBy = create_pandas_abc_type("ABCGroupy", "_typ", ("groupby",))
-ABCGrouper = create_pandas_abc_type("ABCGrouper", "_typ", ("grouper",))
