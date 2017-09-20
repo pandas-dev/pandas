@@ -160,8 +160,21 @@ class CategoricalDtype(ExtensionDtype):
         self._finalize(categories, ordered, fastpath=True)
         return self
 
+    @classmethod
+    def _from_categorical_dtype(cls, dtype, categories=None, ordered=None):
+        if categories is ordered is None:
+            return dtype
+        if categories is None:
+            categories = dtype.categories
+        if ordered is None:
+            ordered = dtype.ordered
+        return cls(categories, ordered)
+
     def _finalize(self, categories, ordered, fastpath=False):
         from pandas.core.indexes.base import Index
+
+        if ordered is None:
+            ordered = False
 
         if categories is not None:
             categories = Index(categories, tupleize_cols=False)

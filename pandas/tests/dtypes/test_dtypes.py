@@ -622,3 +622,30 @@ class TestCategoricalDtypeParametrized(object):
         a = CategoricalDtype(['a', 'b', 1, 2])
         b = CategoricalDtype(['a', 'b', '1', '2'])
         assert hash(a) != hash(b)
+
+    def test_from_categorical_dtype_identity(self):
+        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        # Identity test for no changes
+        c2 = CategoricalDtype._from_categorical_dtype(c1)
+        assert c2 is c1
+
+    def test_from_categorical_dtype_categories(self):
+        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        # override categories
+        result = CategoricalDtype._from_categorical_dtype(
+            c1, categories=[2, 3])
+        assert result == CategoricalDtype([2, 3], ordered=True)
+
+    def test_from_categorical_dtype_ordered(self):
+        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        # override ordered
+        result = CategoricalDtype._from_categorical_dtype(
+            c1, ordered=False)
+        assert result == CategoricalDtype([1, 2, 3], ordered=False)
+
+    def test_from_categorical_dtype_both(self):
+        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        # override ordered
+        result = CategoricalDtype._from_categorical_dtype(
+            c1, categories=[1, 2], ordered=False)
+        assert result == CategoricalDtype([1, 2], ordered=False)

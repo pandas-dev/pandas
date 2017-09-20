@@ -234,6 +234,21 @@ class Categorical(PandasObject):
     def __init__(self, values, categories=None, ordered=None, dtype=None,
                  fastpath=False):
 
+        # Ways of specifying the dtype (prioritized ordered)
+        # 1. dtype is a CategoricalDtype
+        #    a.) with known categories, use dtype.categories
+        #    b.) else with Categorical values, use values.dtype
+        #    c.) else, infer from values
+        #    d.) specifying dtype=CategoricalDtype and categories is an error
+        # 2. dtype is a string 'category'
+        #    a.) use categories, ordered
+        #    b.) use values.dtype
+        #    c.) infer from values
+        # 3. dtype is None
+        #    a.) use categories, ordered
+        #    b.) use values.dtype
+        #    c.) infer from values
+
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
                 if dtype == 'category':
@@ -247,12 +262,16 @@ class Categorical(PandasObject):
             categories = dtype.categories
             ordered = dtype.ordered
 
-        if ordered is None:
-            ordered = False
+        elif is_categorical(values):
+            dtype = values.dtype._from_categorical_dtype(values.dtype,
+                                                         categories, ordered)
+        else:
+            dtype = CategoricalDtype(categories, ordered)
+
+        # At this point, dtype is always a CategoricalDtype
+        # if dtype.categories is None, we are inferring
 
         if fastpath:
-            if dtype is None:
-                dtype = CategoricalDtype(categories, ordered)
             self._codes = coerce_indexer_dtype(values, categories)
             self._dtype = dtype
             return
@@ -260,7 +279,7 @@ class Categorical(PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
 
-            # we are either a Series, CategoricalIndex
+            # we are either a Series or a CategoricalIndex
             if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
                 values = values._values
 
@@ -271,6 +290,7 @@ class Categorical(PandasObject):
             values = values.get_values()
 
         elif isinstance(values, (ABCIndexClass, ABCSeries)):
+            # we'll do inference later
             pass
 
         else:
@@ -288,12 +308,12 @@ class Categorical(PandasObject):
                 # "object" dtype to prevent this. In the end objects will be
                 # casted to int/... in the category assignment step.
                 if len(values) == 0 or isna(values).any():
-                    dtype = 'object'
+                    sanitize_dtype = 'object'
                 else:
-                    dtype = None
-                values = _sanitize_array(values, None, dtype=dtype)
+                    sanitize_dtype = None
+                values = _sanitize_array(values, None, dtype=sanitize_dtype)
 
-        if categories is None:
+        if dtype.categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
             except TypeError:
@@ -310,7 +330,8 @@ class Categorical(PandasObject):
                 raise NotImplementedError("> 1 ndim Categorical are not "
                                           "supported at this time")
 
-            if dtype is None or isinstance(dtype, str):
+            if dtype.categories is None:
+                # we're inferring from values
                 dtype = CategoricalDtype(categories, ordered)
 
         else:
@@ -320,11 +341,6 @@ class Categorical(PandasObject):
             #   call us like that, so make some checks
             # - the new one, where each value is also in the categories array
             #   (or np.nan)
-
-            # make sure that we always have the same type here, no matter what
-            # we get passed in
-            if dtype is None or isinstance(dtype, str):
-                dtype = CategoricalDtype(categories, ordered)
 
             codes = _get_codes_for_values(values, dtype.categories)
 

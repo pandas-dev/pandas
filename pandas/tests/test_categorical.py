@@ -488,6 +488,37 @@ class TestCategorical(object):
         with tm.assert_raises_regex(ValueError, "Unknown `dtype`"):
             Categorical([1, 2], dtype="foo")
 
+    def test_constructor_from_categorical_with_dtype(self):
+        dtype = CategoricalDtype(['a', 'b', 'c'], ordered=True)
+        values = Categorical(['a', 'b', 'd'])
+        result = Categorical(values, dtype=dtype)
+        # We use dtype.categories, not values.categories
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'c'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_constructor_from_categorical_with_unknown_dtype(self):
+        dtype = CategoricalDtype(None, ordered=True)
+        values = Categorical(['a', 'b', 'd'])
+        result = Categorical(values, dtype=dtype)
+        # We use values.categories, not dtype.categories
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'd'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_contructor_from_categorical_string(self):
+        values = Categorical(['a', 'b', 'd'])
+        # use categories, ordered
+        result = Categorical(values, categories=['a', 'b', 'c'], ordered=True,
+                             dtype='category')
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'c'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+        # No string
+        result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -931,6 +962,16 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         result = c._set_dtype(CategoricalDtype(['a', 'c']))
         tm.assert_numpy_array_equal(result.codes, np.array([0, -1, -1],
                                                            dtype='int8'))
+
+    def test_set_categories(self):
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        result = cat._set_categories(['a', 'b', 'c', 'd', 'e'])
+        expected = Categorical(['a', 'b', 'c'], categories=list('abcde'))
+        tm.assert_categorical_equal(result, expected)
+
+        # fastpath
+        result = cat._set_categories(['a', 'b', 'c', 'd', 'e'], fastpath=True)
+        tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('values, categories, new_categories', [
         # No NaNs, same cats, same order
