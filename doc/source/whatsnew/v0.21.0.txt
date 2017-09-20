@@ -389,7 +389,7 @@ New Behavior:
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
-  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
@@ -582,12 +582,6 @@ PyPy
   of index matching with ``float('nan')``, ``np.nan`` and ``NAT`` (:issue:`17351`)
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size,
   so an approximation is used instead (:issue:`17228`)
-
-Documentation
-^^^^^^^^^^^^^
-
-- Improved docs for documentation contributors (:issue:`17579`)
-
 
 Other
 ^^^^^
