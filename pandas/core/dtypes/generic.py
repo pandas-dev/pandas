@@ -1,6 +1,6 @@
 """ define generic base classes for pandas objects """
 
-from pandas._libs.dtypes.generic import (
+from pandas._libs.dtypes.generic import (  # noqa
     create_pandas_abc_type,
     ABCIndex,
     ABCInt64Index, ABCUInt64Index,
