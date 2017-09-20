@@ -825,6 +825,7 @@ class Categorical(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
+
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
                               for item in cat.categories]
