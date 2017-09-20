@@ -543,6 +543,11 @@ class SingleConstructorOffset(DateOffset):
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
 
+    @property
+    def offset(self):
+        # Alias for backward compat
+        return self._offset
+
     def _repr_attrs(self):
         if self.offset:
             attrs = ['offset={offset!r}'.format(offset=self.offset)]
@@ -591,8 +596,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset  # alias for backward compat
+        self._offset = kwds.get('offset', timedelta(0))
 
     def _offset_str(self):
         def get_str(td):
@@ -688,8 +692,7 @@ class BusinessHourMixin(BusinessMixin):
         kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
         kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset  # alias for backward compat
+        self._offset = kwds.get('offset', timedelta(0))
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
 
@@ -960,8 +963,7 @@ class CustomBusinessDay(BusinessDay):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset  # alias for backward compat
+        self._offset = kwds.get('offset', timedelta(0))
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1413,8 +1415,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset  # alias for backward compat
+        self._offset = kwds.get('offset', timedelta(0))
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1488,8 +1489,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self._offset = self.offset  # alias for backward compat
+        self._offset = kwds.get('offset', timedelta(0))
 
         # _get_calendar does validation and possible transformation
         # of calendar and holidays.
