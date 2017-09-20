@@ -12,7 +12,7 @@ class GenericDtypes(object):
         i64index = pd.Index(list(range(3)))
         idx = pd.Index(['A', 'B'])
         mi = pd.MultiIndex.from_product([i64index, idx])
-        
+
         self.objs = [
             4,
             3.14,
@@ -36,7 +36,8 @@ class GenericDtypes(object):
             pd.Index(pd.compat.range(144, 169)),
             mi,
             pd.Categorical(['Do', 'Re', 'Mi', 'Fa']),
-            pd.CategoricalIndex(['Do']*5, categories=['Do', 'Re', 'Mi', 'Fa']),
+            pd.CategoricalIndex(['Do'] * 5,
+                                categories=['Do', 'Re', 'Mi', 'Fa']),
         ]
 
     def time_isinstance(self):

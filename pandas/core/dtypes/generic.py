@@ -1,20 +1,20 @@
 """ define generic base classes for pandas objects """
 
 from pandas._libs.dtypes.generic import (
-  ABCIndex,
-  ABCInt64Index, ABCUInt64Index,
-  ABCRangeIndex,
-  ABCFloat64Index,
-  ABCMultiIndex,
-  ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
-  ABCCategoricalIndex,
-  ABCIntervalIndex,
-  ABCIndexClass,
-  ABCSeries, ABCDataFrame, ABCPanel,
-  ABCSparseSeries, ABCSparseArray,
-  ABCCategorical,
-  ABCPeriod,
-  ABCDateOffset)
+    ABCIndex,
+    ABCInt64Index, ABCUInt64Index,
+    ABCRangeIndex,
+    ABCFloat64Index,
+    ABCMultiIndex,
+    ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
+    ABCCategoricalIndex,
+    ABCIntervalIndex,
+    ABCIndexClass,
+    ABCSeries, ABCDataFrame, ABCPanel,
+    ABCSparseSeries, ABCSparseArray,
+    ABCCategorical,
+    ABCPeriod,
+    ABCDateOffset)
 
 
 # define abstract base classes to enable isinstance type checking on our
