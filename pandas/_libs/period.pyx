@@ -34,11 +34,9 @@ from lib cimport is_null_datetimelike, is_period
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
                                 NaT)
-from tslibs.timezones cimport is_utc, is_tzlocal, get_utcoffset
-from tslib cimport (
-    maybe_get_tz,
-    _get_dst_info,
-    _nat_scalar_rules)
+from tslibs.timezones cimport (
+    is_utc, is_tzlocal, get_utcoffset, _get_dst_info, maybe_get_tz)
+from tslib cimport _nat_scalar_rules
 
 from tslibs.frequencies cimport get_freq_code
 

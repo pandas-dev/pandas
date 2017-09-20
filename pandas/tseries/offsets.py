@@ -919,12 +919,14 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
         self.normalize = normalize
         super(BusinessHour, self).__init__(**kwds)
 
+    @cache_readonly
+    def next_bday(self):
         # used for moving to next businessday
         if self.n >= 0:
             nb_offset = 1
         else:
             nb_offset = -1
-        self.next_bday = BusinessDay(n=nb_offset)
+        return BusinessDay(n=nb_offset)
 
 
 class CustomBusinessDay(BusinessDay):
@@ -1543,6 +1545,7 @@ class Week(DateOffset):
         Always generate specific day of week. 0 for Monday
     """
     _adjust_dst = True
+    _inc = timedelta(weeks=1)
 
     def __init__(self, n=1, normalize=False, **kwds):
         self.n = n
@@ -1554,7 +1557,6 @@ class Week(DateOffset):
                 raise ValueError('Day must be 0<=day<=6, got {day}'
                                  .format(day=self.weekday))
 
-        self._inc = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -2284,12 +2286,28 @@ class FY5253(DateOffset):
             raise ValueError('{variation} is not a valid variation'
                              .format(variation=self.variation))
 
+    @cache_readonly
+    def _relativedelta_forward(self):
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
-            self._rd_forward = relativedelta(weekday=weekday_offset)
-            self._rd_backward = relativedelta(weekday=weekday_offset(-1))
+            return relativedelta(weekday=weekday_offset)
         else:
-            self._offset_lwom = LastWeekOfMonth(n=1, weekday=self.weekday)
+            return None
+
+    @cache_readonly
+    def _relativedelta_backward(self):
+        if self.variation == "nearest":
+            weekday_offset = weekday(self.weekday)
+            return relativedelta(weekday=weekday_offset(-1))
+        else:
+            return None
+
+    @cache_readonly
+    def _offset_lwom(self):
+        if self.variation == "nearest":
+            return None
+        else:
+            return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
         return self.n == 1 \
@@ -2393,8 +2411,8 @@ class FY5253(DateOffset):
         if target_date.weekday() == self.weekday:
             return target_date
         else:
-            forward = target_date + self._rd_forward
-            backward = target_date + self._rd_backward
+            forward = target_date + self._relativedelta_forward
+            backward = target_date + self._relativedelta_backward
 
             if forward - target_date < target_date - backward:
                 return forward
@@ -2510,7 +2528,10 @@ class FY5253Quarter(DateOffset):
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
-        self._offset = FY5253(
+    @cache_readonly
+    def _offset(self):
+        kwds = self.kwds
+        return FY5253(
             startingMonth=kwds['startingMonth'],
             weekday=kwds["weekday"],
             variation=kwds["variation"])

@@ -304,6 +304,29 @@ class TestDataFramePlots(TestPlotBase):
         rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64, name='y')
         tm.assert_series_equal(rs, df.y)
 
+    def test_unsorted_index_lims(self):
+        df = DataFrame({'y': [0., 1., 2., 3.]}, index=[1., 0., 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., np.nan, 3., 4., 5., 6.]},
+                       index=[1., 0., 3., 2., np.nan, 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., 2., 3.], 'z': [91., 90., 93., 92.]})
+        ax = df.plot(x='z', y='y')
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
     @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3),
@@ -735,14 +758,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot()
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data()[0][0]
-        assert xmax == lines[0].get_data()[0][-1]
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
 
         ax = df.plot(secondary_y=True)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data()[0][0]
-        assert xmax == lines[0].get_data()[0][-1]
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
 
         axes = df.plot(secondary_y=True, subplots=True)
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
@@ -751,8 +774,8 @@ class TestDataFramePlots(TestPlotBase):
             assert not hasattr(ax, 'right_ax')
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
-            assert xmin == lines[0].get_data()[0][0]
-            assert xmax == lines[0].get_data()[0][-1]
+            assert xmin <= lines[0].get_data()[0][0]
+            assert xmax >= lines[0].get_data()[0][-1]
 
     def test_area_lim(self):
         df = DataFrame(rand(6, 4), columns=['x', 'y', 'z', 'four'])
@@ -763,8 +786,8 @@ class TestDataFramePlots(TestPlotBase):
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
             lines = ax.get_lines()
-            assert xmin == lines[0].get_data()[0][0]
-            assert xmax == lines[0].get_data()[0][-1]
+            assert xmin <= lines[0].get_data()[0][0]
+            assert xmax >= lines[0].get_data()[0][-1]
             assert ymin == 0
 
             ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
@@ -806,6 +829,20 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind='bar', color='green')
         self._check_colors(ax.patches[::5], facecolors=['green'] * 5)
         tm.close()
+
+    def test_bar_user_colors(self):
+        df = pd.DataFrame({"A": range(4),
+                           "B": range(1, 5),
+                           "color": ['red', 'blue', 'blue', 'red']})
+        # This should *only* work when `y` is specified, else
+        # we use one color per column
+        ax = df.plot.bar(y='A', color=df['color'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.)]
+        assert result == expected
 
     @pytest.mark.slow
     def test_bar_linewidth(self):

@@ -918,7 +918,7 @@ class IntervalIndex(IntervalMixin, Index):
         except ValueError:
 
             # we need to coerce; migth have NA's in an
-            # interger dtype
+            # integer dtype
             new_left = taker(left.astype(float))
             new_right = taker(right.astype(float))
 
@@ -1094,7 +1094,8 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Additionally, datetime-like input is also supported.
 
-    >>> pd.interval_range(start='2017-01-01', end='2017-01-04')
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]]
                   closed='right', dtype='interval[datetime64[ns]]')
@@ -1110,7 +1111,8 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(start='2017-01-01', periods=3, freq='MS')
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]]
                   closed='right', dtype='interval[datetime64[ns]]')

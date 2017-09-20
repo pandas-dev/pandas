@@ -57,6 +57,25 @@ class TestCategorical(object):
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: x.cat.set_categories([1, 2, 3]),
+            lambda x: x.cat.reorder_categories([2, 3, 1], ordered=True),
+            lambda x: x.cat.rename_categories([1, 2, 3]),
+            lambda x: x.cat.remove_unused_categories(),
+            lambda x: x.cat.remove_categories([2]),
+            lambda x: x.cat.add_categories([4]),
+            lambda x: x.cat.as_ordered(),
+            lambda x: x.cat.as_unordered(),
+        ])
+    def test_getname_categorical_accessor(self, method):
+        # GH 17509
+        s = pd.Series([1, 2, 3], name='A').astype('category')
+        expected = 'A'
+        result = method(s).name
+        assert result == expected
+
     def test_getitem_category_type(self):
         # GH 14580
         # test iloc() on Series with Categorical data
@@ -4064,7 +4083,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = df.copy()
 
         # object-cat
-        # note that we propogate the category
+        # note that we propagate the category
         # because we don't have any matching rows
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')

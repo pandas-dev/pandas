@@ -900,7 +900,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.tolist
+        numpy.ndarray.tolist
         """
 
         if is_datetimelike(self):
