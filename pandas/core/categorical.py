@@ -25,7 +25,8 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_bool,
     is_list_like, is_sequence,
-    is_scalar)
+    is_scalar,
+    is_dict_like)
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -824,7 +825,11 @@ class Categorical(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-        cat.categories = new_categories
+        if is_dict_like(new_categories):
+            cat.categories = [new_categories.get(item, item)
+                              for item in cat.categories]
+        else:
+            cat.categories = new_categories
         if not inplace:
             return cat
 
