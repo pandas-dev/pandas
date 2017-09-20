@@ -3381,13 +3381,16 @@ class TestTimeGrouper(object):
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet
 
+    # Issue: 17530
     def test_scalar_call_versus_list_call(self):
-        data_frame = pd.DataFrame({
-                                      'location': ['shanghai', 'beijing', 'shanghai'],
-                                      'time': pd.Series(['2017-08-09 13:32:23', '2017-08-11 23:23:15', '2017-08-11 22:23:15'],
-                                                  dtype='datetime64[ns]'),
-                                      'value': [1, 2, 3]
-        }).set_index('time')
+        data_frame = {
+            'location': ['shanghai', 'beijing', 'shanghai'],
+            'time': pd.Series(['2017-08-09 13:32:23', '2017-08-11 23:23:15',
+                               '2017-08-11 22:23:15'],
+                              dtype='datetime64[ns]'),
+            'value': [1, 2, 3]
+        }
+        data_frame = pd.DataFrame(data_frame).set_index('time')
         grouper = TimeGrouper('D')
         grouped = data_frame.groupby(grouper)
         data1 = grouped.count()

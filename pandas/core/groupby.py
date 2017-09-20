@@ -1727,6 +1727,18 @@ class BaseGrouper(object):
     """
     This is an internal Grouper class, which actually holds
     the generated groups
+
+    Parameters
+    ----------
+    axis : the axis to group
+    groupings : all the grouping instances to handle in this grouper
+        for example for grouper list to groupby, need to pass the list
+    sort : True/False
+        whether this grouper will give sorted result or not
+    indexer: the indexer created by Grouper
+        some grouper (TimeGrouper eg) will sort its axis and its
+        group_info is also sorted, so need the indexer to reorder
+
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True,
@@ -2283,6 +2295,35 @@ def generate_bins_generic(values, binner, closed):
 
 class BinGrouper(BaseGrouper):
 
+    """
+    This is an internal Grouper class, which actually holds
+    the generated groups. In contrast with BaseGrouper,
+    BinGrouper get the sorted bins and binlabels to compute group_info
+
+    Parameters
+    ----------
+    bins : the split index of binlabels to group the item of axis
+    binlabels : the label list
+    indexer: the indexer created by Grouper
+        some grouper (TimeGrouper eg) will sort its axis and the
+        group_info of BinGrouper is also sorted
+        can use the indexer to reorder as the unsorted axis
+
+    Examples
+    --------
+    bins is [2, 4, 6, 8, 10]
+    binlabels is DatetimeIndex(['2005-01-01', '2005-01-03',
+        '2005-01-05', '2005-01-07', '2005-01-09'],
+        dtype='datetime64[ns]', freq='2D')
+
+    then the group_info is
+    (array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]), array([0, 1, 2, 3, 4]), 5)
+
+    means the label of each item in axis, the index of label in label
+    list, group number
+
+    """
+
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
                  indexer=None):
         self.bins = _ensure_int64(bins)
@@ -2457,7 +2498,8 @@ class Grouping(object):
             self.grouper, self._labels, self._group_index = \
                 index._get_grouper_for_level(self.grouper, level)
 
-        # a passed Grouper like
+        # a passed Grouper like, directly get the grouper in the same way
+        # as single grouper groupby, use the group_info to get labels
         elif isinstance(self.grouper, Grouper):
             # get the new grouper
             _, grouper, _ = self.grouper._get_grouper(self.obj)
@@ -2532,6 +2574,7 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
+        # for the situation of groupby list of groupers
         if isinstance(self.grouper, BaseGrouper):
             return self.grouper.indices
         else:
