@@ -26,7 +26,7 @@ class GenericDtypes(object):
             "Gentlemen.  You can't fight in here.  This is the War Room!",
             np.random.random(6),
             pd.Period('2012-06-01', freq='M'),
-            pd.Series(np.random.random(6))
+            pd.Series(np.random.random(6)),
             pd.DataFrame(np.random.randn(5, 2), columns=['A', 'B']),
             pd.DataFrame(np.random.randn(6, 2),
                          index=mi,
@@ -35,7 +35,7 @@ class GenericDtypes(object):
             idx,
             pd.Index(pd.compat.range(144, 169)),
             mi,
-            pd.Categorical(['Do', 'Re', 'Mi', 'Fa'])
+            pd.Categorical(['Do', 'Re', 'Mi', 'Fa']),
             pd.CategoricalIndex(['Do']*5, categories=['Do', 'Re', 'Mi', 'Fa']),
         ]
 
