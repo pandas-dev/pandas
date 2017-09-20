@@ -389,7 +389,7 @@ New Behavior:
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
-  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
