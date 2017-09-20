@@ -1388,11 +1388,23 @@ class TestSparseSeriesAnalytics(object):
         # NOTE: These should be add to the 'test_numpy_func_call' test above
         # once the behavior of argmin/argmax is corrected.
         funcs = ['argmin', 'argmax']
+        import warnings
+        print("before")
+        print("filters", warnings.filters)
+        print("onceregsitry", warnings.onceregistry)
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 with tm.assert_produces_warning(FutureWarning,
                                                 check_stacklevel=False):
+                    print("during")
+                    print("filters", warnings.filters)
+                    print("onceregsitry", warnings.onceregistry)
+
                     getattr(np, func)(getattr(self, series))
+
+        print("after")
+        print("filters", warnings.filters)
+        print("onceregsitry", warnings.onceregistry)
 
 
 @pytest.mark.parametrize(
