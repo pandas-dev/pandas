@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+import warnings
 from datetime import datetime
 
 import pytest
@@ -1388,23 +1389,14 @@ class TestSparseSeriesAnalytics(object):
         # NOTE: These should be add to the 'test_numpy_func_call' test above
         # once the behavior of argmin/argmax is corrected.
         funcs = ['argmin', 'argmax']
-        import warnings
-        print("before")
-        print("filters", warnings.filters)
-        print("onceregsitry", warnings.onceregistry)
         for func in funcs:
             for series in ('bseries', 'zbseries'):
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    print("during")
-                    print("filters", warnings.filters)
-                    print("onceregsitry", warnings.onceregistry)
-
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
                     getattr(np, func)(getattr(self, series))
 
-        print("after")
-        print("filters", warnings.filters)
-        print("onceregsitry", warnings.onceregistry)
+                with tm.assert_produces_warning(FutureWarning):
+                    getattr(getattr(self, series), func)()
 
 
 @pytest.mark.parametrize(

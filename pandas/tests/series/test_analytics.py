@@ -1244,7 +1244,7 @@ class TestSeriesAnalytics(TestData):
 
     def test_numpy_argmin_deprecated(self):
         # See gh-16830
-        data = np.random.randint(0, 11, size=10)
+        data = np.arange(10)
 
         s = Series(data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1252,14 +1252,15 @@ class TestSeriesAnalytics(TestData):
             # warning when calling np.argmin. This behavior is temporary
             # until the implemention of Series.argmin is corrected.
             result = np.argmin(s)
-            expected = np.argmin(data)
-            assert result == expected
+
+        assert result == 0
 
         with tm.assert_produces_warning(FutureWarning):
             # argmin is aliased to idxmin
             result = s.argmin()
-            expected = s.idxmin()
-            assert result == expected
+
+        expected = s.idxmin()
+        assert result == expected
 
         if not _np_version_under1p10:
             with tm.assert_produces_warning(FutureWarning,
@@ -1315,6 +1316,7 @@ class TestSeriesAnalytics(TestData):
     def test_numpy_argmax_deprecated(self):
         # See gh-16830
         data = np.random.randint(0, 11, size=10)
+        data = np.arange(10)
 
         s = Series(data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1322,14 +1324,14 @@ class TestSeriesAnalytics(TestData):
             # warning when calling np.argmax. This behavior is temporary
             # until the implemention of Series.argmax is corrected.
             result = np.argmax(s)
-            expected = np.argmax(data)
-            assert result == expected
+        assert result == 9
 
         with tm.assert_produces_warning(FutureWarning):
             # argmax is aliased to idxmax
             result = s.argmax()
-            expected = s.idxmax()
-            assert result == expected
+
+        expected = s.idxmax()
+        assert result == expected
 
         if not _np_version_under1p10:
             with tm.assert_produces_warning(FutureWarning,
