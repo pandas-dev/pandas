@@ -8,7 +8,7 @@ from pandas._libs.dtypes.generic import (
   ABCMultiIndex,
   ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
   ABCCategoricalIndex,
-  ABCIntervalIndex
+  ABCIntervalIndex,
   ABCIndexClass,
   ABCSeries, ABCDataFrame, ABCPanel,
   ABCSparseSeries, ABCSparseArray,
