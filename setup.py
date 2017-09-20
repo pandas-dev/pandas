@@ -343,6 +343,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/dtypes/generic.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
