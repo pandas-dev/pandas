@@ -61,6 +61,7 @@ class TestSparseArray(object):
         assert arr.dtype == np.object
         assert arr.fill_value == 'A'
 
+        # GH 17574
         data = [False, 0, 100.0, 0.0]
         arr = SparseArray(data, dtype=np.object, fill_value=False)
         assert arr.dtype == np.object
