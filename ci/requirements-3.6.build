@@ -2,5 +2,7 @@ python=3.6*
 python-dateutil
 pytz
 nomkl
-numpy
 cython
+
+# pin numpy that is built for all our deps
+numpy=1.13.1=py36_blas_openblas_201
