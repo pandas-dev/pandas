@@ -441,7 +441,8 @@ class JsonReader(BaseIterator):
         """Combines a multi-line JSON document into a single document"""
         # If given a json lines file, we break the string into lines, add
         # commas and put it in a json list to make a valid json object.
-        lines = StringIO(data.strip())
+
+        lines = filter(None, data.strip().split('\n'))
         return '[' + ','.join(lines) + ']'
 
     def read(self):
@@ -496,11 +497,7 @@ class JsonReader(BaseIterator):
         lines = list(islice(self.data, self.chunksize))
         if lines:
 
-            # _get_object_parser can't handle multiple empty lines, so we just
-            # pass it one and it will correctly return an empty object
-            if all(line=="\n" for line in lines):
-                lines = lines[0]
-
+            lines = filter(None, map(lambda x: x.strip(), lines))
             lines_json = '[' + ','.join(lines) + ']'
             obj = self._get_object_parser(lines_json)
 

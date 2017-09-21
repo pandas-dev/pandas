@@ -1129,7 +1129,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         """
         for chunksize in [None, 1, 2]:
             orig = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-            test = pd.concat(pd.read_json(j, lines=True, chunksize=chunksize))
+            test = pd.read_json(j, lines=True, chunksize=chunksize)
+            if chunksize is not None:
+                test = pd.concat(test)
             tm.assert_frame_equal(orig, test, obj="chunksize: %s" % chunksize)
 
     def test_latin_encoding(self):
