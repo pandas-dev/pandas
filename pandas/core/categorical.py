@@ -793,19 +793,20 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories has to be a list-like object. All items must be
-        unique and the number of items in the new categories must be the same
-        as the number of items in the old categories.
+        The new categories can be either a list-like dict-like object.
+        If it is list-like, all items must be unique and the number of items
+        in the new categories must be the same as the number of items in the
+        old categories.
 
         Raises
         ------
         ValueError
-            If the new categories do not have the same number of items than the
-            current categories or do not validate as categories
+            If new categories are list-like and do not have the same number of
+            items than the current categories or do not validate as categories
 
         Parameters
         ----------
-        new_categories : Index-like
+        new_categories : Index-like or dict-like (>=0.21.0)
            The renamed categories.
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
