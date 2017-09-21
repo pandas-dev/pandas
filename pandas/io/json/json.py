@@ -392,6 +392,9 @@ class JsonReader(BaseIterator):
         """
         At this point, the data either has a `read` attribute (e.g. a file
         object or a StringIO) or is a string that is a JSON document.
+
+        If self.chunksize, we want to prepare the data for the `__next__`
+        method. Otherwise, we want to read it into memory for the `read` method.
         """
         if hasattr(data, 'read'):
             if self.chunksize:
@@ -441,7 +444,6 @@ class JsonReader(BaseIterator):
         """Combines a list of JSON objects into one JSON object"""
         lines = filter(None, map(lambda x: x.strip(), lines))
         return '[' + ','.join(lines) + ']'
-
 
     def read(self):
         """Read the whole JSON input into a pandas object"""
