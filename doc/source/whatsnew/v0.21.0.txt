@@ -389,7 +389,7 @@ New Behavior:
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
-  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
@@ -487,6 +487,7 @@ Conversion
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
+- Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 
 Indexing
 ^^^^^^^^
