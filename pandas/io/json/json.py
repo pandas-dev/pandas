@@ -362,7 +362,7 @@ class JsonReader(BaseIterator):
     """
     def __init__(self, filepath_or_buffer, orient, typ, dtype, convert_axes,
                  convert_dates, keep_default_dates, numpy, precise_float,
-                 date_unit, encoding, lines, chunksize, raw_json=False):
+                 date_unit, encoding, lines, chunksize):
 
         self.path_or_buf = filepath_or_buffer
         self.orient = orient
