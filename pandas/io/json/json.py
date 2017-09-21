@@ -437,20 +437,20 @@ class JsonReader(BaseIterator):
 
         return data
 
-    def combine_lines(self, data):
-        """Combines a multi-line JSON document into a single document"""
-        # If given a json lines file, we break the string into lines, add
-        # commas and put it in a json list to make a valid json object.
-
-        lines = filter(None, data.strip().split('\n'))
+    def combine_lines(self, lines):
+        """Combines a list of JSON objects into one JSON object"""
+        lines = filter(None, map(lambda x: x.strip(), lines))
         return '[' + ','.join(lines) + ']'
+
 
     def read(self):
         """Read the whole JSON input into a pandas object"""
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
-            obj = self._get_object_parser(self.combine_lines(self.data))
+            obj = self._get_object_parser(
+                self.combine_lines(self.data.split('\n'))
+            )
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -496,9 +496,7 @@ class JsonReader(BaseIterator):
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))
         if lines:
-
-            lines = filter(None, map(lambda x: x.strip(), lines))
-            lines_json = '[' + ','.join(lines) + ']'
+            lines_json = self.combine_lines(lines)
             obj = self._get_object_parser(lines_json)
 
             # Make sure that the returned objects have the right index.
