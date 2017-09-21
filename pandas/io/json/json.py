@@ -12,7 +12,7 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _stringify_path, BaseIterator)
 from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
-from pandas.core.reshape import concat
+from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
@@ -378,12 +378,47 @@ class JsonReader(BaseIterator):
         self.lines = lines
         self.chunksize = chunksize
         self.nrows_seen = 0
-        self.raw_json = False
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
+
+        self.fp_or_buf = filepath_or_buffer
+        data = self._get_data_from_filepath(filepath_or_buffer)
+        self.data = self._preprocess_data(data)
+
+    def _preprocess_data(self, data):
+        """
+        At this point, the data either has a `read` attribute (e.g. a file
+        object or a StringIO) or is a string that is a JSON document.
+        """
+        if hasattr(data, 'read'):
+            if self.chunksize:
+                data = data
+            else:
+                data = data.read()
+
+        else:
+            if self.chunksize:
+                data = StringIO(data)
+            else:
+                data = data
+
+        return data
+
+    def _get_data_from_filepath(self, filepath_or_buffer):
+        """
+        read_json accepts three input types:
+            1. filepath (string-like)
+            2. file-like object (e.g. open file object, StringIO)
+            3. JSON string
+
+        This function turns (1) into (2) to simplify the rest of the processing.
+        It returns input types (2) and (3) unchanged.
+        """
+
+        data = None
 
         if isinstance(filepath_or_buffer, compat.string_types):
             try:
@@ -394,16 +429,13 @@ class JsonReader(BaseIterator):
                 exists = False
 
             if exists:
-                self.data, _ = _get_handle(filepath_or_buffer, 'r',
-                                           encoding=encoding)
-            else:
-                self.raw_json = True
-                self.data = filepath_or_buffer
-        elif hasattr(filepath_or_buffer, 'read'):
-            self.data = filepath_or_buffer
-        else:
-            self.raw_json = True
-            self.data = filepath_or_buffer
+                data, _ = _get_handle(filepath_or_buffer, 'r',
+                                      encoding=self.encoding)
+
+        if not data:
+            data = filepath_or_buffer
+
+        return data
 
     def combine_lines(self, data):
         """Combines a multi-line JSON document into a single document"""
@@ -414,21 +446,12 @@ class JsonReader(BaseIterator):
 
     def read(self):
         """Read the whole JSON input into a pandas object"""
-        if self.raw_json:
-            if self.lines:
-                obj = self._get_object_parser(self.combine_lines(self.data))
-            else:
-                obj = self._get_object_parser(self.data)
-        elif self.lines and self.chunksize:
+        if self.lines and self.chunksize:
             obj = concat(self)
+        elif self.lines:
+            obj = self._get_object_parser(self.combine_lines(self.data))
         else:
-
-            if self.lines:
-                obj = self._get_object_parser(
-                    self.combine_lines(self.data.read())
-                )
-            else:
-                obj = self._get_object_parser(self.data.read())
+            obj = self._get_object_parser(self.data)
         self.close()
         return obj
 
@@ -455,14 +478,29 @@ class JsonReader(BaseIterator):
         return obj
 
     def close(self):
+        """
+        If self.chunksize, self.data may need closing.
+        If not, self.fp_or_buff may need closing.
+        """
         try:
             self.data.close()
         except (IOError, AttributeError):
             pass
 
+        try:
+            self.fp_or_buf.close()
+        except(IOError, AttributeError):
+            pass
+
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))
         if lines:
+
+            # _get_object_parser can't handle multiple empty lines, so we just
+            # pass it one and it will correctly return an empty object
+            if all(line=="\n" for line in lines):
+                lines = lines[0]
+
             lines_json = '[' + ','.join(lines) + ']'
             obj = self._get_object_parser(lines_json)
 
