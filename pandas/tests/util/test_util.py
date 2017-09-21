@@ -9,7 +9,7 @@ from collections import OrderedDict
 import pytest
 from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_args_and_kwargs,
                                      validate_bool_kwarg)
@@ -467,3 +467,11 @@ class TestLocaleUtils(object):
 
         current_locale = locale.getlocale()
         assert current_locale == self.current_locale
+
+
+def test_make_signature():
+    # See GH 17608
+    _ = make_signature(validate_kwargs)
+    # Case where the func does not have default kwargs
+    _ = make_signature(deprecate_kwarg)
+    # Case where the func does have default kwargs
