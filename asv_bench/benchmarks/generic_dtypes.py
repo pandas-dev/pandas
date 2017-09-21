@@ -8,6 +8,8 @@ abcs = [getattr(generic, name) for name in dir(generic)
 
 
 class GenericDtypes(object):
+    goal_time = .0821
+
     def setup(self):
         i64index = pd.Index(list(range(3)))
         idx = pd.Index(['A', 'B'])
@@ -40,7 +42,86 @@ class GenericDtypes(object):
                                 categories=['Do', 'Re', 'Mi', 'Fa']),
         ]
 
-    def time_isinstance(self):
+    def time_isinstance_ABCCategorical(self):
         for obj in self.objs:
-            for cls in abcs:
-                isinstance(obj, cls)
+            isinstance(obj, generic.ABCCategorical)
+
+    def time_isinstance_ABCCategoricalIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCCategoricalIndex)
+
+    def time_isinstance_ABCDataFrame(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCDataFrame)
+
+    def time_isinstance_ABCDateOffset(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCDateOffset)
+
+    def time_isinstance_ABCDatetimeIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCDatetimeIndex)
+
+    def time_isinstance_ABCFloat64Index(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCFloat64Index)
+
+    def time_isinstance_ABCGeneric(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCGeneric)
+
+    def time_isinstance_ABCIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCIndex)
+
+    def time_isinstance_ABCIndexClass(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCIndexClass)
+
+    def time_isinstance_ABCInt64Index(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCInt64Index)
+
+    def time_isinstance_ABCIntervalIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCIntervalIndex)
+
+    def time_isinstance_ABCMultiIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCMultiIndex)
+
+    def time_isinstance_ABCPanel(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCPanel)
+
+    def time_isinstance_ABCPeriod(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCPeriod)
+
+    def time_isinstance_ABCPeriodIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCPeriodIndex)
+
+    def time_isinstance_ABCRangeIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCRangeIndex)
+
+    def time_isinstance_ABCSeries(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCSeries)
+
+    def time_isinstance_ABCSparseArray(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCSparseArray)
+
+    def time_isinstance_ABCSparseSeries(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCSparseSeries)
+
+    def time_isinstance_ABCTimedeltaIndex(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCTimedeltaIndex)
+
+    def time_isinstance_ABCUInt64Index(self):
+        for obj in self.objs:
+            isinstance(obj, generic.ABCUInt64Index)
