@@ -995,21 +995,21 @@ class TestRangeIndex(Numeric):
                 result2 = indices[0].append(indices[1])
                 tm.assert_index_equal(result2, expected, exact=True)
 
-    def test_max_min(self):
-        params = [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
-                  (10**6, -10**6, -4), (0, 10, 20)]
-        for start, stop, step in params:
-            idx = RangeIndex(start, stop, step)
+    @pytest.mark.parametrize('start,stop,step',
+                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
+                              (10**6, -10**6, -4), (0, 10, 20)])
+    def test_max_min(self, start, stop, step):
+        # GH17607
+        idx = RangeIndex(start, stop, step)
+        expected = idx._int64index.max()
+        result = idx.max()
+        assert result == expected
 
-            expected = idx._int64index.max()
-            result = idx.max()
-            assert result == expected
-
-            expected = idx._int64index.min()
-            result = idx.min()
-            assert result == expected
+        expected = idx._int64index.min()
+        result = idx.min()
+        assert result == expected
 
         # empty
-        idx = RangeIndex(0, 1, -1)
+        idx = RangeIndex(start, stop, -step)
         assert isna(idx.max())
         assert isna(idx.min())

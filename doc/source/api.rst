@@ -1416,6 +1416,50 @@ Selecting
    Index.slice_indexer
    Index.slice_locs
 
+.. _api.int64index:
+
+Int64Index
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   Int64Index
+
+.. _api.uint64index:
+
+UInt64Index
+-----------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   UInt64Index
+
+.. _api.float64index:
+
+Float64Index
+------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   Float64Index
+
+.. _api.rangeindex:
+
+RangeIndex
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   RangeIndex
+
 .. _api.categoricalindex:
 
 CategoricalIndex
