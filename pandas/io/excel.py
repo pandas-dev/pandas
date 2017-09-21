@@ -240,6 +240,7 @@ class ExcelFile(object):
     def __init__(self, io, **kwds):
 
         err_msg = "Install xlrd >= 0.9.0 for Excel support"
+
         try:
             import xlrd
         except ImportError:
