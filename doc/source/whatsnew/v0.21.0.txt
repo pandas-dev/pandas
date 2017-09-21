@@ -115,6 +115,7 @@ Other Enhancements
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
+- :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 
 
 .. _whatsnew_0210.api_breaking:
