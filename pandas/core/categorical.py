@@ -25,7 +25,8 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_bool,
     is_list_like, is_sequence,
-    is_scalar)
+    is_scalar,
+    is_dict_like)
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -792,19 +793,20 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories has to be a list-like object. All items must be
-        unique and the number of items in the new categories must be the same
-        as the number of items in the old categories.
+        The new categories can be either a list-like dict-like object.
+        If it is list-like, all items must be unique and the number of items
+        in the new categories must be the same as the number of items in the
+        old categories.
 
         Raises
         ------
         ValueError
-            If the new categories do not have the same number of items than the
-            current categories or do not validate as categories
+            If new categories are list-like and do not have the same number of
+            items than the current categories or do not validate as categories
 
         Parameters
         ----------
-        new_categories : Index-like
+        new_categories : Index-like or dict-like (>=0.21.0)
            The renamed categories.
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
@@ -824,7 +826,12 @@ class Categorical(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-        cat.categories = new_categories
+
+        if is_dict_like(new_categories):
+            cat.categories = [new_categories.get(item, item)
+                              for item in cat.categories]
+        else:
+            cat.categories = new_categories
         if not inplace:
             return cat
 
