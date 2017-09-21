@@ -2805,7 +2805,7 @@ def _whitelist_method_generator(klass, whitelist):
                       'args': ','.join(args_by_name)}
         else:
             msg = 'property %s should be implemented directly.' % name
-            raise ValueError(msg)
+            raise ValueError(msg, type(f))
         yield wrapper_template % params
 
 
