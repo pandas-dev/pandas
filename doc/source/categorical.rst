@@ -206,6 +206,10 @@ by using the :func:`Categorical.rename_categories` method:
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
     s.cat.rename_categories([1,2,3])
+    s
+    # You can also pass a dict-like object to map the renaming
+    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s
 
 .. note::
 
