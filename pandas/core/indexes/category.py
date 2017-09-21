@@ -33,8 +33,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
 
-    .. versionadded:: 0.16.1
-
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
@@ -132,6 +130,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
         -------
         Categorical
         """
+        if (isinstance(data, (ABCSeries, type(self))) and
+                is_categorical_dtype(data)):
+            data = data.values
+
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
             from pandas.core.categorical import Categorical
@@ -253,6 +255,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    def tolist(self):
+        return self._data.tolist()
+
     @property
     def codes(self):
         return self._data.codes
@@ -349,7 +354,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     def get_loc(self, key, method=None):
         """
-        Get integer location for requested label
+        Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
@@ -359,7 +364,21 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         Returns
         -------
-        loc : int if unique index, possibly slice or mask if not
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> unique_index = pd.CategoricalIndex(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+
+        >>> monotonic_index = pd.CategoricalIndex(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+
+        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True], dtype=bool)
         """
         codes = self.categories.get_loc(key)
         if (codes == -1):
@@ -487,7 +506,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
@@ -633,7 +652,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat(self, to_concat, name):
+        # if calling index is category, don't check dtype of others
+        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
+
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories

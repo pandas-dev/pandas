@@ -45,7 +45,7 @@ except ImportError:
     _have_setuptools = False
 
 setuptools_kwargs = {}
-min_numpy_ver = '1.7.0'
+min_numpy_ver = '1.9.0'
 if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {
@@ -341,6 +341,8 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/timezones.pyx',
+                 'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -467,8 +469,6 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime_helper.h',
-                   'pandas/_libs/src/period_helper.h',
                    'pandas/_libs/src/datetime.pxd']
 
 
@@ -486,13 +486,16 @@ ext_data = {
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                'pandas/_libs/src/datetime/np_datetime_strings.c',
-                                'pandas/_libs/src/period_helper.c']},
+                                'pandas/_libs/src/datetime/np_datetime_strings.c']},
+    '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.period': {'pyxfile': '_libs/period',
-                     'depends': tseries_depends,
+                     'depends': (tseries_depends +
+                                 ['pandas/_libs/src/period_helper.h']),
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
+    '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
+                                 'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c'],
@@ -597,7 +600,6 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 
 ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/datetime_helper.h',
                                'pandas/_libs/src/numpy_helper.h'],
                       sources=['pandas/_libs/src/ujson/python/ujson.c',
                                'pandas/_libs/src/ujson/python/objToJSON.c',
@@ -655,6 +657,7 @@ setup(name=DISTNAME,
                 'pandas.io.formats',
                 'pandas.io.clipboard',
                 'pandas._libs',
+                'pandas._libs.tslibs',
                 'pandas.plotting',
                 'pandas.stats',
                 'pandas.types',

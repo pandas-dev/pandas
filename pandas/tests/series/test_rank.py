@@ -28,8 +28,8 @@ class TestSeriesRank(TestData):
     }
 
     def test_rank(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
+        pytest.importorskip('scipy.stats.special')
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
 
         self.ts[::2] = np.nan
         self.ts[:10][::3] = 4.
@@ -246,10 +246,9 @@ class TestSeriesRank(TestData):
             _check(series, results[method], method=method)
 
     def test_rank_methods_series(self):
-        tm.skip_if_no_package('scipy', min_version='0.13',
-                              app='scipy.stats.rankdata')
+        pytest.importorskip('scipy.stats.special')
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
         import scipy
-        from scipy.stats import rankdata
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates

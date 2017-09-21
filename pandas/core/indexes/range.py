@@ -14,6 +14,7 @@ from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
+import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
 
 from pandas.core.indexes.numeric import Int64Index
@@ -194,8 +195,12 @@ class RangeIndex(Int64Index):
 
     @cache_readonly
     def nbytes(self):
-        """ return the number of bytes in the underlying data """
-        return sum([getsizeof(getattr(self, v)) for v in
+        """
+        Return the number of bytes in the underlying data
+        On implementations where this is undetermined (PyPy)
+        assume 24 bytes for each value
+        """
+        return sum([getsizeof(getattr(self, v), 24) for v in
                     ['_start', '_stop', '_step']])
 
     def memory_usage(self, deep=False):
@@ -319,12 +324,13 @@ class RangeIndex(Int64Index):
         if not len(self) or not len(other):
             return RangeIndex._simple_new(None)
 
+        first = self[::-1] if self._step < 0 else self
+        second = other[::-1] if other._step < 0 else other
+
         # check whether intervals intersect
         # deals with in- and decreasing ranges
-        int_low = max(min(self._start, self._stop + 1),
-                      min(other._start, other._stop + 1))
-        int_high = min(max(self._stop, self._start + 1),
-                       max(other._stop, other._start + 1))
+        int_low = max(first._start, second._start)
+        int_high = min(first._stop, second._stop)
         if int_high <= int_low:
             return RangeIndex._simple_new(None)
 
@@ -332,21 +338,24 @@ class RangeIndex(Int64Index):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(self._step, other._step)
+        gcd, s, t = first._extended_gcd(first._step, second._step)
 
         # check whether element sets intersect
-        if (self._start - other._start) % gcd:
+        if (first._start - second._start) % gcd:
             return RangeIndex._simple_new(None)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
-        tmp_start = self._start + (other._start - self._start) * \
-            self._step // gcd * s
-        new_step = self._step * other._step // gcd
+        tmp_start = first._start + (second._start - first._start) * \
+            first._step // gcd * s
+        new_step = first._step * second._step // gcd
         new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
 
         # adjust index to limiting interval
         new_index._start = new_index._min_fitting_element(int_low)
+
+        if (self._step < 0 and other._step < 0) is not (new_index._step < 0):
+            new_index = new_index[::-1]
         return new_index
 
     def _min_fitting_element(self, lower_limit):
@@ -443,62 +452,8 @@ class RangeIndex(Int64Index):
         return super(RangeIndex, self).join(other, how, level, return_indexers,
                                             sort)
 
-    def append(self, other):
-        """
-        Append a collection of Index options together
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : RangeIndex if all indexes are consecutive RangeIndexes,
-                   otherwise Int64Index or Index
-        """
-
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        if not all([isinstance(i, RangeIndex) for i in to_concat]):
-            return super(RangeIndex, self).append(other)
-
-        start = step = next = None
-
-        for obj in to_concat:
-            if not len(obj):
-                continue
-
-            if start is None:
-                # This is set by the first non-empty index
-                start = obj._start
-                if step is None and len(obj) > 1:
-                    step = obj._step
-            elif step is None:
-                # First non-empty index had only one element
-                if obj._start == start:
-                    return super(RangeIndex, self).append(other)
-                step = obj._start - start
-
-            non_consecutive = ((step != obj._step and len(obj) > 1) or
-                               (next is not None and obj._start != next))
-            if non_consecutive:
-                return super(RangeIndex, self).append(other)
-
-            if step is not None:
-                next = obj[-1] + step
-
-        if start is None:
-            start = obj._start
-            step = obj._step
-        stop = obj._stop if next is None else next
-        names = set([obj.name for obj in to_concat])
-        name = None if len(names) > 1 else self.name
-        return RangeIndex(start, stop, step, name=name)
+    def _concat_same_dtype(self, indexes, name):
+        return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
 
     def __len__(self):
         """

@@ -1,11 +1,10 @@
 cimport numpy as np
 import numpy as np
-import pandas as pd
 
 cimport util
 cimport cython
 import cython
-from numpy cimport *
+from numpy cimport ndarray
 from tslib import Timestamp
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,

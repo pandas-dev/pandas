@@ -16,7 +16,7 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -602,8 +602,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
-    .. versionadded:: 0.13.0
-
     Parameters
     ----------
     pat : string
@@ -1016,7 +1014,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1046,8 +1043,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1452,7 +1447,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1890,18 +1890,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
+    @classmethod
+    def _make_accessor(cls, data):
         from pandas.core.index import Index
 
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
             # it's neither a string series not a categorical series with
             # strings inside the categories.
             # this really should exclude all series with any non-string values
@@ -1910,30 +1906,18 @@ class StringAccessorMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index):
+        elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
             # see scc/inferrence.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
+            if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
                 raise AttributeError(message)
-            if self.nlevels > 1:
+            if data.nlevels > 1:
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(self)
-
-    str = AccessorProperty(StringMethods, _make_str_accessor)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

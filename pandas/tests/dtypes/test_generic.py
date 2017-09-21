@@ -40,9 +40,14 @@ class TestABCClasses(object):
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
 
+        assert isinstance(pd.DateOffset(), gt.ABCDateOffset)
+        assert isinstance(pd.Period('2012', freq='A-DEC').freq,
+                          gt.ABCDateOffset)
+        assert not isinstance(pd.Period('2012', freq='A-DEC'),
+                              gt.ABCDateOffset)
+
 
 def test_setattr_warnings():
-    # GH5904 - Suggestion: Warning for DataFrame colname-methodname clash
     # GH7175 - GOTCHA: You can't use dot notation to add a column...
     d = {'one': pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
          'two': pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
@@ -72,7 +77,3 @@ def test_setattr_warnings():
         #  warn when setting column to nonexistent name
         df.four = df.two + 2
         assert df.four.sum() > df.two.sum()
-
-    with tm.assert_produces_warning(UserWarning):
-        #  warn when column has same name as method
-        df['sum'] = df.two

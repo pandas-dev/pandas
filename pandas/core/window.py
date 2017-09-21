@@ -17,7 +17,8 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCTimedeltaIndex,
-    ABCPeriodIndex)
+    ABCPeriodIndex,
+    ABCDateOffset)
 from pandas.core.dtypes.common import (
     is_integer,
     is_bool,
@@ -28,13 +29,12 @@ from pandas.core.dtypes.common import (
     is_list_like,
     _ensure_float64,
     is_scalar)
-import pandas as pd
 
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
 import pandas._libs.window as _window
-from pandas.tseries.offsets import DateOffset
+
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Substitution, Appender,
@@ -254,7 +254,8 @@ class _Window(PandasObject, SelectionMixin):
             # coerce if necessary
             if block is not None:
                 if is_timedelta64_dtype(block.values.dtype):
-                    result = pd.to_timedelta(
+                    from pandas import to_timedelta
+                    result = to_timedelta(
                         result.ravel(), unit='ns').values.reshape(result.shape)
 
             if result.ndim == 1:
@@ -275,7 +276,7 @@ class _Window(PandasObject, SelectionMixin):
         obj : conformed data (may be resampled)
         """
 
-        from pandas import Series
+        from pandas import Series, concat
         from pandas.core.index import _ensure_index
 
         final = []
@@ -290,8 +291,7 @@ class _Window(PandasObject, SelectionMixin):
         # we want to put it back into the results
         # in the same location
         columns = self._selected_obj.columns
-        if self.on is not None \
-           and not self._on.equals(obj.index):
+        if self.on is not None and not self._on.equals(obj.index):
 
             name = self._on.name
             final.append(Series(self._on, index=obj.index, name=name))
@@ -309,8 +309,7 @@ class _Window(PandasObject, SelectionMixin):
 
         if not len(final):
             return obj.astype('float64')
-        return pd.concat(final, axis=1).reindex(columns=columns,
-                                                copy=False)
+        return concat(final, axis=1).reindex(columns=columns, copy=False)
 
     def _center_window(self, result, window):
         """ center the result in the window """
@@ -318,10 +317,9 @@ class _Window(PandasObject, SelectionMixin):
             raise ValueError("Requested axis is larger then no. of argument "
                              "dimensions")
 
-        from pandas import Series, DataFrame
         offset = _offset(window, True)
         if offset > 0:
-            if isinstance(result, (Series, DataFrame)):
+            if isinstance(result, (ABCSeries, ABCDataFrame)):
                 result = result.slice_shift(-offset, axis=self.axis)
             else:
                 lead_indexer = [slice(None)] * result.ndim
@@ -1085,7 +1083,8 @@ class Rolling(_Rolling_and_Expanding):
             return self.obj.index
         elif (isinstance(self.obj, ABCDataFrame) and
               self.on in self.obj.columns):
-            return pd.Index(self.obj[self.on])
+            from pandas import Index
+            return Index(self.obj[self.on])
         else:
             raise ValueError("invalid on specified as {0}, "
                              "must be a column (if DataFrame) "
@@ -1096,7 +1095,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if ((self.obj.empty or self.is_datetimelike) and
-                isinstance(self.window, (compat.string_types, DateOffset,
+                isinstance(self.window, (compat.string_types, ABCDateOffset,
                                          timedelta))):
 
             self._validate_monotonic()
@@ -1871,19 +1870,19 @@ class EWM(_Rolling):
 
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):
-    from pandas import Series, DataFrame
 
-    if not (isinstance(arg1, (np.ndarray, Series, DataFrame)) and
-            isinstance(arg2, (np.ndarray, Series, DataFrame))):
+    if not (isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame)) and
+            isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))):
         raise TypeError("arguments to moment function must be of type "
                         "np.ndarray/Series/DataFrame")
 
-    if (isinstance(arg1, (np.ndarray, Series)) and
-            isinstance(arg2, (np.ndarray, Series))):
+    if (isinstance(arg1, (np.ndarray, ABCSeries)) and
+            isinstance(arg2, (np.ndarray, ABCSeries))):
         X, Y = _prep_binary(arg1, arg2)
         return f(X, Y)
 
-    elif isinstance(arg1, DataFrame):
+    elif isinstance(arg1, ABCDataFrame):
+        from pandas import DataFrame
 
         def dataframe_from_int_dict(data, frame_template):
             result = DataFrame(data, index=frame_template.index)
@@ -1892,7 +1891,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
             return result
 
         results = {}
-        if isinstance(arg2, DataFrame):
+        if isinstance(arg2, ABCDataFrame):
             if pairwise is False:
                 if arg1 is arg2:
                     # special case in order to handle duplicate column names
@@ -1929,7 +1928,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                 # TODO: not the most efficient (perf-wise)
                 # though not bad code-wise
-                from pandas import Panel, MultiIndex
+                from pandas import Panel, MultiIndex, concat
 
                 with warnings.catch_warnings(record=True):
                     p = Panel.from_dict(results).swapaxes('items', 'major')
@@ -1939,7 +1938,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         p.minor_axis = arg2.columns[p.minor_axis]
 
                 if len(p.items):
-                    result = pd.concat(
+                    result = concat(
                         [p.iloc[i].T for i in range(len(p.items))],
                         keys=p.items)
                 else:
@@ -2034,8 +2033,7 @@ def _zsqrt(x):
         result = np.sqrt(x)
         mask = x < 0
 
-    from pandas import DataFrame
-    if isinstance(x, DataFrame):
+    if isinstance(x, ABCDataFrame):
         if mask.values.any():
             result[mask] = 0
     else:
@@ -2060,8 +2058,7 @@ def _prep_binary(arg1, arg2):
 
 
 def rolling(obj, win_type=None, **kwds):
-    from pandas import Series, DataFrame
-    if not isinstance(obj, (Series, DataFrame)):
+    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
 
     if win_type is not None:
@@ -2074,8 +2071,7 @@ rolling.__doc__ = Window.__doc__
 
 
 def expanding(obj, **kwds):
-    from pandas import Series, DataFrame
-    if not isinstance(obj, (Series, DataFrame)):
+    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
 
     return Expanding(obj, **kwds)
@@ -2085,8 +2081,7 @@ expanding.__doc__ = Expanding.__doc__
 
 
 def ewm(obj, **kwds):
-    from pandas import Series, DataFrame
-    if not isinstance(obj, (Series, DataFrame)):
+    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
 
     return EWM(obj, **kwds)

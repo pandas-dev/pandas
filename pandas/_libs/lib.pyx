@@ -10,21 +10,14 @@ from numpy cimport *
 
 np.import_array()
 
-cdef extern from "numpy/arrayobject.h":
-    cdef enum NPY_TYPES:
-        NPY_intp "NPY_INTP"
-
 from libc.stdlib cimport malloc, free
 
-from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
-                      PyDict_Contains, PyDict_Keys,
-                      Py_INCREF, PyTuple_SET_ITEM,
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
                       PyBytes_Check,
-                      PyTuple_SetItem,
+                      PyUnicode_Check,
                       PyTuple_New,
-                      PyObject_SetAttrString,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE,
@@ -55,7 +48,18 @@ cdef double NAN = nan
 from datetime import datetime as pydatetime
 
 # this is our tseries.pxd
-from datetime cimport *
+from datetime cimport (
+    get_timedelta64_value, get_datetime64_value,
+    npy_timedelta, npy_datetime,
+    PyDateTime_Check, PyDate_Check, PyTime_Check, PyDelta_Check,
+    PyDateTime_GET_YEAR,
+    PyDateTime_GET_MONTH,
+    PyDateTime_GET_DAY,
+    PyDateTime_DATE_GET_HOUR,
+    PyDateTime_DATE_GET_MINUTE,
+    PyDateTime_DATE_GET_SECOND,
+    PyDateTime_IMPORT)
+
 
 from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
                     _check_all_nulls)
