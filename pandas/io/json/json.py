@@ -393,8 +393,8 @@ class JsonReader(BaseIterator):
         At this point, the data either has a `read` attribute (e.g. a file
         object or a StringIO) or is a string that is a JSON document.
 
-        If self.chunksize, we want to prepare the data for the `__next__`
-        method. Otherwise, we want to read it into memory for the `read` method.
+        If self.chunksize, we prepare the data for the `__next__` method.
+        Otherwise, we read it into memory for the `read` method.
         """
         if hasattr(data, 'read'):
             if self.chunksize:
@@ -417,7 +417,7 @@ class JsonReader(BaseIterator):
             2. file-like object (e.g. open file object, StringIO)
             3. JSON string
 
-        This function turns (1) into (2) to simplify the rest of the processing.
+        This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
         """
 
