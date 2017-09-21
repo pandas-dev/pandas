@@ -471,7 +471,7 @@ class TestLocaleUtils(object):
 
 def test_make_signature():
     # See GH 17608
-    make_signature(validate_kwargs)
     # Case where the func does not have default kwargs
-    make_signature(deprecate_kwarg)
+    make_signature(validate_kwargs)
     # Case where the func does have default kwargs
+    make_signature(deprecate_kwarg)
