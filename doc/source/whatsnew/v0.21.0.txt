@@ -114,7 +114,8 @@ Other Enhancements
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
-
+- :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
+- :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 
 
 .. _whatsnew_0210.api_breaking:
@@ -389,7 +390,7 @@ New Behavior:
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
-  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
@@ -487,6 +488,7 @@ Conversion
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
+- Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 
 Indexing
 ^^^^^^^^
@@ -525,6 +527,8 @@ Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
+- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`)(:issue:`11471`)
+- With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
 - Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
 
