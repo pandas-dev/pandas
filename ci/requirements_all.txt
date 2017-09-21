@@ -26,3 +26,4 @@ sqlalchemy
 bottleneck
 pymysql
 Jinja2
+s3fs
