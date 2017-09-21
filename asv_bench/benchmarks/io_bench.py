@@ -207,10 +207,10 @@ class read_json_lines(object):
         pd.read_json("__test__.json", lines=True)
 
     def time_read_json_lines_chunk(self):
-        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N/4))
+        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N//4))
 
     def peakmem_read_json_lines(self):
         pd.read_json("__test__.json", lines=True)
 
     def peakmem_read_json_lines_chunk(self):
-        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N/4))
+        pd.concat(pd.read_json("__test__.json", lines=True, chunksize=self.N//4))
