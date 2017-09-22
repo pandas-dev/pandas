@@ -2576,10 +2576,10 @@ class DataFrame(NDFrame):
         Notes
         -----
         Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. To make things predicatable,
-        the columns are inserted in alphabetical order, at the end of
-        your DataFrame. Assigning multiple columns within the same
-        ``assign`` is possible, but you cannot reference other columns
+        arguments may not be preserved if you are using Python 3.5 and earlier.
+        To make things predicatable, the columns are inserted in alphabetical
+        order, at the end of your DataFrame. Assigning multiple columns within
+        the same ``assign`` is possible, but you cannot reference other columns
         created within the same ``assign`` call.
 
         Examples
@@ -2620,14 +2620,18 @@ class DataFrame(NDFrame):
         data = self.copy()
 
         # do all calculations first...
-        results = {}
+        results = OrderedDict()
         for k, v in kwargs.items():
             results[k] = com._apply_if_callable(v, data)
 
+        # sort by key for 3.5 and earlier, but preserve order for 3.6 and later
+        if sys.version_info <= (3, 5):
+            results = sorted(results.items())
+        else:
+            results = results.items()
         # ... and then assign
-        for k, v in sorted(results.items()):
+        for k, v in results:
             data[k] = v
-
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
