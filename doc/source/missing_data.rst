@@ -181,6 +181,42 @@ account for missing data. For example:
    df.mean(1)
    df.cumsum()
 
+
+.. _missing_data.numeric_sum:
+
+Sum/Prod of Empties/Nans
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   This behavior is now standard as of v0.21.0; previously sum/prod would give different
+   results if the ``bottleneck`` package was installed. See the :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+
+With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
+
+.. ipython:: python
+
+   s = Series([np.nan])
+
+   s.sum()
+
+Summing of an empty ``Series``
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+
+.. warning::
+
+   These behaviors differ from the default in ``numpy`` where an empty sum returns zero.
+
+   .. ipython:: python
+
+      np.nansum(np.array([np.nan]))
+      np.nansum(np.array([]))
+
+
+
 NA values in GroupBy
 ~~~~~~~~~~~~~~~~~~~~
 
