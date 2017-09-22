@@ -239,12 +239,17 @@ class ExcelFile(object):
 
     def __init__(self, io, **kwds):
 
-        import xlrd  # throw an ImportError if we need to
+        err_msg = "Install xlrd >= 0.9.0 for Excel support"
 
-        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):  # pragma: no cover
-            raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
-                              "support, current version " + xlrd.__VERSION__)
+        try:
+            import xlrd
+        except ImportError:
+            raise ImportError(err_msg)
+        else:
+            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
+            if ver < (0, 9):  # pragma: no cover
+                raise ImportError(err_msg +
+                                  ". Current version " + xlrd.__VERSION__)
 
         # could be a str, ExcelFile, Book, etc.
         self.io = io
