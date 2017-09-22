@@ -116,6 +116,7 @@ Other Enhancements
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
+- :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 
 
 .. _whatsnew_0210.api_breaking:
@@ -523,7 +524,7 @@ I/O
 - Bug in :func:`read_stata` where the index was not set (:issue:`16342`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 - Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
-- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`) 
+- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
 
 Plotting
 ^^^^^^^^
