@@ -472,6 +472,12 @@ class TestLocaleUtils(object):
 def test_make_signature():
     # See GH 17608
     # Case where the func does not have default kwargs
-    make_signature(validate_kwargs)
+    sig = make_signature(validate_kwargs)
+    assert sig == (['fname', 'kwargs', 'compat_args'],
+                   ['fname', 'kwargs', 'compat_args'])
+
     # Case where the func does have default kwargs
-    make_signature(deprecate_kwarg)
+    sig = make_signature(deprecate_kwarg)
+    assert sig == (['old_arg_name', 'new_arg_name',
+                    'mapping=None', 'stacklevel=2'],
+                   ['old_arg_name', 'new_arg_name', 'mapping', 'stacklevel'])
