@@ -13,7 +13,7 @@ cdef extern from "khash_python.h":
 
     kh_pymap_t* kh_init_pymap()
     void kh_destroy_pymap(kh_pymap_t*)
-    inline void kh_clear_pymap(kh_pymap_t*)
+    void kh_clear_pymap(kh_pymap_t*)
     khint_t kh_get_pymap(kh_pymap_t*, PyObject*)
     void kh_resize_pymap(kh_pymap_t*, khint_t)
     khint_t kh_put_pymap(kh_pymap_t*, PyObject*, int*)
