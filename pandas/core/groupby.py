@@ -1,5 +1,5 @@
 import types
-from functools import wraps
+from functools import wraps, partial
 import numpy as np
 import datetime
 import collections
@@ -54,8 +54,7 @@ from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
-from pandas.util._decorators import (cache_readonly, Substitution,
-                                     Appender, make_signature)
+from pandas.util._decorators import cache_readonly, Substitution, Appender
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_kwargs
 
@@ -953,7 +952,6 @@ class _GroupBy(PandasObject, SelectionMixin):
 
 
 class GroupBy(_GroupBy):
-
     """
     Class for grouping and aggregating relational data. See aggregate,
     transform, and apply functions on this object.
@@ -2565,8 +2563,7 @@ class Grouping(object):
                                                          self.group_index))
 
 
-def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False):
+def _get_grouper(obj, key=None, axis=0, level=None, sort=True, mutated=False):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -2755,74 +2752,124 @@ def _convert_grouper(axis, grouper):
         return grouper
 
 
-def _whitelist_method_generator(klass, whitelist):
-    """
-    Yields all GroupBy member defs for DataFrame/Series names in _whitelist.
-
-    Parameters
-    ----------
-    klass - class where members are defined.  Should be Series or DataFrame
-
-    whitelist - list of names of klass methods to be constructed
-
-    Returns
-    -------
-    The generator yields a sequence of strings, each suitable for exec'ing,
-    that define implementations of the named methods for DataFrameGroupBy
-    or SeriesGroupBy.
-
-    Since we don't want to override methods explicitly defined in the
-    base class, any such name is skipped.
-    """
-
-    method_wrapper_template = \
-        """def %(name)s(%(sig)s) :
-    \"""
-    %(doc)s
-    \"""
-    f = %(self)s.__getattr__('%(name)s')
-    return f(%(args)s)"""
-    property_wrapper_template = \
-        """@property
-def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
-    return self.__getattr__('%(name)s')"""
-    for name in whitelist:
-        # don't override anything that was explicitly defined
-        # in the base class
-        if hasattr(GroupBy, name):
-            continue
-        # ugly, but we need the name string itself in the method.
-        f = getattr(klass, name)
-        doc = f.__doc__
-        doc = doc if type(doc) == str else ''
-        if isinstance(f, types.MethodType):
-            wrapper_template = method_wrapper_template
-            decl, args = make_signature(f)
-            # pass args by name to f because otherwise
-            # GroupBy._make_wrapper won't know whether
-            # we passed in an axis parameter.
-            args_by_name = ['{0}={0}'.format(arg) for arg in args[1:]]
-            params = {'name': name,
-                      'doc': doc,
-                      'sig': ','.join(decl),
-                      'self': args[0],
-                      'args': ','.join(args_by_name)}
-        else:
-            wrapper_template = property_wrapper_template
-            params = {'name': name, 'doc': doc}
-        yield wrapper_template % params
-
-
+# TODO: *args/**kwargs get ignored in many of the methods
+# inherited from Series/DataFrame.  Should they be used, dropped ...?
 class SeriesGroupBy(GroupBy):
-    #
-    # Make class defs of attributes on SeriesGroupBy whitelist
     _apply_whitelist = _series_apply_whitelist
-    for _def_str in _whitelist_method_generator(Series,
-                                                _series_apply_whitelist):
-        exec(_def_str)
+
+    @Appender(Series.all.__doc__)
+    def all(self, axis=None, bool_only=None, skipna=None, level=None,
+            **kwargs):
+        f = self.__getattr__('all')
+        return f(axis=axis, bool_only=bool_only, skipna=skipna, level=level)
+
+    @property
+    def dtype(self):
+        """
+         return the dtype object of the underlying data
+        """
+        return self.__getattr__('dtype')
+
+    @Appender(Series.idxmax.__doc__)
+    def idxmax(self, axis=None, skipna=True, *args, **kwargs):
+        f = self.__getattr__('idxmax')
+        return f(axis=axis, skipna=skipna)
+
+    @Appender(Series.rank.__doc__)
+    def rank(self, axis=0, method='average', numeric_only=None,
+             na_option='keep', ascending=True, pct=False):
+        f = self.__getattr__('rank')
+        return f(axis=axis, method=method, numeric_only=numeric_only,
+                 na_option=na_option, ascending=ascending, pct=pct)
+
+    @Appender(Series.diff.__doc__)
+    def diff(self, periods=1):
+        f = self.__getattr__('diff')
+        return f(periods=periods)
+
+    @Appender(Series.any.__doc__)
+    def any(self, axis=None, bool_only=None, skipna=None, level=None,
+            **kwargs):
+        f = self.__getattr__('any')
+        return f(axis=axis, bool_only=bool_only, skipna=skipna, level=level)
+
+    @Appender(Series.nsmallest.__doc__)
+    def nsmallest(self, n=5, keep='first'):
+        f = self.__getattr__('nsmallest')
+        return f(n=n, keep=keep)
+
+    @Appender(Series.quantile.__doc__)
+    def quantile(self, q=0.5, interpolation='linear'):
+        f = self.__getattr__('quantile')
+        return f(q=q, interpolation=interpolation)
+
+    @Appender(Series.hist.__doc__)
+    def hist(self, by=None, ax=None, grid=True, xlabelsize=None, xrot=None,
+             ylabelsize=None, yrot=None, figsize=None, bins=10, **kwds):
+        f = self.__getattr__('hist')
+        return f(by=by, ax=ax, grid=grid, xlabelsize=xlabelsize, xrot=xrot,
+                 ylabelsize=ylabelsize, yrot=yrot, figsize=figsize, bins=bins)
+
+    @Appender(Series.take.__doc__)
+    def take(self, indices, axis=0, convert=True, is_copy=False, **kwargs):
+        f = self.__getattr__('take')
+        return f(indices=indices, axis=axis, convert=convert, is_copy=is_copy)
+
+    @Appender(Series.mad.__doc__)
+    def mad(self, axis=None, skipna=None, level=None):
+        f = self.__getattr__('mad')
+        return f(axis=axis, skipna=skipna, level=level)
+
+    @Appender(Series.corr.__doc__)
+    def corr(self, other, method='pearson', min_periods=None):
+        f = self.__getattr__('corr')
+        return f(other=other, method=method, min_periods=min_periods)
+
+    @Appender(Series.fillna.__doc__)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        f = self.__getattr__('fillna')
+        return f(value=value, method=method, axis=axis, inplace=inplace,
+                 limit=limit, downcast=downcast)
+
+    @Appender(Series.unique.__doc__)
+    def unique(self):
+        f = self.__getattr__('unique')
+        return f()
+
+    @Appender(Series.idxmin.__doc__)
+    def idxmin(self, axis=None, skipna=True, *args, **kwargs):
+        f = self.__getattr__('idxmin')
+        return f(axis=axis, skipna=skipna)
+
+    @Appender(Series.cov.__doc__)
+    def cov(self, other, min_periods=None):
+        f = self.__getattr__('cov')
+        return f(other=other, min_periods=min_periods)
+
+    @Appender(Series.tshift.__doc__)
+    def tshift(self, periods=1, freq=None, axis=0):
+        f = self.__getattr__('tshift')
+        return f(periods=periods, freq=freq, axis=axis)
+
+    @Appender(Series.pct_change.__doc__)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwargs):
+        f = self.__getattr__('pct_change')
+        return f(periods=periods, fill_method=fill_method, limit=limit,
+                 freq=freq)
+
+    @Appender(Series.skew.__doc__)
+    def skew(self, axis=None, skipna=None, level=None, numeric_only=None,
+             **kwargs):
+        f = self.__getattr__('skew')
+        return f(axis=axis, skipna=skipna, level=level,
+                 numeric_only=numeric_only)
+
+    @Appender(Series.nlargest.__doc__)
+    def nlargest(self, n=5, keep='first'):
+        f = self.__getattr__('nlargest')
+        return f(n=n, keep=keep)
 
     @property
     def _selection_name(self):
@@ -3202,7 +3249,6 @@ class SeriesGroupBy(GroupBy):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
-        from functools import partial
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -3973,12 +4019,116 @@ class NDFrameGroupBy(GroupBy):
 
 class DataFrameGroupBy(NDFrameGroupBy):
     _apply_whitelist = _dataframe_apply_whitelist
-    #
-    # Make class defs of attributes on DataFrameGroupBy whitelist.
-    for _def_str in _whitelist_method_generator(DataFrame, _apply_whitelist):
-        exec(_def_str)
-
     _block_agg_axis = 1
+
+    @Appender(DataFrame.all.__doc__)
+    def all(self, axis=None, bool_only=None, skipna=None, level=None,
+            **kwargs):
+        f = self.__getattr__('all')
+        return f(axis=axis, bool_only=bool_only, skipna=skipna, level=level)
+
+    @Appender(DataFrame.idxmax.__doc__)
+    def idxmax(self, axis=0, skipna=True):
+        f = self.__getattr__('idxmax')
+        return f(axis=axis, skipna=skipna)
+
+    @Appender(DataFrame.rank.__doc__)
+    def rank(self, axis=0, method='average', numeric_only=None,
+             na_option='keep', ascending=True, pct=False):
+        f = self.__getattr__('rank')
+        return f(axis=axis, method=method, numeric_only=numeric_only,
+                 na_option=na_option, ascending=ascending, pct=pct)
+
+    @Appender(DataFrame.diff.__doc__)
+    def diff(self, periods=1, axis=0):
+        f = self.__getattr__('diff')
+        return f(periods=periods, axis=axis)
+
+    @Appender(DataFrame.any.__doc__)
+    def any(self, axis=None, bool_only=None, skipna=None, level=None,
+            **kwargs):
+        f = self.__getattr__('any')
+        return f(axis=axis, bool_only=bool_only, skipna=skipna, level=level)
+
+    @Appender(DataFrame.quantile.__doc__)
+    def quantile(self, q=0.5, axis=0, numeric_only=True,
+                 interpolation='linear'):
+        f = self.__getattr__('quantile')
+        return f(q=q, axis=axis, numeric_only=numeric_only,
+                 interpolation=interpolation)
+
+    @Appender(DataFrame.hist.__doc__)
+    def hist(data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
+             ylabelsize=None, yrot=None, ax=None, sharex=False, sharey=False,
+             figsize=None, layout=None, bins=10, **kwds):
+        f = data.__getattr__('hist')
+        return f(column=column, by=by, grid=grid, xlabelsize=xlabelsize,
+                 xrot=xrot, ylabelsize=ylabelsize, yrot=yrot, ax=ax,
+                 sharex=sharex, sharey=sharey, figsize=figsize, layout=layout,
+                 bins=bins)
+
+    @Appender(DataFrame.take.__doc__)
+    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
+        f = self.__getattr__('take')
+        return f(indices=indices, axis=axis, convert=convert, is_copy=is_copy)
+
+    @property
+    def dtypes(self):
+        """
+        Return the dtypes in this object.
+        """
+        return self.__getattr__('dtypes')
+
+    @Appender(DataFrame.mad.__doc__)
+    def mad(self, axis=None, skipna=None, level=None):
+        f = self.__getattr__('mad')
+        return f(axis=axis, skipna=skipna, level=level)
+
+    @Appender(DataFrame.corr.__doc__)
+    def corr(self, method='pearson', min_periods=1):
+        f = self.__getattr__('corr')
+        return f(method=method, min_periods=min_periods)
+
+    @Appender(DataFrame.fillna.__doc__)
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None, **kwargs):
+        f = self.__getattr__('fillna')
+        return f(value=value, method=method, axis=axis, inplace=inplace,
+                 limit=limit, downcast=downcast)
+
+    @Appender(DataFrame.idxmin.__doc__)
+    def idxmin(self, axis=0, skipna=True):
+        f = self.__getattr__('idxmin')
+        return f(axis=axis, skipna=skipna)
+
+    @Appender(DataFrame.cov.__doc__)
+    def cov(self, min_periods=None):
+        f = self.__getattr__('cov')
+        return f(min_periods=min_periods)
+
+    @Appender(DataFrame.tshift.__doc__)
+    def tshift(self, periods=1, freq=None, axis=0):
+        f = self.__getattr__('tshift')
+        return f(periods=periods, freq=freq, axis=axis)
+
+    @Appender(DataFrame.pct_change.__doc__)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwargs):
+        f = self.__getattr__('pct_change')
+        return f(periods=periods, fill_method=fill_method, limit=limit,
+                 freq=freq)
+
+    @Appender(DataFrame.skew.__doc__)
+    def skew(self, axis=None, skipna=None, level=None, numeric_only=None,
+             **kwargs):
+        f = self.__getattr__('skew')
+        return f(axis=axis, skipna=skipna, level=level,
+                 numeric_only=numeric_only)
+
+    @Appender(DataFrame.corrwith.__doc__)
+    def corrwith(self, other, axis=0, drop=False):
+        f = self.__getattr__('corrwith')
+        return f(other=other, axis=axis, drop=drop)
 
     _agg_doc = dedent("""
     Examples
@@ -4212,7 +4362,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def count(self):
         """ Compute count of group, excluding missing values """
-        from functools import partial
         from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
