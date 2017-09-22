@@ -66,7 +66,9 @@ class TestSparseArray(object):
         arr = SparseArray(data, dtype=np.object, fill_value=False)
         assert arr.dtype == np.object
         assert arr.fill_value is False
-        assert (arr == np.array(data, dtype=np.object)).to_dense().all()
+        arr_expected = np.array(data, dtype=np.object)
+        it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
+        assert np.fromiter(it, dtype=np.bool).all()
 
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
