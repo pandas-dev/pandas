@@ -1733,9 +1733,11 @@ class BaseGrouper(object):
     axis : the axis to group
     groupings : all the grouping instances to handle in this grouper
         for example for grouper list to groupby, need to pass the list
-    sort : True/False
+    sort : boolean, default True
         whether this grouper will give sorted result or not
-    indexer: the indexer created by Grouper
+    group_keys : boolean, default True
+    mutated : boolean, default False
+    indexer : the indexer created by Grouper
         some grouper (TimeGrouper eg) will sort its axis and its
         group_info is also sorted, so need the indexer to reorder
 
@@ -2296,18 +2298,15 @@ def generate_bins_generic(values, binner, closed):
 class BinGrouper(BaseGrouper):
 
     """
-    This is an internal Grouper class, which actually holds
-    the generated groups. In contrast with BaseGrouper,
-    BinGrouper get the sorted bins and binlabels to compute group_info
+    This is an internal Grouper class
 
     Parameters
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    indexer: the indexer created by Grouper
-        some grouper (TimeGrouper eg) will sort its axis and the
-        group_info of BinGrouper is also sorted
-        can use the indexer to reorder as the unsorted axis
+    filter_empty : boolean, default False
+    mutated : boolean, default False
+    indexer : a intp array
 
     Examples
     --------
