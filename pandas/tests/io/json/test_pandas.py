@@ -8,7 +8,6 @@ import numpy as np
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
-moto = pytest.importorskip("moto")
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
@@ -995,8 +994,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def testbucket_conn(self):
         """ Fixture for test_read_s3_jsonl"""
         boto3 = pytest.importorskip('boto3')
-        moto.mock_s3().start()   # Start and stop mocking only once, surrounding the test run
-                                 # to ensure single context is kept.
+        moto = pytest.importorskip("moto")
+
+        """
+        Start and stop mocking only once, surrounding the test run
+        to ensure single context is kept.
+        """
+        moto.mock_s3().start()
 
         conn = boto3.client('s3')
         conn.create_bucket(Bucket='testbucket')
@@ -1005,8 +1009,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         moto.mock_s3().stop()
 
     def test_read_s3_jsonl(self, testbucket_conn):
+        pytest.importorskip('s3fs')
         # GH17200
-        testbucket_conn.put_object(Body=b'{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', Key='items.jsonl', Bucket='testbucket')
+
+        body = b'{"a": 1, "b": 2}\n{"b":2, "a" :1}\n'
+        testbucket_conn.put_object(Body=body,
+                                   Key='items.jsonl',
+                                   Bucket='testbucket')
 
         result = read_json('s3://testbucket/items.jsonl', lines=True)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
@@ -1014,16 +1023,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_read_local_jsonl(self):
         # GH17200
-        fname = "./tmp_items.jsonl"
-        try:
-            with open(fname, "w") as infile:
-                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+        with ensure_clean('tmp_items.json') as infile:
+            infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
             result = read_json(fname, lines=True)
             expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
             assert_frame_equal(result, expected)
-        finally:
-            import os
-            os.remove(fname)
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
