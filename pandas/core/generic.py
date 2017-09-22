@@ -9,7 +9,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, lib
+from pandas._libs import tslib, lib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -258,7 +258,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if build_axes:
 
             def set_axis(a, i):
-                setattr(cls, a, lib.AxisProperty(i))
+                setattr(cls, a, properties.AxisProperty(i))
                 cls._internal_names_set.add(a)
 
             if axes_are_reversed:
