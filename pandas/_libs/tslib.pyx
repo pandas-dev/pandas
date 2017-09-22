@@ -1158,18 +1158,13 @@ cdef class _Timestamp(datetime):
 
         If warn=True, issue a warning if nanoseconds is nonzero.
         """
-        cdef:
-            pandas_datetimestruct dts
-            _TSObject ts
-
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion",
                           UserWarning, stacklevel=2)
-        ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
-        dts = ts.dts
-        return datetime(dts.year, dts.month, dts.day,
-                        dts.hour, dts.min, dts.sec,
-                        dts.us, ts.tzinfo)
+
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, self.tzinfo)
 
     cpdef to_datetime64(self):
         """ Returns a numpy.datetime64 object with 'ns' precision """
