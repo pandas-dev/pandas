@@ -476,7 +476,6 @@ tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
 libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
-    '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.lib': {'pyxfile': '_libs/lib',
                   'depends': lib_depends + tseries_depends},
     '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
