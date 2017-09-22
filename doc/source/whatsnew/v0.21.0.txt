@@ -473,6 +473,7 @@ Performance Improvements
 - Improved performance of :meth:`Categorical.set_categories` by not materializing the values (:issue:`17508`)
 - :attr:`Timestamp.microsecond` no longer re-computes on attribute access (:issue:`17331`)
 - Improved performance of the :class:`CategoricalIndex` for data that is already categorical dtype (:issue:`17513`)
+- Improved performance of :meth:`RangeIndex.min` and :meth:`RangeIndex.max` by using ``RangeIndex`` properties to perform the computations (:issue:`17607`)
 
 .. _whatsnew_0210.bug_fixes:
 
