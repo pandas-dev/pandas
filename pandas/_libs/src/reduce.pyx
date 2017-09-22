@@ -1,5 +1,4 @@
 #cython=False
-from numpy cimport *
 import numpy as np
 
 from distutils.version import LooseVersion

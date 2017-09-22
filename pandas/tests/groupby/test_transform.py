@@ -533,7 +533,7 @@ class TestGroupBy(MixIn):
                 for (op, args), targop in ops:
                     if op != 'shift' and 'int' not in gb_target:
                         # numeric apply fastpath promotes dtype so have
-                        # to apply seperately and concat
+                        # to apply separately and concat
                         i = gb[['int']].apply(targop)
                         f = gb[['float', 'float_missing']].apply(targop)
                         expected = pd.concat([f, i], axis=1)

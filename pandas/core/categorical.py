@@ -25,7 +25,8 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype, is_bool,
     is_list_like, is_sequence,
-    is_scalar)
+    is_scalar,
+    is_dict_like)
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -777,8 +778,9 @@ class Categorical(PandasObject):
                 # remove all _codes which are larger and set to -1/NaN
                 self._codes[self._codes >= len(new_categories)] = -1
         else:
-            values = cat.__array__()
-            cat._codes = _get_codes_for_values(values, new_categories)
+            codes = _recode_for_categories(self.codes, self.categories,
+                                           new_categories)
+            cat._codes = codes
         cat._categories = new_categories
 
         if ordered is None:
@@ -791,19 +793,20 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories has to be a list-like object. All items must be
-        unique and the number of items in the new categories must be the same
-        as the number of items in the old categories.
+        The new categories can be either a list-like dict-like object.
+        If it is list-like, all items must be unique and the number of items
+        in the new categories must be the same as the number of items in the
+        old categories.
 
         Raises
         ------
         ValueError
-            If the new categories do not have the same number of items than the
-            current categories or do not validate as categories
+            If new categories are list-like and do not have the same number of
+            items than the current categories or do not validate as categories
 
         Parameters
         ----------
-        new_categories : Index-like
+        new_categories : Index-like or dict-like (>=0.21.0)
            The renamed categories.
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
@@ -823,7 +826,12 @@ class Categorical(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-        cat.categories = new_categories
+
+        if is_dict_like(new_categories):
+            cat.categories = [new_categories.get(item, item)
+                              for item in cat.categories]
+        else:
+            cat.categories = new_categories
         if not inplace:
             return cat
 
@@ -2053,9 +2061,10 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
 
     """
 
-    def __init__(self, values, index):
+    def __init__(self, values, index, name):
         self.categorical = values
         self.index = index
+        self.name = name
         self._freeze()
 
     def _delegate_property_get(self, name):
@@ -2074,14 +2083,15 @@ class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
         method = getattr(self.categorical, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self.index)
+            return Series(res, index=self.index, name=self.name)
 
     @classmethod
     def _make_accessor(cls, data):
         if not is_categorical_dtype(data.dtype):
             raise AttributeError("Can only use .cat accessor with a "
                                  "'category' dtype")
-        return CategoricalAccessor(data.values, data.index)
+        return CategoricalAccessor(data.values, data.index,
+                                   getattr(data, 'name', None),)
 
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
@@ -2111,6 +2121,38 @@ def _get_codes_for_values(values, categories):
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)
+
+
+def _recode_for_categories(codes, old_categories, new_categories):
+    """
+    Convert a set of codes for to a new set of categories
+
+    Parameters
+    ----------
+    codes : array
+    old_categories, new_categories : Index
+
+    Returns
+    -------
+    new_codes : array
+
+    Examples
+    --------
+    >>> old_cat = pd.Index(['b', 'a', 'c'])
+    >>> new_cat = pd.Index(['a', 'b'])
+    >>> codes = np.array([0, 1, 1, 2])
+    >>> _recode_for_categories(codes, old_cat, new_cat)
+    array([ 1,  0,  0, -1])
+    """
+    from pandas.core.algorithms import take_1d
+
+    if len(old_categories) == 0:
+        # All null anyway, so just retain the nulls
+        return codes
+    indexer = coerce_indexer_dtype(new_categories.get_indexer(old_categories),
+                                   new_categories)
+    new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
+    return new_codes
 
 
 def _convert_to_list_like(list_like):

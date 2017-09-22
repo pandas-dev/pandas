@@ -49,7 +49,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries
         (default: nan). Will not override SparseSeries passed in.
     """
-    _constructor_sliced = SparseSeries
     _subtyp = 'sparse_frame'
 
     def __init__(self, data=None, index=None, columns=None, default_kind=None,
