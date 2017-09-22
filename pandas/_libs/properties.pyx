@@ -1,5 +1,8 @@
+
+from cython cimport Py_ssize_t
+
 from cpython cimport (
-    PyDict_Contains, PyDict_GetItem, PyDict_GetItem, PyDict_SetItem)
+    PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
 
 
 cdef class cache_readonly(object):
