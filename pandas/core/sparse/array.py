@@ -794,9 +794,9 @@ def make_sparse(arr, kind='block', fill_value=None):
             mask = np.ones(len(arr), dtype=np.bool)
             fv_type = type(fill_value)
 
-            itr = (type(x) is fv_type for x in arr)
-            cond = np.fromiter(itr, dtype=np.bool)
-            mask[cond] = arr[cond] != fill_value
+            for i, x in enumerate(arr):
+                if type(x) is fv_type:
+                    mask[i] = arr[i] != fill_value
         else:
             mask = arr != fill_value
 
