@@ -81,3 +81,9 @@ class TimestampOps(object):
 
     def time_replace_None(self):
         self.ts_tz.replace(tzinfo=None)
+
+    def time_to_pydatetime(self):
+        self.ts.to_pydatetime()
+
+    def time_to_pydatetime_tz(self):
+        self.ts_tz.to_pydatetime()
