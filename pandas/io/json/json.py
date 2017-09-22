@@ -377,13 +377,13 @@ class JsonReader(BaseIterator):
         self.lines = lines
         self.chunksize = chunksize
         self.nrows_seen = 0
+        self.should_close = False
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
 
-        self.fp_or_buf = filepath_or_buffer
         data = self._get_data_from_filepath(filepath_or_buffer)
         self.data = self._preprocess_data(data)
 
@@ -427,6 +427,8 @@ class JsonReader(BaseIterator):
                 if exists:
                     data, _ = _get_handle(filepath_or_buffer, 'r',
                                           encoding=self.encoding)
+                    self.should_close = True
+                    self.open_stream = data
 
         return data
 
@@ -472,18 +474,14 @@ class JsonReader(BaseIterator):
 
     def close(self):
         """
-        If self.chunksize, self.data may need closing.
-        If not, self.fp_or_buff may need closing.
+        If we opened a  stream earlier, in _get_data_from_filepath, we should
+        close it. If an open stream or file was passed, we leave it open.
         """
-        try:
-            self.data.close()
-        except (IOError, AttributeError):
-            pass
-
-        try:
-            self.fp_or_buf.close()
-        except(IOError, AttributeError):
-            pass
+        if self.should_close:
+            try:
+                self.open_stream.close()
+            except (IOError, AttributeError):
+                pass
 
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))

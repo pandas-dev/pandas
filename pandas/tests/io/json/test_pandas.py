@@ -10,6 +10,7 @@ from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
 import pandas as pd
+from pandas.io.json.json import JsonReader
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -1148,13 +1149,14 @@ class TestPandasJsonLines(object):
         with ensure_clean('test.json') as path:
             df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
             df.to_json(path, lines=True, orient="records")
-            f = open(path, 'r')
-            if chunksize is not None:
-                pd.concat(pd.read_json(f, lines=True, chunksize=chunksize))
-            else:
-                pd.read_json(f, lines=True)
-            assert f.closed, \
-                "didn't close file with chunksize = %s" % chunksize
+            reader = JsonReader(
+                path, orient=None, typ="frame", dtype=True, convert_axes=True,
+                convert_dates=True, keep_default_dates=True, numpy=False,
+                precise_float=False, date_unit=None, encoding=None,
+                lines=True, chunksize=chunksize)
+            reader.read()
+            assert reader.open_stream.closed, "didn't close stream with \
+                chunksize = %s" % chunksize
 
     @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
     def test_readjson_invalid_chunksize(self, lines_json_df, chunksize):
