@@ -395,17 +395,10 @@ class JsonReader(BaseIterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, 'read'):
-            if self.chunksize:
-                data = data
-            else:
-                data = data.read()
-
-        else:
-            if self.chunksize:
-                data = StringIO(data)
-            else:
-                data = data
+        if hasattr(data, 'read') and not self.chunksize:
+            data = data.read()
+        if not hasattr(data, 'read') and self.chunksize:
+            data = StringIO(data)
 
         return data
 
