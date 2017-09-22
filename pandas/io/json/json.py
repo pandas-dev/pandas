@@ -274,7 +274,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-        If the JSON input is a string, this argument has no effect.
 
         .. versionadded:: 0.21.0
 
@@ -354,7 +353,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
 class JsonReader(BaseIterator):
     """
-    Reads a JSON document to a pandas object.
+    JsonReader provides an interface for reading in a JSON file.
 
     If initialized with ``lines=True`` and ``chunksize``, can be iterated over
     ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the

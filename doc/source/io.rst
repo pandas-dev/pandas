@@ -2064,7 +2064,6 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df
   df.to_json(orient='records', lines=True)
 
-  # chunksize has no effect when reading a string.
   reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
   reader
   for chunk in reader:
