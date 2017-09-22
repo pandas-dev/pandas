@@ -963,7 +963,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_numpy_array_equal(result.codes, np.array([0, -1, -1],
                                                            dtype='int8'))
 
-    def test_set_categories(self):
+    def test_set_categories_private(self):
         cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
         result = cat._set_categories(['a', 'b', 'c', 'd', 'e'])
         expected = Categorical(['a', 'b', 'c'], categories=list('abcde'))
