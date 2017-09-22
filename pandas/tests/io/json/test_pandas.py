@@ -991,149 +991,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         assert dumps(df, iso_dates=True) == dfexp
 
-    def test_read_jsonl(self):
-        # GH9180
-        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-    def test_read_jsonl_unicode_chars(self):
-        # GH15132: non-ascii unicode characters
-        # \u201d == RIGHT DOUBLE QUOTATION MARK
-
-        # simulate file handle
-        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-        json = StringIO(json)
-        result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
-                             columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-        # simulate string
-        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-        result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
-                             columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-    def test_to_jsonl(self):
-        # GH9180
-        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
-        assert result == expected
-
-        df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
-        assert result == expected
-        assert_frame_equal(pd.read_json(result, lines=True), df)
-
-        # GH15096: escaped characters in columns and data
-        df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]],
-                       columns=["a\\", 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = ('{"a\\\\":"foo\\\\","b":"bar"}\n'
-                    '{"a\\\\":"foo\\"","b":"bar"}')
-        assert result == expected
-        assert_frame_equal(pd.read_json(result, lines=True), df)
-
-    def test_readjson_chunks(self, lines_json_df):
-        """Basic test that read_json(chunks=True) gives the same result as
-        read_json(chunks=False)"""
-        # GH17048: memory usage when lines=True
-
-        for cs in [1, 1.0]:
-
-            unchunked = pd.read_json(StringIO(lines_json_df), lines=True)
-            chunked = pd.concat(
-                pd.read_json(StringIO(lines_json_df), lines=True, chunksize=cs)
-            )
-
-            assert_frame_equal(chunked, unchunked)
-
-    def test_readjson_chunksize_requires_lines(self, lines_json_df):
-        msg = "chunksize can only be passed if lines=True"
-        with tm.assert_raises_regex(ValueError, msg):
-            pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
-
-    def test_readjson_chunks_series(self):
-        """Test reading line-format JSON to Series with chunksize param"""
-        s = pd.Series({'A': 1, 'B': 2})
-
-        strio = StringIO(s.to_json(lines=True, orient="records"))
-        unchunked = pd.read_json(strio, lines=True, typ='Series')
-
-        strio = StringIO(s.to_json(lines=True, orient="records"))
-        chunked = pd.concat(pd.read_json(
-            strio, lines=True, typ='Series', chunksize=1
-        ))
-
-        assert_series_equal(chunked, unchunked)
-
-    def test_readjson_each_chunk(self, lines_json_df):
-        """
-        Other tests check that the final result of read_json(chunksize=True) is
-        correct. This checks that the intermediate chunks read in are correct.
-        """
-        chunks = list(
-            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=2)
-        )
-        assert chunks[0].shape == (2, 2)
-        assert chunks[1].shape == (1, 2)
-
-    def test_readjson_chunks_from_file(self):
-        with ensure_clean('test.json') as path:
-            df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-            df.to_json(path, lines=True, orient="records")
-            chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
-            unchunked = pd.read_json(path, lines=True)
-            assert_frame_equal(unchunked, chunked)
-
-    def test_readjson_chunks_closes(self):
-        for chunksize in [None, 1]:
-            with ensure_clean('test.json') as path:
-                df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-                df.to_json(path, lines=True, orient="records")
-                f = open(path, 'r')
-                if chunksize is not None:
-                    pd.concat(pd.read_json(f, lines=True, chunksize=chunksize))
-                else:
-                    pd.read_json(f, lines=True)
-                assert f.closed, \
-                    "didn't close file with chunksize = %s" % chunksize
-
-    def test_readjson_invalid_chunksize(self, lines_json_df):
-        msg = r"'chunksize' must be an integer >=1"
-
-        for cs in [0, -1, 2.2, 'foo']:
-            with tm.assert_raises_regex(ValueError, msg):
-                pd.read_json(StringIO(lines_json_df), lines=True, chunksize=cs)
-
-    def test_readjson_chunks_multiple_empty_lines(self):
-        j = """
-
-        {"A":1,"B":4}
-
-
-
-        {"A":2,"B":5}
-
-
-
-
-
-
-
-        {"A":3,"B":6}
-        """
-        for chunksize in [None, 1, 2]:
-            orig = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-            test = pd.read_json(j, lines=True, chunksize=chunksize)
-            if chunksize is not None:
-                test = pd.concat(test)
-            tm.assert_frame_equal(orig, test, obj="chunksize: %s" % chunksize)
-
     def test_latin_encoding(self):
         if compat.PY2:
             tm.assert_raises_regex(
@@ -1186,3 +1043,147 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+
+class TestPandasJsonLines(object):
+
+    def test_read_jsonl(self):
+        # GH9180
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_jsonl_unicode_chars(self):
+        # GH15132: non-ascii unicode characters
+        # \u201d == RIGHT DOUBLE QUOTATION MARK
+
+        # simulate file handle
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        json = StringIO(json)
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+        # simulate string
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_to_jsonl(self):
+        # GH9180
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        assert result == expected
+
+        df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        assert result == expected
+        assert_frame_equal(pd.read_json(result, lines=True), df)
+
+        # GH15096: escaped characters in columns and data
+        df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]],
+                       columns=["a\\", 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = ('{"a\\\\":"foo\\\\","b":"bar"}\n'
+                    '{"a\\\\":"foo\\"","b":"bar"}')
+        assert result == expected
+        assert_frame_equal(pd.read_json(result, lines=True), df)
+
+    @pytest.mark.parametrize("chunksize", [1, 1.0])
+    def test_readjson_chunks(self, lines_json_df, chunksize):
+        # Basic test that read_json(chunks=True) gives the same result as
+        # read_json(chunks=False)
+        # GH17048: memory usage when lines=True
+
+        unchunked = pd.read_json(StringIO(lines_json_df), lines=True)
+        reader = pd.read_json(StringIO(lines_json_df), lines=True,
+                              chunksize=chunksize)
+        chunked = pd.concat(reader)
+
+        assert_frame_equal(chunked, unchunked)
+
+    def test_readjson_chunksize_requires_lines(self, lines_json_df):
+        msg = "chunksize can only be passed if lines=True"
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(StringIO(lines_json_df), lines=False, chunksize=2)
+
+    def test_readjson_chunks_series(self):
+        # Test reading line-format JSON to Series with chunksize param
+        s = pd.Series({'A': 1, 'B': 2})
+
+        strio = StringIO(s.to_json(lines=True, orient="records"))
+        unchunked = pd.read_json(strio, lines=True, typ='Series')
+
+        strio = StringIO(s.to_json(lines=True, orient="records"))
+        chunked = pd.concat(pd.read_json(
+            strio, lines=True, typ='Series', chunksize=1
+        ))
+
+        assert_series_equal(chunked, unchunked)
+
+    def test_readjson_each_chunk(self, lines_json_df):
+        # Other tests check that the final result of read_json(chunksize=True)
+        # is correct. This checks the intermediate chunks.
+        chunks = list(
+            pd.read_json(StringIO(lines_json_df), lines=True, chunksize=2)
+        )
+        assert chunks[0].shape == (2, 2)
+        assert chunks[1].shape == (1, 2)
+
+    def test_readjson_chunks_from_file(self):
+        with ensure_clean('test.json') as path:
+            df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+            df.to_json(path, lines=True, orient="records")
+            chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
+            unchunked = pd.read_json(path, lines=True)
+            assert_frame_equal(unchunked, chunked)
+
+    @pytest.mark.parametrize("chunksize", [None, 1])
+    def test_readjson_chunks_closes(self, chunksize):
+        with ensure_clean('test.json') as path:
+            df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+            df.to_json(path, lines=True, orient="records")
+            f = open(path, 'r')
+            if chunksize is not None:
+                pd.concat(pd.read_json(f, lines=True, chunksize=chunksize))
+            else:
+                pd.read_json(f, lines=True)
+            assert f.closed, \
+                "didn't close file with chunksize = %s" % chunksize
+
+    @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
+    def test_readjson_invalid_chunksize(self, lines_json_df, chunksize):
+        msg = r"'chunksize' must be an integer >=1"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_json(StringIO(lines_json_df), lines=True,
+                         chunksize=chunksize)
+
+    @pytest.mark.parametrize("chunksize", [None, 1, 2])
+    def test_readjson_chunks_multiple_empty_lines(self, chunksize):
+        j = """
+
+        {"A":1,"B":4}
+
+
+
+        {"A":2,"B":5}
+
+
+
+
+
+
+
+        {"A":3,"B":6}
+        """
+        orig = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        test = pd.read_json(j, lines=True, chunksize=chunksize)
+        if chunksize is not None:
+            test = pd.concat(test)
+        tm.assert_frame_equal(orig, test, obj="chunksize: %s" % chunksize)
