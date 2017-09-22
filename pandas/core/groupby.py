@@ -3177,6 +3177,8 @@ class SeriesGroupBy(GroupBy):
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
         if len(ids):
+            # NaN/NaT group exists if the head of ids is -1,
+            # so remove it from res and exclude its index from idx
             if ids[0] == -1:
                 res = out[1:]
                 idx = idx[np.flatnonzero(idx)]
