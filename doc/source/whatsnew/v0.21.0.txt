@@ -625,6 +625,7 @@ Groupby/Resample/Rolling
 - Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1` (:issue:`15305`)
 - Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
 - Bug in ``groupby.nunique()`` with ``TimeGrouper`` which cannot handle ``NaT`` correctly (:issue:`17575`)
+- Bug in ``DataFrame.groupby`` where a single level selection from a ``MultiIndex`` unexpectedly sorts (:issue:`17537`)
 
 Sparse
 ^^^^^^

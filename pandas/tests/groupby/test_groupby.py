@@ -1793,6 +1793,7 @@ class TestGroupBy(MixIn):
 
     @pytest.mark.parametrize('sort', [True, False])
     def test_groupby_level(self, sort):
+        # GH 17537
         frame = self.mframe
         deleveled = frame.reset_index()
 
@@ -1838,6 +1839,7 @@ class TestGroupBy(MixIn):
 
     @pytest.mark.parametrize('sort', [True, False])
     def test_groupby_level_with_nas(self, sort):
+        # GH 17537
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
                            labels=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
                                                               2, 3]])
@@ -1943,6 +1945,7 @@ class TestGroupBy(MixIn):
         [False, [0, 0, 0, 1, 1, 2, 2, 3, 3, 3]]
     ])
     def test_level_preserve_order(self, sort, labels):
+        # GH 17537
         grouped = self.mframe.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)

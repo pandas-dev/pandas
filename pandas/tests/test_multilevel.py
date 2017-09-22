@@ -1394,6 +1394,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     @pytest.mark.parametrize('sort', [True, False])
     def test_series_group_min_max(self, sort):
+        # GH 17537
         for op, level, skipna in cart_product(self.AGG_FUNCTIONS, lrange(2),
                                               [False, True]):
             grouped = self.series.groupby(level=level, sort=sort)
@@ -1407,6 +1408,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     @pytest.mark.parametrize('sort', [True, False])
     def test_frame_group_ops(self, sort):
+        # GH 17537
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
