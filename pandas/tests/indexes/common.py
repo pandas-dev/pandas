@@ -34,6 +34,12 @@ class Base(object):
         unpickled = tm.round_trip_pickle(index)
         assert index.equals(unpickled)
 
+    def _fix_tz(self, new_index, orig_index):
+        if hasattr(orig_index, 'tz'):
+            assert new_index.tz is None
+            new_index = new_index.tz_localize('UTC').tz_convert(orig_index.tz)
+        return new_index
+
     def test_pickle_compat_construction(self):
         # this is testing for pickle compat
         if self._holder is None:
@@ -278,6 +284,8 @@ class Base(object):
 
             index_type = index.__class__
             result = index_type(index.values, copy=True, **init_kwargs)
+            result = self._fix_tz(result, index)
+
             tm.assert_index_equal(index, result)
             tm.assert_numpy_array_equal(index.values, result.values,
                                         check_same='copy')
@@ -501,11 +509,13 @@ class Base(object):
         rep = 2
         i = self.create_index()
         expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = self._fix_tz(expected, i)
         tm.assert_index_equal(i.repeat(rep), expected)
 
         i = self.create_index()
         rep = np.arange(len(i))
         expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = self._fix_tz(expected, i)
         tm.assert_index_equal(i.repeat(rep), expected)
 
     def test_numpy_repeat(self):
@@ -726,7 +736,9 @@ class Base(object):
             assert not idx.equals(np.array(idx))
 
             # Cannot pass in non-int64 dtype to RangeIndex
-            if not isinstance(idx, RangeIndex):
+            # In tz-aware DatetimeIndex constructor,
+            #  subarr.tz: ValueError: cannot localize from non-UTC data
+            if not isinstance(idx, RangeIndex) and not hasattr(idx, 'tz'):
                 same_values = Index(idx, dtype=object)
                 assert idx.equals(same_values)
                 assert same_values.equals(idx)

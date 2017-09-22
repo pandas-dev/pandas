@@ -22,7 +22,7 @@ class DatetimeLike(Base):
 
         if hasattr(idx, 'tz'):
             if idx.tz is not None:
-                assert idx.tz in str(idx)
+                assert str(idx.tz) in str(idx)
         if hasattr(idx, 'freq'):
             assert "freq='%s'" % idx.freqstr in str(idx)
 
