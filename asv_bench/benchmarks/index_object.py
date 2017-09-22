@@ -199,3 +199,23 @@ class Multi3(object):
 
     def time_datetime_level_values_sliced(self):
         self.mi[:10].values
+
+
+class Range(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
+        self.idx_dec = RangeIndex(start=10**7, stop=-1, step=-3)
+
+    def time_max(self):
+        self.idx_inc.max()
+
+    def time_max_trivial(self):
+        self.idx_dec.max()
+
+    def time_min(self):
+        self.idx_dec.min()
+
+    def time_min_trivial(self):
+        self.idx_inc.min()
