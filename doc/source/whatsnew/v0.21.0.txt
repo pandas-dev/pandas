@@ -135,7 +135,7 @@ We have updated our minimum supported versions of dependencies (:issue:`15206`, 
 
    +--------------+-----------------+----------+
    | Package      | Minimum Version | Required |
-   +======================+=========+==========+
+   +==============+=================+==========+
    | Numpy        | 1.9.0           |    X     |
    +--------------+-----------------+----------+
    | Matplotlib   | 1.4.3           |          |
@@ -241,54 +241,53 @@ New Behaviour:
 Dtype Conversions
 ^^^^^^^^^^^^^^^^^
 
-- Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to
-  same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
+Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = Series([1, 2, 3])
+   s = Series([1, 2, 3])
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [5]: s[1] = True
+   In [5]: s[1] = True
 
-     In [6]: s
-     Out[6]:
-     0    1
-     1    1
-     2    3
-     dtype: int64
+   In [6]: s
+   Out[6]:
+   0    1
+   1    1
+   2    3
+   dtype: int64
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     s[1] = True
-     s
+   s[1] = True
+   s
 
-- Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
-  non-datetime-like item being assigned (:issue:`14145`).
+Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
+non-datetime-like item being assigned (:issue:`14145`).
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+   s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [1]: s[1] = 1
+   In [1]: s[1] = 1
 
-     In [2]: s
-     Out[2]:
-     0   2011-01-01 00:00:00.000000000
-     1   1970-01-01 00:00:00.000000001
-     dtype: datetime64[ns]
+   In [2]: s
+   Out[2]:
+   0   2011-01-01 00:00:00.000000000
+   1   1970-01-01 00:00:00.000000001
+   dtype: datetime64[ns]
 
-  These now coerce to ``object`` dtype.
+These now coerce to ``object`` dtype.
 
-  .. ipython:: python
+.. ipython:: python
 
-     s[1] = 1
-     s
+   s[1] = 1
+   s
 
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
@@ -338,26 +337,26 @@ UTC Localization with Series
 
 Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
 
-  Previous Behavior
+Previous Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = Series(['20130101 00:00:00'] * 3)
+   s = Series(['20130101 00:00:00'] * 3)
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
-     In [12]: pd.to_datetime(s, utc=True)
-     Out[12]:
-     0   2013-01-01
-     1   2013-01-01
-     2   2013-01-01
-     dtype: datetime64[ns]
+   In [12]: pd.to_datetime(s, utc=True)
+   Out[12]:
+   0   2013-01-01
+   1   2013-01-01
+   2   2013-01-01
+   dtype: datetime64[ns]
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     pd.to_datetime(s, utc=True)
+   pd.to_datetime(s, utc=True)
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
@@ -410,9 +409,9 @@ Previous Behavior:
 
 New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     pd.interval_range(start=0, end=4)
+   pd.interval_range(start=0, end=4)
 
 .. _whatsnew_0210.api:
 
@@ -476,6 +475,14 @@ Performance Improvements
 - Improved performance of the :class:`CategoricalIndex` for data that is already categorical dtype (:issue:`17513`)
 - Improved performance of :meth:`RangeIndex.min` and :meth:`RangeIndex.max` by using ``RangeIndex`` properties to perform the computations (:issue:`17607`)
 
+.. _whatsnew_0210.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
+- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)
+
 .. _whatsnew_0210.bug_fixes:
 
 Bug Fixes
@@ -530,7 +537,7 @@ Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
-- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`)(:issue:`11471`)
+- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`, :issue:`11471`)
 - With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
 - Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
@@ -575,10 +582,8 @@ Numeric
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
-- Bug in the categorical constructor with empty values and categories causing
-  the ``.categories`` to be an empty ``Float64Index`` rather than an empty
-  ``Index`` with object dtype (:issue:`17248`)
-- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
+- Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^
@@ -593,5 +598,3 @@ PyPy
 Other
 ^^^^^
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
-- Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
-- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)
