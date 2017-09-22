@@ -608,3 +608,16 @@ class TestGroupBy(object):
         assert_frame_equal(grouped_ref.min(), grouped_test.min())
         assert_frame_equal(grouped_ref.first(), grouped_test.first())
         assert_frame_equal(grouped_ref.last(), grouped_test.last())
+
+    def test_nunique_with_timegrouper_and_nat(self):
+        # GH 17575
+        test = pd.DataFrame({
+            'time': [Timestamp('2016-06-28 09:35:35'),
+                     pd.NaT,
+                     Timestamp('2016-06-28 16:46:28')],
+            'data': ['1', '2', '3']})
+
+        grouper = pd.TimeGrouper(key='time', freq='h')
+        result = test.groupby(grouper)['data'].nunique()
+        expected = test[test.time.notnull()].groupby(grouper)['data'].nunique()
+        tm.assert_series_equal(result, expected)
