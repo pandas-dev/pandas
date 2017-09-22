@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 from cython cimport Py_ssize_t
 
@@ -13,8 +7,8 @@ from cpython cimport (
 
 cdef class cache_readonly(object):
 
-    #cdef readonly:
-    #    object func, name, allow_setting
+    cdef readonly:
+        object func, name, allow_setting
 
     def __init__(self, func=None, allow_setting=False):
         if func is not None:
@@ -60,10 +54,9 @@ cdef class cache_readonly(object):
 
         PyDict_SetItem(cache, self.name, value)
 
-
 cdef class AxisProperty(object):
-    #cdef:
-    #    Py_ssize_t axis
+    cdef:
+        Py_ssize_t axis
 
     def __init__(self, axis=0):
         self.axis = axis

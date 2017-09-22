@@ -479,6 +479,7 @@ ext_data = {
     '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.lib': {'pyxfile': '_libs/lib',
                   'depends': lib_depends + tseries_depends},
+    '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
