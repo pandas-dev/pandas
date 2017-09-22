@@ -413,22 +413,20 @@ class JsonReader(BaseIterator):
         It returns input types (2) and (3) unchanged.
         """
 
-        data = None
+        data = filepath_or_buffer
 
-        if isinstance(filepath_or_buffer, compat.string_types):
+        if isinstance(data, compat.string_types):
             try:
                 exists = os.path.exists(filepath_or_buffer)
 
             # gh-5874: if the filepath is too long will raise here
             except (TypeError, ValueError):
-                exists = False
+                pass
 
-            if exists:
-                data, _ = _get_handle(filepath_or_buffer, 'r',
-                                      encoding=self.encoding)
-
-        if not data:
-            data = filepath_or_buffer
+            else:
+                if exists:
+                    data, _ = _get_handle(filepath_or_buffer, 'r',
+                                          encoding=self.encoding)
 
         return data
 
