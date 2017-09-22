@@ -206,7 +206,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     if _is_s3_url(filepath_or_buffer):
         from pandas.io import s3
         return s3.get_filepath_or_buffer(filepath_or_buffer,
-                                         encoding=encoding, 
+                                         encoding=encoding,
                                          compression=compression)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
