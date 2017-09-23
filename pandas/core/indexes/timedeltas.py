@@ -847,7 +847,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 pass
 
         freq = None
-        if isinstance(item, (Timedelta, libts.NaTType)):
+        if isinstance(item, Timedelta) or item is NaT:
 
             # check freq can be preserved on edge cases
             if self.freq is not None:

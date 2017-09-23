@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
-from pandas._libs.tslib import iNaT, NaTType
+from pandas._libs.tslib import iNaT, NaT
 
 
 class TestTimedeltas(object):
@@ -579,7 +579,7 @@ class TestTimedeltas(object):
         assert max_td.value == np.iinfo(np.int64).max
 
         # Beyond lower limit, a NAT before the Overflow
-        assert isinstance(min_td - Timedelta(1, 'ns'), NaTType)
+        assert (min_td - Timedelta(1, 'ns')) is NaT
 
         with pytest.raises(OverflowError):
             min_td - Timedelta(2, 'ns')
@@ -589,7 +589,7 @@ class TestTimedeltas(object):
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, 'ns')
-        assert isinstance(td, NaTType)
+        assert td is NaT
 
         with pytest.raises(OverflowError):
             Timedelta(min_td.value - 2, 'ns')
