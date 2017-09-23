@@ -1,16 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 """Strptime-related classes and functions.
-
-CLASSES:
-    LocaleTime -- Discovers and stores locale-specific time information
-    TimeRE -- Creates regexes for pattern matching a string of text containing
-                time information
-
-FUNCTIONS:
-    _getlang -- Figure out what language is being used for the locale
-    strptime -- Calculates the time struct represented by the passed-in string
-
 """
 import time
 import locale
@@ -50,7 +40,6 @@ from datetime cimport (
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime)
 
-cimport util
 from util cimport is_string_object, get_nat
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -58,16 +47,11 @@ cdef int64_t NPY_NAT = util.get_nat()
 cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return (val is None or
-            (PyFloat_Check(val) and val != val) or
-            (isinstance(val, datetime) and not val == val))
-
-
 def array_strptime(ndarray[object] values, object fmt,
                    bint exact=True, errors='raise'):
     """
+    Calculates the datetime structs represented by the passed array of strings
+
     Parameters
     ----------
     values : ndarray of string-like objects
@@ -347,8 +331,15 @@ def array_strptime(ndarray[object] values, object fmt,
     return result
 
 
+cdef inline bint _checknull_with_nat(object val):
+    """ utility to check if a value is a nat or not """
+    return (val is None or
+            (PyFloat_Check(val) and val != val) or
+            (isinstance(val, datetime) and not val == val))
+
+
 def _getlang():
-    # Figure out what the current language is set to.
+    """Figure out what language is being used for the locale"""
     return locale.getlocale(locale.LC_TIME)
 
 
@@ -500,7 +491,12 @@ class LocaleTime(object):
 
 
 class TimeRE(dict):
-    """Handle conversion from format directives to regexes."""
+    """
+    Handle conversion from format directives to regexes.
+
+    Creates regexes for pattern matching a string of text containing
+    time information
+    """
 
     def __init__(self, locale_time=None):
         """Create keys/values.
