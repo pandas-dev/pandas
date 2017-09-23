@@ -3514,7 +3514,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
         ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
 
     if isinstance(ts, timedelta):
-        ts = np.timedelta64(ts)
+        ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
     elif not isinstance(ts, np.timedelta64):
         raise ValueError("Invalid type for timedelta "
                          "scalar: %s" % type(ts))
@@ -3891,8 +3891,7 @@ for _maybe_method_name in dir(NaTType):
 #----------------------------------------------------------------------
 # Conversion routines
 
-
-cpdef int64_t _delta_to_nanoseconds(delta):
+cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
     if isinstance(delta, np.ndarray):
         return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
@@ -3903,6 +3902,7 @@ cpdef int64_t _delta_to_nanoseconds(delta):
         return delta.astype("timedelta64[ns]").item()
     if is_integer_object(delta):
         return delta
+
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds) * 1000

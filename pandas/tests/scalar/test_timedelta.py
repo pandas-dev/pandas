@@ -166,6 +166,13 @@ class TestTimedeltas(object):
         value = pd.Timedelta('1day').value * 20169940
         pytest.raises(OverflowError, pd.Timedelta, value)
 
+        # xref gh-17637
+        with pytest.raises(OverflowError):
+            pd.Timedelta(7 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timedelta(timedelta(days=13 * 19999))
+
     def test_total_seconds_scalar(self):
         # see gh-10939
         rng = Timedelta('1 days, 10:11:12.100123456')
@@ -611,6 +618,14 @@ class TestTimedeltas(object):
             expected = pd.Series([np.nan, 32.], dtype='float64')
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
+
+    def test_arithmetic_overflow(self):
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
 
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')
