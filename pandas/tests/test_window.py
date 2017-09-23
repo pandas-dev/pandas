@@ -1175,7 +1175,7 @@ class TestMoments(Base):
         # is analogus to Numpy's percentile
         row = 10
         col = 5
-        idx = pd.date_range(20100101, periods=row, freq='B')
+        idx = pd.date_range('20100101', periods=row, freq='B')
         df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
                           index=idx)
 

@@ -1289,6 +1289,15 @@ class Block(PandasObject):
             elif is_numeric_v_string_like(values, other):
                 result = False
 
+            # avoid numpy warning of elementwise comparisons
+            elif func.__name__ == 'eq':
+                if is_list_like(other) and not isinstance(other, np.ndarray):
+                    other = np.asarray(other)
+
+                    # if we can broadcast, then ok
+                    if values.shape[-1] != other.shape[-1]:
+                        return False
+                result = func(values, other)
             else:
                 result = func(values, other)
 
