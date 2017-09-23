@@ -1244,7 +1244,14 @@ def assert_series_equal(left, right, check_dtype=True,
                        obj='{obj}.index'.format(obj=obj))
 
     if check_dtype:
-        assert_attr_equal('dtype', left, right)
+        # We want to skip exact dtype checking when `check_categorical`
+        # is False. We'll still raise if only one is a `Categorical`,
+        # regardless of `check_categorical`
+        if (is_categorical_dtype(left) and is_categorical_dtype(right) and
+                not check_categorical):
+            pass
+        else:
+            assert_attr_equal('dtype', left, right)
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),

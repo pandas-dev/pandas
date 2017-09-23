@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_dtype_equal,
+    is_dtype_union_equal,
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype,
@@ -847,7 +848,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         """
         Return the formatted data as a unicode string
         """
@@ -856,9 +857,11 @@ class Index(IndexOpsMixin, PandasObject):
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
+        if name is None:
+            name = self.__class__.__name__
 
-        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
-        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
+        space1 = "\n%s" % (' ' * (len(name) + 1))
+        space2 = "\n%s" % (' ' * (len(name) + 2))
 
         n = len(self)
         sep = ','
@@ -2170,7 +2173,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0:
             return other._get_consensus_name(self)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        # TODO: is_dtype_union_equal is a hack around
+        # 1. buggy set ops with duplicates (GH #13432)
+        # 2. CategoricalIndex lacking setops (GH #10186)
+        # Once those are fixed, this workaround can be removed
+        if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.union(other)

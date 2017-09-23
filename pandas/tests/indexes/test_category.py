@@ -654,7 +654,11 @@ class TestCategoricalIndex(Base):
         # make sure that we are testing for category inclusion properly
         ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca'))
-        assert not ci.equals(CategoricalIndex(list('aabca')))
+        # Same categories, but different order
+        # Unordered
+        assert ci.equals(CategoricalIndex(list('aabca')))
+        # Ordered
+        assert not ci.equals(CategoricalIndex(list('aabca'), ordered=True))
         assert ci.equals(ci.copy())
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
@@ -666,7 +670,9 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca') + [np.nan])
-        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan],
+                                              ordered=True))
         assert ci.equals(ci.copy())
 
     def test_string_categorical_index_repr(self):

@@ -985,9 +985,10 @@ class IntervalIndex(IntervalMixin, Index):
                                       na_rep=na_rep,
                                       justify='all').get_result()
 
-    def _format_data(self):
+    def _format_data(self, name=None):
 
         # TODO: integrate with categorical and make generic
+        # name argument is unused here; just for compat with base / categorical
         n = len(self)
         max_seq_items = min((get_option(
             'display.max_seq_items') or n) // 10, 10)

@@ -490,7 +490,7 @@ class MultiIndex(Index):
     def _format_space(self):
         return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
 
