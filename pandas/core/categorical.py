@@ -601,13 +601,24 @@ class Categorical(PandasObject):
     labels = property(fget=_get_labels, fset=_set_codes)
 
     def _set_categories(self, categories, fastpath=False):
-        """ Sets new categories
+        """ Sets new categories inplace
 
         Parameters
         ----------
         fastpath : boolean (default: False)
            Don't perform validation of the categories for uniqueness or nulls
 
+        Examples
+        --------
+        >>> c = Categorical(['a', 'b'])
+        >>> c
+        [a, b]
+        Categories (2, object): [a, b]
+
+        >>> c._set_categories(pd.Index(['a', 'c']))
+        >>> c
+        [a, c]
+        Categories (2, object): [a, c]
         """
 
         if fastpath:

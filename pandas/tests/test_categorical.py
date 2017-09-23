@@ -965,13 +965,15 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_set_categories_private(self):
         cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
-        result = cat._set_categories(['a', 'b', 'c', 'd', 'e'])
-        expected = Categorical(['a', 'b', 'c'], categories=list('abcde'))
-        tm.assert_categorical_equal(result, expected)
+        cat._set_categories(['a', 'c', 'd', 'e'])
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
 
         # fastpath
-        result = cat._set_categories(['a', 'b', 'c', 'd', 'e'], fastpath=True)
-        tm.assert_categorical_equal(result, expected)
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        cat._set_categories(['a', 'c', 'd', 'e'], fastpath=True)
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
 
     @pytest.mark.parametrize('values, categories, new_categories', [
         # No NaNs, same cats, same order
