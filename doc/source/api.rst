@@ -1426,8 +1426,23 @@ Numeric Index
    :template: autosummary/class_without_autosummary.rst
 
    RangeIndex
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
    Int64Index
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
    UInt64Index
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
    Float64Index
 
 .. _api.categoricalindex:
