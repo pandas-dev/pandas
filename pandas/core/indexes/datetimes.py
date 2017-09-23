@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_integer_dtype,
     is_datetime64_ns_dtype,
+    is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
@@ -800,6 +801,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         name = self.name
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(delta)
+        elif isinstance(delta, np.ndarray) and is_timedelta64_dtype(delta):
             new_values = self._add_delta_td(delta)
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)

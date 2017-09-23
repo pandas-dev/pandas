@@ -13,7 +13,8 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool_dtype, _ensure_int64,
     is_scalar, is_dtype_equal,
-    is_list_like)
+    is_timedelta64_dtype, is_datetime64tz_dtype,
+    is_integer_dtype, is_list_like)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries,
     ABCPeriodIndex, ABCIndexClass)
@@ -651,6 +652,18 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot add {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
+            elif isinstance(other, np.ndarray):
+                if is_timedelta64_dtype(other):
+                    return self._add_delta(other)
+                elif is_integer_dtype(other):
+                    # for internal use only:
+                    # allow PeriodIndex + np.array(int64) to
+                    # fallthrough to ufunc operator
+                    return NotImplemented
+                else:
+                    raise TypeError("cannot add {typ1} and np.ndarray[{typ2}]"
+                                    .format(typ1=type(self).__name__,
+                                            typ2=other.dtype))
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
                                     Timedelta)):
                 return self._add_delta(other)
@@ -717,7 +730,7 @@ class DatetimeIndexOpsMixin(object):
 
     def _add_delta_tdi(self, other):
         # add a delta of a TimedeltaIndex
-        # return the i8 result view
+        # return the i8 result view for datetime64tz
 
         # delta operation
         if not len(self) == len(other):
@@ -731,6 +744,8 @@ class DatetimeIndexOpsMixin(object):
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
+        if is_datetime64tz_dtype(self.dtype):
+            return new_values.view('i8')
         return new_values.view(self.dtype)
 
     def isin(self, values):
