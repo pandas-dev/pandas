@@ -3,26 +3,26 @@ cimport numpy as cnp
 cimport cpython
 
 cdef extern from "numpy_helper.h":
-    inline void set_array_owndata(ndarray ao)
-    inline void set_array_not_contiguous(ndarray ao)
+    void set_array_owndata(ndarray ao)
+    void set_array_not_contiguous(ndarray ao)
 
-    inline int is_integer_object(object)
-    inline int is_float_object(object)
-    inline int is_complex_object(object)
-    inline int is_bool_object(object)
-    inline int is_string_object(object)
-    inline int is_datetime64_object(object)
-    inline int is_timedelta64_object(object)
-    inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
-    inline cnp.int64_t get_nat()
-    inline object get_value_1d(ndarray, Py_ssize_t)
-    inline int floatify(object, double*) except -1
-    inline char *get_c_string(object) except NULL
-    inline object char_to_string(char*)
-    inline void transfer_object_column(char *dst, char *src, size_t stride,
+    int is_integer_object(object)
+    int is_float_object(object)
+    int is_complex_object(object)
+    int is_bool_object(object)
+    int is_string_object(object)
+    int is_datetime64_object(object)
+    int is_timedelta64_object(object)
+    int assign_value_1d(ndarray, Py_ssize_t, object) except -1
+    cnp.int64_t get_nat()
+    object get_value_1d(ndarray, Py_ssize_t)
+    int floatify(object, double*) except -1
+    char *get_c_string(object) except NULL
+    object char_to_string(char*)
+    void transfer_object_column(char *dst, char *src, size_t stride,
                                        size_t length)
     object sarr_from_data(cnp.dtype, int length, void* data)
-    inline object unbox_if_zerodim(object arr)
+    object unbox_if_zerodim(object arr)
 
 ctypedef fused numeric:
     cnp.int8_t
