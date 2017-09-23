@@ -545,6 +545,7 @@ class BusinessMixin(object):
 
     @property
     def offset(self):
+        """Alias for self._offset"""
         # Alias for backward compat
         return self._offset
 
