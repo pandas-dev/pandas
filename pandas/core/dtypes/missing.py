@@ -327,25 +327,7 @@ def array_equivalent(left, right, strict_nan=False):
         left = left.view('i8')
         right = right.view('i8')
 
-    # NaNs cannot occur otherwise.
-    try:
-        return np.array_equal(left, right)
-    except AttributeError:
-        # see gh-13388
-        #
-        # NumPy v1.7.1 has a bug in its array_equal
-        # function that prevents it from correctly
-        # comparing two arrays with complex dtypes.
-        # This bug is corrected in v1.8.0, so remove
-        # this try-except block as soon as we stop
-        # supporting NumPy versions < 1.8.0
-        if not is_dtype_equal(left.dtype, right.dtype):
-            return False
-
-        left = left.tolist()
-        right = right.tolist()
-
-        return left == right
+    return np.array_equal(left, right)
 
 
 def _infer_fill_value(val):
