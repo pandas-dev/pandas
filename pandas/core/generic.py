@@ -2389,6 +2389,11 @@ class NDFrame(PandasObject, SelectionMixin):
            A  B   C   D
         2  8  9  10  11
 
+        Notes
+        -----
+        Specifying both `labels` and `index` or `columns` will raise a
+        ValueError.
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
@@ -2416,7 +2421,20 @@ class NDFrame(PandasObject, SelectionMixin):
             return obj
 
     def _drop_axis(self, labels, axis, level=None, errors='raise'):
+        """
+        Drop labels from specified axis. Used in the ``drop`` method
+        internally.
 
+        Parameters
+        ----------
+        labels : single label or list-like
+        axis : int or axis name
+        level : int or level name, default None
+            For MultiIndex
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
+
+        """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis

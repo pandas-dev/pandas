@@ -176,6 +176,9 @@ class TestDataFrameSelectReindex(TestData):
             df.drop(labels='a', index='b')
 
         with pytest.raises(ValueError):
+            df.drop(labels='a', columns='b')
+
+        with pytest.raises(ValueError):
             df.drop(axis=1)
 
     def test_merge_join_different_levels(self):

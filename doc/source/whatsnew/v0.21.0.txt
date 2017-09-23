@@ -100,12 +100,12 @@ For example:
 
 .. ipython:: python
 
-df = pd.DataFrame(np.arange(8).reshape(2,4),
-                  columns=['A', 'B', 'C', 'D'])
-df
-df.drop(['B', 'C'], axis=1)
-# the following is now equivalent
-df.drop(columns=['B', 'C'])
+    df = pd.DataFrame(np.arange(8).reshape(2,4),
+                      columns=['A', 'B', 'C', 'D'])
+    df
+    df.drop(['B', 'C'], axis=1)
+    # the following is now equivalent
+    df.drop(columns=['B', 'C'])
 
 .. _whatsnew_0210.enhancements.other:
 
