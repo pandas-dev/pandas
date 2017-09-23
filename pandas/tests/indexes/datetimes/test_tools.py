@@ -788,6 +788,13 @@ class TestToDatetimeMisc(object):
         assert xp.freq == rs.freq
         assert xp.tzinfo == rs.tzinfo
 
+    def test_to_datetime_overflow(self):
+        # gh-17637
+        # we are overflowing Timedelta range here
+
+        with pytest.raises(OverflowError):
+            date_range(start='1/1/1700', freq='B', periods=100000)
+
     def test_string_na_nat_conversion(self):
         # GH #999, #858
 
@@ -1057,7 +1064,7 @@ class TestDatetimeParsingWrappers(object):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
         for bad_date_string in bad_date_strings:
-            assert not tslib._does_string_look_like_datetime(bad_date_string)
+            assert not parsing._does_string_look_like_datetime(bad_date_string)
 
         good_date_strings = ('2012-01-01',
                              '01/01/2012',
@@ -1067,7 +1074,7 @@ class TestDatetimeParsingWrappers(object):
                              '1-1', )
 
         for good_date_string in good_date_strings:
-            assert tslib._does_string_look_like_datetime(good_date_string)
+            assert parsing._does_string_look_like_datetime(good_date_string)
 
     def test_parsers(self):
 

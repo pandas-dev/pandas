@@ -1035,6 +1035,12 @@ class TestDataFrameOperators(TestData):
         result = df == tup
         assert_frame_equal(result, expected)
 
+    def test_boolean_comparison_error(self):
+
+        # GH 4576
+        # boolean comparisons with a tuple/list give unexpected results
+        df = DataFrame(np.arange(6).reshape((3, 2)))
+
         # not shape compatible
         pytest.raises(ValueError, lambda: df == (2, 2))
         pytest.raises(ValueError, lambda: df == [2, 2])

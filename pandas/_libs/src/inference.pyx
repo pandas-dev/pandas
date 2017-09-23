@@ -1015,7 +1015,7 @@ cpdef bint is_interval_array(ndarray[object] values):
 
 
 cdef extern from "parse_helper.h":
-    inline int floatify(object, double *result, int *maybe_int) except -1
+    int floatify(object, double *result, int *maybe_int) except -1
 
 # constants that will be compared to potentially arbitrarily large
 # python int

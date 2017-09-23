@@ -689,6 +689,41 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(self, key, method=None):
+        """Get integer location, slice or boolean mask for requested label.
+
+        Parameters
+        ----------
+        key : label
+        method : {None}, optional
+            * default: matches where the label is within an interval only.
+
+        Returns
+        -------
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
+        >>> index = pd.IntervalIndex.from_intervals([i1, i2])
+        >>> index.get_loc(1)
+        0
+
+        You can also supply an interval or an location for a point inside an
+        interval.
+
+        >>> index.get_loc(pd.Interval(0, 2))
+        array([0, 1], dtype=int64)
+        >>> index.get_loc(1.5)
+        1
+
+        If a label is in several intervals, you get the locations of all the
+        relevant intervals.
+
+        >>> i3 = pd.Interval(0, 2)
+        >>> overlapping_index = pd.IntervalIndex.from_intervals([i2, i3])
+        >>> overlapping_index.get_loc(1.5)
+        array([0, 1], dtype=int64)
+        """
         self._check_method(method)
 
         original_key = key
@@ -950,9 +985,10 @@ class IntervalIndex(IntervalMixin, Index):
                                       na_rep=na_rep,
                                       justify='all').get_result()
 
-    def _format_data(self):
+    def _format_data(self, name=None):
 
         # TODO: integrate with categorical and make generic
+        # name argument is unused here; just for compat with base / categorical
         n = len(self)
         max_seq_items = min((get_option(
             'display.max_seq_items') or n) // 10, 10)
@@ -1094,7 +1130,8 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Additionally, datetime-like input is also supported.
 
-    >>> pd.interval_range(start='2017-01-01', end='2017-01-04')
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]]
                   closed='right', dtype='interval[datetime64[ns]]')
@@ -1110,7 +1147,8 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(start='2017-01-01', periods=3, freq='MS')
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]]
                   closed='right', dtype='interval[datetime64[ns]]')
