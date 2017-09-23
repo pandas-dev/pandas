@@ -199,7 +199,7 @@ class TestCategorical(object):
         assert not c1.is_dtype_equal(c1.astype(object))
         assert c1.is_dtype_equal(CategoricalIndex(c1))
         assert (c1.is_dtype_equal(
-            CategoricalIndex(c1, categories=list('cab'))))  # XXX: changed
+            CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
 
     def test_constructor(self):
@@ -4216,7 +4216,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # wrong catgories
         df3 = DataFrame({'A': a,
-                         'B': pd.Categorical(b, categories=list('abe'))  # XXX
+                         'B': pd.Categorical(b, categories=list('abe'))
                          }).set_index('B')
         pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
 
