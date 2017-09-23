@@ -82,6 +82,7 @@ from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg
@@ -2575,12 +2576,12 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved if you are using Python 3.5 and earlier.
-        To make things predicatable, the columns are inserted in alphabetical
-        order, at the end of your DataFrame. Assigning multiple columns within
-        the same ``assign`` is possible, but you cannot reference other columns
-        created within the same ``assign`` call.
+        For python 3.6 and above, the columns are inserted in the order of
+        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        the columns are inserted in alphabetical order at the end of your
+        DataFrame.  Assigning multiple columns within the same ``assign``
+        is possible, but you cannot reference other columns created within
+        the same ``assign`` call.
 
         Examples
         --------
@@ -2624,11 +2625,11 @@ class DataFrame(NDFrame):
         for k, v in kwargs.items():
             results[k] = com._apply_if_callable(v, data)
 
-        # sort by key for 3.5 and earlier, but preserve order for 3.6 and later
-        if sys.version_info <= (3, 5):
-            results = sorted(results.items())
-        else:
+        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        if PY36:
             results = results.items()
+        else:
+            results = sorted(results.items())
         # ... and then assign
         for k, v in results:
             data[k] = v
