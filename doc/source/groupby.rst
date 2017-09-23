@@ -1060,7 +1060,7 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
    g.nth(-1)
    g.nth(1)
 
-If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
+If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:
 
 .. ipython:: python
 
@@ -1072,7 +1072,7 @@ If you want to select the nth not-null item, use the ``dropna`` kwarg. For a Dat
    g.nth(-1, dropna='any')  # NaNs denote group exhausted when using dropna
    g.last()
 
-   g.B.nth(0, dropna=True)
+   g.B.nth(0, dropna='all')
 
 As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
 
