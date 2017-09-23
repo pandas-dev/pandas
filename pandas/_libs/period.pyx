@@ -27,13 +27,12 @@ from datetime cimport (
     INT32_MIN)
 
 
-cimport util, lib
+cimport util
 from util cimport is_period_object, is_string_object
 
-from lib cimport is_null_datetimelike, is_period
-from pandas._libs import tslib, lib
-from pandas._libs.tslib import (Timedelta, Timestamp, iNaT,
-                                NaT)
+from lib cimport is_null_datetimelike
+from pandas._libs import tslib
+from pandas._libs.tslib import Timestamp, iNaT, NaT
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, _get_dst_info, maybe_get_tz)
 from tslib cimport _nat_scalar_rules
@@ -485,7 +484,7 @@ def extract_freq(ndarray[object] values):
 
         try:
             # now Timestamp / NaT has freq attr
-            if is_period(p):
+            if is_period_object(p):
                 return p.freq
         except AttributeError:
             pass
@@ -728,8 +727,7 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, Timedelta)):
+        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
@@ -754,12 +752,11 @@ cdef class _Period(object):
     def __add__(self, other):
         if is_period_object(self):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset,
-                                  Timedelta)):
+                                  offsets.DateOffset)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
-            elif lib.is_integer(other):
+            elif util.is_integer_object(other):
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             else:  # pragma: no cover
@@ -772,11 +769,10 @@ cdef class _Period(object):
     def __sub__(self, other):
         if is_period_object(self):
             if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset,
-                                  Timedelta)):
+                                  offsets.DateOffset)):
                 neg_other = -other
                 return self + neg_other
-            elif lib.is_integer(other):
+            elif util.is_integer_object(other):
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):
@@ -1159,7 +1155,7 @@ class Period(_Period):
             raise ValueError(("Only value or ordinal but not both should be "
                               "given but not both"))
         elif ordinal is not None:
-            if not lib.is_integer(ordinal):
+            if not util.is_integer_object(ordinal):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
                 raise ValueError('Must supply freq for ordinal value')
@@ -1196,8 +1192,8 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in tslib._nat_strings:
             ordinal = iNaT
 
-        elif is_string_object(value) or lib.is_integer(value):
-            if lib.is_integer(value):
+        elif is_string_object(value) or util.is_integer_object(value):
+            if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)

@@ -512,7 +512,7 @@ ext_data = {
                    'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                    'depends': _pxi_dep['join']},
     '_libs.reshape': {'pyxfile': '_libs/reshape',
-                      'depends': _pxi_dep['reshape']},
+                      'depends': _pxi_dep['reshape'], 'include': []},
     '_libs.interval': {'pyxfile': '_libs/interval',
                        'pxdfiles': ['_libs/hashtable'],
                        'depends': _pxi_dep['interval']},
@@ -528,7 +528,7 @@ ext_data = {
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
                      'depends': (['pandas/_libs/sparse.pyx'] +
-                                 _pxi_dep['sparse'])},
+                                 _pxi_dep['sparse']), 'include': []},
     '_libs.testing': {'pyxfile': '_libs/testing',
                       'depends': ['pandas/_libs/testing.pyx']},
     '_libs.hashing': {'pyxfile': '_libs/hashing',
