@@ -4070,7 +4070,15 @@ class DataFrame(NDFrame):
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        try:
+            return self.index[self.count(1) > 0][0]
+        except IndexError:
+            # Ensures same behavior as a Series of all Null values.
+            mask = isna(self._values)
+            if all(mask):
+                return None
+
+            raise
 
     def last_valid_index(self):
         """
@@ -4079,8 +4087,15 @@ class DataFrame(NDFrame):
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        try:
+            return self.index[self.count(1) > 0][-1]
+        except IndexError:
+            # Ensures same behavior as a Series of all Null values.
+            mask = isna(self._values)
+            if all(mask):
+                return None
 
+            raise
     # ----------------------------------------------------------------------
     # Data reshaping
 
