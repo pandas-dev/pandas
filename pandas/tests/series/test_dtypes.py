@@ -12,7 +12,11 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas import Series, Timestamp, Timedelta, DataFrame, date_range
+from pandas import (
+    Series, Timestamp, Timedelta, DataFrame, date_range,
+    Categorical, Index
+)
+from pandas.api.types import CategoricalDtype
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -182,6 +186,34 @@ class TestSeriesDtypes(TestData):
         with pytest.raises(KeyError):
             s.astype(dt5)
 
+    def test_astype_categoricaldtype(self):
+        s = Series(['a', 'b', 'a'])
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(Categorical(['a', 'b', 'a'], ordered=True))
+        tm.assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'], ordered=False))
+        tm.assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b', 'c'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'],
+                                      categories=['a', 'b', 'c'],
+                                      ordered=False))
+        tm.assert_series_equal(result, expected)
+        tm.assert_index_equal(result.cat.categories, Index(['a', 'b', 'c']))
+
+    def test_astype_categoricaldtype_with_args(self):
+        s = Series(['a', 'b'])
+        type_ = CategoricalDtype(['a', 'b'])
+
+        with pytest.raises(TypeError):
+            s.astype(type_, ordered=True)
+        with pytest.raises(TypeError):
+            s.astype(type_, categories=['a', 'b'])
+        with pytest.raises(TypeError):
+            s.astype(type_, categories=['a', 'b'], ordered=False)
+
     def test_astype_generic_timestamp_deprecated(self):
         # see gh-15524
         data = [1]
@@ -279,7 +311,7 @@ class TestSeriesDtypes(TestData):
         expected = Series([1., 2., 3., np.nan])
         tm.assert_series_equal(actual, expected)
 
-        # only soft conversions, uncovertable pass thru unchanged
+        # only soft conversions, unconvertable pass thru unchanged
         actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
                   .infer_objects())
         expected = Series([1, 2, 3, None, 'a'])

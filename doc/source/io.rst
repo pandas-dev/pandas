@@ -3077,7 +3077,7 @@ Compressed pickle files
 
 .. versionadded:: 0.20.0
 
-:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+:func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
 `zip`` file supports read only and must contain only one data file
 to be read in.
@@ -4492,7 +4492,7 @@ Several caveats.
 - The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
   error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
 - Duplicate column names and non-string columns names are not supported
-- Categorical dtypes are currently not-supported (for ``pyarrow``).
+- Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
 

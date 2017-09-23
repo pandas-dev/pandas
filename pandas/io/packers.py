@@ -56,7 +56,6 @@ from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical, CategoricalIndex)
-from pandas._libs.tslib import NaTType
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -470,7 +469,7 @@ def encode(obj):
                     }
 
     elif isinstance(obj, (datetime, date, np.datetime64, timedelta,
-                          np.timedelta64, NaTType)):
+                          np.timedelta64)) or obj is NaT:
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -482,7 +481,7 @@ def encode(obj):
                     u'value': obj.value,
                     u'freq': freq,
                     u'tz': tz}
-        if isinstance(obj, NaTType):
+        if obj is NaT:
             return {u'typ': u'nat'}
         elif isinstance(obj, np.timedelta64):
             return {u'typ': u'timedelta64',

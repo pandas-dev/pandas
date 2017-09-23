@@ -654,7 +654,7 @@ aggregation with, outputting a DataFrame:
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-On a widowed DataFrame, you can pass a list of functions to apply to each
+On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python

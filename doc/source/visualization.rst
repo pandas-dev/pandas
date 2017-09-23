@@ -261,7 +261,7 @@ Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histgram can be drawn by ``orientation='horizontal'`` and ``cumulative='True'``.
+You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histogram can be drawn by ``orientation='horizontal'`` and ``cumulative=True``.
 
 .. ipython:: python
 
