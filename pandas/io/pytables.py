@@ -46,7 +46,8 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import tslib, algos, lib
+from pandas._libs import algos, lib
+from pandas._libs.tslibs import timezones
 
 from distutils.version import LooseVersion
 
@@ -4379,7 +4380,7 @@ def _get_info(info, name):
 
 def _get_tz(tz):
     """ for a tz-aware type, return an encoded zone """
-    zone = tslib.get_timezone(tz)
+    zone = timezones.get_timezone(tz)
     if zone is None:
         zone = tz.utcoffset().total_seconds()
     return zone
@@ -4401,7 +4402,7 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     if tz is not None:
         name = getattr(values, 'name', None)
         values = values.ravel()
-        tz = tslib.get_timezone(_ensure_decoded(tz))
+        tz = timezones.get_timezone(_ensure_decoded(tz))
         values = DatetimeIndex(values, name=name)
         if values.tz is None:
             values = values.tz_localize('UTC').tz_convert(tz)

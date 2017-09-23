@@ -325,8 +325,8 @@ class TestBusinessDatetimeIndex(object):
     def test_month_range_union_tz_dateutil(self):
         tm._skip_if_windows_python_3()
 
-        from pandas._libs.tslib import _dateutil_gettz as timezone
-        tz = timezone('US/Eastern')
+        from pandas._libs.tslibs.timezones import dateutil_gettz
+        tz = dateutil_gettz('US/Eastern')
 
         early_start = datetime(2011, 1, 1)
         early_end = datetime(2011, 3, 1)

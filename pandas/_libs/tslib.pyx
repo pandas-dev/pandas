@@ -100,16 +100,10 @@ iNaT = NPY_NAT
 
 
 from tslibs.timezones cimport (
-    is_utc, is_tzlocal, _is_fixed_offset,
+    is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
-    _get_dst_info
-    )
-from tslibs.timezones import (  # noqa
-    get_timezone, get_utcoffset, maybe_get_tz,
-    _p_tz_cache_key, dst_cache,
-    _unbox_utcoffsets,
-    _dateutil_gettz
+    get_dst_info
     )
 
 
@@ -168,7 +162,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
                     pandas_datetime_to_datetimestruct(
                         value, PANDAS_FR_ns, &dts)
                     result[i] = func_create(value, dts, tz, freq)
-        elif is_tzlocal(tz) or _is_fixed_offset(tz):
+        elif is_tzlocal(tz) or is_fixed_offset(tz):
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
@@ -182,7 +176,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
                         dt = Timestamp(dt)
                     result[i] = dt
         else:
-            trans, deltas, typ = _get_dst_info(tz)
+            trans, deltas, typ = get_dst_info(tz)
 
             for i in range(n):
 
@@ -1641,12 +1635,12 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         obj.tzinfo = tz
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = _get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
 
         pos = trans.searchsorted(obj.value, side='right') - 1
 
         # static/pytz/dateutil specific code
-        if _is_fixed_offset(tz):
+        if is_fixed_offset(tz):
             # statictzinfo
             if len(deltas) > 0 and obj.value != NPY_NAT:
                 pandas_datetime_to_datetimestruct(obj.value + deltas[0],
@@ -4066,7 +4060,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                              * 1000000000)
                     utc_dates[i] = v - delta
         else:
-            trans, deltas, typ = _get_dst_info(tz1)
+            trans, deltas, typ = get_dst_info(tz1)
 
             # all-NaT
             tt = vals[vals!=NPY_NAT]
@@ -4108,7 +4102,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         return result
 
     # Convert UTC to other timezone
-    trans, deltas, typ = _get_dst_info(tz2)
+    trans, deltas, typ = get_dst_info(tz2)
 
     # use first non-NaT element
     # if all-NaT, return all-NaT
@@ -4172,7 +4166,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         delta = int(get_utcoffset(tz1, dt).total_seconds()) * 1000000000
         utc_date = val - delta
     elif get_timezone(tz1) != 'UTC':
-        trans, deltas, typ = _get_dst_info(tz1)
+        trans, deltas, typ = get_dst_info(tz1)
         pos = trans.searchsorted(val, side='right') - 1
         if pos < 0:
             raise ValueError('First time before start of DST info')
@@ -4191,7 +4185,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return utc_date + delta
 
     # Convert UTC to other timezone
-    trans, deltas, typ = _get_dst_info(tz2)
+    trans, deltas, typ = get_dst_info(tz2)
 
     pos = trans.searchsorted(utc_date, side='right') - 1
     if pos < 0:
@@ -4261,7 +4255,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 "Length of ambiguous bool-array must be the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
-    trans, deltas, typ = _get_dst_info(tz)
+    trans, deltas, typ = get_dst_info(tz)
 
     tdata = <int64_t*> trans.data
     ntrans = len(trans)
@@ -4967,7 +4961,7 @@ cdef _normalize_local(ndarray[int64_t] stamps, object tz):
             result[i] = _normalized_stamp(&dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = _get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
 
         _pos = trans.searchsorted(stamps, side='right') - 1
         if _pos.dtype != np.int64:
@@ -5023,7 +5017,7 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
             if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
                 return False
     else:
-        trans, deltas, typ = _get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
 
         for i in range(n):
             # Adjust datetime64 timestamp, recompute datetimestruct

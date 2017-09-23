@@ -17,7 +17,7 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
-from pandas._libs.tslib import get_timezone
+from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.compat import lrange, long
 from pandas.util.testing import assert_series_equal
@@ -1295,7 +1295,7 @@ class TestTimeSeries(object):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
 
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
         rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
 
         stamp = rng[0]
