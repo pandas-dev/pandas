@@ -577,9 +577,9 @@ class BusinessMixin(object):
         """Reconstruct an instance from a pickled state"""
         if 'offset' in state:
             # Older versions have offset attribute instead of _offset
-            assert '_offset' not in state, list(state.keys())
-            state['_offset'] = state['offset']
-            del state['offset']
+            if '_offset' in state:  # pragma: no cover
+                raise ValueError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
         self.__dict__ = state
         if 'weekmask' in state and 'holidays' in state:
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
