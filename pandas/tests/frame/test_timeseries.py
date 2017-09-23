@@ -440,6 +440,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 
+        # GH17400: no valid entries
+        frame[:] = nan
+        assert frame.last_valid_index() is None
+        assert frame.first_valid_index() is None
+
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)

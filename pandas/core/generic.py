@@ -6757,6 +6757,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.transform = transform
 
+    # ----------------------------------------------------------------------
+    # Misc methods
+
+    _shared_docs['valid_index'] = """
+        Return index for %(position)s non-NA/null value.
+
+        Notes
+        --------
+        If all elements are non-NA/null, returns None.
+        Also returns None for empty %(klass)s.
+
+        Returns
+        --------
+        scalar : type of index
+        """
+
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
