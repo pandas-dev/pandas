@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 from pandas.compat import range
 from pandas import compat
@@ -323,37 +324,42 @@ class DateOffset(object):
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
+
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
+
+        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        return out
+
+    # TODO: Combine this with BusinessMixin version by defining a whitelisted
+    # set of attributes on each object rather than the existing behavior of
+    # iterating over internal ``__dict__``
+    def _repr_attrs(self):
         exclude = set(['n', 'inc', 'normalize'])
         attrs = []
         for attr in sorted(self.__dict__):
-            if ((attr == 'kwds' and len(self.kwds) == 0) or
-                    attr.startswith('_')):
+            if attr.startswith('_'):
                 continue
-            elif attr == 'kwds':
+            elif attr == 'kwds':  # TODO: get rid of this
                 kwds_new = {}
                 for key in self.kwds:
                     if not hasattr(self, key):
                         kwds_new[key] = self.kwds[key]
                 if len(kwds_new) > 0:
-                    attrs.append('='.join((attr, repr(kwds_new))))
-            else:
-                if attr not in exclude:
-                    attrs.append('='.join((attr, repr(getattr(self, attr)))))
+                    attrs.append('kwds=%s' % (kwds_new))
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append('%s=%s' % (attr, value))
 
-        plural = ''
-        if abs(self.n) != 1:
-            plural = 's'
-
-        n_str = ''
-        if self.n != 1:
-            n_str = '{n} * '.format(n=self.n)
-
-        attrs_str = ''
+        out = ''
         if attrs:
-            attrs_str = ': ' + ', '.join(attrs)
-
-        repr_content = ''.join([n_str, className, plural, attrs_str])
-        out = '<{content}>'.format(content=repr_content)
+            out += ': ' + ', '.join(attrs)
         return out
 
     @property
@@ -507,7 +513,17 @@ class DateOffset(object):
         else:
             fstr = code
 
+        try:
+            if self._offset:
+                fstr += self._offset_str()
+        except AttributeError:
+            # TODO: standardize `_offset` vs `offset` naming convention
+            pass
+
         return fstr
+
+    def _offset_str(self):
+        return ''
 
     @property
     def nanos(self):
@@ -527,23 +543,11 @@ class SingleConstructorOffset(DateOffset):
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
 
-    # TODO: Combine this with DateOffset by defining a whitelisted set of
-    # attributes on each object rather than the existing behavior of iterating
-    # over internal ``__dict__``
-    def __repr__(self):
-        className = getattr(self, '_outputName', self.__class__.__name__)
-
-        plural = ''
-        if abs(self.n) != 1:
-            plural = 's'
-
-        n_str = ''
-        if self.n != 1:
-            n_str = '{n} * '.format(n=self.n)
-
-        repr_content = ''.join([n_str, className, plural, self._repr_attrs()])
-        out = '<{content}>'.format(content=repr_content)
-        return out
+    @property
+    def offset(self):
+        """Alias for self._offset"""
+        # Alias for backward compat
+        return self._offset
 
     def _repr_attrs(self):
         if self.offset:
@@ -572,6 +576,11 @@ class BusinessMixin(object):
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise ValueError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
         self.__dict__ = state
         if 'weekmask' in state and 'holidays' in state:
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
@@ -593,24 +602,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-
-    @property
-    def freqstr(self):
-        try:
-            code = self.rule_code
-        except NotImplementedError:
-            return repr(self)
-
-        if self.n != 1:
-            fstr = '{n}{code}'.format(n=self.n, code=code)
-        else:
-            fstr = code
-
-        if self.offset:
-            fstr += self._offset_str()
-
-        return fstr
+        self._offset = kwds.get('offset', timedelta(0))
 
     def _offset_str(self):
         def get_str(td):
@@ -642,9 +634,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return off_str
         else:
             return '+' + repr(self.offset)
-
-    def isAnchored(self):
-        return (self.n == 1)
 
     @apply_wraps
     def apply(self, other):
@@ -709,7 +698,7 @@ class BusinessHourMixin(BusinessMixin):
         kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
         kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self._offset = kwds.get('offset', timedelta(0))
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
 
@@ -776,7 +765,7 @@ class BusinessHourMixin(BusinessMixin):
         Return business hours in a day by seconds.
         """
         if self._get_daytime_flag():
-            # create dummy datetime to calcurate businesshours in a day
+            # create dummy datetime to calculate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
             return (until - dtstart).total_seconds()
@@ -811,7 +800,7 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        # calcurate here because offset is not immutable
+        # calculate here because offset is not immutable
         daytime = self._get_daytime_flag()
         businesshours = self._get_business_hours_by_sec()
         bhdelta = timedelta(seconds=businesshours)
@@ -860,7 +849,7 @@ class BusinessHourMixin(BusinessMixin):
                 if n >= 0:
                     bday_edge = self._prev_opening_time(other)
                     bday_edge = bday_edge + bhdelta
-                    # calcurate remainder
+                    # calculate remainder
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
@@ -898,7 +887,7 @@ class BusinessHourMixin(BusinessMixin):
 
     def _onOffset(self, dt, businesshours):
         """
-        Slight speedups using calcurated values
+        Slight speedups using calculated values
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
@@ -975,7 +964,8 @@ class CustomBusinessDay(BusinessDay):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self._offset = kwds.get('offset', timedelta(0))
+
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
                                            calendar=calendar)
@@ -1337,9 +1327,6 @@ class SemiMonthBegin(SemiMonthOffset):
 class BusinessMonthEnd(MonthOffset):
     """DateOffset increments between business EOM dates"""
 
-    def isAnchored(self):
-        return (self.n == 1)
-
     @apply_wraps
     def apply(self, other):
         n = self.n
@@ -1425,7 +1412,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self._offset = kwds.get('offset', timedelta(0))
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1495,7 +1482,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
+        self._offset = kwds.get('offset', timedelta(0))
 
         # _get_calendar does validation and possible transformation
         # of calendar and holidays.
@@ -1966,9 +1953,6 @@ class QuarterEnd(QuarterOffset):
     _default_startingMonth = 3
     _prefix = 'Q'
 
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
-
     @apply_wraps
     def apply(self, other):
         n = self.n
@@ -2003,9 +1987,6 @@ class QuarterBegin(QuarterOffset):
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = 'QS'
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
 
     @apply_wraps
     def apply(self, other):

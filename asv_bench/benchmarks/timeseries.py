@@ -56,7 +56,7 @@ class DatetimeIndex(object):
         self.no_freq = self.rng7[:50000].append(self.rng7[50002:])
         self.d_freq = self.rng7[:50000].append(self.rng7[50000:])
 
-        self.rng8 = date_range(start='1/1/1700', freq='B', periods=100000)
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=75000)
         self.b_freq = self.rng8[:50000].append(self.rng8[50000:])
 
     def time_add_timedelta(self):

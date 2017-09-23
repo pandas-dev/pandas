@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import timedelta
 from pandas.compat import long, zip
 from pandas import compat
