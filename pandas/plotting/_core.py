@@ -2726,7 +2726,7 @@ class FramePlotMethods(BasePlotMethods):
         return self(kind='barh', x=x, y=y, **kwds)
 
     def box(self, by=None, **kwds):
-        """
+        r"""
         Boxplot
 
         .. versionadded:: 0.17.0

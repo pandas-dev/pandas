@@ -851,7 +851,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
+def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 

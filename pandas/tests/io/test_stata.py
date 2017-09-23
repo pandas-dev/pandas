@@ -1053,7 +1053,8 @@ class TestStata(object):
             tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
         # GH12153
-        from_chunks = pd.concat(read_stata(fname, chunksize=4))
+        with read_stata(fname, chunksize=4) as itr:
+            from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
     def test_read_chunks_115(self):
@@ -1306,8 +1307,9 @@ class TestStata(object):
         df['A'] = df['A'].astype('category')
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=write_index)
-            dta_iter = pd.read_stata(path, iterator=True)
-            value_labels = dta_iter.value_labels()
+
+            with pd.read_stata(path, iterator=True) as dta_iter:
+                value_labels = dta_iter.value_labels()
         assert value_labels == {'A': {0: 'A', 1: 'B', 2: 'C', 3: 'E'}}
 
     def test_set_index(self):

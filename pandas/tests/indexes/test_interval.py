@@ -1068,7 +1068,7 @@ class TestIntervalRange(object):
             interval_range(start='foo', periods=10)
 
         # invalid end
-        msg = 'end must be numeric or datetime-like, got \(0, 1\]'
+        msg = r'end must be numeric or datetime-like, got \(0, 1\]'
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(end=Interval(0, 1), periods=10)
 
