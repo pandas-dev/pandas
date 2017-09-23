@@ -692,6 +692,40 @@ def is_dtype_equal(source, target):
         return False
 
 
+def is_dtype_union_equal(source, target):
+    """
+    Check whether two arrays have compatible dtypes to do a union.
+    numpy types are checked with ``is_dtype_equal``. Extension types are
+    checked separately.
+
+    Parameters
+    ----------
+    source : The first dtype to compare
+    target : The second dtype to compare
+
+    Returns
+    ----------
+    boolean : Whether or not the two dtypes are equal.
+
+    >>> is_dtype_equal("int", int)
+    True
+
+    >>> is_dtype_equal(CategoricalDtype(['a', 'b'],
+    ...                CategoricalDtype(['b', 'c']))
+    True
+
+    >>> is_dtype_equal(CategoricalDtype(['a', 'b'],
+    ...                CategoricalDtype(['b', 'c'], ordered=True))
+    False
+    """
+    source = _get_dtype(source)
+    target = _get_dtype(target)
+    if is_categorical_dtype(source) and is_categorical_dtype(target):
+        # ordered False for both
+        return source.ordered is target.ordered
+    return is_dtype_equal(source, target)
+
+
 def is_any_int_dtype(arr_or_dtype):
     """
     DEPRECATED: This function will be removed in a future version.
@@ -1671,7 +1705,9 @@ def _coerce_to_dtype(dtype):
     """
 
     if is_categorical_dtype(dtype):
-        dtype = CategoricalDtype()
+        categories = getattr(dtype, 'categories', None)
+        ordered = getattr(dtype, 'ordered', False)
+        dtype = CategoricalDtype(categories=categories, ordered=ordered)
     elif is_datetime64tz_dtype(dtype):
         dtype = DatetimeTZDtype(dtype)
     elif is_period_dtype(dtype):

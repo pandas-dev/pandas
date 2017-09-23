@@ -10,6 +10,8 @@ users upgrade to this version.
 Highlights include:
 
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -88,6 +90,31 @@ This does not raise any obvious exceptions, but also does not create a new colum
   2  3.0
 
 Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+
+.. _whatsnew_0210.enhancements.categorical_dtype:
+
+``CategoricalDtype`` for specifying categoricals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`pandas.api.types.CategoricalDtype` has been added to the public API and
+expanded to include the ``categories`` and ``ordered`` attributes. A
+``CategoricalDtype`` can be used to specify the set of categories and
+orderedness of an array, independent of the data themselves. This can be useful,
+e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
+:issue:`15078`, :issue:`16015`):
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   s = pd.Series(['a', 'b', 'c', 'a'])  # strings
+   dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+   s.astype(dtype)
+
+The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
+``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
+
+See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
 .. _whatsnew_0210.enhancements.other:
 

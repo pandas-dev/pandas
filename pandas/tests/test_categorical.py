@@ -142,6 +142,26 @@ class TestCategorical(object):
         expected = pd.Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
 
+    def test_constructor_tuples(self):
+        values = np.array([(1,), (1, 2), (1,), (1, 2)], dtype=object)
+        result = Categorical(values)
+        expected = Index([(1,), (1, 2)], tupleize_cols=False)
+        tm.assert_index_equal(result.categories, expected)
+        assert result.ordered is False
+
+    def test_constructor_tuples_datetimes(self):
+        # numpy will auto reshape when all of the tuples are the
+        # same len, so add an extra one with 2 items and slice it off
+        values = np.array([(Timestamp('2010-01-01'),),
+                           (Timestamp('2010-01-02'),),
+                           (Timestamp('2010-01-01'),),
+                           (Timestamp('2010-01-02'),),
+                           ('a', 'b')], dtype=object)[:-1]
+        result = Categorical(values)
+        expected = Index([(Timestamp('2010-01-01'),),
+                          (Timestamp('2010-01-02'),)], tupleize_cols=False)
+        tm.assert_index_equal(result.categories, expected)
+
     def test_constructor_unsortable(self):
 
         # it works!
@@ -173,12 +193,12 @@ class TestCategorical(object):
         assert c1.is_dtype_equal(c1)
         assert c2.is_dtype_equal(c2)
         assert c3.is_dtype_equal(c3)
-        assert not c1.is_dtype_equal(c2)
+        assert c1.is_dtype_equal(c2)
         assert not c1.is_dtype_equal(c3)
         assert not c1.is_dtype_equal(Index(list('aabca')))
         assert not c1.is_dtype_equal(c1.astype(object))
         assert c1.is_dtype_equal(CategoricalIndex(c1))
-        assert not (c1.is_dtype_equal(
+        assert (c1.is_dtype_equal(
             CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
 
@@ -432,6 +452,73 @@ class TestCategorical(object):
             c2 = Categorical(c)
             tm.assert_categorical_equal(c, c2)
 
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_constructor_with_dtype(self, ordered):
+        categories = ['b', 'a', 'c']
+        dtype = CategoricalDtype(categories, ordered=ordered)
+        result = pd.Categorical(['a', 'b', 'a', 'c'], dtype=dtype)
+        expected = pd.Categorical(['a', 'b', 'a', 'c'], categories=categories,
+                                  ordered=ordered)
+        tm.assert_categorical_equal(result, expected)
+        assert result.ordered is ordered
+
+    def test_constructor_dtype_and_others_raises(self):
+        dtype = CategoricalDtype(['a', 'b'], ordered=True)
+        with tm.assert_raises_regex(ValueError, "Cannot"):
+            Categorical(['a', 'b'], categories=['a', 'b'], dtype=dtype)
+
+        with tm.assert_raises_regex(ValueError, "Cannot"):
+            Categorical(['a', 'b'], ordered=True, dtype=dtype)
+
+        with tm.assert_raises_regex(ValueError, "Cannot"):
+            Categorical(['a', 'b'], ordered=False, dtype=dtype)
+
+    @pytest.mark.parametrize('categories', [
+        None, ['a', 'b'], ['a', 'c'],
+    ])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_constructor_str_category(self, categories, ordered):
+        result = Categorical(['a', 'b'], categories=categories,
+                             ordered=ordered, dtype='category')
+        expected = Categorical(['a', 'b'], categories=categories,
+                               ordered=ordered)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_constructor_str_unknown(self):
+        with tm.assert_raises_regex(ValueError, "Unknown `dtype`"):
+            Categorical([1, 2], dtype="foo")
+
+    def test_constructor_from_categorical_with_dtype(self):
+        dtype = CategoricalDtype(['a', 'b', 'c'], ordered=True)
+        values = Categorical(['a', 'b', 'd'])
+        result = Categorical(values, dtype=dtype)
+        # We use dtype.categories, not values.categories
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'c'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_constructor_from_categorical_with_unknown_dtype(self):
+        dtype = CategoricalDtype(None, ordered=True)
+        values = Categorical(['a', 'b', 'd'])
+        result = Categorical(values, dtype=dtype)
+        # We use values.categories, not dtype.categories
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'd'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_contructor_from_categorical_string(self):
+        values = Categorical(['a', 'b', 'd'])
+        # use categories, ordered
+        result = Categorical(values, categories=['a', 'b', 'c'], ordered=True,
+                             dtype='category')
+        expected = Categorical(['a', 'b', 'd'], categories=['a', 'b', 'c'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+        # No string
+        result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -643,6 +730,11 @@ class TestCategorical(object):
                               'a', 'c', 'c', 'c'], ordered=True)
         tm.assert_categorical_equal(factor, self.factor)
 
+    def test_set_categories_inplace(self):
+        cat = self.factor.copy()
+        cat.set_categories(['a', 'b', 'c', 'd'], inplace=True)
+        tm.assert_index_equal(cat.categories, pd.Index(['a', 'b', 'c', 'd']))
+
     def test_describe(self):
         # string type
         desc = self.factor.describe()
@@ -852,6 +944,72 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                               ordered=True)
         tm.assert_index_equal(cat4.categories, Index(['b', 'c', 'a']))
         assert cat4.ordered
+
+    def test_set_dtype_same(self):
+        c = Categorical(['a', 'b', 'c'])
+        result = c._set_dtype(CategoricalDtype(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, c)
+
+    def test_set_dtype_new_categories(self):
+        c = Categorical(['a', 'b', 'c'])
+        result = c._set_dtype(CategoricalDtype(['a', 'b', 'c', 'd']))
+        tm.assert_numpy_array_equal(result.codes, c.codes)
+        tm.assert_index_equal(result.dtype.categories,
+                              pd.Index(['a', 'b', 'c', 'd']))
+
+    def test_set_dtype_nans(self):
+        c = Categorical(['a', 'b', np.nan])
+        result = c._set_dtype(CategoricalDtype(['a', 'c']))
+        tm.assert_numpy_array_equal(result.codes, np.array([0, -1, -1],
+                                                           dtype='int8'))
+
+    def test_set_categories_private(self):
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        cat._set_categories(['a', 'c', 'd', 'e'])
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
+
+        # fastpath
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        cat._set_categories(['a', 'c', 'd', 'e'], fastpath=True)
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
+
+    @pytest.mark.parametrize('values, categories, new_categories', [
+        # No NaNs, same cats, same order
+        (['a', 'b', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['a', 'b', 'a'], ['a', 'b'], ['b', 'a'],),
+        # Same, unsorted
+        (['b', 'a', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['b', 'a', 'a'], ['a', 'b'], ['b', 'a'],),
+        # NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a', 'b']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b', 'a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        # Introduce NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        # No overlap
+        (['a', 'b', 'c'], ['a', 'b'], ['d', 'e']),
+    ])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_set_dtype_many(self, values, categories, new_categories,
+                            ordered):
+        c = Categorical(values, categories)
+        expected = Categorical(values, new_categories, ordered)
+        result = c._set_dtype(expected.dtype)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_set_dtype_no_overlap(self):
+        c = Categorical(['a', 'b', 'c'], ['d', 'e'])
+        result = c._set_dtype(CategoricalDtype(['a', 'b']))
+        expected = Categorical([None, None, None], categories=['a', 'b'])
+        tm.assert_categorical_equal(result, expected)
 
     def test_set_ordered(self):
 
@@ -1560,7 +1718,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_nbytes(self):
         cat = pd.Categorical([1, 2, 3])
-        exp = cat._codes.nbytes + cat._categories.values.nbytes
+        exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
         assert cat.nbytes == exp
 
     def test_memory_usage(self):
@@ -1733,6 +1891,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
             with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
+
+    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
+    def test_imaginary(self):
+        values = [1, 2, 3 + 1j]
+        c1 = pd.Categorical(values)
+        tm.assert_index_equal(c1.categories, pd.Index(values))
+        tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
 
 class TestCategoricalAsBlock(object):
@@ -2166,15 +2331,18 @@ class TestCategoricalAsBlock(object):
 
         result = df.dtypes
         expected = Series(
-            [np.dtype('int32'), CategoricalDtype()], index=['value', 'D'])
+            [np.dtype('int32'), CategoricalDtype(categories=labels,
+                                                 ordered=False)],
+            index=['value', 'D'])
         tm.assert_series_equal(result, expected)
 
         df['E'] = s
         str(df)
 
         result = df.dtypes
-        expected = Series([np.dtype('int32'), CategoricalDtype(),
-                           CategoricalDtype()],
+        expected = Series([np.dtype('int32'),
+                           CategoricalDtype(categories=labels, ordered=False),
+                           CategoricalDtype(categories=labels, ordered=False)],
                           index=['value', 'D', 'E'])
         tm.assert_series_equal(result, expected)
 
@@ -4084,7 +4252,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # wrong catgories
         df3 = DataFrame({'A': a,
-                         'B': pd.Categorical(b, categories=list('abc'))
+                         'B': pd.Categorical(b, categories=list('abe'))
                          }).set_index('B')
         pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
 

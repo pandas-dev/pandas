@@ -2086,6 +2086,9 @@ class TestNLargestNSmallest(object):
         df = df_main_dtypes
         error_msg = self.dtype_error_msg_template.format(
             column=columns[1], method=method, dtype=df[columns[1]].dtype)
+        # escape some characters that may be in the repr
+        error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
+                              .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
             getattr(df, method)(2, columns)
 
