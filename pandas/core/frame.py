@@ -90,10 +90,9 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-import pandas.core.base as base
+from pandas.core import accessors, nanops, ops
 import pandas.core.common as com
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
+
 import pandas.io.formats.format as fmt
 import pandas.io.formats.console as console
 from pandas.io.formats.printing import pprint_thing
@@ -5897,7 +5896,8 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    plot = accessors.AccessorProperty(gfx.FramePlotMethods,
+                                      gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 

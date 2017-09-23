@@ -45,18 +45,17 @@ from pandas.core.common import (is_bool_indexer,
                                 _asarray_tuplesafe)
 
 from pandas.core.base import PandasObject, IndexOpsMixin
-import pandas.core.base as base
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+
+from pandas.core import base, accessors, missing, sorting, strings
+from pandas.util._decorators import (Appender, Substitution,
+                                     cache_readonly, deprecate_kwarg)
+
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core import strings
 from pandas.core.config import get_option
 
 
@@ -158,7 +157,8 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = frozenset(['str'])
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = base.AccessorProperty(strings.StringDelegate)
+
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):

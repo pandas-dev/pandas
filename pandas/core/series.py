@@ -13,6 +13,10 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas import compat
+from pandas.compat import zip, u, OrderedDict, StringIO
+from pandas.compat.numpy import function as nv
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -36,6 +40,9 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
+from pandas.core import (generic, base, accessors, strings,
+                         algorithms, ops, nanops)
+import pandas.core.common as com
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -49,24 +56,16 @@ from pandas.core.common import (is_bool_indexer,
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
-from pandas.core import generic, base
+
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical, CategoricalAccessor
-import pandas.core.strings as strings
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.categorical import Categorical, CategoricalDelegate
+
+from pandas.core.indexes.accessors import CombinedDatetimelikeDelegate
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
-from pandas import compat
+
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.compat import zip, u, OrderedDict, StringIO
-from pandas.compat.numpy import function as nv
-
-import pandas.core.ops as ops
-import pandas.core.algorithms as algorithms
-
-import pandas.core.common as com
-import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
 from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
 from pandas.util._validators import validate_bool_kwarg
@@ -143,8 +142,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = frozenset(['dt', 'cat', 'str'])
     _allow_index_ops = True
+
+    _accessors = frozenset(['dt', 'cat', 'str'])
+
+    # Datetimelike delegation methods
+    dt = accessors.AccessorProperty(CombinedDatetimelikeDelegate)
+
+    # Categorical methods
+    cat = accessors.AccessorProperty(CategoricalDelegate)
+
+    # string methods
+    str = accessors.AccessorProperty(strings.StringDelegate)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -2901,20 +2910,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = base.AccessorProperty(CombinedDatetimelikeDelegate)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-    cat = base.AccessorProperty(CategoricalAccessor)
+    cat = base.AccessorProperty(CategoricalDelegate)
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = base.AccessorProperty(strings.StringDelegate)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
     plot = base.AccessorProperty(gfx.SeriesPlotMethods,
                                  gfx.SeriesPlotMethods)
     hist = gfx.hist_series
+
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})

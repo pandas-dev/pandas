@@ -19,15 +19,30 @@ from pandas.core.algorithms import take_1d
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
-import pandas.core.base as base
-import pandas.core.missing as missing
+
+from pandas.core import base, accessors, missing
 import pandas.core.indexes.base as ibase
+
+from pandas.core.categorical import Categorical
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
-class CategoricalIndex(Index, base.PandasDelegate):
+@accessors.wrap_delegate_names(delegate=Categorical,
+                               accessors=["rename_categories",
+                                          "reorder_categories",
+                                          "add_categories",
+                                          "remove_categories",
+                                          "remove_unused_categories",
+                                          "set_categories",
+                                          "as_ordered",
+                                          "as_unordered",
+                                          "min",
+                                          "max"],
+                               typ='method',
+                               overwrite=True)
+class CategoricalIndex(Index, accessors.PandasDelegate):
     """
 
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
@@ -53,6 +68,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
     _typ = 'categoricalindex'
     _engine_type = libindex.Int64Engine
     _attributes = ['name']
+
+    def __init__(self, *args, **kwargs):
+        # Override to prevent accessors.PandasDelegate.__init__ from
+        # executing
+        pass
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=False, **kwargs):
@@ -101,8 +121,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
         -------
         CategoricalIndex
         """
-
-        from pandas.core.categorical import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -136,7 +154,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         if not isinstance(data, ABCCategorical):
             ordered = False if ordered is None else ordered
-            from pandas.core.categorical import Categorical
             data = Categorical(data, categories=categories, ordered=ordered)
         else:
             if categories is not None:
@@ -411,7 +428,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.categorical import Categorical
         cat = Categorical(values,
                           categories=self.categories,
                           ordered=self.ordered)
@@ -710,35 +726,19 @@ class CategoricalIndex(Index, base.PandasDelegate):
         cls.__le__ = _make_compare('__le__')
         cls.__ge__ = _make_compare('__ge__')
 
+    # TODO: Can we de-duplicate this with core.categorical Delegate?
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
-        if 'inplace' in kwargs:
+        if kwargs.get('inplace', False):
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    @classmethod
-    def _add_accessors(cls):
-        """ add in Categorical accessor methods """
-
-        from pandas.core.categorical import Categorical
-        CategoricalIndex._add_delegate_accessors(
-            delegate=Categorical, accessors=["rename_categories",
-                                             "reorder_categories",
-                                             "add_categories",
-                                             "remove_categories",
-                                             "remove_unused_categories",
-                                             "set_categories",
-                                             "as_ordered", "as_unordered",
-                                             "min", "max"],
-            typ='method', overwrite=True)
-
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()
-CategoricalIndex._add_accessors()

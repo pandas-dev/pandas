@@ -24,8 +24,8 @@ class TestStringMethods(object):
     def test_api(self):
 
         # GH 6106, GH 9322
-        assert Series.str is strings.StringMethods
-        assert isinstance(Series(['']).str, strings.StringMethods)
+        assert Series.str is strings.StringDelegate
+        assert isinstance(Series(['']).str, strings.StringDelegate)
 
         # GH 9184
         invalid = Series([1])
@@ -2690,8 +2690,6 @@ class TestStringMethods(object):
             s.str.cat('    ')
 
     def test_index_str_accessor_visibility(self):
-        from pandas.core.strings import StringMethods
-
         if not compat.PY3:
             cases = [(['a', 'b'], 'string'), (['a', u('b')], 'mixed'),
                      ([u('a'), u('b')], 'unicode'),
@@ -2708,14 +2706,14 @@ class TestStringMethods(object):
                      (['aa', datetime(2011, 1, 1)], 'mixed')]
         for values, tp in cases:
             idx = Index(values)
-            assert isinstance(Series(values).str, StringMethods)
-            assert isinstance(idx.str, StringMethods)
+            assert isinstance(Series(values).str, strings.StringDelegate)
+            assert isinstance(idx.str, strings.StringDelegate)
             assert idx.inferred_type == tp
 
         for values, tp in cases:
             idx = Index(values)
-            assert isinstance(Series(values).str, StringMethods)
-            assert isinstance(idx.str, StringMethods)
+            assert isinstance(Series(values).str, strings.StringDelegate)
+            assert isinstance(idx.str, strings.StringDelegate)
             assert idx.inferred_type == tp
 
         cases = [([1, np.nan], 'floating'),

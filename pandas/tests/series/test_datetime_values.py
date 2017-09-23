@@ -364,11 +364,11 @@ class TestSeriesDatetimeValues(TestData):
     def test_dt_accessor_api(self):
         # GH 9322
         from pandas.core.indexes.accessors import (
-            CombinedDatetimelikeProperties, DatetimeProperties)
-        assert Series.dt is CombinedDatetimelikeProperties
+            CombinedDatetimelikeDelegate, DatetimeDelegate)
+        assert Series.dt is CombinedDatetimelikeDelegate
 
         s = Series(date_range('2000-01-01', periods=3))
-        assert isinstance(s.dt, DatetimeProperties)
+        assert isinstance(s.dt, DatetimeDelegate)
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:
