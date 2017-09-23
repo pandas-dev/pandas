@@ -939,13 +939,8 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
 class CustomBusinessDay(BusinessDay):
     """
-    **EXPERIMENTAL** DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n custom business days,
     excluding holidays
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
 
     Parameters
     ----------
@@ -1391,12 +1386,8 @@ class BusinessMonthBegin(MonthOffset):
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     """
-    **EXPERIMENTAL** DateOffset of one custom business month
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
+    DateOffset subclass representing one custom business month, incrementing
+    between end of month dates
 
     Parameters
     ----------
@@ -1465,12 +1456,8 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
 class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
-    **EXPERIMENTAL** DateOffset of one custom business month
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
+    DateOffset subclass representing one custom business month, incrementing
+    between beginning of month dates
 
     Parameters
     ----------

@@ -1416,6 +1416,20 @@ Selecting
    Index.slice_indexer
    Index.slice_locs
 
+.. _api.numericindex:
+
+Numeric Index
+-------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   RangeIndex
+   Int64Index
+   UInt64Index
+   Float64Index
+
 .. _api.categoricalindex:
 
 CategoricalIndex
