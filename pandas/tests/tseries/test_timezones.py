@@ -18,6 +18,7 @@ from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
+from pandas._libs.tslibs import timezones
 from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -943,7 +944,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         Use tslib.maybe_get_tz so that we get the filename on the tz right
         on windows. See #7337.
         """
-        return tslib.maybe_get_tz('dateutil/' + tz)
+        return timezones.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
         """ Construct a timezone string from a string. Overridden in subclass
@@ -962,7 +963,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         # Skipped on win32 due to dateutil bug
         tm._skip_if_windows()
 
-        from pandas._libs.tslib import maybe_get_tz
+        from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
         ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
@@ -1133,7 +1134,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         assert ts.tz == dateutil.tz.tzlocal()
         assert "tz='tzlocal()')" in repr(ts)
 
-        tz = tslib.maybe_get_tz('tzlocal()')
+        tz = timezones.maybe_get_tz('tzlocal()')
         assert tz == dateutil.tz.tzlocal()
 
         # get offset using normal datetime for test
@@ -1176,12 +1177,13 @@ class TestTimeZoneCacheKey(object):
             if tz_name == 'UTC':
                 # skip utc as it's a special case in dateutil
                 continue
-            tz_p = tslib.maybe_get_tz(tz_name)
-            tz_d = tslib.maybe_get_tz('dateutil/' + tz_name)
+            tz_p = timezones.maybe_get_tz(tz_name)
+            tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
             if tz_d is None:
                 # skip timezones that dateutil doesn't know about.
                 continue
-            assert tslib._p_tz_cache_key(tz_p) != tslib._p_tz_cache_key(tz_d)
+            assert (timezones._p_tz_cache_key(tz_p) !=
+                    timezones._p_tz_cache_key(tz_d))
 
 
 class TestTimeZones(object):
@@ -1764,13 +1766,13 @@ class TestTslib(object):
 
         # Check empty array
         result = tslib.tz_convert(np.array([], dtype=np.int64),
-                                  tslib.maybe_get_tz('US/Eastern'),
-                                  tslib.maybe_get_tz('Asia/Tokyo'))
+                                  timezones.maybe_get_tz('US/Eastern'),
+                                  timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
         # Check all-NaT array
         result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
-                                  tslib.maybe_get_tz('US/Eastern'),
-                                  tslib.maybe_get_tz('Asia/Tokyo'))
+                                  timezones.maybe_get_tz('US/Eastern'),
+                                  timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))
