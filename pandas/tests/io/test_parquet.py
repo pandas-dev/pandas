@@ -7,7 +7,7 @@ from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows
+from pandas.compat import PY3
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
