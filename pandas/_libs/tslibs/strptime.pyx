@@ -47,6 +47,14 @@ cdef int64_t NPY_NAT = get_nat()
 cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 
+# TODO: Consolidate with other implementations
+cdef inline bint _checknull_with_nat(object val):
+    """ utility to check if a value is a nat or not """
+    return (val is None or
+            (PyFloat_Check(val) and val != val) or
+            (isinstance(val, datetime) and not val == val))
+
+
 def array_strptime(ndarray[object] values, object fmt,
                    bint exact=True, errors='raise'):
     """
@@ -331,12 +339,20 @@ def array_strptime(ndarray[object] values, object fmt,
     return result
 
 
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return (val is None or
-            (PyFloat_Check(val) and val != val) or
-            (isinstance(val, datetime) and not val == val))
+"""_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored
+from the standard library, see
+https://github.com/python/cpython/blob/master/Lib/_strptime.py
+The original module-level docstring follows.
 
+Strptime-related classes and functions.
+CLASSES:
+    LocaleTime -- Discovers and stores locale-specific time information
+    TimeRE -- Creates regexes for pattern matching a string of text containing
+                time information
+FUNCTIONS:
+    _getlang -- Figure out what language is being used for the locale
+    strptime -- Calculates the time struct represented by the passed-in string
+"""
 
 def _getlang():
     """Figure out what language is being used for the locale"""
@@ -621,7 +637,3 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
-
-
-# def _strptime_time(data_string, format="%a %b %d %H:%M:%S %Y"):
-#     return _strptime(data_string, format)[0]
