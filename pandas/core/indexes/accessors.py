@@ -11,7 +11,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
@@ -81,7 +82,7 @@ def maybe_to_datetimelike(data, copy=False):
                     "datetimelike index".format(type(data)))
 
 
-class Properties(PandasDelegate, NoNewAttributesMixin):
+class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
         self.values = values

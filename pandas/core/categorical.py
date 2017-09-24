@@ -30,7 +30,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
-from pandas.core.base import (PandasObject, PandasDelegate,
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
@@ -2065,7 +2066,7 @@ class Categorical(PandasObject):
 # The Series.cat accessor
 
 
-class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
+class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 

@@ -18,7 +18,8 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
                     CategoricalIndex, Timestamp)
 from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
 
@@ -105,7 +106,7 @@ class TestPandasDelegate(object):
             """ a test bar method """
             pass
 
-    class Delegate(PandasDelegate):
+    class Delegate(PandasDelegate, PandasObject):
 
         def __init__(self, obj):
             self.obj = obj

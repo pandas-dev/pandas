@@ -57,7 +57,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core import strings
+from pandas.core import strings, accessor
 from pandas.core.config import get_option
 
 
@@ -159,7 +159,7 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = frozenset(['str'])
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = accessor.AccessorProperty(strings.StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
