@@ -2019,12 +2019,14 @@ class YearOffset(DateOffset):
     """DateOffset that just needs a month"""
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.month = kwds.get('month', self._default_month)
+    def __init__(self, n=1, normalize=False, month=None):
+        month = month if month is not None else self._default_month
+        self.month = month
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
 
+        kwds = {'month': month}
         DateOffset.__init__(self, n=n, normalize=normalize, **kwds)
 
     @classmethod
