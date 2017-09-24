@@ -851,7 +851,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
+def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -1110,8 +1110,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         Whether the dummy columns should be sparse or not.  Returns
         SparseDataFrame if `data` is a Series or if all columns are included.
         Otherwise returns a DataFrame with some SparseBlocks.
-
-        .. versionadded:: 0.16.1
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.

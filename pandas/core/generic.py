@@ -9,7 +9,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, lib
+from pandas._libs import tslib, lib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -258,7 +258,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if build_axes:
 
             def set_axis(a, i):
-                setattr(cls, a, lib.AxisProperty(i))
+                setattr(cls, a, properties.AxisProperty(i))
                 cls._internal_names_set.add(a)
 
             if axes_are_reversed:
@@ -2348,8 +2348,6 @@ class NDFrame(PandasObject, SelectionMixin):
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
-            .. versionadded:: 0.16.1
-
         Returns
         -------
         dropped : type of caller
@@ -3070,8 +3068,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Returns a random sample of items from an axis of object.
 
-        .. versionadded:: 0.16.1
-
         Parameters
         ----------
         n : int, optional
@@ -3227,8 +3223,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['pipe'] = ("""
         Apply func(self, \*args, \*\*kwargs)
-
-        .. versionadded:: 0.16.2
 
         Parameters
         ----------
@@ -6762,6 +6756,22 @@ class NDFrame(PandasObject, SelectionMixin):
             return result
 
         cls.transform = transform
+
+    # ----------------------------------------------------------------------
+    # Misc methods
+
+    _shared_docs['valid_index'] = """
+        Return index for %(position)s non-NA/null value.
+
+        Notes
+        --------
+        If all elements are non-NA/null, returns None.
+        Also returns None for empty %(klass)s.
+
+        Returns
+        --------
+        scalar : type of index
+        """
 
 
 def _doc_parms(cls):

@@ -347,7 +347,7 @@ class TestTSPlot(TestPlotBase):
             assert int(result[0]) == expected[0].ordinal
             assert int(result[1]) == expected[1].ordinal
 
-            # datetim
+            # datetime
             expected = (Period('1/1/2000', ax.freq),
                         Period('4/1/2000', ax.freq))
             ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))
@@ -386,9 +386,16 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_daily(self):
-        xp = Period('1999-1-1', freq='B').ordinal
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
-        for n in day_lst:
+
+        if self.mpl_ge_2_0_0:
+            xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
+            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
+        else:
+            xpl1 = xpl2 = [Period('1999-1-1', freq='B').ordinal] * len(day_lst)
+
+        for i, n in enumerate(day_lst):
+            xp = xpl1[i]
             rng = bdate_range('1999-1-1', periods=n)
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -396,6 +403,7 @@ class TestTSPlot(TestPlotBase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             assert xp == rs
+            xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
@@ -404,9 +412,16 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_quarterly(self):
-        xp = Period('1988Q1').ordinal
         yrs = [3.5, 11]
-        for n in yrs:
+
+        if self.mpl_ge_2_0_0:
+            xpl1 = [68, 68]
+            xpl2 = [72, 68]
+        else:
+            xpl1 = xpl2 = [Period('1988Q1').ordinal] * len(yrs)
+
+        for i, n in enumerate(yrs):
+            xp = xpl1[i]
             rng = period_range('1987Q2', periods=int(n * 4), freq='Q')
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -414,6 +429,7 @@ class TestTSPlot(TestPlotBase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             assert rs == xp
+            xp = xpl2[i]
             (vmin, vmax) = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
@@ -422,9 +438,16 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_monthly(self):
-        xp = Period('Jan 1988').ordinal
         yrs = [1.15, 2.5, 4, 11]
-        for n in yrs:
+
+        if self.mpl_ge_2_0_0:
+            xpl1 = [216, 216, 204, 204]
+            xpl2 = [216, 216, 216, 204]
+        else:
+            xpl1 = xpl2 = [Period('Jan 1988').ordinal] * len(yrs)
+
+        for i, n in enumerate(yrs):
+            xp = xpl1[i]
             rng = period_range('1987Q2', periods=int(n * 12), freq='M')
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -432,6 +455,7 @@ class TestTSPlot(TestPlotBase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             assert rs == xp
+            xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
@@ -450,7 +474,11 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
-        xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
+        if self.mpl_ge_2_0_0:
+            xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
+        else:
+            xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
+
         for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
             rng = period_range('1987', periods=nyears, freq='A')
             ser = Series(np.random.randn(len(rng)), rng)
@@ -470,7 +498,10 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period('1/1/1999', freq='Min').ordinal
+        if self.mpl_ge_2_0_0:
+            xp = Period('1998-12-29 12:00', freq='Min').ordinal
+        else:
+            xp = Period('1/1/1999', freq='Min').ordinal
         assert rs == xp
 
     def test_finder_hourly(self):
@@ -481,7 +512,10 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period('1/1/1999', freq='H').ordinal
+        if self.mpl_ge_2_0_0:
+            xp = Period('1998-12-31 22:00', freq='H').ordinal
+        else:
+            xp = Period('1/1/1999', freq='H').ordinal
         assert rs == xp
 
     @pytest.mark.slow
@@ -665,8 +699,8 @@ class TestTSPlot(TestPlotBase):
         assert idx2.equals(s2.index.to_period('B'))
         left, right = ax2.get_xlim()
         pidx = s1.index.to_period()
-        assert left == pidx[0].ordinal
-        assert right == pidx[-1].ordinal
+        assert left <= pidx[0].ordinal
+        assert right >= pidx[-1].ordinal
 
     @pytest.mark.slow
     def test_mixed_freq_irregular_first(self):
@@ -696,8 +730,8 @@ class TestTSPlot(TestPlotBase):
         assert idx2.equals(s2.index.to_period('B'))
         left, right = ax2.get_xlim()
         pidx = s1.index.to_period()
-        assert left == pidx[0].ordinal
-        assert right == pidx[-1].ordinal
+        assert left <= pidx[0].ordinal
+        assert right >= pidx[-1].ordinal
 
     @pytest.mark.slow
     def test_mixed_freq_irregular_first_df(self):
@@ -1211,8 +1245,8 @@ class TestTSPlot(TestPlotBase):
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left == ts_irregular.index.min().toordinal()
-        assert right == ts_irregular.index.max().toordinal()
+        assert left <= ts_irregular.index.min().toordinal()
+        assert right >= ts_irregular.index.max().toordinal()
 
     @pytest.mark.slow
     def test_secondary_y_non_ts_xlim(self):
@@ -1228,7 +1262,7 @@ class TestTSPlot(TestPlotBase):
         s2.plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
-        assert left_before == left_after
+        assert left_before >= left_after
         assert right_before < right_after
 
     @pytest.mark.slow
@@ -1245,7 +1279,7 @@ class TestTSPlot(TestPlotBase):
         s2.plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
-        assert left_before == left_after
+        assert left_before >= left_after
         assert right_before < right_after
 
     @pytest.mark.slow
@@ -1278,8 +1312,8 @@ class TestTSPlot(TestPlotBase):
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left == ts_irregular.index.min().toordinal()
-        assert right == ts_irregular.index.max().toordinal()
+        assert left <= ts_irregular.index.min().toordinal()
+        assert right >= ts_irregular.index.max().toordinal()
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -1294,9 +1328,14 @@ class TestTSPlot(TestPlotBase):
         if is_platform_mac():
             pytest.skip("skip on mac for precision display issue on older mpl")
 
-        expected_labels = [
-            '00:00:00.00000000{:d}'.format(i)
-            for i in range(10)]
+        if self.mpl_ge_2_0_0:
+            expected_labels = [''] + [
+                '00:00:00.00000000{:d}'.format(2 * i)
+                for i in range(5)] + ['']
+        else:
+            expected_labels = [
+                '00:00:00.00000000{:d}'.format(i)
+                for i in range(10)]
 
         rng = timedelta_range('0', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
@@ -1312,17 +1351,32 @@ class TestTSPlot(TestPlotBase):
         if is_platform_mac():
             pytest.skip("skip on mac for precision display issue on older mpl")
 
-        expected_labels = [
-            '00:00:00',
-            '1 days 03:46:40',
-            '2 days 07:33:20',
-            '3 days 11:20:00',
-            '4 days 15:06:40',
-            '5 days 18:53:20',
-            '6 days 22:40:00',
-            '8 days 02:26:40',
-            ''
-        ]
+        if self.mpl_ge_2_0_0:
+            expected_labels = [
+                '',
+                '00:00:00',
+                '1 days 03:46:40',
+                '2 days 07:33:20',
+                '3 days 11:20:00',
+                '4 days 15:06:40',
+                '5 days 18:53:20',
+                '6 days 22:40:00',
+                '8 days 02:26:40',
+                '9 days 06:13:20',
+                ''
+            ]
+        else:
+            expected_labels = [
+                '00:00:00',
+                '1 days 03:46:40',
+                '2 days 07:33:20',
+                '3 days 11:20:00',
+                '4 days 15:06:40',
+                '5 days 18:53:20',
+                '6 days 22:40:00',
+                '8 days 02:26:40',
+                ''
+            ]
 
         rng = timedelta_range('0', periods=10, freq='1 d')
         df = DataFrame(np.random.randn(len(rng), 3), rng)

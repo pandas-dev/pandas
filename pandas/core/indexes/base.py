@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_dtype_equal,
+    is_dtype_union_equal,
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype,
@@ -585,12 +586,6 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     # ops compat
-    def tolist(self):
-        """
-        return a list of the Index values
-        """
-        return list(self.values)
-
     @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
@@ -853,7 +848,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         """
         Return the formatted data as a unicode string
         """
@@ -862,9 +857,11 @@ class Index(IndexOpsMixin, PandasObject):
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
+        if name is None:
+            name = self.__class__.__name__
 
-        space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
-        space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
+        space1 = "\n%s" % (' ' * (len(name) + 1))
+        space2 = "\n%s" % (' ' * (len(name) + 2))
 
         n = len(self)
         sep = ','
@@ -1601,9 +1598,6 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return is_datetime_array(_ensure_object(self.values))
 
-    def __iter__(self):
-        return iter(self.values)
-
     def __reduce__(self):
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
@@ -2179,7 +2173,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0:
             return other._get_consensus_name(self)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        # TODO: is_dtype_union_equal is a hack around
+        # 1. buggy set ops with duplicates (GH #13432)
+        # 2. CategoricalIndex lacking setops (GH #10186)
+        # Once those are fixed, this workaround can be removed
+        if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
             return this.union(other)
@@ -2430,7 +2428,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(values)
 
     _index_shared_docs['get_loc'] = """
-        Get integer location for requested label.
+        Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
@@ -2450,8 +2448,22 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        loc : int if unique index, possibly slice or mask if not
-    """
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+
+        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+
+        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True], dtype=bool)
+        """
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):

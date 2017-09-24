@@ -1479,8 +1479,6 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator. E.g. use ',' for
             European data
 
-            .. versionadded:: 0.16.0
-
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
@@ -2165,8 +2163,6 @@ class DataFrame(NDFrame):
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
-        .. versionadded:: 0.13
-
         Parameters
         ----------
         expr : string
@@ -2560,8 +2556,6 @@ class DataFrame(NDFrame):
         """
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
-
-        .. versionadded:: 0.16.0
 
         Parameters
         ----------
@@ -4069,23 +4063,27 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping

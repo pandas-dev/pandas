@@ -787,6 +787,13 @@ class TestToDatetimeMisc(object):
         assert xp.freq == rs.freq
         assert xp.tzinfo == rs.tzinfo
 
+    def test_to_datetime_overflow(self):
+        # gh-17637
+        # we are overflowing Timedelta range here
+
+        with pytest.raises(OverflowError):
+            date_range(start='1/1/1700', freq='B', periods=100000)
+
     def test_string_na_nat_conversion(self):
         # GH #999, #858
 
@@ -1144,7 +1151,7 @@ class TestDatetimeParsingWrappers(object):
                 exp = DatetimeIndex([pd.Timestamp(expected)])
                 tm.assert_index_equal(res, exp)
 
-            # these really need to have yearfist, but we don't support
+            # these really need to have yearfirst, but we don't support
             if not yearfirst:
                 result5 = Timestamp(date_str)
                 assert result5 == expected

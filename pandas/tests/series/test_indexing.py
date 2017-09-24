@@ -387,7 +387,7 @@ class TestSeriesIndexing(TestData):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         from dateutil.tz import tzutc
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil

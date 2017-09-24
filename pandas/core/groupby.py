@@ -1393,12 +1393,21 @@ class GroupBy(_GroupBy):
 
             return out.sort_index() if self.sort else out
 
-        if isinstance(self._selected_obj, DataFrame) and \
-           dropna not in ['any', 'all']:
-            # Note: when agg-ing picker doesn't raise this, just returns NaN
-            raise ValueError("For a DataFrame groupby, dropna must be "
-                             "either None, 'any' or 'all', "
-                             "(was passed %s)." % (dropna),)
+        if dropna not in ['any', 'all']:
+            if isinstance(self._selected_obj, Series) and dropna is True:
+                warnings.warn("the dropna='%s' keyword is deprecated,"
+                              "use dropna='all' instead. "
+                              "For a Series groupby, dropna must be "
+                              "either None, 'any' or 'all'." % (dropna),
+                              FutureWarning,
+                              stacklevel=2)
+                dropna = 'all'
+            else:
+                # Note: when agg-ing picker doesn't raise this,
+                # just returns NaN
+                raise ValueError("For a DataFrame groupby, dropna must be "
+                                 "either None, 'any' or 'all', "
+                                 "(was passed %s)." % (dropna),)
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
@@ -3168,7 +3177,13 @@ class SeriesGroupBy(GroupBy):
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
         if len(ids):
-            res = out if ids[0] != -1 else out[1:]
+            # NaN/NaT group exists if the head of ids is -1,
+            # so remove it from res and exclude its index from idx
+            if ids[0] == -1:
+                res = out[1:]
+                idx = idx[np.flatnonzero(idx)]
+            else:
+                res = out
         else:
             res = out[1:]
         ri = self.grouper.result_index

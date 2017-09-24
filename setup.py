@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -436,7 +437,7 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = ['reduce', 'inference', 'properties']
+lib_depends = ['reduce', 'inference']
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -468,7 +469,6 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/period_helper.h',
                    'pandas/_libs/src/datetime.pxd']
 
 
@@ -478,6 +478,7 @@ libraries = ['m'] if not is_platform_windows() else []
 ext_data = {
     '_libs.lib': {'pyxfile': '_libs/lib',
                   'depends': lib_depends + tseries_depends},
+    '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
@@ -486,10 +487,11 @@ ext_data = {
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                'pandas/_libs/src/datetime/np_datetime_strings.c',
-                                'pandas/_libs/src/period_helper.c']},
+                                'pandas/_libs/src/datetime/np_datetime_strings.c']},
+    '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.period': {'pyxfile': '_libs/period',
-                     'depends': tseries_depends,
+                     'depends': (tseries_depends +
+                                 ['pandas/_libs/src/period_helper.h']),
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
@@ -510,7 +512,7 @@ ext_data = {
                    'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                    'depends': _pxi_dep['join']},
     '_libs.reshape': {'pyxfile': '_libs/reshape',
-                      'depends': _pxi_dep['reshape']},
+                      'depends': _pxi_dep['reshape'], 'include': []},
     '_libs.interval': {'pyxfile': '_libs/interval',
                        'pxdfiles': ['_libs/hashtable'],
                        'depends': _pxi_dep['interval']},
@@ -526,7 +528,7 @@ ext_data = {
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
                      'depends': (['pandas/_libs/sparse.pyx'] +
-                                 _pxi_dep['sparse'])},
+                                 _pxi_dep['sparse']), 'include': []},
     '_libs.testing': {'pyxfile': '_libs/testing',
                       'depends': ['pandas/_libs/testing.pyx']},
     '_libs.hashing': {'pyxfile': '_libs/hashing',
