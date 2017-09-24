@@ -598,11 +598,11 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _prefix = 'B'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self._offset = kwds.get('offset', timedelta(0))
+        self.kwds = {'offset': offset}
+        self._offset = offset
 
     def _offset_str(self):
         def get_str(td):
@@ -1407,11 +1407,10 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     _prefix = 'CBM'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self._offset = kwds.get('offset', timedelta(0))
+        self._offset = offset
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1419,6 +1418,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['offset'] = offset
 
     @cache_readonly
     def cbday(self):
@@ -1477,20 +1477,20 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     _prefix = 'CBMS'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self._offset = kwds.get('offset', timedelta(0))
+        self._offset = offset
 
         # _get_calendar does validation and possible transformation
         # of calendar and holidays.
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
                                            calendar=calendar)
-        kwds['calendar'] = self.calendar = calendar
-        kwds['weekmask'] = self.weekmask = weekmask
-        kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['offset'] = offset
 
     @cache_readonly
     def cbday(self):
