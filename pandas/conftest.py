@@ -83,6 +83,6 @@ def ip():
                         MultiIndex.from_tuples(lzip(
                             ['foo', 'bar', 'baz'], [1, 2, 3])),
                         Index([0, 0, 1, 1, 2, 2])],
-                ids=lambda(x): type(x).__name__)
+                ids=lambda x: type(x).__name__)
 def indices(request):
     return request.param
