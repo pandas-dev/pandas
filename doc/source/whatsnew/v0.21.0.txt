@@ -447,7 +447,6 @@ New Behavior:
 
    pd.interval_range(start=0, end=4)
 
-
 .. _whatsnew_0210.api:
 
 Other API Changes

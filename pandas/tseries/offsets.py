@@ -2531,8 +2531,8 @@ class FY5253Quarter(DateOffset):
         self.variation = variation
 
         self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
-                    'qtr_with_extra_week': qtr_with_extra_week,
-                    'variation': variation}
+                     'qtr_with_extra_week': qtr_with_extra_week,
+                     'variation': variation}
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
