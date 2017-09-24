@@ -392,7 +392,7 @@ Additionally, DataFrames with datetime columns that were parsed by :func:`read_s
 Restricting DateOffset Keywords
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, subclasses :class:`Week`, :class:`WeekOfMonth`, :class:`LastWeekOfMonth`, :class:`QuarterOffset`, :class:`QuarterEnd`, :class:`QuarterBegin`, :class:`BQuarterEnd`, and :class:`BQuarterBegin`, will allow only specific arguments.  (:issue:`17176`).
+Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
 
 .. _whatsnew_0210.api.consistency_of_range_functions:
 

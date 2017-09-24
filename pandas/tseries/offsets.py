@@ -581,6 +581,7 @@ class BusinessMixin(object):
             if '_offset' in state:  # pragma: no cover
                 raise ValueError('Unexpected key `_offset`')
             state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
         self.__dict__ = state
         if 'weekmask' in state and 'holidays' in state:
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
@@ -964,6 +965,7 @@ class CustomBusinessDay(BusinessDay):
         self.n = int(n)
         self.normalize = normalize
         self._offset = offset
+        self.kwds = {}
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1413,6 +1415,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self._offset = offset
+        self.kwds = {}
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -1431,7 +1434,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     def m_offset(self):
         kwds = self.kwds
         kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays']}
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
         return MonthEnd(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
@@ -1483,6 +1486,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.n = int(n)
         self.normalize = normalize
         self._offset = offset
+        self.kwds = {}
 
         # _get_calendar does validation and possible transformation
         # of calendar and holidays.
@@ -1503,7 +1507,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     def m_offset(self):
         kwds = self.kwds
         kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays']}
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
         return MonthBegin(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
