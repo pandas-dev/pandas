@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
@@ -537,15 +537,12 @@ class TestMultiIndex(Base):
             self.index.astype(np.dtype(int))
 
     def test_constructor_single_level(self):
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]], names=['first'])
-        assert isinstance(single_level, Index)
-        assert not isinstance(single_level, MultiIndex)
-        assert single_level.name == 'first'
-
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]])
-        assert single_level.name is None
+        result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                            labels=[[0, 1, 2, 3]], names=['first'])
+        assert isinstance(result, MultiIndex)
+        expected = Index(['foo', 'bar', 'baz', 'qux'], name='first')
+        tm.assert_index_equal(result.levels[0], expected)
+        assert result.names == ['first']
 
     def test_constructor_no_levels(self):
         tm.assert_raises_regex(ValueError, "non-zero number "
@@ -768,8 +765,9 @@ class TestMultiIndex(Base):
 
         # 1 level
         result = MultiIndex.from_arrays(arrays=[[]], names=['A'])
+        assert isinstance(result, MultiIndex)
         expected = Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # N levels
         for N in [2, 3]:
@@ -830,7 +828,7 @@ class TestMultiIndex(Base):
         # 1 level
         result = MultiIndex.from_product([[]], names=['A'])
         expected = pd.Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # 2 levels
         l1 = [[], ['foo', 'bar', 'baz'], []]
@@ -2383,7 +2381,7 @@ class TestMultiIndex(Base):
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
 
-    def test_is_monotonic(self):
+    def test_is_monotonic_increasing(self):
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10)], names=['one', 'two'])
         assert i.is_monotonic
@@ -2444,14 +2442,89 @@ class TestMultiIndex(Base):
         assert not i.is_monotonic
         assert not i._is_strictly_monotonic_increasing
 
-    def test_is_strictly_monotonic(self):
+        # empty
+        i = MultiIndex.from_arrays([[], []])
+        assert i.is_monotonic
+        assert Index(i.values).is_monotonic
+        assert i._is_strictly_monotonic_increasing
+        assert Index(i.values)._is_strictly_monotonic_increasing
+
+    def test_is_monotonic_decreasing(self):
+        i = MultiIndex.from_product([np.arange(9, -1, -1),
+                                     np.arange(9, -1, -1)],
+                                    names=['one', 'two'])
+        assert i.is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([np.arange(10),
+                                     np.arange(10, 0, -1)],
+                                    names=['one', 'two'])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([np.arange(10, 0, -1),
+                                     np.arange(10)], names=['one', 'two'])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([[2.0, np.nan, 1.0], ['c', 'b', 'a']])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        # string ordering
+        i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
+                               ['three', 'two', 'one']],
+                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       names=['first', 'second'])
+        assert not i.is_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
+                               ['zenith', 'next', 'mom']],
+                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       names=['first', 'second'])
+        assert i.is_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values)._is_strictly_monotonic_decreasing
+
+        # mixed levels, hits the TypeError
+        i = MultiIndex(
+            levels=[[4, 3, 2, 1], ['nl0000301109', 'nl0000289965',
+                                   'nl0000289783', 'lu0197800237',
+                                   'gb00b03mlx29']],
+            labels=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
+            names=['household_id', 'asset_id'])
+
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+
+        # empty
+        i = MultiIndex.from_arrays([[], []])
+        assert i.is_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values)._is_strictly_monotonic_decreasing
+
+    def test_is_strictly_monotonic_increasing(self):
         idx = pd.MultiIndex(levels=[['bar', 'baz'], ['mom', 'next']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_increasing
         assert not idx._is_strictly_monotonic_increasing
 
-    @pytest.mark.xfail(reason="buggy MultiIndex.is_monotonic_decresaing.")
-    def test__is_strictly_monotonic_decreasing(self):
+    def test_is_strictly_monotonic_decreasing(self):
         idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_decreasing
@@ -2573,12 +2646,21 @@ class TestMultiIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_not_pypy(self):
         idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
         tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
                                     np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_pypy(self):
+        idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
+        tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
+                                    np.array([False, True]))
+        tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
+                                    np.array([False, True]))
 
     def test_isin_level_kwarg(self):
         idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(

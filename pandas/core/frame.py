@@ -67,7 +67,8 @@ from pandas.core.common import (_try_sort,
                                 _dict_compat,
                                 standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import (Index, MultiIndex, _ensure_index,
+                               _ensure_index_from_sequences)
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
@@ -1155,9 +1156,9 @@ class DataFrame(NDFrame):
             else:
                 try:
                     to_remove = [arr_columns.get_loc(field) for field in index]
-
-                    result_index = MultiIndex.from_arrays(
-                        [arrays[i] for i in to_remove], names=index)
+                    index_data = [arrays[i] for i in to_remove]
+                    result_index = _ensure_index_from_sequences(index_data,
+                                                                names=index)
 
                     exclude.update(index)
                 except Exception:
@@ -1477,8 +1478,6 @@ class DataFrame(NDFrame):
         decimal: string, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data
-
-            .. versionadded:: 0.16.0
 
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -2164,8 +2163,6 @@ class DataFrame(NDFrame):
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
-        .. versionadded:: 0.13
-
         Parameters
         ----------
         expr : string
@@ -2559,8 +2556,6 @@ class DataFrame(NDFrame):
         """
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
-
-        .. versionadded:: 0.16.0
 
         Parameters
         ----------
@@ -3000,7 +2995,7 @@ class DataFrame(NDFrame):
                     to_remove.append(col)
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=names)
+        index = _ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
@@ -4068,23 +4063,27 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping

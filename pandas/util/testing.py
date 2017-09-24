@@ -1244,7 +1244,14 @@ def assert_series_equal(left, right, check_dtype=True,
                        obj='{obj}.index'.format(obj=obj))
 
     if check_dtype:
-        assert_attr_equal('dtype', left, right)
+        # We want to skip exact dtype checking when `check_categorical`
+        # is False. We'll still raise if only one is a `Categorical`,
+        # regardless of `check_categorical`
+        if (is_categorical_dtype(left) and is_categorical_dtype(right) and
+                not check_categorical):
+            pass
+        else:
+            assert_attr_equal('dtype', left, right)
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
@@ -1892,7 +1899,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     for i in range(nlevels):
         def keyfunc(x):
             import re
-            numeric_tuple = re.sub("[^\d_]_?", "", x).split("_")
+            numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
             return lmap(int, numeric_tuple)
 
         # build a list of lists to create the index from
@@ -1909,7 +1916,11 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # convert tuples to index
     if nentries == 1:
+        # we have a single level of tuples, i.e. a regular Index
         index = Index(tuples[0], name=names[0])
+    elif nlevels == 1:
+        name = None if names is None else names[0]
+        index = Index((x[0] for x in tuples), name=name)
     else:
         index = MultiIndex.from_tuples(tuples, names=names)
     return index
@@ -2423,7 +2434,7 @@ def stdin_encoding(encoding=None):
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    """
+    r"""
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable

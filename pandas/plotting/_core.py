@@ -31,7 +31,8 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0)
+                                     _mpl_ge_1_5_0,
+                                     _mpl_ge_2_0_0)
 from pandas.plotting._style import (mpl_stylesheet, plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -342,7 +343,13 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data._convert(datetime=True)._get_numeric_data()
+        # GH16953, _convert is needed as fallback, for ``Series``
+        # with ``dtype == object``
+        data = data._convert(datetime=True, timedelta=True)
+        numeric_data = data.select_dtypes(include=[np.number,
+                                                   "datetime",
+                                                   "datetimetz",
+                                                   "timedelta"])
 
         try:
             is_empty = numeric_data.empty
@@ -963,9 +970,10 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            if not _mpl_ge_2_0_0():
+                lines = _get_all_lines(ax)
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1144,6 +1152,9 @@ class BarPlot(MPLPlot):
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
+        # we have to treat a series differently than a
+        # 1-column DataFrame w.r.t. color handling
+        self._is_series = isinstance(data, ABCSeries)
         self.bar_width = kwargs.pop('width', 0.5)
         pos = kwargs.pop('position', 0.5)
         kwargs.setdefault('align', 'center')
@@ -1198,7 +1209,10 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
-            kwds['color'] = colors[i % ncolors]
+            if self._is_series:
+                kwds['color'] = colors
+            else:
+                kwds['color'] = colors[i % ncolors]
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -2712,7 +2726,7 @@ class FramePlotMethods(BasePlotMethods):
         return self(kind='barh', x=x, y=y, **kwds)
 
     def box(self, by=None, **kwds):
-        """
+        r"""
         Boxplot
 
         .. versionadded:: 0.17.0

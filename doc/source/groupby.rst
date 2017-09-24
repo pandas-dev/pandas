@@ -140,7 +140,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-Starting with 0.8, pandas Index objects now support duplicate values. If a
+pandas Index objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -287,8 +287,6 @@ chosen level:
 .. ipython:: python
 
    s.sum(level='second')
-
-.. versionadded:: 0.6
 
 Grouping with multiple levels is supported.
 
@@ -563,7 +561,7 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. note::
 
-    If you pass a dict to ``aggregate``, the ordering of the output colums is
+    If you pass a dict to ``aggregate``, the ordering of the output columns is
     non-deterministic. If you want to be sure the output columns will be in a specific
     order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
 
@@ -768,8 +766,6 @@ missing values with the ``ffill()`` method.
 Filtration
 ----------
 
-.. versionadded:: 0.12
-
 The ``filter`` method returns a subset of the original object. Suppose we
 want to take only elements that belong to groups with a group sum greater
 than 2.
@@ -859,8 +855,6 @@ next). This enables some operations to be carried out rather succinctly:
 In this example, we chopped the collection of time series into yearly chunks
 then independently called :ref:`fillna <missing_data.fillna>` on the
 groups.
-
-.. versionadded:: 0.14.1
 
 The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
 
@@ -1050,19 +1044,6 @@ Just like for a DataFrame or Series you can call head and tail on a groupby:
 
 This shows the first or last n rows from each group.
 
-.. warning::
-
-   Before 0.14.0 this was implemented with a fall-through apply,
-   so the result would incorrectly respect the as_index flag:
-
-   .. code-block:: python
-
-       >>> g.head(1):  # was equivalent to g.apply(lambda x: x.head(1))
-             A  B
-        A
-        1 0  1  2
-        5 2  5  6
-
 .. _groupby.nth:
 
 Taking the nth row of each group
@@ -1079,7 +1060,7 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
    g.nth(-1)
    g.nth(1)
 
-If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
+If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:
 
 .. ipython:: python
 
@@ -1091,7 +1072,7 @@ If you want to select the nth not-null item, use the ``dropna`` kwarg. For a Dat
    g.nth(-1, dropna='any')  # NaNs denote group exhausted when using dropna
    g.last()
 
-   g.B.nth(0, dropna=True)
+   g.B.nth(0, dropna='all')
 
 As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
 
@@ -1114,8 +1095,6 @@ You can also select multiple rows from each group by specifying multiple nth val
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.13.0
 
 To see the order in which each row appears within its group, use the
 ``cumcount`` method:
@@ -1232,7 +1211,7 @@ Groupby by Indexer to 'resample' data
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
+In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 

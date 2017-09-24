@@ -17,7 +17,7 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
-from pandas._libs.tslib import get_timezone
+from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.compat import lrange, long
 from pandas.util.testing import assert_series_equal
@@ -554,6 +554,14 @@ class TestTimestamp(object):
         ends = ['is_month_end', 'is_year_end', 'is_quarter_end']
         for end in ends:
             assert getattr(ts, end)
+
+    @pytest.mark.parametrize('data, expected',
+                             [(Timestamp('2017-08-28 23:00:00'), 'Monday'),
+                              (Timestamp('2017-08-28 23:00:00', tz='EST'),
+                               'Monday')])
+    def test_weekday_name(self, data, expected):
+        # GH 17354
+        assert data.weekday_name == expected
 
     def test_pprint(self):
         # GH12622
@@ -1287,7 +1295,7 @@ class TestTimeSeries(object):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
 
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
         rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
 
         stamp = rng[0]

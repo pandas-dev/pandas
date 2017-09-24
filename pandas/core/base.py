@@ -8,7 +8,12 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_list_like,
+    is_scalar,
+    is_datetimelike)
+
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core import common as com
@@ -18,7 +23,9 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError
+from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
+
+from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -73,7 +80,7 @@ class StringMixin(object):
         return str(self)
 
 
-class PandasObject(StringMixin):
+class PandasObject(StringMixin, DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -91,23 +98,6 @@ class PandasObject(StringMixin):
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
-
-    def _dir_additions(self):
-        """ add addtional __dir__ for this object """
-        return set()
-
-    def _dir_deletions(self):
-        """ delete unwanted __dir__ for this object """
-        return set()
-
-    def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
-        rv = set(dir(type(self)))
-        rv = (rv - self._dir_deletions()) | self._dir_additions()
-        return sorted(rv)
 
     def _reset_cache(self, key=None):
         """
@@ -141,7 +131,7 @@ class NoNewAttributesMixin(object):
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attrirbutes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on a accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
@@ -899,6 +889,34 @@ class IndexOpsMixin(object):
         numpy.ndarray.argmin
         """
         return nanops.nanargmin(self.values)
+
+    def tolist(self):
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        See Also
+        --------
+        numpy.ndarray.tolist
+        """
+
+        if is_datetimelike(self):
+            return [_maybe_box_datetimelike(x) for x in self._values]
+        else:
+            return self._values.tolist()
+
+    def __iter__(self):
+        """
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+        """
+        return iter(self.tolist())
 
     @cache_readonly
     def hasnans(self):

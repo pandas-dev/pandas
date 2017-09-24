@@ -91,12 +91,6 @@ class MultiIndex(Index):
             raise ValueError('Length of levels and labels must be the same.')
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
-        if len(levels) == 1:
-            if names:
-                name = names[0]
-            else:
-                name = None
-            return Index(levels[0], name=name, copy=True).take(labels[0])
 
         result = object.__new__(MultiIndex)
 
@@ -496,7 +490,7 @@ class MultiIndex(Index):
     def _format_space(self):
         return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
 
@@ -712,13 +706,14 @@ class MultiIndex(Index):
             # we have mixed types and np.lexsort is not happy
             return Index(self.values).is_monotonic
 
-    @property
+    @cache_readonly
     def is_monotonic_decreasing(self):
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
         """
-        return False
+        # monotonic decreasing if and only if reverse is monotonic increasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
@@ -888,15 +883,34 @@ class MultiIndex(Index):
     def get_level_values(self, level):
         """
         Return vector of label values for requested level,
-        equal to the length of the index
+        equal to the length of the index.
 
         Parameters
         ----------
-        level : int or level name
+        level : int or str
+            ``level`` is either the integer position of the level in the
+            MultiIndex, or the name of the level.
 
         Returns
         -------
         values : Index
+            ``values`` is a level of this MultiIndex converted to
+            a single :class:`Index` (or subclass thereof).
+
+        Examples
+        ---------
+
+        Create a MultiIndex:
+
+        >>> mi = pd.MultiIndex.from_arrays((list('abc'), list('def')))
+        >>> mi.names = ['level_1', 'level_2']
+
+        Get level values by supplying level as either integer or name:
+
+        >>> mi.get_level_values(0)
+        Index(['a', 'b', 'c'], dtype='object', name='level_1')
+        >>> mi.get_level_values('level_2')
+        Index(['d', 'e', 'f'], dtype='object', name='level_2')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -1084,10 +1098,6 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(arrays) == 1:
-            name = None if names is None else names[0]
-            return Index(arrays[0], name=name)
-
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
@@ -1957,6 +1967,21 @@ class MultiIndex(Index):
         Returns
         -------
         loc : int, slice object or boolean mask
+
+        Examples
+        ---------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
+        >>> mi.get_loc('b')
+        slice(1, 3, None)
+        >>> mi.get_loc(('b', 'e'))
+        1
+
+        See also
+        --------
+        Index.get_loc : get_loc method for (single-level) index.
+        get_locs : Given a tuple of slices/lists/labels/boolean indexer to a
+                   level-wise spec, produce an indexer to extract those
+                   locations.
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '

@@ -175,12 +175,8 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
-.. note::
-   Specifying a ``format`` argument will potentially speed up the conversion
-   considerably and on versions later then 0.13.0 explicitly specifying
-   a format string of '%Y%m%d' takes a faster path still.
-
 If you pass a single string to ``to_datetime``, it returns single ``Timestamp``.
+
 Also, ``Timestamp`` can accept the string input.
 Note that ``Timestamp`` doesn't accept string parsing option like ``dayfirst``
 or ``format``, use ``to_datetime`` if these are required.
@@ -190,6 +186,25 @@ or ``format``, use ``to_datetime`` if these are required.
     pd.to_datetime('2010/11/12')
 
     pd.Timestamp('2010/11/12')
+
+Providing a Format Argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the required datetime string, a ``format`` argument can be passed to ensure specific parsing.
+It will potentially speed up the conversion considerably.
+
+For example:
+
+.. ipython:: python
+
+    pd.to_datetime('2010/11/12', format='%Y/%m/%d')
+
+    pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
+
+For more information on how to specify the ``format`` options, see https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+Assembling datetime from multiple DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.18.1
 
@@ -1054,7 +1069,7 @@ as ``BusinessHour`` except that it skips specified custom holidays.
     # Tuesday after MLK Day (Monday is skipped because it's a holiday)
     dt + bhour_us * 2
 
-You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBusinessDay``.
+You can use keyword arguments supported by either ``BusinessHour`` and ``CustomBusinessDay``.
 
 .. ipython:: python
 
@@ -1069,8 +1084,7 @@ Offset Aliases
 ~~~~~~~~~~~~~~
 
 A number of string aliases are given to useful common time series
-frequencies. We will refer to these aliases as *offset aliases*
-(referred to as *time rules* prior to v0.8.0).
+frequencies. We will refer to these aliases as *offset aliases*.
 
 .. csv-table::
     :header: "Alias", "Description"
@@ -1089,7 +1103,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
     "Q", "quarter end frequency"
-    "BQ", "business quarter endfrequency"
+    "BQ", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "A, Y", "year end frequency"
@@ -1133,13 +1147,13 @@ For some frequencies you can specify an anchoring suffix:
     :header: "Alias", "Description"
     :widths: 15, 100
 
-    "W\-SUN", "weekly frequency (sundays). Same as 'W'"
-    "W\-MON", "weekly frequency (mondays)"
-    "W\-TUE", "weekly frequency (tuesdays)"
-    "W\-WED", "weekly frequency (wednesdays)"
-    "W\-THU", "weekly frequency (thursdays)"
-    "W\-FRI", "weekly frequency (fridays)"
-    "W\-SAT", "weekly frequency (saturdays)"
+    "W\-SUN", "weekly frequency (Sundays). Same as 'W'"
+    "W\-MON", "weekly frequency (Mondays)"
+    "W\-TUE", "weekly frequency (Tuesdays)"
+    "W\-WED", "weekly frequency (Wednesdays)"
+    "W\-THU", "weekly frequency (Thursdays)"
+    "W\-FRI", "weekly frequency (Fridays)"
+    "W\-SAT", "weekly frequency (Saturdays)"
     "(B)Q(S)\-DEC", "quarterly frequency, year ends in December. Same as 'Q'"
     "(B)Q(S)\-JAN", "quarterly frequency, year ends in January"
     "(B)Q(S)\-FEB", "quarterly frequency, year ends in February"
@@ -1706,6 +1720,15 @@ has multiplied span.
 
    pd.PeriodIndex(start='2014-01', freq='3M', periods=4)
 
+If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
+endpoints for a ``PeriodIndex`` with frequency matching that of the
+``PeriodIndex`` constructor.
+
+.. ipython:: python
+
+   pd.PeriodIndex(start=pd.Period('2017Q1', freq='Q'),
+                  end=pd.Period('2017Q2', freq='Q'), freq='M')
+
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
 objects:
 
@@ -1947,9 +1970,11 @@ These can easily be converted to a ``PeriodIndex``
 Time Zone Handling
 ------------------
 
-Pandas provides rich support for working with timestamps in different time zones using ``pytz`` and ``dateutil`` libraries.
-``dateutil`` support is new in 0.14.1 and currently only supported for fixed offset and tzfile zones. The default library is ``pytz``.
-Support for ``dateutil`` is provided for compatibility with other applications e.g. if you use ``dateutil`` in other python packages.
+Pandas provides rich support for working with timestamps in different time
+zones using ``pytz`` and ``dateutil`` libraries. ``dateutil`` currently is only
+supported for fixed offset and tzfile zones. The default library is ``pytz``.
+Support for ``dateutil`` is provided for compatibility with other
+applications e.g. if you use ``dateutil`` in other python packages.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
