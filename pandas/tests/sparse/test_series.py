@@ -1,7 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
-import warnings
 from datetime import datetime
 
 import pytest
@@ -1391,11 +1390,12 @@ class TestSparseSeriesAnalytics(object):
         funcs = ['argmin', 'argmax']
         for func in funcs:
             for series in ('bseries', 'zbseries'):
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
                     getattr(np, func)(getattr(self, series))
 
-                with tm.assert_produces_warning(FutureWarning):
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
                     getattr(getattr(self, series), func)()
 
 
