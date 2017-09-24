@@ -2265,15 +2265,17 @@ class FY5253(DateOffset):
     _suffix_prefix_nearest = 'N'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
+                 variation="nearest"):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds['startingMonth']
-        self.weekday = kwds["weekday"]
+        self.startingMonth = startingMonth
+        self.weekday = weekday
 
-        self.variation = kwds["variation"]
+        self.variation = variation
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
+                     'variation': variation}
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
@@ -2513,24 +2515,29 @@ class FY5253Quarter(DateOffset):
     _prefix = 'REQ'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
+                 qtr_with_extra_week=1, variation="nearest"):
         self.n = n
         self.normalize = normalize
 
-        self.qtr_with_extra_week = kwds["qtr_with_extra_week"]
+        self.weekday = weekday
+        self.startingMonth = startingMonth
+        self.qtr_with_extra_week = qtr_with_extra_week
+        self.variation = variation
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
+                    'qtr_with_extra_week': qtr_with_extra_week,
+                    'variation': variation}
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
     @cache_readonly
     def _offset(self):
-        kwds = self.kwds
         return FY5253(
-            startingMonth=kwds['startingMonth'],
-            weekday=kwds["weekday"],
-            variation=kwds["variation"])
+            startingMonth=self.startingMonth,
+            weekday=self.weekday,
+            variation=self.variation)
 
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
