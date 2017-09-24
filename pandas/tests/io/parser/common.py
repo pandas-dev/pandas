@@ -1357,20 +1357,6 @@ eight,1,2,3"""
         assert df2['Number2'].dtype == float
         assert df2['Number3'].dtype == float
 
-    def test_read_duplicate_names(self):
-        # See gh-7160
-        data = "a,b,a\n0,1,2\n3,4,5"
-        df = self.read_csv(StringIO(data))
-        expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                             columns=['a', 'b', 'a.1'])
-        tm.assert_frame_equal(df, expected)
-
-        data = "0,1,2\n3,4,5"
-        df = self.read_csv(StringIO(data), names=["a", "b", "a"])
-        expected = DataFrame([[0, 1, 2], [3, 4, 5]],
-                             columns=['a', 'b', 'a.1'])
-        tm.assert_frame_equal(df, expected)
-
     def test_inf_parsing(self):
         data = """\
 ,A

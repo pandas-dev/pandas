@@ -84,8 +84,8 @@ header : int or list of ints, default 'infer'
     rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
-    should explicitly pass header=None. Duplicates in this list are not
-    allowed unless mangle_dupe_cols=True, which is the default.
+    should explicitly pass header=None. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
@@ -385,6 +385,32 @@ def _validate_integer(name, val, min_val=0):
     return val
 
 
+def _validate_names(names):
+    """
+    Check if the `names` parameter contains duplicates.
+
+    If duplicates are found, we issue a warning before returning.
+
+    Parameters
+    ----------
+    names : array-like or None
+        An array containing a list of the names used for the output DataFrame.
+
+    Returns
+    -------
+    names : array-like or None
+        The original `names` parameter.
+    """
+
+    if names is not None:
+        if len(names) != len(set(names)):
+            msg = ("Duplicate names specified. This "
+                   "will raise an error in the future.")
+            warnings.warn(msg, UserWarning, stacklevel=3)
+
+    return names
+
+
 def _read(filepath_or_buffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
@@ -406,6 +432,9 @@ def _read(filepath_or_buffer, kwds):
     iterator = kwds.get('iterator', False)
     chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
     nrows = _validate_integer('nrows', kwds.get('nrows', None))
+
+    # Check for duplicates in names.
+    _validate_names(kwds.get("names", None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
