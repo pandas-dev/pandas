@@ -445,6 +445,8 @@ Deprecations
 
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 
+.. _whatsnew_0210.deprecations.argmin_min
+
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -452,21 +454,17 @@ Series.argmax and Series.argmin
 - The behavior of :func:`Series.argmin` has been deprecated in favor of :func:`Series.idxmin` (:issue:`16830`)
 
 For compatibility with NumPy arrays, ``pd.Series`` implements ``argmax`` and
-``argmin``. Since pandas 0.13 :func:`Series.argmax` and
-:func:`Series.argmin` returned the *label* of the maximum and minimum,
+``argmin``. Since pandas 0.13.0, ``argmax`` has been an alias for
+:meth:`pandas.Series.idxmax`, and ``argmin`` has been an alias for
+:meth:`pandas.Series.idxmin`. They return the *label* of the maximum or minimum,
 rather than the *position*.
 
-Since returning the positional ``argmax`` and ``argmin`` can be useful,
-we've deprecated the current behavior of :func:`Series.argmax` and
-:func:`Series.argmin`. Using either of these will emit a ``FutureWarning``.
-
-If you were using ``Series.argmin`` and ``Series.argmax``, please switch to using
-``idxmin`` and ``idxmax``. In the future, ``Series.argmin`` will return the
-*position* of the minimum. Likewise for ``Series.argmax``.
-
-Until this functionality is implemented in the future, we recommend using
-``Series.values.argmin()`` and ``Series.values.argmax()`` for returning
-the positional ``argmin`` and ``argmax``.
+We've deprecated the current behavior of ``Series.argmax`` and
+``Series.argmin``. Using either of these will emit a ``FutureWarning``. Use
+:meth:`Series.idxmax` if you want the label of the maximum. Use
+``Series.values.argmax()`` if you want the position of the maximum. Likewise for
+the minimum. In a future release ``Series.argmax`` and ``Series.argmin`` will
+return the position of the maximum or minimum.
 
 .. _whatsnew_0210.prior_deprecations:
 
