@@ -10,7 +10,7 @@
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
    import matplotlib
-   matplotlib.style.use('seaborn')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -23,13 +23,6 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
-
-The plots in this document are made using matplotlib's ``seaborn`` style (new in version 1.5):
-
-.. code-block:: python
-
-   import matplotlib
-   matplotlib.style.use('seaborn')
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -154,7 +147,7 @@ and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate
 
 Finally, there are several :ref:`plotting functions <visualization.tools>` in ``pandas.plotting``
 that take a :class:`Series` or :class:`DataFrame` as an argument. These
-include
+include:
 
 * :ref:`Scatter Matrix <visualization.scatter_matrix>`
 * :ref:`Andrews Curves <visualization.andrews_curves>`
