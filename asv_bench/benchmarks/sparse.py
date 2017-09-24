@@ -1,4 +1,4 @@
-from itertools import repeat
+import itertools
 
 from .pandas_vb_common import *
 import scipy.sparse
@@ -33,7 +33,7 @@ class sparse_frame_constructor(object):
         SparseDataFrame(scipy.sparse.rand(1000, 1000, 0.005))
 
     def time_sparse_from_dict(self):
-        SparseDataFrame(dict(zip(range(1000), repeat([0]))))
+        SparseDataFrame(dict(zip(range(1000), itertools.repeat([0]))))
 
 
 class sparse_series_from_coo(object):
