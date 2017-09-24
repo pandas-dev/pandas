@@ -306,9 +306,9 @@ class Base(object):
         assert new_copy.name == "banana"
 
     def test_duplicates(self, indices):
-        if not len(indices):
+        if type(indices) is not self._holder:
             return
-        if isinstance(indices, MultiIndex):
+        if not len(indices) or isinstance(indices, MultiIndex):
             return
         idx = self._holder([indices[0]] * 5)
         assert not idx.is_unique
