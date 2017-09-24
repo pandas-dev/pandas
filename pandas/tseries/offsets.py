@@ -693,14 +693,13 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
 class BusinessHourMixin(BusinessMixin):
 
-    def __init__(self, **kwds):
+    def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
-        kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
-        kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
+        kwds = {'offset': offset}
+        self.start = kwds['start'] = self._validate_time(start)
+        self.end = kwds['end'] = self._validate_time(end)
         self.kwds = kwds
-        self._offset = kwds.get('offset', timedelta(0))
-        self.start = kwds.get('start', '09:00')
-        self.end = kwds.get('end', '17:00')
+        self._offset = offset
 
     def _validate_time(self, t_input):
         from datetime import time as dt_time
@@ -923,10 +922,11 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     _prefix = 'BH'
     _anchor = 0
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, start='09:00',
+                 end='17:00', offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        super(BusinessHour, self).__init__(**kwds)
+        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
     @cache_readonly
     def next_bday(self):
@@ -960,11 +960,10 @@ class CustomBusinessDay(BusinessDay):
     _prefix = 'C'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self._offset = kwds.get('offset', timedelta(0))
+        self._offset = offset
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -976,6 +975,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['offset'] = offset
 
     @apply_wraps
     def apply(self, other):
@@ -1026,10 +1026,12 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     _anchor = 0
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None,
+                 start='09:00', end='17:00', offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        super(CustomBusinessHour, self).__init__(**kwds)
+        super(CustomBusinessHour, self).__init__(start=start,
+                                                 end=end, offset=offset)
 
         calendar, holidays = _get_calendar(weekmask=weekmask,
                                            holidays=holidays,
@@ -2025,8 +2027,7 @@ class YearOffset(DateOffset):
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
 
-        kwds = {'month': month}
-        DateOffset.__init__(self, n=n, normalize=normalize, **kwds)
+        DateOffset.__init__(self, n=n, normalize=normalize, month=month)
 
     @classmethod
     def _from_name(cls, suffix=None):
