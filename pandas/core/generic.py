@@ -2333,14 +2333,23 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self.reindex(**d)
 
-    def drop(self, labels, axis=0, level=None, inplace=False, errors='raise'):
+    def drop(self, labels=None, axis=0, index=None, columns=None, level=None,
+             inplace=False, errors='raise'):
         """
         Return new object with labels in requested axis removed.
 
         Parameters
         ----------
         labels : single label or list-like
+            Index or column labels to drop.
         axis : int or axis name
+            Whether to drop labels from the index (0 / 'index') or
+            columns (1 / 'columns').
+        index, columns : single label or list-like
+            Alternative to specifying `axis` (``labels, axis=1`` is
+            equivalent to ``columns=labels``).
+
+            .. versionadded:: 0.21.0
         level : int or level name, default None
             For MultiIndex
         inplace : bool, default False
@@ -2354,36 +2363,80 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2, 3, 4],
-        ...                    [5, 6, 7, 8],
-        ...                    [9, 1, 2, 3],
-        ...                    [4, 5, 6, 7]
-        ...                   ],
-        ...                   columns=list('ABCD'))
+        >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
+                              columns=['A', 'B', 'C', 'D'])
         >>> df
-            A   B   C   D
-        0   1   2   3   4
-        1   5   6   7   8
-        2   9   1   2   3
-        3   4   5   6   7
+           A  B   C   D
+        0  0  1   2   3
+        1  4  5   6   7
+        2  8  9  10  11
+
+        Drop columns
+
+        >>> df.drop(['B', 'C'], axis=1)
+           A   D
+        0  0   3
+        1  4   7
+        2  8  11
+
+        >>> df.drop(columns=['B', 'C'])
+           A   D
+        0  0   3
+        1  4   7
+        2  8  11
 
         Drop a row by index
 
         >>> df.drop([0, 1])
-            A   B   C   D
-        2   9   1   2   3
-        3   4   5   6   7
+           A  B   C   D
+        2  8  9  10  11
 
-        Drop columns
+        Notes
+        -----
+        Specifying both `labels` and `index` or `columns` will raise a
+        ValueError.
 
-        >>> df.drop(['A', 'B'], axis=1)
-            C   D
-        0   3   4
-        1   7   8
-        2   2   3
-        3   6   7
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
+
+        if labels is not None:
+            if index is not None or columns is not None:
+                raise ValueError("Cannot specify both 'labels' and "
+                                 "'index'/'columns'")
+            axis_name = self._get_axis_name(axis)
+            axes = {axis_name: labels}
+        elif index is not None or columns is not None:
+            axes, _ = self._construct_axes_from_arguments((index, columns), {})
+        else:
+            raise ValueError("Need to specify at least one of 'labels', "
+                             "'index' or 'columns'")
+
+        obj = self
+
+        for axis, labels in axes.items():
+            if labels is not None:
+                obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+
+        if inplace:
+            self._update_inplace(obj)
+        else:
+            return obj
+
+    def _drop_axis(self, labels, axis, level=None, errors='raise'):
+        """
+        Drop labels from specified axis. Used in the ``drop`` method
+        internally.
+
+        Parameters
+        ----------
+        labels : single label or list-like
+        axis : int or axis name
+        level : int or level name, default None
+            For MultiIndex
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
+
+        """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis, axis_ = self._get_axis(axis), axis
@@ -2416,10 +2469,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             result = self.loc[tuple(slicer)]
 
-        if inplace:
-            self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def _update_inplace(self, result, verify_is_copy=True):
         """
