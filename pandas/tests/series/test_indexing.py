@@ -2189,7 +2189,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(result, expected)
 
     def test_rename(self):
-        
+
         # GH 17407
         s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
         result = s.rename(str)
