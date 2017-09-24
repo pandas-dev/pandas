@@ -1274,23 +1274,25 @@ cdef class TextReader:
                 na_hashset, self.c_encoding)
             # sort categories and recode if necessary
             cats = Index(cats)
-            if not cats.is_monotonic_increasing:
+            if (isinstance(dtype, CategoricalDtype) and
+                    dtype.categories is not None):
+                # redcode for dtype.categories
+                categories = dtype.categories
+                indexer = cats.get_indexer(categories)
+                codes = take_1d(codes, categories, fill_value=-1)
+            elif not cats.is_monotonic_increasing:
                 unsorted = cats.copy()
                 cats = cats.sort_values()
                 indexer = cats.get_indexer(unsorted)
                 codes = take_1d(indexer, codes, fill_value=-1)
+            else:
+                categories = cats
 
-            cat = Categorical(codes, categories=cats, ordered=False,
+            cat = Categorical(codes, categories=categories, ordered=False,
                               fastpath=True)
 
-            if isinstance(dtype, CategoricalDtype):
-                if dtype.categories is None:
-                    # skip recoding
-                    if dtype.ordered:
-                        cat = cat.set_ordered(ordered=dtype.ordered)
-                else:
-                    cat = cat.set_categories(dtype.categories,
-                                             ordered=dtype.ordered)
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                cat = cat.set_ordered(ordered=True)
             return cat, na_count
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
