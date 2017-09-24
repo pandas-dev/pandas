@@ -65,4 +65,3 @@ def ip():
     pytest.importorskip('IPython', minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
     return InteractiveShell()
-
