@@ -42,7 +42,7 @@ from datetime cimport (
 
 from util cimport is_string_object, get_nat
 
-cdef int64_t NPY_NAT = util.get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
 cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
