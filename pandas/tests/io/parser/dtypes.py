@@ -154,6 +154,7 @@ one,two
         ['a', 'b', 'c'],
         ['a', 'c', 'b'],
         ['a', 'b', 'c', 'd'],
+        ['c', 'b', 'a'],
     ])
     def test_categorical_categoricaldtype(self, categories, ordered):
         data = """a,b
@@ -171,6 +172,35 @@ one,two
                                        ordered=ordered)}
         result = self.read_csv(StringIO(data), dtype=dtype)
         tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_unsorted(self):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        dtype = CategoricalDtype(['c', 'b', 'a'])
+        expected = pd.DataFrame({
+            'a': [1, 1, 1, 2],
+            'b': Categorical(['a', 'b', 'b', 'c'], categories=['c', 'b', 'a'])
+        })
+        result = self.read_csv(StringIO(data), dtype={'b': dtype})
+        tm.assert_frame_equal(result, expected)
+
+#     @pytest.mark.parametrize('ordered', [True, False])
+#     def test_categoricaldtype_coerces(self, ordered):
+#         dtype = {'b': CategoricalDtype([10, 11, 12, 13], ordered=ordered)}
+#         data = """a,b
+# 1,10
+# 1,11
+# 1,12
+# 2,13"""
+#         expected = pd.DataFrame({
+#             'a': [1, 1, 1, 2],
+#             'b': Categorical([10, 11, 12, 13], ordered=ordered),
+#         }, columns=['a', 'b'])
+#         result = self.read_csv(StringIO(data), dtype=dtype)
+#         tm.assert_frame_equal(result, expected)
 
     def test_categorical_categoricaldtype_chunksize(self):
         # GH 10153
