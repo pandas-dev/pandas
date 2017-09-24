@@ -1121,7 +1121,7 @@ class SemiMonthOffset(DateOffset):
     _default_day_of_month = 15
     _min_day_of_month = 2
 
-    def __init__(self, n=1, day_of_month=None, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, day_of_month=None):
         if day_of_month is None:
             self.day_of_month = self._default_day_of_month
         else:
@@ -1132,8 +1132,7 @@ class SemiMonthOffset(DateOffset):
                                         day=self.day_of_month))
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.kwds['day_of_month'] = self.day_of_month
+        self.kwds = {'day_of_month': self.day_of_month}
 
     @classmethod
     def _from_name(cls, suffix=None):
