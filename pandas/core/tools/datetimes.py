@@ -8,7 +8,6 @@ from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
     _format_is_iso,
-    _DATEUTIL_LEXER_SPLIT,
     _guess_datetime_format)
 
 from pandas.core.dtypes.common import (
