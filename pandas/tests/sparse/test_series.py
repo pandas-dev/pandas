@@ -12,7 +12,7 @@ import pandas as pd
 from pandas import Series, DataFrame, bdate_range, isna, compat
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
-from pandas.compat import range
+from pandas.compat import range, PY2
 from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
@@ -1384,6 +1384,7 @@ class TestSparseSeriesAnalytics(object):
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
 
+    @pytest.mark.skipif(PY2, reason="Buggy assertion on warning")
     def test_deprecated_numpy_func_call(self):
         # NOTE: These should be add to the 'test_numpy_func_call' test above
         # once the behavior of argmin/argmax is corrected.

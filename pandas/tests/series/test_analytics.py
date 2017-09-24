@@ -19,7 +19,7 @@ import pandas.core.config as cf
 
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range, is_platform_windows
+from pandas.compat import lrange, range, is_platform_windows, PY2
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
@@ -1242,6 +1242,7 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1
 
+    @pytest.mark.skipif(PY2, reason="Buggy assertion on warning")
     def test_numpy_argmin_deprecated(self):
         # See gh-16830
         data = np.arange(10)
@@ -1313,6 +1314,7 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1.1
 
+    @pytest.mark.skipif(PY2, reason="Buggy assertion on warning")
     def test_numpy_argmax_deprecated(self):
         # See gh-16830
         data = np.random.randint(0, 11, size=10)
