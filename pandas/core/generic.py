@@ -2348,6 +2348,8 @@ class NDFrame(PandasObject, SelectionMixin):
         index, columns : single label or list-like
             Alternative to specifying `axis` (``labels, axis=1`` is
             equivalent to ``columns=labels``).
+
+            .. versionadded:: 0.21.0
         level : int or level name, default None
             For MultiIndex
         inplace : bool, default False
