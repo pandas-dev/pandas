@@ -58,16 +58,18 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 copy=False, name=None, fastpath=False, **kwargs):
 
         if fastpath:
-            return cls._simple_new(data, name=name)
+            return cls._simple_new(data, name=name, dtype=dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
         if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
         elif isinstance(data, CategoricalIndex):
             data = data._data
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
         else:
 
             # don't allow scalars
@@ -114,7 +116,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @staticmethod
-    def _create_categorical(self, data, categories=None, ordered=None):
+    def _create_categorical(self, data, categories=None, ordered=None,
+                            dtype=None):
         """
         *this is an internal non-public method*
 
@@ -125,6 +128,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         data : data for new Categorical
         categories : optional categories, defaults to existing
         ordered : optional ordered attribute, defaults to existing
+        dtype : CategoricalDtype, defaults to existing
 
         Returns
         -------
@@ -135,22 +139,30 @@ class CategoricalIndex(Index, base.PandasDelegate):
             data = data.values
 
         if not isinstance(data, ABCCategorical):
-            ordered = False if ordered is None else ordered
+            if ordered is None and dtype is None:
+                ordered = False
             from pandas.core.categorical import Categorical
-            data = Categorical(data, categories=categories, ordered=ordered)
+            data = Categorical(data, categories=categories, ordered=ordered,
+                               dtype=dtype)
         else:
+            from pandas.core.dtypes.dtypes import CategoricalDtype
+
             if categories is not None:
-                data = data.set_categories(categories)
-            if ordered is not None:
+                data = data.set_categories(categories, ordered=ordered)
+            elif ordered is not None and ordered != data.ordered:
                 data = data.set_ordered(ordered)
+            if isinstance(dtype, CategoricalDtype):
+                # we want to silently ignore dtype='category'
+                data = data._set_dtype(dtype)
         return data
 
     @classmethod
     def _simple_new(cls, values, name=None, categories=None, ordered=None,
-                    **kwargs):
+                    dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(cls, values, categories, ordered)
+        values = cls._create_categorical(cls, values, categories, ordered,
+                                         dtype=dtype)
         result._data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
@@ -161,16 +173,28 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, categories=None, ordered=None,
-                      **kwargs):
+                      dtype=None, **kwargs):
         # categories and ordered can't be part of attributes,
         # as these are properties
+        # we want to reuse self.dtype if possible, i.e. neither are
+        # overridden.
+        if dtype is not None and (categories is not None or
+                                  ordered is not None):
+            raise TypeError("Cannot specify both `dtype` and `categories` "
+                            "or `ordered`")
+
+        if categories is None and ordered is None:
+            dtype = self.dtype if dtype is None else dtype
+            return super(CategoricalIndex, self)._shallow_copy(
+                values=values, dtype=dtype, **kwargs)
         if categories is None:
             categories = self.categories
         if ordered is None:
             ordered = self.ordered
-        return super(CategoricalIndex,
-                     self)._shallow_copy(values=values, categories=categories,
-                                         ordered=ordered, **kwargs)
+
+        return super(CategoricalIndex, self)._shallow_copy(
+            values=values, categories=categories,
+            ordered=ordered, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -236,7 +260,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             ('ordered', self.ordered)]
         if self.name is not None:
             attrs.append(('name', ibase.default_pprint(self.name)))
-        attrs.append(('dtype', "'%s'" % self.dtype))
+        attrs.append(('dtype', "'%s'" % self.dtype.name))
         max_seq_items = get_option('display.max_seq_items') or len(self)
         if len(self) > max_seq_items:
             attrs.append(('length', len(self)))

@@ -10,6 +10,8 @@ users upgrade to this version.
 Highlights include:
 
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -106,6 +108,31 @@ For example:
     df.drop(['B', 'C'], axis=1)
     # the following is now equivalent
     df.drop(columns=['B', 'C'])
+
+.. _whatsnew_0210.enhancements.categorical_dtype:
+
+``CategoricalDtype`` for specifying categoricals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`pandas.api.types.CategoricalDtype` has been added to the public API and
+expanded to include the ``categories`` and ``ordered`` attributes. A
+``CategoricalDtype`` can be used to specify the set of categories and
+orderedness of an array, independent of the data themselves. This can be useful,
+e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
+:issue:`15078`, :issue:`16015`):
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   s = pd.Series(['a', 'b', 'c', 'a'])  # strings
+   dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+   s.astype(dtype)
+
+The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
+``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
+
+See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
 .. _whatsnew_0210.enhancements.other:
 
@@ -516,6 +543,7 @@ Conversion
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
 - Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
+- Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
 
 Indexing
 ^^^^^^^^
@@ -535,6 +563,7 @@ Indexing
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
 - Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
+- Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 
 I/O
 ^^^

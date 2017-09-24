@@ -3,6 +3,7 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
+from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -44,7 +45,7 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
+            if not (get_timezone(tz) == get_timezone(b.tzinfo)):
                 raise AssertionError('Inputs must both have the same timezone,'
                                      ' {timezone1} != {timezone2}'
                                      .format(timezone1=tz, timezone2=b.tzinfo))

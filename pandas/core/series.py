@@ -2825,10 +2825,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'Series'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2839,10 +2838,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return self.index[i]
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2987,7 +2985,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
-                subarr = Categorical(arr)
+                subarr = Categorical(arr, dtype.categories,
+                                     ordered=dtype.ordered)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:

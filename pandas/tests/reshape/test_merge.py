@@ -1469,8 +1469,6 @@ class TestMergeCategorical(object):
     @pytest.mark.parametrize(
         'change', [lambda x: x,
                    lambda x: x.astype('category',
-                                      categories=['bar', 'foo']),
-                   lambda x: x.astype('category',
                                       categories=['foo', 'bar', 'bah']),
                    lambda x: x.astype('category', ordered=True)])
     @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
@@ -1481,7 +1479,7 @@ class TestMergeCategorical(object):
         X = change(right.X.astype('object'))
         right = right.assign(X=X)
         assert is_categorical_dtype(left.X.values)
-        assert not left.X.values.is_dtype_equal(right.X.values)
+        # assert not left.X.values.is_dtype_equal(right.X.values)
 
         merged = pd.merge(left, right, on='X', how=how)
 

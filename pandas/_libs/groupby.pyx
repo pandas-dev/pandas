@@ -7,8 +7,6 @@ cimport cython
 
 cnp.import_array()
 
-cimport util
-
 from numpy cimport (ndarray,
                     double_t,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
