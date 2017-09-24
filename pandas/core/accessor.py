@@ -59,7 +59,7 @@ class AccessorProperty(object):
         raise AttributeError("can't delete attribute")
 
 
-class PandasDelegate(PandasObject):
+class PandasDelegate(object):
     """ an abstract base class for delegating methods/properties """
 
     @classmethod

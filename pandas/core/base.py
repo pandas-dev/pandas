@@ -25,7 +25,8 @@ from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
 
-from pandas.core.accessor import DirNamesMixin
+from pandas.core.accessor import (DirNamesMixin,
+                                  PandasDelegate as _PandasDelegate)
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -151,6 +152,10 @@ class NoNewAttributesMixin(object):
             raise AttributeError("You cannot add any new attribute '{key}'".
                                  format(key=key))
         object.__setattr__(self, key, value)
+
+
+class PandasDelegate(_PandasDelegate, PandasObject):
+    pass
 
 
 class GroupByError(Exception):
