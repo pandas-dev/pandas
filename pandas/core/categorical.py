@@ -197,34 +197,34 @@ class Categorical(PandasObject):
 
     Examples
     --------
-    >>> from pandas import Categorical
-    >>> Categorical([1, 2, 3, 1, 2, 3])
+    >>> pd.Categorical([1, 2, 3, 1, 2, 3])
     [1, 2, 3, 1, 2, 3]
-    Categories (3, int64): [1 < 2 < 3]
+    Categories (3, int64): [1, 2, 3]
 
-    >>> Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
     [a, b, c, a, b, c]
-    Categories (3, object): [a < b < c]
+    Categories (3, object): [a, b, c]
 
-    Only ordered `Categoricals` can be sorted (according to the order
-    of the categories) and have a min and max value.
+    Ordered `Categoricals` can be sorted according to the custom order
+    of the categories and can have a min and max value.
 
-    >>> a = Categorical(['a','b','c','a','b','c'], ['c', 'b', 'a'],
-                        ordered=True)
-    >>> a.min()
+    >>> c = pd.Categorical(['a','b','c','a','b','c'], ordered=True,
+    ...                    categories=['c', 'b', 'a'])
+    >>> c
+    [a, b, c, a, b, c]
+    Categories (3, object): [c < b < a]
+    >>> c.min()
     'c'
 
     Notes
     -----
-    See the :ref:`user guide <categorical>` for more.
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
 
     See also
     --------
-    Categorical.sort
-    Categorical.order
-    Categorical.min
-    Categorical.max
     pandas.api.types.CategoricalDtype
+    CategoricalIndex : An Index with an underlying ``Categorical``
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
