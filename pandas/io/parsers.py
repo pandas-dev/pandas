@@ -12,7 +12,7 @@ from textwrap import fill
 
 import numpy as np
 
-from pandas import compat
+from pandas import compat, to_numeric, to_timedelta
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
@@ -20,7 +20,8 @@ from pandas.core.dtypes.common import (
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
-    is_scalar, is_categorical_dtype)
+    is_scalar, is_categorical_dtype,
+    is_datetime64_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
@@ -1606,11 +1607,21 @@ class ParserBase(object):
             # XXX this is for consistency with
             # c-parser which parses all categories
             # as strings
-            if not is_object_dtype(values):
-                values = astype_nansafe(values, str)
-            if isinstance(cast_type, CategoricalDtype):
+            known_cats = (isinstance(cast_type, CategoricalDtype) and
+                          cast_type.categories is not None)
+            str_values = is_object_dtype(values)
+
+            if known_cats and str_values:
+                if cast_type.categories.is_numeric():
+                    values = to_numeric(values, errors='ignore')
+                elif is_datetime64_dtype(cast_type.categories):
+                    values = tools.to_datetime(values, errors='ignore')
+                elif is_timedelta64_dtype(cast_type.categories):
+                    values = to_timedelta(values, errors='ignore')
                 values = Categorical(values, categories=cast_type.categories,
                                      ordered=cast_type.ordered)
+            elif not is_object_dtype(values):
+                values = astype_nansafe(values, str)
             else:
                 values = Categorical(values)
         else:

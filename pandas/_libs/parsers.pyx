@@ -48,7 +48,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.categorical import Categorical
 from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
-from pandas import Index
+from pandas import Index, to_numeric, to_datetime, to_timedelta
 
 import pandas.io.common as com
 
@@ -1267,12 +1267,30 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_categorical_dtype(dtype):
-            # TODO: I suspect that this could be optimized when dtype
-            # is an instance of CategoricalDtype
+            # TODO: I suspect that _categorical_convert could be
+            # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter,
                 na_hashset, self.c_encoding)
             cats = Index(cats)
+
+            # Here is where we'll do the casting...
+            if (isinstance(dtype, CategoricalDtype) and
+                    dtype.categories is not None):
+                if dtype.categories.is_numeric():
+                    # is ignore correct?
+                    cats = to_numeric(cats, errors='ignore')
+                elif dtype.categories.is_all_dates:
+                    # is ignore correct?
+                    if is_datetime64_dtype(dtype.categories):
+                        print("before", cats)
+                        cats = to_datetime(cats, errors='ignore')
+                        print("after", cats)
+                    else:
+                        print("before", cats)
+                        cats = to_timedelta(cats, errors='ignore')
+                        print("after", cats)
+
             if (isinstance(dtype, CategoricalDtype) and
                     dtype.categories is not None):
                 # recode for dtype.categories
