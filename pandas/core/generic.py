@@ -5828,8 +5828,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         cond : boolean %(klass)s, array-like, or callable
-            Where `cond` is %(cond)s, keep the original value. Where %(cond_rev)s, replace
-            with corresponding value from `other`.
+            Where `cond` is %(cond)s, keep the original value. Where
+            %(cond_rev)s, replace with corresponding value from `other`.
             If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
@@ -5838,8 +5838,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
-            Entries where `cond` is %(cond_rev)s are replaced with corresponding
-            value from `other`.
+            Entries where `cond` is %(cond_rev)s are replaced with
+            corresponding value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
@@ -5929,7 +5929,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
-                            cond_rev="False", name='where', name_other='mask'))
+                                           cond_rev="False", name='where',
+                                           name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
 
@@ -5938,7 +5939,8 @@ class NDFrame(PandasObject, SelectionMixin):
                            raise_on_error)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
-                            cond_rev="True", name='mask', name_other='where'))
+                                           cond_rev="True", name='mask',
+                                           name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
