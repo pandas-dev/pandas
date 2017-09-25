@@ -354,6 +354,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 """
 
+
 def _getlang():
     """Figure out what language is being used for the locale"""
     return locale.getlocale(locale.LC_TIME)
