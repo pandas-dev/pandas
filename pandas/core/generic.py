@@ -5822,13 +5822,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
-        entries are from self where cond is %(cond)s and otherwise are from
-        other.
+        entries are from self where `cond` is %(cond)s and otherwise are from
+        `other`.
 
         Parameters
         ----------
         cond : boolean %(klass)s, array-like, or callable
-            If cond is callable, it is computed on the %(klass)s and
+            Where `cond` is True, keep the original value. Where False, replace
+            with corresponding value from `other`.
+            If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
 
@@ -5836,6 +5838,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
+            Entries where `cond` is False are replaced with corresponding
+            value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
@@ -5881,8 +5885,15 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3.0
         4    4.0
 
+        >>> s.where(s>1, 10)
+        0    10.0
+        1    10.0
+        2    2.0
+        3    3.0
+        4    4.0
+
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
-        >>> m = df %% 3 == 0
+        >>> m = df % 3 == 0
         >>> df.where(m, -df)
            A  B
         0  0 -1
