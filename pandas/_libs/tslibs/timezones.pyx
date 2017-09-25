@@ -277,7 +277,7 @@ cdef object get_dst_info(object tz):
     return dst_cache[cache_key]
 
 
-def _infer_tzinfo(start, end):
+def infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
