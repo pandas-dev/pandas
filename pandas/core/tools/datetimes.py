@@ -3,6 +3,7 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
+from pandas._libs.tslibs.strptime import array_strptime
 from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.core.dtypes.common import (
@@ -416,8 +417,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(arg, format, exact=exact,
-                                                      errors=errors)
+                        result = array_strptime(arg, format, exact=exact,
+                                                errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise

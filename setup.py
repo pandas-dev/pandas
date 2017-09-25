@@ -471,7 +471,6 @@ tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
                    'pandas/_libs/src/datetime.pxd']
 
-
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
 
@@ -483,6 +482,10 @@ ext_data = {
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
                                     + _pxi_dep['hashtable'])},
+    '_libs.tslibs.strptime': {'pyxfile': '_libs/tslibs/strptime',
+                              'depends': tseries_depends,
+                              'sources': ['pandas/_libs/src/datetime/np_datetime.c',
+                                          'pandas/_libs/src/datetime/np_datetime_strings.c']},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,

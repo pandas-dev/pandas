@@ -40,6 +40,12 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
 #endif
 
+const pandas_datetimestruct _NS_MIN_DTS = {
+    1677, 9, 21, 0, 12, 43, 145225, 0, 0};
+const pandas_datetimestruct _NS_MAX_DTS = {
+    2262, 4, 11, 23, 47, 16, 854775, 807000, 0};
+
+
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
     {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
