@@ -565,7 +565,7 @@ def nanskew(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nankurt(values, axis=None, skipna=True):
-    """ Compute the sample skewness.
+    """ Compute the sample excess kurtosis.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G2, computed directly from the second and fourth

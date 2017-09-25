@@ -204,10 +204,11 @@ one,two
         result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-        data = ''
-        result = self.read_csv(StringIO(data), names=['one', 'one'],
-                               dtype={0: 'u1', 1: 'f'})
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            data = ''
+            result = self.read_csv(StringIO(data), names=['one', 'one'],
+                                   dtype={0: 'u1', 1: 'f'})
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_raise_on_passed_int_dtype_with_nas(self):
         # see gh-2631

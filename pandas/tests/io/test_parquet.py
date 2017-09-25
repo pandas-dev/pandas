@@ -394,6 +394,8 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError)
 
     def test_categorical(self, fp):
+        if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
+            pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         self.check_round_trip(df, fp, compression=None)
 

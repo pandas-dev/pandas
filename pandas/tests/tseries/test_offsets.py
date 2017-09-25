@@ -33,6 +33,7 @@ from pandas.core.tools.datetimes import (
     to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
+from pandas._libs.tslibs import timezones
 from pandas._libs.tslib import normalize_date, NaT, Timestamp, Timedelta
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
@@ -288,7 +289,7 @@ class TestCommon(Base):
 
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
-            tz_obj = tslib.maybe_get_tz(tz)
+            tz_obj = timezones.maybe_get_tz(tz)
             dt_tz = tslib._localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)

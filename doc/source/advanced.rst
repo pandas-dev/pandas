@@ -638,9 +638,11 @@ and allows efficient indexing and storage of an index with a large number of dup
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
+
    df = pd.DataFrame({'A': np.arange(6),
                       'B': list('aabbca')})
-   df['B'] = df['B'].astype('category', categories=list('cab'))
+   df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
    df
    df.dtypes
    df.B.cat.categories
