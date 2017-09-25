@@ -62,6 +62,7 @@ from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
+from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
@@ -2901,19 +2902,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-    cat = base.AccessorProperty(CategoricalAccessor)
+    cat = accessor.AccessorProperty(CategoricalAccessor)
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = accessor.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
-                                 gfx.SeriesPlotMethods)
+    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
+                                     gfx.SeriesPlotMethods)
     hist = gfx.hist_series
 
 
