@@ -76,7 +76,7 @@ class MultiIndex(Index):
     and :meth:`MultiIndex.from_tuples``. For example (using ``.from_arrays``):
 
     >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-    >>> MultiIndex.from_arrays(arrays, names=('number', 'color'))
+    >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
     MultiIndex(levels=[[1, 2], ['blue', 'red']],
            labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
            names=['number', 'color'])
