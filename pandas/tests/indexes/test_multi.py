@@ -588,6 +588,14 @@ class TestMultiIndex(Base):
             with tm.assert_raises_regex(ValueError, label_error):
                 self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
+    def test_constructor_non_unique_level_values(self):
+        # GH #17464
+        with tm.assert_raises_regex(ValueError, '^Level values'):
+            MultiIndex(levels=[[0, 1], [0, 0, 1, 1]],
+                       labels=[[0, 0, 0, 0, 1, 1, 1, 1],
+                               [0, 0, 1, 1, 0, 0, 1, 1]],
+                       names=[u'idx0', u'idx1'])
+
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
         tm.assert_copy(copy.levels, original.levels)

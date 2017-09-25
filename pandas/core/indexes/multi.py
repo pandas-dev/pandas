@@ -174,6 +174,11 @@ class MultiIndex(Index):
                                  " level  (%d). NOTE: this index is in an"
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
+        for i, level in enumerate(levels):
+            if not level.is_unique:
+                raise ValueError("Level values must be unique: {0!r}"
+                                 " on level {1}".format([value for value
+                                                         in level], i))
 
     def _get_levels(self):
         return self._levels
