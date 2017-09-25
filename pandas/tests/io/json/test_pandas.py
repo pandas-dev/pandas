@@ -4,10 +4,7 @@ import pytest
 from pandas.compat import (range, lrange, StringIO,
                            OrderedDict, is_platform_32bit)
 import os
-import moto
 import numpy as np
-from pandas.tests.io.parser.test_network import s3_resource
-from pandas.tests.io.parser.test_network import tips_file, jsonl_file
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
