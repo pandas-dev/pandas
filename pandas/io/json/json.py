@@ -349,8 +349,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         # commas and put it in a json list to make a valid json object.
 
         """
-            Handle encoded bytes arrays in PY3 and bytes objects from certain
-            readables before using StringIO.
+            If PY3 and/or isinstance(json, bytes)
         """
         if isinstance(json, bytes):
             json = json.decode('utf-8')

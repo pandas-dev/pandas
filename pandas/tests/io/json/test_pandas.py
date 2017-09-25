@@ -4,7 +4,10 @@ import pytest
 from pandas.compat import (range, lrange, StringIO,
                            OrderedDict, is_platform_32bit)
 import os
+import moto
 import numpy as np
+from pandas.tests.io.parser.test_network import s3_resource
+from pandas.tests.io.parser.test_network import tips_file, jsonl_file
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
@@ -990,34 +993,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
-    @pytest.yield_fixture(scope="function")
-    def testbucket_conn(self):
-        """ Fixture for test_read_s3_jsonl"""
-        boto3 = pytest.importorskip('boto3')
-        moto = pytest.importorskip("moto")
-
-        """
-        Start and stop mocking only once, surrounding the test run
-        to ensure single context is kept.
-        """
-        moto.mock_s3().start()
-
-        conn = boto3.client('s3')
-        conn.create_bucket(Bucket='testbucket')
-        yield conn
-
-        moto.mock_s3().stop()
-
-    def test_read_s3_jsonl(self, testbucket_conn):
+    def test_read_s3_jsonl(self, s3_resource):
         pytest.importorskip('s3fs')
         # GH17200
 
-        body = b'{"a": 1, "b": 2}\n{"b":2, "a" :1}\n'
-        testbucket_conn.put_object(Body=body,
-                                   Key='items.jsonl',
-                                   Bucket='testbucket')
-
-        result = read_json('s3://testbucket/items.jsonl', lines=True)
+        result = read_json('s3n://pandas-test/items.jsonl', lines=True)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 

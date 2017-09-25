@@ -19,6 +19,9 @@ from pandas.compat import BytesIO
 def tips_file():
     return os.path.join(tm.get_data_path(), 'tips.csv')
 
+@pytest.fixture(scope='module')
+def jsonl_file():
+    return os.path.join(tm.get_data_path(), 'items.jsonl')
 
 @pytest.fixture(scope='module')
 def salaries_table():
@@ -27,7 +30,7 @@ def salaries_table():
 
 
 @pytest.fixture(scope='module')
-def s3_resource(tips_file):
+def s3_resource(tips_file, jsonl_file):
     pytest.importorskip('s3fs')
     moto.mock_s3().start()
 
@@ -35,6 +38,7 @@ def s3_resource(tips_file):
         ('tips.csv', tips_file),
         ('tips.csv.gz', tips_file + '.gz'),
         ('tips.csv.bz2', tips_file + '.bz2'),
+        ('items.jsonl', jsonl_file),
     ]
 
     def add_tips_files(bucket_name):
