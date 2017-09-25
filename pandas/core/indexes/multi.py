@@ -68,6 +68,33 @@ class MultiIndex(Index):
         Copy the meta-data
     verify_integrity : boolean, default True
         Check that the levels/labels are consistent and valid
+
+    Examples
+    ---------
+    A new ``MultiIndex`` is typically constructed using one of the helper
+    methods :meth:`MultiIndex.from_arrays``, :meth:`MultiIndex.from_product``
+    and :meth:`MultiIndex.from_tuples``. For example (using ``.from_arrays``):
+
+    >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+    >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
+    MultiIndex(levels=[[1, 2], ['blue', 'red']],
+           labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+           names=['number', 'color'])
+
+    See further examples for how to construct a MultiIndex in the doc strings
+    of the mentioned helper methods.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
+
+    See Also
+    --------
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex
+    MultiIndex.from_product : Create a MultiIndex from the cartesian product
+                              of iterables
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     """
 
     # initialize to zero-length tuples to make everything work
