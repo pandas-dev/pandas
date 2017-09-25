@@ -2083,16 +2083,42 @@ class MultiIndex(Index):
 
     def get_loc_level(self, key, level=0, drop_level=True):
         """
-        Get integer location slice for requested label or tuple
+        Get both the location for the requested label(s) and the
+        resulting sliced index.
 
         Parameters
         ----------
-        key : label or tuple
-        level : int/level name or list thereof
+        key : label or sequence of labels
+        level : int/level name or list thereof, optional
+        drop_level : bool, default True
+            if ``False``, the resulting index will not drop any level.
 
         Returns
         -------
-        loc : int or slice object
+        loc : A 2-tuple where the elements are:
+              Element 0: int, slice object or boolean array
+              Element 1: The resulting sliced multiindex/index. If the key
+              contains all levels, this will be ``None``.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')],
+        ...                                names=['A', 'B'])
+
+        >>> mi.get_loc_level('b')
+        (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
+
+        >>> mi.get_loc_level('e', level='B')
+        (array([False,  True, False], dtype=bool),
+        Index(['b'], dtype='object', name='A'))
+
+        >>> mi.get_loc_level(['b', 'e'])
+        (1, None)
+
+        See Also
+        ---------
+        MultiIndex.get_loc : Get integer location, slice or boolean mask for
+                             requested label or tuple.
         """
 
         def maybe_droplevels(indexer, levels, drop_level):
