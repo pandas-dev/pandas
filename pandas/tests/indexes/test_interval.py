@@ -336,31 +336,30 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_interval_updated_behavior(self):
 
-        for idx_side in ['right', 'left', 'both', 'neither']:
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-            idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
-
-            for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
-                          [0, 2], [2.5, 3], [-1, 4]]:
-                for side in ['right', 'left', 'both', 'neither']:
-
-                    if idx_side == side:
-                        if bound == [0, 1]:
-                            assert idx.get_loc(
-                                Interval(0, 1, closed=side)) == 0
-                        elif bound == [2, 3]:
-                            assert idx.get_loc(
-                                Interval(2, 3, closed=side)) == 1
-                        else:
-                            pytest.raises(KeyError, idx.get_loc,
-                                          Interval(*bound, closed=side))
+        for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
+                      [0, 2], [2.5, 3], [-1, 4]]:
+            for side in ['right', 'left', 'both', 'neither']:
+                # if get_loc is supplied an interval, it should only search
+                # for exact matches, not overlaps or covers, else KeyError.
+                if idx_side == side:
+                    if bound == [0, 1]:
+                        assert idx.get_loc(Interval(0, 1, closed=side)) == 0
+                    elif bound == [2, 3]:
+                        assert idx.get_loc(Interval(2, 3, closed=side)) == 1
                     else:
                         pytest.raises(KeyError, idx.get_loc,
                                       Interval(*bound, closed=side))
+                else:
+                    pytest.raises(KeyError, idx.get_loc,
+                                  Interval(*bound, closed=side))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_scalar_updated_behavior(self):
 
         scalars = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
@@ -369,16 +368,15 @@ class TestIntervalIndex(Base):
                    'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
                    'neither': {0.5: 0, 2.5: 1}}
 
-        for idx_side in ['right', 'left', 'both', 'neither']:
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-            idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
-
-            for scalar in scalars:
-
-                if scalar in correct[idx_side].keys():
-                    assert idx.get_loc(scalar) == correct[idx_side][scalar]
-                else:
-                    pytest.raises(KeyError, idx.get_loc, scalar)
+        for scalar in scalars:
+            # if get_loc is supplied a scalar, it should return the index of
+            # the interval which contains the scalar, or KeyError.
+            if scalar in correct[idx_side].keys():
+                assert idx.get_loc(scalar) == correct[idx_side][scalar]
+            else:
+                pytest.raises(KeyError, idx.get_loc, scalar)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_interval_updated_behavior(self):
