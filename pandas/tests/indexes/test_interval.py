@@ -504,8 +504,7 @@ class TestIntervalIndex(Base):
         with pytest.raises(KeyError):
             index.slice_locs(1, 2)
 
-        # To be removed (see #16316, #16386)
-# To be removed (see #16316, #16386)
+    # To be removed (see #16316, #16386)
     def test_get_loc_interval(self):
         assert self.index.get_loc(Interval(0, 1)) == 0
         assert self.index.get_loc(Interval(0, 0.5)) == 0
@@ -1098,7 +1097,6 @@ class TestIntervalRange(object):
 
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(end=Timedelta('1 day'), periods=10, freq='foo')
-
 
 # TODO: check this behavior is consistent
 class TestIntervalTree(object):
