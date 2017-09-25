@@ -255,7 +255,7 @@ cdef extern from "parser/tokenizer.h":
 
 #    inline int to_complex(char *item, double *p_real,
 #                          double *p_imag, char sci, char decimal)
-    inline int to_longlong(char *item, long long *p_value) nogil
+    int to_longlong(char *item, long long *p_value) nogil
 #    inline int to_longlong_thousands(char *item, long long *p_value,
 #                                     char tsep)
     int to_boolean(const char *item, uint8_t *val) nogil

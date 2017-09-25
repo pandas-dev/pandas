@@ -139,13 +139,13 @@ class Block(PandasObject):
         validate that we have a astypeable to categorical,
         returns a boolean if we are a categorical
         """
-        if is_categorical_dtype(dtype):
-            if dtype == CategoricalDtype():
-                return True
-
+        if dtype is Categorical or dtype is CategoricalDtype:
             # this is a pd.Categorical, but is not
             # a valid type for astypeing
             raise TypeError("invalid type {0} for astype".format(dtype))
+
+        elif is_categorical_dtype(dtype):
+            return True
 
         return False
 
@@ -548,6 +548,18 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
+            if (('categories' in kwargs or 'ordered' in kwargs) and
+                    isinstance(dtype, CategoricalDtype)):
+                raise TypeError("Cannot specify a CategoricalDtype and also "
+                                "`categories` or `ordered`. Use "
+                                "`dtype=CategoricalDtype(categories, ordered)`"
+                                " instead.")
+            kwargs = kwargs.copy()
+            categories = getattr(dtype, 'categories', None)
+            ordered = getattr(dtype, 'ordered', False)
+
+            kwargs.setdefault('categories', categories)
+            kwargs.setdefault('ordered', ordered)
             return self.make_block(Categorical(self.values, **kwargs))
 
         # astype processing
@@ -1289,6 +1301,15 @@ class Block(PandasObject):
             elif is_numeric_v_string_like(values, other):
                 result = False
 
+            # avoid numpy warning of elementwise comparisons
+            elif func.__name__ == 'eq':
+                if is_list_like(other) and not isinstance(other, np.ndarray):
+                    other = np.asarray(other)
+
+                    # if we can broadcast, then ok
+                    if values.shape[-1] != other.shape[-1]:
+                        return False
+                result = func(values, other)
             else:
                 result = func(values, other)
 
@@ -3561,6 +3582,31 @@ class BlockManager(PandasObject):
             raise AssertionError('Some items were not contained in blocks')
 
         return result
+
+    def to_dict(self, copy=True):
+        """
+        Return a dict of str(dtype) -> BlockManager
+
+        Parameters
+        ----------
+        copy : boolean, default True
+
+        Returns
+        -------
+        values : a dict of dtype -> BlockManager
+
+        Notes
+        -----
+        This consolidates based on str(dtype)
+        """
+        self._consolidate_inplace()
+
+        bd = {}
+        for b in self.blocks:
+            bd.setdefault(str(b.dtype), []).append(b)
+
+        return {dtype: self.combine(blocks, copy=copy)
+                for dtype, blocks in bd.items()}
 
     def xs(self, key, axis=1, copy=True, takeable=False):
         if axis < 1:
