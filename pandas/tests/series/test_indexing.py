@@ -1783,6 +1783,11 @@ class TestSeriesIndexing(TestData):
         expected = Series([3], index=[False])
         assert_series_equal(result, expected)
 
+        # GH 16877
+        s = Series([2, 3], index=[0, 1])
+        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+            s.drop([False, True])
+
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
             aa, ab = a.align(b, join=how, fill_value=fill)

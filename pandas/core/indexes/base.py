@@ -2609,6 +2609,12 @@ class Index(IndexOpsMixin, PandasObject):
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)
 
+        # Treat boolean labels passed to a numeric index as not found. Without
+        # this fix False and True would be treated as 0 and 1 respectively.
+        # (GH #16877)
+        if target.is_boolean() and self.is_numeric():
+            return _ensure_platform_int(np.repeat(-1, target.size))
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(ptarget, method=method, limit=limit,
@@ -2637,7 +2643,6 @@ class Index(IndexOpsMixin, PandasObject):
                                  'backfill or nearest reindexing')
 
             indexer = self._engine.get_indexer(target._values)
-
         return _ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance):
