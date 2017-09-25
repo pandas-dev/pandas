@@ -1043,7 +1043,7 @@ Plot Formatting
 ---------------
 
 Setting the plot style
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 From version 1.5 and up, matplotlib offers a range of preconfigured plotting styles. Setting the
 style can be used to easily give plots the general look that you want.
@@ -1053,6 +1053,9 @@ plots.
 
 You can see the various available style names at ``matplotlib.style.available`` and it's very
 easy to try them out.
+
+General plot style arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Most plotting methods have a set of keyword arguments that control the
 layout and formatting of the returned plot:
