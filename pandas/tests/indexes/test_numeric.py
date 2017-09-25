@@ -459,8 +459,8 @@ class TestFloat64Index(Numeric):
 
 class NumericInt(Numeric):
 
-    def test_view(self):
-        super(NumericInt, self).test_view()
+    def test_view(self, indices):
+        super(NumericInt, self).test_view(indices)
 
         i = self._holder([], name='Foo')
         i_view = i.view()

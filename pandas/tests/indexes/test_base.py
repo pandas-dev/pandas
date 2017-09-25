@@ -58,8 +58,8 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self):
-        super(TestIndex, self).test_copy_and_deepcopy()
+    def test_copy_and_deepcopy(self, indices):
+        super(TestIndex, self).test_copy_and_deepcopy(indices)
 
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
