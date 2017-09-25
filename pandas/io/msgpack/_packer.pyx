@@ -224,7 +224,7 @@ cdef class Packer(object):
                 default_used = 1
                 continue
             else:
-                raise TypeError("can't serialize %r" % (o,))
+                raise TypeError("can't serialize {thing!r}".format(thing=o))
             return ret
 
     cpdef pack(self, object obj):

@@ -249,7 +249,8 @@ def json_normalize(data, record_path=None, meta=None,
                                 raise \
                                     KeyError("Try running with "
                                              "errors='ignore' as key "
-                                             "%s is not always present", e)
+                                             "{err} is not always present"
+                                             .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
@@ -267,8 +268,8 @@ def json_normalize(data, record_path=None, meta=None,
             k = meta_prefix + k
 
         if k in result:
-            raise ValueError('Conflicting metadata name %s, '
-                             'need distinguishing prefix ' % k)
+            raise ValueError('Conflicting metadata name {name}, '
+                             'need distinguishing prefix '.format(name=k))
 
         result[k] = np.array(v).repeat(lengths)
 

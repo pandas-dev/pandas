@@ -94,7 +94,7 @@ cdef inline init_ctx(unpack_context *ctx,
 
 def default_read_extended_type(typecode, data):
     raise NotImplementedError("Cannot decode extended type "
-                              "with typecode=%d" % typecode)
+                              "with typecode={code}".format(code=typecode))
 
 
 def unpackb(object packed, object object_hook=None, object list_hook=None,
@@ -144,7 +144,7 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
                 buf + off, buf_len - off))
         return obj
     else:
-        raise UnpackValueError("Unpack failed: error = %d" % (ret,))
+        raise UnpackValueError("Unpack failed: error = {ret}".format(ret=ret))
 
 
 def unpack(object stream, object object_hook=None, object list_hook=None,
@@ -411,7 +411,8 @@ cdef class Unpacker(object):
                 else:
                     raise OutOfData("No more data to unpack.")
             else:
-                raise ValueError("Unpack failed: error = %d" % (ret,))
+                raise ValueError("Unpack failed: error = {ret}"
+                                 .format(ret=ret))
 
     def read_bytes(self, Py_ssize_t nbytes):
         """Read a specified number of raw bytes from the stream"""
