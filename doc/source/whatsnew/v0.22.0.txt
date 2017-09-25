@@ -13,7 +13,7 @@ version.
 New features
 ~~~~~~~~~~~~
 
--
+- Simultaneous melting of independent groups of columns is now possible with ``melt``.
 -
 -
 

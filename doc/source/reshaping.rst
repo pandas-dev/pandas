@@ -276,13 +276,29 @@ For instance,
 
 .. ipython:: python
 
-   cheese = pd.DataFrame({'first' : ['John', 'Mary'],
-                          'last' : ['Doe', 'Bo'],
-                          'height' : [5.5, 6.0],
-                          'weight' : [130, 150]})
-   cheese
-   cheese.melt(id_vars=['first', 'last'])
-   cheese.melt(id_vars=['first', 'last'], var_name='quantity')
+   df = pd.DataFrame({'City': ['Houston', 'Austin', 'Hoover'],
+                      'State': ['Texas', 'Texas', 'Alabama'],
+                      'Mango':[4, 10, 90],
+                      'Orange': [10, 8, 14], 
+                      'Watermelon':[40, 99, 43],
+                      'Gin':[16, 200, 34],
+                      'Vodka':[20, 33, 18]},
+                     columns=['City', 'State', 'Mango', 'Orange',
+                              'Watermelon', 'Gin', 'Vodka'])
+  df.melt(id_vars=['City', 'State'], value_vars=['Mango', 'Orange'],
+          var_name='Fruit', value_name='Pounds')
+
+.. versionadded:: 0.22.0
+
+Passing a list of lists to `value_vars` allows you to simultaneously melt
+independent variable groups. The groups need not be the same size.
+
+.. ipython:: python
+
+  df.melt(id_vars=['City', 'State'], 
+          value_vars=[['Mango', 'Orange', 'Watermelon'], ['Gin', 'Vodka']],
+          var_name=['Fruit', 'Drink'],
+          value_name=['Pounds', 'Ounces'])
 
 Another way to transform is to use the ``wide_to_long`` panel data convenience
 function.

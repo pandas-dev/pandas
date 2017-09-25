@@ -4674,6 +4674,8 @@ class DataFrame(NDFrame):
     1      b          B          E      3
     2      c          B          E      5
 
+    .. versionadded:: 0.22.0
+
     Simultaneously melt multiple groups of columns:
 
     >>> df2 = pd.DataFrame({'City': ['Houston', 'Miami'],
