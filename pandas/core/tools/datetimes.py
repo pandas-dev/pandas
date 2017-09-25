@@ -113,7 +113,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded: 0.20.0
-    cache_datetime : boolean, default False
+    cache : boolean, default False
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. Produces signficant speed-ups when parsing duplicate date.
 
@@ -207,7 +207,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     def _convert_listlike(arg, box, format, name=None, tz=tz):
 
-        import pdb; pdb.set_trace()
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
 
@@ -375,18 +374,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     convert_cache = None
     if cache and is_list_like(arg):
-        # Create a cache only if there are more than 10k values and the user
-        # passes in datestrings
-        #min_cache_threshold = 10**5
-        #if len(arg) >= min_cache_threshold and is_string_dtype(arg):
-        # unique currently cannot determine dates that are out of bounds
-        # recurison errors with datetime
-        unique_dates = algorithms.unique(arg)
-        # Essentially they need to all be the same value
-        if len(unique_dates) != len(arg):
-            from pandas import Series
-            cache_data = _convert_listlike(unique_dates, False, format)
-            convert_cache = Series(cache_data, index=unique_dates)
+        if len(arg) >= 1000:
+            unique_dates = algorithms.unique(arg)
+            if len(unique_dates) != len(arg):
+                from pandas import Series
+                cache_dates = _convert_listlike(unique_dates, False, format)
+                convert_cache = Series(cache_dates, index=unique_dates)
 
     if isinstance(arg, tslib.Timestamp):
         result = arg
