@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-from numpy cimport ndarray
+from numpy cimport ndarray, int64_t
 
 cdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
@@ -16,3 +16,7 @@ cpdef get_utcoffset(tzinfo, obj)
 cdef bint is_fixed_offset(object tz)
 
 cdef object get_dst_info(object tz)
+
+cdef ndarray[int64_t] _infer_dst(ndarray[int64_t] vals,
+							     ndarray[int64_t] result_a,
+							     ndarray[int64_t] result_b)

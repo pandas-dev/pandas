@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs.timezones import get_timezone
+from pandas._libs.tslibs.timezones import get_timezone, _infer_tzinfo  # noqa
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -42,22 +42,6 @@ except (ImportError, AttributeError):
     pass
 
 
-def _infer_tzinfo(start, end):
-    def _infer(a, b):
-        tz = a.tzinfo
-        if b and b.tzinfo:
-            if not (get_timezone(tz) == get_timezone(b.tzinfo)):
-                raise AssertionError('Inputs must both have the same timezone,'
-                                     ' {timezone1} != {timezone2}'
-                                     .format(timezone1=tz, timezone2=b.tzinfo))
-        return tz
-
-    tz = None
-    if start is not None:
-        tz = _infer(start, end)
-    elif end is not None:
-        tz = _infer(end, start)
-    return tz
 
 
 def _guess_datetime_format(dt_str, dayfirst=False,
