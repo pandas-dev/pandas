@@ -469,10 +469,11 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
-Specifying ``dtype='cateogry'`` will result in a ``Categorical`` that is
-unordered, and whose ``categories`` are the unique values observed in the data.
-For more control on the categories and order, create a
-:class:`~pandas.api.types.CategoricalDtype` ahead of time.
+Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
+whose ``categories`` are the unique values observed in the data. For more
+control on the categories and order, create a
+:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
+that column's ``dtype``.
 
 .. ipython:: python
 
@@ -483,10 +484,13 @@ For more control on the categories and order, create a
 
 .. note::
 
-   The resulting categories will always be parsed as strings (object dtype).
-   If the categories are numeric they can be converted using the
-   :func:`to_numeric` function, or as appropriate, another converter
-   such as :func:`to_datetime`.
+   With ``dtype='category'``, the resulting categories will always be parsed
+   as strings (object dtype). If the categories are numeric they can be
+   converted using the :func:`to_numeric` function, or as appropriate, another
+   converter such as :func:`to_datetime`.
+
+   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categoriess`` (
+   all numeric, all datetimes, etc.), the conversion is done automatically.
 
    .. ipython:: python
 

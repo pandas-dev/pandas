@@ -1274,7 +1274,8 @@ cdef class TextReader:
                 na_hashset, self.c_encoding)
             cats = Index(cats)
 
-            # Here is where we'll do the casting...
+            # Determine if we should convert inferred string
+            # categories to a specialized type
             if (isinstance(dtype, CategoricalDtype) and
                     dtype.categories is not None):
                 if dtype.categories.is_numeric():
@@ -1283,13 +1284,9 @@ cdef class TextReader:
                 elif dtype.categories.is_all_dates:
                     # is ignore correct?
                     if is_datetime64_dtype(dtype.categories):
-                        print("before", cats)
                         cats = to_datetime(cats, errors='ignore')
-                        print("after", cats)
                     else:
-                        print("before", cats)
                         cats = to_timedelta(cats, errors='ignore')
-                        print("after", cats)
 
             if (isinstance(dtype, CategoricalDtype) and
                     dtype.categories is not None):

@@ -163,6 +163,8 @@ Other Enhancements
 - :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
+- Pass a :class:`~pandas.api.types.CategoricalDtype` to :meth:`read_csv` to parse categorical
+  data as numeric, datetimes, or timedeltas, instead of strings. See :ref:`here <io.categorical>`. (:issue:`17643`)
 
 
 .. _whatsnew_0210.api_breaking:
