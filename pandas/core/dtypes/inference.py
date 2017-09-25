@@ -263,8 +263,9 @@ def is_list_like(obj):
     False
     """
 
-    return ((hasattr(obj, '__iter__') or isinstance(obj, Iterable)) and
+    return (hasattr(obj, '__iter__') and isinstance(obj, Iterable) and
             not isinstance(obj, string_and_binary_types))
+
 
 def is_nested_list_like(obj):
     """
