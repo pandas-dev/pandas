@@ -599,7 +599,7 @@ class DataFrameFormatter(TableFormatter):
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
                 row_lens = Series(text).apply(len)
-                max_len_col_ix = np.argmax(row_lens)
+                max_len_col_ix = row_lens.idxmax()
                 max_len = row_lens[max_len_col_ix]
                 headers = [ele[0] for ele in strcols]
                 # Size of last col determines dot col size. See

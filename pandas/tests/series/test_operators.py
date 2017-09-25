@@ -1892,7 +1892,7 @@ class TestSeriesOperators(TestData):
         assert s.idxmin() == 1
         assert np.isnan(s.idxmin(skipna=False))
 
-        assert s.argmax() == 2
+        assert s.idxmax() == 2
         assert np.isnan(s.idxmax(skipna=False))
 
         # Using old-style behavior that treats floating point nan, -inf, and
@@ -1900,5 +1900,5 @@ class TestSeriesOperators(TestData):
         with pd.option_context('mode.use_inf_as_na', True):
             assert s.idxmin() == 0
             assert np.isnan(s.idxmin(skipna=False))
-            assert s.argmax() == 0
+            assert s.idxmax() == 0
             np.isnan(s.argmax(skipna=False))
