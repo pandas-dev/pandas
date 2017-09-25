@@ -7,7 +7,7 @@
    import pandas as pd
    pd.options.display.max_rows=15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
 
 .. _missing_data:
