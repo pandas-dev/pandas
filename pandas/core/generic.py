@@ -5825,13 +5825,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
-        entries are from self where cond is %(cond)s and otherwise are from
-        other.
+        entries are from self where `cond` is %(cond)s and otherwise are from
+        `other`.
 
         Parameters
         ----------
         cond : boolean %(klass)s, array-like, or callable
-            If cond is callable, it is computed on the %(klass)s and
+            Where `cond` is %(cond)s, keep the original value. Where
+            %(cond_rev)s, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
 
@@ -5839,6 +5841,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
+            Entries where `cond` is %(cond_rev)s are replaced with
+            corresponding value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
@@ -5884,6 +5888,20 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3.0
         4    4.0
 
+        >>> s.mask(s > 0)
+        0    0.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+
+        >>> s.where(s > 1, 10)
+        0    10.0
+        1    10.0
+        2    2.0
+        3    3.0
+        4    4.0
+
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
         >>> m = df %% 3 == 0
         >>> df.where(m, -df)
@@ -5914,7 +5932,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
-                                           name='where', name_other='mask'))
+                                           cond_rev="False", name='where',
+                                           name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
 
@@ -5923,7 +5942,8 @@ class NDFrame(PandasObject, SelectionMixin):
                            raise_on_error)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
-                                           name='mask', name_other='where'))
+                                           cond_rev="True", name='mask',
+                                           name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
