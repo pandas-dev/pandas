@@ -213,8 +213,8 @@ class SharedWithSparse(object):
         assert (list(dfaa.itertuples()) ==
                 [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
-        # repr with be int/long on windows
-        if not compat.is_platform_windows():
+        # repr with be int/long on 32-bit/windows
+        if not (compat.is_platform_windows() or compat.is_platform_32bit()):
             assert (repr(list(df.itertuples(name=None))) ==
                     '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
 
