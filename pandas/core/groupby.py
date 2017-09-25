@@ -1897,6 +1897,15 @@ class BaseGrouper(object):
         comp_ids = _ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
+    # 17530
+    @cache_readonly
+    def label_info(self):
+        labels, _, _ = self.group_info
+        if self.indexer is not None:
+            sorter = np.lexsort((labels, self.indexer))
+            labels = labels[sorter]
+        return labels
+
     def _get_compressed_labels(self):
         all_labels = [ping.labels for ping in self.groupings]
         if len(all_labels) > 1:
@@ -2596,11 +2605,8 @@ class Grouping(object):
         if self._labels is None or self._group_index is None:
             # for the situation of groupby list of groupers
             if isinstance(self.grouper, BaseGrouper):
-                labels, _, _ = self.grouper.group_info
+                labels = self.grouper.label_info
                 uniques = self.grouper.result_index
-                if self.grouper.indexer is not None:
-                    sorter = np.lexsort((labels, self.grouper.indexer))
-                    labels = labels[sorter]
             else:
                 labels, uniques = algorithms.factorize(
                     self.grouper, sort=self.sort)
