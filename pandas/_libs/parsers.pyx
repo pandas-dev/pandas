@@ -1298,8 +1298,8 @@ cdef class TextReader:
             elif not cats.is_monotonic_increasing:
                 # sort categories and recode if necessary
                 unsorted = cats.copy()
-                cats = cats.sort_values()
-                indexer = cats.get_indexer(unsorted)
+                categories = cats.sort_values()
+                indexer = categories.get_indexer(unsorted)
                 codes = take_1d(indexer, codes, fill_value=-1)
                 ordered = False
             else:
