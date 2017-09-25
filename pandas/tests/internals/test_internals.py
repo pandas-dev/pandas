@@ -469,10 +469,11 @@ class TestBlockManager(object):
         df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
         df['2nd'] = df['2nd'] * 2.0
 
-        assert sorted(df.blocks.keys()) == ['float64', 'int64']
-        assert_frame_equal(df.blocks['float64'], DataFrame(
+        blocks = df._to_dict_of_blocks()
+        assert sorted(blocks.keys()) == ['float64', 'int64']
+        assert_frame_equal(blocks['float64'], DataFrame(
             [[1.0, 4.0], [4.0, 10.0]], columns=cols[:2]))
-        assert_frame_equal(df.blocks['int64'], DataFrame(
+        assert_frame_equal(blocks['int64'], DataFrame(
             [[3], [6]], columns=cols[2:]))
 
     def test_copy(self, mgr):

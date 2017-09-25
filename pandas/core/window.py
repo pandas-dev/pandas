@@ -141,7 +141,7 @@ class _Window(PandasObject, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]),
                                   copy=False)
-        blocks = obj.as_blocks(copy=False).values()
+        blocks = obj._to_dict_of_blocks(copy=False).values()
 
         return blocks, obj, index
 
