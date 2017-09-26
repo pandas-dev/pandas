@@ -1901,4 +1901,4 @@ class TestSeriesOperators(TestData):
             assert s.idxmin() == 0
             assert np.isnan(s.idxmin(skipna=False))
             assert s.idxmax() == 0
-            np.isnan(s.argmax(skipna=False))
+            np.isnan(s.idxmax(skipna=False))
