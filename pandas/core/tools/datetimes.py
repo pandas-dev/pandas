@@ -310,7 +310,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    def _maybe_convert_cache(arg, cache):
+    def _maybe_convert_cache(arg, cache, tz):
         """Try to convert the datetimelike arg using 
            a cache of converted dates.
            
@@ -325,7 +325,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             unique_dates = algorithms.unique(arg)
             if len(unique_dates) != len(arg):
                 from pandas import Series
-                cache_dates = _convert_listlike(unique_dates, False, format)
+                cache_dates = _convert_listlike(unique_dates, True, format,
+                                                tz=tz)
                 convert_cache = Series(cache_dates, index=unique_dates)
                 if not isinstance(arg, Series):
                     arg = Series(arg)
@@ -396,7 +397,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        result = _maybe_convert_cache(arg, cache)
+        result = _maybe_convert_cache(arg, cache, tz)
         if result is None:
             from pandas import Series
             values = _convert_listlike(arg._values, True, format)
@@ -404,7 +405,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _maybe_convert_cache(arg, cache)
+        result = _maybe_convert_cache(arg, cache, tz)
         if result is None:
             result = _convert_listlike(arg, box, format, name=arg.name)
         else:
@@ -412,7 +413,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             if box:
                 result = DatetimeIndex(result, tz=tz, name=arg.name)
     elif is_list_like(arg):
-        result = _maybe_convert_cache(arg, cache)
+        result = _maybe_convert_cache(arg, cache, tz)
         if result is None:
             result = _convert_listlike(arg, box, format)
         else:

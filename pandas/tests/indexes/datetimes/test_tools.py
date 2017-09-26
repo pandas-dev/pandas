@@ -425,7 +425,7 @@ class TestToDatetime(object):
         test_dates = [date] * 10**5
         data = pd.Series(test_dates)
         result = pd.to_datetime(data, utc=utc, format=format, cache=True)
-        expected = pd.to_datetime(data, utc=utc, format=format)
+        expected = pd.to_datetime(data, utc=utc, format=format, cache=False)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_cache_scalar(self):
