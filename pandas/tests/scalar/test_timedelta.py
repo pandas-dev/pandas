@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
-from pandas._libs.tslib import iNaT, NaTType
+from pandas._libs.tslib import iNaT, NaT
 
 
 class TestTimedeltas(object):
@@ -165,6 +165,13 @@ class TestTimedeltas(object):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         value = pd.Timedelta('1day').value * 20169940
         pytest.raises(OverflowError, pd.Timedelta, value)
+
+        # xref gh-17637
+        with pytest.raises(OverflowError):
+            pd.Timedelta(7 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timedelta(timedelta(days=13 * 19999))
 
     def test_total_seconds_scalar(self):
         # see gh-10939
@@ -572,7 +579,7 @@ class TestTimedeltas(object):
         assert max_td.value == np.iinfo(np.int64).max
 
         # Beyond lower limit, a NAT before the Overflow
-        assert isinstance(min_td - Timedelta(1, 'ns'), NaTType)
+        assert (min_td - Timedelta(1, 'ns')) is NaT
 
         with pytest.raises(OverflowError):
             min_td - Timedelta(2, 'ns')
@@ -582,7 +589,7 @@ class TestTimedeltas(object):
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, 'ns')
-        assert isinstance(td, NaTType)
+        assert td is NaT
 
         with pytest.raises(OverflowError):
             Timedelta(min_td.value - 2, 'ns')
@@ -611,6 +618,14 @@ class TestTimedeltas(object):
             expected = pd.Series([np.nan, 32.], dtype='float64')
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
+
+    def test_arithmetic_overflow(self):
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
 
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')

@@ -12,6 +12,7 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
+    # TODO: check this behavior is consistent
     def test_loc_with_scalar(self):
 
         s = self.s
@@ -30,6 +31,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s.loc[s >= 2])
 
+    # TODO: check this behavior is consistent
     def test_getitem_with_scalar(self):
 
         s = self.s
@@ -48,6 +50,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
 
+    # TODO: check this behavior is consistent
     @pytest.mark.parametrize('direction, closed',
                              product(('increasing', 'decreasing'),
                                      ('left', 'right', 'neither', 'both')))
@@ -83,6 +86,7 @@ class TestIntervalIndex(object):
             assert s[key] == expected
             assert s.loc[key] == expected
 
+    # TODO: check this behavior is consistent
     def test_with_interval(self):
 
         s = self.s
@@ -93,6 +97,18 @@ class TestIntervalIndex(object):
 
         result = s[Interval(0, 1)]
         assert result == expected
+
+        expected = s.iloc[3:5]
+        result = s.loc[Interval(3, 6)]
+        tm.assert_series_equal(expected, result)
+
+        expected = s.iloc[3:5]
+        result = s.loc[[Interval(3, 6)]]
+        tm.assert_series_equal(expected, result)
+
+        expected = s.iloc[3:5]
+        result = s.loc[[Interval(3, 5)]]
+        tm.assert_series_equal(expected, result)
 
         # missing
         with pytest.raises(KeyError):
@@ -107,88 +123,69 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_with_slices_updated_behavior(self):
+    # To be removed (see #16316, #16386)
+    def test_with_slices(self):
 
         s = self.s
 
         # slice of interval
-        expected = s.iloc[4:]
-        result = s.loc[Interval(3, 4):]
-        tm.assert_series_equal(expected, result)
-
-        expected = s.iloc[4:]
-        result = s[Interval(3, 4):]
-        tm.assert_series_equal(expected, result)
-
-        with pytest.raises(KeyError):
-            s.loc[Interval(3, 6):]
-
-        with pytest.raises(KeyError):
-            s[Interval(3, 6):]
-
-        with pytest.raises(KeyError):
-            s.loc[Interval(3, 4, closed='left'):]
-
-        with pytest.raises(KeyError):
-            s[Interval(3, 4, closed='left'):]
-
-        with pytest.raises(KeyError):
-            s.loc[Interval(3, 4, closed='both'):]
-
         with pytest.raises(NotImplementedError):
             s.loc[Interval(3, 6):]
 
         with pytest.raises(NotImplementedError):
             s[Interval(3, 6):]
 
-        with pytest.raises(KeyError):
-            s[Interval(3, 4, closed='both'):]
-
-        # slice of scalar
-        expected = s.iloc[:4]  # maybe [:5] ?
-        result = s[0:4]
+        expected = s.iloc[3:5]
+        result = s[[Interval(3, 6)]]
         tm.assert_series_equal(expected, result)
 
         # slice of scalar with step != 1
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             s[0:4:2]
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_with_overlaps_updated_behavior(self):
+    # To be removed (see #16316, #16386)
+    def test_with_overlaps(self):
+
+        s = self.s
+        expected = s.iloc[[3, 4, 3, 4]]
+        result = s.loc[[Interval(3, 6), Interval(3, 6)]]
+        tm.assert_series_equal(expected, result)
 
         idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
         s = Series(range(len(idx)), index=idx)
 
-        # scalar
-        expected = s
         result = s[4]
+        expected = s
         tm.assert_series_equal(expected, result)
 
-        expected = s
         result = s[[4]]
-        tm.assert_series_equal(expected, result)
-
         expected = s
-        result = s.loc[[4]]
         tm.assert_series_equal(expected, result)
 
-        # interval
-        with pytest.raises(KeyError):
-            s[Interval(3, 5)]
+        result = s.loc[[4]]
+        expected = s
+        tm.assert_series_equal(expected, result)
 
+        result = s[Interval(3, 5)]
+        expected = s
+        tm.assert_series_equal(expected, result)
+
+        result = s.loc[Interval(3, 5)]
+        expected = s
+        tm.assert_series_equal(expected, result)
+
+        # doesn't intersect unique set of intervals
         with pytest.raises(KeyError):
             s[[Interval(3, 5)]]
 
         with pytest.raises(KeyError):
-            s.loc[Interval(3, 5)]
-
-        with pytest.raises(KeyError):
             s.loc[[Interval(3, 5)]]
 
+    # To be removed (see #16316, #16386)
     def test_non_unique(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
+
         s = pd.Series(range(len(idx)), index=idx)
 
         result = s.loc[Interval(1, 3)]
@@ -198,33 +195,33 @@ class TestIntervalIndex(object):
         expected = s.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_non_unique_moar_updated_behavior(self):
+    # To be removed (see #16316, #16386)
+    def test_non_unique_moar(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
         s = Series(range(len(idx)), index=idx)
 
-        expected = s.iloc[[0, 1]]
         result = s.loc[Interval(1, 3)]
-        tm.assert_series_equal(expected, result)
-
-        expected = s
-        result = s.loc[Interval(1, 3):]
-        tm.assert_series_equal(expected, result)
-
-        expected = s
-        result = s[Interval(1, 3):]
-        tm.assert_series_equal(expected, result)
-
         expected = s.iloc[[0, 1]]
-        result = s[[Interval(1, 3)]]
         tm.assert_series_equal(expected, result)
 
-    def test_non_matching(self):
+        # non-unique index and slices not allowed
+        with pytest.raises(ValueError):
+            s.loc[Interval(1, 3):]
 
+        with pytest.raises(ValueError):
+            s[Interval(1, 3):]
+
+        # non-unique
+        with pytest.raises(ValueError):
+            s[[Interval(1, 3)]]
+
+    # TODO: check this behavior is consistent
+    def test_non_matching(self):
         s = self.s
 
-        # this is a departure from our current indexing scheme, but simpler
+        # this is a departure from our current
+        # indexin scheme, but simpler
         with pytest.raises(KeyError):
             s.loc[[-1, 3, 4, 5]]
 
