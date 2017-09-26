@@ -830,20 +830,20 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
-    def __init__(self, data, x, y, s=None, s_grow=1, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, size_factor=1, c=None, **kwargs):
         if s is None:
-            # Set default size if no argument is given
+            # Set default size if no argument is given.
             s = 20
         elif is_hashable(s) and s in data.columns:
-            # Handle the case where s is a label of a column of the df
-            # The data is normalized to 200 * s_grow
+            # Handle the case where s is a label of a column of the df.
+            # The data is normalized to 200 * size_factor.
             size_data = data.loc[:, s].values
             if is_numeric_dtype(size_data):
                 self.size_title = s
                 self.s_data_max = size_data.max()
-                self.s_grow = s_grow
+                self.size_factor = size_factor
                 self.bubble_points = 200
-                s = self.bubble_points * s_grow * size_data / self.s_data_max
+                s = self.bubble_points * size_factor * size_data / self.s_data_max
             else:
                 raise TypeError('s must be of numeric dtype')
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
@@ -859,7 +859,6 @@ class ScatterPlot(PlanePlot):
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
 
-        # Plot bubble size scale if needed
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
@@ -902,6 +901,12 @@ class ScatterPlot(PlanePlot):
                         linestyle='none', **err_kwds)
 
     def _sci_notation(self, num):
+        '''
+        Returns mantissa and exponent of the number passed in agument.
+        Example:
+        _sci_notation(89278.8924)
+        >>> (8.9, 5.0)
+        '''
         scientific_notation = '{:e}'.format(num)
         expnt = float(re.search(r'e([+-]\d*)$',
                                 scientific_notation).groups()[0])
@@ -909,7 +914,12 @@ class ScatterPlot(PlanePlot):
                                scientific_notation).groups()[0])
         return coef, expnt
 
-    def _legend_bubbles(self, s_data_max, s_grow, bubble_points):
+    def _legend_bubbles(self, s_data_max, size_factor, bubble_points):
+        '''
+        Computes and returns appropriate bubble sizes and labels for the
+        legend of a  bubble plot. Creates 4 bubbles with round values for the
+        labels, the largest of which is close to the maximum of the data.
+        '''
         coef, expnt = self._sci_notation(s_data_max)
         labels_catalog = {
             (9, 10): [10, 5, 2.5, 1],
@@ -925,7 +935,7 @@ class ScatterPlot(PlanePlot):
             if (coef >= lower_bound) & (coef < upper_bound):
                 labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                              upper_bound])
-                sizes = list(bubble_points * s_grow * labels / s_data_max)
+                sizes = list(bubble_points * size_factor * labels / s_data_max)
                 labels = ['{:g}'.format(l) for l in labels]
                 return (sizes, labels)
 
@@ -934,11 +944,11 @@ class ScatterPlot(PlanePlot):
         if hasattr(self, "size_title"):
             size_title = self.size_title
             s_data_max = self.s_data_max
-            s_grow = self.s_grow
+            size_factor = self.size_factor
             bubble_points = self.bubble_points
             import matplotlib.legend as legend
             sizes, labels = self._legend_bubbles(s_data_max,
-                                                 s_grow,
+                                                 size_factor,
                                                  bubble_points)
             bubbles = []
             for size in sizes:

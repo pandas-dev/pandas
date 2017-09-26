@@ -1048,6 +1048,7 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(x='y', y='y', kind='scatter')
         ve.match('requires x column to be numeric')
 
+
     @pytest.mark.slow
     def test_plot_scatter_with_c(self):
         df = DataFrame(randn(6, 4),
@@ -1117,6 +1118,23 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x='a', y='b', color='white')
         tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
                                     np.array([1, 1, 1, 1], dtype=np.float64))
+
+    @pytest.mark.slow
+    def test_plot_scatter_with_s(self):
+        data = np.array([[3.1, 4.2, 1.9],
+                        [1.9, 2.8, 3.1],
+                        [5.4, 4.32, 2.0],
+                        [0.4, 3.4, 0.46],
+                        [4.4, 4.9, 0.8],
+                        [2.7, 6.2, 1.49]])
+        df = DataFrame(data,
+                       columns = ['x', 'y', 'z'])
+        ax = df.plot.scatter(x='x', y='y', s='z', s_grow=4)
+        bubbles = ax.collections[0]
+        bubble_sizes = bubbles.get_sizes()
+        max_data = df['z'].max()
+        expected_sizes = 200 * 4 * df['z'].values / max_data
+        tm.assert_numpy_array_equal(bubble_sizes, expected_sizes)
 
     @pytest.mark.slow
     def test_plot_bar(self):
