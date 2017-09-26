@@ -17,6 +17,6 @@ cdef bint is_fixed_offset(object tz)
 
 cdef object get_dst_info(object tz)
 
-cdef ndarray[int64_t] _infer_dst(ndarray[int64_t] vals,
+cdef ndarray[int64_t] infer_dst_transitions(ndarray[int64_t] vals,
                                  ndarray[int64_t] result_a,
                                  ndarray[int64_t] result_b)

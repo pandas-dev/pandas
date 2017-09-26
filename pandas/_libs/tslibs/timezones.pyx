@@ -295,9 +295,9 @@ def infer_tzinfo(start, end):
     return tz
 
 
-cdef ndarray[int64_t] _infer_dst(ndarray[int64_t] vals,
-                                 ndarray[int64_t] result_a,
-                                 ndarray[int64_t] result_b):
+cdef ndarray[int64_t] infer_dst_transitions(ndarray[int64_t] vals,
+                                            ndarray[int64_t] result_a,
+                                            ndarray[int64_t] result_b):
     cdef:
         Py_ssize_t n = len(vals)
         ndarray[int64_t] dst_hours

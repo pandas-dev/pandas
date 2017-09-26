@@ -105,7 +105,7 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
-    get_dst_info, _infer_dst
+    get_dst_info, infer_dst_transitions
     )
 
 
@@ -4003,7 +4003,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             result_b[i] = v
 
     if infer_dst:
-        dst_hours = _infer_dst(vals, result_a, result_b)
+        dst_hours = infer_dst_transitions(vals, result_a, result_b)
 
     for i in range(n):
         left = result_a[i]
