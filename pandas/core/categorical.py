@@ -229,7 +229,7 @@ class Categorical(PandasObject):
 
     See also
     --------
-    pandas.api.types.CategoricalDtype
+    pandas.api.types.CategoricalDtype : Type for categorical data
     CategoricalIndex : An Index with an underlying ``Categorical``
     """
 
