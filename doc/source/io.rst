@@ -482,6 +482,14 @@ that column's ``dtype``.
    dtype = CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
    pd.read_csv(StringIO(data), dtype={'col1': dtype}).dtypes
 
+When using ``dtype=CategoricalDtype``, "unexpected" values outside of
+``dtype.categories`` are treated as missing values.
+
+   dtype = CategoricalDtype(['a', 'b', 'd'])  # No 'c'
+   pd.read_csv(StringIO(data), dtype={'col1': dtype}).col1
+
+This matches the behavior of :meth:`Categorical.set_categories`.
+
 .. note::
 
    With ``dtype='category'``, the resulting categories will always be parsed
@@ -489,7 +497,7 @@ that column's ``dtype``.
    converted using the :func:`to_numeric` function, or as appropriate, another
    converter such as :func:`to_datetime`.
 
-   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categoriess`` (
+   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
 
    .. ipython:: python

@@ -210,6 +210,14 @@ one,two
         result = self.read_csv(StringIO(data), dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
+    def test_categoricaldtype_unexpected_categories(self):
+        dtype = {'b': CategoricalDtype(['a', 'b', 'd', 'e'])}
+        data = "b\nd\na\nc\nd"  # Unexpected c
+        expected = pd.DataFrame({"b": Categorical(list('dacd'),
+                                                  dtype=dtype['b'])})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
     def test_categorical_categoricaldtype_chunksize(self):
         # GH 10153
         data = """a,b
