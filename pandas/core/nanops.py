@@ -70,9 +70,8 @@ class disallow(object):
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, compat.itervalues(kwargs))
             if any(self.check(obj) for obj in obj_iter):
-                raise TypeError('reduction operation {0!r} not allowed for '
-                                'this dtype'.format(
-                                    f.__name__.replace('nan', '')))
+                msg = 'reduction operation {name!r} not allowed for this dtype'
+                raise TypeError(msg.format(name=f.__name__.replace('nan', '')))
             try:
                 with np.errstate(invalid='ignore'):
                     return f(*args, **kwargs)
@@ -486,23 +485,23 @@ nanmin = _nanminmax('min', fill_value_typ='+inf')
 nanmax = _nanminmax('max', fill_value_typ='-inf')
 
 
+@disallow('O')
 def nanargmax(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf',
-                                         isfinite=True)
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf')
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
+@disallow('O')
 def nanargmin(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf',
-                                         isfinite=True)
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf')
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -566,7 +565,7 @@ def nanskew(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nankurt(values, axis=None, skipna=True):
-    """ Compute the sample skewness.
+    """ Compute the sample excess kurtosis.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G2, computed directly from the second and fourth
@@ -786,7 +785,8 @@ def _ensure_numeric(x):
             try:
                 x = complex(x)
             except Exception:
-                raise TypeError('Could not convert %s to numeric' % str(x))
+                raise TypeError('Could not convert {value!s} to numeric'
+                                .format(value=x))
     return x
 
 # NA-friendly array comparisons

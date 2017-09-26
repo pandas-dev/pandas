@@ -2,7 +2,8 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT, get_timezone
+from tslib import NaT
+from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -1014,7 +1015,7 @@ cpdef bint is_interval_array(ndarray[object] values):
 
 
 cdef extern from "parse_helper.h":
-    inline int floatify(object, double *result, int *maybe_int) except -1
+    int floatify(object, double *result, int *maybe_int) except -1
 
 # constants that will be compared to potentially arbitrarily large
 # python int

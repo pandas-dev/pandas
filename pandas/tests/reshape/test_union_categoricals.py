@@ -107,16 +107,10 @@ class TestUnionCategoricals(object):
         exp = Categorical([])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([pd.Categorical([]),
-                                  pd.Categorical([1.0])])
-        exp = Categorical([1.0])
+        res = union_categoricals([Categorical([]),
+                                  Categorical(['1'])])
+        exp = Categorical(['1'])
         tm.assert_categorical_equal(res, exp)
-
-        # to make dtype equal
-        nanc = pd.Categorical(np.array([np.nan], dtype=np.float64))
-        res = union_categoricals([nanc,
-                                  pd.Categorical([])])
-        tm.assert_categorical_equal(res, nanc)
 
     def test_union_categorical_same_category(self):
         # check fastpath

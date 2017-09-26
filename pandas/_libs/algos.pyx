@@ -1,12 +1,12 @@
 # cython: profile=False
 
-from numpy cimport *
 cimport numpy as np
 import numpy as np
 
 cimport cython
+from cython cimport Py_ssize_t
 
-import_array()
+np.import_array()
 
 cdef float64_t FP_ERR = 1e-13
 
@@ -15,37 +15,24 @@ cimport util
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
 
-from numpy cimport NPY_INT8 as NPY_int8
-from numpy cimport NPY_INT16 as NPY_int16
-from numpy cimport NPY_INT32 as NPY_int32
-from numpy cimport NPY_INT64 as NPY_int64
-from numpy cimport NPY_FLOAT16 as NPY_float16
-from numpy cimport NPY_FLOAT32 as NPY_float32
-from numpy cimport NPY_FLOAT64 as NPY_float64
+from numpy cimport (ndarray,
+                    NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_FLOAT32, NPY_FLOAT64,
+                    NPY_OBJECT,
+                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float16_t, float32_t, float64_t,
+                    double_t)
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
-
-int8 = np.dtype(np.int8)
-int16 = np.dtype(np.int16)
-int32 = np.dtype(np.int32)
-int64 = np.dtype(np.int64)
-float16 = np.dtype(np.float16)
-float32 = np.dtype(np.float32)
-float64 = np.dtype(np.float64)
 
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-cdef extern from "../src/headers/math.h":
-    double sqrt(double x) nogil
-    double fabs(double) nogil
+from libc.math cimport sqrt, fabs
 
 # this is our util.pxd
 from util cimport numeric, get_nat
 
 cimport lib
-from lib cimport is_null_datetimelike
 from pandas._libs import lib
 
 cdef int64_t iNaT = get_nat()

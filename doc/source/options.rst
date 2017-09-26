@@ -306,16 +306,16 @@ display.float_format                None         The callable should accept a fl
                                                  See core.format.EngFormatter for an example.
 display.large_repr                  truncate     For DataFrames exceeding max_rows/max_cols,
                                                  the repr (and HTML repr) can show
-                                                 a truncated table (the default from 0.13),
+                                                 a truncated table (the default),
                                                  or switch to the view from df.info()
                                                  (the behaviour in earlier versions of pandas).
                                                  allowable settings, ['truncate', 'info']
 display.latex.repr                  False        Whether to produce a latex DataFrame
                                                  representation for jupyter frontends
                                                  that support it.
-display.latex.escape                True         Escapes special caracters in Dataframes, when
+display.latex.escape                True         Escapes special characters in DataFrames, when
                                                  using the to_latex method.
-display.latex.longtable             False        Specifies if the to_latex method of a Dataframe
+display.latex.longtable             False        Specifies if the to_latex method of a DataFrame
                                                  uses the longtable format.
 display.latex.multicolumn           True         Combines columns when using a MultiIndex
 display.latex.multicolumn_format    'l'          Alignment of multicolumn labels

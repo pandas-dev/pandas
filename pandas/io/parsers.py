@@ -23,7 +23,8 @@ from pandas.core.dtypes.common import (
     is_scalar, is_categorical_dtype)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.index import Index, MultiIndex, RangeIndex
+from pandas.core.index import (Index, MultiIndex, RangeIndex,
+                               _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
@@ -83,8 +84,8 @@ header : int or list of ints, default 'infer'
     rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
-    should explicitly pass header=None. Duplicates in this list are not
-    allowed unless mangle_dupe_cols=True, which is the default.
+    should explicitly pass header=None. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
@@ -208,11 +209,11 @@ chunksize : int, default None
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
-    '.zip', or 'xz', respectively, and no decompression otherwise. If using
-    'zip', the ZIP file must contain only one data file to be read in.
-    Set to None for no decompression.
+    For on-the-fly decompression of on-disk data. If 'infer' and
+    `filepath_or_buffer` is path-like, then detect compression from the
+    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+    decompression). If using 'zip', the ZIP file must contain only one data
+    file to be read in. Set to None for no decompression.
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
@@ -384,6 +385,32 @@ def _validate_integer(name, val, min_val=0):
     return val
 
 
+def _validate_names(names):
+    """
+    Check if the `names` parameter contains duplicates.
+
+    If duplicates are found, we issue a warning before returning.
+
+    Parameters
+    ----------
+    names : array-like or None
+        An array containing a list of the names used for the output DataFrame.
+
+    Returns
+    -------
+    names : array-like or None
+        The original `names` parameter.
+    """
+
+    if names is not None:
+        if len(names) != len(set(names)):
+            msg = ("Duplicate names specified. This "
+                   "will raise an error in the future.")
+            warnings.warn(msg, UserWarning, stacklevel=3)
+
+    return names
+
+
 def _read(filepath_or_buffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
@@ -405,6 +432,9 @@ def _read(filepath_or_buffer, kwds):
     iterator = kwds.get('iterator', False)
     chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
     nrows = _validate_integer('nrows', kwds.get('nrows', None))
+
+    # Check for duplicates in names.
+    _validate_names(kwds.get("names", None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
@@ -487,18 +517,18 @@ _fwf_defaults = {
     'widths': None,
 }
 
-_c_unsupported = set(['skipfooter'])
-_python_unsupported = set([
+_c_unsupported = {'skipfooter'}
+_python_unsupported = {
     'low_memory',
     'buffer_lines',
     'float_precision',
-])
-_deprecated_args = set([
+}
+_deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
-])
+}
 
 
 def _make_parser_function(name, sep=','):
@@ -1444,7 +1474,8 @@ class ParserBase(object):
             arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
-        index = MultiIndex.from_arrays(arrays, names=self.index_names)
+        names = self.index_names
+        index = _ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1714,6 +1745,7 @@ class CParserWrapper(ParserBase):
             # A set of integers will be converted to a list in
             # the correct order every single time.
             usecols = list(self.usecols)
+            usecols.sort()
         elif (callable(self.usecols) or
                 self.usecols_dtype not in ('empty', None)):
             # The names attribute should have the correct columns
@@ -1808,7 +1840,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = MultiIndex.from_arrays(arrays)
+            index = _ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -2833,7 +2865,9 @@ class PythonParser(ParserBase):
             for row_num, actual_len in bad_lines:
                 msg = ('Expected %d fields in line %d, saw %d' %
                        (col_len, row_num + 1, actual_len))
-                if len(self.delimiter) > 1 and self.quoting != csv.QUOTE_NONE:
+                if (self.delimiter and
+                        len(self.delimiter) > 1 and
+                        self.quoting != csv.QUOTE_NONE):
                     # see gh-13374
                     reason = ('Error could possibly be due to quotes being '
                               'ignored when a multi-char delimiter is used.')
@@ -3138,9 +3172,8 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [Series([], dtype=dtype[index_name])
-                 for index_name in index_names]
-        index = MultiIndex.from_arrays(index, names=index_names)
+        data = [Series([], dtype=dtype[name]) for name in index_names]
+        index = _ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
         for i, n in enumerate(index_col):
             columns.pop(n - i)

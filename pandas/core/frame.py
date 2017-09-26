@@ -67,7 +67,8 @@ from pandas.core.common import (_try_sort,
                                 _dict_compat,
                                 standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import (Index, MultiIndex, _ensure_index,
+                               _ensure_index_from_sequences)
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
@@ -81,6 +82,7 @@ from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg
@@ -89,7 +91,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-import pandas.core.base as base
+from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
@@ -802,8 +804,7 @@ class DataFrame(NDFrame):
         # fallback to regular tuples
         return zip(*arrays)
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     def __len__(self):
         """Returns length of info axis, but here we use the index """
@@ -1156,9 +1157,9 @@ class DataFrame(NDFrame):
             else:
                 try:
                     to_remove = [arr_columns.get_loc(field) for field in index]
-
-                    result_index = MultiIndex.from_arrays(
-                        [arrays[i] for i in to_remove], names=index)
+                    index_data = [arrays[i] for i in to_remove]
+                    result_index = _ensure_index_from_sequences(index_data,
+                                                                names=index)
 
                     exclude.update(index)
                 except Exception:
@@ -1478,8 +1479,6 @@ class DataFrame(NDFrame):
         decimal: string, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data
-
-            .. versionadded:: 0.16.0
 
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
@@ -2134,10 +2133,18 @@ class DataFrame(NDFrame):
                 result = self._constructor(new_values, index=self.index,
                                            columns=result_columns)
                 result = result.__finalize__(self)
+
+            # If there is only one column being returned, and its name is
+            # either an empty string, or a tuple with an empty string as its
+            # first element, then treat the empty string as a placeholder
+            # and return the column as if the user had provided that empty
+            # string in the key. If the result is a Series, exclude the
+            # implied empty string from its name.
             if len(result.columns) == 1:
                 top = result.columns[0]
-                if ((type(top) == str and top == '') or
-                        (type(top) == tuple and top[0] == '')):
+                if isinstance(top, tuple):
+                    top = top[0]
+                if top == '':
                     result = result['']
                     if isinstance(result, Series):
                         result = self._constructor_sliced(result,
@@ -2156,8 +2163,6 @@ class DataFrame(NDFrame):
 
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
-
-        .. versionadded:: 0.13
 
         Parameters
         ----------
@@ -2553,8 +2558,6 @@ class DataFrame(NDFrame):
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
-        .. versionadded:: 0.16.0
-
         Parameters
         ----------
         kwargs : keyword, value pairs
@@ -2573,12 +2576,12 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. To make things predicatable,
-        the columns are inserted in alphabetical order, at the end of
-        your DataFrame. Assigning multiple columns within the same
-        ``assign`` is possible, but you cannot reference other columns
-        created within the same ``assign`` call.
+        For python 3.6 and above, the columns are inserted in the order of
+        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        the columns are inserted in alphabetical order at the end of your
+        DataFrame.  Assigning multiple columns within the same ``assign``
+        is possible, but you cannot reference other columns created within
+        the same ``assign`` call.
 
         Examples
         --------
@@ -2618,14 +2621,18 @@ class DataFrame(NDFrame):
         data = self.copy()
 
         # do all calculations first...
-        results = {}
+        results = OrderedDict()
         for k, v in kwargs.items():
             results[k] = com._apply_if_callable(v, data)
 
+        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        if PY36:
+            results = results.items()
+        else:
+            results = sorted(results.items())
         # ... and then assign
-        for k, v in sorted(results.items()):
+        for k, v in results:
             data[k] = v
-
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -2993,7 +3000,7 @@ class DataFrame(NDFrame):
                     to_remove.append(col)
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=names)
+        index = _ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
@@ -4061,23 +4068,27 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -4145,6 +4156,92 @@ class DataFrame(NDFrame):
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
+
+    _shared_docs['pivot_table'] = """
+        Create a spreadsheet-style pivot table as a DataFrame. The levels in
+        the pivot table will be stored in MultiIndex objects (hierarchical
+        indexes) on the index and columns of the result DataFrame
+
+        Parameters
+        ----------%s
+        values : column to aggregate, optional
+        index : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table index.  If an array is passed,
+            it is being used as the same manner as column values.
+        columns : column, Grouper, array, or list of the previous
+            If an array is passed, it must be the same length as the data. The
+            list can contain any of the other types (except list).
+            Keys to group by on the pivot table column.  If an array is passed,
+            it is being used as the same manner as column values.
+        aggfunc : function or list of functions, default numpy.mean
+            If list of functions passed, the resulting pivot table will have
+            hierarchical columns whose top level are the function names
+            (inferred from the function objects themselves)
+        fill_value : scalar, default None
+            Value to replace missing values with
+        margins : boolean, default False
+            Add all row / columns (e.g. for subtotal / grand totals)
+        dropna : boolean, default True
+            Do not include columns whose entries are all NaN
+        margins_name : string, default 'All'
+            Name of the row / column that will contain the totals
+            when margins is True.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+        ...                          "bar", "bar", "bar", "bar"],
+        ...                    "B": ["one", "one", "one", "two", "two",
+        ...                          "one", "one", "two", "two"],
+        ...                    "C": ["small", "large", "large", "small",
+        ...                          "small", "large", "small", "small",
+        ...                          "large"],
+        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
+        >>> df
+             A    B      C  D
+        0  foo  one  small  1
+        1  foo  one  large  2
+        2  foo  one  large  2
+        3  foo  two  small  3
+        4  foo  two  small  3
+        5  bar  one  large  4
+        6  bar  one  small  5
+        7  bar  two  small  6
+        8  bar  two  large  7
+
+        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        ...                     columns=['C'], aggfunc=np.sum)
+        >>> table
+        ... # doctest: +NORMALIZE_WHITESPACE
+        C        large  small
+        A   B
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
+
+        Returns
+        -------
+        table : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot : pivot without aggregation that can handle
+            non-numeric data
+        """
+
+    @Substitution('')
+    @Appender(_shared_docs['pivot_table'])
+    def pivot_table(self, values=None, index=None, columns=None,
+                    aggfunc='mean', fill_value=None, margins=False,
+                    dropna=True, margins_name='All'):
+        from pandas.core.reshape.pivot import pivot_table
+        return pivot_table(self, values=values, index=index, columns=columns,
+                           aggfunc=aggfunc, fill_value=fill_value,
+                           margins=margins, dropna=dropna,
+                           margins_name=margins_name)
 
     def stack(self, level=-1, dropna=True):
         """
@@ -5805,7 +5902,8 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
+                                     gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 
@@ -6032,12 +6130,10 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
-    from pandas.core.index import _get_combined_index
+    from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_combined_index([
-            s.index for s in data if getattr(s, 'index', None) is not None
-        ])
+        columns = _get_objs_combined_axis(data)
 
     indexer_cache = {}
 

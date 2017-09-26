@@ -3,6 +3,8 @@ import numpy as np
 from collections import MutableMapping
 
 from pandas._libs import lib, tslib
+from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -17,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
-    ABCDataFrame)
+    ABCDataFrame, ABCDateOffset)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
 
@@ -44,9 +46,10 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
+            if not (get_timezone(tz) == get_timezone(b.tzinfo)):
                 raise AssertionError('Inputs must both have the same timezone,'
-                                     ' {0} != {1}'.format(tz, b.tzinfo))
+                                     ' {timezone1} != {timezone2}'
+                                     .format(timezone1=tz, timezone2=b.tzinfo))
         return tz
 
     tz = None
@@ -335,6 +338,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1    1960-01-03
     2    1960-01-04
 
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_timedelta : Convert argument to timedelta.
     """
     from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -410,8 +417,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(arg, format, exact=exact,
-                                                      errors=errors)
+                        result = array_strptime(arg, format, exact=exact,
+                                                errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise
@@ -484,13 +491,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+            offset = tslib.Timestamp(origin)
         except tslib.OutOfBoundsDatetime:
             raise tslib.OutOfBoundsDatetime(
-                "origin {} is Out of Bounds".format(origin))
+                "origin {origin} is Out of Bounds".format(origin=origin))
         except ValueError:
-            raise ValueError("origin {} cannot be converted "
-                             "to a Timestamp".format(origin))
+            raise ValueError("origin {origin} cannot be converted "
+                             "to a Timestamp".format(origin=origin))
+
+        if offset.tz is not None:
+            raise ValueError(
+                "origin offset {} must be tz-naive".format(offset))
+        offset -= tslib.Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
@@ -506,7 +518,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
+        values = _convert_listlike(arg._values, True, format)
         result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
@@ -586,16 +598,16 @@ def _assemble_from_unit_mappings(arg, errors):
     required = ['year', 'month', 'day']
     req = sorted(list(set(required) - set(unit_rev.keys())))
     if len(req):
-        raise ValueError("to assemble mappings requires at "
-                         "least that [year, month, day] be specified: "
-                         "[{0}] is missing".format(','.join(req)))
+        raise ValueError("to assemble mappings requires at least that "
+                         "[year, month, day] be specified: [{required}] "
+                         "is missing".format(required=','.join(req)))
 
     # keys we don't recognize
     excess = sorted(list(set(unit_rev.keys()) - set(_unit_map.values())))
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{0}]".format(','.join(excess)))
+                         "[{excess}]".format(excess=','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows
@@ -613,7 +625,7 @@ def _assemble_from_unit_mappings(arg, errors):
         values = to_datetime(values, format='%Y%m%d', errors=errors)
     except (TypeError, ValueError) as e:
         raise ValueError("cannot assemble the "
-                         "datetimes: {0}".format(e))
+                         "datetimes: {error}".format(error=e))
 
     for u in ['h', 'm', 's', 'ms', 'us', 'ns']:
         value = unit_rev.get(u)
@@ -623,8 +635,8 @@ def _assemble_from_unit_mappings(arg, errors):
                                        unit=u,
                                        errors=errors)
             except (TypeError, ValueError) as e:
-                raise ValueError("cannot assemble the datetimes "
-                                 "[{0}]: {1}".format(value, e))
+                raise ValueError("cannot assemble the datetimes [{value}]: "
+                                 "{error}".format(value=value, error=e))
 
     return values
 
@@ -720,8 +732,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, compat.string_types):
         return arg
 
-    from pandas.tseries.offsets import DateOffset
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
 
     if dayfirst is None:
@@ -807,8 +818,10 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
                     times.append(datetime.strptime(element, format).time())
                 except (ValueError, TypeError):
                     if errors == 'raise':
-                        raise ValueError("Cannot convert %s to a time with "
-                                         "given format %s" % (element, format))
+                        msg = ("Cannot convert {element} to a time with given "
+                               "format {format}").format(element=element,
+                                                         format=format)
+                        raise ValueError(msg)
                     elif errors == 'ignore':
                         return arg
                     else:
@@ -873,6 +886,7 @@ def ole2datetime(oledt):
     # Excel has a bug where it thinks the date 2/29/1900 exists
     # we just reject any date before 3/1/1900.
     if val < 61:
-        raise ValueError("Value is outside of acceptable range: %s " % val)
+        msg = "Value is outside of acceptable range: {value}".format(value=val)
+        raise ValueError(msg)
 
     return OLE_TIME_ZERO + timedelta(days=val)

@@ -247,3 +247,8 @@ def test_nat_arithmetic_index():
         tm.assert_index_equal(right + left, exp)
         tm.assert_index_equal(left - right, exp)
         tm.assert_index_equal(right - left, exp)
+
+
+def test_nat_pinned_docstrings():
+    # GH17327
+    assert NaT.ctime.__doc__ == datetime.ctime.__doc__

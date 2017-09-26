@@ -5,7 +5,6 @@ with float64 data
 from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
 
-from numpy import nan
 from pandas.compat import lmap
 from pandas import compat
 import numpy as np
@@ -50,7 +49,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries
         (default: nan). Will not override SparseSeries passed in.
     """
-    _constructor_sliced = SparseSeries
     _subtyp = 'sparse_frame'
 
     def __init__(self, data=None, index=None, columns=None, default_kind=None,
@@ -156,7 +154,7 @@ class SparseDataFrame(DataFrame):
                 v = v.copy()
             else:
                 if isinstance(v, dict):
-                    v = [v.get(i, nan) for i in index]
+                    v = [v.get(i, np.nan) for i in index]
 
                 v = sp_maker(v)
             sdict[k] = v
@@ -215,11 +213,11 @@ class SparseDataFrame(DataFrame):
             columns = _default_index(K)
 
         if len(columns) != K:
-            raise ValueError('Column length mismatch: %d vs. %d' %
-                             (len(columns), K))
+            raise ValueError('Column length mismatch: {columns} vs. {K}'
+                             .format(columns=len(columns), K=K))
         if len(index) != N:
-            raise ValueError('Index length mismatch: %d vs. %d' %
-                             (len(index), N))
+            raise ValueError('Index length mismatch: {index} vs. {N}'
+                             .format(index=len(index), N=N))
         return index, columns
 
     def to_coo(self):
@@ -726,17 +724,17 @@ class SparseDataFrame(DataFrame):
         to_rename = self.columns.intersection(other.columns)
         if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise ValueError('columns overlap but no suffix specified: %s'
-                                 % to_rename)
+                raise ValueError('columns overlap but no suffix specified: '
+                                 '{to_rename}'.format(to_rename=to_rename))
 
             def lrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, lsuffix)
+                    return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
                 return x
 
             def rrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, rsuffix)
+                    return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
                 return x
 
             this = self.rename(columns=lrenamer)

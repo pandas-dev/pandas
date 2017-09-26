@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
-    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -54,8 +53,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.core.indexes.accessors import (
-    maybe_to_datetimelike, CombinedDatetimelikeProperties)
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -64,6 +62,7 @@ from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
+from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
@@ -75,6 +74,8 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+
+import pandas.plotting._core as gfx
 
 __all__ = ['Series']
 
@@ -113,8 +114,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
-             generic.NDFrame,):
+class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -1095,22 +1095,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 with open(buf, 'w') as f:
                     f.write(result)
 
-    def __iter__(self):
-        """ provide iteration over the values of the Series
-        box values if necessary """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values)
-
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
         """
         return zip(iter(self.index), iter(self))
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -1118,10 +1109,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def keys(self):
         """Alias for index"""
         return self.index
-
-    def tolist(self):
-        """ Convert Series to a nested list """
-        return list(self.asobject)
 
     def to_dict(self, into=dict):
         """
@@ -2839,10 +2826,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'Series'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2853,10 +2839,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         else:
             return self.index[i]
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2917,46 +2902,31 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-
-    def _make_dt_accessor(self):
-        try:
-            return maybe_to_datetimelike(self)
-        except Exception:
-            raise AttributeError("Can only use .dt accessor with datetimelike "
-                                 "values")
-
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties,
-                               _make_dt_accessor)
+    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
+    cat = accessor.AccessorProperty(CategoricalAccessor)
 
-    def _make_cat_accessor(self):
-        if not is_categorical_dtype(self.dtype):
-            raise AttributeError("Can only use .cat accessor with a "
-                                 "'category' dtype")
-        return CategoricalAccessor(self.values, self.index)
+    # String Methods
+    str = accessor.AccessorProperty(strings.StringMethods)
 
-    cat = base.AccessorProperty(CategoricalAccessor, _make_cat_accessor)
-
-    def _dir_deletions(self):
-        return self._accessors
-
-    def _dir_additions(self):
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
+    # ----------------------------------------------------------------------
+    # Add plotting methods to Series
+    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
+                                     gfx.SeriesPlotMethods)
+    hist = gfx.hist_series
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
+
+# Add arithmetic!
+ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
+ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+
 
 # -----------------------------------------------------------------------------
 # Supplementary functions
@@ -3016,7 +2986,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
-                subarr = Categorical(arr)
+                subarr = Categorical(arr, dtype.categories,
+                                     ordered=dtype.ordered)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -3129,17 +3100,3 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-# ----------------------------------------------------------------------
-# Add plotting methods to Series
-
-import pandas.plotting._core as _gfx  # noqa
-
-Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
-                                    _gfx.SeriesPlotMethods)
-Series.hist = _gfx.hist_series
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)

@@ -1,8 +1,6 @@
 # cython: profile=False
 
-from numpy cimport ndarray
-
-from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
+from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
                     NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
@@ -16,7 +14,10 @@ cimport util
 import numpy as np
 
 cimport tslib
-from hashtable cimport *
+
+from hashtable cimport HashTable
+
+from tslibs.timezones cimport is_utc, get_utcoffset
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
@@ -32,13 +33,6 @@ cdef extern from "datetime.h":
 
 cdef int64_t iNaT = util.get_nat()
 
-try:
-    from dateutil.tz import tzutc as _du_utc
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except ImportError:
-    have_pytz = False
 
 PyDateTime_IMPORT
 
@@ -557,14 +551,11 @@ cdef inline _to_i8(object val):
             tzinfo = getattr(val, 'tzinfo', None)
             # Save the original date value so we can get the utcoffset from it.
             ival = _pydatetime_to_dts(val, &dts)
-            if tzinfo is not None and not _is_utc(tzinfo):
-                offset = tslib._get_utcoffset(tzinfo, val)
+            if tzinfo is not None and not is_utc(tzinfo):
+                offset = get_utcoffset(tzinfo, val)
                 ival -= tslib._delta_to_nanoseconds(offset)
             return ival
         return val
-
-cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _du_utc)
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):

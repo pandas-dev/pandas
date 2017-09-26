@@ -2,7 +2,6 @@
 
 import numpy as np
 from pandas.compat import long, string_types, PY3
-from pandas.core.categorical import Categorical
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     _ensure_int64,
@@ -183,6 +182,8 @@ def indexer_from_factorized(labels, shape, compress=True):
 
 
 def lexsort_indexer(keys, orders=None, na_position='last'):
+    from pandas.core.categorical import Categorical
+
     labels = []
     shape = []
     if isinstance(orders, bool):

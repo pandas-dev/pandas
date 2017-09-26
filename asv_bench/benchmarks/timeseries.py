@@ -56,7 +56,7 @@ class DatetimeIndex(object):
         self.no_freq = self.rng7[:50000].append(self.rng7[50002:])
         self.d_freq = self.rng7[:50000].append(self.rng7[50000:])
 
-        self.rng8 = date_range(start='1/1/1700', freq='B', periods=100000)
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=75000)
         self.b_freq = self.rng8[:50000].append(self.rng8[50000:])
 
     def time_add_timedelta(self):
@@ -510,3 +510,17 @@ class SemiMonthOffset(object):
 
     def time_begin_decr_rng(self):
         self.rng - self.semi_month_begin
+
+
+class DatetimeAccessor(object):
+    def setup(self):
+        self.N = 100000
+        self.series = pd.Series(
+            pd.date_range(start='1/1/2000', periods=self.N, freq='T')
+        )
+
+    def time_dt_accessor(self):
+        self.series.dt
+
+    def time_dt_accessor_normalize(self):
+        self.series.dt.normalize()

@@ -9,7 +9,7 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY36)
+                           text_type, zip, PY3, PY36, PYPY)
 import operator
 import numpy as np
 
@@ -17,7 +17,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
-from pandas.core.index import _get_combined_index
+from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -46,7 +46,8 @@ class TestIndex(Base):
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
                             tuples=MultiIndex.from_tuples(lzip(
-                                ['foo', 'bar', 'baz'], [1, 2, 3])))
+                                ['foo', 'bar', 'baz'], [1, 2, 3])),
+                            repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
 
     def create_index(self):
@@ -57,8 +58,8 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self):
-        super(TestIndex, self).test_copy_and_deepcopy()
+    def test_copy_and_deepcopy(self, indices):
+        super(TestIndex, self).test_copy_and_deepcopy(indices)
 
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
@@ -663,6 +664,15 @@ class TestIndex(Base):
         intersect = first.intersection(second)
         assert intersect.name is None
 
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        i1 = Index(dt_dates, dtype=object)
+        i2 = Index(['aa'], dtype=object)
+        res = i2.intersection(i1)
+
+        assert len(res) == 0
+
     def test_union(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -1131,6 +1141,13 @@ class TestIndex(Base):
         with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
+    def test_get_indexer_numeric_index_boolean_target(self):
+        # GH 16877
+        numeric_idx = pd.Index(range(4))
+        result = numeric_idx.get_indexer([True, False, True])
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
@@ -1360,13 +1377,21 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_not_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, True]))
+
+    def test_isin_nan_common(self):
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([np.nan]),
                                     np.array([False, True]))
         tm.assert_numpy_array_equal(Index(['a', pd.NaT]).isin([pd.NaT]),
                                     np.array([False, True]))
-        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
-                                    np.array([False, False]))
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([pd.NaT]),
                                     np.array([False, False]))
 
@@ -1428,6 +1453,12 @@ class TestIndex(Base):
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
         tm.assert_index_equal(result, self.strIndex)
+
+        # test for name (GH 17414)
+        index_with_name = self.strIndex.copy()
+        index_with_name.name = 'a'
+        result = index_with_name.get_level_values('a')
+        tm.assert_index_equal(result, index_with_name)
 
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
@@ -2103,3 +2134,19 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+
+class TestIndexUtils(object):
+
+    @pytest.mark.parametrize('data, names, expected', [
+        ([[1, 2, 3]], None, Index([1, 2, 3])),
+        ([[1, 2, 3]], ['name'], Index([1, 2, 3], name='name')),
+        ([['a', 'a'], ['c', 'd']], None,
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]])),
+        ([['a', 'a'], ['c', 'd']], ['L1', 'L2'],
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]],
+                    names=['L1', 'L2'])),
+    ])
+    def test_ensure_index_from_sequences(self, data, names, expected):
+        result = _ensure_index_from_sequences(data, names)
+        tm.assert_index_equal(result, expected)

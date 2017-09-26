@@ -11,7 +11,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
@@ -61,30 +62,27 @@ def maybe_to_datetimelike(data, copy=False):
         data = orig.values.categories
 
     if is_datetime64_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'),
+        return DatetimeProperties(DatetimeIndex(data, copy=copy),
                                   index, name=name, orig=orig)
     elif is_datetime64tz_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer',
-                                                ambiguous='infer'),
+        return DatetimeProperties(DatetimeIndex(data, copy=copy),
                                   index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy,
-                                                  freq='infer'), index,
+        return TimedeltaProperties(TimedeltaIndex(data, copy=copy), index,
                                    name=name, orig=orig)
     else:
         if is_period_arraylike(data):
             return PeriodProperties(PeriodIndex(data, copy=copy), index,
                                     name=name, orig=orig)
         if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy,
-                                                    freq='infer'), index,
+            return DatetimeProperties(DatetimeIndex(data, copy=copy), index,
                                       name=name, orig=orig)
 
     raise TypeError("cannot convert an object of type {0} to a "
                     "datetimelike index".format(type(data)))
 
 
-class Properties(PandasDelegate, NoNewAttributesMixin):
+class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
         self.values = values
@@ -162,6 +160,10 @@ class DatetimeProperties(Properties):
     def to_pydatetime(self):
         return self.values.to_pydatetime()
 
+    @property
+    def freq(self):
+        return self.values.inferred_freq
+
 
 DatetimeProperties._add_delegate_accessors(
     delegate=DatetimeIndex,
@@ -201,6 +203,10 @@ class TimedeltaProperties(Properties):
 
         """
         return self.values.components.set_index(self.index)
+
+    @property
+    def freq(self):
+        return self.values.inferred_freq
 
 
 TimedeltaProperties._add_delegate_accessors(
@@ -243,3 +249,11 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
     # the Series.dt class property. For Series objects, .dt will always be one
     # of the more specific classes above.
     __doc__ = DatetimeProperties.__doc__
+
+    @classmethod
+    def _make_accessor(cls, data):
+        try:
+            return maybe_to_datetimelike(data)
+        except Exception:
+            raise AttributeError("Can only use .dt accessor with "
+                                 "datetimelike values")

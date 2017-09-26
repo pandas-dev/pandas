@@ -1000,6 +1000,17 @@ class TestSeriesAnalytics(TestData):
             assert list(isna(s)) == list(isna(l))
             assert list(isna(s)) == list(isna(u))
 
+    def test_clip_with_na_args(self):
+        """Should process np.nan argument as None """
+        # GH # 17276
+        s = Series([1, 2, 3])
+
+        assert_series_equal(s.clip(np.nan), Series([1, 2, 3]))
+        assert_series_equal(s.clip(upper=[1, 1, np.nan]), Series([1, 2, 3]))
+        assert_series_equal(s.clip(lower=[1, np.nan, 1]), Series([1, 2, 3]))
+        assert_series_equal(s.clip(upper=np.nan, lower=np.nan),
+                            Series([1, 2, 3]))
+
     def test_clip_against_series(self):
         # GH #6966
 
@@ -1745,7 +1756,6 @@ class TestNLargestNSmallest(object):
               # not supported on some archs
               # Series([3., 2, 1, 2, 5], dtype='complex256'),
               Series([3., 2, 1, 2, 5], dtype='complex128'),
-              Series(list('abcde'), dtype='category'),
               Series(list('abcde'))])
     def test_error(self, r):
         dt = r.dtype
@@ -1756,6 +1766,16 @@ class TestNLargestNSmallest(object):
         for method, arg in product(methods, args):
             with tm.assert_raises_regex(TypeError, msg):
                 method(arg)
+
+    def test_error_categorical_dtype(self):
+        # same as test_error, but regex hard to escape properly
+        msg = ("Cannot use method 'n(larg|small)est' with dtype "
+               "CategoricalDtype.+")
+        with tm.assert_raises_regex(TypeError, msg):
+            Series(list('ab'), dtype='category').nlargest(2)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            Series(list('ab'), dtype='category').nsmallest(2)
 
     @pytest.mark.parametrize(
         "s",

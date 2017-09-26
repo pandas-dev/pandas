@@ -29,6 +29,10 @@ from pandas.tests.frame.test_api import SharedWithSparse
 class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
 
+    # SharedWithSparse tests use generic, klass-agnostic assertion
+    _assert_frame_equal = staticmethod(tm.assert_sp_frame_equal)
+    _assert_series_equal = staticmethod(tm.assert_sp_series_equal)
+
     def setup_method(self, method):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
@@ -43,6 +47,8 @@ class TestSparseDataFrame(SharedWithSparse):
         self.frame = SparseDataFrame(self.data, index=self.dates)
         self.iframe = SparseDataFrame(self.data, index=self.dates,
                                       default_kind='integer')
+        self.mixed_frame = self.frame.copy(False)
+        self.mixed_frame['foo'] = pd.SparseArray(['bar'] * len(self.dates))
 
         values = self.frame.values.copy()
         values[np.isnan(values)] = 0
@@ -1093,7 +1099,10 @@ class TestSparseDataFrame(SharedWithSparse):
         df = SparseDataFrame({'A': [1.1, 3.3], 'B': [nan, -3.9]},
                              dtype='float64')
 
-        df_blocks = df.blocks
+        # deprecated 0.21.0
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df_blocks = df.blocks
         assert list(df_blocks.keys()) == ['float64']
         tm.assert_frame_equal(df_blocks['float64'], df)
 
