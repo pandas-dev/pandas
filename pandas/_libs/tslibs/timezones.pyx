@@ -278,20 +278,18 @@ cdef object get_dst_info(object tz):
 
 
 def infer_tzinfo(start, end):
-    def _infer(a, b):
-        tz = a.tzinfo
-        if b and b.tzinfo:
-            if not (get_timezone(tz) == get_timezone(b.tzinfo)):
-                raise AssertionError('Inputs must both have the same timezone,'
-                                     ' {timezone1} != {timezone2}'
-                                     .format(timezone1=tz, timezone2=b.tzinfo))
-        return tz
-
-    tz = None
-    if start is not None:
-        tz = _infer(start, end)
+    if start is not None and end is not None:
+        tz = start.tzinfo
+        if end.tzinfo:
+            if not (get_timezone(tz) == get_timezone(end.tzinfo)):
+                msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+                raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+    elif start is not None:
+        tz = start.tzinfo
     elif end is not None:
-        tz = _infer(end, start)
+        tz = end.tzinfo
+    else:
+        tz = None
     return tz
 
 
