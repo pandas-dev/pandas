@@ -1730,8 +1730,10 @@ class BaseGrouper(object):
 
     Parameters
     ----------
-    axis : the axis to group
-    groupings : all the grouping instances to handle in this grouper
+    axis : int
+        the axis to group
+    groupings : array of grouping
+        all the grouping instances to handle in this grouper
         for example for grouper list to groupby, need to pass the list
     sort : boolean, default True
         whether this grouper will give sorted result or not
@@ -1897,9 +1899,9 @@ class BaseGrouper(object):
         comp_ids = _ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
-    # 17530
     @cache_readonly
     def label_info(self):
+        # return the labels of items in original grouped axis
         labels, _, _ = self.group_info
         if self.indexer is not None:
             sorter = np.lexsort((labels, self.indexer))
@@ -2319,16 +2321,19 @@ class BinGrouper(BaseGrouper):
 
     Examples
     --------
-    bins is [2, 4, 6, 8, 10]
-    binlabels is DatetimeIndex(['2005-01-01', '2005-01-03',
+    bins: [2, 4, 6, 8, 10]
+    binlabels: DatetimeIndex(['2005-01-01', '2005-01-03',
         '2005-01-05', '2005-01-07', '2005-01-09'],
         dtype='datetime64[ns]', freq='2D')
 
-    then the group_info is
+    the group_info, which contains the label of each item in grouped
+    axis, the index of label in label list, group number, is
+
     (array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]), array([0, 1, 2, 3, 4]), 5)
 
-    means the label of each item in axis, the index of label in label
-    list, group number
+    means that, the grouped axis has 10 items, can be grouped into 5
+    labels, the first and second items belong to the first label, the
+    third and forth items belong to the second label, and so on
 
     """
 
