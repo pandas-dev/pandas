@@ -299,6 +299,7 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
+    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
 
     @property
     def _constructor_expanddim(self):
