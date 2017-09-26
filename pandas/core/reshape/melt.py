@@ -6,7 +6,8 @@ from pandas.core.dtypes.common import is_list_like
 from pandas import compat
 from pandas.core.categorical import Categorical
 
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.frame import DataFrame
+from pandas.core.index import MultiIndex
 
 from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
@@ -16,72 +17,264 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.tools.numeric import to_numeric
 
 
+# ensure that the the correct tuple/list is used when selecting
+# from a MultiIndex/Index frame
+def check_vars(frame, var, var_string, num_col_levels):
+    for v in var:
+        if num_col_levels > 1:
+            if not isinstance(v, tuple):
+                raise ValueError('{} must be a list of tuples'
+                                 ' when columns are a MultiIndex'
+                                 .format(var_string))
+            elif len(v) != num_col_levels:
+                raise ValueError('all tuples in {} must be length {}'
+                                 .format(var_string,
+                                         frame.columns.nlevels))
+        else:
+            if is_list_like(v) and len(v) > 1:
+                raise ValueError('DataFrame has only a single level of '
+                                 'columns. {} is not a column'.format(v))
+
+
+def melt_one(frame, id_vars=None, value_vars=None, var_name=None,
+             value_name='value', col_level=None, extra_group=0,
+             var_end=None):
+    """
+    melts exactly one group. Parameters are a single list not
+    a list of lists like the main melt function
+    """
+
+    # TODO: what about the existing index?
+    # Assume all column levels used when none given
+    if len(col_level) == 0:
+        num_col_levels = frame.columns.nlevels
+    else:
+        num_col_levels = len(col_level)
+
+    check_vars(frame, id_vars, 'id_vars', num_col_levels)
+    check_vars(frame, value_vars, 'value_vars', num_col_levels)
+
+    if var_name != [] and len(var_name) != num_col_levels:
+        raise ValueError('Length of var_name must match effective number of '
+                         'column levels.')
+
+    # allow both integer location and label for column levels
+    if col_level != []:
+        droplevels = list(range(frame.columns.nlevels))
+        for level in col_level:
+            if isinstance(level, int):
+                droplevels.remove(level)
+            else:
+                droplevels.remove(frame.columns.names.index(level))
+        if droplevels != []:
+            frame = frame.copy()
+            frame.columns = frame.columns.droplevel(droplevels)
+
+    for iv in id_vars:
+        if iv not in frame.columns:
+            raise KeyError('{} not in columns'.format(iv))
+
+    if value_vars != []:
+        for vv in value_vars:
+            if vv not in frame.columns:
+                raise KeyError('{} not in columns'.format(vv))
+
+    # use column level names if available, if not auto-name them
+    if var_name == []:
+        names = list(frame.columns.names)
+        if len(names) == 1:
+            if names[0] is None:
+                var_name.append('variable')
+            else:
+                var_name.append(names[0])
+        elif names.count(None) == 1:
+            names[names.index(None)] = 'variable'
+            var_name = names
+        else:
+            # small API break - use column level names when avaialable
+            missing_name_count = 0
+            for name in names:
+                if name is None:
+                    var_name.append('variable_{}'.format(missing_name_count))
+                    missing_name_count += 1
+                else:
+                    var_name.append(name)
+
+    # when using default var_name, append int to make unique
+    if var_end is not None:
+        var_name = [vn + '_' + str(var_end) for vn in var_name]
+
+    N = len(frame)
+
+    # find integer location of all the melted columns
+    non_id_ilocs = []
+    if value_vars != []:
+        for v in value_vars:
+            for i, v1 in enumerate(frame.columns):
+                if v == v1:
+                    non_id_ilocs.append(i)
+    else:
+        if id_vars == []:
+            non_id_ilocs = list(range(frame.shape[1]))
+        else:
+            for i, v in enumerate(frame.columns):
+                if v not in id_vars:
+                    non_id_ilocs.append(i)
+
+    K = len(non_id_ilocs)
+
+    mdata = {}
+    mcolumns = []
+
+    # id_vars do not get melted, but need to repeat for each
+    # column in melted group. extra_group is used for cases
+    # when first group is not the longest
+    for col in id_vars:
+        pandas_obj = frame[col]
+        if isinstance(pandas_obj, DataFrame):
+            for i in range(pandas_obj.shape[1]):
+                col_name = col + '_id_' + str(i)
+                mdata[col_name] = np.tile(pandas_obj.iloc[:, i].values,
+                                          K + extra_group)
+                mcolumns.append(col_name)
+        else:
+            mdata[col] = np.tile(pandas_obj, K + extra_group)
+            mcolumns.append(col)
+
+    # melt all the columns into one long array
+    values = np.concatenate([frame.iloc[:, i] for i in non_id_ilocs])
+    if extra_group > 0:
+        values = np.concatenate((values, np.full([N * extra_group], np.nan)))
+    mdata[value_name[0]] = values
+
+    # the column names of the melted groups need to repeat
+    for i, col in enumerate(var_name):
+        values = frame.columns[non_id_ilocs]._get_level_values(i)
+
+        if isinstance(values, MultiIndex):
+            # asanyarray will keep the columns as an Index
+            values = np.asanyarray(values).repeat(N)
+        else:
+            # faster to use lists than np.repeat?
+            data_list = []
+            for v in values.tolist():
+                data_list.extend([v] * N)
+            values = data_list
+
+        # Append missing values for any groups shorter than largest
+        if extra_group > 0:
+            values = np.concatenate((values,
+                                     np.full([N * extra_group], np.nan)))
+        mdata[col] = values
+    mcolumns += var_name + value_name
+
+    return mdata, mcolumns
+
+
+def convert_to_list(val):
+        if val is None:
+            return []
+        elif isinstance(val, np.ndarray):
+            return val.tolist()
+        elif not is_list_like(val):
+            return [val]
+        else:
+            return list(val)
+
+
 @Appender(_shared_docs['melt'] %
           dict(caller='pd.melt(df, ',
                versionadded="",
                other='DataFrame.melt'))
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
-    # TODO: what about the existing index?
-    if id_vars is not None:
-        if not is_list_like(id_vars):
-            id_vars = [id_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(id_vars, list)):
-            raise ValueError('id_vars must be a list of tuples when columns'
-                             ' are a MultiIndex')
+
+    # much easier to handle parameters when they are all lists
+    id_vars = convert_to_list(id_vars)
+    value_vars = convert_to_list(value_vars)
+    var_name = convert_to_list(var_name)
+    value_name = convert_to_list(value_name)
+    col_level = convert_to_list(col_level)
+
+    # Whan a list of list is passed, assume multiple melt groups
+    if value_vars != [] and isinstance(value_vars[0], list):
+        if var_name != []:
+            if len(value_vars) != len(var_name):
+                raise ValueError('Number of inner lists of value_vars must '
+                                 'equal length of var_name '
+                                 '{} != {}'.format(len(value_vars),
+                                                   len(var_name)))
         else:
-            id_vars = list(id_vars)
+            # for consistency, when the default var_name is used
+            var_name = [[]] * len(value_vars)
+
+        if len(value_name) > 1:
+            if len(value_vars) != len(value_name):
+                raise ValueError('Number of inner lists of value_vars must '
+                                 'equal length of value_name '
+                                 '{} != {}'.format(len(value_vars),
+                                                   len(value_name)))
+        # allow for value_name to be a single item and attach int to it
+        else:
+            value_name = [value_name[0] + '_' + str(i)
+                          for i in range(len(value_vars))]
+
+        # get the total number of columns in each melt group
+        # This is not just the length of the list because this function
+        # handles columns with the same names, which is commong when
+        # using multiindex frames
+        value_vars_length = []
+        for vv in value_vars:
+            count = 0
+            for col in frame.columns.values:
+                if col in vv:
+                    count += 1
+            value_vars_length.append(count)
+
+        # Need the max number of columns for all the melt groups to
+        # correctly append NaNs to end of unbalanced melt groups
+        max_group_len = max(value_vars_length)
+
+        # store each melted group as a dictionary in a list
+        mdata_list = []
+
+        # store columns from each melted group in a list of lists
+        mcolumns_list = []
+
+        # individually melt each group
+        vars_zipped = zip(value_vars, var_name, value_name, value_vars_length)
+        for i, (val_v, var_n, val_n, vvl) in enumerate(vars_zipped):
+            var_n = convert_to_list(var_n)
+            val_n = convert_to_list(val_n)
+
+            # only melt the id_vars for the first group
+            id_vars_ = [] if i > 0 else id_vars
+
+            # append int at end of var_name to make unique
+            var_end = i if var_n == [] else None
+
+            md, mc = melt_one(frame, id_vars=id_vars_, value_vars=val_v,
+                              var_name=var_n, value_name=val_n,
+                              col_level=col_level,
+                              extra_group=max_group_len - vvl,
+                              var_end=var_end)
+
+            mdata_list.append(md)
+            mcolumns_list.append(mc)
+
+        # make one large dictionary with all data for constructor
+        mdata = {}
+        for d in mdata_list:
+            mdata.update(d)
+
+        mcolumns = [e for lst in mcolumns_list for e in lst]
+        return DataFrame(mdata, columns=mcolumns)
+
     else:
-        id_vars = []
-
-    if value_vars is not None:
-        if not is_list_like(value_vars):
-            value_vars = [value_vars]
-        elif (isinstance(frame.columns, ABCMultiIndex) and
-              not isinstance(value_vars, list)):
-            raise ValueError('value_vars must be a list of tuples when'
-                             ' columns are a MultiIndex')
-        else:
-            value_vars = list(value_vars)
-        frame = frame.loc[:, id_vars + value_vars]
-    else:
-        frame = frame.copy()
-
-    if col_level is not None:  # allow list or other?
-        # frame is a copy
-        frame.columns = frame.columns.get_level_values(col_level)
-
-    if var_name is None:
-        if isinstance(frame.columns, ABCMultiIndex):
-            if len(frame.columns.names) == len(set(frame.columns.names)):
-                var_name = frame.columns.names
-            else:
-                var_name = ['variable_{i}'.format(i=i)
-                            for i in range(len(frame.columns.names))]
-        else:
-            var_name = [frame.columns.name if frame.columns.name is not None
-                        else 'variable']
-    if isinstance(var_name, compat.string_types):
-        var_name = [var_name]
-
-    N, K = frame.shape
-    K -= len(id_vars)
-
-    mdata = {}
-    for col in id_vars:
-        mdata[col] = np.tile(frame.pop(col).values, K)
-
-    mcolumns = id_vars + var_name + [value_name]
-
-    mdata[value_name] = frame.values.ravel('F')
-    for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns
-                                   ._get_level_values(i)).repeat(N)
-
-    from pandas import DataFrame
-    return DataFrame(mdata, columns=mcolumns)
+        mdata, mcolumns = melt_one(frame, id_vars=id_vars,
+                                   value_vars=value_vars, var_name=var_name,
+                                   value_name=value_name, col_level=col_level)
+        return DataFrame(mdata, columns=mcolumns)
 
 
 def lreshape(data, groups, dropna=True, label=None):
