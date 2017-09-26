@@ -222,7 +222,7 @@ class TestToDatetime(object):
                       errors='raise')
 
         tm.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, errors='coerce', 
+            pd.to_datetime(dts_with_oob, box=False, errors='coerce',
                            cache=cache),
             np.array(
                 [
@@ -401,7 +401,7 @@ class TestToDatetime(object):
             pd.to_datetime(bool)
         with pytest.raises(TypeError):
             pd.to_datetime(pd.to_datetime)
-    
+
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
     @pytest.mark.parametrize("box", [True, False])
@@ -1069,8 +1069,8 @@ class TestToDatetimeInferFormat(object):
                                               cache=cache))
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_to_datetime_infer_datetime_format_series_starting_with_nans(self,
-        cache):
+    def test_to_datetime_infer_datetime_format_series_start_with_nans(self,
+                                                                      cache):
         s = pd.Series(np.array([np.nan, np.nan, '01/01/2011 00:00:00',
                                 '01/02/2011 00:00:00', '01/03/2011 00:00:00']))
 
