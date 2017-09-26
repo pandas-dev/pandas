@@ -1246,7 +1246,7 @@ class TestSeriesAnalytics(TestData):
         # See gh-16830
         data = np.arange(1, 11)
 
-        s = Series(data)
+        s = Series(data, index=data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # The deprecation of Series.argmin also causes a deprecation
             # warning when calling np.argmin. This behavior is temporary
@@ -1316,7 +1316,7 @@ class TestSeriesAnalytics(TestData):
         # See gh-16830
         data = np.arange(1, 11)
 
-        s = Series(data)
+        s = Series(data, index=data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # The deprecation of Series.argmax also causes a deprecation
             # warning when calling np.argmax. This behavior is temporary
