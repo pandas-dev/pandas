@@ -794,12 +794,7 @@ def make_sparse(arr, kind='block', fill_value=None):
             # element-wise equality check method in numpy doesn't treat
             # each element type, eg. 0, 0.0, and False are treated as
             # same. So we have to check the both of its type and value.
-            mask = np.ones(len(arr), dtype=np.bool)
-            fv_type = type(fill_value)
-
-            for i, x in enumerate(arr):
-                if type(x) is fv_type:
-                    mask[i] = arr[i] != fill_value
+            mask = splib.make_mask_object_ndarray(arr, fill_value)
         else:
             mask = arr != fill_value
 
