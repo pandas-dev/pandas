@@ -58,7 +58,7 @@ def test_is_sequence():
 def test_is_list_like():
     passes = ([], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
               Series([]), Series(['a']).str)
-    fails = (1, '2', object())
+    fails = (1, '2', object(), str)
 
     for p in passes:
         assert inference.is_list_like(p)
