@@ -4,7 +4,6 @@ from collections import MutableMapping
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs.timezones import get_timezone
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -40,8 +39,6 @@ try:
         _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
 except (ImportError, AttributeError):
     pass
-
-
 
 
 def _guess_datetime_format(dt_str, dayfirst=False,
