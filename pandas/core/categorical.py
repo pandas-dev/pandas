@@ -231,6 +231,7 @@ class Categorical(PandasObject):
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype()
+    _deprecations = frozenset(['labels'])
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=None, dtype=None,
@@ -411,13 +412,6 @@ class Categorical(PandasObject):
     def dtype(self):
         """The :ref:`~pandas.api.types.CategoricalDtype` for this instance"""
         return self._dtype
-
-    def __dir__(self):
-        # Avoid IPython warnings for deprecated properties
-        # https://github.com/pandas-dev/pandas/issues/16409
-        rv = set(dir(type(self)))
-        rv.discard("labels")
-        return sorted(rv)
 
     @property
     def _constructor(self):

@@ -112,6 +112,8 @@ class NDFrame(PandasObject, SelectionMixin):
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
+    _deprecations = frozenset(['as_blocks', 'blocks',
+                               'consolidate', 'convert_objects'])
     _metadata = []
     is_copy = None
 
