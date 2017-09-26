@@ -1244,7 +1244,7 @@ class TestSeriesAnalytics(TestData):
 
     def test_numpy_argmin_deprecated(self):
         # See gh-16830
-        data = np.arange(10)
+        data = np.arange(1, 11)
 
         s = Series(data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1253,14 +1253,13 @@ class TestSeriesAnalytics(TestData):
             # until the implemention of Series.argmin is corrected.
             result = np.argmin(s)
 
-        assert result == 0
+        assert result == 1
 
         with tm.assert_produces_warning(FutureWarning):
             # argmin is aliased to idxmin
             result = s.argmin()
 
-        expected = s.idxmin()
-        assert result == expected
+        assert result == 1
 
         if not _np_version_under1p10:
             with tm.assert_produces_warning(FutureWarning,
@@ -1315,8 +1314,7 @@ class TestSeriesAnalytics(TestData):
 
     def test_numpy_argmax_deprecated(self):
         # See gh-16830
-        data = np.random.randint(0, 11, size=10)
-        data = np.arange(10)
+        data = np.arange(1, 11)
 
         s = Series(data)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1324,14 +1322,13 @@ class TestSeriesAnalytics(TestData):
             # warning when calling np.argmax. This behavior is temporary
             # until the implemention of Series.argmax is corrected.
             result = np.argmax(s)
-        assert result == 9
+        assert result == 10
 
         with tm.assert_produces_warning(FutureWarning):
             # argmax is aliased to idxmax
             result = s.argmax()
 
-        expected = s.idxmax()
-        assert result == expected
+        assert result == 10
 
         if not _np_version_under1p10:
             with tm.assert_produces_warning(FutureWarning,
