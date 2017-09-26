@@ -12,7 +12,8 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas._libs import tslib, lib
+from pandas._libs import tslib
+from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import normalize_date
 from pandas.compat import lmap
@@ -1063,7 +1064,7 @@ class TestDatetimeParsingWrappers(object):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
         for bad_date_string in bad_date_strings:
-            assert not tslib._does_string_look_like_datetime(bad_date_string)
+            assert not parsing._does_string_look_like_datetime(bad_date_string)
 
         good_date_strings = ('2012-01-01',
                              '01/01/2012',
@@ -1073,7 +1074,7 @@ class TestDatetimeParsingWrappers(object):
                              '1-1', )
 
         for good_date_string in good_date_strings:
-            assert tslib._does_string_look_like_datetime(good_date_string)
+            assert parsing._does_string_look_like_datetime(good_date_string)
 
     def test_parsers(self):
 
@@ -1412,7 +1413,7 @@ class TestArrayToDatetime(object):
     def test_try_parse_dates(self):
         arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
 
-        result = lib.try_parse_dates(arr, dayfirst=True)
+        result = parsing.try_parse_dates(arr, dayfirst=True)
         expected = [parse(d, dayfirst=True) for d in arr]
         assert np.array_equal(result, expected)
 

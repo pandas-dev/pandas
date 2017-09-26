@@ -7,6 +7,7 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, Timedelta, )
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import parsing
 
 from pandas.compat import range, u
 from pandas.compat.numpy import function as nv
@@ -57,7 +58,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core import strings
+from pandas.core import strings, accessor
 from pandas.core.config import get_option
 
 
@@ -159,7 +160,7 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = frozenset(['str'])
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = accessor.AccessorProperty(strings.StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
@@ -1037,7 +1038,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
-            parsed = lib.try_parse_dates(self.values, parser=parser)
+            parsed = parsing.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
         else:
             return DatetimeIndex(self.values)
@@ -2609,6 +2610,12 @@ class Index(IndexOpsMixin, PandasObject):
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)
 
+        # Treat boolean labels passed to a numeric index as not found. Without
+        # this fix False and True would be treated as 0 and 1 respectively.
+        # (GH #16877)
+        if target.is_boolean() and self.is_numeric():
+            return _ensure_platform_int(np.repeat(-1, target.size))
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(ptarget, method=method, limit=limit,
@@ -2637,7 +2644,6 @@ class Index(IndexOpsMixin, PandasObject):
                                  'backfill or nearest reindexing')
 
             indexer = self._engine.get_indexer(target._values)
-
         return _ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance):

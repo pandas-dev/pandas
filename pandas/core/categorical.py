@@ -30,7 +30,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
-from pandas.core.base import (PandasObject, PandasDelegate,
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
@@ -196,34 +197,34 @@ class Categorical(PandasObject):
 
     Examples
     --------
-    >>> from pandas import Categorical
-    >>> Categorical([1, 2, 3, 1, 2, 3])
+    >>> pd.Categorical([1, 2, 3, 1, 2, 3])
     [1, 2, 3, 1, 2, 3]
-    Categories (3, int64): [1 < 2 < 3]
+    Categories (3, int64): [1, 2, 3]
 
-    >>> Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
     [a, b, c, a, b, c]
-    Categories (3, object): [a < b < c]
+    Categories (3, object): [a, b, c]
 
-    Only ordered `Categoricals` can be sorted (according to the order
-    of the categories) and have a min and max value.
+    Ordered `Categoricals` can be sorted according to the custom order
+    of the categories and can have a min and max value.
 
-    >>> a = Categorical(['a','b','c','a','b','c'], ['c', 'b', 'a'],
-                        ordered=True)
-    >>> a.min()
+    >>> c = pd.Categorical(['a','b','c','a','b','c'], ordered=True,
+    ...                    categories=['c', 'b', 'a'])
+    >>> c
+    [a, b, c, a, b, c]
+    Categories (3, object): [c < b < a]
+    >>> c.min()
     'c'
 
     Notes
     -----
-    See the :ref:`user guide <categorical>` for more.
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
 
     See also
     --------
-    Categorical.sort
-    Categorical.order
-    Categorical.min
-    Categorical.max
     pandas.api.types.CategoricalDtype
+    CategoricalIndex : An Index with an underlying ``Categorical``
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
@@ -2065,7 +2066,7 @@ class Categorical(PandasObject):
 # The Series.cat accessor
 
 
-class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
+class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
