@@ -299,6 +299,7 @@ class TestIntervalIndex(Base):
     def test_monotonic(self):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+<<<<<<< HEAD
         assert idx.is_monotonic
         assert idx._is_strictly_monotonic_increasing
         assert not idx.is_monotonic_decreasing
@@ -364,6 +365,73 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex([])
         assert idx.is_monotonic
         assert idx._is_strictly_monotonic_increasing
+=======
+        assert idx.is_monotonic
+        assert idx._is_strictly_monotonic_increasing
+        assert not idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # decreasing non-overlapping
+        idx = IntervalIndex.from_tuples([(4, 5), (2, 3), (1, 2)])
+        assert not idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert idx.is_monotonic_decreasing
+        assert idx._is_strictly_monotonic_decreasing
+
+        # unordered non-overlapping
+        idx = IntervalIndex.from_tuples([(0, 1), (4, 5), (2, 3)])
+        assert not idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert not idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # increasing overlapping
+        idx = IntervalIndex.from_tuples([(0, 2), (0.5, 2.5), (1, 3)])
+        assert idx.is_monotonic
+        assert idx._is_strictly_monotonic_increasing
+        assert not idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # decreasing overlapping
+        idx = IntervalIndex.from_tuples([(1, 3), (0.5, 2.5), (0, 2)])
+        assert not idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert idx.is_monotonic_decreasing
+        assert idx._is_strictly_monotonic_decreasing
+
+        # unordered overlapping
+        idx = IntervalIndex.from_tuples([(0.5, 2.5), (0, 2), (1, 3)])
+        assert not idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert not idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # increasing overlapping shared endpoints
+        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)])
+        assert idx.is_monotonic
+        assert idx._is_strictly_monotonic_increasing
+        assert not idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # decreasing overlapping shared endpoints
+        idx = pd.IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)])
+        assert not idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert idx.is_monotonic_decreasing
+        assert idx._is_strictly_monotonic_decreasing
+
+        # stationary
+        idx = IntervalIndex.from_tuples([(0, 1), (0, 1)])
+        assert idx.is_monotonic
+        assert not idx._is_strictly_monotonic_increasing
+        assert idx.is_monotonic_decreasing
+        assert not idx._is_strictly_monotonic_decreasing
+
+        # empty
+        idx = IntervalIndex([])
+        assert idx.is_monotonic
+        assert idx._is_strictly_monotonic_increasing
+>>>>>>> pandas-dev/master
         assert idx.is_monotonic_decreasing
         assert idx._is_strictly_monotonic_decreasing
 

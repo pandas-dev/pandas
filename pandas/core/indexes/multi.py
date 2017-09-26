@@ -68,6 +68,33 @@ class MultiIndex(Index):
         Copy the meta-data
     verify_integrity : boolean, default True
         Check that the levels/labels are consistent and valid
+
+    Examples
+    ---------
+    A new ``MultiIndex`` is typically constructed using one of the helper
+    methods :meth:`MultiIndex.from_arrays``, :meth:`MultiIndex.from_product``
+    and :meth:`MultiIndex.from_tuples``. For example (using ``.from_arrays``):
+
+    >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+    >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
+    MultiIndex(levels=[[1, 2], ['blue', 'red']],
+           labels=[[0, 0, 1, 1], [1, 0, 1, 0]],
+           names=['number', 'color'])
+
+    See further examples for how to construct a MultiIndex in the doc strings
+    of the mentioned helper methods.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
+
+    See Also
+    --------
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex
+    MultiIndex.from_product : Create a MultiIndex from the cartesian product
+                              of iterables
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     """
 
     # initialize to zero-length tuples to make everything work
@@ -490,7 +517,7 @@ class MultiIndex(Index):
     def _format_space(self):
         return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
 
@@ -706,13 +733,14 @@ class MultiIndex(Index):
             # we have mixed types and np.lexsort is not happy
             return Index(self.values).is_monotonic
 
-    @property
+    @cache_readonly
     def is_monotonic_decreasing(self):
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
         """
-        return False
+        # monotonic decreasing if and only if reverse is monotonic increasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
@@ -1966,6 +1994,21 @@ class MultiIndex(Index):
         Returns
         -------
         loc : int, slice object or boolean mask
+
+        Examples
+        ---------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
+        >>> mi.get_loc('b')
+        slice(1, 3, None)
+        >>> mi.get_loc(('b', 'e'))
+        1
+
+        See also
+        --------
+        Index.get_loc : get_loc method for (single-level) index.
+        get_locs : Given a tuple of slices/lists/labels/boolean indexer to a
+                   level-wise spec, produce an indexer to extract those
+                   locations.
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
@@ -2040,16 +2083,42 @@ class MultiIndex(Index):
 
     def get_loc_level(self, key, level=0, drop_level=True):
         """
-        Get integer location slice for requested label or tuple
+        Get both the location for the requested label(s) and the
+        resulting sliced index.
 
         Parameters
         ----------
-        key : label or tuple
-        level : int/level name or list thereof
+        key : label or sequence of labels
+        level : int/level name or list thereof, optional
+        drop_level : bool, default True
+            if ``False``, the resulting index will not drop any level.
 
         Returns
         -------
-        loc : int or slice object
+        loc : A 2-tuple where the elements are:
+              Element 0: int, slice object or boolean array
+              Element 1: The resulting sliced multiindex/index. If the key
+              contains all levels, this will be ``None``.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')],
+        ...                                names=['A', 'B'])
+
+        >>> mi.get_loc_level('b')
+        (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
+
+        >>> mi.get_loc_level('e', level='B')
+        (array([False,  True, False], dtype=bool),
+        Index(['b'], dtype='object', name='A'))
+
+        >>> mi.get_loc_level(['b', 'e'])
+        (1, None)
+
+        See Also
+        ---------
+        MultiIndex.get_loc : Get integer location, slice or boolean mask for
+                             requested label or tuple.
         """
 
         def maybe_droplevels(indexer, levels, drop_level):

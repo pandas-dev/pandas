@@ -646,7 +646,10 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
+.. autoclass:: api.types.CategoricalDtype
+   :members: categories, ordered
+
+If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
 
@@ -1416,6 +1419,20 @@ Selecting
    Index.slice_indexer
    Index.slice_locs
 
+.. _api.numericindex:
+
+Numeric Index
+-------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   RangeIndex
+   Int64Index
+   UInt64Index
+   Float64Index
+
 .. _api.categoricalindex:
 
 CategoricalIndex
@@ -2025,6 +2042,7 @@ Upsampling
    Resampler.backfill
    Resampler.bfill
    Resampler.pad
+   Resampler.nearest
    Resampler.fillna
    Resampler.asfreq
    Resampler.interpolate
