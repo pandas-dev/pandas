@@ -1167,6 +1167,33 @@ class TestDataFrameOperators(TestData):
         assert_frame_equal(df2, expected)
         assert df._data is df2._data
 
+    @pytest.mark.parametrize('op', ['add', 'and', 'div', 'floordiv', 'mod',
+                                    'mul', 'or', 'pow', 'sub', 'truediv',
+                                    'xor'])
+    def test_inplace_ops_identity2(self, op):
+
+        if compat.PY3 and op == 'div':
+            return
+
+        df = DataFrame({'a': [1., 2., 3.],
+                        'b': [1, 2, 3]})
+
+        operand = 2
+        if op in ('and', 'or', 'xor'):
+            # cannot use floats for boolean ops
+            df['a'] = [True, False, True]
+
+        df_copy = df.copy()
+        iop = '__i{}__'.format(op)
+        op = '__{}__'.format(op)
+
+        # no id change and value is correct
+        getattr(df, iop)(operand)
+        expected = getattr(df_copy, op)(operand)
+        assert_frame_equal(df, expected)
+        expected = id(df)
+        assert id(df) == expected
+
     def test_alignment_non_pandas(self):
         index = ['A', 'B', 'C']
         columns = ['X', 'Y', 'Z']

@@ -1650,7 +1650,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                 coords=coords,
                                 )
 
-    _shared_docs['to_latex'] = """
+    _shared_docs['to_latex'] = r"""
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
 
@@ -3271,7 +3271,7 @@ class NDFrame(PandasObject, SelectionMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis, is_copy=False)
 
-    _shared_docs['pipe'] = ("""
+    _shared_docs['pipe'] = (r"""
         Apply func(self, \*args, \*\*kwargs)
 
         Parameters
@@ -3692,6 +3692,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Convert the frame to a dict of dtype -> Constructor Types that each has
         a homogeneous dtype.
 
+        .. deprecated:: 0.21.0
+
         NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in
               as_matrix)
 
@@ -3699,31 +3701,33 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         copy : boolean, default True
 
-               .. versionadded: 0.16.1
-
         Returns
         -------
         values : a dict of dtype -> Constructor Types
         """
-        self._consolidate_inplace()
-
-        bd = {}
-        for b in self._data.blocks:
-            bd.setdefault(str(b.dtype), []).append(b)
-
-        result = {}
-        for dtype, blocks in bd.items():
-            # Must combine even after consolidation, because there may be
-            # sparse items which are never consolidated into one block.
-            combined = self._data.combine(blocks, copy=copy)
-            result[dtype] = self._constructor(combined).__finalize__(self)
-
-        return result
+        warnings.warn("as_blocks is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
+        return self._to_dict_of_blocks(copy=copy)
 
     @property
     def blocks(self):
-        """Internal property, property synonym for as_blocks()"""
+        """
+        Internal property, property synonym for as_blocks()
+
+        .. deprecated:: 0.21.0
+        """
         return self.as_blocks()
+
+    def _to_dict_of_blocks(self, copy=True):
+        """
+        Return a dict of dtype -> Constructor Types that
+        each is a homogeneous dtype.
+
+        Internal ONLY
+        """
+        return {k: self._constructor(v).__finalize__(self)
+                for k, v, in self._data.to_dict(copy=copy).items()}
 
     @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
                      mapping={True: 'raise', False: 'ignore'})
@@ -3931,13 +3935,12 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         converted : same as input object
         """
-        from warnings import warn
         msg = ("convert_objects is deprecated.  To re-infer data dtypes for "
                "object columns, use {klass}.infer_objects()\nFor all "
                "other conversions use the data-type specific converters "
                "pd.to_datetime, pd.to_timedelta and pd.to_numeric."
                ).format(klass=self.__class__.__name__)
-        warn(msg, FutureWarning, stacklevel=2)
+        warnings.warn(msg, FutureWarning, stacklevel=2)
 
         return self._constructor(
             self._data.convert(convert_dates=convert_dates,
@@ -4310,9 +4313,9 @@ class NDFrame(PandasObject, SelectionMixin):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
         if axis is not None:
-            from warnings import warn
-            warn('the "axis" argument is deprecated and will be removed in'
-                 'v0.13; this argument has no effect')
+            warnings.warn('the "axis" argument is deprecated '
+                          'and will be removed in'
+                          'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
@@ -5822,13 +5825,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['where'] = ("""
         Return an object of same shape as self and whose corresponding
-        entries are from self where cond is %(cond)s and otherwise are from
-        other.
+        entries are from self where `cond` is %(cond)s and otherwise are from
+        `other`.
 
         Parameters
         ----------
         cond : boolean %(klass)s, array-like, or callable
-            If cond is callable, it is computed on the %(klass)s and
+            Where `cond` is %(cond)s, keep the original value. Where
+            %(cond_rev)s, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the %(klass)s and
             should return boolean %(klass)s or array. The callable must
             not change input %(klass)s (though pandas doesn't check it).
 
@@ -5836,6 +5841,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
+            Entries where `cond` is %(cond_rev)s are replaced with
+            corresponding value from `other`.
             If other is callable, it is computed on the %(klass)s and
             should return scalar or %(klass)s. The callable must not
             change input %(klass)s (though pandas doesn't check it).
@@ -5881,6 +5888,20 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3.0
         4    4.0
 
+        >>> s.mask(s > 0)
+        0    0.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+
+        >>> s.where(s > 1, 10)
+        0    10.0
+        1    10.0
+        2    2.0
+        3    3.0
+        4    4.0
+
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
         >>> m = df %% 3 == 0
         >>> df.where(m, -df)
@@ -5911,7 +5932,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
-                                           name='where', name_other='mask'))
+                                           cond_rev="False", name='where',
+                                           name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
 
@@ -5920,7 +5942,8 @@ class NDFrame(PandasObject, SelectionMixin):
                            raise_on_error)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
-                                           name='mask', name_other='where'))
+                                           cond_rev="True", name='mask',
+                                           name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
 
