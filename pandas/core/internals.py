@@ -56,7 +56,7 @@ import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
-from pandas.core.categorical import Categorical, maybe_to_categorical
+from pandas.core.categorical import Categorical, _maybe_to_categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.formats.printing import pprint_thing
 
@@ -2288,7 +2288,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     def __init__(self, values, placement, fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                fastpath=True,
                                                placement=placement, **kwargs)
 
