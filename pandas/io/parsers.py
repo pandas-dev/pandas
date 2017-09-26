@@ -42,7 +42,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
-
+from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -2981,7 +2981,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                 )
             except:
                 return tools.to_datetime(
-                    lib.try_parse_dates(strs, dayfirst=dayfirst))
+                    parsing.try_parse_dates(strs, dayfirst=dayfirst))
         else:
             try:
                 result = tools.to_datetime(
@@ -2992,9 +2992,9 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             except Exception:
                 try:
                     return tools.to_datetime(
-                        lib.try_parse_dates(_concat_date_cols(date_cols),
-                                            parser=date_parser,
-                                            dayfirst=dayfirst),
+                        parsing.try_parse_dates(_concat_date_cols(date_cols),
+                                                parser=date_parser,
+                                                dayfirst=dayfirst),
                         errors='ignore')
                 except Exception:
                     return generic_parser(date_parser, *date_cols)

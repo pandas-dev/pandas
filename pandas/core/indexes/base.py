@@ -7,6 +7,7 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, Timedelta, )
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import parsing
 
 from pandas.compat import range, u
 from pandas.compat.numpy import function as nv
@@ -1037,7 +1038,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
-            parsed = lib.try_parse_dates(self.values, parser=parser)
+            parsed = parsing.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
         else:
             return DatetimeIndex(self.values)
