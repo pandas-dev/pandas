@@ -373,13 +373,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         arg = arg + offset
 
     convert_cache = None
-    if cache and is_list_like(arg):
-        if len(arg) >= 1000:
-            unique_dates = algorithms.unique(arg)
-            if len(unique_dates) != len(arg):
-                from pandas import Series
-                cache_dates = _convert_listlike(unique_dates, False, format)
-                convert_cache = Series(cache_dates, index=unique_dates)
+    if cache and is_list_like(arg) and len(arg) >= 1000:
+        unique_dates = algorithms.unique(arg)
+        if len(unique_dates) != len(arg):
+            from pandas import Series
+            cache_dates = _convert_listlike(unique_dates, False, format)
+            convert_cache = Series(cache_dates, index=unique_dates)
 
     if isinstance(arg, tslib.Timestamp):
         result = arg
