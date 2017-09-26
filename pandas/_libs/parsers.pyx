@@ -45,7 +45,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_object_dtype,
     is_string_dtype, is_datetime64_dtype,
     pandas_dtype)
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, _recode_for_categories
 from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index, to_numeric, to_datetime, to_timedelta
@@ -1292,8 +1292,7 @@ cdef class TextReader:
                     dtype.categories is not None):
                 # recode for dtype.categories
                 categories = dtype.categories
-                indexer = categories.get_indexer(cats)
-                codes = take_1d(indexer, codes, fill_value=-1)
+                codes = _recode_for_categories(codes, cats, categories)
                 ordered = dtype.ordered
             elif not cats.is_monotonic_increasing:
                 # sort categories and recode if necessary

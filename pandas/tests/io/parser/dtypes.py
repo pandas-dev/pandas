@@ -203,6 +203,14 @@ one,two
         result = self.read_csv(StringIO(data), dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
+        dtype = {
+            'b': CategoricalDtype([pd.Timestamp("2014")])
+        }
+        data = "b\n2014-01-01\n2014-01-01T00:00:00"
+        expected = pd.DataFrame({'b': Categorical([pd.Timestamp('2014')] * 2)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
     def test_categoricaldtype_coerces_timedelta(self):
         dtype = {'b': CategoricalDtype(pd.to_timedelta(['1H', '2H', '3H']))}
         data = "b\n1H\n2H\n3H"
