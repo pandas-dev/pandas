@@ -56,7 +56,7 @@ import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
-from pandas.core.categorical import Categorical, maybe_to_categorical
+from pandas.core.categorical import Categorical, _maybe_to_categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.formats.printing import pprint_thing
 
@@ -1484,6 +1484,35 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        unstacker = unstacker_func(self.values.T)
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
+        blocks = [make_block(new_values, placement=new_placement)]
+        return blocks, mask
+
     def quantile(self, qs, interpolation='linear', axis=0, mgr=None):
         """
         compute the quantiles of the
@@ -1711,6 +1740,38 @@ class NonConsolidatableMixIn(object):
 
     def _try_cast_result(self, result, dtype=None):
         return result
+
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        # NonConsolidatable blocks can have a single item only, so we return
+        # one block per item
+        unstacker = unstacker_func(self.values.T)
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
+        blocks = [self.make_block_same_class(vals, [place])
+                  for vals, place in zip(new_values, new_placement)]
+        return blocks, mask
 
 
 class NumericBlock(Block):
@@ -2227,7 +2288,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     def __init__(self, values, placement, fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                fastpath=True,
                                                placement=placement, **kwargs)
 
@@ -4191,6 +4252,38 @@ class BlockManager(PandasObject):
         other_blocks = sorted(other.blocks, key=canonicalize)
         return all(block.equals(oblock)
                    for block, oblock in zip(self_blocks, other_blocks))
+
+    def unstack(self, unstacker_func):
+        """Return a blockmanager with all blocks unstacked.
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+
+        Returns
+        -------
+        unstacked : BlockManager
+        """
+        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
+        new_columns = dummy.get_new_columns()
+        new_index = dummy.get_new_index()
+        new_blocks = []
+        columns_mask = []
+
+        for blk in self.blocks:
+            blocks, mask = blk._unstack(
+                partial(unstacker_func,
+                        value_columns=self.items[blk.mgr_locs.indexer]),
+                new_columns)
+
+            new_blocks.extend(blocks)
+            columns_mask.extend(mask)
+
+        new_columns = new_columns[columns_mask]
+
+        bm = BlockManager(new_blocks, [new_columns, new_index])
+        return bm
 
 
 class SingleBlockManager(BlockManager):
