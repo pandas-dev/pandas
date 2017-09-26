@@ -474,10 +474,10 @@ Unicode Formatting
    Enabling this option will affect the performance for printing of DataFrame and Series (about 2 times slower).
    Use only when it is actually required.
 
-Some East Asian countries use Unicode characters its width is corresponding to 2 alphabets.
-If DataFrame or Series contains these characters, default output cannot be aligned properly.
+Some East Asian countries use Unicode characters whose width corresponds to two Latin characters.
+If a DataFrame or Series contains these characters, the default output mode may not align them properly.
 
-.. note:: Screen captures are attached for each outputs to show the actual results.
+.. note:: Screen captures are attached for each output to show the actual results.
 
 .. ipython:: python
 
@@ -486,8 +486,9 @@ If DataFrame or Series contains these characters, default output cannot be align
 
 .. image:: _static/option_unicode01.png
 
-Enable ``display.unicode.east_asian_width`` allows pandas to check each character's "East Asian Width" property.
-These characters can be aligned properly by checking this property, but it takes longer time than standard ``len`` function.
+Enabling ``display.unicode.east_asian_width`` allows pandas to check each character's "East Asian Width" property.
+These characters can be aligned properly by setting this option to ``True``. However, this will result in longer render
+times than the standard ``len`` function.
 
 .. ipython:: python
 
@@ -496,9 +497,10 @@ These characters can be aligned properly by checking this property, but it takes
 
 .. image:: _static/option_unicode02.png
 
-In addition, Unicode contains characters which width is "Ambiguous". These character's width should be either 1 or 2 depending on terminal setting or encoding. Because this cannot be distinguished from Python, ``display.unicode.ambiguous_as_wide`` option is added to handle this.
+In addition, Unicode characters whose width is "Ambiguous" can either be 1 or 2 characters wide depending on the
+terminal setting or encoding. The option ``display.unicode.ambiguous_as_wide`` can be used to handle the ambiguity.
 
-By default, "Ambiguous" character's width, "¡" (inverted exclamation) in below example, is regarded as 1.
+By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation) in the example below, is taken to be 1.
 
 .. ipython:: python
 
@@ -507,7 +509,10 @@ By default, "Ambiguous" character's width, "¡" (inverted exclamation) in below 
 
 .. image:: _static/option_unicode03.png
 
-Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these character's width as 2. Note that this option will be effective only when ``display.unicode.east_asian_width`` is enabled. Confirm starting position has been changed, but is not aligned properly because the setting is mismatched with this environment.
+Enabling ``display.unicode.ambiguous_as_wide`` makes pandas interpret these characters' widths to be 2.
+(Note that this option will only be effective when ``display.unicode.east_asian_width`` is enabled.)
+
+However, setting this option incorrectly for your terminal will cause these characters to be aligned incorrectly:
 
 .. ipython:: python
 
