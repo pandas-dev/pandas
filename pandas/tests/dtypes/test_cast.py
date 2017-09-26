@@ -16,6 +16,7 @@ from pandas import (Timedelta, Timestamp, DatetimeIndex,
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_convert_objects,
+    maybe_convert_for_categorical,
     cast_scalar_to_array,
     infer_dtype_from_scalar,
     infer_dtype_from_array,
@@ -25,7 +26,8 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
-    PeriodDtype)
+    PeriodDtype,
+    CategoricalDtype)
 from pandas.core.dtypes.common import (
     is_dtype_equal)
 from pandas.util import testing as tm
@@ -298,6 +300,44 @@ class TestMaybe(object):
         result = DataFrame(np.array([[NaT, 'a', 0],
                                      [NaT, 'b', 1]]))
         assert result.size == 6
+
+    def test_maybe_convert_for_categorical_noop(self):
+        expected = ['1', '2']
+        result = maybe_convert_for_categorical(expected, None)
+        assert result == expected
+
+        result = maybe_convert_for_categorical(expected, CategoricalDtype())
+        assert result == expected
+
+        result = maybe_convert_for_categorical(expected, 'category')
+        assert result == expected
+
+    @pytest.mark.parametrize('categories, dtype, expected', [
+        (['1', '2'], [1, 2, 3], np.array([1, 2])),
+        (['1', '2', 'a'], [1, 2, 3], np.array([1, 2, np.nan])),
+    ])
+    def test_maybe_convert_for_categorical(self, categories, dtype, expected):
+        dtype = CategoricalDtype(dtype)
+        result = maybe_convert_for_categorical(categories, dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('categories, dtype, expected', [
+        (['2016', '2017'], pd.to_datetime(['2016', '2017']),
+         pd.to_datetime(['2016', '2017'])),
+        (['2016', '2017', 'bad'], pd.to_datetime(['2016', '2017']),
+         pd.to_datetime(['2016', '2017', 'NaT'])),
+
+        (['1H', '2H'], pd.to_timedelta(['1H', '2H']),
+         pd.to_timedelta(['1H', '2H'])),
+        (['1H', '2H', 'bad'], pd.to_timedelta(['1H', '2H']),
+         pd.to_timedelta(['1H', '2H', 'NaT'])),
+
+    ])
+    def test_maybe_convert_for_categorical_dates(self, categories, dtype,
+                                                 expected):
+        dtype = CategoricalDtype(dtype)
+        result = maybe_convert_for_categorical(categories, dtype)
+        tm.assert_index_equal(result, expected)
 
 
 class TestConvert(object):

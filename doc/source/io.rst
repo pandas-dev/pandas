@@ -469,6 +469,8 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
+.. versionadded:: 0.21.0
+
 Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a

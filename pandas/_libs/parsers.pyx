@@ -48,7 +48,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.categorical import Categorical, _recode_for_categories
 from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
-from pandas import Index, to_numeric, to_datetime, to_timedelta
+from pandas.core.dtypes.cast import maybe_convert_for_categorical
+from pandas import Index
 
 import pandas.io.common as com
 
@@ -1274,19 +1275,7 @@ cdef class TextReader:
                 na_hashset, self.c_encoding)
             cats = Index(cats)
 
-            # Determine if we should convert inferred string
-            # categories to a specialized type
-            if (isinstance(dtype, CategoricalDtype) and
-                    dtype.categories is not None):
-                if dtype.categories.is_numeric():
-                    # is ignore correct?
-                    cats = to_numeric(cats, errors='ignore')
-                elif dtype.categories.is_all_dates:
-                    # is ignore correct?
-                    if is_datetime64_dtype(dtype.categories):
-                        cats = to_datetime(cats, errors='ignore')
-                    else:
-                        cats = to_timedelta(cats, errors='ignore')
+            cats = maybe_convert_for_categorical(cats, dtype)
 
             if (isinstance(dtype, CategoricalDtype) and
                     dtype.categories is not None):
@@ -1298,8 +1287,7 @@ cdef class TextReader:
                 # sort categories and recode if necessary
                 unsorted = cats.copy()
                 categories = cats.sort_values()
-                indexer = categories.get_indexer(unsorted)
-                codes = take_1d(indexer, codes, fill_value=-1)
+                codes = _recode_for_categories(codes, unsorted, categories)
                 ordered = False
             else:
                 categories = cats
