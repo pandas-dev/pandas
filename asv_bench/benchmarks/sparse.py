@@ -34,8 +34,11 @@ class sparse_array_constructor(object):
         self.float64_10percent = self.make_numeric_array(length=1000000, dense_size=100000, fill_value=np.nan, dtype=np.float64)
         self.float64_1percent = self.make_numeric_array(length=1000000, dense_size=10000, fill_value=np.nan, dtype=np.float64)
 
-        self.object_10percent = self.make_object_array(length=1000000, dense_size=100000, fill_value=0)
-        self.object_1percent = self.make_object_array(length=1000000, dense_size=10000, fill_value=0)
+        self.object_nan_fill_value_10percent = self.make_object_array(length=1000000, dense_size=100000, fill_value=np.nan)
+        self.object_nan_fill_value_1percent = self.make_object_array(length=1000000, dense_size=10000, fill_value=np.nan)
+
+        self.object_non_nan_fill_value_10percent = self.make_object_array(length=1000000, dense_size=100000, fill_value=0)
+        self.object_non_nan_fill_value_1percent = self.make_object_array(length=1000000, dense_size=10000, fill_value=0)
 
     def make_numeric_array(self, length, dense_size, fill_value, dtype):
         arr = np.array([fill_value] * length, dtype=dtype)
@@ -66,12 +69,20 @@ class sparse_array_constructor(object):
         arr, fill_value, dtype = self.float64_1percent
         SparseArray(arr, fill_value=fill_value, dtype=dtype)
 
-    def time_sparse_array_constructor_object_10percent(self):
-        arr, fill_value, dtype = self.object_10percent
+    def time_sparse_array_constructor_object_nan_fill_value_10percent(self):
+        arr, fill_value, dtype = self.object_nan_fill_value_10percent
         SparseArray(arr, fill_value=fill_value, dtype=dtype)
 
-    def time_sparse_array_constructor_object_1percent(self):
-        arr, fill_value, dtype = self.object_1percent
+    def time_sparse_array_constructor_object_nan_fill_value_1percent(self):
+        arr, fill_value, dtype = self.object_nan_fill_value_1percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_non_nan_fill_value_10percent(self):
+        arr, fill_value, dtype = self.object_non_nan_fill_value_10percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_non_nan_fill_value_1percent(self):
+        arr, fill_value, dtype = self.object_non_nan_fill_value_1percent
         SparseArray(arr, fill_value=fill_value, dtype=dtype)
 
 
