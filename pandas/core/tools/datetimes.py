@@ -311,14 +311,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 raise e
 
     def _maybe_convert_cache(arg, cache, tz):
-        """Try to convert the datetimelike arg using 
+        """Try to convert the datetimelike arg using
            a cache of converted dates.
-           
+
            arg: datetimelike arg from to_datetime
            cache: bool whether to convert using a cache
 
-           Result:
-               Series of converted datetime arg or 
+           Returns:
+               Series of converted datetime arg or
                None if the conversion failed
         """
         if cache and is_list_like(arg) and len(arg) >= 1000:
