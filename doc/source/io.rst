@@ -485,6 +485,8 @@ that column's ``dtype``.
 When using ``dtype=CategoricalDtype``, "unexpected" values outside of
 ``dtype.categories`` are treated as missing values.
 
+.. ipython:: python
+
    dtype = CategoricalDtype(['a', 'b', 'd'])  # No 'c'
    pd.read_csv(StringIO(data), dtype={'col1': dtype}).col1
 

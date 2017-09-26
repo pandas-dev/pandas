@@ -134,8 +134,11 @@ One place that deserves special mention is in :meth:`read_csv`. Previously, with
 be strings.
 
 .. ipython:: python
+   :suppress:
 
    from pandas.compat import StringIO
+
+.. ipython:: python
 
    data = 'A,B\na,1\nb,2\nc,3'
    pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
@@ -151,11 +154,12 @@ timedeltas, we can automatically convert to the correct type
 The values have been correctly interpreted as integers.
 
 The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
-``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
-For the most part, this is backwards compatible, though the string repr has changed.
-If you were previously using ``str(s.dtype == 'category')`` to detect categorical data,
-switch to :func:`api.types.is_categorical_dtype`, which is compatible with the old and
-new ``CategoricalDtype``.
+``Series`` with categorical type will now return an instance of
+``CategoricalDtype``. For the most part, this is backwards compatible, though
+the string repr has changed. If you were previously using ``str(s.dtype) ==
+'category'`` to detect categorical data, switch to
+:func:`pandas.api.types.is_categorical_dtype`, which is compatible with the old
+and new ``CategoricalDtype``.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
