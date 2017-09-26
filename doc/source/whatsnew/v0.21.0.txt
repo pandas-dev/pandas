@@ -387,13 +387,6 @@ New Behavior
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
-.. _whatsnew_0210.api.restricting_dateoffset_keywords
-
-Restricting DateOffset Keywords
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
-
 .. _whatsnew_0210.api.consistency_of_range_functions:
 
 Consistency of Range Functions
@@ -468,6 +461,7 @@ Other API Changes
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
+- Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
 
 
 .. _whatsnew_0210.deprecations:
