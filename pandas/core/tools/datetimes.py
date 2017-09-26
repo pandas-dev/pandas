@@ -21,8 +21,7 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_scalar,
-    is_numeric_dtype,
-    is_string_dtype)
+    is_numeric_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
     ABCDataFrame)
