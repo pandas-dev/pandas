@@ -343,6 +343,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/parsing.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -498,6 +499,8 @@ ext_data = {
                      'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                  'pandas/_libs/src/datetime/np_datetime_strings.c',
                                  'pandas/_libs/src/period_helper.c']},
+    '_libs.tslibs.parsing': {'pyxfile': '_libs/tslibs/parsing',
+                             'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
                                  'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
