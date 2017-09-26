@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import pandas as pd
 from pandas import DataFrame, read_json
