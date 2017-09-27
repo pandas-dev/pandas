@@ -4,7 +4,6 @@ from collections import MutableMapping
 
 from pandas._libs import tslib
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs.timezones import get_timezone
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
