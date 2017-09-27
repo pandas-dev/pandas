@@ -148,6 +148,9 @@ if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi
 
+# test commit
+conda install bzip2
+
 # remove any installed pandas package
 # w/o removing anything else
 echo
