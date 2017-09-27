@@ -69,7 +69,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._decorators import (
+    Appender, deprecate, deprecate_kwarg, Substitution)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
@@ -1274,7 +1275,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of minimum of values.
+        Index *label* of the first occurrence of minimum of values.
 
         Parameters
         ----------
@@ -1287,7 +1288,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        This method is the Series version of ``ndarray.argmin``.
+        This method is the Series version of ``ndarray.argmin``. This method
+        returns the label of the minimum, while ``ndarray.argmin`` returns
+        the position. To get the position, use ``series.values.argmin()``.
 
         See Also
         --------
@@ -1302,7 +1305,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of maximum of values.
+        Index *label* of the first occurrence of maximum of values.
 
         Parameters
         ----------
@@ -1315,7 +1318,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        This method is the Series version of ``ndarray.argmax``.
+        This method is the Series version of ``ndarray.argmax``. This method
+        returns the label of the maximum, while ``ndarray.argmax`` returns
+        the position. To get the position, use ``series.values.argmax()``.
 
         See Also
         --------
@@ -1329,8 +1334,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = idxmin
-    argmax = idxmax
+    argmin = deprecate('argmin', idxmin,
+                       msg="'argmin' is deprecated. Use 'idxmin' instead. "
+                           "The behavior of 'argmin' will be corrected to "
+                           "return the positional minimum in the future. "
+                           "Use 'series.values.argmin' to get the position of "
+                           "the minimum now.")
+    argmax = deprecate('argmax', idxmax,
+                       msg="'argmax' is deprecated. Use 'idxmax' instead. "
+                           "The behavior of 'argmax' will be corrected to "
+                           "return the positional maximum in the future. "
+                           "Use 'series.values.argmax' to get the position of "
+                           "the maximum now.")
 
     def round(self, decimals=0, *args, **kwargs):
         """
