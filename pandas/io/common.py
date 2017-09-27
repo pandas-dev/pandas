@@ -19,13 +19,6 @@ from pandas.errors import (ParserError, DtypeWarning,  # noqa
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
-
-try:
-    from s3fs import S3File
-    need_text_wrapping = (BytesIO, S3File)
-except ImportError:
-    need_text_wrapping = (BytesIO,)
-
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -322,6 +315,11 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     handles : list of file-like objects
         A list of file-like object that were openned in this function.
     """
+    try:
+        from s3fs import S3File
+        need_text_wrapping = (BytesIO, S3File)
+    except ImportError:
+        need_text_wrapping = (BytesIO,)
 
     handles = list()
     f = path_or_buf

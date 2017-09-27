@@ -458,13 +458,23 @@ with cf.config_prefix('io.excel'):
                                        others=others)
         cf.register_option('xlsx.writer', engine, doc, validator=str)
 
-    try:
-        # better memory footprint
-        import xlsxwriter  # noqa
-        _register_xlsx('xlsxwriter', 'openpyxl')
-    except ImportError:
-        # fallback
-        _register_xlsx('openpyxl', 'xlsxwriter')
+_excel_registered = False
+
+
+def _register_excel_engines():
+    global _excel_registered
+
+    if not _excel_registered:
+        with cf.config_prefix('io.excel'):
+            try:
+                # better memory footprint
+                import xlsxwriter  # noqa
+                _register_xlsx('xlsxwriter', 'openpyxl')
+            except ImportError:
+                # fallback
+                _register_xlsx('openpyxl', 'xlsxwriter')
+        _excel_registered = True
+
 
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """
