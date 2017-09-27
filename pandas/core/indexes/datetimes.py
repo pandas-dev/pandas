@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
+    is_string_like,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -37,7 +38,8 @@ from pandas.tseries.frequencies import (
     Resolution)
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
-from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
+from pandas.tseries.offsets import (
+    DateOffset, generate_range, Tick, CDay, prefix_mapping)
 from pandas.core.tools.datetimes import (
     parse_time_string, normalize_date, to_time)
 from pandas.core.tools.timedeltas import to_timedelta
@@ -2049,7 +2051,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None, closed=None, **kwargs):
+                normalize=True, name=None, weekmask='Mon Tue Wed Thu Fri',
+                holidays=None, closed=None, **kwargs):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
     frequency
@@ -2071,6 +2074,19 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Normalize start/end dates to midnight before generating date range
     name : string, default None
         Name of the resulting DatetimeIndex
+    weekmask : string, default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``,
+        only used when custom frequency strings are passed
+
+        .. versionadded:: 0.21.0
+
+    holidays : list-like or None, default None
+        list-like of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``, only used when custom frequency
+        strings are passed
+
+        .. versionadded:: 0.21.0
+
     closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
@@ -2088,6 +2104,16 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     rng : DatetimeIndex
     """
 
+    if is_string_like(freq) and freq.startswith('C'):
+        try:
+            freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
+        except (KeyError, TypeError):
+            msg = 'invalid custom frequency string: {freq}'.format(freq=freq)
+            raise ValueError(msg)
+    elif holidays or (weekmask != 'Mon Tue Wed Thu Fri'):
+        warnings.warn('a custom frequency string was not passed, ignoring '
+                      'parameters: holidays, weekmask', UserWarning)
+
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)
@@ -2098,6 +2124,8 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     """
     Return a fixed frequency DatetimeIndex, with CustomBusinessDay as the
     default frequency
+
+    .. deprecated:: 0.21.0
 
     Parameters
     ----------
@@ -2137,6 +2165,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     -------
     rng : DatetimeIndex
     """
+    warnings.warn("cdate_range is deprecated and will be removed in a future "
+                  "version, instead use bdate_range(..., freq='{freq}')"
+                  .format(freq=freq), FutureWarning, stacklevel=2)
 
     if freq == 'C':
         holidays = kwargs.pop('holidays', [])
