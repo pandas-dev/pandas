@@ -62,6 +62,7 @@ from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
+from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
@@ -144,6 +145,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
+    _deprecations = generic.NDFrame._deprecations | frozenset(
+        ['sortlevel', 'reshape'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -2825,10 +2828,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'Series'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2839,10 +2841,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return self.index[i]
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2903,19 +2904,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-    cat = base.AccessorProperty(CategoricalAccessor)
+    cat = accessor.AccessorProperty(CategoricalAccessor)
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = accessor.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
-                                 gfx.SeriesPlotMethods)
+    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
+                                     gfx.SeriesPlotMethods)
     hist = gfx.hist_series
 
 
@@ -2987,7 +2988,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
-                subarr = Categorical(arr)
+                subarr = Categorical(arr, dtype.categories,
+                                     ordered=dtype.ordered)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:

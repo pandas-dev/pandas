@@ -113,8 +113,8 @@ header : int or list of ints, default ``'infer'``
   rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed unless
-  ``mangle_dupe_cols=True``, which is the default.
+  explicitly pass ``header=None``. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -4492,7 +4492,7 @@ Several caveats.
 - The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
   error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
 - Duplicate column names and non-string columns names are not supported
-- Categorical dtypes are currently not-supported (for ``pyarrow``).
+- Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
 

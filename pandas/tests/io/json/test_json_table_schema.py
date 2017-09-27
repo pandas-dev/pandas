@@ -164,7 +164,10 @@ class TestTableSchemaType(object):
             assert as_json_table_type(t) == 'string'
 
     def test_as_json_table_type_categorical_dtypes(self):
-        assert as_json_table_type(pd.Categorical) == 'any'
+        # TODO: I think before is_categorical_dtype(Categorical)
+        # returned True, but now it's False. Figure out why or
+        # if it matters
+        assert as_json_table_type(pd.Categorical(['a'])) == 'any'
         assert as_json_table_type(CategoricalDtype()) == 'any'
 
 

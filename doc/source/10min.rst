@@ -11,7 +11,7 @@
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    pd.options.display.max_rows = 15
 
    #### portions of this were borrowed from the
@@ -95,17 +95,7 @@ will be completed:
    df2.append             df2.combine_first
    df2.apply              df2.compound
    df2.applymap           df2.consolidate
-   df2.as_blocks          df2.convert_objects
-   df2.asfreq             df2.copy
-   df2.as_matrix          df2.corr
-   df2.astype             df2.corrwith
-   df2.at                 df2.count
-   df2.at_time            df2.cov
-   df2.axes               df2.cummax
-   df2.B                  df2.cummin
-   df2.between_time       df2.cumprod
-   df2.bfill              df2.cumsum
-   df2.blocks             df2.D
+   df2.D
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
