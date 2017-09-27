@@ -10,7 +10,9 @@ echo "[Using clean Miniconda install]"
 rm -rf "$MINICONDA_DIR"
 
 # install miniconda
-wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
+# wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
+# Pin miniconda
+wget https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -q -O miniconda.sh || exit 1
 bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
 export PATH="$MINICONDA_DIR/bin:$PATH"
