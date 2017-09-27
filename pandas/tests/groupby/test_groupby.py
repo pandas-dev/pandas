@@ -3335,7 +3335,7 @@ class TestGroupBy(MixIn):
         index = pd.DatetimeIndex(())
         data = ()
         series = pd.Series(data, index)
-        grouper = pd.core.resample.TimeGrouper('D')
+        grouper = pd.Grouper(freq='D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
@@ -3354,7 +3354,7 @@ class TestGroupBy(MixIn):
         df = pd.DataFrame({'event': ['start', 'start'],
                            'change': [1234, 5678]},
                           index=pd.DatetimeIndex(['2014-09-10', '2013-10-10']))
-        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        grouped = df.groupby([pd.Grouper(freq='M'), 'event'])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (pd.Timestamp('2014-09-30'), 'start') in grouped.groups
@@ -3369,7 +3369,7 @@ class TestGroupBy(MixIn):
                            'change': [1234, 5678, 9123]},
                           index=pd.DatetimeIndex(['2014-09-10', '2013-10-10',
                                                   '2014-09-15']))
-        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        grouped = df.groupby([pd.Grouper(freq='M'), 'event'])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (pd.Timestamp('2014-09-30'), 'start') in grouped.groups
@@ -3385,7 +3385,7 @@ class TestGroupBy(MixIn):
                            'change': [1234, 5678, 9123]},
                           index=pd.DatetimeIndex(['2014-09-10', '2013-10-10',
                                                   '2014-08-05']))
-        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        grouped = df.groupby([pd.Grouper(freq='M'), 'event'])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
         assert (pd.Timestamp('2014-09-30'), 'start') in grouped.groups
@@ -3682,9 +3682,9 @@ class TestGroupBy(MixIn):
                      Timestamp('2016-06-28 16:09:30'),
                      Timestamp('2016-06-28 16:46:28')],
             'data': ['1', '2', '3']}).set_index('time')
-        result = test.groupby(pd.TimeGrouper(freq='h'))['data'].nunique()
+        result = test.groupby(pd.Grouper(freq='h'))['data'].nunique()
         expected = test.groupby(
-            pd.TimeGrouper(freq='h')
+            pd.Grouper(freq='h')
         )['data'].apply(pd.Series.nunique)
         tm.assert_series_equal(result, expected)
 
