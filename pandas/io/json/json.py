@@ -432,7 +432,7 @@ class JsonReader(BaseIterator):
 
         return data
 
-    def combine_lines(self, lines):
+    def _combine_lines(self, lines):
         """Combines a list of JSON objects into one JSON object"""
         lines = filter(None, map(lambda x: x.strip(), lines))
         return '[' + ','.join(lines) + ']'
@@ -443,7 +443,7 @@ class JsonReader(BaseIterator):
             obj = concat(self)
         elif self.lines:
             obj = self._get_object_parser(
-                self.combine_lines(self.data.split('\n'))
+                self._combine_lines(self.data.split('\n'))
             )
         else:
             obj = self._get_object_parser(self.data)
@@ -486,7 +486,7 @@ class JsonReader(BaseIterator):
     def __next__(self):
         lines = list(islice(self.data, self.chunksize))
         if lines:
-            lines_json = self.combine_lines(lines)
+            lines_json = self._combine_lines(lines)
             obj = self._get_object_parser(lines_json)
 
             # Make sure that the returned objects have the right index.
