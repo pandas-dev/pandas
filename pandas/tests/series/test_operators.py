@@ -1872,33 +1872,33 @@ class TestSeriesOperators(TestData):
             ),
         ]
     )
-    def test_assert_argminmax_raises(self, test_input, error_type):
+    def test_assert_idxminmax_raises(self, test_input, error_type):
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
         with pytest.raises(error_type):
-            test_input.argmin()
+            test_input.idxmin()
         with pytest.raises(error_type):
-            test_input.argmin(skipna=False)
+            test_input.idxmin(skipna=False)
         with pytest.raises(error_type):
-            test_input.argmax()
+            test_input.idxmax()
         with pytest.raises(error_type):
-            test_input.argmax(skipna=False)
+            test_input.idxmax(skipna=False)
 
-    def test_argminmax_with_inf(self):
+    def test_idxminmax_with_inf(self):
         # For numeric data with NA and Inf (GH #13595)
         s = pd.Series([0, -np.inf, np.inf, np.nan])
 
-        assert s.argmin() == 1
-        assert np.isnan(s.argmin(skipna=False))
+        assert s.idxmin() == 1
+        assert np.isnan(s.idxmin(skipna=False))
 
-        assert s.argmax() == 2
-        assert np.isnan(s.argmax(skipna=False))
+        assert s.idxmax() == 2
+        assert np.isnan(s.idxmax(skipna=False))
 
         # Using old-style behavior that treats floating point nan, -inf, and
         # +inf as missing
         with pd.option_context('mode.use_inf_as_na', True):
-            assert s.argmin() == 0
-            assert np.isnan(s.argmin(skipna=False))
-            assert s.argmax() == 0
-            np.isnan(s.argmax(skipna=False))
+            assert s.idxmin() == 0
+            assert np.isnan(s.idxmin(skipna=False))
+            assert s.idxmax() == 0
+            np.isnan(s.idxmax(skipna=False))

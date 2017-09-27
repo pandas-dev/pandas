@@ -598,9 +598,7 @@ class DataFrameFormatter(TableFormatter):
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
-                row_lens = Series(text).apply(len)
-                max_len_col_ix = np.argmax(row_lens)
-                max_len = row_lens[max_len_col_ix]
+                max_len = Series(text).str.len().max()
                 headers = [ele[0] for ele in strcols]
                 # Size of last col determines dot col size. See
                 # `self._to_str_columns
