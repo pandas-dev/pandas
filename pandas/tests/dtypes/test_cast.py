@@ -26,8 +26,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
-    PeriodDtype,
-    CategoricalDtype)
+    PeriodDtype)
 from pandas.core.dtypes.common import (
     is_dtype_equal)
 from pandas.util import testing as tm
