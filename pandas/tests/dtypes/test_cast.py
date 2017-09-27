@@ -312,8 +312,8 @@ class TestMaybe(object):
         assert result == expected
 
     @pytest.mark.parametrize('categories, dtype, expected', [
-        (['1', '2'], [1, 2, 3], np.array([1, 2])),
-        (['1', '2', 'a'], [1, 2, 3], np.array([1, 2, np.nan])),
+        (['1', '2'], [1, 2, 3], np.array([1, 2], dtype='i8')),
+        (['1', '2', 'a'], [1, 2, 3], np.array([1, 2, np.nan], dtype='f8')),
     ])
     def test_maybe_convert_for_categorical(self, categories, dtype, expected):
         dtype = CategoricalDtype(dtype)
