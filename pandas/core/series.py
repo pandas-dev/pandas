@@ -35,9 +35,8 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import (isna, notna,
-                                        remove_na_arraylike,
-                                        isnull)
+from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
@@ -2738,7 +2737,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return result
 
     def interpolate(self, *args, **kwargs):
-        if is_datetime64_dtype(self) and self.isnull().any():
+        if (is_datetime64_dtype(self) or
+                is_datetime64tz_dtype(self)) and self.isnull().any():
             s2 = self.astype('i8').astype('f8')
             s2[self.isnull()] = np.nan
             return to_datetime(s2.interpolate(*args, **kwargs))

@@ -1221,7 +1221,7 @@ class TestSeriesInterpolateData(TestData):
 
     def test_series_interpolate_nat(self):
         # GH 11701
-        for tz in [None, "UTC"]:
+        for tz in [None, 'UTC', 'Europe/Paris']:
             expected = pd.Series(pd.date_range('2015-01-01', '2015-01-30', tz=tz))
             result = expected.copy()
             result[[3, 4, 5, 13, 14, 15]] = pd.NaT
