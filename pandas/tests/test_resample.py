@@ -1983,8 +1983,8 @@ class TestDatetimeIndex(Base):
                      pd.Timestamp('2015-06-08 00:00:00'): '2015-06-08'}})
         r = df.resample('D')
         g = df.groupby(pd.Grouper(freq='D'))
-        expected = df.groupby(pd.TimeGrouper('D')).ID.apply(lambda x:
-                                                            x.nunique())
+        expected = df.groupby(pd.Grouper(freq='D')).ID.apply(lambda x:
+                                                             x.nunique())
         assert expected.name == 'ID'
 
         for t in [r, g]:
@@ -3075,7 +3075,9 @@ class TestTimeGrouper(object):
                          index=date_range('1/1/2000', periods=1000))
 
     def test_apply(self):
-        grouper = TimeGrouper('A', label='right', closed='right')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
 
         grouped = self.ts.groupby(grouper)
 
@@ -3093,7 +3095,9 @@ class TestTimeGrouper(object):
 
         expected = self.ts.groupby(lambda x: x.year).count()
 
-        grouper = TimeGrouper('A', label='right', closed='right')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
         result = self.ts.groupby(grouper).count()
         expected.index = result.index
         assert_series_equal(result, expected)
