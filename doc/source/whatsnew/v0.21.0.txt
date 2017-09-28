@@ -189,7 +189,7 @@ Previous Behavior:
    In [3]: resampled = s.resample('2Q').mean()
 
    In [4]: resampled
-   Out[4]: 
+   Out[4]:
    2017-03-31     1.0
    2017-09-30     5.5
    2018-03-31    10.0
@@ -224,14 +224,14 @@ Previous Behavior:
    In [2]: s = pd.Series(np.arange(10), index=pi)
 
    In [3]: s.resample('H').ohlc()
-   Out[3]: 
+   Out[3]:
    2000-01-01 00:00    0.0
-                   ... 
+                   ...
    2000-01-10 23:00    NaN
    Freq: H, Length: 240, dtype: float64
 
    In [4]: s.resample('M').ohlc()
-   Out[4]: 
+   Out[4]:
             open  high  low  close
    2000-01     0     9    0      9
 
@@ -247,7 +247,7 @@ New Behavior:
 
    s.resample('M').ohlc()
 
-    
+
 As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
 .. _whatsnew_0210.api_breaking.deps:

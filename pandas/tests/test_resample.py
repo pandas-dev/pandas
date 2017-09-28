@@ -2817,14 +2817,6 @@ class TestPeriodIndex(Base):
         result = df.resample('7D').sum()
         assert_frame_equal(result, expected)
 
-    def test_apply_to_empty_series(self):
-        # GH 14313
-        series = self.create_series()[:0]
-
-        for freq in ['M', 'D', 'H']:
-            with pytest.raises(TypeError):
-                series.resample(freq).apply(lambda x: 1)
-
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
     @pytest.mark.parametrize('agg_arg', ['mean', {'value': 'mean'}, ['mean']])
     def test_loffset_returns_datetimeindex(self, frame, kind, agg_arg):
