@@ -45,7 +45,7 @@ def mangle_docstrings(app, what, name, obj, options, lines,
     # PANDAS HACK (to remove the list of methods/attributes for Categorical)
     no_autosummary = [".Categorical", "CategoricalIndex", "IntervalIndex",
                       "RangeIndex", "Int64Index", "UInt64Index",
-                      "Float64Index"]
+                      "Float64Index", "PeriodIndex"]
     if what == "class" and any(name.endswith(n) for n in no_autosummary):
         cfg['class_members_list'] = False
 
