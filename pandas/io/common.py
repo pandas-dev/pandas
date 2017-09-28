@@ -27,19 +27,6 @@ _NA_VALUES = set([
     'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
 
-try:
-    import pathlib
-    _PATHLIB_INSTALLED = True
-except ImportError:
-    _PATHLIB_INSTALLED = False
-
-
-try:
-    from py.path import local as LocalPath
-    _PY_PATH_INSTALLED = True
-except:
-    _PY_PATH_INSTALLED = False
-
 
 if compat.PY3:
     from urllib.request import urlopen, pathname2url
@@ -160,6 +147,18 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
+    try:
+        import pathlib
+        _PATHLIB_INSTALLED = True
+    except ImportError:
+        _PATHLIB_INSTALLED = False
+
+    try:
+        from py.path import local as LocalPath
+        _PY_PATH_INSTALLED = True
+    except ImportError:
+        _PY_PATH_INSTALLED = False
+
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
