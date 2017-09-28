@@ -71,6 +71,9 @@ time conda install -n pandas pytest>=3.1.0 || exit 1
 source activate pandas
 time pip install moto || exit 1
 
+# https://github.com/conda/conda/issues/6030
+conda install gcc_linux-64
+
 # build but don't install
 echo "[build em]"
 time python setup.py build_ext --inplace || exit 1
