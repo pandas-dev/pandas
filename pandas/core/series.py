@@ -2741,9 +2741,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_datetime64_dtype(self) and self.isnull().any():
             s2 = self.astype('i8').astype('f8')
             s2[self.isnull()] = np.nan
-            return to_datetime(s2.interpolate(*args, **kwargs))            
+            return to_datetime(s2.interpolate(*args, **kwargs))
         else:
-            return super(Series, self).interpolate(*args, **kwargs)        
+            return super(Series, self).interpolate(*args, **kwargs)
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
