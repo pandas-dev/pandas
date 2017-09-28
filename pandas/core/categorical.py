@@ -510,6 +510,49 @@ class Categorical(PandasObject):
         return None
 
     @classmethod
+    def _from_inferred_categories(cls, inferred_categories, inferred_codes,
+                                  dtype):
+        """Construct a Categorical from inferred values
+
+        For inferred categories (`dtype` is None) the categories are sorted.
+        For explicit `dtype`, the `inferred_categories` are cast to the
+        appropriate type.
+
+        Parameters
+        ----------
+
+        inferred_categories, inferred_codes : Index
+        dtype : CategoricalDtype
+
+        Returns
+        -------
+        Categorical
+        """
+        from pandas.core.dtypes.cast import maybe_convert_for_categorical
+        from pandas import Index
+
+        cats = Index(inferred_categories)
+        cats = maybe_convert_for_categorical(cats, dtype)
+
+        if (isinstance(dtype, CategoricalDtype) and
+                dtype.categories is not None):
+            # recode for dtype.categories
+            categories = dtype.categories
+            codes = _recode_for_categories(inferred_codes, cats, categories)
+        elif not cats.is_monotonic_increasing:
+            # sort categories and recode if necessary
+            unsorted = cats.copy()
+            categories = cats.sort_values()
+            codes = _recode_for_categories(inferred_codes, unsorted,
+                                           categories)
+            dtype = CategoricalDtype(categories, ordered=False)
+        else:
+            dtype = CategoricalDtype(cats, ordered=False)
+            codes = inferred_codes
+
+        return cls(codes, dtype=dtype, fastpath=True)
+
+    @classmethod
     def from_array(cls, data, **kwargs):
         """
         .. deprecated:: 0.19.0

@@ -1273,30 +1273,9 @@ cdef class TextReader:
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter,
                 na_hashset, self.c_encoding)
-            cats = Index(cats)
-
-            cats = maybe_convert_for_categorical(cats, dtype)
-
-            if (isinstance(dtype, CategoricalDtype) and
-                    dtype.categories is not None):
-                # recode for dtype.categories
-                categories = dtype.categories
-                codes = _recode_for_categories(codes, cats, categories)
-                ordered = dtype.ordered
-            elif not cats.is_monotonic_increasing:
-                # sort categories and recode if necessary
-                unsorted = cats.copy()
-                categories = cats.sort_values()
-                codes = _recode_for_categories(codes, unsorted, categories)
-                ordered = False
-            else:
-                categories = cats
-                ordered = False
-
-            cat = Categorical(codes, categories=categories, ordered=ordered,
-                              fastpath=True)
-
+            cat = Categorical._from_inferred_categories(cats, codes, dtype)
             return cat, na_count
+
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
