@@ -3436,7 +3436,7 @@ def cast_to_nanoseconds(ndarray arr):
     return result
 
 
-def pydt_to_i8(object pydt):
+cpdef pydt_to_i8(object pydt):
     """
     Convert to int64 representation compatible with numpy datetime64; converts
     to UTC

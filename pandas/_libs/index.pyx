@@ -22,19 +22,10 @@ from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
 
-from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
-                       pandas_datetimestruct)
-
 from cpython cimport PyTuple_Check, PyList_Check
-
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
 
 cdef int64_t iNaT = util.get_nat()
 
-
-PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
@@ -415,12 +406,12 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = _to_i8(val)
+            conv = tslib.pydt_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return util.get_value_at(values, loc) == conv
 
         self._ensure_mapping_populated()
-        return _to_i8(val) in self.mapping
+        return tslib.pydt_to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -435,12 +426,12 @@ cdef class DatetimeEngine(Int64Engine):
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = _to_i8(val)
+                val = tslib.pydt_to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
 
             try:
-                conv = _to_i8(val)
+                conv = tslib.pydt_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
                 self._date_check_type(val)
@@ -452,7 +443,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = _to_i8(val)
+            val = tslib.pydt_to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -463,7 +454,7 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            val = _to_i8(val)
+            val = tslib.pydt_to_i8(val)
             return self.mapping.get_item(val)
         except (TypeError, ValueError):
             self._date_check_type(val)
@@ -539,23 +530,6 @@ cpdef convert_scalar(ndarray arr, object value):
             raise ValueError('Cannot assign nan to integer series')
 
     return value
-
-cdef inline _to_i8(object val):
-    cdef pandas_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if util.is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            tzinfo = getattr(val, 'tzinfo', None)
-            # Save the original date value so we can get the utcoffset from it.
-            ival = _pydatetime_to_dts(val, &dts)
-            if tzinfo is not None and not is_utc(tzinfo):
-                offset = get_utcoffset(tzinfo, val)
-                ival -= tslib._delta_to_nanoseconds(offset)
-            return ival
-        return val
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):
