@@ -47,12 +47,13 @@ class TestPDApi(Base):
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
-               'SparseSeries', 'TimeGrouper', 'Timedelta',
+               'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['WidePanel', 'Panel4D',
-                          'SparseList', 'Expr', 'Term']
+                          'SparseList', 'Expr', 'Term',
+                          'TimeGrouper']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
