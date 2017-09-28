@@ -94,38 +94,106 @@ class PandasDelegate(object):
         overwrite : boolean, default False
            overwrite the method/property in the target class if it exists
         """
-
-        def _create_delegator_property(name):
-
-            def _getter(self):
-                return self._delegate_property_get(name)
-
-            def _setter(self, new_values):
-                return self._delegate_property_set(name, new_values)
-
-            _getter.__name__ = name
-            _setter.__name__ = name
-
-            return property(fget=_getter, fset=_setter,
-                            doc=getattr(delegate, name).__doc__)
-
-        def _create_delegator_method(name):
-
-            def f(self, *args, **kwargs):
-                return self._delegate_method(name, *args, **kwargs)
-
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, name).__doc__
-
-            return f
-
         for name in accessors:
 
             if typ == 'property':
-                f = _create_delegator_property(name)
+                f = Delegator.create_delegator_property(name, delegate)
             else:
-                f = _create_delegator_method(name)
+                f = Delegator.create_delegator_method(name, delegate)
 
             # don't overwrite existing methods/properties
             if overwrite or not hasattr(cls, name):
                 setattr(cls, name, f)
+
+
+class Delegator(object):
+    """ Delegator class contains methods that are used by PandasDelegate
+    and Accessor subclasses, but that so not ultimately belong in
+    the namespaces of user-facing classes.
+
+    Many of these methods *could* be module-level functions, but are
+    retained as staticmethods for organization purposes.
+    """
+
+    @staticmethod
+    def create_delegator_property(name, delegate):
+        # Note: we really only need the `delegate` here for the docstring
+
+        def _getter(self):
+            return self._delegate_property_get(name)
+
+        def _setter(self, new_values):
+            return self._delegate_property_set(name, new_values)
+            # TODO: not hit in tests; not sure this is something we
+            # really want anyway
+
+        _getter.__name__ = name
+        _setter.__name__ = name
+        _doc = getattr(delegate, name).__doc__
+        return property(fget=_getter, fset=_setter, doc=_doc)
+
+    @staticmethod
+    def create_delegator_method(name, delegate):
+        # Note: we really only need the `delegate` here for the docstring
+
+        def func(self, *args, **kwargs):
+            return self._delegate_method(name, *args, **kwargs)
+
+        func.__name__ = name
+        func.__doc__ = getattr(delegate, name).__doc__
+        return func
+
+    @staticmethod
+    def delegate_names(delegate, accessors, typ, overwrite=False):
+        """
+        delegate_names decorates class definitions, e.g:
+
+        @delegate_names(Categorical, ["categories", "ordered"], "property")
+        class CategoricalAccessor(PandasDelegate):
+
+            @classmethod
+            def _make_accessor(cls, data):
+                [...]
+
+
+        The motivation is that we would like to keep as much of a class's
+        internals inside the class definition.  For things that we cannot
+        keep directly in the class definition, a decorator is more directly
+        tied to the definition than a method call outside the definition.
+
+        """
+        # Note: we really only need the `delegate` here for the docstring
+
+        def add_delegate_accessors(cls):
+            """
+            add accessors to cls from the delegate class
+
+            Parameters
+            ----------
+            cls : the class to add the methods/properties to
+            delegate : the class to get methods/properties & doc-strings
+            acccessors : string list of accessors to add
+            typ : 'property' or 'method'
+            overwrite : boolean, default False
+                overwrite the method/property in the target class if it exists
+            """
+            for name in accessors:
+                if typ == "property":
+                    func = Delegator.create_delegator_property(name, delegate)
+                else:
+                    func = Delegator.create_delegator_method(name, delegate)
+
+                # don't overwrite existing methods/properties unless
+                # specifically told to do so
+                if overwrite or not hasattr(cls, name):
+                    setattr(cls, name, func)
+
+            return cls
+
+        return add_delegate_accessors
+
+
+wrap_delegate_names = Delegator.delegate_names
+# TODO: the `delegate` arg to `wrap_delegate_names` is really only relevant
+# for a docstring.  It'd be nice if we didn't require it and could duck-type
+# instead.
