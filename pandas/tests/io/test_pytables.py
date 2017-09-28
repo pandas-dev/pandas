@@ -4391,6 +4391,19 @@ class TestHDFStore(Base):
             lambda p: pd.read_hdf(p, 'df'))
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.parametrize('start, stop', [(0, 2), (1, 2), (None, None)])
+    def test_contiguous_mixed_data_table(self, start, stop):
+        # GH 17021
+        # ValueError when reading a contiguous mixed-data table ft. VLArray
+        df = DataFrame({'a': Series([20111010, 20111011, 20111012]),
+                        'b': Series(['ab', 'cd', 'ab'])})
+
+        with ensure_clean_store(self.path) as store:
+            store.append('test_dataset', df)
+
+            result = store.select('test_dataset', start=start, stop=stop)
+            assert_frame_equal(df[start:stop], result)
+
     def test_path_pathlib_hdfstore(self):
         df = tm.makeDataFrame()
 
