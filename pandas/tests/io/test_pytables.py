@@ -799,6 +799,10 @@ class TestHDFStore(Base):
         # Remove lzo if its not available on this platform
         if not tables.which_lib_version('lzo'):
             all_complibs.remove('lzo')
+        # Remove bzip2 if its not available on this platform
+        if not tables.which_lib_version("bzip2"):
+            all_complibs.remove("bzip2")
+
         all_levels = range(0, 10)
         all_tests = [(lib, lvl) for lib in all_complibs for lvl in all_levels]
 

@@ -78,7 +78,6 @@ install:
   - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda install -n pandas --file=%REQ%
-  - cmd: conda install bzip2  # XXX: remove when fixed in defaults
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
 
