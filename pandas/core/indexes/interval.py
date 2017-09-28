@@ -352,11 +352,10 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-
-        >>> IntervalIndex.from_breaks([0, 1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
         See Also
         --------
@@ -393,11 +392,10 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-
-        >>> IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
         See Also
         --------
@@ -431,19 +429,17 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-
-        >>> IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.IntervalIndex.from_intervals([pd.Interval(0, 1),
+        ...                                  pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
 
         The generic Index constructor work identically when it infers an array
         of all intervals:
 
-        >>> Index([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
 
         See Also
         --------
@@ -1196,7 +1192,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Examples
     --------
-
     Numeric ``start`` and  ``end`` is supported.
 
     >>> pd.interval_range(start=0, end=5)
