@@ -2009,14 +2009,14 @@ class MultiIndex(Index):
         Notes
         ------
         The key cannot be a slice, list of same-level labels, a boolean mask,
-        or a sequence of such. If you want to use those, use :meth:`get_locs`
-        instead.
+        or a sequence of such. If you want to use those, use
+        :meth:`MultiIndex.get_locs` instead.
 
         See also
         --------
         Index.get_loc : get_loc method for (single-level) index.
-        get_locs : Get location for a label/slice/list/mask or a sequence of
-                   such.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
@@ -2340,23 +2340,24 @@ class MultiIndex(Index):
     def get_locs(self, seq):
         """
         Get location for a given label/slice/list/mask or a sequence of such as
-        a integer, slice or boolean mask.
+        an array of integers.
 
         Parameters
         ----------
-        seq : label/slice/list/mask or a sequence of such.
+        seq : label/slice/list/mask or a sequence of such
+           You should use one of the above for each level.
+           If a level should not be used, set it to ``slice(None)``.
 
         Returns
         -------
-        locs : integer, slice or boolean mask suitable
-               for passing to iloc
+        locs : array of integers suitable for passing to iloc
 
         Examples
         ---------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
 
         >>> mi.get_locs('b')
-        slice(1, 3, None)
+        array([1, 2], dtype=int64)
 
         >>> mi.get_locs([slice(None), ['e', 'f']])
         array([1, 2], dtype=int64)
@@ -2366,7 +2367,7 @@ class MultiIndex(Index):
 
         See also
         --------
-        get_loc : Get location for a label or a tuple of labels.
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
         """
 
         # must be lexsorted to at least as many levels
