@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/conversion.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
@@ -492,6 +493,7 @@ ext_data = {
                     'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c']},
+    '_libs.tslibs.conversion': {'pyxfile': '_libs/tslibs/conversion'},
     '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.period': {'pyxfile': '_libs/period',
                      'depends': (tseries_depends +
