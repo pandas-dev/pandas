@@ -3556,7 +3556,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_locs(self, start=None, end=None, step=None, kind=None):
         """
-        Compute slice locations for input labels.
+        For an ordered index, compute slice locations for input labels.
 
         Parameters
         ----------
@@ -3572,6 +3572,19 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         start, end : int
 
+        Notes
+        -----
+        This method only works if the index is monotonic.
+
+        Examples
+        ---------
+        >>> idx = pd.Index(list('abcd'))
+        >>>  idx.slice_locs(start='b', end='c')
+        (1, 3)
+
+        See Also
+        --------
+        Index.get_loc : Get location for a single label
         """
         inc = (step is None or step >= 0)
 
