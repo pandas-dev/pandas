@@ -830,7 +830,7 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
-    def __init__(self, data, x, y, s=None, size_factor=1, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, c=None, size_factor=1, **kwargs):
         if s is None:
             # Set default size if no argument is given.
             s = 20

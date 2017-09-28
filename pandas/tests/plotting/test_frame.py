@@ -1048,7 +1048,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(x='y', y='y', kind='scatter')
         ve.match('requires x column to be numeric')
 
-
     @pytest.mark.slow
     def test_plot_scatter_with_c(self):
         df = DataFrame(randn(6, 4),
@@ -1129,7 +1128,7 @@ class TestDataFramePlots(TestPlotBase):
                         [2.7, 6.2, 1.49]])
         df = DataFrame(data,
                        columns = ['x', 'y', 'z'])
-        ax = df.plot.scatter(x='x', y='y', s='z', s_grow=4)
+        ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
         bubbles = ax.collections[0]
         bubble_sizes = bubbles.get_sizes()
         max_data = df['z'].max()
