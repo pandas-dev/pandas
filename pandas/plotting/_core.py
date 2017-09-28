@@ -43,6 +43,15 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
 _registered = False
 
 
+def _setup():
+    # delay the import of matplotlib until nescessary
+    global _registered
+    if not _registered:
+        from pandas.plotting import _converter
+        _converter.register()
+        _registered = True
+
+
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
@@ -90,7 +99,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
-        self._setup()
+        _setup()
         self.data = data
         self.by = by
 
@@ -173,13 +182,6 @@ class MPLPlot(object):
         self.kwds = kwds
 
         self._validate_color_args()
-
-    def _setup(self):
-        global _registered
-        if not _registered:
-            from pandas.plotting import _converter
-            _converter.register()
-            _registered = True
 
     def _validate_color_args(self):
         if 'color' not in self.kwds and 'colors' in self.kwds:
@@ -2059,6 +2061,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
     import matplotlib.pyplot as plt
+    _setup()
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -2154,7 +2157,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
-
+    _setup()
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
                             figsize=figsize, sharex=sharex, sharey=sharey,
@@ -2351,6 +2354,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
+    _setup()
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
