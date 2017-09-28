@@ -46,7 +46,8 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import tslib, algos, lib
+from pandas._libs import algos, lib
+from pandas._libs.tslibs import timezones
 
 from distutils.version import LooseVersion
 
@@ -2440,13 +2441,12 @@ class GenericFixed(Fixed):
         """ read an array for the specified node (off of group """
         import tables
         node = getattr(self.group, key)
-        data = node[start:stop]
         attrs = node._v_attrs
 
         transposed = getattr(attrs, 'transposed', False)
 
         if isinstance(node, tables.VLArray):
-            ret = data[0]
+            ret = node[0][start:stop]
         else:
             dtype = getattr(attrs, 'value_type', None)
             shape = getattr(attrs, 'shape', None)
@@ -2455,7 +2455,7 @@ class GenericFixed(Fixed):
                 # length 0 axis
                 ret = np.empty(shape, dtype=dtype)
             else:
-                ret = data
+                ret = node[start:stop]
 
             if dtype == u('datetime64'):
 
@@ -4379,7 +4379,7 @@ def _get_info(info, name):
 
 def _get_tz(tz):
     """ for a tz-aware type, return an encoded zone """
-    zone = tslib.get_timezone(tz)
+    zone = timezones.get_timezone(tz)
     if zone is None:
         zone = tz.utcoffset().total_seconds()
     return zone
@@ -4401,7 +4401,7 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     if tz is not None:
         name = getattr(values, 'name', None)
         values = values.ravel()
-        tz = tslib.get_timezone(_ensure_decoded(tz))
+        tz = timezones.get_timezone(_ensure_decoded(tz))
         values = DatetimeIndex(values, name=name)
         if values.tz is None:
             values = values.tz_localize('UTC').tz_convert(tz)

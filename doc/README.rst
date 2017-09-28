@@ -3,9 +3,11 @@
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still
-of huge value. You don't even have to be an expert on
-*pandas* to do so! Something as simple as rewriting small passages for clarity
+Whether you are someone who loves writing, teaching, or development,
+contributing to the documentation is a huge value. If you don't see yourself
+as a developer type, please don't stress and know that we want you to
+contribute. You don't even have to be an expert on *pandas* to do so!
+Something as simple as rewriting small passages for clarity
 as you reference the docs is a simple but effective way to contribute. The
 next person to read that passage will be in your debt!
 

@@ -54,6 +54,9 @@ typedef struct {
     int num;
 } pandas_datetime_metadata;
 
+extern const pandas_datetimestruct _NS_MIN_DTS;
+extern const pandas_datetimestruct _NS_MAX_DTS;
+
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 

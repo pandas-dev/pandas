@@ -94,6 +94,7 @@ cdef extern from "datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
     int days_per_month_table[2][12]
+    pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
     int dayofweek(int y, int m, int d) nogil
     int is_leapyear(int64_t year) nogil
@@ -161,3 +162,17 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+
+
+cdef inline bint check_dts_bounds(pandas_datetimestruct *dts):
+    """Returns True if an error needs to be raised"""
+    cdef:
+        bint error = False
+
+    if (dts.year <= 1677 and
+            cmp_pandas_datetimestruct(dts, &_NS_MIN_DTS) == -1):
+        error = True
+    elif (dts.year >= 2262 and
+          cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
+        error = True
+    return error

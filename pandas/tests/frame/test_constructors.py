@@ -1766,7 +1766,7 @@ class TestDataFrameConstructors(TestData):
 
         # this is actually tricky to create the recordlike arrays and
         # have the dtypes be intact
-        blocks = df.blocks
+        blocks = df._to_dict_of_blocks()
         tuples = []
         columns = []
         dtypes = []
@@ -1841,8 +1841,9 @@ class TestDataFrameConstructors(TestData):
 
         # columns is in a different order here than the actual items iterated
         # from the dict
+        blocks = df._to_dict_of_blocks()
         columns = []
-        for dtype, b in compat.iteritems(df.blocks):
+        for dtype, b in compat.iteritems(blocks):
             columns.extend(b.columns)
 
         asdict = dict((x, y) for x, y in compat.iteritems(df))

@@ -387,7 +387,7 @@ class TestSeriesIndexing(TestData):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         from dateutil.tz import tzutc
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil
@@ -1782,6 +1782,11 @@ class TestSeriesIndexing(TestData):
         result = s.drop(True)
         expected = Series([3], index=[False])
         assert_series_equal(result, expected)
+
+        # GH 16877
+        s = Series([2, 3], index=[0, 1])
+        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+            s.drop([False, True])
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):

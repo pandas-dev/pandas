@@ -10,6 +10,8 @@ users upgrade to this version.
 Highlights include:
 
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -89,6 +91,49 @@ This does not raise any obvious exceptions, but also does not create a new colum
 
 Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
 
+``drop`` now also accepts index/columns keywords
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an
+alternative to specify the ``axis`` and to make it similar in usage to ``reindex``
+(:issue:`12392`).
+
+For example:
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.arange(8).reshape(2,4),
+                      columns=['A', 'B', 'C', 'D'])
+    df
+    df.drop(['B', 'C'], axis=1)
+    # the following is now equivalent
+    df.drop(columns=['B', 'C'])
+
+.. _whatsnew_0210.enhancements.categorical_dtype:
+
+``CategoricalDtype`` for specifying categoricals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`pandas.api.types.CategoricalDtype` has been added to the public API and
+expanded to include the ``categories`` and ``ordered`` attributes. A
+``CategoricalDtype`` can be used to specify the set of categories and
+orderedness of an array, independent of the data themselves. This can be useful,
+e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
+:issue:`15078`, :issue:`16015`):
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   s = pd.Series(['a', 'b', 'c', 'a'])  # strings
+   dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+   s.astype(dtype)
+
+The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
+``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
+
+See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
@@ -110,11 +155,14 @@ Other Enhancements
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
-- `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
+- Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
-
+- :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
+- :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
+- :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
+- :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 
 
 .. _whatsnew_0210.api_breaking:
@@ -133,7 +181,7 @@ We have updated our minimum supported versions of dependencies (:issue:`15206`, 
 
    +--------------+-----------------+----------+
    | Package      | Minimum Version | Required |
-   +======================+=========+==========+
+   +==============+=================+==========+
    | Numpy        | 1.9.0           |    X     |
    +--------------+-----------------+----------+
    | Matplotlib   | 1.4.3           |          |
@@ -239,54 +287,53 @@ New Behaviour:
 Dtype Conversions
 ^^^^^^^^^^^^^^^^^
 
-- Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to
-  same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
+Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to same the type (e.g. int / float), or raise for datetimelikes. These will now preseve the bools with ``object`` dtypes. (:issue:`16821`).
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = Series([1, 2, 3])
+   s = Series([1, 2, 3])
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [5]: s[1] = True
+   In [5]: s[1] = True
 
-     In [6]: s
-     Out[6]:
-     0    1
-     1    1
-     2    3
-     dtype: int64
+   In [6]: s
+   Out[6]:
+   0    1
+   1    1
+   2    3
+   dtype: int64
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     s[1] = True
-     s
+   s[1] = True
+   s
 
-- Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
-  non-datetime-like item being assigned (:issue:`14145`).
+Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
+non-datetime-like item being assigned (:issue:`14145`).
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+   s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [1]: s[1] = 1
+   In [1]: s[1] = 1
 
-     In [2]: s
-     Out[2]:
-     0   2011-01-01 00:00:00.000000000
-     1   1970-01-01 00:00:00.000000001
-     dtype: datetime64[ns]
+   In [2]: s
+   Out[2]:
+   0   2011-01-01 00:00:00.000000000
+   1   1970-01-01 00:00:00.000000001
+   dtype: datetime64[ns]
 
-  These now coerce to ``object`` dtype.
+These now coerce to ``object`` dtype.
 
-  .. ipython:: python
+.. ipython:: python
 
-     s[1] = 1
-     s
+   s[1] = 1
+   s
 
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
@@ -336,26 +383,26 @@ UTC Localization with Series
 
 Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
 
-  Previous Behavior
+Previous Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     s = Series(['20130101 00:00:00'] * 3)
+   s = Series(['20130101 00:00:00'] * 3)
 
-  .. code-block:: ipython
+.. code-block:: ipython
 
-     In [12]: pd.to_datetime(s, utc=True)
-     Out[12]:
-     0   2013-01-01
-     1   2013-01-01
-     2   2013-01-01
-     dtype: datetime64[ns]
+   In [12]: pd.to_datetime(s, utc=True)
+   Out[12]:
+   0   2013-01-01
+   1   2013-01-01
+   2   2013-01-01
+   dtype: datetime64[ns]
 
-  New Behavior
+New Behavior
 
-  .. ipython:: python
+.. ipython:: python
 
-     pd.to_datetime(s, utc=True)
+   pd.to_datetime(s, utc=True)
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
@@ -389,7 +436,7 @@ New Behavior:
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
-  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')  
+  In [3]: pd.period_range(start='2017Q1', end='2017Q4', periods=6, freq='Q')
   ---------------------------------------------------------------------------
   ValueError: Of the three parameters: start, end, and periods, exactly two must be specified
 
@@ -408,9 +455,9 @@ Previous Behavior:
 
 New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-     pd.interval_range(start=0, end=4)
+   pd.interval_range(start=0, end=4)
 
 .. _whatsnew_0210.api:
 
@@ -421,6 +468,7 @@ Other API Changes
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
+- :func:`read_csv` now issues a ``UserWarning`` if the ``names`` parameter contains duplicates (:issue:`17095`)
 - :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
 - :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
 - :class:`pandas.HDFStore`'s string representation is now faster and less detailed. For the previous behavior, use ``pandas.HDFStore.info()``. (:issue:`16503`).
@@ -433,17 +481,39 @@ Other API Changes
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
-
+- Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 
 .. _whatsnew_0210.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
+
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
-
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
-
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
+- :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
+- ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
+
+.. _whatsnew_0210.deprecations.argmin_min
+
+Series.argmax and Series.argmin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- The behavior of :func:`Series.argmax` has been deprecated in favor of :func:`Series.idxmax` (:issue:`16830`)
+- The behavior of :func:`Series.argmin` has been deprecated in favor of :func:`Series.idxmin` (:issue:`16830`)
+
+For compatibility with NumPy arrays, ``pd.Series`` implements ``argmax`` and
+``argmin``. Since pandas 0.13.0, ``argmax`` has been an alias for
+:meth:`pandas.Series.idxmax`, and ``argmin`` has been an alias for
+:meth:`pandas.Series.idxmin`. They return the *label* of the maximum or minimum,
+rather than the *position*.
+
+We've deprecated the current behavior of ``Series.argmax`` and
+``Series.argmin``. Using either of these will emit a ``FutureWarning``. Use
+:meth:`Series.idxmax` if you want the label of the maximum. Use
+``Series.values.argmax()`` if you want the position of the maximum. Likewise for
+the minimum. In a future release ``Series.argmax`` and ``Series.argmin`` will
+return the position of the maximum or minimum.
 
 .. _whatsnew_0210.prior_deprecations:
 
@@ -472,6 +542,15 @@ Performance Improvements
 - Improved performance of :meth:`Categorical.set_categories` by not materializing the values (:issue:`17508`)
 - :attr:`Timestamp.microsecond` no longer re-computes on attribute access (:issue:`17331`)
 - Improved performance of the :class:`CategoricalIndex` for data that is already categorical dtype (:issue:`17513`)
+- Improved performance of :meth:`RangeIndex.min` and :meth:`RangeIndex.max` by using ``RangeIndex`` properties to perform the computations (:issue:`17607`)
+
+.. _whatsnew_0210.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
+- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)
 
 .. _whatsnew_0210.bug_fixes:
 
@@ -487,6 +566,8 @@ Conversion
 - Bug in ``IntervalIndex.is_non_overlapping_monotonic`` when intervals are closed on both sides and overlap at a point (:issue:`16560`)
 - Bug in :func:`Series.fillna` returns frame when ``inplace=True`` and ``value`` is dict (:issue:`16156`)
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
+- Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
+- Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
 
 Indexing
 ^^^^^^^^
@@ -506,6 +587,7 @@ Indexing
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
 - Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
+- Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 
 I/O
 ^^^
@@ -520,11 +602,15 @@ I/O
 - Bug in :func:`read_stata` where the index was not set (:issue:`16342`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 - Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
+- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
+- Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
 
 Plotting
 ^^^^^^^^
 - Bug in plotting methods using ``secondary_y`` and ``fontsize`` not setting secondary axis font size (:issue:`12565`)
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
+- Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`, :issue:`11471`)
+- With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
 - Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
 
 
@@ -538,14 +624,16 @@ Groupby/Resample/Rolling
 - Bug in ``Series.resample(...).apply()`` where an empty ``Series`` modified the source index and did not return the name of a ``Series`` (:issue:`14313`)
 - Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1` (:issue:`15305`)
 - Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
+- Bug in ``groupby.nunique()`` with ``TimeGrouper`` which cannot handle ``NaT`` correctly (:issue:`17575`)
 
 Sparse
 ^^^^^^
 
 - Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16905`)
 - Bug in :func:`SparseDataFrame.fillna` not filling all NaNs when frame was instantiated from SciPy sparse matrix (:issue:`16112`)
+- Bug in :func:`SparseSeries.unstack` and :func:`SparseDataFrame.stack` (:issue:`16614`, :issue:`15045`)
+- Bug in :func:`make_sparse` treating two numeric/boolean data, which have same bits, as same when array ``dtype`` is ``object`` (:issue:`17574`)
 - :func:`SparseArray.all` and :func:`SparseArray.any` are now implemented to handle ``SparseArray``, these were used but not implemented (:issue:`17570`)
-
 
 Reshaping
 ^^^^^^^^^
@@ -569,9 +657,8 @@ Numeric
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
-- Bug in the categorical constructor with empty values and categories causing
-  the ``.categories`` to be an empty ``Float64Index`` rather than an empty
-  ``Index`` with object dtype (:issue:`17248`)
+- Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^
@@ -585,6 +672,5 @@ PyPy
 
 Other
 ^^^^^
+- Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
-- Several ``NaT`` method docstrings (e.g. :func:`NaT.ctime`) were incorrect (:issue:`17327`)
-- The documentation has had references to versions < v0.17 removed and cleaned up (:issue:`17442`, :issue:`17442`, :issue:`17404` & :issue:`17504`)

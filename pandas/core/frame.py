@@ -82,6 +82,7 @@ from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg
@@ -90,7 +91,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-import pandas.core.base as base
+from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
@@ -298,6 +299,7 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
+    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
 
     @property
     def _constructor_expanddim(self):
@@ -2575,12 +2577,12 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. To make things predicatable,
-        the columns are inserted in alphabetical order, at the end of
-        your DataFrame. Assigning multiple columns within the same
-        ``assign`` is possible, but you cannot reference other columns
-        created within the same ``assign`` call.
+        For python 3.6 and above, the columns are inserted in the order of
+        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        the columns are inserted in alphabetical order at the end of your
+        DataFrame.  Assigning multiple columns within the same ``assign``
+        is possible, but you cannot reference other columns created within
+        the same ``assign`` call.
 
         Examples
         --------
@@ -2620,14 +2622,18 @@ class DataFrame(NDFrame):
         data = self.copy()
 
         # do all calculations first...
-        results = {}
+        results = OrderedDict()
         for k, v in kwargs.items():
             results[k] = com._apply_if_callable(v, data)
 
+        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        if PY36:
+            results = results.items()
+        else:
+            results = sorted(results.items())
         # ... and then assign
-        for k, v in sorted(results.items()):
+        for k, v in results:
             data[k] = v
-
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -4063,23 +4069,27 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -5893,7 +5903,8 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
+                                     gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 

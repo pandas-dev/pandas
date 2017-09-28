@@ -50,6 +50,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
+from pandas._libs.tslibs import timezones
 
 
 def _utc():
@@ -372,7 +373,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = subarr.tz
         else:
             if tz is not None:
-                tz = libts.maybe_get_tz(tz)
+                tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
                         getattr(data, 'tz', None) is None):
@@ -447,17 +448,18 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise TypeError('Start and end cannot both be tz-aware with '
                             'different timezones')
 
-        inferred_tz = libts.maybe_get_tz(inferred_tz)
+        inferred_tz = timezones.maybe_get_tz(inferred_tz)
 
         # these may need to be localized
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
         if tz is not None:
             date = start or end
             if date.tzinfo is not None and hasattr(tz, 'localize'):
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not libts.get_timezone(inferred_tz) == libts.get_timezone(tz):
+            if not (timezones.get_timezone(inferred_tz) ==
+                    timezones.get_timezone(tz)):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -593,7 +595,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._data = values
         result.name = name
         result.offset = freq
-        result.tz = libts.maybe_get_tz(tz)
+        result.tz = timezones.maybe_get_tz(tz)
         result._reset_identity()
         return result
 
@@ -607,7 +609,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @cache_readonly
     def _timezone(self):
         """ Comparable timezone both for pytz / dateutil"""
-        return libts.get_timezone(self.tzinfo)
+        return timezones.get_timezone(self.tzinfo)
 
     def _has_same_tz(self, other):
         zzone = self._timezone
@@ -616,7 +618,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
-        vzone = libts.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
+        vzone = timezones.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
         return zzone == vzone
 
     @classmethod
@@ -1779,7 +1781,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         TypeError
             If DatetimeIndex is tz-naive.
         """
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
             # tz naive, use tz_localize
@@ -1839,7 +1841,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
-            tz = libts.maybe_get_tz(tz)
+            tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
             new_dates = libts.tz_localize_to_utc(self.asi8, tz,
