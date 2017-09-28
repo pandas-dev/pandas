@@ -3,14 +3,22 @@ Check that certain modules are not loaded by `import pandas`
 """
 import sys
 
-
 blacklist = {
+    'bs4',
+    'html5lib',
+    'jinja2'
+    'lxml',
     'matplotlib',
     'numexpr',
-    'xlsxwriter',
     'openpyxl',
+    'py',
+    'pytest',
+    's3fs',
+    'scipy',
+    'tables',
+    'xlrd',
+    'xlsxwriter',
     'xlwt',
-    'numexpr',
 }
 
 
