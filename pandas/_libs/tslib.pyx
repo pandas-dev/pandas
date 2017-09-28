@@ -108,7 +108,7 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
-    get_dst_info, infer_dst_transitions
+    get_dst_info
     )
 
 
@@ -3735,7 +3735,48 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             result_b[i] = v
 
     if infer_dst:
-        dst_hours = infer_dst_transitions(vals, result_a, result_b)
+        dst_hours = np.empty(n, dtype=np.int64)
+        dst_hours.fill(NPY_NAT)
+
+        # Get the ambiguous hours (given the above, these are the hours
+        # where result_a != result_b and neither of them are NAT)
+        both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
+        both_eq = result_a == result_b
+        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
+        if trans_idx.size == 1:
+            stamp = Timestamp(vals[trans_idx])
+            raise pytz.AmbiguousTimeError(
+                "Cannot infer dst time from %s as there "
+                "are no repeated times" % stamp)
+        # Split the array into contiguous chunks (where the difference between
+        # indices is 1).  These are effectively dst transitions in different
+        # years which is useful for checking that there is not an ambiguous
+        # transition in an individual year.
+        if trans_idx.size > 0:
+            one_diff = np.where(np.diff(trans_idx) != 1)[0] +1
+            trans_grp = np.array_split(trans_idx, one_diff)
+
+            # Iterate through each day, if there are no hours where the
+            # delta is negative (indicates a repeat of hour) the switch
+            # cannot be inferred
+            for grp in trans_grp:
+
+                delta = np.diff(result_a[grp])
+                if grp.size == 1 or np.all(delta > 0):
+                    stamp = Timestamp(vals[grp[0]])
+                    raise pytz.AmbiguousTimeError(stamp)
+
+                # Find the index for the switch and pull from a for dst and b
+                # for standard
+                switch_idx = (delta <= 0).nonzero()[0]
+                if switch_idx.size > 1:
+                    raise pytz.AmbiguousTimeError(
+                        "There are %i dst switches when "
+                        "there should only be 1." % switch_idx.size)
+                switch_idx = switch_idx[0] + 1 # Pull the only index and adjust
+                a_idx = grp[:switch_idx]
+                b_idx = grp[switch_idx:]
+                dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
 
     for i in range(n):
         left = result_a[i]
