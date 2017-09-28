@@ -16,4 +16,4 @@ s3fs
 psycopg2
 pymysql
 html5lib
-beautiful-soup
+beautifulsoup4
