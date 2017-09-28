@@ -189,6 +189,8 @@ ALLANY_DEFAULTS['dtype'] = None
 ALLANY_DEFAULTS['out'] = None
 validate_all = CompatValidator(ALLANY_DEFAULTS, fname='all',
                                method='both', max_fname_arg_count=1)
+validate_any = CompatValidator(ALLANY_DEFAULTS, fname='any',
+                               method='both', max_fname_arg_count=1)
 
 LOGICAL_FUNC_DEFAULTS = dict(out=None)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method='kwargs')
