@@ -33,7 +33,7 @@ from pandas.util._decorators import Appender
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0,
                                      _mpl_ge_2_0_0)
-from pandas.plotting._style import (mpl_stylesheet, plot_params,
+from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _handle_shared_axes, _get_all_lines,
@@ -179,13 +179,6 @@ class MPLPlot(object):
         if not _registered:
             from pandas.plotting import _converter
             _converter.register()
-
-            if _mpl_ge_1_5_0():
-                # Compat with mp 1.5, which uses cycler.
-                import cycler
-                colors = mpl_stylesheet.pop('axes.color_cycle')
-                mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
-
             _registered = True
 
     def _validate_color_args(self):
