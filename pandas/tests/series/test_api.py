@@ -345,7 +345,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                          index=date_range('1/1/2000', periods=1000))
 
         def f(x):
-            return x[x.argmax()]
+            return x[x.idxmax()]
 
         result = tsdf.apply(f)
         expected = tsdf.max()
