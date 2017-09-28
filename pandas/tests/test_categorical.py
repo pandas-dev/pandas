@@ -563,7 +563,7 @@ class TestCategorical(object):
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
         cats = ['a', 'b']
-        codes = [0, 0, 1, 1]
+        codes = np.array([0, 0, 1, 1], dtype='i8')
         result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical.from_codes(codes, cats)
         tm.assert_categorical_equal(result, expected)
@@ -571,14 +571,14 @@ class TestCategorical(object):
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories_sorts(self, dtype):
         cats = ['b', 'a']
-        codes = [0, 1, 1, 1]
+        codes = np.array([0, 1, 1, 1], dtype='i8')
         result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical.from_codes([1, 0, 0, 0], ['a', 'b'])
         tm.assert_categorical_equal(result, expected)
 
     def test_from_inferred_categories_dtype(self):
         cats = ['a', 'b', 'd']
-        codes = [0, 1, 0, 2]
+        codes = np.array([0, 1, 0, 2], dtype='i8')
         dtype = CategoricalDtype(['c', 'b', 'a'], ordered=True)
         result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical(['a', 'b', 'a', 'd'],
@@ -588,7 +588,7 @@ class TestCategorical(object):
 
     def test_from_inferred_categories_coerces(self):
         cats = ['1', '2', 'bad']
-        codes = [0, 0, 1, 2]
+        codes = np.array([0, 0, 1, 2], dtype='i8')
         dtype = CategoricalDtype([1, 2])
         result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical([1, 1, 2, np.nan])
