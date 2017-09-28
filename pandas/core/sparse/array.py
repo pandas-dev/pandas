@@ -615,6 +615,48 @@ class SparseArray(PandasObject, np.ndarray):
         return self._simple_new(new_values, self.sp_index,
                                 fill_value=fill_value)
 
+    def all(self, axis=0, *args, **kwargs):
+        """
+        Tests whether all elements evaluate True
+
+        Returns
+        -------
+        all : bool
+
+        See Also
+        --------
+        numpy.all
+        """
+        nv.validate_all(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and not np.all(self.fill_value):
+            return False
+
+        return values.all()
+
+    def any(self, axis=0, *args, **kwargs):
+        """
+        Tests whether at least one of elements evaluate True
+
+        Returns
+        -------
+        any : bool
+
+        See Also
+        --------
+        numpy.any
+        """
+        nv.validate_any(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and np.any(self.fill_value):
+            return True
+
+        return values.any()
+
     def sum(self, axis=0, *args, **kwargs):
         """
         Sum of non-NA/null values

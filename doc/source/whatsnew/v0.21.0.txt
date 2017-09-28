@@ -634,6 +634,7 @@ Sparse
 - Bug in :func:`SparseDataFrame.fillna` not filling all NaNs when frame was instantiated from SciPy sparse matrix (:issue:`16112`)
 - Bug in :func:`SparseSeries.unstack` and :func:`SparseDataFrame.stack` (:issue:`16614`, :issue:`15045`)
 - Bug in :func:`make_sparse` treating two numeric/boolean data, which have same bits, as same when array ``dtype`` is ``object`` (:issue:`17574`)
+- :func:`SparseArray.all` and :func:`SparseArray.any` are now implemented to handle ``SparseArray``, these were used but not implemented (:issue:`17570`)
 
 Reshaping
 ^^^^^^^^^
