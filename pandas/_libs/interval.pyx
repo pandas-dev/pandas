@@ -58,6 +58,10 @@ cdef class Interval(IntervalMixin):
     closed : {'left', 'right', 'both', 'neither'}
         Whether the interval is closed on the left-side, right-side, both or
         neither. Defaults to 'right'.
+
+    See Also
+    --------
+    IntervalIndex : an Index of intervals that are all closed on the same side.
     """
 
     cdef readonly object left, right
