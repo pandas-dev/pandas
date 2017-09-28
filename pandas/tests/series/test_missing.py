@@ -1218,3 +1218,13 @@ class TestSeriesInterpolateData(TestData):
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_series_interpolate_nat(self):
+        # GH 11701
+        expected = pd.Series(pd.date_range('2015-01-01', '2015-01-30'))
+        result = expected.copy()
+        result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+        result = result.interpolate()
+        print(result)
+        print(expected)
+        tm.assert_series_equal(result, expected)

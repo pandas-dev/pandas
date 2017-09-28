@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
+    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -34,8 +35,10 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
-
+from pandas.core.dtypes.missing import (isna, notna,
+                                        remove_na_arraylike,
+                                        isnull)
+from pandas.core.tools.datetimes import to_datetime
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -2733,6 +2736,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.index.name = result.name = None
 
         return result
+
+    def interpolate(self, *args, **kwargs):
+        if is_datetime64_dtype(self) and self.isnull().any():
+            s2 = self.astype('i8').astype('f8')
+            s2[self.isnull()] = np.nan
+            return to_datetime(s2.interpolate(*args, **kwargs))            
+        else:
+            return super(Series, self).interpolate(*args, **kwargs)        
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
