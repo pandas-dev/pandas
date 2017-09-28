@@ -2441,13 +2441,12 @@ class GenericFixed(Fixed):
         """ read an array for the specified node (off of group """
         import tables
         node = getattr(self.group, key)
-        data = node[start:stop]
         attrs = node._v_attrs
 
         transposed = getattr(attrs, 'transposed', False)
 
         if isinstance(node, tables.VLArray):
-            ret = data[0]
+            ret = node[0][start:stop]
         else:
             dtype = getattr(attrs, 'value_type', None)
             shape = getattr(attrs, 'shape', None)
@@ -2456,7 +2455,7 @@ class GenericFixed(Fixed):
                 # length 0 axis
                 ret = np.empty(shape, dtype=dtype)
             else:
-                ret = data
+                ret = node[start:stop]
 
             if dtype == u('datetime64'):
 
