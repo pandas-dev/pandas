@@ -57,7 +57,7 @@ class TestGroupBy(MixIn):
 
         # GH 8430
         df = tm.makeTimeDataFrame()
-        g = df.groupby(pd.TimeGrouper('M'))
+        g = df.groupby(pd.Grouper(freq='M'))
         g.transform(lambda x: x - 1)
 
         # GH 9700

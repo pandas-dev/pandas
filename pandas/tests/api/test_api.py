@@ -47,11 +47,11 @@ class TestPDApi(Base):
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
-               'SparseSeries', 'TimeGrouper', 'Timedelta',
+               'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'Panel4D',
+    deprecated_classes = ['WidePanel', 'Panel4D', 'TimeGrouper',
                           'SparseList', 'Expr', 'Term']
 
     # these should be deprecated in the future
@@ -183,6 +183,11 @@ class TestTopLevelDeprecations(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
+
+    def test_TimeGrouper(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.TimeGrouper(freq='D')
 
     # GH 15940
 
