@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0613,W0603
+from itertools import islice
 import os
 import numpy as np
 
@@ -8,8 +9,10 @@ from pandas.compat import StringIO, long, u
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _stringify_path)
+                              _stringify_path, BaseIterator)
+from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
+from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
@@ -175,7 +178,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False):
+              lines=False, chunksize=None):
     """
     Convert a JSON string to pandas object
 
@@ -264,6 +267,16 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
+    chunksize: integer, default None
+        Return JsonReader object for iteration.
+        See the `line-delimted json docs
+        <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
+        for more information on ``chunksize``.
+        This can only be passed if `lines=True`.
+        If this is None, the file will be read into memory all at once.
+
+        .. versionadded:: 0.21.0
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
@@ -323,47 +336,167 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
                                                       encoding=encoding)
-    if isinstance(filepath_or_buffer, compat.string_types):
-        try:
-            exists = os.path.exists(filepath_or_buffer)
 
-        # if the filepath is too long will raise here
-        # 5874
-        except (TypeError, ValueError):
-            exists = False
+    json_reader = JsonReader(
+        filepath_or_buffer, orient=orient, typ=typ, dtype=dtype,
+        convert_axes=convert_axes, convert_dates=convert_dates,
+        keep_default_dates=keep_default_dates, numpy=numpy,
+        precise_float=precise_float, date_unit=date_unit, encoding=encoding,
+        lines=lines, chunksize=chunksize
+    )
 
-        if exists:
-            fh, handles = _get_handle(filepath_or_buffer, 'r',
-                                      encoding=encoding)
-            json = fh.read()
-            fh.close()
+    if chunksize:
+        return json_reader
+
+    return json_reader.read()
+
+
+class JsonReader(BaseIterator):
+    """
+    JsonReader provides an interface for reading in a JSON file.
+
+    If initialized with ``lines=True`` and ``chunksize``, can be iterated over
+    ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
+    whole document.
+    """
+    def __init__(self, filepath_or_buffer, orient, typ, dtype, convert_axes,
+                 convert_dates, keep_default_dates, numpy, precise_float,
+                 date_unit, encoding, lines, chunksize):
+
+        self.path_or_buf = filepath_or_buffer
+        self.orient = orient
+        self.typ = typ
+        self.dtype = dtype
+        self.convert_axes = convert_axes
+        self.convert_dates = convert_dates
+        self.keep_default_dates = keep_default_dates
+        self.numpy = numpy
+        self.precise_float = precise_float
+        self.date_unit = date_unit
+        self.encoding = encoding
+        self.lines = lines
+        self.chunksize = chunksize
+        self.nrows_seen = 0
+        self.should_close = False
+
+        if self.chunksize is not None:
+            self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
+            if not self.lines:
+                raise ValueError("chunksize can only be passed if lines=True")
+
+        data = self._get_data_from_filepath(filepath_or_buffer)
+        self.data = self._preprocess_data(data)
+
+    def _preprocess_data(self, data):
+        """
+        At this point, the data either has a `read` attribute (e.g. a file
+        object or a StringIO) or is a string that is a JSON document.
+
+        If self.chunksize, we prepare the data for the `__next__` method.
+        Otherwise, we read it into memory for the `read` method.
+        """
+        if hasattr(data, 'read') and not self.chunksize:
+            data = data.read()
+        if not hasattr(data, 'read') and self.chunksize:
+            data = StringIO(data)
+
+        return data
+
+    def _get_data_from_filepath(self, filepath_or_buffer):
+        """
+        read_json accepts three input types:
+            1. filepath (string-like)
+            2. file-like object (e.g. open file object, StringIO)
+            3. JSON string
+
+        This method turns (1) into (2) to simplify the rest of the processing.
+        It returns input types (2) and (3) unchanged.
+        """
+
+        data = filepath_or_buffer
+
+        if isinstance(data, compat.string_types):
+            try:
+                exists = os.path.exists(filepath_or_buffer)
+
+            # gh-5874: if the filepath is too long will raise here
+            except (TypeError, ValueError):
+                pass
+
+            else:
+                if exists:
+                    data, _ = _get_handle(filepath_or_buffer, 'r',
+                                          encoding=self.encoding)
+                    self.should_close = True
+                    self.open_stream = data
+
+        return data
+
+    def _combine_lines(self, lines):
+        """Combines a list of JSON objects into one JSON object"""
+        lines = filter(None, map(lambda x: x.strip(), lines))
+        return '[' + ','.join(lines) + ']'
+
+    def read(self):
+        """Read the whole JSON input into a pandas object"""
+        if self.lines and self.chunksize:
+            obj = concat(self)
+        elif self.lines:
+            obj = self._get_object_parser(
+                self._combine_lines(self.data.split('\n'))
+            )
         else:
-            json = filepath_or_buffer
-    elif hasattr(filepath_or_buffer, 'read'):
-        json = filepath_or_buffer.read()
-    else:
-        json = filepath_or_buffer
+            obj = self._get_object_parser(self.data)
+        self.close()
+        return obj
 
-    if lines:
-        # If given a json lines file, we break the string into lines, add
-        # commas and put it in a json list to make a valid json object.
-        lines = list(StringIO(json.strip()))
-        json = '[' + ','.join(lines) + ']'
+    def _get_object_parser(self, json):
+        """parses a json document into a pandas object"""
+        typ = self.typ
+        dtype = self.dtype
+        kwargs = {
+            "orient": self.orient, "dtype": self.dtype,
+            "convert_axes": self.convert_axes,
+            "convert_dates": self.convert_dates,
+            "keep_default_dates": self.keep_default_dates, "numpy": self.numpy,
+            "precise_float": self.precise_float, "date_unit": self.date_unit
+        }
+        obj = None
+        if typ == 'frame':
+            obj = FrameParser(json, **kwargs).parse()
 
-    obj = None
-    if typ == 'frame':
-        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates,
-                          keep_default_dates, numpy, precise_float,
-                          date_unit).parse()
+        if typ == 'series' or obj is None:
+            if not isinstance(dtype, bool):
+                dtype = dict(data=dtype)
+            obj = SeriesParser(json, **kwargs).parse()
 
-    if typ == 'series' or obj is None:
-        if not isinstance(dtype, bool):
-            dtype = dict(data=dtype)
-        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates,
-                           keep_default_dates, numpy, precise_float,
-                           date_unit).parse()
+        return obj
 
-    return obj
+    def close(self):
+        """
+        If we opened a  stream earlier, in _get_data_from_filepath, we should
+        close it. If an open stream or file was passed, we leave it open.
+        """
+        if self.should_close:
+            try:
+                self.open_stream.close()
+            except (IOError, AttributeError):
+                pass
+
+    def __next__(self):
+        lines = list(islice(self.data, self.chunksize))
+        if lines:
+            lines_json = self._combine_lines(lines)
+            obj = self._get_object_parser(lines_json)
+
+            # Make sure that the returned objects have the right index.
+            obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
+            self.nrows_seen += len(obj)
+
+            return obj
+
+        self.close()
+        raise StopIteration
 
 
 class Parser(object):

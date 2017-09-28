@@ -1,3 +1,4 @@
+import os
 from .pandas_vb_common import *
 from pandas import concat, Timestamp, compat
 try:
@@ -192,3 +193,32 @@ class read_csv_from_s3(object):
             ext = ".bz2"
         pd.read_csv(self.big_fname + ext, nrows=10,
                     compression=compression, engine=engine)
+
+
+class read_json_lines(object):
+    goal_time = 0.2
+    fname = "__test__.json"
+
+    def setup(self):
+        self.N = 100000
+        self.C = 5
+        self.df = DataFrame(dict([('float{0}'.format(i), randn(self.N)) for i in range(self.C)]))
+        self.df.to_json(self.fname,orient="records",lines=True)
+
+    def teardown(self):
+        try:
+            os.remove(self.fname)
+        except:
+            pass
+
+    def time_read_json_lines(self):
+        pd.read_json(self.fname, lines=True)
+
+    def time_read_json_lines_chunk(self):
+        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N//4))
+
+    def peakmem_read_json_lines(self):
+        pd.read_json(self.fname, lines=True)
+
+    def peakmem_read_json_lines_chunk(self):
+        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N//4))
