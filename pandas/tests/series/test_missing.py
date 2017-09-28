@@ -1221,10 +1221,9 @@ class TestSeriesInterpolateData(TestData):
 
     def test_series_interpolate_nat(self):
         # GH 11701
-        expected = pd.Series(pd.date_range('2015-01-01', '2015-01-30'))
-        result = expected.copy()
-        result[[3, 4, 5, 13, 14, 15]] = pd.NaT
-        result = result.interpolate()
-        print(result)
-        print(expected)
-        tm.assert_series_equal(result, expected)
+        for tz in [None, "UTC"]:
+            expected = pd.Series(pd.date_range('2015-01-01', '2015-01-30', tz=tz))
+            result = expected.copy()
+            result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+            result = result.interpolate()
+            tm.assert_series_equal(result, expected)
