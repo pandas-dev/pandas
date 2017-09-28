@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
+    is_object_dtype,
     is_integer_dtype,
     is_bool_dtype,
     is_list_like,
@@ -789,7 +790,13 @@ def make_sparse(arr, kind='block', fill_value=None):
         if is_string_dtype(arr):
             arr = arr.astype(object)
 
-        mask = arr != fill_value
+        if is_object_dtype(arr.dtype):
+            # element-wise equality check method in numpy doesn't treat
+            # each element type, eg. 0, 0.0, and False are treated as
+            # same. So we have to check the both of its type and value.
+            mask = splib.make_mask_object_ndarray(arr, fill_value)
+        else:
+            mask = arr != fill_value
 
     length = len(arr)
     if length != mask.size:
