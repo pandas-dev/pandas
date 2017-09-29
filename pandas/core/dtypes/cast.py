@@ -24,8 +24,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import (ExtensionDtype, DatetimeTZDtype, PeriodDtype,
-                     CategoricalDtype)
+from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
 from .missing import isna, notna
@@ -603,41 +602,6 @@ def coerce_to_dtypes(result, dtypes):
         return r
 
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
-
-
-def maybe_convert_for_categorical(categories, dtype):
-    """Convert ``categories`` depending on ``dtype``.
-
-    Converts to numeric, datetime, or timedelta types, when ``dtype`` is
-    a CategoricalDtype with known, non-object categories.
-
-    Parameters
-    ----------
-    categories : array-like
-    type : CategoricalDtype
-
-    Returns
-    -------
-    new_categories : array or Index
-
-    Examples
-    --------
-    >>> maybe_convert_for_categorical(['1', '2'], CategoricalDtype([1, 2]))
-    array([  1,  2])
-    >>> maybe_convert_for_categorical([1, 'a'], CategoricalDtype([1, 2]))
-    array([  1.,  nan])
-    """
-    if isinstance(dtype, CategoricalDtype) and dtype.categories is not None:
-        from pandas import to_numeric, to_datetime, to_timedelta
-
-        if dtype.categories.is_numeric():
-            categories = to_numeric(categories, errors='coerce')
-        elif is_datetime64_dtype(dtype.categories):
-            categories = to_datetime(categories, errors='coerce')
-        elif is_timedelta64_dtype(dtype.categories):
-            categories = to_timedelta(categories, errors='coerce')
-
-    return categories
 
 
 def astype_nansafe(arr, dtype, copy=True):

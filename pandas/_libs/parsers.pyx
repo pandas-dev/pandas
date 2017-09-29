@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.categorical import Categorical, _recode_for_categories
 from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
-from pandas.core.dtypes.cast import maybe_convert_for_categorical
 from pandas import Index
 
 import pandas.io.common as com

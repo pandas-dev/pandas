@@ -23,8 +23,7 @@ from pandas.core.dtypes.common import (
     is_scalar, is_categorical_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import (astype_nansafe,
-                                     maybe_convert_for_categorical)
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
                                _ensure_index_from_sequences)
 from pandas.core.series import Series
@@ -1610,15 +1609,15 @@ class ParserBase(object):
             known_cats = (isinstance(cast_type, CategoricalDtype) and
                           cast_type.categories is not None)
 
-            categories = ordered = None
             if known_cats:
-                values = maybe_convert_for_categorical(values, cast_type)
-                categories = cast_type.categories
-                ordered = cast_type.ordered
-            elif not is_object_dtype(values):
-                values = astype_nansafe(values, str)
-            values = Categorical(values, categories=categories,
-                                 ordered=ordered)
+                cats = Index(values).unique()
+                values = Categorical._from_inferred_categories(
+                    cats, cats.get_indexer(values), cast_type
+                )
+            else:
+                if not is_object_dtype(values):
+                    values = astype_nansafe(values, str)
+                values = Categorical(values, categories=None, ordered=False)
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True)

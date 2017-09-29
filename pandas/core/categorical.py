@@ -21,6 +21,8 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_dtype_equal,
     is_datetimelike,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
     is_integer_dtype,
@@ -528,11 +530,20 @@ class Categorical(PandasObject):
         -------
         Categorical
         """
-        from pandas.core.dtypes.cast import maybe_convert_for_categorical
-        from pandas import Index
+        from pandas import Index, to_numeric, to_datetime, to_timedelta
 
         cats = Index(inferred_categories)
-        cats = maybe_convert_for_categorical(cats, dtype)
+
+        # Convert to a specialzed type with `dtype` is specified
+        if (isinstance(dtype, CategoricalDtype) and
+                dtype.categories is not None):
+
+            if dtype.categories.is_numeric():
+                cats = to_numeric(inferred_categories, errors='coerce')
+            elif is_datetime64_dtype(dtype.categories):
+                cats = to_datetime(inferred_categories, errors='coerce')
+            elif is_timedelta64_dtype(dtype.categories):
+                cats = to_timedelta(inferred_categories, errors='coerce')
 
         if (isinstance(dtype, CategoricalDtype) and
                 dtype.categories is not None):
