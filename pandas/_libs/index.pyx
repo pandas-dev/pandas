@@ -14,6 +14,7 @@ cimport util
 import numpy as np
 
 cimport tslib
+from tslib cimport _to_i8
 
 from hashtable cimport HashTable
 
@@ -406,12 +407,12 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = tslib.pydt_to_i8(val)
+            conv = _to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return util.get_value_at(values, loc) == conv
 
         self._ensure_mapping_populated()
-        return tslib.pydt_to_i8(val) in self.mapping
+        return _to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -426,12 +427,12 @@ cdef class DatetimeEngine(Int64Engine):
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = tslib.pydt_to_i8(val)
+                val = _to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
 
             try:
-                conv = tslib.pydt_to_i8(val)
+                conv = _to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
                 self._date_check_type(val)
@@ -443,7 +444,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = tslib.pydt_to_i8(val)
+            val = _to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -454,7 +455,7 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            val = tslib.pydt_to_i8(val)
+            val = _to_i8(val)
             return self.mapping.get_item(val)
         except (TypeError, ValueError):
             self._date_check_type(val)

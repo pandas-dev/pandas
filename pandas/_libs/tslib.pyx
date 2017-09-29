@@ -3436,6 +3436,23 @@ def cast_to_nanoseconds(ndarray arr):
     return result
 
 
+cdef inline _to_i8(object val):
+    cdef pandas_datetimestruct dts
+    try:
+        return val.value
+    except AttributeError:
+        if is_datetime64_object(val):
+            return get_datetime64_value(val)
+        elif PyDateTime_Check(val):
+            tzinfo = getattr(val, 'tzinfo', None)
+            # Save the original date value so we can get the utcoffset from it.
+            ival = _pydatetime_to_dts(val, &dts)
+            if tzinfo is not None and not is_utc(tzinfo):
+                offset = get_utcoffset(tzinfo, val)
+                ival -= _delta_to_nanoseconds(offset)
+            return ival
+        return val
+
 cpdef pydt_to_i8(object pydt):
     """
     Convert to int64 representation compatible with numpy datetime64; converts
