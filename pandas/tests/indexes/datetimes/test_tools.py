@@ -1335,13 +1335,13 @@ class TestDatetimeParsingWrappers(object):
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '
                'must be between 1 and 4: 2013Q5')
-        with tm.assert_raises_regex(tslib.DateParseError, msg):
+        with tm.assert_raises_regex(parsing.DateParseError, msg):
             tools.parse_time_string('2013Q5')
 
         # GH 5418
         msg = ('Unable to retrieve month information from given freq: '
                'INVLD-L-DEC-SAT')
-        with tm.assert_raises_regex(tslib.DateParseError, msg):
+        with tm.assert_raises_regex(parsing.DateParseError, msg):
             tools.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
 
         cases = {('2013Q2', None): datetime(2013, 4, 1),
