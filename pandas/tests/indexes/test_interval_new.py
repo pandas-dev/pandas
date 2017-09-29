@@ -3,18 +3,13 @@ from __future__ import division
 import pytest
 import numpy as np
 
-from datetime import timedelta
-from pandas import (Interval, IntervalIndex, Index, Int64Index, isna,
-                    interval_range, Timestamp, Timedelta,
-                    compat, date_range, timedelta_range, DateOffset)
-from pandas.tseries.offsets import Day
-from pandas._libs.interval import IntervalTree
+from pandas import (Interval, IntervalIndex, Int64Index,
+                    Timestamp, Timedelta)
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
-import pandas as pd
 
 
-class TestIntervalIndex_new(Base):
+class TestIntervalIndex(Base):
 
     def _compare_tuple_of_numpy_array(self, result, expected):
         lidx, ridx = result
@@ -26,7 +21,7 @@ class TestIntervalIndex_new(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
-    def test_get_loc_interval_updated_behavior(self, idx_side, side):
+    def test_get_loc_interval(self, idx_side, side):
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
@@ -48,7 +43,7 @@ class TestIntervalIndex_new(Base):
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    def test_get_loc_scalar_updated_behavior(self, idx_side):
+    def test_get_loc_scalar(self, idx_side):
 
         scalars = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
         correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
@@ -67,7 +62,7 @@ class TestIntervalIndex_new(Base):
                 pytest.raises(KeyError, idx.get_loc, scalar)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_slice_locs_with_interval_updated_behavior(self):
+    def test_slice_locs_with_interval(self):
 
         # increasing monotonically
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
@@ -125,7 +120,7 @@ class TestIntervalIndex_new(Base):
             start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_slice_locs_with_ints_and_floats_updated_behavior(self):
+    def test_slice_locs_with_ints_and_floats(self):
 
         queries = [[0, 1], [0, 2], [0, 3], [3, 1], [3, 4], [0, 4]]
 
@@ -174,7 +169,7 @@ class TestIntervalIndex_new(Base):
             pytest.raises(KeyError, index.slice_locs, query)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_for_interval_updated_behavior(self):
+    def test_get_indexer_with_interval(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='right')
@@ -208,7 +203,7 @@ class TestIntervalIndex_new(Base):
             tm.assert_numpy_array_equal(result, expect)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_for_ints_and_floats_updated_behavior(self):
+    def test_get_indexer_with_ints_and_floats(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 1), (1, 2), (3, 4)], closed='right')
@@ -235,7 +230,7 @@ class TestIntervalIndex_new(Base):
         # TODO: @shoyer believes this should raise, master branch doesn't
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_non_unique_for_ints_and_floats_updated_behavior(self):
+    def test_get_indexer_non_unique_with_ints_and_floats(self):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='left')
@@ -276,7 +271,7 @@ class TestIntervalIndex_new(Base):
         # the intervals are duplicated, decreasing, non-monotonic, etc..
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_contains_updated_behavior(self):
+    def test_contains(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
 
@@ -294,7 +289,7 @@ class TestIntervalIndex_new(Base):
         assert Interval(0, 1, closed='both') not in index
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_contains_method_updated_behavior(self):
+    def test_contains_method(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
 

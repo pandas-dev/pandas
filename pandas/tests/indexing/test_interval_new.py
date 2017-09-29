@@ -2,15 +2,17 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, IntervalIndex, Interval
-from pandas.compat import product
+from pandas import Series, IntervalIndex, Interval
 import pandas.util.testing as tm
 
 
-class TestIntervalIndex_new(object):
+class TestIntervalIndex(object):
+
+    def setup_method(self, method):
+        self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_with_slices_updated_behavior(self):
+    def test_with_slices(self):
 
         s = self.s
 
@@ -57,7 +59,7 @@ class TestIntervalIndex_new(object):
             s[0:4:2]
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_with_overlaps_updated_behavior(self):
+    def test_with_overlaps(self):
 
         idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
         s = Series(range(len(idx)), index=idx)
@@ -101,7 +103,7 @@ class TestIntervalIndex_new(object):
         tm.assert_series_equal(expected, result)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_non_unique_moar_updated_behavior(self):
+    def test_non_unique_moar(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
         s = Series(range(len(idx)), index=idx)
