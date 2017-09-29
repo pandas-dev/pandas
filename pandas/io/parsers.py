@@ -1603,21 +1603,20 @@ class ParserBase(object):
         """
 
         if is_categorical_dtype(cast_type):
-            # XXX this is for consistency with
-            # c-parser which parses all categories
-            # as strings
             known_cats = (isinstance(cast_type, CategoricalDtype) and
                           cast_type.categories is not None)
 
-            if known_cats:
-                cats = Index(values).unique()
-                values = Categorical._from_inferred_categories(
-                    cats, cats.get_indexer(values), cast_type
-                )
-            else:
-                if not is_object_dtype(values):
-                    values = astype_nansafe(values, str)
-                values = Categorical(values, categories=None, ordered=False)
+            if not is_object_dtype(values) and not known_cats:
+                # XXX this is for consistency with
+                # c-parser which parses all categories
+                # as strings
+                values = astype_nansafe(values, str)
+
+            cats = Index(values).unique().dropna()
+            values = Categorical._from_inferred_categories(
+                cats, cats.get_indexer(values), cast_type
+            )
+
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True)
