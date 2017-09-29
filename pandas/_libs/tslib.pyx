@@ -728,7 +728,7 @@ class Timestamp(_Timestamp):
         # reconstruct & check bounds
         ts_input = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
                             dts.sec, dts.us, tzinfo=_tzinfo)
-        ts = _convert_datetime_to_tsobject(ts_input, _tzinfo)
+        ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             _check_dts_bounds(&dts)
@@ -1475,11 +1475,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
-        return _convert_datetime_to_tsobject(ts, tz)
+        return convert_datetime_to_tsobject(ts, tz)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
-        return _convert_datetime_to_tsobject(ts, tz)
+        return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError(
             "Cannot convert Period to Timestamp "
@@ -1497,7 +1497,13 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     return obj
 
 
-cdef _TSObject _convert_datetime_to_tsobject(datetime ts, object tz):
+cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
+                                            int32_t nanos=0):
+    """
+    Extract datetime and int64 from any of:
+        - python datetime object
+        - another timestamp object
+    """
     cdef:
         _TSObject obj = _TSObject()
 
@@ -1545,6 +1551,10 @@ cdef _TSObject _convert_datetime_to_tsobject(datetime ts, object tz):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
     
+    if nanos:
+        obj.value += nanos
+        obj.dts.ps = nanos * 1000
+
     _check_dts_bounds(&obj.dts)
     return obj
 
@@ -1554,7 +1564,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
     """ ts must be a string """
 
     cdef:
-        _TSObject obj, obj2
+        _TSObject obj
         int out_local = 0, out_tzoffset = 0
 
     if tz is not None:
@@ -1589,16 +1599,14 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                     return obj
                 else:
                     # Keep the converter same as PyDateTime's
-                    obj2 = convert_to_tsobject(obj.value, obj.tzinfo,
-                                               None, 0, 0)
-                    dtime = datetime(obj2.dts.year, obj2.dts.month,
-                                     obj2.dts.day,
-                                     obj2.dts.hour, obj2.dts.min, obj2.dts.sec,
-                                     obj2.dts.us, obj2.tzinfo)
-                    obj2 = _convert_datetime_to_tsobject(dtime, tz)
-                    obj2.value += obj.dts.ps / 1000
-                    obj2.dts.ps = obj.dts.ps
-                    return obj2
+                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
+                                              None, 0, 0)
+                    dtime = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                                     obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                     obj.dts.us, obj.tzinfo)
+                    obj = convert_datetime_to_tsobject(dtime, tz,
+                                                       nanos=obj.dts.ps / 1000)
+                    return obj
 
             else:
                 ts = obj.value
@@ -1748,7 +1756,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 else:
                     inferred_tz = get_timezone(val.tzinfo)
 
-                _ts = _convert_datetime_to_tsobject(val, None)
+                _ts = convert_datetime_to_tsobject(val, None)
                 iresult[i] = _ts.value
                 _check_dts_bounds(&_ts.dts)
             else:
@@ -2068,7 +2076,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 seen_datetime=1
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = _convert_datetime_to_tsobject(val, None)
+                        _ts = convert_datetime_to_tsobject(val, None)
                         iresult[i] = _ts.value
                         try:
                             _check_dts_bounds(&_ts.dts)
@@ -2177,7 +2185,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise TypeError("invalid string coercion to datetime")
 
                     try:
-                        _ts = _convert_datetime_to_tsobject(py_dt, None)
+                        _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     except ValueError:
                         if is_coerce:
