@@ -502,6 +502,32 @@ class TestCommon(Base):
         #
         tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
+    def test_pickle_v0_19_2(self):
+        offsets = {'DateOffset': DateOffset(years=1),
+                   'MonthBegin': MonthBegin(1),
+                   'Day': Day(1),
+                   'YearBegin': YearBegin(1),
+                   'Week': Week(1)}
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'dateoffset_0_19_2.pickle')
+        # This code was executed once on v0.19.2 to generate the pickle:
+        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
+        #
+        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+
+    def test_pickle_v0_20_3(self):
+        offsets = {'DateOffset': DateOffset(years=1),
+                   'MonthBegin': MonthBegin(1),
+                   'Day': Day(1),
+                   'YearBegin': YearBegin(1),
+                   'Week': Week(1)}
+        pickle_path = os.path.join(tm.get_data_path(),
+                                   'dateoffset_0_20_3.pickle')
+        # This code was executed once on v0.20.3 to generate the pickle:
+        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
+        #
+        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+
 
 class TestDateOffset(Base):
 
