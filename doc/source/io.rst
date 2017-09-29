@@ -113,8 +113,8 @@ header : int or list of ints, default ``'infer'``
   rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed unless
-  ``mangle_dupe_cols=True``, which is the default.
+  explicitly pass ``header=None``. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -1845,6 +1845,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
   seconds, milliseconds, microseconds or nanoseconds respectively.
 - ``lines`` : reads file as one json object per line.
 - ``encoding`` : The encoding to use to decode py3 bytes.
+- ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -2049,6 +2050,10 @@ Line delimited json
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
+.. versionadded:: 0.21.0
+
+For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
+
 .. ipython:: python
 
   jsonl = '''
@@ -2059,6 +2064,11 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+  # reader is an iterator that returns `chunksize` lines each iteration
+  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
+  reader
+  for chunk in reader:
+      print(chunk)
 
 .. _io.table_schema:
 

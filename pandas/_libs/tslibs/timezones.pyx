@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+# cython: linetrace=False
+# distutils: define_macros=CYTHON_TRACE=0
+# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -13,9 +16,9 @@ from dateutil.tz import (
 import sys
 if sys.platform == 'win32' or sys.platform == 'cygwin':
     # equiv pd.compat.is_platform_windows()
-    from dateutil.zoneinfo import gettz as _dateutil_gettz
+    from dateutil.zoneinfo import gettz as dateutil_gettz
 else:
-    from dateutil.tz import gettz as _dateutil_gettz
+    from dateutil.tz import gettz as dateutil_gettz
 
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
@@ -100,7 +103,7 @@ cpdef inline object maybe_get_tz(object tz):
             tz = _dateutil_tzlocal()
         elif tz.startswith('dateutil/'):
             zone = tz[9:]
-            tz = _dateutil_gettz(zone)
+            tz = dateutil_gettz(zone)
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
@@ -113,14 +116,14 @@ cpdef inline object maybe_get_tz(object tz):
 
 def _p_tz_cache_key(tz):
     """ Python interface for cache function to facilitate testing."""
-    return _tz_cache_key(tz)
+    return tz_cache_key(tz)
 
 
 # Timezone data caches, key is the pytz string or dateutil file name.
 dst_cache = {}
 
 
-cdef inline object _tz_cache_key(object tz):
+cdef inline object tz_cache_key(object tz):
     """
     Return the key in the cache for the timezone info object or None
     if unknown.
@@ -163,7 +166,7 @@ cpdef get_utcoffset(tzinfo, obj):
         return tzinfo.utcoffset(obj)
 
 
-cdef inline bint _is_fixed_offset(object tz):
+cdef inline bint is_fixed_offset(object tz):
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
@@ -178,7 +181,7 @@ cdef inline bint _is_fixed_offset(object tz):
     return 1
 
 
-cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
+cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     """
     Transition times in dateutil timezones are stored in local non-dst
     time.  This code converts them to UTC. It's the reverse of the code
@@ -193,7 +196,7 @@ cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef ndarray _unbox_utcoffsets(object transinfo):
+cpdef ndarray unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] arr
@@ -211,7 +214,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object _get_dst_info(object tz):
+cdef object get_dst_info(object tz):
     """
     return a tuple of :
       (UTC times of DST transitions,
@@ -219,7 +222,7 @@ cdef object _get_dst_info(object tz):
        string of type of transitions)
 
     """
-    cache_key = _tz_cache_key(tz)
+    cache_key = tz_cache_key(tz)
     if cache_key is None:
         num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
@@ -235,13 +238,13 @@ cdef object _get_dst_info(object tz):
                     trans[0] = NPY_NAT + 1
             except Exception:
                 pass
-            deltas = _unbox_utcoffsets(tz._transition_info)
+            deltas = unbox_utcoffsets(tz._transition_info)
             typ = 'pytz'
 
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
                 # get utc trans times
-                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
+                trans_list = get_utc_trans_times_from_dateutil_tz(tz)
                 trans = np.hstack([
                     np.array([0], dtype='M8[s]'), # place holder for first item
                     np.array(trans_list, dtype='M8[s]')]).astype(
@@ -255,7 +258,7 @@ cdef object _get_dst_info(object tz):
                 deltas *= 1000000000
                 typ = 'dateutil'
 
-            elif _is_fixed_offset(tz):
+            elif is_fixed_offset(tz):
                 trans = np.array([NPY_NAT + 1], dtype=np.int64)
                 deltas = np.array([tz._ttinfo_std.offset],
                                   dtype='i8') * 1000000000
@@ -275,3 +278,19 @@ cdef object _get_dst_info(object tz):
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
+
+
+def infer_tzinfo(start, end):
+    if start is not None and end is not None:
+        tz = start.tzinfo
+        if end.tzinfo:
+            if not (get_timezone(tz) == get_timezone(end.tzinfo)):
+                msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+                raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+    elif start is not None:
+        tz = start.tzinfo
+    elif end is not None:
+        tz = end.tzinfo
+    else:
+        tz = None
+    return tz

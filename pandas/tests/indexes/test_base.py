@@ -58,8 +58,8 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self):
-        super(TestIndex, self).test_copy_and_deepcopy()
+    def test_copy_and_deepcopy(self, indices):
+        super(TestIndex, self).test_copy_and_deepcopy(indices)
 
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
@@ -1140,6 +1140,13 @@ class TestIndex(Base):
 
         with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
+
+    def test_get_indexer_numeric_index_boolean_target(self):
+        # GH 16877
+        numeric_idx = pd.Index(range(4))
+        result = numeric_idx.get_indexer([True, False, True])
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])

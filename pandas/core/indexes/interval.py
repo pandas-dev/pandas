@@ -105,8 +105,10 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Warning: the indexing behaviors are provisional and may change in
-    a future version of pandas.
+    .. warning::
+
+       The indexing behaviors are provisional and may change in
+       a future version of pandas.
 
     Attributes
     ----------
@@ -120,9 +122,38 @@ class IntervalIndex(IntervalMixin, Index):
     copy : boolean, default False
         Copy the meta-data
 
+    Examples
+    ---------
+    A new ``IntervalIndex`` is typically constructed using
+    :func:`interval_range`:
+
+    >>> pd.interval_range(start=0, end=5)
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+                  closed='right', dtype='interval[int64]')
+
+    It may also be constructed using one of the constructor
+    methods :meth:`IntervalIndex.from_arrays`,
+    :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_intervals`
+    and :meth:`IntervalIndex.from_tuples`.
+
+    See further examples in the doc strings of ``interval_range`` and the
+    mentioned constructor methods.
+
+    Notes
+    ------
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+    for more.
+
     See Also
     --------
     Index
+    Interval : A bounded slice-like interval
+    interval_range : Function to create a fixed frequency
+    IntervalIndex, IntervalIndex.from_arrays, IntervalIndex.from_breaks,
+    IntervalIndex.from_intervals, IntervalIndex.from_tuples
+    cut, qcut : convert arrays of continuous data into categoricals/series of
+                ``Interval``.
     """
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -319,11 +350,20 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
-        >>> IntervalIndex.from_breaks([0, 1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         breaks = np.asarray(breaks)
         return cls.from_arrays(breaks[:-1], breaks[1:], closed,
@@ -350,11 +390,20 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
-        >>> IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         left = np.asarray(left)
         right = np.asarray(right)
@@ -378,19 +427,27 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-
-        >>> IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.IntervalIndex.from_intervals([pd.Interval(0, 1),
+        ...                                  pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
 
         The generic Index constructor work identically when it infers an array
         of all intervals:
 
-        >>> Index([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
+
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         data = np.asarray(data)
         left, right, closed = intervals_to_interval_bounds(data)
@@ -415,7 +472,19 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>>  pd.IntervalIndex.from_tuples([(0, 1), (1,2)])
+        IntervalIndex([(0, 1], (1, 2]],
+                      closed='right', dtype='interval[int64]')
 
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
         """
         left = []
         right = []
@@ -985,9 +1054,10 @@ class IntervalIndex(IntervalMixin, Index):
                                       na_rep=na_rep,
                                       justify='all').get_result()
 
-    def _format_data(self):
+    def _format_data(self, name=None):
 
         # TODO: integrate with categorical and make generic
+        # name argument is unused here; just for compat with base / categorical
         n = len(self)
         max_seq_items = min((get_option(
             'display.max_seq_items') or n) // 10, 10)
@@ -1120,7 +1190,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Examples
     --------
-
     Numeric ``start`` and  ``end`` is supported.
 
     >>> pd.interval_range(start=0, end=5)
@@ -1158,6 +1227,10 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
                   closed='both', dtype='interval[int64]')
+
+    See Also
+    --------
+    IntervalIndex : an Index of intervals that are all closed on the same side.
     """
     if com._count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
