@@ -63,15 +63,6 @@ class Styler(object):
         a unique identifier to avoid CSS collisons; generated automatically
     caption: str, default None
         caption to attach to the table
-    index: bool, default True
-        determines if the index is rendered in the html output
-
-        .. versionadded:: 0.21.0
-
-    hidden_columns: IndexSlice, default None
-        hides a subset of columns from rendering
-
-        .. versionadded:: 0.21.0
 
     Attributes
     ----------
@@ -120,8 +111,7 @@ class Styler(object):
     template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None, table_attributes=None, index=True,
-                 hidden_columns=None):
+                 caption=None, table_attributes=None):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -143,10 +133,8 @@ class Styler(object):
             precision = get_option('display.precision')
         self.precision = precision
         self.table_attributes = table_attributes
-        self.index_visible = index
-        if hidden_columns is None:
-            hidden_columns = []
-        self.hidden_columns = hidden_columns
+        self.hidden_index = False
+        self.hidden_columns = []
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -195,7 +183,7 @@ class Styler(object):
         caption = self.caption
         ctx = self.ctx
         precision = self.precision
-        index_visible = self.index_visible
+        hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
         uuid = self.uuid or str(uuid1()).replace("-", "_")
         ROW_HEADING_CLASS = "row_heading"
@@ -234,7 +222,7 @@ class Styler(object):
             row_es = [{"type": "th",
                        "value": BLANK_VALUE,
                        "display_value": BLANK_VALUE,
-                       "is_visible": index_visible,
+                       "is_visible": not hidden_index,
                        "class": " ".join([BLANK_CLASS])}] * (n_rlvls - 1)
 
             # ... except maybe the last for columns.names
@@ -246,7 +234,7 @@ class Styler(object):
                            "value": name,
                            "display_value": name,
                            "class": " ".join(cs),
-                           "is_visible": index_visible})
+                           "is_visible": not hidden_index})
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
@@ -296,8 +284,8 @@ class Styler(object):
                        "row{row}".format(row=r)]
                 es = {
                     "type": "th",
-                    "is_visible": (_is_visible(r, c, idx_lengths) &
-                                   index_visible),
+                    "is_visible": (_is_visible(r, c, idx_lengths) and
+                                   not hidden_index),
                     "value": value,
                     "display_value": value,
                     "id": "_".join(rid[1:]),
@@ -477,9 +465,7 @@ class Styler(object):
     def _copy(self, deepcopy=False):
         styler = Styler(self.data, precision=self.precision,
                         caption=self.caption, uuid=self.uuid,
-                        table_styles=self.table_styles,
-                        index=self.index_visible,
-                        hidden_columns=self.hidden_columns)
+                        table_styles=self.table_styles)
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
             styler._todo = copy.deepcopy(self._todo)
@@ -816,7 +802,7 @@ class Styler(object):
         -------
         self : Styler
         """
-        self.index_visible = False
+        self.hidden_index = True
         return self
 
     def hide_columns(self, subset):
