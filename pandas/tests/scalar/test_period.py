@@ -11,6 +11,7 @@ from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas._libs import tslib, period as libperiod
+from pandas._libs.tslibs.parsing import DateParseError
 from pandas import Period, Timestamp, offsets
 from pandas.tseries.frequencies import DAYS, MONTHS
 
@@ -886,8 +887,8 @@ class TestPeriodProperties(object):
 
     def test_badinput(self):
         pytest.raises(ValueError, Period, '-2000', 'A')
-        pytest.raises(tslib.DateParseError, Period, '0', 'A')
-        pytest.raises(tslib.DateParseError, Period, '1/1/-2000', 'A')
+        pytest.raises(DateParseError, Period, '0', 'A')
+        pytest.raises(DateParseError, Period, '1/1/-2000', 'A')
 
     def test_multiples(self):
         result1 = Period('1989', freq='2A')

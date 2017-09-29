@@ -162,6 +162,7 @@ Other Enhancements
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
+- :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 
 
@@ -488,10 +489,33 @@ Other API Changes
 
 Deprecations
 ~~~~~~~~~~~~
+
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 - :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
+- ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
+
+.. _whatsnew_0210.deprecations.argmin_min
+
+Series.argmax and Series.argmin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- The behavior of :func:`Series.argmax` has been deprecated in favor of :func:`Series.idxmax` (:issue:`16830`)
+- The behavior of :func:`Series.argmin` has been deprecated in favor of :func:`Series.idxmin` (:issue:`16830`)
+
+For compatibility with NumPy arrays, ``pd.Series`` implements ``argmax`` and
+``argmin``. Since pandas 0.13.0, ``argmax`` has been an alias for
+:meth:`pandas.Series.idxmax`, and ``argmin`` has been an alias for
+:meth:`pandas.Series.idxmin`. They return the *label* of the maximum or minimum,
+rather than the *position*.
+
+We've deprecated the current behavior of ``Series.argmax`` and
+``Series.argmin``. Using either of these will emit a ``FutureWarning``. Use
+:meth:`Series.idxmax` if you want the label of the maximum. Use
+``Series.values.argmax()`` if you want the position of the maximum. Likewise for
+the minimum. In a future release ``Series.argmax`` and ``Series.argmin`` will
+return the position of the maximum or minimum.
 
 .. _whatsnew_0210.prior_deprecations:
 
@@ -581,6 +605,7 @@ I/O
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 - Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
 - Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
+- Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
 
 Plotting
 ^^^^^^^^
@@ -608,7 +633,9 @@ Sparse
 
 - Bug in ``SparseSeries`` raises ``AttributeError`` when a dictionary is passed in as data (:issue:`16905`)
 - Bug in :func:`SparseDataFrame.fillna` not filling all NaNs when frame was instantiated from SciPy sparse matrix (:issue:`16112`)
-
+- Bug in :func:`SparseSeries.unstack` and :func:`SparseDataFrame.stack` (:issue:`16614`, :issue:`15045`)
+- Bug in :func:`make_sparse` treating two numeric/boolean data, which have same bits, as same when array ``dtype`` is ``object`` (:issue:`17574`)
+- :func:`SparseArray.all` and :func:`SparseArray.any` are now implemented to handle ``SparseArray``, these were used but not implemented (:issue:`17570`)
 
 Reshaping
 ^^^^^^^^^
@@ -622,6 +649,7 @@ Reshaping
 - :func:`Series.argmin`, :func:`Series.argmax`, and their counterparts on ``DataFrame`` and groupby objects work correctly with floating point data that contains infinite values (:issue:`13595`).
 - Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
+- Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
 
 Numeric
 ^^^^^^^

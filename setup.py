@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
@@ -348,14 +349,6 @@ class CheckSDist(sdist_class):
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
-
-        '''
-        self._pyxfiles = []
-        for root, dirs, files in os.walk('pandas'):
-            for f in files:
-                if f.endswith('.pyx'):
-                    self._pyxfiles.append(pjoin(root, f))
-        '''
 
     def run(self):
         if 'cython' in cmdclass:

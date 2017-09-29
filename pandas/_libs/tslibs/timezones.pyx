@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+# cython: linetrace=False
+# distutils: define_macros=CYTHON_TRACE=0
+# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -275,3 +278,19 @@ cdef object get_dst_info(object tz):
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
+
+
+def infer_tzinfo(start, end):
+    if start is not None and end is not None:
+        tz = start.tzinfo
+        if end.tzinfo:
+            if not (get_timezone(tz) == get_timezone(end.tzinfo)):
+                msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+                raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+    elif start is not None:
+        tz = start.tzinfo
+    elif end is not None:
+        tz = end.tzinfo
+    else:
+        tz = None
+    return tz
