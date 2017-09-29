@@ -91,6 +91,24 @@ This does not raise any obvious exceptions, but also does not create a new colum
 
 Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
 
+``drop`` now also accepts index/columns keywords
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an
+alternative to specify the ``axis`` and to make it similar in usage to ``reindex``
+(:issue:`12392`).
+
+For example:
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.arange(8).reshape(2,4),
+                      columns=['A', 'B', 'C', 'D'])
+    df
+    df.drop(['B', 'C'], axis=1)
+    # the following is now equivalent
+    df.drop(columns=['B', 'C'])
+
 .. _whatsnew_0210.enhancements.categorical_dtype:
 
 ``CategoricalDtype`` for specifying categoricals
@@ -137,13 +155,14 @@ Other Enhancements
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
-- `read_*` methods can now infer compression from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
+- Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
 - :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
+- :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 
 
 .. _whatsnew_0210.api_breaking:
@@ -449,6 +468,7 @@ Other API Changes
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
+- :func:`read_csv` now issues a ``UserWarning`` if the ``names`` parameter contains duplicates (:issue:`17095`)
 - :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
 - :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
 - :class:`pandas.HDFStore`'s string representation is now faster and less detailed. For the previous behavior, use ``pandas.HDFStore.info()``. (:issue:`16503`).
@@ -461,18 +481,17 @@ Other API Changes
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
+- Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
-
 
 .. _whatsnew_0210.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
-
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
-
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
+- :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
 
 .. _whatsnew_0210.prior_deprecations:
 
@@ -628,4 +647,5 @@ PyPy
 
 Other
 ^^^^^
+- Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)

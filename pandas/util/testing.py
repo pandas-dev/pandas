@@ -1385,8 +1385,8 @@ def assert_frame_equal(left, right, check_dtype=True,
 
     # compare by blocks
     if by_blocks:
-        rblocks = right.blocks
-        lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks

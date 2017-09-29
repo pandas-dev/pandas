@@ -312,8 +312,8 @@ class TestRangeIndex(Numeric):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
-    def test_view(self):
-        super(TestRangeIndex, self).test_view()
+    def test_view(self, indices):
+        super(TestRangeIndex, self).test_view(indices)
 
         i = RangeIndex(0, name='Foo')
         i_view = i.view()
