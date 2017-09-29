@@ -164,7 +164,6 @@ Other Enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
-- :func:`bdate_range` has gained ``weekmask`` and ``holidays`` parameters for constructing custom frequency date ranges (:issue:`17596`)
 
 
 .. _whatsnew_0210.api_breaking:
@@ -572,9 +571,9 @@ Deprecations
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 - :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
 - ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
-- ``cdate_range`` has been deprecated in favor of :func:`bdate_range` (:issue:`17596`)
+- ``cdate_range`` has been deprecated in favor of :func:`bdate_range`, which has gained ``weekmask`` and ``holidays`` parameters for building custom frequency date ranges. See the :ref:`documentation <timeseries.custom-freq-ranges>` for more details (:issue:`17596`)
 
-.. _whatsnew_0210.deprecations.argmin_min
+.. _whatsnew_0210.deprecations.argmin_min:
 
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -740,9 +739,9 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
+- Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
-- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^

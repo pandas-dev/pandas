@@ -589,8 +589,10 @@ class TestCustomDateRange(object):
         expected = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
         tm.assert_index_equal(result, expected)
 
-        # warning with non-custom freq
-        with tm.assert_produces_warning(UserWarning):
+        # raise with non-custom freq
+        msg = ('a custom frequency string is required when holidays or '
+               'weekmask are passed, got frequency B')
+        with tm.assert_raises_regex(ValueError, msg):
             bdate_range('2013-05-01', periods=3,
                         weekmask='Sun Mon Tue Wed Thu')
 
@@ -600,8 +602,10 @@ class TestCustomDateRange(object):
         expected = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
         tm.assert_index_equal(result, expected)
 
-        # warning with non-custom freq
-        with tm.assert_produces_warning(UserWarning):
+        # raise with non-custom freq
+        msg = ('a custom frequency string is required when holidays or '
+               'weekmask are passed, got frequency B')
+        with tm.assert_raises_regex(ValueError, msg):
             bdate_range('2013-05-01', periods=3, holidays=['2013-05-01'])
 
     def test_cdaterange_weekmask_and_holidays(self):
@@ -611,8 +615,10 @@ class TestCustomDateRange(object):
         expected = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
         tm.assert_index_equal(result, expected)
 
-        # warning with non-custom freq
-        with tm.assert_produces_warning(UserWarning):
+        # raise with non-custom freq
+        msg = ('a custom frequency string is required when holidays or '
+               'weekmask are passed, got frequency B')
+        with tm.assert_raises_regex(ValueError, msg):
             bdate_range('2013-05-01', periods=3,
                         weekmask='Sun Mon Tue Wed Thu',
                         holidays=['2013-05-01'])
@@ -629,7 +635,7 @@ class TestCustomDateRange(object):
         with tm.assert_raises_regex(ValueError, msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
 
-    def test_depr_cdaterange(self):
+    def test_deprecation_cdaterange(self):
         # GH17596
         with tm.assert_produces_warning(FutureWarning):
             cdate_range(START, END)

@@ -88,7 +88,7 @@ Class              Remarks                         How to create
 .. _timeseries.representation:
 
 Timestamps vs. Time Spans
---------------------------
+-------------------------
 
 Timestamped data is the most basic type of time series data that associates
 values with points in time. For pandas objects it means using the points in
@@ -263,11 +263,9 @@ pandas supports converting integer or float epoch times to ``Timestamp`` and
 ``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
 objects are stored internally. However, epochs are often stored in another ``unit``
 which can be specified. These are computed from the starting point specified by the
-:ref:`Origin Parameter <timeseries.origin>`.
+``origin`` parameter.
 
 .. ipython:: python
-
-   pd.Timestamp(1349720105, unit='s')
 
    pd.to_datetime([1349720105, 1349806505, 1349892905,
                    1349979305, 1350065705], unit='s')
@@ -292,6 +290,10 @@ which can be specified. These are computed from the starting point specified by 
       pd.to_datetime([1490195805.433, 1490195805.433502912], unit='s')
       pd.to_datetime(1490195805433502912, unit='ns')
 
+.. seealso::
+
+   :ref:`timeseries.origin`
+
 .. _timeseries.converting.epoch_inverse:
 
 From Timestamps to Epoch
@@ -312,8 +314,8 @@ We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conve
 
 .. _timeseries.origin:
 
-Using the Origin Parameter
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the ``origin`` Parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.20.0
 
@@ -353,7 +355,7 @@ To generate an index with timestamps, you can use either the ``DatetimeIndex`` o
 
 In practice this becomes very cumbersome because we often need a very long
 index with a large number of timestamps. If we need timestamps on a regular
-frequency, we can use the ``date_range`` and ``bdate_range`` functions
+frequency, we can use the :func:`date_range` and :func:`bdate_range` functions
 to create a ``DatetimeIndex``. The default frequency for ``date_range`` is a
 **calendar day** while the default for ``bdate_range`` is a **business day**:
 
@@ -392,11 +394,16 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
+.. _timeseries.custom-freq-ranges:
+
+Custom Frequency Ranges
+~~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 0.21.0
 
 ``bdate_range`` can also generate a range of custom frequency dates by using
 the ``weekmask`` and ``holidays`` parameters.  These parameters will only be
-used if a custom frequency string is passed:
+used if a custom frequency string is passed.
 
 .. ipython:: python
 
@@ -406,8 +413,19 @@ used if a custom frequency string is passed:
 
    pd.bdate_range(start, end, freq='C', weekmask=weekmask, holidays=holidays)
 
-See the :ref:`Custom Business Days <timeseries.custombusinessdays>` section for
-additional information on custom frequencies.
+   pd.bdate_range(start, end, freq='CBMS', weekmask=weekmask)
+
+.. warning::
+
+   This functionality was originally exclusive to ``cdate_range``, which is
+   deprecated as of version 0.21.0 in favor of ``bdate_range``.  Note that
+   ``cdate_range`` only utilizes the ``weekmask`` and ``holidays`` parameters
+   when custom business day, 'C', is passed as the frequency string. Support has 
+   been expanded with ``bdate_range`` to work with any custom frequency string.
+
+.. seealso::
+
+   :ref:`timeseries.custombusinessdays`
 
 .. _timeseries.timestamp-limits:
 
@@ -422,7 +440,9 @@ can be represented using a 64-bit integer is limited to approximately 584 years:
    pd.Timestamp.min
    pd.Timestamp.max
 
-See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
+.. seealso::
+
+   :ref:`timeseries.oob`
 
 .. _timeseries.datetimeindex:
 
