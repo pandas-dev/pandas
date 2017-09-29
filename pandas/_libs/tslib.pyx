@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-import warnings
-
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
-                    float64_t,
-                    NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
+                    float64_t, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
 import sys
@@ -16,12 +13,10 @@ from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
     PyComplex_Check,
-    PyLong_Check,
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE,
-    PyUnicode_Check,
-    PyUnicode_AsUTF8String)
+    PyUnicode_Check)
 
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -38,7 +33,6 @@ from datetime cimport (
     pandas_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_datetimestruct_to_datetime,
-    cmp_pandas_datetimestruct,
     days_per_month_table,
     get_datetime64_value,
     get_timedelta64_value,
@@ -68,23 +62,12 @@ from khash cimport (
     kh_resize_int64, kh_get_int64)
 
 from .tslibs.parsing import parse_datetime_string
-from .tslibs.parsing import DateParseError  # noqa
 
 cimport cython
 
-import re
 import time
 
-# dateutil compat
-from dateutil.tz import (tzoffset, tzlocal as _dateutil_tzlocal,
-                         tzutc as _dateutil_tzutc,
-                         tzstr as _dateutil_tzstr)
-
-from dateutil.relativedelta import relativedelta
-from dateutil.parser import DEFAULTPARSER
-
-from pandas.compat import (parse_date, string_types, iteritems,
-                           StringIO, callable)
+from pandas.compat import iteritems, callable
 
 import operator
 import collections
@@ -96,9 +79,6 @@ import_array()
 
 # import datetime C API
 PyDateTime_IMPORT
-
-# in numpy 1.7, will prob need the following:
-# numpy_pydatetime_import
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
@@ -318,7 +298,7 @@ class Timestamp(_Timestamp):
         tz : string / timezone object, default None
             Timezone to localize to
         """
-        if isinstance(tz, string_types):
+        if util.is_string_object(tz):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
@@ -613,7 +593,7 @@ class Timestamp(_Timestamp):
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
-            if not isinstance(ambiguous, string_types):
+            if not util.is_string_object(ambiguous):
                 ambiguous =   [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous, errors=errors)[0]
@@ -2426,8 +2406,8 @@ class Timedelta(_Timedelta):
                 raise TypeError(
                     "Invalid type {0}. Must be int or float.".format(type(v)))
 
-            kwargs = dict([ (k, _to_py_int_float(v))
-                            for k, v in iteritems(kwargs) ])
+            kwargs = dict([(k, _to_py_int_float(v))
+                            for k, v in iteritems(kwargs)])
 
             try:
                 nano = kwargs.pop('nanoseconds', 0)
@@ -3682,7 +3662,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             result[i] = v - delta
         return result
 
-    if isinstance(ambiguous, string_types):
+    if util.is_string_object(ambiguous):
         if ambiguous == 'infer':
             infer_dst = True
         elif ambiguous == 'NaT':
