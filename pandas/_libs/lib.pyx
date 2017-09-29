@@ -50,12 +50,6 @@ from datetime cimport (
     get_timedelta64_value, get_datetime64_value,
     npy_timedelta, npy_datetime,
     PyDateTime_Check, PyDate_Check, PyTime_Check, PyDelta_Check,
-    PyDateTime_GET_YEAR,
-    PyDateTime_GET_MONTH,
-    PyDateTime_GET_DAY,
-    PyDateTime_DATE_GET_HOUR,
-    PyDateTime_DATE_GET_MINUTE,
-    PyDateTime_DATE_GET_SECOND,
     PyDateTime_IMPORT)
 
 

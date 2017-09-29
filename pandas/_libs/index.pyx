@@ -13,13 +13,11 @@ cimport util
 
 import numpy as np
 
-cimport tslib
 from tslib cimport _to_i8
 
 from hashtable cimport HashTable
 
-from tslibs.timezones cimport is_utc, get_utcoffset
-from pandas._libs import tslib, algos, hashtable as _hash
+from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
 
