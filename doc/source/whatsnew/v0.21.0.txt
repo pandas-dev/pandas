@@ -648,6 +648,7 @@ Reshaping
 - :func:`Series.argmin`, :func:`Series.argmax`, and their counterparts on ``DataFrame`` and groupby objects work correctly with floating point data that contains infinite values (:issue:`13595`).
 - Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
+- Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
 
 Numeric
 ^^^^^^^

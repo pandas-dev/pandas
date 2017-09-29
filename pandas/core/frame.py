@@ -3453,18 +3453,13 @@ class DataFrame(NDFrame):
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            def trans(v):
-                if needs_i8_conversion(v):
-                    return v.view('i8')
-                return v
-
             keys = []
             for x in by:
                 k = self.xs(x, axis=other_axis).values
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s' %
                                      str(x))
-                keys.append(trans(k))
+                keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
             indexer = _ensure_platform_int(indexer)
