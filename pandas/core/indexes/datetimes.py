@@ -443,7 +443,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Closed has to be either 'left', 'right' or None")
 
         try:
-            inferred_tz = tools._infer_tzinfo(start, end)
+            inferred_tz = timezones.infer_tzinfo(start, end)
         except:
             raise TypeError('Start and end cannot both be tz-aware with '
                             'different timezones')
