@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-from numpy cimport ndarray
-
 cdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
 

@@ -12,7 +12,6 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
-import pandas.core.tools.datetimes as tools
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
@@ -646,20 +645,20 @@ class TestTimeZoneSupportPytz(object):
 
         start = self.localize(eastern, _start)
         end = self.localize(eastern, _end)
-        assert (tools._infer_tzinfo(start, end) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(start, None) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(None, end) is self.localize(eastern,
-                                                                _end).tzinfo)
+        assert (timezones.infer_tzinfo(start, end) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(start, None) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(None, end) is
+                self.localize(eastern, _end).tzinfo)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
-        assert (tools._infer_tzinfo(start, end) is utc)
+        assert (timezones.infer_tzinfo(start, end) is utc)
 
         end = self.localize(eastern, _end)
-        pytest.raises(Exception, tools._infer_tzinfo, start, end)
-        pytest.raises(Exception, tools._infer_tzinfo, end, start)
+        pytest.raises(Exception, timezones.infer_tzinfo, start, end)
+        pytest.raises(Exception, timezones.infer_tzinfo, end, start)
 
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10,
