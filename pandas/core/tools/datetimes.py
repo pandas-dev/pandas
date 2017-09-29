@@ -8,6 +8,7 @@ from pandas._libs.tslibs.timezones import get_timezone
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
+    DateParseError,
     _format_is_iso,
     _guess_datetime_format)
 
@@ -561,7 +562,6 @@ def _attempt_YYYYMMDD(arg, errors):
     return None
 
 
-DateParseError = tslib.DateParseError
 normalize_date = tslib.normalize_date
 
 # Fixed time formats for time parsing
