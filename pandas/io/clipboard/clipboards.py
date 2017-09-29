@@ -46,7 +46,7 @@ def init_gtk_clipboard():
 
 def init_qt_clipboard():
     # $DISPLAY should exist
-    from PyQt4.QtGui import QApplication
+    from qtpy.QtWidgets import QApplication
 
     # use the global instance if it exists
     app = QApplication.instance() or QApplication([])
