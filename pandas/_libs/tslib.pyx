@@ -1573,7 +1573,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
     elif ts == 'today':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
-        ts = datetime.today(tz)
+        ts = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
         try:
