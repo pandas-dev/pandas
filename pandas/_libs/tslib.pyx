@@ -728,7 +728,7 @@ class Timestamp(_Timestamp):
         # reconstruct & check bounds
         ts_input = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
                             dts.sec, dts.us, tzinfo=_tzinfo)
-        ts = convert_to_tsobject(ts_input, _tzinfo, None, 0, 0)
+        ts = _convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             _check_dts_bounds(&dts)
@@ -1475,52 +1475,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
-        if tz is not None:
-            # sort of a temporary hack
-            if ts.tzinfo is not None:
-                if (hasattr(tz, 'normalize') and
-                    hasattr(ts.tzinfo, '_utcoffset')):
-                    ts = tz.normalize(ts)
-                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                    obj.tzinfo = ts.tzinfo
-                else: #tzoffset
-                    try:
-                        tz = ts.astimezone(tz).tzinfo
-                    except:
-                        pass
-                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                    ts_offset = get_utcoffset(ts.tzinfo, ts)
-                    obj.value -= _delta_to_nanoseconds(ts_offset)
-                    tz_offset = get_utcoffset(tz, ts)
-                    obj.value += _delta_to_nanoseconds(tz_offset)
-                    pandas_datetime_to_datetimestruct(obj.value,
-                                                      PANDAS_FR_ns, &obj.dts)
-                    obj.tzinfo = tz
-            elif not is_utc(tz):
-                ts = _localize_pydatetime(ts, tz)
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = ts.tzinfo
-            else:
-                # UTC
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = pytz.utc
-        else:
-            obj.value = _pydatetime_to_dts(ts, &obj.dts)
-            obj.tzinfo = ts.tzinfo
-
-        if obj.tzinfo is not None and not is_utc(obj.tzinfo):
-            offset = get_utcoffset(obj.tzinfo, ts)
-            obj.value -= _delta_to_nanoseconds(offset)
-
-        if is_timestamp(ts):
-            obj.value += ts.nanosecond
-            obj.dts.ps = ts.nanosecond * 1000
-        _check_dts_bounds(&obj.dts)
-        return obj
+        return _convert_datetime_to_tsobject(ts, tz)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
-        return convert_to_tsobject(ts, tz, None, 0, 0)
+        return _convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError(
             "Cannot convert Period to Timestamp "
@@ -1538,12 +1497,64 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     return obj
 
 
+cdef _TSObject _convert_datetime_to_tsobject(datetime ts, object tz):
+    cdef:
+        _TSObject obj = _TSObject()
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+
+        # sort of a temporary hack
+        if ts.tzinfo is not None:
+            if (hasattr(tz, 'normalize') and
+                hasattr(ts.tzinfo, '_utcoffset')):
+                ts = tz.normalize(ts)
+                obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.tzinfo = ts.tzinfo
+            else:
+                # tzoffset
+                try:
+                    tz = ts.astimezone(tz).tzinfo
+                except:
+                    pass
+                obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                ts_offset = get_utcoffset(ts.tzinfo, ts)
+                obj.value -= int(ts_offset.total_seconds() * 1e9)
+                tz_offset = get_utcoffset(tz, ts)
+                obj.value += int(tz_offset.total_seconds() * 1e9)
+                pandas_datetime_to_datetimestruct(obj.value,
+                                                  PANDAS_FR_ns, &obj.dts)
+                obj.tzinfo = tz
+        elif not is_utc(tz):
+            ts = _localize_pydatetime(ts, tz)
+            obj.value = _pydatetime_to_dts(ts, &obj.dts)
+            obj.tzinfo = ts.tzinfo
+        else:
+            # UTC
+            obj.value = _pydatetime_to_dts(ts, &obj.dts)
+            obj.tzinfo = pytz.utc
+    else:
+        obj.value = _pydatetime_to_dts(ts, &obj.dts)
+        obj.tzinfo = ts.tzinfo
+
+    if obj.tzinfo is not None and not is_utc(obj.tzinfo):
+        offset = get_utcoffset(obj.tzinfo, ts)
+        obj.value -= int(offset.total_seconds() * 1e9)
+
+    if is_timestamp(ts):
+        obj.value += ts.nanosecond
+        obj.dts.ps = ts.nanosecond * 1000
+    
+    _check_dts_bounds(&obj.dts)
+    return obj
+
+
 cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                               dayfirst=False, yearfirst=False):
     """ ts must be a string """
 
     cdef:
-        _TSObject obj
+        _TSObject obj, obj2
         int out_local = 0, out_tzoffset = 0
 
     if tz is not None:
@@ -1558,11 +1569,12 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
-        ts = Timestamp.now(tz)
+        ts = datetime.now(tz)
     elif ts == 'today':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
-        ts = Timestamp.today(tz)
+        ts = datetime.today(tz)
+        # equiv: datetime.today().replace(tzinfo=tz)
     else:
         try:
             _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
@@ -1577,7 +1589,17 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                     return obj
                 else:
                     # Keep the converter same as PyDateTime's
-                    ts = Timestamp(obj.value, tz=obj.tzinfo)
+                    obj2 = convert_to_tsobject(obj.value, obj.tzinfo,
+                                               None, 0, 0)
+                    dtime = datetime(obj2.dts.year, obj2.dts.month,
+                                     obj2.dts.day,
+                                     obj2.dts.hour, obj2.dts.min, obj2.dts.sec,
+                                     obj2.dts.us, obj2.tzinfo)
+                    obj2 = _convert_datetime_to_tsobject(dtime, tz)
+                    obj2.value += obj.dts.ps / 1000
+                    obj2.dts.ps = obj.dts.ps
+                    return obj2
+
             else:
                 ts = obj.value
                 if tz is not None:
@@ -1726,7 +1748,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 else:
                     inferred_tz = get_timezone(val.tzinfo)
 
-                _ts = convert_to_tsobject(val, None, None, 0, 0)
+                _ts = _convert_datetime_to_tsobject(val, None)
                 iresult[i] = _ts.value
                 _check_dts_bounds(&_ts.dts)
             else:
@@ -2046,7 +2068,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 seen_datetime=1
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_to_tsobject(val, None, 'ns', 0, 0)
+                        _ts = _convert_datetime_to_tsobject(val, None)
                         iresult[i] = _ts.value
                         try:
                             _check_dts_bounds(&_ts.dts)
@@ -2155,7 +2177,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise TypeError("invalid string coercion to datetime")
 
                     try:
-                        _ts = convert_to_tsobject(py_dt, None, None, 0, 0)
+                        _ts = _convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     except ValueError:
                         if is_coerce:
