@@ -6,6 +6,7 @@ import sys
 blacklist = {
     'bs4',
     'html5lib',
+    'ipython',
     'jinja2'
     'lxml',
     'matplotlib',

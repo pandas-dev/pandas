@@ -122,7 +122,7 @@ script:
   - ci/script_multi.sh
   - ci/lint.sh
   - echo "checking imports"
-  - python ci/check_imports.py
+  - source activate pandas && python ci/check_imports.py
   - echo "script done"
 
 after_success:
