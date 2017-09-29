@@ -176,7 +176,7 @@ Backwards incompatible API changes
 ``PeriodIndex`` resampling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`).
+In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
 Previous Behavior:
 
@@ -247,8 +247,6 @@ New Behavior:
 
    s.resample('M').ohlc()
 
-
-As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
 .. _whatsnew_0210.api_breaking.deps:
 
