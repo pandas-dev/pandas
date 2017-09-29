@@ -833,11 +833,20 @@ Of course if you need integer based selection, then use ``iloc``
 IntervalIndex
 ~~~~~~~~~~~~~
 
+:class:`IntervalIndex` together with its own dtype, ``interval`` as well as the
+:class:`Interval` scalar type,  allow first-class support in pandas for interval
+notation.
+
+The ``IntervalIndex`` allows some unique indexing and is also used as a
+return type for the categories in :func:`cut` and :func:`qcut`.
+
 .. versionadded:: 0.20.0
 
 .. warning::
 
    These indexing behaviors are provisional and may change in a future version of pandas.
+
+An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index.
 
 .. ipython:: python
 
@@ -860,6 +869,20 @@ If you select a lable *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
+``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+
+.. ipython:: python
+
+   c = pd.cut(range(4), bins=2)
+   c
+   c.categories
+
+Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
+bins, with ``NaN`` representing a missing value similar to other dtypes.
+
+.. ipython:: python
+
+   pd.cut([0, 3, 5, 1], bins=c.categories)
 
 Miscellaneous indexing FAQ
 --------------------------

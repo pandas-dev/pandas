@@ -105,8 +105,10 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Warning: the indexing behaviors are provisional and may change in
-    a future version of pandas.
+    .. warning::
+
+       The indexing behaviors are provisional and may change in
+       a future version of pandas.
 
     Attributes
     ----------
@@ -147,15 +149,11 @@ class IntervalIndex(IntervalMixin, Index):
     --------
     Index
     Interval : A bounded slice-like interval
-    interval_range : Function to create a fixed frequency IntervalIndex
-    IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
-                                right array
-    IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                splits
-    IntervalIndex.from_intervals : Construct an IntervalIndex from an array of
-                                   Interval objects
-    IntervalIndex.from_tuples : Construct an IntervalIndex from a list/array of
-                                tuples
+    interval_range : Function to create a fixed frequency
+    IntervalIndex, IntervalIndex.from_arrays, IntervalIndex.from_breaks,
+    IntervalIndex.from_intervals, IntervalIndex.from_tuples
+    cut, qcut : convert arrays of continuous data into categoricals/series of
+                ``Interval``.
     """
     _typ = 'intervalindex'
     _comparables = ['name']
