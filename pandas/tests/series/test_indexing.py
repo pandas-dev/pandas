@@ -2188,6 +2188,16 @@ class TestSeriesIndexing(TestData):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
+    def test_rename(self):
+
+        # GH 17407
+        s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
+        result = s.rename(str)
+        expected = s.rename(lambda i: str(i))
+        assert_series_equal(result, expected)
+
+        assert result.name == expected.name
+
     def test_select(self):
         n = len(self.ts)
         result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
