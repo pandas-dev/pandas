@@ -114,7 +114,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             import random
 
             def random_color(column):
-                rstate = random.getstate() # this is to avoid resetting the seed globally
+                rstate = random.getstate()  # to avoid resetting the seed
                 random.seed(column)
                 color = [random.random() for _ in range(3)]
                 random.setstate(rstate)
