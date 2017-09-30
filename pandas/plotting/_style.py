@@ -114,7 +114,6 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             import random
 
             def random_color(column):
-                random.seed(column)
                 return [random.random() for _ in range(3)]
 
             colors = lmap(random_color, lrange(num_colors))
