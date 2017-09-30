@@ -1,4 +1,5 @@
 from datetime import timedelta
+import collections
 import numpy as np
 import warnings
 import copy
@@ -1025,6 +1026,16 @@ class TimeGrouper(Grouper):
     Use begin, end, nperiods to generate intervals that cannot be derived
     directly from the associated object
     """
+    # _attributes is used in __repr__below
+    _attributes = Grouper._attributes.copy()
+    _attributes.update((('freq', 'Min'), ('closed', None), ('label', None),
+                        ('how', 'mean'), ('nperiods', None), ('axis', 0),
+                        ('fill_method', None), ('limit', None),
+                        ('loffset', None), ('kind', None),
+                        ('convention', None), ('base', 0),
+                        ('convention', 'e'), ('sort', True),
+                        ))
+    _end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
 
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
@@ -1032,7 +1043,7 @@ class TimeGrouper(Grouper):
                  convention=None, base=0, **kwargs):
         freq = to_offset(freq)
 
-        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        end_types = self._end_types
         rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
@@ -1047,6 +1058,7 @@ class TimeGrouper(Grouper):
                 label = 'left'
 
         self.closed = closed
+        self.freq = freq
         self.label = label
         self.nperiods = nperiods
         self.kind = kind
@@ -1289,6 +1301,25 @@ class TimeGrouper(Grouper):
             labels = labels.insert(0, tslib.NaT)
 
         return binner, bins, labels
+
+    def __repr__(self):
+        defaults = self._attributes.copy()
+        end_types = self._end_types
+        rule = self.freq.rule_code
+        if (rule in end_types or
+                ('-' in rule and rule[:rule.find('-')] in end_types)):
+            defaults.update(closed='right', label='right')
+        else:
+            defaults.update(closed='left', label='left')
+
+        sd = self.__dict__
+        attrs = collections.OrderedDict((k, sd[k]) for k, v in defaults.items()
+                                        if k in sd and sd[k] != v)
+        if 'freq' in attrs:
+            attrs['freq'] = attrs['freq'].freqstr
+        attrs = ", ".join("{}={!r}".format(k, v) for k, v in attrs.items())
+        cls_name = self.__class__.__name__
+        return "{}({})".format(cls_name, attrs)
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):

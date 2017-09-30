@@ -233,6 +233,10 @@ class Grouper(object):
 
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
+    _attributes = collections.OrderedDict((('key', None), ('level', None),
+                                           ('freq', None), ('axis', 0),
+                                           ('sort', False)
+                                           ))
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
@@ -332,6 +336,15 @@ class Grouper(object):
     @property
     def groups(self):
         return self.grouper.groups
+
+    def __repr__(self):
+        defaults = self._attributes
+        sd = self.__dict__
+        attrs = collections.OrderedDict((k, sd[k]) for k, v in defaults.items()
+                                        if k in sd and sd[k] != v)
+        attrs = ", ".join("{}={!r}".format(k, v) for k, v in attrs.items())
+        cls_name = self.__class__.__name__
+        return "{}({})".format(cls_name, attrs)
 
 
 class GroupByPlot(PandasObject):
