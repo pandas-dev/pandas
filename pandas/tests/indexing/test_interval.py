@@ -12,7 +12,7 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    # TODO: check this behavior is consistent
+    # To be removed (see #16316, #16386)
     def test_loc_with_scalar(self):
 
         s = self.s
@@ -86,7 +86,7 @@ class TestIntervalIndex(object):
             assert s[key] == expected
             assert s.loc[key] == expected
 
-    # TODO: check this behavior is consistent
+    # To be removed (see #16316, #16386)
     def test_with_interval(self):
 
         s = self.s
