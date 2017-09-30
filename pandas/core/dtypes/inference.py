@@ -3,6 +3,7 @@
 import collections
 import re
 import numpy as np
+from collections import Iterable
 from numbers import Number
 from pandas.compat import (PY2, string_types, text_type,
                            string_and_binary_types)
@@ -262,7 +263,7 @@ def is_list_like(obj):
     False
     """
 
-    return (hasattr(obj, '__iter__') and
+    return (isinstance(obj, Iterable) and
             not isinstance(obj, string_and_binary_types))
 
 
