@@ -362,6 +362,16 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
+                name = com._consensus_name_attr(self.objs)
+
+                # check if all series are of the same block type:
+                blocks = [obj._data.blocks[0] for obj in self.objs]
+                if all([type(b) == type(blocks[0]) for b in blocks[1:]]):
+                    new_block = blocks[0].concat_same_type(blocks[1:])
+                    return (Series(new_block, index=self.new_axes[0],
+                                   name=name, fastpath=True)
+                            .__finalize__(self, method='concat'))
+
                 # concat Series with length to keep dtype as much
                 non_empties = [x for x in self.objs if len(x) > 0]
                 if len(non_empties) > 0:
@@ -370,7 +380,6 @@ class _Concatenator(object):
                     values = [x._values for x in self.objs]
                 new_data = _concat._concat_compat(values)
 
-                name = com._consensus_name_attr(self.objs)
                 cons = _concat._get_series_result_type(new_data)
 
                 return (cons(new_data, index=self.new_axes[0],

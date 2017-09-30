@@ -312,6 +312,14 @@ class Block(PandasObject):
     def merge(self, other):
         return _merge_blocks([self, other])
 
+    def concat_same_type(self, others):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = np.concatenate([self.values] + [o.values for o in others])
+        return self.make_block_same_class(
+            values, placement=slice(0, len(values), 1))
+
     def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
                      limit=None, mask_info=None):
         """
@@ -2683,6 +2691,21 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
+
+    def concat_same_type(self, others):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        # can maybe replace
+        # from pandas.core.dtypes.concat._concat_datetimetz ?
+        to_concat = [self.values] + [o.values for o in others]
+
+        if len(set([str(x.dtype) for x in to_concat])) != 1:
+            raise ValueError('to_concat must have the same tz')
+
+        values = to_concat[0]._concat_same_dtype(to_concat, None)
+        return self.make_block_same_class(
+            values, placement=slice(0, len(values), 1))
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
