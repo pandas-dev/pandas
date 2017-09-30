@@ -72,8 +72,8 @@ class MultiIndex(Index):
     Examples
     ---------
     A new ``MultiIndex`` is typically constructed using one of the helper
-    methods :meth:`MultiIndex.from_arrays``, :meth:`MultiIndex.from_product``
-    and :meth:`MultiIndex.from_tuples``. For example (using ``.from_arrays``):
+    methods :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_product`
+    and :meth:`MultiIndex.from_tuples`. For example (using ``.from_arrays``):
 
     >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
     >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
@@ -1982,33 +1982,41 @@ class MultiIndex(Index):
 
     def get_loc(self, key, method=None):
         """
-        Get integer location, slice or boolean mask for requested label or
-        tuple.  If the key is past the lexsort depth, the return may be a
-        boolean mask array, otherwise it is always a slice or int.
+        Get location for a label or a tuple of labels as an integer, slice or
+        boolean mask.
 
         Parameters
         ----------
-        key : label or tuple
+        key : label or tuple of labels (one for each level)
         method : None
 
         Returns
         -------
         loc : int, slice object or boolean mask
+            If the key is past the lexsort depth, the return may be a
+            boolean mask array, otherwise it is always a slice or int.
 
         Examples
         ---------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
+
         >>> mi.get_loc('b')
         slice(1, 3, None)
+
         >>> mi.get_loc(('b', 'e'))
         1
+
+        Notes
+        ------
+        The key cannot be a slice, list of same-level labels, a boolean mask,
+        or a sequence of such. If you want to use those, use
+        :meth:`MultiIndex.get_locs` instead.
 
         See also
         --------
         Index.get_loc : get_loc method for (single-level) index.
-        get_locs : Given a tuple of slices/lists/labels/boolean indexer to a
-                   level-wise spec, produce an indexer to extract those
-                   locations.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
@@ -2117,8 +2125,9 @@ class MultiIndex(Index):
 
         See Also
         ---------
-        MultiIndex.get_loc : Get integer location, slice or boolean mask for
-                             requested label or tuple.
+        MultiIndex.get_loc  : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such
         """
 
         def maybe_droplevels(indexer, levels, drop_level):
@@ -2328,23 +2337,41 @@ class MultiIndex(Index):
             j = labels.searchsorted(loc, side='right')
             return slice(i, j)
 
-    def get_locs(self, tup):
+    def get_locs(self, seq):
         """
-        Given a tuple of slices/lists/labels/boolean indexer to a level-wise
-        spec produce an indexer to extract those locations
+        Get location for a given label/slice/list/mask or a sequence of such as
+        an array of integers.
 
         Parameters
         ----------
-        key : tuple of (slices/list/labels)
+        seq : label/slice/list/mask or a sequence of such
+           You should use one of the above for each level.
+           If a level should not be used, set it to ``slice(None)``.
 
         Returns
         -------
-        locs : integer list of locations or boolean indexer suitable
-               for passing to iloc
+        locs : array of integers suitable for passing to iloc
+
+        Examples
+        ---------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
+
+        >>> mi.get_locs('b')
+        array([1, 2], dtype=int64)
+
+        >>> mi.get_locs([slice(None), ['e', 'f']])
+        array([1, 2], dtype=int64)
+
+        >>> mi.get_locs([[True, False, True], slice('e', 'f')])
+        array([2], dtype=int64)
+
+        See also
+        --------
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
         """
 
         # must be lexsorted to at least as many levels
-        true_slices = [i for (i, s) in enumerate(is_true_slices(tup)) if s]
+        true_slices = [i for (i, s) in enumerate(is_true_slices(seq)) if s]
         if true_slices and true_slices[-1] >= self.lexsort_depth:
             raise UnsortedIndexError('MultiIndex slicing requires the index '
                                      'to be lexsorted: slicing on levels {0}, '
@@ -2377,7 +2404,7 @@ class MultiIndex(Index):
                 return indexer
             return indexer & idxr
 
-        for i, k in enumerate(tup):
+        for i, k in enumerate(seq):
 
             if is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
