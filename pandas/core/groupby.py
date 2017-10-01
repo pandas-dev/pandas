@@ -256,11 +256,13 @@ class Grouper(object):
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj):
+    def _get_grouper(self, obj, validate=True):
         """
         Parameters
         ----------
         obj : the subject object
+        validate : boolean, default True
+            if True, validate the grouper
 
         Returns
         -------
@@ -271,7 +273,8 @@ class Grouper(object):
         self.grouper, exclusions, self.obj = _get_grouper(self.obj, [self.key],
                                                           axis=self.axis,
                                                           level=self.level,
-                                                          sort=self.sort)
+                                                          sort=self.sort,
+                                                          validate=validate)
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(self, obj, sort=False):
@@ -325,12 +328,6 @@ class Grouper(object):
         self.obj = obj
         self.grouper = ax
         return self.grouper
-
-    def _get_binner_for_grouping(self, obj):
-        """ default to the standard binner here """
-        group_axis = obj._get_axis(self.axis)
-        return Grouping(group_axis, None, obj=obj, name=self.key,
-                        level=self.level, sort=self.sort, in_axis=False)
 
     @property
     def groups(self):
@@ -1733,16 +1730,34 @@ class BaseGrouper(object):
     """
     This is an internal Grouper class, which actually holds
     the generated groups
+
+    Parameters
+    ----------
+    axis : int
+        the axis to group
+    groupings : array of grouping
+        all the grouping instances to handle in this grouper
+        for example for grouper list to groupby, need to pass the list
+    sort : boolean, default True
+        whether this grouper will give sorted result or not
+    group_keys : boolean, default True
+    mutated : boolean, default False
+    indexer : intp array, optional
+        the indexer created by Grouper
+        some groupers (TimeGrouper) will sort its axis and its
+        group_info is also sorted, so need the indexer to reorder
+
     """
 
     def __init__(self, axis, groupings, sort=True, group_keys=True,
-                 mutated=False):
+                 mutated=False, indexer=None):
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self.groupings = groupings
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
+        self.indexer = indexer
 
     @property
     def shape(self):
@@ -1887,6 +1902,15 @@ class BaseGrouper(object):
         ngroups = len(obs_group_ids)
         comp_ids = _ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
+
+    @cache_readonly
+    def label_info(self):
+        # return the labels of items in original grouped axis
+        labels, _, _ = self.group_info
+        if self.indexer is not None:
+            sorter = np.lexsort((labels, self.indexer))
+            labels = labels[sorter]
+        return labels
 
     def _get_compressed_labels(self):
         all_labels = [ping.labels for ping in self.groupings]
@@ -2288,11 +2312,42 @@ def generate_bins_generic(values, binner, closed):
 
 class BinGrouper(BaseGrouper):
 
-    def __init__(self, bins, binlabels, filter_empty=False, mutated=False):
+    """
+    This is an internal Grouper class
+
+    Parameters
+    ----------
+    bins : the split index of binlabels to group the item of axis
+    binlabels : the label list
+    filter_empty : boolean, default False
+    mutated : boolean, default False
+    indexer : a intp array
+
+    Examples
+    --------
+    bins: [2, 4, 6, 8, 10]
+    binlabels: DatetimeIndex(['2005-01-01', '2005-01-03',
+        '2005-01-05', '2005-01-07', '2005-01-09'],
+        dtype='datetime64[ns]', freq='2D')
+
+    the group_info, which contains the label of each item in grouped
+    axis, the index of label in label list, group number, is
+
+    (array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]), array([0, 1, 2, 3, 4]), 5)
+
+    means that, the grouped axis has 10 items, can be grouped into 5
+    labels, the first and second items belong to the first label, the
+    third and forth items belong to the second label, and so on
+
+    """
+
+    def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
+                 indexer=None):
         self.bins = _ensure_int64(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
+        self.indexer = indexer
 
     @cache_readonly
     def groups(self):
@@ -2460,6 +2515,19 @@ class Grouping(object):
             self.grouper, self._labels, self._group_index = \
                 index._get_grouper_for_level(self.grouper, level)
 
+        # a passed Grouper like, directly get the grouper in the same way
+        # as single grouper groupby, use the group_info to get labels
+        elif isinstance(self.grouper, Grouper):
+            # get the new grouper; we already have disambiguated
+            # what key/level refer to exactly, don't need to
+            # check again as we have by this point converted these
+            # to an actual value (rather than a pd.Grouper)
+            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
+            if self.name is None:
+                self.name = grouper.result_index.name
+            self.obj = self.grouper.obj
+            self.grouper = grouper
+
         else:
             if self.grouper is None and self.name is not None:
                 self.grouper = self.obj[self.name]
@@ -2481,16 +2549,6 @@ class Grouping(object):
                     Categorical.from_codes(np.arange(len(c)),
                                            categories=c,
                                            ordered=self.grouper.ordered))
-
-            # a passed Grouper like
-            elif isinstance(self.grouper, Grouper):
-
-                # get the new grouper
-                grouper = self.grouper._get_binner_for_grouping(self.obj)
-                self.obj = self.grouper.obj
-                self.grouper = grouper
-                if self.name is None:
-                    self.name = grouper.name
 
             # we are done
             if isinstance(self.grouper, Grouping):
@@ -2536,6 +2594,10 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
+        # we have a list of groupers
+        if isinstance(self.grouper, BaseGrouper):
+            return self.grouper.indices
+
         values = _ensure_categorical(self.grouper)
         return values._reverse_indexer()
 
@@ -2553,9 +2615,14 @@ class Grouping(object):
 
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
-            labels, uniques = algorithms.factorize(
-                self.grouper, sort=self.sort)
-            uniques = Index(uniques, name=self.name)
+            # we have a list of groupers
+            if isinstance(self.grouper, BaseGrouper):
+                labels = self.grouper.label_info
+                uniques = self.grouper.result_index
+            else:
+                labels, uniques = algorithms.factorize(
+                    self.grouper, sort=self.sort)
+                uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
 
@@ -2566,7 +2633,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False):
+                 mutated=False, validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -2582,6 +2649,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
+
+    If validate, then check for key/level overlaps
 
     """
     group_axis = obj._get_axis(axis)
@@ -2707,7 +2776,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
-                if gpr in obj.index.names:
+                if validate and gpr in obj.index.names:
                     warnings.warn(
                         ("'%s' is both a column name and an index level.\n"
                          "Defaulting to column but "

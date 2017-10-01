@@ -250,7 +250,7 @@ class Resampler(_GroupBy):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
-        bin_grouper = BinGrouper(bins, binlabels)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
     def _assure_grouper(self):
@@ -1105,34 +1105,11 @@ class TimeGrouper(Grouper):
                         "TimedeltaIndex or PeriodIndex, "
                         "but got an instance of %r" % type(ax).__name__)
 
-    def _get_grouper(self, obj):
+    def _get_grouper(self, obj, validate=True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         r._set_binner()
         return r.binner, r.grouper, r.obj
-
-    def _get_binner_for_grouping(self, obj):
-        # return an ordering of the transformed group labels,
-        # suitable for multi-grouping, e.g the labels for
-        # the resampled intervals
-        binner, grouper, obj = self._get_grouper(obj)
-
-        l = []
-        for key, group in grouper.get_iterator(self.ax):
-            l.extend([key] * len(group))
-
-        if isinstance(self.ax, PeriodIndex):
-            grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
-        else:
-            # resampling causes duplicated values, specifying freq is invalid
-            grouper = binner.__class__(l, name=binner.name)
-
-        # since we may have had to sort
-        # may need to reorder groups here
-        if self.indexer is not None:
-            indexer = self.indexer.argsort(kind='quicksort')
-            grouper = grouper.take(indexer)
-        return grouper
 
     def _get_time_bins(self, ax):
         if not isinstance(ax, DatetimeIndex):
