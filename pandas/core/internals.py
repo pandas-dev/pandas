@@ -2894,8 +2894,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
 
         return self.make_block_same_class(
             values, placement=slice(0, len(values), 1))
-        #else:
-        #    return make_block(values, placement=slice(0, len(values), 1))
 
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
