@@ -1392,17 +1392,23 @@ Thur,Lunch,Yes,51.51,17"""
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
 
-    def test_series_group_min_max(self):
+    @pytest.mark.parametrize('sort', [True, False])
+    def test_series_group_min_max(self, sort):
+        # GH 17537
         for op, level, skipna in cart_product(self.AGG_FUNCTIONS, lrange(2),
                                               [False, True]):
-            grouped = self.series.groupby(level=level)
+            grouped = self.series.groupby(level=level, sort=sort)
             aggf = lambda x: getattr(x, op)(skipna=skipna)
             # skipna=True
             leftside = grouped.agg(aggf)
             rightside = getattr(self.series, op)(level=level, skipna=skipna)
+            if sort:
+                rightside = rightside.sort_index(level=level)
             tm.assert_series_equal(leftside, rightside)
 
-    def test_frame_group_ops(self):
+    @pytest.mark.parametrize('sort', [True, False])
+    def test_frame_group_ops(self, sort):
+        # GH 17537
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
@@ -1415,7 +1421,7 @@ Thur,Lunch,Yes,51.51,17"""
             else:
                 frame = self.frame.T
 
-            grouped = frame.groupby(level=level, axis=axis)
+            grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
             pieces = []
 
@@ -1426,6 +1432,9 @@ Thur,Lunch,Yes,51.51,17"""
             leftside = grouped.agg(aggf)
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)
+            if sort:
+                rightside = rightside.sort_index(level=level, axis=axis)
+                frame = frame.sort_index(level=level, axis=axis)
 
             # for good measure, groupby detail
             level_index = frame._get_axis(axis).levels[level]

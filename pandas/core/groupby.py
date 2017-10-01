@@ -2586,10 +2586,27 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     """
     group_axis = obj._get_axis(axis)
 
-    # validate that the passed level is compatible with the passed
+    # validate that the passed single level is compatible with the passed
     # axis of the object
     if level is not None:
-        if not isinstance(group_axis, MultiIndex):
+        # TODO: These if-block and else-block are almost same.
+        # MultiIndex instance check is removable, but it seems that there are
+        # some processes only for non-MultiIndex in else-block,
+        # eg. `obj.index.name != level`. We have to consider carefully whether
+        # these are applicable for MultiIndex. Even if these are applicable,
+        # we need to check if it makes no side effect to subsequent processes
+        # on the outside of this condition.
+        # (GH 17621)
+        if isinstance(group_axis, MultiIndex):
+            if is_list_like(level) and len(level) == 1:
+                level = level[0]
+
+            if key is None and is_scalar(level):
+                # Get the level values from group_axis
+                key = group_axis.get_level_values(level)
+                level = None
+
+        else:
             # allow level to be a length-one list-like object
             # (e.g., level=[0])
             # GH 13901
@@ -2611,6 +2628,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                 raise ValueError('level > 0 or level < -1 only valid with '
                                  ' MultiIndex')
 
+            # NOTE: `group_axis` and `group_axis.get_level_values(level)`
+            # are same in this section.
             level = None
             key = group_axis
 
