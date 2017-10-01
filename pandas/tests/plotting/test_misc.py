@@ -287,12 +287,12 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_get_standard_colors_random_seed(self):
         """ For #17525 """
-        df = DataFrame(np.zeros((10,10)))
+        df = DataFrame(np.zeros((10, 10)))
 
         # Make sure that the random seed isn't reset by _get_standard_colors
-        plotting.parallel_coordinates(df,0)
+        plotting.parallel_coordinates(df, 0)
         rand1 = random.random()
-        plotting.parallel_coordinates(df,0)
+        plotting.parallel_coordinates(df, 0)
         rand2 = random.random()
         assert rand1 != rand2
 
