@@ -4260,7 +4260,7 @@ class NDFrame(PandasObject, SelectionMixin):
             dicts of such objects are also allowed.
         inplace : boolean, default False
             If True, in place. Note: this will modify any
-            other views on this object (e.g. a column form a DataFrame).
+            other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
         limit : int, default None
             Maximum size gap to forward or backward fill
