@@ -27,3 +27,12 @@ def test_custom_repr():
     blk_mgr = BlockManager([block], [['col'], range(3)])
     df = pd.DataFrame(blk_mgr)
     assert repr(df) == '      col\n0  Val: 0\n1  Val: 1\n2  Val: 2'
+
+
+def test_concat_series():
+    values = np.arange(3, dtype='int64')
+    block = CustomBlock(values, placement=slice(0, 3))
+    s = pd.Series(block, pd.RangeIndex(3), fastpath=True)
+
+    res = pd.concat([s, s])
+    assert isinstance(res._data.blocks[0], CustomBlock)
