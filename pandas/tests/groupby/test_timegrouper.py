@@ -634,9 +634,11 @@ class TestGroupBy(object):
             'value': [1, 2, 3]
         }
         data_frame = pd.DataFrame(data_frame).set_index('time')
-        grouper = pd.TimeGrouper('D')
+        grouper = pd.Grouper(freq='D')
+
         grouped = data_frame.groupby(grouper)
-        data1 = grouped.count()
+        result = grouped.count()
         grouped = data_frame.groupby([grouper])
-        data2 = grouped.count()
-        assert_frame_equal(data1, data2)
+        expected = grouped.count()
+
+        assert_frame_equal(result, expected)

@@ -256,11 +256,13 @@ class Grouper(object):
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj):
+    def _get_grouper(self, obj, validate=True):
         """
         Parameters
         ----------
         obj : the subject object
+        validate : boolean, default True
+            if True, validate the grouper
 
         Returns
         -------
@@ -271,7 +273,8 @@ class Grouper(object):
         self.grouper, exclusions, self.obj = _get_grouper(self.obj, [self.key],
                                                           axis=self.axis,
                                                           level=self.level,
-                                                          sort=self.sort)
+                                                          sort=self.sort,
+                                                          validate=validate)
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(self, obj, sort=False):
@@ -1739,8 +1742,9 @@ class BaseGrouper(object):
         whether this grouper will give sorted result or not
     group_keys : boolean, default True
     mutated : boolean, default False
-    indexer : the indexer created by Grouper
-        some grouper (TimeGrouper eg) will sort its axis and its
+    indexer : intp array, optional
+        the indexer created by Grouper
+        some groupers (TimeGrouper) will sort its axis and its
         group_info is also sorted, so need the indexer to reorder
 
     """
@@ -2514,8 +2518,11 @@ class Grouping(object):
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get labels
         elif isinstance(self.grouper, Grouper):
-            # get the new grouper
-            _, grouper, _ = self.grouper._get_grouper(self.obj)
+            # get the new grouper; we already have disambiguated
+            # what key/level refer to exactly, don't need to
+            # check again as we have by this point converted these
+            # to an actual value (rather than a pd.Grouper)
+            _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
@@ -2587,12 +2594,12 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        # for the situation of groupby list of groupers
+        # we have a list of groupers
         if isinstance(self.grouper, BaseGrouper):
             return self.grouper.indices
-        else:
-            values = _ensure_categorical(self.grouper)
-            return values._reverse_indexer()
+
+        values = _ensure_categorical(self.grouper)
+        return values._reverse_indexer()
 
     @property
     def labels(self):
@@ -2608,7 +2615,7 @@ class Grouping(object):
 
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
-            # for the situation of groupby list of groupers
+            # we have a list of groupers
             if isinstance(self.grouper, BaseGrouper):
                 labels = self.grouper.label_info
                 uniques = self.grouper.result_index
@@ -2626,7 +2633,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False):
+                 mutated=False, validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -2642,6 +2649,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
+
+    If validate, then check for key/level overlaps
 
     """
     group_axis = obj._get_axis(axis)
@@ -2767,7 +2776,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
-                if gpr in obj.index.names:
+                if validate and gpr in obj.index.names:
                     warnings.warn(
                         ("'%s' is both a column name and an index level.\n"
                          "Defaulting to column but "
