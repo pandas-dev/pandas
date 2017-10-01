@@ -1500,9 +1500,24 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                                             int32_t nanos=0):
     """
-    Extract datetime and int64 from any of:
-        - python datetime object
-        - another timestamp object
+    Convert a datetime (or Timestamp) input `ts`, along with optional timezone
+    object `tz` to a _TSObject.
+
+    The optional argument `nanos` allows for cases where datetime input
+    needs to be supplemented with higher-precision information.
+
+    Parameters
+    ----------
+    ts : datetime or Timestamp
+        Value to be converted to _TSObject
+    tz : tzinfo or None
+        timezone for the timezone-aware output
+    nanos : int32_t, default is 0
+        nanoseconds supplement the precision of the datetime input ts
+
+    Returns
+    -------
+    obj : _TSObject
     """
     cdef:
         _TSObject obj = _TSObject()
