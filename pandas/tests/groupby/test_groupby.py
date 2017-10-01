@@ -1791,18 +1791,20 @@ class TestGroupBy(MixIn):
         agged2 = df.groupby(keys).aggregate(aggfun)
         assert len(agged2.columns) + 1 == len(df.columns)
 
-    def test_groupby_level(self):
+    @pytest.mark.parametrize('sort', [True, False])
+    def test_groupby_level(self, sort):
+        # GH 17537
         frame = self.mframe
         deleveled = frame.reset_index()
 
-        result0 = frame.groupby(level=0).sum()
-        result1 = frame.groupby(level=1).sum()
+        result0 = frame.groupby(level=0, sort=sort).sum()
+        result1 = frame.groupby(level=1, sort=sort).sum()
 
-        expected0 = frame.groupby(deleveled['first'].values).sum()
-        expected1 = frame.groupby(deleveled['second'].values).sum()
+        expected0 = frame.groupby(deleveled['first'].values, sort=sort).sum()
+        expected1 = frame.groupby(deleveled['second'].values, sort=sort).sum()
 
-        expected0 = expected0.reindex(frame.index.levels[0])
-        expected1 = expected1.reindex(frame.index.levels[1])
+        expected0.index.name = 'first'
+        expected1.index.name = 'second'
 
         assert result0.index.name == 'first'
         assert result1.index.name == 'second'
@@ -1813,15 +1815,15 @@ class TestGroupBy(MixIn):
         assert result1.index.name == frame.index.names[1]
 
         # groupby level name
-        result0 = frame.groupby(level='first').sum()
-        result1 = frame.groupby(level='second').sum()
+        result0 = frame.groupby(level='first', sort=sort).sum()
+        result1 = frame.groupby(level='second', sort=sort).sum()
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
 
         # axis=1
 
-        result0 = frame.T.groupby(level=0, axis=1).sum()
-        result1 = frame.T.groupby(level=1, axis=1).sum()
+        result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
+        result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
         assert_frame_equal(result0, expected0.T)
         assert_frame_equal(result1, expected1.T)
 
@@ -1835,15 +1837,17 @@ class TestGroupBy(MixIn):
         df.groupby(level='exp')
         pytest.raises(ValueError, df.groupby, level='foo')
 
-    def test_groupby_level_with_nas(self):
+    @pytest.mark.parametrize('sort', [True, False])
+    def test_groupby_level_with_nas(self, sort):
+        # GH 17537
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
                            labels=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
                                                               2, 3]])
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
-        result = s.groupby(level=0).sum()
-        expected = Series([22., 6.], index=[1, 0])
+        result = s.groupby(level=0, sort=sort).sum()
+        expected = Series([6., 22.], index=[0, 1])
         assert_series_equal(result, expected)
 
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
@@ -1852,8 +1856,8 @@ class TestGroupBy(MixIn):
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
-        result = s.groupby(level=0).sum()
-        expected = Series([18., 6.], index=[1, 0])
+        result = s.groupby(level=0, sort=sort).sum()
+        expected = Series([6., 18.], index=[0.0, 1.0])
         assert_series_equal(result, expected)
 
     def test_groupby_level_apply(self):
@@ -1936,9 +1940,14 @@ class TestGroupBy(MixIn):
         result = a.sum(level=0)
         assert_series_equal(result, expected)
 
-    def test_level_preserve_order(self):
-        grouped = self.mframe.groupby(level=0)
-        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3], np.intp)
+    @pytest.mark.parametrize('sort,labels', [
+        [True, [2, 2, 2, 0, 0, 1, 1, 3, 3, 3]],
+        [False, [0, 0, 0, 1, 1, 2, 2, 3, 3, 3]]
+    ])
+    def test_level_preserve_order(self, sort, labels):
+        # GH 17537
+        grouped = self.mframe.groupby(level=0, sort=sort)
+        exp_labels = np.array(labels, np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_grouping_labels(self):
