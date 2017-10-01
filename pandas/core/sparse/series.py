@@ -602,16 +602,15 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
+    @Appender(generic._shared_docs['take'])
     def take(self, indices, axis=0, convert=True, *args, **kwargs):
-        """
-        Sparse-compatible version of ndarray.take
-
-        Returns
-        -------
-        taken : ndarray
-        """
-
         convert = nv.validate_take_with_convert(convert, args, kwargs)
+
+        if not convert:
+            msg = ("The 'convert' parameter is deprecated "
+                   "and will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values,

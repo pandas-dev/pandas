@@ -822,13 +822,17 @@ class TestDataFrameSelectReindex(TestData):
             expected = df.loc[:, ['D', 'B', 'C', 'A']]
             assert_frame_equal(result, expected, check_names=False)
 
-        # neg indicies
+        # negative indices
         order = [2, 1, -1]
         for df in [self.frame]:
 
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             assert_frame_equal(result, expected)
+
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.take(order, convert=False, axis=0)
+                assert_frame_equal(result, expected)
 
             # axis = 1
             result = df.take(order, axis=1)
@@ -854,7 +858,7 @@ class TestDataFrameSelectReindex(TestData):
             expected = df.loc[:, ['foo', 'B', 'C', 'A', 'D']]
             assert_frame_equal(result, expected)
 
-        # neg indicies
+        # negative indices
         order = [4, 1, -2]
         for df in [self.mixed_frame]:
 

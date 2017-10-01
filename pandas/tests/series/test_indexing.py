@@ -1066,6 +1066,23 @@ class TestSeriesIndexing(TestData):
         s.iloc[[1, 2]] = vals
         tm.assert_series_equal(s, exp)
 
+    def test_take(self):
+        s = Series([-1, 5, 6, 2, 4])
+
+        actual = s.take([1, 3, 4])
+        expected = Series([5, 2, 4], index=[1, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        actual = s.take([-1, 3, 4])
+        expected = Series([4, 2, 4], index=[4, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        pytest.raises(IndexError, s.take, [1, 10])
+        pytest.raises(IndexError, s.take, [2, 5])
+
+        with tm.assert_produces_warning(FutureWarning):
+            s.take([-1, 3, 4], convert=False)
+
     def test_where(self):
         s = Series(np.random.randn(5))
         cond = s > 0

@@ -520,6 +520,9 @@ class TestSparseSeries(SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            sp.take([1, 5], convert=False)
+
     def test_numpy_take(self):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]

@@ -2034,7 +2034,7 @@ class DataFrame(NDFrame):
                 return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
-                    return self.take(i, axis=1, convert=True)
+                    return self._take(i, axis=1, convert=True)
 
                 index_len = len(self.index)
 
@@ -2116,10 +2116,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self.take(indexer, axis=0, convert=False)
+            return self._take(indexer, axis=0, convert=False)
         else:
             indexer = self.loc._convert_to_indexer(key, axis=1)
-            return self.take(indexer, axis=1, convert=True)
+            return self._take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -3355,7 +3355,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self.take(mask.nonzero()[0], axis=axis, convert=False)
+            result = self._take(mask.nonzero()[0], axis=axis, convert=False)
 
         if inplace:
             self._update_inplace(result)
@@ -3486,7 +3486,7 @@ class DataFrame(NDFrame):
 
         new_data = self._data.take(indexer,
                                    axis=self._get_block_manager_axis(axis),
-                                   convert=False, verify=False)
+                                   verify=False)
 
         if inplace:
             return self._update_inplace(new_data)
@@ -3547,7 +3547,7 @@ class DataFrame(NDFrame):
         baxis = self._get_block_manager_axis(axis)
         new_data = self._data.take(indexer,
                                    axis=baxis,
-                                   convert=False, verify=False)
+                                   verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
