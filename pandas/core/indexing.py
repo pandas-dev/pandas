@@ -1093,7 +1093,7 @@ class _NDFrameIndexer(object):
         if is_bool_indexer(key):
             key = check_bool_indexer(labels, key)
             inds, = key.nonzero()
-            return self.obj.take(inds, axis=axis, convert=False)
+            return self.obj._take(inds, axis=axis, convert=False)
         else:
             # Have the index compute an indexer or return None
             # if it cannot handle; we only act on all found values
@@ -1126,15 +1126,15 @@ class _NDFrameIndexer(object):
                     keyarr)
 
                 if new_indexer is not None:
-                    result = self.obj.take(indexer[indexer != -1], axis=axis,
-                                           convert=False)
+                    result = self.obj._take(indexer[indexer != -1], axis=axis,
+                                            convert=False)
 
                     result = result._reindex_with_indexers(
                         {axis: [new_target, new_indexer]},
                         copy=True, allow_dups=True)
 
                 else:
-                    result = self.obj.take(indexer, axis=axis, convert=False)
+                    result = self.obj._take(indexer, axis=axis)
 
                 return result
 
@@ -1265,7 +1265,7 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
         else:
-            return self.obj.take(indexer, axis=axis, convert=False)
+            return self.obj._take(indexer, axis=axis, convert=False)
 
 
 class _IXIndexer(_NDFrameIndexer):
@@ -1350,7 +1350,7 @@ class _LocationIndexer(_NDFrameIndexer):
         key = check_bool_indexer(labels, key)
         inds, = key.nonzero()
         try:
-            return self.obj.take(inds, axis=axis, convert=False)
+            return self.obj._take(inds, axis=axis, convert=False)
         except Exception as detail:
             raise self._exception(detail)
 
@@ -1367,7 +1367,7 @@ class _LocationIndexer(_NDFrameIndexer):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
         else:
-            return self.obj.take(indexer, axis=axis, convert=False)
+            return self.obj._take(indexer, axis=axis, convert=False)
 
 
 class _LocIndexer(_LocationIndexer):
@@ -1707,7 +1707,7 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(slice_obj, slice):
             return self._slice(slice_obj, axis=axis, kind='iloc')
         else:
-            return self.obj.take(slice_obj, axis=axis, convert=False)
+            return self.obj._take(slice_obj, axis=axis, convert=False)
 
     def _get_list_axis(self, key, axis=0):
         """
@@ -1723,7 +1723,7 @@ class _iLocIndexer(_LocationIndexer):
         Series object
         """
         try:
-            return self.obj.take(key, axis=axis, convert=False)
+            return self.obj._take(key, axis=axis, convert=False)
         except IndexError:
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")

@@ -322,8 +322,8 @@ class Grouper(object):
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind='mergesort')
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis,
-                           convert=False, is_copy=False)
+            obj = obj._take(indexer, axis=self.axis,
+                            convert=False, is_copy=False)
 
         self.obj = obj
         self.grouper = ax
@@ -640,7 +640,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         if not len(inds):
             raise KeyError(name)
 
-        return obj.take(inds, axis=self.axis, convert=False)
+        return obj._take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):
         """
@@ -2226,7 +2226,7 @@ class BaseGrouper(object):
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj.take(indexer, convert=False).to_dense()
+        obj = obj._take(indexer, convert=False).to_dense()
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
@@ -4523,7 +4523,7 @@ class DataSplitter(object):
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
-        return self.data.take(self.sort_idx, axis=self.axis, convert=False)
+        return self.data._take(self.sort_idx, axis=self.axis, convert=False)
 
     def _chop(self, sdata, slice_obj):
         return sdata.iloc[slice_obj]
