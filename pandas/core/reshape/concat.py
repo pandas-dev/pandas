@@ -3,13 +3,13 @@ concat routines
 """
 
 import numpy as np
-from pandas import compat, DataFrame, Series, Index, MultiIndex
+from pandas import compat, DataFrame, Series, Index, MultiIndex, SparseSeries
 from pandas.core.index import (_get_objs_combined_axis,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.categorical import (_factorize_from_iterable,
                                      _factorize_from_iterables)
-from pandas.core.internals import concatenate_block_managers
+from pandas.core.internals import concatenate_block_managers, SparseBlock
 from pandas.core import common as com
 from pandas.core.generic import NDFrame
 import pandas.core.dtypes.concat as _concat
@@ -364,16 +364,22 @@ class _Concatenator(object):
             if self.axis == 0:
                 name = com._consensus_name_attr(self.objs)
 
-                # check if all series are of the same block type:
-                blocks = [obj._data.blocks[0] for obj in self.objs]
-                if all([type(b) == type(blocks[0]) for b in blocks[1:]]):
-                    new_block = blocks[0].concat_same_type(blocks[1:])
-                    return (Series(new_block, index=self.new_axes[0],
-                                   name=name, fastpath=True)
-                            .__finalize__(self, method='concat'))
-
                 # concat Series with length to keep dtype as much
                 non_empties = [x for x in self.objs if len(x) > 0]
+
+                # check if all series are of the same block type:
+                if len(non_empties) > 0:
+                    blocks = [obj._data.blocks[0] for obj in non_empties]
+                    if all([type(b) == type(blocks[0]) for b in blocks[1:]]):
+                        new_block = blocks[0].concat_same_type(blocks)
+                        if isinstance(new_block, SparseBlock):
+                            cons = SparseSeries
+                        else:
+                            cons = Series
+                        return (cons(new_block, index=self.new_axes[0],
+                                     name=name, fastpath=True)
+                                .__finalize__(self, method='concat'))
+
                 if len(non_empties) > 0:
                     values = [x._values for x in non_empties]
                 else:

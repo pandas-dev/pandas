@@ -312,11 +312,11 @@ class Block(PandasObject):
     def merge(self, other):
         return _merge_blocks([self, other])
 
-    def concat_same_type(self, others):
+    def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
         """
-        values = np.concatenate([self.values] + [o.values for o in others])
+        values = np.concatenate([blk.values for blk in to_concat])
         return self.make_block_same_class(
             values, placement=slice(0, len(values), 1))
 
@@ -2415,6 +2415,19 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
+    def concat_same_type(self, to_concat):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        to_concat = [blk.values for blk in to_concat]
+        values = _concat._concat_categorical(to_concat)
+
+        if is_categorical_dtype(values.dtype):
+            return self.make_block_same_class(
+                values, placement=slice(0, len(values), 1))
+        else:
+            return make_block(values, placement=slice(0, len(values), 1))
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2692,20 +2705,18 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
-    def concat_same_type(self, others):
+    def concat_same_type(self, to_concat):
         """
         Concatenate list of single blocks of the same type.
         """
-        # can maybe replace
-        # from pandas.core.dtypes.concat._concat_datetimetz ?
-        to_concat = [self.values] + [o.values for o in others]
+        to_concat = [blk.values for blk in to_concat]
+        values = _concat._concat_datetime(to_concat)
 
-        if len(set([str(x.dtype) for x in to_concat])) != 1:
-            raise ValueError('to_concat must have the same tz')
-
-        values = to_concat[0]._concat_same_dtype(to_concat, None)
-        return self.make_block_same_class(
-            values, placement=slice(0, len(values), 1))
+        if is_datetimetz(values):
+            return self.make_block_same_class(
+                values, placement=slice(0, len(values), 1))
+        else:
+            return make_block(values, placement=slice(0, len(values), 1))
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
@@ -2873,6 +2884,18 @@ class SparseBlock(NonConsolidatableMixIn, Block):
             values.sp_values.astype('float64'), values.fill_value, new_index)
         return self.make_block_same_class(values, sparse_index=new_index,
                                           placement=self.mgr_locs)
+
+    def concat_same_type(self, to_concat):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        to_concat = [blk.values for blk in to_concat]
+        values = _concat._concat_sparse(to_concat)
+
+        return self.make_block_same_class(
+            values, placement=slice(0, len(values), 1))
+        #else:
+        #    return make_block(values, placement=slice(0, len(values), 1))
 
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
