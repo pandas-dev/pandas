@@ -171,6 +171,82 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0210.api_breaking.period_index_resampling:
+
+``PeriodIndex`` resampling
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
+
+   In [2]: s = pd.Series(np.arange(12), index=pi)
+
+   In [3]: resampled = s.resample('2Q').mean()
+
+   In [4]: resampled
+   Out[4]:
+   2017-03-31     1.0
+   2017-09-30     5.5
+   2018-03-31    10.0
+   Freq: 2Q-DEC, dtype: float64
+
+   In [5]: resampled.index
+   Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
+
+New Behavior:
+
+.. ipython:: python
+
+   pi = pd.period_range('2017-01', periods=12, freq='M')
+
+   s = pd.Series(np.arange(12), index=pi)
+
+   resampled = s.resample('2Q').mean()
+
+   resampled
+
+   resampled.index
+
+
+Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   In [2]: s = pd.Series(np.arange(10), index=pi)
+
+   In [3]: s.resample('H').ohlc()
+   Out[3]:
+   2000-01-01 00:00    0.0
+                   ...
+   2000-01-10 23:00    NaN
+   Freq: H, Length: 240, dtype: float64
+
+   In [4]: s.resample('M').ohlc()
+   Out[4]:
+            open  high  low  close
+   2000-01     0     9    0      9
+
+New Behavior:
+
+.. ipython:: python
+
+   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   s = pd.Series(np.arange(10), index=pi)
+
+   s.resample('H').ohlc()
+
+   s.resample('M').ohlc()
+
 
 .. _whatsnew_0210.api_breaking.deps:
 
