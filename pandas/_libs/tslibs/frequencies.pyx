@@ -6,9 +6,32 @@ cimport cython
 
 import numpy as np
 cimport numpy as np
+from numpy cimport int64_t
 np.import_array()
 
-from util cimport is_integer_object
+from util cimport is_integer_object, is_string_object
+
+
+#----------------------------------------------------------------------
+cpdef object _get_rule_month(object source, object default='DEC'):
+    """
+    Return starting month of given freq, default is December.
+
+    Example
+    -------
+    >>> _get_rule_month('D')
+    'DEC'
+
+    >>> _get_rule_month('A-JAN')
+    'JAN'
+    """
+    if hasattr(source, 'freqstr'):
+        source = source.freqstr
+    source = source.upper()
+    if '-' not in source:
+        return default
+    else:
+        return source.split('-')[1]
 
 
 cpdef get_freq_code(freqstr):
@@ -202,3 +225,242 @@ cpdef _period_str_to_code(freqstr):
         return _period_code_map[freqstr]
     except KeyError:
         raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+
+
+cpdef _get_freq_str(base, mult=1):
+    code = _reverse_period_code_map.get(base)
+    if mult == 1:
+        return code
+    return str(mult) + code
+
+
+cpdef get_base_alias(freqstr):
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+    """
+    return _base_and_stride(freqstr)[0]
+
+
+class FreqGroup(object):
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_MS = 10000
+    FR_US = 11000
+    FR_NS = 12000
+
+
+cpdef get_to_timestamp_base(base):
+    """
+    Return frequency code group used for base of to_timestamp against
+    frequency code.
+
+    Example
+    -------
+    # Return day freq code against longer freq than day
+    >>> get_to_timestamp_base(get_freq_code('D')[0])
+    6000
+    >>> get_to_timestamp_base(get_freq_code('W')[0])
+    6000
+    >>> get_to_timestamp_base(get_freq_code('M')[0])
+    6000
+
+    # Return second freq code against hour between second
+    >>> get_to_timestamp_base(get_freq_code('H')[0])
+    9000
+    >>> get_to_timestamp_base(get_freq_code('S')[0])
+    9000
+    """
+    if base < FreqGroup.FR_BUS:
+        return FreqGroup.FR_DAY
+    if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
+        return FreqGroup.FR_SEC
+    return base
+
+
+cpdef get_freq(freq):
+    """
+    Return frequency code of given frequency str.
+    If input is not string, return input as it is.
+
+    Example
+    -------
+    >>> get_freq('A')
+    1000
+
+    >>> get_freq('3A')
+    1000
+    """
+    if is_string_object(freq):
+        base, mult = get_freq_code(freq)
+        freq = base
+    return freq
+
+
+#----------------------------------------------------------------------
+# Frequency comparison
+
+def is_subperiod(source, target):
+    """
+    Returns True if downsampling is possible between source and target
+    frequencies
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+    target : string
+        Frequency converting to
+
+    Returns
+    -------
+    is_subperiod : boolean
+    """
+
+    if target is None or source is None:
+        return False
+    source = _maybe_coerce_freq(source)
+    target = _maybe_coerce_freq(target)
+
+    if _is_annual(target):
+        if _is_quarterly(source):
+            return _quarter_months_conform(_get_rule_month(source),
+                                           _get_rule_month(target))
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_quarterly(target):
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_monthly(target):
+        return source in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_weekly(target):
+        return source in [target, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif target == 'B':
+        return source in ['B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif target == 'C':
+        return source in ['C', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif target == 'D':
+        return source in ['D', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif target == 'H':
+        return source in ['H', 'T', 'S', 'L', 'U', 'N']
+    elif target == 'T':
+        return source in ['T', 'S', 'L', 'U', 'N']
+    elif target == 'S':
+        return source in ['S', 'L', 'U', 'N']
+    elif target == 'L':
+        return source in ['L', 'U', 'N']
+    elif target == 'U':
+        return source in ['U', 'N']
+    elif target == 'N':
+        return source in ['N']
+
+
+def is_superperiod(source, target):
+    """
+    Returns True if upsampling is possible between source and target
+    frequencies
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+    target : string
+        Frequency converting to
+
+    Returns
+    -------
+    is_superperiod : boolean
+    """
+    if target is None or source is None:
+        return False
+    source = _maybe_coerce_freq(source)
+    target = _maybe_coerce_freq(target)
+
+    if _is_annual(source):
+        if _is_annual(target):
+            return _get_rule_month(source) == _get_rule_month(target)
+
+        if _is_quarterly(target):
+            smonth = _get_rule_month(source)
+            tmonth = _get_rule_month(target)
+            return _quarter_months_conform(smonth, tmonth)
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_quarterly(source):
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_monthly(source):
+        return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif _is_weekly(source):
+        return target in [source, 'D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif source == 'B':
+        return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif source == 'C':
+        return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif source == 'D':
+        return target in ['D', 'C', 'B', 'H', 'T', 'S', 'L', 'U', 'N']
+    elif source == 'H':
+        return target in ['H', 'T', 'S', 'L', 'U', 'N']
+    elif source == 'T':
+        return target in ['T', 'S', 'L', 'U', 'N']
+    elif source == 'S':
+        return target in ['S', 'L', 'U', 'N']
+    elif source == 'L':
+        return target in ['L', 'U', 'N']
+    elif source == 'U':
+        return target in ['U', 'N']
+    elif source == 'N':
+        return target in ['N']
+
+
+def _maybe_coerce_freq(code):
+    """ we might need to coerce a code to a rule_code
+    and uppercase it
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+
+    Returns
+    -------
+    string code
+    """
+    assert code is not None
+    if getattr(code, '_typ', None) == 'dateoffset':
+        # i.e. isinstance(code, ABCDateOffset):
+        code = code.rule_code
+    return code.upper()
+
+
+_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
+           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
+
+
+def _quarter_months_conform(source, target):
+    snum = _MONTH_NUMBERS[source]
+    tnum = _MONTH_NUMBERS[target]
+    return snum % 3 == tnum % 3
+
+
+def _is_annual(rule):
+    rule = rule.upper()
+    return rule == 'A' or rule.startswith('A-')
+
+
+def _is_quarterly(rule):
+    rule = rule.upper()
+    return rule == 'Q' or rule.startswith('Q-') or rule.startswith('BQ')
+
+
+def _is_monthly(rule):
+    rule = rule.upper()
+    return rule == 'M' or rule == 'BM'
+
+
+def _is_weekly(rule):
+    rule = rule.upper()
+    return rule == 'W' or rule.startswith('W-')

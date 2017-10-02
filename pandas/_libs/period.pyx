@@ -38,7 +38,10 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, _get_dst_info, maybe_get_tz)
 from tslib cimport _nat_scalar_rules
 
-from tslibs.frequencies cimport get_freq_code
+from tslibs.frequencies cimport (
+    get_freq_code, get_base_alias, get_to_timestamp_base, _get_freq_str,
+    _get_rule_month)
+from tslibs.frequencies import _MONTH_NUMBERS
 
 from pandas.tseries import offsets
 from pandas.core.tools.datetimes import parse_time_string
@@ -683,7 +686,7 @@ cdef class _Period(object):
 
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
-            freq = frequencies._get_freq_str(code, stride)
+            freq = _get_freq_str(code, stride)
 
         freq = frequencies.to_offset(freq)
 
@@ -742,7 +745,7 @@ cdef class _Period(object):
             raise IncompatibleFrequency(msg.format(self.freqstr))
         elif isinstance(other, offsets.DateOffset):
             freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
+            base = get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
@@ -860,7 +863,7 @@ cdef class _Period(object):
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
+            freq = get_to_timestamp_base(base)
 
         base, mult = get_freq_code(freq)
         val = self.asfreq(freq, how)
@@ -1249,7 +1252,7 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        mnum = tslib._MONTH_NUMBERS[tslib._get_rule_month(freq)] + 1
+        mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1

@@ -111,7 +111,8 @@ from tslibs.timezones import (  # noqa
     _unbox_utcoffsets,
     _dateutil_gettz
     )
-
+from tslibs.frequencies cimport _get_rule_month
+from tslibs.frequencies import _get_rule_month  # noqa
 
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
@@ -2115,27 +2116,6 @@ _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 _MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
-
-
-cpdef object _get_rule_month(object source, object default='DEC'):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
 
 
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
