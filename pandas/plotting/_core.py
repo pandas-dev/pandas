@@ -834,10 +834,10 @@ class ScatterPlot(PlanePlot):
         if s is None:
             # Set default size if no argument is given.
             s = 20
-        elif is_hashable(s) and s in data.columns:
+        elif s in data.columns:
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
-            size_data = data.loc[:, s].values
+            size_data = data[s]
             if is_numeric_dtype(size_data):
                 self.size_title = s
                 self.s_data_max = size_data.max()
