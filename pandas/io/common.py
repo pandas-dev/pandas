@@ -19,13 +19,6 @@ from pandas.errors import (ParserError, DtypeWarning,  # noqa
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
-
-try:
-    from s3fs import S3File
-    need_text_wrapping = (BytesIO, S3File)
-except ImportError:
-    need_text_wrapping = (BytesIO,)
-
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -33,19 +26,6 @@ _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
     'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
-
-try:
-    import pathlib
-    _PATHLIB_INSTALLED = True
-except ImportError:
-    _PATHLIB_INSTALLED = False
-
-
-try:
-    from py.path import local as LocalPath
-    _PY_PATH_INSTALLED = True
-except:
-    _PY_PATH_INSTALLED = False
 
 
 if compat.PY3:
@@ -167,6 +147,18 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
+    try:
+        import pathlib
+        _PATHLIB_INSTALLED = True
+    except ImportError:
+        _PATHLIB_INSTALLED = False
+
+    try:
+        from py.path import local as LocalPath
+        _PY_PATH_INSTALLED = True
+    except ImportError:
+        _PY_PATH_INSTALLED = False
+
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
@@ -322,6 +314,11 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     handles : list of file-like objects
         A list of file-like object that were openned in this function.
     """
+    try:
+        from s3fs import S3File
+        need_text_wrapping = (BytesIO, S3File)
+    except ImportError:
+        need_text_wrapping = (BytesIO,)
 
     handles = list()
     f = path_or_buf

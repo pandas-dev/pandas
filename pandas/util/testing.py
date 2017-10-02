@@ -41,8 +41,6 @@ from pandas.compat import (
     StringIO, PY3
 )
 
-from pandas.core.computation import expressions as expr
-
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
                     Index, MultiIndex,
@@ -2660,7 +2658,11 @@ class RNGContext(object):
 
 
 @contextmanager
-def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
+def use_numexpr(use, min_elements=None):
+    from pandas.core.computation import expressions as expr
+    if min_elements is None:
+        min_elements = expr._MIN_ELEMENTS
+
     olduse = expr._USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)

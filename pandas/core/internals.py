@@ -66,7 +66,6 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
-import pandas.core.computation.expressions as expressions
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 from pandas import compat
@@ -1395,6 +1394,8 @@ class Block(PandasObject):
         -------
         a new block(s), the result of the func
         """
+        import pandas.core.computation.expressions as expressions
+
         values = self.values
         orig_other = other
         if transpose:

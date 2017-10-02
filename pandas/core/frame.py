@@ -76,9 +76,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
-from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
@@ -2296,6 +2294,8 @@ class DataFrame(NDFrame):
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
+        from pandas.core.computation.eval import eval as _eval
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
@@ -3840,6 +3840,7 @@ class DataFrame(NDFrame):
 
     def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
 
+        import pandas.core.computation.expressions as expressions
         # unique
         if self.columns.is_unique:
 
@@ -3992,6 +3993,7 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
         """
+        import pandas.core.computation.expressions as expressions
 
         def combiner(x, y, needs_i8_conversion=False):
             x_values = x.values if hasattr(x, 'values') else x
@@ -4027,6 +4029,7 @@ class DataFrame(NDFrame):
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
         """
+        import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")

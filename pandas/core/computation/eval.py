@@ -5,8 +5,6 @@
 
 import tokenize
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.computation import _NUMEXPR_INSTALLED
-from pandas.core.computation.expr import Expr, _parsers, tokenize_string
 from pandas.core.computation.scope import _ensure_scope
 from pandas.compat import string_types
 from pandas.core.computation.engines import _engines
@@ -32,6 +30,7 @@ def _check_engine(engine):
     string engine
 
     """
+    from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
     if engine is None:
         if _NUMEXPR_INSTALLED:
@@ -69,6 +68,8 @@ def _check_parser(parser):
     KeyError
       * If an invalid parser is passed
     """
+    from pandas.core.computation.expr import _parsers
+
     if parser not in _parsers:
         raise KeyError('Invalid parser {parser!r} passed, valid parsers are'
                        ' {valid}'.format(parser=parser, valid=_parsers.keys()))
@@ -129,6 +130,8 @@ def _convert_expression(expr):
 
 
 def _check_for_locals(expr, stack_level, parser):
+    from pandas.core.computation.expr import tokenize_string
+
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != 'pandas'
 
@@ -252,6 +255,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     pandas.DataFrame.query
     pandas.DataFrame.eval
     """
+    from pandas.core.computation.expr import Expr
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 

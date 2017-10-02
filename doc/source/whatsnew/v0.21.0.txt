@@ -164,6 +164,7 @@ Other Enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
+- Improved the import time of pandas by about 2.25x  (:issue:`16764`)
 
 
 .. _whatsnew_0210.api_breaking:
@@ -559,6 +560,8 @@ Other API Changes
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
+- Pandas no longer registers matplotlib converters on import. The converters
+  will be registered and used when the first plot is draw (:issue:`17710`)
 
 .. _whatsnew_0210.deprecations:
 
