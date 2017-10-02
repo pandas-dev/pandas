@@ -148,8 +148,10 @@ Notice the "object" dtype.
 With a ``CategoricalDtype`` of all numerics, datetimes, or
 timedeltas, we can automatically convert to the correct type
 
-    dtype = {'B': CategoricalDtype([1, 2, 3])}
-    pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
+.. ipython:: python
+
+   dtype = {'B': CategoricalDtype([1, 2, 3])}
+   pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
 
 The values have been correctly interpreted as integers.
 
@@ -283,8 +285,8 @@ New Behavior:
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`)
-). If installed, we now require:
+We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`).
+If installed, we now require:
 
    +--------------+-----------------+----------+
    | Package      | Minimum Version | Required |
