@@ -560,6 +560,40 @@ class TestCategorical(object):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
 
+    @pytest.mark.parametrize('dtype', [None, 'category'])
+    def test_from_inferred_categories(self, dtype):
+        cats = ['a', 'b']
+        codes = np.array([0, 0, 1, 1], dtype='i8')
+        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        expected = Categorical.from_codes(codes, cats)
+        tm.assert_categorical_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, 'category'])
+    def test_from_inferred_categories_sorts(self, dtype):
+        cats = ['b', 'a']
+        codes = np.array([0, 1, 1, 1], dtype='i8')
+        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        expected = Categorical.from_codes([1, 0, 0, 0], ['a', 'b'])
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_inferred_categories_dtype(self):
+        cats = ['a', 'b', 'd']
+        codes = np.array([0, 1, 0, 2], dtype='i8')
+        dtype = CategoricalDtype(['c', 'b', 'a'], ordered=True)
+        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        expected = Categorical(['a', 'b', 'a', 'd'],
+                               categories=['c', 'b', 'a'],
+                               ordered=True)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_inferred_categories_coerces(self):
+        cats = ['1', '2', 'bad']
+        codes = np.array([0, 0, 1, 2], dtype='i8')
+        dtype = CategoricalDtype([1, 2])
+        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        expected = Categorical([1, 1, 2, np.nan])
+        tm.assert_categorical_equal(result, expected)
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"

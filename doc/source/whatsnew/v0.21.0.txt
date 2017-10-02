@@ -119,7 +119,7 @@ expanded to include the ``categories`` and ``ordered`` attributes. A
 ``CategoricalDtype`` can be used to specify the set of categories and
 orderedness of an array, independent of the data themselves. This can be useful,
 e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
-:issue:`15078`, :issue:`16015`):
+:issue:`15078`, :issue:`16015`, :issue:`17643`):
 
 .. ipython:: python
 
@@ -129,8 +129,37 @@ e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
    dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
    s.astype(dtype)
 
+One place that deserves special mention is in :meth:`read_csv`. Previously, with
+``dtype={'col': 'category'}``, the returned values and categories would always
+be strings.
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+.. ipython:: python
+
+   data = 'A,B\na,1\nb,2\nc,3'
+   pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
+
+Notice the "object" dtype.
+
+With a ``CategoricalDtype`` of all numerics, datetimes, or
+timedeltas, we can automatically convert to the correct type
+
+    dtype = {'B': CategoricalDtype([1, 2, 3])}
+    pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
+
+The values have been correctly interpreted as integers.
+
 The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
-``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
+``Series`` with categorical type will now return an instance of
+``CategoricalDtype``. For the most part, this is backwards compatible, though
+the string repr has changed. If you were previously using ``str(s.dtype) ==
+'category'`` to detect categorical data, switch to
+:func:`pandas.api.types.is_categorical_dtype`, which is compatible with the old
+and new ``CategoricalDtype``.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
