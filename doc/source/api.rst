@@ -218,7 +218,6 @@ Top-level dealing with datetimelike
    to_timedelta
    date_range
    bdate_range
-   cdate_range
    period_range
    timedelta_range
    infer_freq

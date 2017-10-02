@@ -63,7 +63,7 @@ class TestPDApi(Base):
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
              'date_range', 'interval_range', 'eval',
-             'factorize', 'get_dummies', 'cdate_range',
+             'factorize', 'get_dummies',
              'infer_freq', 'isna', 'isnull', 'lreshape',
              'melt', 'notna', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
@@ -240,3 +240,13 @@ class TestTypes(object):
                 [c1, c2],
                 sort_categories=True,
                 ignore_order=True)
+
+
+class TestCDateRange(object):
+
+    def test_deprecation_cdaterange(self):
+        # GH17596
+        from pandas.core.indexes.datetimes import cdate_range
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            cdate_range('2017-01-01', '2017-12-31')
