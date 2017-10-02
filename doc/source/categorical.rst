@@ -979,7 +979,7 @@ Memory Usage
 
 .. _categorical.memory:
 
-The memory usage of a ``Categorical`` is proportional to the number of categories times the length of the data. In contrast,
+The memory usage of a ``Categorical`` is proportional to the number of categories plus the length of the data. In contrast,
 an ``object`` dtype is a constant times the length of the data.
 
 .. ipython:: python
