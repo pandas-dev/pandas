@@ -312,24 +312,18 @@ class IntervalIndex(IntervalMixin, Index):
 
     def contains(self, key):
         """
-        return a boolean if this key is IN the index
-
-        We accept / allow keys to be not *just* actual
-        objects.
+        Return a boolean mask whether the key is contained in the Intervals
+        of the index.
 
         Parameters
         ----------
-        key : int, float, Interval
+        key : scalar, Interval
 
         Returns
         -------
-        boolean
+        boolean array
         """
-        try:
-            self.get_loc(key)
-            return True
-        except KeyError:
-            return False
+        return np.array([key in interval for interval in self], dtype='bool')
 
     @classmethod
     def from_breaks(cls, breaks, closed='right', name=None, copy=False):

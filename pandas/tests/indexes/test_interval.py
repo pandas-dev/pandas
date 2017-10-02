@@ -564,22 +564,30 @@ class TestIntervalIndex(Base):
         assert Interval(3, 5) not in i
         assert Interval(-1, 0, closed='left') not in i
 
-    def testcontains(self):
+    def test_contains_method(self):
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
 
-        assert i.contains(0.1)
-        assert i.contains(0.5)
-        assert i.contains(1)
-        assert i.contains(Interval(0, 1))
-        assert i.contains(Interval(0, 2))
+        expected = np.array([False, False], dtype='bool')
+        actual = i.contains(0)
+        tm.assert_numpy_array_equal(actual, expected)
+        actual = i.contains(3)
+        tm.assert_numpy_array_equal(actual, expected)
 
-        # these overlaps completely
-        assert i.contains(Interval(0, 3))
-        assert i.contains(Interval(1, 3))
+        expected = np.array([True, False], dtype='bool')
+        actual = i.contains(0.5)
+        tm.assert_numpy_array_equal(actual, expected)
+        actual = i.contains(1)
+        tm.assert_numpy_array_equal(actual, expected)
 
-        assert not i.contains(20)
-        assert not i.contains(-20)
+        # TODO what to do with intervals?
+        # assert i.contains(Interval(0, 1))
+        # assert i.contains(Interval(0, 2))
+        #
+        # # these overlaps completely
+        # assert i.contains(Interval(0, 3))
+        # assert i.contains(Interval(1, 3))
+
 
     def test_dropna(self):
 
