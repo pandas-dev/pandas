@@ -800,13 +800,17 @@ class TestSeriesIndexing(TestData):
 
     def test_set_value(self):
         idx = self.ts.index[10]
-        res = self.ts.set_value(idx, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.ts.set_value(idx, 0)
         assert res is self.ts
         assert self.ts[idx] == 0
 
         # equiv
         s = self.series.copy()
-        res = s.set_value('foobar', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = s.set_value('foobar', 0)
         assert res is s
         assert res.index[-1] == 'foobar'
         assert res['foobar'] == 0
@@ -2632,8 +2636,12 @@ class TestDatetimeIndexing(object):
         dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
         index = DatetimeIndex(dates)
 
-        s = Series().set_value(dates[0], 1.)
-        s2 = s.set_value(dates[1], np.nan)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s = Series().set_value(dates[0], 1.)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s2 = s.set_value(dates[1], np.nan)
 
         exp = Series([1., np.nan], index=index)
 

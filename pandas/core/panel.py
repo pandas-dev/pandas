@@ -470,6 +470,10 @@ class Panel(NDFrame):
         """
         Quickly retrieve single value at (item, major, minor) location
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         item : item label (panel item)
@@ -481,6 +485,13 @@ class Panel(NDFrame):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(*args, **kwargs)
+
+    def _get_value(self, *args, **kwargs):
         nargs = len(args)
         nreq = self._AXIS_LEN
 
@@ -500,11 +511,16 @@ class Panel(NDFrame):
         else:
             lower = self._get_item_cache(args[0])
 
-        return lower.get_value(*args[1:], takeable=takeable)
+        return lower._get_value(*args[1:], takeable=takeable)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, *args, **kwargs):
         """
         Quickly set single value at (item, major, minor) location
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -520,6 +536,13 @@ class Panel(NDFrame):
             If label combo is contained, will be reference to calling Panel,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(*args, **kwargs)
+
+    def _set_value(self, *args, **kwargs):
         # require an arg for each axis and the value
         nargs = len(args)
         nreq = self._AXIS_LEN + 1
@@ -540,7 +563,7 @@ class Panel(NDFrame):
             else:
                 lower = self._get_item_cache(args[0])
 
-            lower.set_value(*args[1:], takeable=takeable)
+            lower._set_value(*args[1:], takeable=takeable)
             return self
         except KeyError:
             axes = self._expand_axes(args)
@@ -553,7 +576,8 @@ class Panel(NDFrame):
             if made_bigger:
                 maybe_cast_item(result, args[0], likely_dtype)
 
-            return result.set_value(*args)
+            return result._set_value(*args)
+    _set_value.__doc__ = set_value.__doc__
 
     def _box_item_values(self, key, values):
         if self.ndim == values.ndim:

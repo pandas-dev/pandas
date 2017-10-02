@@ -112,7 +112,7 @@ class _NDFrameIndexer(object):
             key = tuple(com._apply_if_callable(x, self.obj)
                         for x in key)
             try:
-                values = self.obj.get_value(*key)
+                values = self.obj._get_value(*key)
                 if is_scalar(values):
                     return values
             except Exception:
@@ -1542,7 +1542,7 @@ class _LocIndexer(_LocationIndexer):
     def _getitem_scalar(self, key):
         # a fast-path to scalar access
         # if not, raise
-        values = self.obj.get_value(*key)
+        values = self.obj._get_value(*key)
         return values
 
     def _get_partial_string_timestamp_match_key(self, key, labels):
@@ -1701,7 +1701,7 @@ class _iLocIndexer(_LocationIndexer):
     def _getitem_scalar(self, key):
         # a fast-path to scalar access
         # if not, raise
-        values = self.obj.get_value(*key, takeable=True)
+        values = self.obj._get_value(*key, takeable=True)
         return values
 
     def _is_valid_integer(self, key, axis):
@@ -1866,7 +1866,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
                 raise ValueError('Invalid call for scalar access (getting)!')
 
         key = self._convert_key(key)
-        return self.obj.get_value(*key, takeable=self._takeable)
+        return self.obj._get_value(*key, takeable=self._takeable)
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1883,7 +1883,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
                              '(setting)!')
         key = list(self._convert_key(key, is_setter=True))
         key.append(value)
-        self.obj.set_value(*key, takeable=self._takeable)
+        self.obj._set_value(*key, takeable=self._takeable)
 
 
 class _AtIndexer(_ScalarAccessIndexer):

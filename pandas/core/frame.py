@@ -297,7 +297,8 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
-    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
+    _deprecations = NDFrame._deprecations | frozenset(
+        ['sortlevel', 'get_value', 'set_value'])
 
     @property
     def _constructor_expanddim(self):
@@ -1922,6 +1923,10 @@ class DataFrame(NDFrame):
         """
         Quickly retrieve single value at passed column and index
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : row label
@@ -1932,6 +1937,14 @@ class DataFrame(NDFrame):
         -------
         value : scalar value
         """
+
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(index, col, takeable=takeable)
+
+    def _get_value(self, index, col, takeable=False):
 
         if takeable:
             series = self._iget_item_cache(col)
@@ -1948,11 +1961,16 @@ class DataFrame(NDFrame):
             # use positional
             col = self.columns.get_loc(col)
             index = self.index.get_loc(index)
-            return self.get_value(index, col, takeable=True)
+            return self._get_value(index, col, takeable=True)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1967,10 +1985,17 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(index, col, value, takeable=takeable)
+
+    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
-                return series.set_value(index, value, takeable=True)
+                return series._set_value(index, value, takeable=True)
 
             series = self._get_item_cache(col)
             engine = self.index._engine
@@ -1983,6 +2008,7 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i, axis=0):
         """
@@ -2791,7 +2817,7 @@ class DataFrame(NDFrame):
         else:
             result = np.empty(n, dtype='O')
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self.get_value(r, c)
+                result[i] = self._get_value(r, c)
 
         if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
