@@ -668,7 +668,6 @@ Indexing
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 - Bug in :func:`Series.rename` when called with a `callable`, incorrectly alters the name of the `Series`, rather than the name of the `Index`. (:issue:`17407`)
-- Regression in ``.loc`` accepting a boolean ``Index`` as an indexer (:issue:`17131`)
 
 I/O
 ^^^
