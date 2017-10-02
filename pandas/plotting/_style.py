@@ -117,7 +117,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 """ Returns a random color represented as a list of length 3"""
                 # GH17525 use common._random_state to avoid resetting the seed
                 rs = _random_state()
-                return rs.rand(3)
+                return rs.rand(3).tolist()
 
             colors = lmap(random_color, lrange(num_colors))
         else:
