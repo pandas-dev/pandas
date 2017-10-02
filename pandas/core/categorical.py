@@ -523,8 +523,9 @@ class Categorical(PandasObject):
         Parameters
         ----------
 
-        inferred_categories, inferred_codes : Index
-        dtype : CategoricalDtype
+        inferred_categories : Index
+        inferred_codes : Index
+        dtype : CategoricalDtype or 'category'
 
         Returns
         -------
@@ -534,10 +535,11 @@ class Categorical(PandasObject):
 
         cats = Index(inferred_categories)
 
-        # Convert to a specialzed type with `dtype` is specified
-        if (isinstance(dtype, CategoricalDtype) and
-                dtype.categories is not None):
+        known_categories = (isinstance(dtype, CategoricalDtype) and
+                            dtype.categories is not None)
 
+        if known_categories:
+            # Convert to a specialzed type with `dtype` if specified
             if dtype.categories.is_numeric():
                 cats = to_numeric(inferred_categories, errors='coerce')
             elif is_datetime64_dtype(dtype.categories):
@@ -545,13 +547,12 @@ class Categorical(PandasObject):
             elif is_timedelta64_dtype(dtype.categories):
                 cats = to_timedelta(inferred_categories, errors='coerce')
 
-        if (isinstance(dtype, CategoricalDtype) and
-                dtype.categories is not None):
-            # recode for dtype.categories
+        if known_categories:
+            # recode from observation oder to dtype.categories order
             categories = dtype.categories
             codes = _recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:
-            # sort categories and recode if necessary
+            # sort categories and recode for unknown categories
             unsorted = cats.copy()
             categories = cats.sort_values()
             codes = _recode_for_categories(inferred_codes, unsorted,
