@@ -7,7 +7,8 @@ from distutils.version import LooseVersion
 from numpy import nan
 import numpy as np
 
-from pandas import (Series, date_range, NaT)
+from pandas import Series, date_range, NaT
+from pandas.api.types import CategoricalDtype
 
 from pandas.compat import product
 from pandas.util.testing import assert_series_equal
@@ -123,35 +124,25 @@ class TestSeriesRank(TestData):
         exp_desc = Series([6., 5., 4., 3., 2., 1.])
         ordered = Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-        ).astype(
-            'category',
-            categories=['first', 'second', 'third',
-                        'fourth', 'fifth', 'sixth'],
-            ordered=True
-        )
+        ).astype(CategoricalDtype(categories=['first', 'second', 'third',
+                                              'fourth', 'fifth', 'sixth'],
+                                  ordered=True))
         assert_series_equal(ordered.rank(), exp)
         assert_series_equal(ordered.rank(ascending=False), exp_desc)
 
         # Unordered categoricals should be ranked as objects
-        unordered = Series(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
-        ).astype(
-            'category',
-            categories=['first', 'second', 'third',
-                        'fourth', 'fifth', 'sixth'],
-            ordered=False
-        )
+        unordered = Series(['first', 'second', 'third', 'fourth',
+                            'fifth', 'sixth']).astype(
+            CategoricalDtype(categories=['first', 'second', 'third',
+                                         'fourth', 'fifth', 'sixth'],
+                             ordered=False))
         exp_unordered = Series([2., 4., 6., 3., 1., 5.])
         res = unordered.rank()
         assert_series_equal(res, exp_unordered)
 
         unordered1 = Series(
             [1, 2, 3, 4, 5, 6],
-        ).astype(
-            'category',
-            categories=[1, 2, 3, 4, 5, 6],
-            ordered=False
-        )
+        ).astype(CategoricalDtype([1, 2, 3, 4, 5, 6], False))
         exp_unordered1 = Series([1., 2., 3., 4., 5., 6.])
         res1 = unordered1.rank()
         assert_series_equal(res1, exp_unordered1)
@@ -159,14 +150,8 @@ class TestSeriesRank(TestData):
         # Test na_option for rank data
         na_ser = Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
-        ).astype(
-            'category',
-            categories=[
-                'first', 'second', 'third', 'fourth',
-                'fifth', 'sixth', 'seventh'
-            ],
-            ordered=True
-        )
+        ).astype(CategoricalDtype(['first', 'second', 'third', 'fourth',
+                                   'fifth', 'sixth', 'seventh'], True))
 
         exp_top = Series([2., 3., 4., 5., 6., 7., 1.])
         exp_bot = Series([1., 2., 3., 4., 5., 6., 7.])
@@ -195,13 +180,8 @@ class TestSeriesRank(TestData):
         )
 
         # Test with pct=True
-        na_ser = Series(
-            ['first', 'second', 'third', 'fourth', np.NaN],
-        ).astype(
-            'category',
-            categories=['first', 'second', 'third', 'fourth'],
-            ordered=True
-        )
+        na_ser = Series(['first', 'second', 'third', 'fourth', np.NaN]).astype(
+            CategoricalDtype(['first', 'second', 'third', 'fourth'], True))
         exp_top = Series([0.4, 0.6, 0.8, 1., 0.2])
         exp_bot = Series([0.2, 0.4, 0.6, 0.8, 1.])
         exp_keep = Series([0.25, 0.5, 0.75, 1., np.NaN])
