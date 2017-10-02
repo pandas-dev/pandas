@@ -253,7 +253,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False,
+                    data = data.astype(dtype=dtype, errors='ignore',
                                        copy=copy)
                 elif copy:
                     data = data.copy()

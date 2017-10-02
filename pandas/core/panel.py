@@ -1527,7 +1527,7 @@ Returns
 
                 try:
                     result = expressions.evaluate(op, str_rep, x, y,
-                                                  raise_on_error=True,
+                                                  errors='raise',
                                                   **eval_kwargs)
                 except TypeError:
                     result = op(x, y)

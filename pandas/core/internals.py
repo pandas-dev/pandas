@@ -533,10 +533,16 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None, raise_on_error=False, **kwargs):
+                klass=None, mgr=None, **kwargs):
         """
-        Coerce to the new type (if copy=True, return a new copy)
-        raise on an except if raise == True
+        Coerce to the new type
+
+        dtype : str, dtype convertible
+        copy : boolean, default False
+            copy if indicated
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
         """
         errors_legal_values = ('raise', 'ignore')
 
@@ -1248,7 +1254,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values, fastpath=True)]
 
-    def eval(self, func, other, raise_on_error=True, try_cast=False, mgr=None):
+    def eval(self, func, other, errors='raise', try_cast=False, mgr=None):
         """
         evaluate the block; return result block from the result
 
@@ -1256,8 +1262,10 @@ class Block(PandasObject):
         ----------
         func  : how to combine self, other
         other : a ndarray/object
-        raise_on_error : if True, raise when I can't perform the function,
-            False by default (and just return the data that we had coming in)
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
         try_cast : try casting the results to the input type
 
         Returns
@@ -1295,7 +1303,7 @@ class Block(PandasObject):
         except TypeError:
             block = self.coerce_to_target_dtype(orig_other)
             return block.eval(func, orig_other,
-                              raise_on_error=raise_on_error,
+                              errors=errors,
                               try_cast=try_cast, mgr=mgr)
 
         # get the result, may need to transpose the other
@@ -1337,7 +1345,7 @@ class Block(PandasObject):
         # error handler if we have an issue operating with the function
         def handle_error():
 
-            if raise_on_error:
+            if errors == 'raise':
                 # The 'detail' variable is defined in outer scope.
                 raise TypeError('Could not operate %s with block values %s' %
                                 (repr(other), str(detail)))  # noqa
@@ -1383,7 +1391,7 @@ class Block(PandasObject):
         result = _block_shape(result, ndim=self.ndim)
         return [self.make_block(result, fastpath=True, )]
 
-    def where(self, other, cond, align=True, raise_on_error=True,
+    def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False, mgr=None):
         """
         evaluate the block; return result block(s) from the result
@@ -1393,8 +1401,10 @@ class Block(PandasObject):
         other : a ndarray/object
         cond  : the condition to respect
         align : boolean, perform alignment on other/cond
-        raise_on_error : if True, raise when I can't perform the function,
-            False by default (and just return the data that we had coming in)
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
         axis : int
         transpose : boolean
             Set to True if self is stored with axes reversed
@@ -1404,6 +1414,7 @@ class Block(PandasObject):
         a new block(s), the result of the func
         """
         import pandas.core.computation.expressions as expressions
+        assert errors in ['raise', 'ignore']
 
         values = self.values
         orig_other = other
@@ -1436,9 +1447,9 @@ class Block(PandasObject):
 
             try:
                 return self._try_coerce_result(expressions.where(
-                    cond, values, other, raise_on_error=True))
+                    cond, values, other))
             except Exception as detail:
-                if raise_on_error:
+                if errors == 'raise':
                     raise TypeError('Could not operate [%s] with block values '
                                     '[%s]' % (repr(other), str(detail)))
                 else:
@@ -1454,10 +1465,10 @@ class Block(PandasObject):
         except TypeError:
 
             # we cannot coerce, return a compat dtype
-            # we are explicity ignoring raise_on_error here
+            # we are explicity ignoring errors
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond, align=align,
-                                 raise_on_error=raise_on_error,
+                                 errors=errors,
                                  try_cast=try_cast, axis=axis,
                                  transpose=transpose)
             return self._maybe_downcast(blocks, 'infer')
@@ -2745,7 +2756,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def kind(self):
         return self.values.kind
 
-    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+    def _astype(self, dtype, copy=False, errors='raise', values=None,
                 klass=None, mgr=None, **kwargs):
         if values is None:
             values = self.values
