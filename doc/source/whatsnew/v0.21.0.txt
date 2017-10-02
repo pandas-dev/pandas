@@ -488,7 +488,7 @@ Additionally, DataFrames with datetime columns that were parsed by :func:`read_s
 Consistency of Range Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`cdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
+In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
 
 One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
 
@@ -571,8 +571,9 @@ Deprecations
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 - :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
 - ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
+- ``cdate_range`` has been deprecated in favor of :func:`bdate_range`, which has gained ``weekmask`` and ``holidays`` parameters for building custom frequency date ranges. See the :ref:`documentation <timeseries.custom-freq-ranges>` for more details (:issue:`17596`)
 
-.. _whatsnew_0210.deprecations.argmin_min
+.. _whatsnew_0210.deprecations.argmin_min:
 
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -738,9 +739,9 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
+- Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
-- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^

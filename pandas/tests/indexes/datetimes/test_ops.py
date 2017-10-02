@@ -10,7 +10,6 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
-from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)
@@ -1208,7 +1207,7 @@ class TestBusinessDatetimeIndex(object):
 class TestCustomDatetimeIndex(object):
 
     def setup_method(self, method):
-        self.rng = cdate_range(START, END)
+        self.rng = bdate_range(START, END, freq='C')
 
     def test_comparison(self):
         d = self.rng[10]
@@ -1277,10 +1276,11 @@ class TestCustomDatetimeIndex(object):
         self.rng[2:2].summary()
 
     def test_summary_pytz(self):
-        cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+        bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
 
     def test_summary_dateutil(self):
-        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
+        bdate_range('1/1/2005', '1/1/2009', freq='C',
+                    tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
