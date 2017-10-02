@@ -125,6 +125,100 @@ class CategoricalFormatter(object):
         return format_array(self.categorical.get_values(), None,
                             float_format=None, na_rep=self.na_rep)
 
+    def _format_data(self, values):
+        """
+        Return the formatted data as a unicode string
+        """
+        from pandas.io.formats.console import get_console_size
+        from pandas.io.formats.format import _get_adjustment
+        display_width, _ = get_console_size()
+        if display_width is None:
+            display_width = get_option('display.width') or 80
+
+        space = "\n "
+
+        n = len(values)
+        sep = ','
+        max_seq_items = get_option('display.max_seq_items') or n
+
+        # are we a truncated display
+        is_truncated = n > max_seq_items
+
+        # adj can optionaly handle unicode eastern asian width
+        adj = _get_adjustment()
+
+        def _extend_line(s, line, value, display_width, next_line_prefix):
+
+            if (adj.len(line.rstrip()) + adj.len(value.rstrip()) >=
+                    display_width):
+                s += line.rstrip()
+                line = next_line_prefix
+            line += value
+            return s, line
+
+        def best_len(values):
+            if values:
+                return max([adj.len(x) for x in values])
+            else:
+                return 0
+
+        if n == 0:
+            summary = '[]'
+        elif n == 1:
+            first = values[0].strip('\'')
+            summary = '[%s]' % first
+        elif n == 2:
+            first = values[0].strip('\'')
+            last = values[-1].strip('\'')
+            summary = '[%s, %s]' % (first, last)
+        else:
+
+            if n > max_seq_items:
+                n = min(max_seq_items // 2, 10)
+                head = [x.strip('\'') for x in values[:n]]
+                tail = [x.strip('\'') for x in values[-n:]]
+            else:
+                head = []
+                tail = [x.strip('\'') for x in values]
+
+            # however, if we are not truncated and we are only a single
+            # line, then don't justify
+            if (is_truncated or
+                    not (len(', '.join(head)) < display_width and
+                         len(', '.join(tail)) < display_width)):
+                max_len = max(best_len(head), best_len(tail))
+                head = [x.rjust(max_len) for x in head]
+                tail = [x.rjust(max_len) for x in tail]
+
+            summary = ""
+            line = space
+
+            for i in range(len(head)):
+                word = head[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space)
+
+            if is_truncated:
+                # remove trailing space of last line
+                summary += line.rstrip() + space + '...'
+                line = space
+
+            for i in range(len(tail) - 1):
+                word = tail[i] + sep + ' '
+                summary, line = _extend_line(summary, line, word,
+                                             display_width, space)
+
+            # last value: no sep added + 1 space of width used for trailing ','
+            summary, line = _extend_line(summary, line, tail[-1],
+                                         display_width - 2, space)
+            summary += line
+            summary += ']'
+
+            # remove initial space
+            summary = '[' + summary[len(space):]
+
+        return summary
+
     def to_string(self):
         categorical = self.categorical
 
@@ -136,10 +230,8 @@ class CategoricalFormatter(object):
 
         fmt_values = self._get_formatted_values()
 
-        result = [u('{i}').format(i=i) for i in fmt_values]
-        result = [i.strip() for i in result]
-        result = u(', ').join(result)
-        result = [u('[') + result + u(']')]
+        fmt_values = [i.strip() for i in fmt_values]
+        result = [self._format_data(fmt_values)]
         if self.footer:
             footer = self._get_footer()
             if footer:

@@ -1653,7 +1653,7 @@ class Categorical(PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
-        result = '%s, ..., %s' % (head[:-1], tail[1:])
+        result = '%s,\n ...\n %s' % (head[:-1], tail[1:])
         if footer:
             result = '%s\n%s' % (result, self._repr_footer())
 
