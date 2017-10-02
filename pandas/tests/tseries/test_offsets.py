@@ -502,31 +502,30 @@ class TestCommon(Base):
         #
         tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
-    def test_pickle_v0_19_2(self):
-        offsets = {'DateOffset': DateOffset(years=1),
-                   'MonthBegin': MonthBegin(1),
-                   'Day': Day(1),
-                   'YearBegin': YearBegin(1),
-                   'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_19_2.pickle')
-        # This code was executed once on v0.19.2 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
-
     def test_pickle_v0_20_3(self):
-        offsets = {'DateOffset': DateOffset(years=1),
-                   'MonthBegin': MonthBegin(1),
-                   'Day': Day(1),
-                   'YearBegin': YearBegin(1),
-                   'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_20_3.pickle')
-        # This code was executed once on v0.20.3 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+        # pickle file was generated using
+        # `pandas.tests.io.generate_legacy_storage_files`
+        off = {'DateOffset': DateOffset(years=1),
+               'MonthBegin': MonthBegin(1),
+               'MonthEnd': MonthEnd(1),
+               'QuarterBegin': QuarterBegin(1),
+               'QuarterEnd': QuarterEnd(1),
+               'Day': Day(1),
+               'YearBegin': YearBegin(1),
+               'YearEnd': YearEnd(1),
+               'Week': Week(1),
+               'Hour': Hour(1),
+               'Minute': Minute(1)}
+
+        here = os.path.dirname(__file__)
+        tests_dir = os.path.split(here)[0]
+        data_dir = os.path.join(tests_dir, 'io', 'data',
+                               'legacy_pickle', '0.20.3')
+        flist = [x for x in os.listdir(data_dir) if x.endswith('.pickle')]
+        # exclude e.g. .DS_Store that might sneak in there
+        for name in flist:
+            path = os.path.join(data_dir, name)
+            tm.assert_dict_equal(off, read_pickle(path)['offsets'])
 
 
 class TestDateOffset(Base):
