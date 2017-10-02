@@ -598,9 +598,7 @@ class DataFrameFormatter(TableFormatter):
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
-                row_lens = Series(text).apply(len)
-                max_len_col_ix = np.argmax(row_lens)
-                max_len = row_lens[max_len_col_ix]
+                max_len = Series(text).str.len().max()
                 headers = [ele[0] for ele in strcols]
                 # Size of last col determines dot col size. See
                 # `self._to_str_columns
@@ -1132,20 +1130,42 @@ class HTMLFormatter(TableFormatter):
         self.write('</tr>', indent)
 
     def write_style(self):
-        template = dedent("""\
-            <style>
-                .dataframe thead tr:only-child th {
-                    text-align: right;
-                }
-
-                .dataframe thead th {
-                    text-align: left;
-                }
-
-                .dataframe tbody tr th {
-                    vertical-align: top;
-                }
-            </style>""")
+        # We use the "scoped" attribute here so that the desired
+        # style properties for the data frame are not then applied
+        # throughout the entire notebook.
+        template_first = """\
+            <style scoped>"""
+        template_last = """\
+            </style>"""
+        template_select = """\
+                .dataframe %s {
+                    %s: %s;
+                }"""
+        element_props = [('tbody tr th:only-of-type',
+                          'vertical-align',
+                          'middle'),
+                         ('tbody tr th',
+                          'vertical-align',
+                          'top')]
+        if isinstance(self.columns, MultiIndex):
+            element_props.append(('thead tr th',
+                                  'text-align',
+                                  'left'))
+            if all((self.fmt.has_index_names,
+                    self.fmt.index,
+                    self.fmt.show_index_names)):
+                element_props.append(('thead tr:last-of-type th',
+                                      'text-align',
+                                      'right'))
+        else:
+            element_props.append(('thead th',
+                                  'text-align',
+                                  'right'))
+        template_mid = '\n\n'.join(map(lambda t: template_select % t,
+                                       element_props))
+        template = dedent('\n'.join((template_first,
+                                     template_mid,
+                                     template_last)))
         if self.notebook:
             self.write(template)
 

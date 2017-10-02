@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
+    is_string_like,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -37,7 +38,8 @@ from pandas.tseries.frequencies import (
     Resolution)
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
-from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
+from pandas.tseries.offsets import (
+    DateOffset, generate_range, Tick, CDay, prefix_mapping)
 from pandas.core.tools.datetimes import (
     parse_time_string, normalize_date, to_time)
 from pandas.core.tools.timedeltas import to_timedelta
@@ -50,6 +52,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
+from pandas._libs.tslibs import timezones
 
 
 def _utc():
@@ -372,7 +375,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = subarr.tz
         else:
             if tz is not None:
-                tz = libts.maybe_get_tz(tz)
+                tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
                         getattr(data, 'tz', None) is None):
@@ -442,22 +445,23 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Closed has to be either 'left', 'right' or None")
 
         try:
-            inferred_tz = tools._infer_tzinfo(start, end)
+            inferred_tz = timezones.infer_tzinfo(start, end)
         except:
             raise TypeError('Start and end cannot both be tz-aware with '
                             'different timezones')
 
-        inferred_tz = libts.maybe_get_tz(inferred_tz)
+        inferred_tz = timezones.maybe_get_tz(inferred_tz)
 
         # these may need to be localized
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
         if tz is not None:
             date = start or end
             if date.tzinfo is not None and hasattr(tz, 'localize'):
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not libts.get_timezone(inferred_tz) == libts.get_timezone(tz):
+            if not (timezones.get_timezone(inferred_tz) ==
+                    timezones.get_timezone(tz)):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -593,7 +597,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._data = values
         result.name = name
         result.offset = freq
-        result.tz = libts.maybe_get_tz(tz)
+        result.tz = timezones.maybe_get_tz(tz)
         result._reset_identity()
         return result
 
@@ -607,7 +611,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @cache_readonly
     def _timezone(self):
         """ Comparable timezone both for pytz / dateutil"""
-        return libts.get_timezone(self.tzinfo)
+        return timezones.get_timezone(self.tzinfo)
 
     def _has_same_tz(self, other):
         zzone = self._timezone
@@ -616,7 +620,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
-        vzone = libts.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
+        vzone = timezones.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
         return zzone == vzone
 
     @classmethod
@@ -1779,7 +1783,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         TypeError
             If DatetimeIndex is tz-naive.
         """
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
             # tz naive, use tz_localize
@@ -1839,7 +1843,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
-            tz = libts.maybe_get_tz(tz)
+            tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
             new_dates = libts.tz_localize_to_utc(self.asi8, tz,
@@ -2047,7 +2051,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None, closed=None, **kwargs):
+                normalize=True, name=None, weekmask=None, holidays=None,
+                closed=None, **kwargs):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
     frequency
@@ -2069,6 +2074,20 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Normalize start/end dates to midnight before generating date range
     name : string, default None
         Name of the resulting DatetimeIndex
+    weekmask : string or None, default None
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
+        only used when custom frequency strings are passed.  The default
+        value None is equivalent to 'Mon Tue Wed Thu Fri'
+
+        .. versionadded:: 0.21.0
+
+    holidays : list-like or None, default None
+        Dates to exclude from the set of valid business days, passed to
+        ``numpy.busdaycalendar``, only used when custom frequency strings
+        are passed
+
+        .. versionadded:: 0.21.0
+
     closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
@@ -2086,6 +2105,18 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     rng : DatetimeIndex
     """
 
+    if is_string_like(freq) and freq.startswith('C'):
+        try:
+            weekmask = weekmask or 'Mon Tue Wed Thu Fri'
+            freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
+        except (KeyError, TypeError):
+            msg = 'invalid custom frequency string: {freq}'.format(freq=freq)
+            raise ValueError(msg)
+    elif holidays or weekmask:
+        msg = ('a custom frequency string is required when holidays or '
+               'weekmask are passed, got frequency {freq}').format(freq=freq)
+        raise ValueError(msg)
+
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)
@@ -2096,6 +2127,8 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     """
     Return a fixed frequency DatetimeIndex, with CustomBusinessDay as the
     default frequency
+
+    .. deprecated:: 0.21.0
 
     Parameters
     ----------
@@ -2135,6 +2168,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     -------
     rng : DatetimeIndex
     """
+    warnings.warn("cdate_range is deprecated and will be removed in a future "
+                  "version, instead use pd.bdate_range(..., freq='{freq}')"
+                  .format(freq=freq), FutureWarning, stacklevel=2)
 
     if freq == 'C':
         holidays = kwargs.pop('holidays', [])

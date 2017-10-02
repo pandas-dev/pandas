@@ -76,12 +76,11 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
-from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg
@@ -90,7 +89,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-import pandas.core.base as base
+from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
@@ -298,6 +297,7 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
+    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
 
     @property
     def _constructor_expanddim(self):
@@ -2032,7 +2032,7 @@ class DataFrame(NDFrame):
                 return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
-                    return self.take(i, axis=1, convert=True)
+                    return self._take(i, axis=1, convert=True)
 
                 index_len = len(self.index)
 
@@ -2114,10 +2114,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self.take(indexer, axis=0, convert=False)
+            return self._take(indexer, axis=0, convert=False)
         else:
             indexer = self.loc._convert_to_indexer(key, axis=1)
-            return self.take(indexer, axis=1, convert=True)
+            return self._take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2294,6 +2294,8 @@ class DataFrame(NDFrame):
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
+        from pandas.core.computation.eval import eval as _eval
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
@@ -2575,12 +2577,12 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Since ``kwargs`` is a dictionary, the order of your
-        arguments may not be preserved. To make things predicatable,
-        the columns are inserted in alphabetical order, at the end of
-        your DataFrame. Assigning multiple columns within the same
-        ``assign`` is possible, but you cannot reference other columns
-        created within the same ``assign`` call.
+        For python 3.6 and above, the columns are inserted in the order of
+        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        the columns are inserted in alphabetical order at the end of your
+        DataFrame.  Assigning multiple columns within the same ``assign``
+        is possible, but you cannot reference other columns created within
+        the same ``assign`` call.
 
         Examples
         --------
@@ -2620,14 +2622,18 @@ class DataFrame(NDFrame):
         data = self.copy()
 
         # do all calculations first...
-        results = {}
+        results = OrderedDict()
         for k, v in kwargs.items():
             results[k] = com._apply_if_callable(v, data)
 
+        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        if PY36:
+            results = results.items()
+        else:
+            results = sorted(results.items())
         # ... and then assign
-        for k, v in sorted(results.items()):
+        for k, v in results:
             data[k] = v
-
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -3349,7 +3355,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self.take(mask.nonzero()[0], axis=axis, convert=False)
+            result = self._take(mask.nonzero()[0], axis=axis, convert=False)
 
         if inplace:
             self._update_inplace(result)
@@ -3447,18 +3453,13 @@ class DataFrame(NDFrame):
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            def trans(v):
-                if needs_i8_conversion(v):
-                    return v.view('i8')
-                return v
-
             keys = []
             for x in by:
                 k = self.xs(x, axis=other_axis).values
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s' %
                                      str(x))
-                keys.append(trans(k))
+                keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
             indexer = _ensure_platform_int(indexer)
@@ -3485,7 +3486,7 @@ class DataFrame(NDFrame):
 
         new_data = self._data.take(indexer,
                                    axis=self._get_block_manager_axis(axis),
-                                   convert=False, verify=False)
+                                   verify=False)
 
         if inplace:
             return self._update_inplace(new_data)
@@ -3546,7 +3547,7 @@ class DataFrame(NDFrame):
         baxis = self._get_block_manager_axis(axis)
         new_data = self._data.take(indexer,
                                    axis=baxis,
-                                   convert=False, verify=False)
+                                   verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -3839,6 +3840,7 @@ class DataFrame(NDFrame):
 
     def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
 
+        import pandas.core.computation.expressions as expressions
         # unique
         if self.columns.is_unique:
 
@@ -3991,6 +3993,7 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
         """
+        import pandas.core.computation.expressions as expressions
 
         def combiner(x, y, needs_i8_conversion=False):
             x_values = x.values if hasattr(x, 'values') else x
@@ -4026,6 +4029,7 @@ class DataFrame(NDFrame):
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
         """
+        import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
@@ -4063,23 +4067,27 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    def _get_valid_indices(self):
+        is_valid = self.count(1) > 0
+        return self.index[is_valid]
+
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][0]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[0] if len(valid_indices) else None
 
+    @Appender(_shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'DataFrame'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
-        return self.index[self.count(1) > 0][-1]
+        valid_indices = self._get_valid_indices()
+        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -5893,7 +5901,8 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
+    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
+                                     gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 

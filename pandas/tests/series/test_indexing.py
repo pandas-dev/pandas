@@ -387,7 +387,7 @@ class TestSeriesIndexing(TestData):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         from dateutil.tz import tzutc
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil
@@ -1065,6 +1065,23 @@ class TestSeriesIndexing(TestData):
         s = orig.copy()
         s.iloc[[1, 2]] = vals
         tm.assert_series_equal(s, exp)
+
+    def test_take(self):
+        s = Series([-1, 5, 6, 2, 4])
+
+        actual = s.take([1, 3, 4])
+        expected = Series([5, 2, 4], index=[1, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        actual = s.take([-1, 3, 4])
+        expected = Series([4, 2, 4], index=[4, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        pytest.raises(IndexError, s.take, [1, 10])
+        pytest.raises(IndexError, s.take, [2, 5])
+
+        with tm.assert_produces_warning(FutureWarning):
+            s.take([-1, 3, 4], convert=False)
 
     def test_where(self):
         s = Series(np.random.randn(5))
@@ -1783,6 +1800,11 @@ class TestSeriesIndexing(TestData):
         expected = Series([3], index=[False])
         assert_series_equal(result, expected)
 
+        # GH 16877
+        s = Series([2, 3], index=[0, 1])
+        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+            s.drop([False, True])
+
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
             aa, ab = a.align(b, join=how, fill_value=fill)
@@ -2182,6 +2204,16 @@ class TestSeriesIndexing(TestData):
         result = bools.reindex([1, 2, 3], fill_value=False)
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
+
+    def test_rename(self):
+
+        # GH 17407
+        s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
+        result = s.rename(str)
+        expected = s.rename(lambda i: str(i))
+        assert_series_equal(result, expected)
+
+        assert result.name == expected.name
 
     def test_select(self):
         n = len(self.ts)
