@@ -11,7 +11,6 @@ from datetime import datetime, timedelta, time
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
-from pandas.core.indexes.datetimes import cdate_range
 from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
                                     MonthEnd, prefix_mapping)
@@ -634,8 +633,3 @@ class TestCustomDateRange(object):
         msg = 'invalid custom frequency string: {freq}'
         with tm.assert_raises_regex(ValueError, msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
-
-    def test_deprecation_cdaterange(self):
-        # GH17596
-        with tm.assert_produces_warning(FutureWarning):
-            cdate_range(START, END)
