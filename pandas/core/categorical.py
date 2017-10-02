@@ -263,7 +263,8 @@ class Categorical(PandasObject):
                 if dtype == 'category':
                     dtype = CategoricalDtype(categories, ordered)
                 else:
-                    raise ValueError("Unknown `dtype` {}".format(dtype))
+                    msg = "Unknown `dtype` {dtype}"
+                    raise ValueError(msg.format(dtype=dtype))
             elif categories is not None or ordered is not None:
                 raise ValueError("Cannot specify both `dtype` and `categories`"
                                  " or `ordered`.")
@@ -931,9 +932,9 @@ class Categorical(PandasObject):
             new_categories = [new_categories]
         already_included = set(new_categories) & set(self.dtype.categories)
         if len(already_included) != 0:
-            msg = ("new categories must not include old categories: %s" %
-                   str(already_included))
-            raise ValueError(msg)
+            msg = ("new categories must not include old categories: "
+                   "{already_included!s}")
+            raise ValueError(msg.format(already_included=already_included))
         new_categories = list(self.dtype.categories) + list(new_categories)
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
@@ -989,8 +990,8 @@ class Categorical(PandasObject):
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
-            raise ValueError("removals must all be in old categories: %s" %
-                             str(not_included))
+            msg = "removals must all be in old categories: {not_included!s}"
+            raise ValueError(msg.format(not_included=not_included))
 
         return self.set_categories(new_categories, ordered=self.ordered,
                                    rename=False, inplace=inplace)
@@ -1443,7 +1444,8 @@ class Categorical(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if na_position not in ['last', 'first']:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
+            msg = 'invalid na_position: {na_position!r}'
+            raise ValueError(msg.format(na_position=na_position))
 
         codes = np.sort(self._codes)
         if not ascending:
@@ -1653,9 +1655,10 @@ class Categorical(PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
-        result = '%s, ..., %s' % (head[:-1], tail[1:])
+        result = u('{head}, ..., {tail}').format(head=head[:-1], tail=tail[1:])
         if footer:
-            result = '%s\n%s' % (result, self._repr_footer())
+            result = u('{result}\n{footer}').format(result=result,
+                                                    footer=self._repr_footer())
 
         return compat.text_type(result)
 
@@ -1683,7 +1686,8 @@ class Categorical(PandasObject):
         dtype = getattr(self.categories, 'dtype_str',
                         str(self.categories.dtype))
 
-        levheader = "Categories (%d, %s): " % (len(self.categories), dtype)
+        levheader = "Categories ({length}, {dtype}): ".format(
+            length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
         if com.in_ipython_frontend():
@@ -1708,7 +1712,8 @@ class Categorical(PandasObject):
 
     def _repr_footer(self):
 
-        return u('Length: %d\n%s') % (len(self), self._repr_categories_info())
+        return u('Length: {length}\n{info}').format(
+            length=len(self), info=self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
         from pandas.io.formats import format as fmt
@@ -1725,9 +1730,8 @@ class Categorical(PandasObject):
         elif len(self._codes) > 0:
             result = self._get_repr(length=len(self) > _maxlen)
         else:
-            result = ('[], %s' %
-                      self._get_repr(length=False,
-                                     footer=True, ).replace("\n", ", "))
+            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
+            result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
 
@@ -1869,8 +1873,8 @@ class Categorical(PandasObject):
         """ perform the reduction type operation """
         func = getattr(self, name, None)
         if func is None:
-            raise TypeError("Categorical cannot perform the operation "
-                            "{op}".format(op=name))
+            msg = 'Categorical cannot perform the operation {op}'
+            raise TypeError(msg.format(op=name))
         return func(numeric_only=numeric_only, **kwds)
 
     def min(self, numeric_only=None, **kwargs):
