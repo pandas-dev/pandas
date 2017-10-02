@@ -2531,13 +2531,17 @@ class DataFrame(NDFrame):
         passed value
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index):
+            if not is_list_like(value):
+                # GH16823, Raise an error due to loss of information
+                raise ValueError('If using all scalar values, you must pass'
+                                 ' an index')
             try:
                 value = Series(value)
             except:
-                raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a '
-                                 'Series')
+                raise ValueError('Cannot set a frame with no defined'
+                                 'index and a value that cannot be '
+                                 'converted to a Series')
 
             self._data = self._data.reindex_axis(value.index.copy(), axis=1,
                                                  fill_value=np.nan)
