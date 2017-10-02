@@ -437,34 +437,36 @@ with cf.config_prefix('mode'):
 writer_engine_doc = """
 : string
     The default Excel writer engine for '{ext}' files. Available options:
-    '{default}' (the default){others}.
+    auto, {others}.
 """
 
-with cf.config_prefix('io.excel'):
-    # going forward, will be additional writers
-    for ext, options in [('xls', ['xlwt']), ('xlsm', ['openpyxl'])]:
-        default = options.pop(0)
-        if options:
-            options = " " + ", ".join(options)
-        else:
-            options = ""
-        doc = writer_engine_doc.format(ext=ext, default=default,
-                                       others=options)
-        cf.register_option(ext + '.writer', default, doc, validator=str)
+_xls_options = ['xlwt']
+_xlsm_options = ['openpyxl']
+_xlsx_options = ['openpyxl', 'xlsxwriter']
 
-    def _register_xlsx(engine, other):
-        cf.register_option('xlsx.writer', engine,
-                           writer_engine_doc.format(ext='xlsx', default=engine,
-                                                    others=", '%s'" % other),
-                           validator=str)
 
-    try:
-        # better memory footprint
-        import xlsxwriter  # noqa
-        _register_xlsx('xlsxwriter', 'openpyxl')
-    except ImportError:
-        # fallback
-        _register_xlsx('openpyxl', 'xlsxwriter')
+with cf.config_prefix("io.excel.xls"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xls',
+                           others=', '.join(_xls_options)),
+                       validator=str)
+
+with cf.config_prefix("io.excel.xlsm"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xlsm',
+                           others=', '.join(_xlsm_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.xlsx"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xlsx',
+                           others=', '.join(_xlsx_options)),
+                       validator=str)
+
 
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """

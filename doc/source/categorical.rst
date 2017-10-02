@@ -89,12 +89,22 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df["B"] = raw_cat
     df
 
-You can also specify differently ordered categories or make the resulting data ordered, by passing these arguments to ``astype()``:
+Anywhere above we passed a keyword ``dtype='category'``, we used the default behavior of
+
+1. categories are inferred from the data
+2. categories are unordered.
+
+To control those behaviors, instead of passing ``'category'``, use an instance
+of :class:`~pandas.api.types.CategoricalDtype`.
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"])
-    s_cat = s.astype("category", categories=["b","c","d"], ordered=False)
+    from pandas.api.types import CategoricalDtype
+
+    s = pd.Series(["a", "b", "c", "a"])
+    cat_type = CategoricalDtype(categories=["b", "c", "d"],
+                                ordered=True)
+    s_cat = s.astype(cat_type)
     s_cat
 
 Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
@@ -133,6 +143,75 @@ constructor to save the factorize step during normal constructor mode:
     splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
     s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
 
+.. _categorical.categoricaldtype:
+
+CategoricalDtype
+----------------
+
+.. versionchanged:: 0.21.0
+
+A categorical's type is fully described by
+
+1. ``categories``: a sequence of unique values and no missing values
+2. ``ordered``: a boolean
+
+This information can be stored in a :class:`~pandas.api.types.CategoricalDtype`.
+The ``categories`` argument is optional, which implies that the actual categories
+should be inferred from whatever is present in the data when the
+:class:`pandas.Categorical` is created. The categories are assumed to be unordered
+by default.      
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   CategoricalDtype(['a', 'b', 'c'])
+   CategoricalDtype(['a', 'b', 'c'], ordered=True)
+   CategoricalDtype()
+
+A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
+expects a `dtype`. For example :func:`pandas.read_csv`,
+:func:`pandas.DataFrame.astype`, or in the Series constructor.
+
+.. note::
+
+    As a convenience, you can use the string ``'category'`` in place of a
+    :class:`~pandas.api.types.CategoricalDtype` when you want the default behavior of
+    the categories being unordered, and equal to the set values present in the
+    array. In other words, ``dtype='category'`` is equivalent to
+    ``dtype=CategoricalDtype()``.
+
+Equality Semantics
+~~~~~~~~~~~~~~~~~~
+
+Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
+whenever they have the same categories and orderedness. When comparing two
+unordered categoricals, the order of the ``categories`` is not considered
+
+.. ipython:: python
+
+   c1 = CategoricalDtype(['a', 'b', 'c'], ordered=False)
+
+   # Equal, since order is not considered when ordered=False
+   c1 == CategoricalDtype(['b', 'c', 'a'], ordered=False)
+
+   # Unequal, since the second CategoricalDtype is ordered
+   c1 == CategoricalDtype(['a',  'b', 'c'], ordered=True)
+
+All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
+
+.. ipython:: python
+
+   c1 == 'category'
+
+.. warning::
+
+   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
+   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
+   all instances of ``CategoricalDtype`` compare equal to a
+   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
+   ``ordered``.
+
 Description
 -----------
 
@@ -145,6 +224,8 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
     df = pd.DataFrame({"cat":cat, "s":["a", "c", "c", np.nan]})
     df.describe()
     df["cat"].describe()
+
+.. _categorical.cat:
 
 Working with categories
 -----------------------
@@ -182,7 +263,7 @@ It's also possible to pass in the categories in a specific order:
 
     .. ipython:: python
 
-         s = pd.Series(list('babc')).astype('category', categories=list('abcd'))
+         s = pd.Series(list('babc')).astype(CategoricalDtype(list('abcd')))
          s
 
          # categories
@@ -204,6 +285,10 @@ by using the :func:`Categorical.rename_categories` method:
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
     s.cat.rename_categories([1,2,3])
+    s
+    # You can also pass a dict-like object to map the renaming
+    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s
 
 .. note::
 
@@ -295,7 +380,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 
     s = pd.Series(pd.Categorical(["a","b","c","a"], ordered=False))
     s.sort_values(inplace=True)
-    s = pd.Series(["a","b","c","a"]).astype('category', ordered=True)
+    s = pd.Series(["a","b","c","a"]).astype(
+        CategoricalDtype(ordered=True)
+    )
     s.sort_values(inplace=True)
     s
     s.min(), s.max()
@@ -395,9 +482,15 @@ categories or a categorical with any list-like object, will raise a TypeError.
 
 .. ipython:: python
 
-    cat = pd.Series([1,2,3]).astype("category", categories=[3,2,1], ordered=True)
-    cat_base = pd.Series([2,2,2]).astype("category", categories=[3,2,1], ordered=True)
-    cat_base2 = pd.Series([2,2,2]).astype("category", ordered=True)
+    cat = pd.Series([1,2,3]).astype(
+        CategoricalDtype([3, 2, 1], ordered=True)
+    )
+    cat_base = pd.Series([2,2,2]).astype(
+        CategoricalDtype([3, 2, 1], ordered=True)
+    )
+    cat_base2 = pd.Series([2,2,2]).astype(
+        CategoricalDtype(ordered=True)
+    )
 
     cat
     cat_base
@@ -886,7 +979,7 @@ Memory Usage
 
 .. _categorical.memory:
 
-The memory usage of a ``Categorical`` is proportional to the number of categories times the length of the data. In contrast,
+The memory usage of a ``Categorical`` is proportional to the number of categories plus the length of the data. In contrast,
 an ``object`` dtype is a constant times the length of the data.
 
 .. ipython:: python

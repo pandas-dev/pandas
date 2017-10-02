@@ -447,7 +447,7 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    We only asof within 2ms betwen the quote time and the trade time
+    We only asof within 2ms between the quote time and the trade time
 
     >>> pd.merge_asof(trades, quotes,
     ...                       on='time',
@@ -460,9 +460,9 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    We only asof within 10ms betwen the quote time and the trade time
+    We only asof within 10ms between the quote time and the trade time
     and we exclude exact matches on time. However *prior* data will
-    propogate forward
+    propagate forward
 
     >>> pd.merge_asof(trades, quotes,
     ...                       on='time',

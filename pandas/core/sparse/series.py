@@ -602,16 +602,15 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
+    @Appender(generic._shared_docs['take'])
     def take(self, indices, axis=0, convert=True, *args, **kwargs):
-        """
-        Sparse-compatible version of ndarray.take
-
-        Returns
-        -------
-        taken : ndarray
-        """
-
         convert = nv.validate_take_with_convert(convert, args, kwargs)
+
+        if not convert:
+            msg = ("The 'convert' parameter is deprecated "
+                   "and will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values,
@@ -732,8 +731,6 @@ class SparseSeries(Series):
         (labels) or numbers of the levels. {row_levels, column_levels} must be
         a partition of the MultiIndex level names (or numbers).
 
-        .. versionadded:: 0.16.0
-
         Parameters
         ----------
         row_levels : tuple/list
@@ -783,8 +780,6 @@ class SparseSeries(Series):
     def from_coo(cls, A, dense_index=False):
         """
         Create a SparseSeries from a scipy.sparse.coo_matrix.
-
-        .. versionadded:: 0.16.0
 
         Parameters
         ----------

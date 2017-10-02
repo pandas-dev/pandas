@@ -714,7 +714,7 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
 Setting With Enlargement
 ------------------------
 
-The ``.loc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
+The ``.loc/[]`` operations can perform enlargement when setting a non-existent key for that axis.
 
 In the ``Series`` case this is effectively an appending operation
 

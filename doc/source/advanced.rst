@@ -625,7 +625,7 @@ Index Types
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
 are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
 
-In the following sub-sections we will highlite some other index types.
+In the following sub-sections we will highlight some other index types.
 
 .. _indexing.categoricalindex:
 
@@ -638,14 +638,16 @@ and allows efficient indexing and storage of an index with a large number of dup
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
+
    df = pd.DataFrame({'A': np.arange(6),
                       'B': list('aabbca')})
-   df['B'] = df['B'].astype('category', categories=list('cab'))
+   df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
    df
    df.dtypes
    df.B.cat.categories
 
-Setting the index, will create create a ``CategoricalIndex``
+Setting the index, will create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -681,7 +683,7 @@ Groupby operations on the index will preserve the index nature as well
 Reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. ipython :: python
@@ -722,7 +724,7 @@ Int64Index and RangeIndex
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 
@@ -831,11 +833,20 @@ Of course if you need integer based selection, then use ``iloc``
 IntervalIndex
 ~~~~~~~~~~~~~
 
+:class:`IntervalIndex` together with its own dtype, ``interval`` as well as the
+:class:`Interval` scalar type,  allow first-class support in pandas for interval
+notation.
+
+The ``IntervalIndex`` allows some unique indexing and is also used as a
+return type for the categories in :func:`cut` and :func:`qcut`.
+
 .. versionadded:: 0.20.0
 
 .. warning::
 
    These indexing behaviors are provisional and may change in a future version of pandas.
+
+An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index.
 
 .. ipython:: python
 
@@ -858,6 +869,20 @@ If you select a lable *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
+``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+
+.. ipython:: python
+
+   c = pd.cut(range(4), bins=2)
+   c
+   c.categories
+
+Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
+bins, with ``NaN`` representing a missing value similar to other dtypes.
+
+.. ipython:: python
+
+   pd.cut([0, 3, 5, 1], bins=c.categories)
 
 Miscellaneous indexing FAQ
 --------------------------
@@ -963,7 +988,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e'+1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design design to make label-based
+specific dates. To enable this, we made the design to make label-based
 slicing include both endpoints:
 
 .. ipython:: python

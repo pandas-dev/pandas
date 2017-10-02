@@ -15,6 +15,8 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_interval_dtype,
     is_scalar,
+    is_float,
+    is_number,
     is_integer)
 from pandas.core.indexes.base import (
     Index, _ensure_index,
@@ -25,11 +27,15 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
+from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import DateOffset
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -99,8 +105,10 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Warning: the indexing behaviors are provisional and may change in
-    a future version of pandas.
+    .. warning::
+
+       The indexing behaviors are provisional and may change in
+       a future version of pandas.
 
     Attributes
     ----------
@@ -114,9 +122,38 @@ class IntervalIndex(IntervalMixin, Index):
     copy : boolean, default False
         Copy the meta-data
 
+    Examples
+    ---------
+    A new ``IntervalIndex`` is typically constructed using
+    :func:`interval_range`:
+
+    >>> pd.interval_range(start=0, end=5)
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+                  closed='right', dtype='interval[int64]')
+
+    It may also be constructed using one of the constructor
+    methods :meth:`IntervalIndex.from_arrays`,
+    :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_intervals`
+    and :meth:`IntervalIndex.from_tuples`.
+
+    See further examples in the doc strings of ``interval_range`` and the
+    mentioned constructor methods.
+
+    Notes
+    ------
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
+    for more.
+
     See Also
     --------
     Index
+    Interval : A bounded slice-like interval
+    interval_range : Function to create a fixed frequency
+    IntervalIndex, IntervalIndex.from_arrays, IntervalIndex.from_breaks,
+    IntervalIndex.from_intervals, IntervalIndex.from_tuples
+    cut, qcut : convert arrays of continuous data into categoricals/series of
+                ``Interval``.
     """
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -313,11 +350,20 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
-        >>> IntervalIndex.from_breaks([0, 1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         breaks = np.asarray(breaks)
         return cls.from_arrays(breaks[:-1], breaks[1:], closed,
@@ -344,11 +390,20 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+                      closed='right',
+                      dtype='interval[int64]')
 
-        >>> IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
-        IntervalIndex(left=[0, 1, 2],
-                      right=[1, 2, 3],
-                      closed='right')
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         left = np.asarray(left)
         right = np.asarray(right)
@@ -372,19 +427,27 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-
-        >>> IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.IntervalIndex.from_intervals([pd.Interval(0, 1),
+        ...                                  pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
 
         The generic Index constructor work identically when it infers an array
         of all intervals:
 
-        >>> Index([Interval(0, 1), Interval(1, 2)])
-        IntervalIndex(left=[0, 1],
-                      right=[1, 2],
-                      closed='right')
+        >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
+        IntervalIndex([(0, 1], (1, 2]]
+                      closed='right', dtype='interval[int64]')
+
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+                                    list/array of tuples
         """
         data = np.asarray(data)
         left, right, closed = intervals_to_interval_bounds(data)
@@ -409,7 +472,19 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
+        >>>  pd.IntervalIndex.from_tuples([(0, 1), (1,2)])
+        IntervalIndex([(0, 1], (1, 2]],
+                      closed='right', dtype='interval[int64]')
 
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex
+        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
+                                    right array
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+                                    splits
+        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
+                                       of Interval objects
         """
         left = []
         right = []
@@ -683,6 +758,41 @@ class IntervalIndex(IntervalMixin, Index):
         return start, stop
 
     def get_loc(self, key, method=None):
+        """Get integer location, slice or boolean mask for requested label.
+
+        Parameters
+        ----------
+        key : label
+        method : {None}, optional
+            * default: matches where the label is within an interval only.
+
+        Returns
+        -------
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
+        >>> index = pd.IntervalIndex.from_intervals([i1, i2])
+        >>> index.get_loc(1)
+        0
+
+        You can also supply an interval or an location for a point inside an
+        interval.
+
+        >>> index.get_loc(pd.Interval(0, 2))
+        array([0, 1], dtype=int64)
+        >>> index.get_loc(1.5)
+        1
+
+        If a label is in several intervals, you get the locations of all the
+        relevant intervals.
+
+        >>> i3 = pd.Interval(0, 2)
+        >>> overlapping_index = pd.IntervalIndex.from_intervals([i2, i3])
+        >>> overlapping_index.get_loc(1.5)
+        array([0, 1], dtype=int64)
+        """
         self._check_method(method)
 
         original_key = key
@@ -912,7 +1022,7 @@ class IntervalIndex(IntervalMixin, Index):
         except ValueError:
 
             # we need to coerce; migth have NA's in an
-            # interger dtype
+            # integer dtype
             new_left = taker(left.astype(float))
             new_right = taker(right.astype(float))
 
@@ -944,9 +1054,10 @@ class IntervalIndex(IntervalMixin, Index):
                                       na_rep=na_rep,
                                       justify='all').get_result()
 
-    def _format_data(self):
+    def _format_data(self, name=None):
 
         # TODO: integrate with categorical and make generic
+        # name argument is unused here; just for compat with base / categorical
         n = len(self)
         max_seq_items = min((get_option(
             'display.max_seq_items') or n) // 10, 10)
@@ -1028,54 +1139,157 @@ class IntervalIndex(IntervalMixin, Index):
 IntervalIndex._add_logical_methods_disabled()
 
 
-def interval_range(start=None, end=None, freq=None, periods=None,
-                   name=None, closed='right', **kwargs):
+def _is_valid_endpoint(endpoint):
+    """helper for interval_range to check if start/end are valid types"""
+    return any([is_number(endpoint),
+                isinstance(endpoint, Timestamp),
+                isinstance(endpoint, Timedelta),
+                endpoint is None])
+
+
+def _is_type_compatible(a, b):
+    """helper for interval_range to check type compat of start/end/freq"""
+    is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
+    is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
+    return ((is_number(a) and is_number(b)) or
+            (is_ts_compat(a) and is_ts_compat(b)) or
+            (is_td_compat(a) and is_td_compat(b)) or
+            com._any_none(a, b))
+
+
+def interval_range(start=None, end=None, periods=None, freq=None,
+                   name=None, closed='right'):
     """
     Return a fixed frequency IntervalIndex
 
     Parameters
     ----------
-    start : string or datetime-like, default None
-        Left bound for generating data
-    end : string or datetime-like, default None
-        Right bound for generating data
-    freq : interger, string or DateOffset, default 1
-    periods : interger, default None
-    name : str, default None
-        Name of the resulting index
+    start : numeric or datetime-like, default None
+        Left bound for generating intervals
+    end : numeric or datetime-like, default None
+        Right bound for generating intervals
+    periods : integer, default None
+        Number of periods to generate
+    freq : numeric, string, or DateOffset, default None
+        The length of each interval. Must be consistent with the type of start
+        and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
+        for numeric and 'D' (calendar daily) for datetime-like.
+    name : string, default None
+        Name of the resulting IntervalIndex
     closed : string, default 'right'
         options are: 'left', 'right', 'both', 'neither'
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     Returns
     -------
     rng : IntervalIndex
+
+    Examples
+    --------
+    Numeric ``start`` and  ``end`` is supported.
+
+    >>> pd.interval_range(start=0, end=5)
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+                  closed='right', dtype='interval[int64]')
+
+    Additionally, datetime-like input is also supported.
+
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          end=pd.Timestamp('2017-01-04'))
+    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
+                   (2017-01-03, 2017-01-04]]
+                  closed='right', dtype='interval[datetime64[ns]]')
+
+    The ``freq`` parameter specifies the frequency between the left and right.
+    endpoints of the individual intervals within the ``IntervalIndex``.  For
+    numeric ``start`` and ``end``, the frequency must also be numeric.
+
+    >>> pd.interval_range(start=0, periods=4, freq=1.5)
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+                  closed='right', dtype='interval[float64]')
+
+    Similarly, for datetime-like ``start`` and ``end``, the frequency must be
+    convertible to a DateOffset.
+
+    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
+                          periods=3, freq='MS')
+    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
+                   (2017-03-01, 2017-04-01]]
+                  closed='right', dtype='interval[datetime64[ns]]')
+
+    The ``closed`` parameter specifies which endpoints of the individual
+    intervals within the ``IntervalIndex`` are closed.
+
+    >>> pd.interval_range(end=5, periods=4, closed='both')
+    IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]]
+                  closed='both', dtype='interval[int64]')
+
+    See Also
+    --------
+    IntervalIndex : an Index of intervals that are all closed on the same side.
     """
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
 
-    if freq is None:
-        freq = 1
+    start = com._maybe_box_datetimelike(start)
+    end = com._maybe_box_datetimelike(end)
+    endpoint = next(com._not_none(start, end))
 
-    if start is None:
-        if periods is None or end is None:
-            raise ValueError("must specify 2 of start, end, periods")
-        start = end - periods * freq
-    if end is None:
-        if periods is None or start is None:
-            raise ValueError("must specify 2 of start, end, periods")
+    if not _is_valid_endpoint(start):
+        msg = 'start must be numeric or datetime-like, got {start}'
+        raise ValueError(msg.format(start=start))
+
+    if not _is_valid_endpoint(end):
+        msg = 'end must be numeric or datetime-like, got {end}'
+        raise ValueError(msg.format(end=end))
+
+    if is_float(periods):
+        periods = int(periods)
+    elif not is_integer(periods) and periods is not None:
+        msg = 'periods must be a number, got {periods}'
+        raise TypeError(msg.format(periods=periods))
+
+    freq = freq or (1 if is_number(endpoint) else 'D')
+    if not is_number(freq):
+        try:
+            freq = to_offset(freq)
+        except ValueError:
+            raise ValueError('freq must be numeric or convertible to '
+                             'DateOffset, got {freq}'.format(freq=freq))
+
+    # verify type compatibility
+    if not all([_is_type_compatible(start, end),
+                _is_type_compatible(start, freq),
+                _is_type_compatible(end, freq)]):
+        raise TypeError("start, end, freq need to be type compatible")
+
+    if is_number(endpoint):
+        if periods is None:
+            periods = int((end - start) // freq)
+
+        if start is None:
+            start = end - periods * freq
+
+        # force end to be consistent with freq (lower if freq skips over end)
         end = start + periods * freq
-    if periods is None:
-        if start is None or end is None:
-            raise ValueError("must specify 2 of start, end, periods")
-        pass
 
-    # must all be same units or None
-    arr = np.array([start, end, freq])
-    if is_object_dtype(arr):
-        raise ValueError("start, end, freq need to be the same type")
+        # end + freq for inclusive endpoint
+        breaks = np.arange(start, end + freq, freq)
+    elif isinstance(endpoint, Timestamp):
+        # add one to account for interval endpoints (n breaks = n-1 intervals)
+        if periods is not None:
+            periods += 1
+        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+    else:
+        # add one to account for interval endpoints (n breaks = n-1 intervals)
+        if periods is not None:
+            periods += 1
+        breaks = timedelta_range(start=start, end=end, periods=periods,
+                                 freq=freq)
 
-    return IntervalIndex.from_breaks(np.arange(start, end, freq),
-                                     name=name,
-                                     closed=closed)
+    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

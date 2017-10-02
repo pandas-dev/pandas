@@ -218,6 +218,25 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
+    def test_none_delimiter(self):
+        # see gh-13374 and gh-17465
+
+        data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
+        expected = DataFrame({'a': [0, 7],
+                              'b': [1, 8],
+                              'c': [2, 9]})
+
+        # We expect the third line in the data to be
+        # skipped because it is malformed,
+        # but we do not expect any errors to occur.
+        result = self.read_csv(StringIO(data), header=0,
+                               sep=None,
+                               error_bad_lines=False,
+                               warn_bad_lines=True,
+                               engine='python',
+                               tupleize_cols=True)
+        tm.assert_frame_equal(result, expected)
+
     def test_skipfooter_bad_row(self):
         # see gh-13879
         # see gh-15910

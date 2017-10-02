@@ -222,6 +222,14 @@ Top-level dealing with datetimelike
    timedelta_range
    infer_freq
 
+Top-level dealing with intervals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   interval_range
+
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -637,7 +645,10 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-If the Series is of dtype ``category``, ``Series.cat`` can be used to change the the categorical
+.. autoclass:: api.types.CategoricalDtype
+   :members: categories, ordered
+
+If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
 
@@ -1282,7 +1293,7 @@ Index
 -----
 
 **Many of these methods or variants thereof are available on the objects
-that contain an index (Series/Dataframe) and those should most likely be
+that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**
 
 .. autosummary::
@@ -1406,6 +1417,20 @@ Selecting
    Index.isin
    Index.slice_indexer
    Index.slice_locs
+
+.. _api.numericindex:
+
+Numeric Index
+-------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   RangeIndex
+   Int64Index
+   UInt64Index
+   Float64Index
 
 .. _api.categoricalindex:
 
@@ -2016,6 +2041,7 @@ Upsampling
    Resampler.backfill
    Resampler.bfill
    Resampler.pad
+   Resampler.nearest
    Resampler.fillna
    Resampler.asfreq
    Resampler.interpolate
@@ -2062,6 +2088,7 @@ Style Application
 
    Styler.apply
    Styler.applymap
+   Styler.where
    Styler.format
    Styler.set_precision
    Styler.set_table_styles

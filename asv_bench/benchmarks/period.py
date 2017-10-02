@@ -78,6 +78,65 @@ class Algorithms(object):
         self.i.value_counts()
 
 
+class Properties(object):
+    def setup(self):
+        self.per = Period('2017-09-06 08:28', freq='min')
+
+    def time_year(self):
+        self.per.year
+
+    def time_month(self):
+        self.per.month
+
+    def time_day(self):
+        self.per.day
+
+    def time_hour(self):
+        self.per.hour
+
+    def time_minute(self):
+        self.per.minute
+
+    def time_second(self):
+        self.per.second
+
+    def time_is_leap_year(self):
+        self.per.is_leap_year
+
+    def time_quarter(self):
+        self.per.quarter
+
+    def time_qyear(self):
+        self.per.qyear
+
+    def time_week(self):
+        self.per.week
+
+    def time_daysinmonth(self):
+        self.per.daysinmonth
+
+    def time_dayofweek(self):
+        self.per.dayofweek
+
+    def time_dayofyear(self):
+        self.per.dayofyear
+
+    def time_start_time(self):
+        self.per.start_time
+
+    def time_end_time(self):
+        self.per.end_time
+
+    def time_to_timestamp():
+        self.per.to_timestamp()
+
+    def time_now():
+        self.per.now()
+
+    def time_asfreq():
+        self.per.asfreq('A')
+
+
 class period_standard_indexing(object):
     goal_time = 0.2
 

@@ -165,9 +165,19 @@ def register_writer(klass):
         if ext.startswith('.'):
             ext = ext[1:]
         if ext not in _writer_extensions:
-            config.register_option("io.excel.%s.writer" % ext,
+            config.register_option("io.excel.{ext}.writer".format(ext=ext),
                                    engine_name, validator=str)
             _writer_extensions.append(ext)
+
+
+def _get_default_writer(ext):
+    _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
+    try:
+        import xlsxwriter  # noqa
+        _default_writers['xlsx'] = 'xlsxwriter'
+    except ImportError:
+        pass
+    return _default_writers[ext]
 
 
 def get_writer(engine_name):
@@ -190,7 +200,8 @@ def get_writer(engine_name):
     try:
         return _writers[engine_name]
     except KeyError:
-        raise ValueError("No Excel writer '%s'" % engine_name)
+        raise ValueError("No Excel writer '{engine}'"
+                         .format(engine=engine_name))
 
 
 @Appender(_read_excel_doc)
@@ -239,12 +250,17 @@ class ExcelFile(object):
 
     def __init__(self, io, **kwds):
 
-        import xlrd  # throw an ImportError if we need to
+        err_msg = "Install xlrd >= 0.9.0 for Excel support"
 
-        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):  # pragma: no cover
-            raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
-                              "support, current version " + xlrd.__VERSION__)
+        try:
+            import xlrd
+        except ImportError:
+            raise ImportError(err_msg)
+        else:
+            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
+            if ver < (0, 9):  # pragma: no cover
+                raise ImportError(err_msg +
+                                  ". Current version " + xlrd.__VERSION__)
 
         # could be a str, ExcelFile, Book, etc.
         self.io = io
@@ -254,7 +270,7 @@ class ExcelFile(object):
         engine = kwds.pop('engine', None)
 
         if engine is not None and engine != 'xlrd':
-            raise ValueError("Unknown engine: %s" % engine)
+            raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
@@ -440,7 +456,7 @@ class ExcelFile(object):
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet %s" % asheetname)
+                print("Reading sheet {sheet}".format(sheet=asheetname))
 
             if isinstance(asheetname, compat.string_types):
                 sheet = self.book.sheet_by_name(asheetname)
@@ -629,7 +645,7 @@ def _conv_value(val):
     elif is_bool(val):
         val = bool(val)
     elif isinstance(val, Period):
-        val = "%s" % val
+        val = "{val}".format(val=val)
     elif is_list_like(val):
         val = str(val)
 
@@ -684,17 +700,23 @@ class ExcelWriter(object):
     # ExcelWriter.
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
+
         if issubclass(cls, ExcelWriter):
-            if engine is None:
+            if engine is None or (isinstance(engine, string_types) and
+                                  engine == 'auto'):
                 if isinstance(path, string_types):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
 
                 try:
-                    engine = config.get_option('io.excel.%s.writer' % ext)
+                    engine = config.get_option('io.excel.{ext}.writer'
+                                               .format(ext=ext))
+                    if engine == 'auto':
+                        engine = _get_default_writer(ext)
                 except KeyError:
-                    error = ValueError("No engine for filetype: '%s'" % ext)
+                    error = ValueError("No engine for filetype: '{ext}'"
+                                       .format(ext=ext))
                     raise error
             cls = get_writer(engine)
 
@@ -782,8 +804,9 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '%s': '%s'") %
-                   (pprint_thing(cls.engine), pprint_thing(ext)))
+            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+                   .format(engine=pprint_thing(cls.engine),
+                           ext=pprint_thing(ext)))
             raise ValueError(msg)
         else:
             return True
@@ -808,8 +831,8 @@ class _Openpyxl1Writer(ExcelWriter):
     def __init__(self, path, engine=None, **engine_kwargs):
         if not openpyxl_compat.is_compat(major_ver=self.openpyxl_majorver):
             raise ValueError('Installed openpyxl is not supported at this '
-                             'time. Use {0}.x.y.'
-                             .format(self.openpyxl_majorver))
+                             'time. Use {majorver}.x.y.'
+                             .format(majorver=self.openpyxl_majorver))
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
@@ -849,7 +872,8 @@ class _Openpyxl1Writer(ExcelWriter):
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell = wks.cell("{col}{row}".format(col=colletter,
+                                                 row=startrow + cell.row + 1))
             if (isinstance(cell.val, compat.string_types) and
                     xcell.data_type_for_value(cell.val) != xcell.TYPE_STRING):
                 xcell.set_value_explicit(cell.val)
@@ -871,10 +895,12 @@ class _Openpyxl1Writer(ExcelWriter):
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)
 
-                wks.merge_cells('%s%s:%s%s' % (cletterstart,
-                                               startrow + cell.row + 1,
-                                               cletterend,
-                                               startrow + cell.mergestart + 1))
+                wks.merge_cells('{start}{row}:{end}{mergestart}'
+                                .format(start=cletterstart,
+                                        row=startrow + cell.row + 1,
+                                        end=cletterend,
+                                        mergestart=startrow +
+                                        cell.mergestart + 1))
 
                 # Excel requires that the format of the first cell in a merged
                 # range is repeated in the rest of the merged range.
@@ -890,7 +916,8 @@ class _Openpyxl1Writer(ExcelWriter):
                                 # Ignore first cell. It is already handled.
                                 continue
                             colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell = wks.cell("{col}{row}"
+                                             .format(col=colletter, row=row))
                             for field in style.__fields__:
                                 xcell.style.__setattr__(
                                     field, style.__getattribute__(field))
@@ -950,7 +977,8 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks["%s%s" % (colletter, startrow + cell.row + 1)]
+            xcell = wks["{col}{row}"
+                        .format(col=colletter, row=startrow + cell.row + 1)]
             xcell.value = _conv_value(cell.val)
             style_kwargs = {}
 
@@ -972,10 +1000,12 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)
 
-                wks.merge_cells('%s%s:%s%s' % (cletterstart,
-                                               startrow + cell.row + 1,
-                                               cletterend,
-                                               startrow + cell.mergestart + 1))
+                wks.merge_cells('{start}{row}:{end}{mergestart}'
+                                .format(start=cletterstart,
+                                        row=startrow + cell.row + 1,
+                                        end=cletterend,
+                                        mergestart=startrow +
+                                        cell.mergestart + 1))
 
                 # Excel requires that the format of the first cell in a merged
                 # range is repeated in the rest of the merged range.
@@ -991,7 +1021,8 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
                                 # Ignore first cell. It is already handled.
                                 continue
                             colletter = get_column_letter(col)
-                            xcell = wks["%s%s" % (colletter, row)]
+                            xcell = wks["{col}{row}"
+                                        .format(col=colletter, row=row)]
                             xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
@@ -1025,7 +1056,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, '_convert_to_{0}'.format(k),
+            _conv_to_x = getattr(cls, '_convert_to_{k}'.format(k=k),
                                  lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
@@ -1500,17 +1531,19 @@ class _XlwtWriter(ExcelWriter):
         """
         if hasattr(item, 'items'):
             if firstlevel:
-                it = ["%s: %s" % (key, cls._style_to_xlwt(value, False))
+                it = ["{key}: {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
                       for key, value in item.items()]
-                out = "%s " % (line_sep).join(it)
+                out = "{sep} ".format(sep=(line_sep).join(it))
                 return out
             else:
-                it = ["%s %s" % (key, cls._style_to_xlwt(value, False))
+                it = ["{key} {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
                       for key, value in item.items()]
-                out = "%s " % (field_sep).join(it)
+                out = "{sep} ".format(sep=(field_sep).join(it))
                 return out
         else:
-            item = "%s" % item
+            item = "{item}".format(item=item)
             item = item.replace("True", "on")
             item = item.replace("False", "off")
             return item

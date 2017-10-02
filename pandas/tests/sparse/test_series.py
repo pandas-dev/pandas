@@ -520,6 +520,9 @@ class TestSparseSeries(SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            sp.take([1, 5], convert=False)
+
     def test_numpy_take(self):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
@@ -1379,10 +1382,24 @@ class TestSparseSeriesAnalytics(object):
         # numpy passes in 'axis=None' or `axis=-1'
         funcs = ['sum', 'cumsum', 'var', 'mean',
                  'prod', 'cumprod', 'std', 'argsort',
-                 'argmin', 'argmax', 'min', 'max']
+                 'min', 'max']
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+    def test_deprecated_numpy_func_call(self):
+        # NOTE: These should be add to the 'test_numpy_func_call' test above
+        # once the behavior of argmin/argmax is corrected.
+        funcs = ['argmin', 'argmax']
+        for func in funcs:
+            for series in ('bseries', 'zbseries'):
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    getattr(np, func)(getattr(self, series))
+
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    getattr(getattr(self, series), func)()
 
 
 @pytest.mark.parametrize(

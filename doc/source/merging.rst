@@ -832,8 +832,10 @@ The left frame.
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
+
    X = pd.Series(np.random.choice(['foo', 'bar'], size=(10,)))
-   X = X.astype('category', categories=['foo', 'bar'])
+   X = X.astype(CategoricalDtype(categories=['foo', 'bar']))
 
    left = pd.DataFrame({'X': X,
                         'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
@@ -844,8 +846,11 @@ The right frame.
 
 .. ipython:: python
 
-   right = pd.DataFrame({'X': pd.Series(['foo', 'bar']).astype('category', categories=['foo', 'bar']),
-                         'Z': [1, 2]})
+   right = pd.DataFrame({
+        'X': pd.Series(['foo', 'bar'],
+                       dtype=CategoricalDtype(['foo', 'bar'])),
+        'Z': [1, 2]
+   })
    right
    right.dtypes
 
@@ -1381,7 +1386,7 @@ By default we are taking the asof of the quotes.
                  on='time',
                  by='ticker')
 
-We only asof within ``2ms`` betwen the quote time and the trade time.
+We only asof within ``2ms`` between the quote time and the trade time.
 
 .. ipython:: python
 
@@ -1390,8 +1395,8 @@ We only asof within ``2ms`` betwen the quote time and the trade time.
                  by='ticker',
                  tolerance=pd.Timedelta('2ms'))
 
-We only asof within ``10ms`` betwen the quote time and the trade time and we exclude exact matches on time.
-Note that though we exclude the exact matches (of the quotes), prior quotes DO propogate to that point
+We only asof within ``10ms`` between the quote time and the trade time and we exclude exact matches on time.
+Note that though we exclude the exact matches (of the quotes), prior quotes DO propagate to that point
 in time.
 
 .. ipython:: python

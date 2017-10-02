@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type, is_datetimetz,
-    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -63,13 +62,15 @@ from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
+from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._decorators import (
+    Appender, deprecate, deprecate_kwarg, Substitution)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
@@ -145,6 +146,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
+    _deprecations = generic.NDFrame._deprecations | frozenset(
+        ['sortlevel', 'reshape'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -1095,14 +1098,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, 'w') as f:
                     f.write(result)
 
-    def __iter__(self):
-        """ provide iteration over the values of the Series
-        box values if necessary """
-        if is_datetimelike(self):
-            return (_maybe_box_datetimelike(x) for x in self._values)
-        else:
-            return iter(self._values)
-
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
@@ -1117,10 +1112,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def keys(self):
         """Alias for index"""
         return self.index
-
-    def tolist(self):
-        """ Convert Series to a nested list """
-        return list(self.asobject)
 
     def to_dict(self, into=dict):
         """
@@ -1284,7 +1275,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of minimum of values.
+        Index *label* of the first occurrence of minimum of values.
 
         Parameters
         ----------
@@ -1297,7 +1288,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        This method is the Series version of ``ndarray.argmin``.
+        This method is the Series version of ``ndarray.argmin``. This method
+        returns the label of the minimum, while ``ndarray.argmin`` returns
+        the position. To get the position, use ``series.values.argmin()``.
 
         See Also
         --------
@@ -1312,7 +1305,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index of first occurrence of maximum of values.
+        Index *label* of the first occurrence of maximum of values.
 
         Parameters
         ----------
@@ -1325,7 +1318,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        This method is the Series version of ``ndarray.argmax``.
+        This method is the Series version of ``ndarray.argmax``. This method
+        returns the label of the maximum, while ``ndarray.argmax`` returns
+        the position. To get the position, use ``series.values.argmax()``.
 
         See Also
         --------
@@ -1339,8 +1334,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = idxmin
-    argmax = idxmax
+    argmin = deprecate('argmin', idxmin,
+                       msg="'argmin' is deprecated. Use 'idxmin' instead. "
+                           "The behavior of 'argmin' will be corrected to "
+                           "return the positional minimum in the future. "
+                           "Use 'series.values.argmin' to get the position of "
+                           "the minimum now.")
+    argmax = deprecate('argmax', idxmax,
+                       msg="'argmax' is deprecated. Use 'idxmax' instead. "
+                           "The behavior of 'argmax' will be corrected to "
+                           "return the positional maximum in the future. "
+                           "Use 'series.values.argmax' to get the position of "
+                           "the maximum now.")
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -2558,35 +2563,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    def take(self, indices, axis=0, convert=True, is_copy=False, **kwargs):
-        """
-        return Series corresponding to requested indices
-
-        Parameters
-        ----------
-        indices : list / array of ints
-        convert : translate negative to positive indices (default)
-
-        Returns
-        -------
-        taken : Series
-
-        See also
-        --------
-        numpy.ndarray.take
-        """
-        if kwargs:
-            nv.validate_take(tuple(), kwargs)
-
-        # check/convert indicies here
+    @Appender(generic._shared_docs['_take'])
+    def _take(self, indices, axis=0, convert=True, is_copy=False):
         if convert:
             indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         indices = _ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
-        return (self._constructor(new_values, index=new_index, fastpath=True)
-                    .__finalize__(self))
+
+        result = (self._constructor(new_values, index=new_index,
+                                    fastpath=True).__finalize__(self))
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
 
     def isin(self, values):
         """
@@ -2838,10 +2832,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'first', 'klass': 'Series'})
     def first_valid_index(self):
-        """
-        Return label for first non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2852,10 +2845,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return self.index[i]
 
+    @Appender(generic._shared_docs['valid_index'] % {
+        'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
-        """
-        Return label for last non-NA/null value
-        """
         if len(self) == 0:
             return None
 
@@ -2916,19 +2908,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    dt = base.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-    cat = base.AccessorProperty(CategoricalAccessor)
+    cat = accessor.AccessorProperty(CategoricalAccessor)
 
     # String Methods
-    str = base.AccessorProperty(strings.StringMethods)
+    str = accessor.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = base.AccessorProperty(gfx.SeriesPlotMethods,
-                                 gfx.SeriesPlotMethods)
+    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
+                                     gfx.SeriesPlotMethods)
     hist = gfx.hist_series
 
 
@@ -3000,7 +2992,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
-                subarr = Categorical(arr)
+                subarr = Categorical(arr, dtype.categories,
+                                     ordered=dtype.ordered)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:

@@ -174,12 +174,16 @@ def raw_frame():
 
 
 @pytest.mark.parametrize(
-    "op, level, axis, skipna",
+    "op, level, axis, skipna, sort",
     product(AGG_FUNCTIONS,
             lrange(2), lrange(2),
+            [True, False],
             [True, False]))
-def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
+def test_regression_whitelist_methods(
+        raw_frame, op, level,
+        axis, skipna, sort):
     # GH6944
+    # GH 17537
     # explicity test the whitelest methods
 
     if axis == 0:
@@ -188,15 +192,19 @@ def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
         expected = getattr(frame, op)(level=level, axis=axis,
                                       skipna=skipna)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)()
         expected = getattr(frame, op)(level=level, axis=axis)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
 
 

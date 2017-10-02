@@ -193,26 +193,18 @@ def legacy_pickle_versions():
     for v in os.listdir(path):
         p = os.path.join(path, v)
         if os.path.isdir(p):
-            yield v
+            for f in os.listdir(p):
+                yield (v, f)
 
 
-@pytest.mark.parametrize('version', legacy_pickle_versions())
-def test_pickles(current_pickle_data, version):
+@pytest.mark.parametrize('version, f', legacy_pickle_versions())
+def test_pickles(current_pickle_data, version, f):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    pth = tm.get_data_path('legacy_pickle/{0}'.format(version))
-    n = 0
-    for f in os.listdir(pth):
-        vf = os.path.join(pth, f)
-        with catch_warnings(record=True):
-            data = compare(current_pickle_data, vf, version)
-
-        if data is None:
-            continue
-        n += 1
-    assert n > 0, ('Pickle files are not '
-                   'tested: {version}'.format(version=version))
+    vf = tm.get_data_path('legacy_pickle/{}/{}'.format(version, f))
+    with catch_warnings(record=True):
+        compare(current_pickle_data, vf, version)
 
 
 def test_round_trip_current(current_pickle_data):

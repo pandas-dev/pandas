@@ -8,7 +8,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
    pd.options.display.max_rows=15
@@ -654,7 +654,7 @@ aggregation with, outputting a DataFrame:
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-On a widowed DataFrame, you can pass a list of functions to apply to each
+On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
