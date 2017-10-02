@@ -164,6 +164,7 @@ Other Enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
+- Implement interpolating ``NaT`` values in ``datetime`` series (:issue:`11701`)
 
 
 .. _whatsnew_0210.api_breaking:
