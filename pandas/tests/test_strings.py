@@ -2484,6 +2484,19 @@ class TestStringMethods(object):
         expected = Series([u('b'), u('d'), np.nan, u('g')])
         tm.assert_series_equal(result, expected)
 
+        # bounds testing
+        values = Series(['1_2_3_4_5', '6_7_8_9_10', '11_12'])
+
+        # positive index
+        result = values.str.split('_').str.get(2)
+        expected = Series(['3', '8', np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # negative index
+        result = values.str.split('_').str.get(-3)
+        expected = Series(['3', '8', np.nan])
+        tm.assert_series_equal(result, expected)
+
     def test_more_contains(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
