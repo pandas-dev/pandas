@@ -96,8 +96,8 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return ("This method must be defined in the concrete class of %s" %
-                self.class_instance.__class__.__name__)
+        msg = "This method must be defined in the concrete class of {name}"
+        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -150,8 +150,8 @@ def _maybe_match_name(a, b):
 def _get_info_slice(obj, indexer):
     """Slice the info axis of `obj` with `indexer`."""
     if not hasattr(obj, '_info_axis_number'):
-        raise TypeError('object of type %r has no info axis' %
-                        type(obj).__name__)
+        msg = 'object of type {typ!r} has no info axis'
+        raise TypeError(msg.format(typ=type(obj).__name__))
     slices = [slice(None)] * obj.ndim
     slices[obj._info_axis_number] = indexer
     return tuple(slices)
@@ -214,8 +214,8 @@ def _mut_exclusive(**kwargs):
     label1, val1 = item1
     label2, val2 = item2
     if val1 is not None and val2 is not None:
-        raise TypeError('mutually exclusive arguments: %r and %r' %
-                        (label1, label2))
+        msg = 'mutually exclusive arguments: {label1!r} and {label2!r}'
+        raise TypeError(msg.format(label1=label1, label2=label2))
     elif val1 is not None:
         return val1
     else:
@@ -517,7 +517,7 @@ def standardize_mapping(into):
                 collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, collections.Mapping):
-        raise TypeError('unsupported type: {}'.format(into))
+        raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')
