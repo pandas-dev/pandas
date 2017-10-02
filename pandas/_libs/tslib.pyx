@@ -1613,7 +1613,15 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                     _check_dts_bounds(&obj.dts)
                     return obj
                 else:
-                    return _convert_tsobject_tz(obj, tz)
+                    # Keep the converter same as PyDateTime's
+                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
+                                              None, 0, 0)
+                    dtime = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                                     obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                     obj.dts.us, obj.tzinfo)
+                    obj = convert_datetime_to_tsobject(dtime, tz,
+                                                       nanos=obj.dts.ps / 1000)
+                    return obj
 
             else:
                 ts = obj.value
@@ -1630,32 +1638,6 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                 raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
-
-
-cdef _TSObject _convert_tsobject_tz(_TSObject obj, object tz):
-    """
-    Given a _TSObject with a FixedOffset tzinfo, convert to a new _TSObject
-    instance with the given timezone `tz` (or tz-naive if tz is None).
-
-    Parameters
-    ----------
-    obj : _TSObject
-    tz : tzinfo or None
-
-    Returns
-    -------
-    obj : _TSObject
-    """
-    # Keep the converter same as PyDateTime's
-    cdef:
-        datetime dtime
-
-    obj = convert_to_tsobject(obj.value, obj.tzinfo, None, 0, 0)
-    dtime = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                     obj.dts.hour, obj.dts.min, obj.dts.sec, obj.dts.us,
-                     tz)
-    obj = convert_datetime_to_tsobject(dtime, tz, nanos=obj.dts.ps / 1000)
-    return obj
 
 
 def _test_parse_iso8601(object ts):
