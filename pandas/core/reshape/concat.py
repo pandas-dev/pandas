@@ -364,33 +364,15 @@ class _Concatenator(object):
             if self.axis == 0:
                 name = com._consensus_name_attr(self.objs)
 
-                # concat Series with length to keep dtype as much
-                non_empties = [x for x in self.objs if len(x) > 0]
+                mgr = self.objs[0]._data.concat([x._data for x in self.objs],
+                                                self.new_axes)
 
-                # check if all series are of the same block type:
-                if len(non_empties) > 0:
-                    blocks = [obj._data.blocks[0] for obj in non_empties]
-                    if all([type(b) is type(blocks[0]) for b in blocks[1:]]):  # noqa
-                        new_block = blocks[0].concat_same_type(blocks)
-                        if isinstance(new_block, SparseBlock):
-                            cons = SparseSeries
-                        else:
-                            cons = Series
-                        return (cons(new_block, index=self.new_axes[0],
-                                     name=name, fastpath=True)
-                                .__finalize__(self, method='concat'))
-
-                if len(non_empties) > 0:
-                    values = [x._values for x in non_empties]
+                if mgr._block.is_sparse:
+                    cons = SparseSeries
                 else:
-                    values = [x._values for x in self.objs]
-                new_data = _concat._concat_compat(values)
+                    cons = self.objs[0].__class__
 
-                cons = _concat._get_series_result_type(new_data)
-
-                return (cons(new_data, index=self.new_axes[0],
-                             name=name, dtype=new_data.dtype)
-                        .__finalize__(self, method='concat'))
+                return cons(mgr, name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame
             else:
