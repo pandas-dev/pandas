@@ -330,7 +330,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+            default_fill_value=self.default_fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def astype(self, dtype):
         return self._apply_columns(lambda x: x.astype(dtype))
@@ -576,7 +577,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns,
-                                 default_fill_value=new_fill_value
+                                 default_fill_value=new_fill_value,
+                                 default_kind=self.default_kind,
                                  ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None):
@@ -605,7 +607,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             new_data, index=new_index, columns=self.columns,
-            default_fill_value=fill_value).__finalize__(self)
+            default_fill_value=fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
         # patched version of DataFrame._combine_match_columns to account for
@@ -629,7 +632,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             new_data, index=self.index, columns=union,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+            default_fill_value=self.default_fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         return self._apply_columns(lambda x: func(x, other))
@@ -673,7 +677,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             new_series, index=index, columns=self.columns,
-            default_fill_value=self._default_fill_value).__finalize__(self)
+            default_fill_value=self._default_fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def _reindex_columns(self, columns, method, copy, level, fill_value=None,
                          limit=None, takeable=False):
@@ -693,7 +698,8 @@ class SparseDataFrame(DataFrame):
         sdict = {k: v for k, v in compat.iteritems(self) if k in columns}
         return self._constructor(
             sdict, index=self.index, columns=columns,
-            default_fill_value=self._default_fill_value).__finalize__(self)
+            default_fill_value=self._default_fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=None,
                                limit=None, copy=False, allow_dups=False):
@@ -725,8 +731,10 @@ class SparseDataFrame(DataFrame):
             else:
                 new_arrays[col] = self[col]
 
-        return self._constructor(new_arrays, index=index,
-                                 columns=columns).__finalize__(self)
+        return self._constructor(
+            new_arrays, index=index, columns=columns,
+            default_fill_value=self.default_fill_value,
+            default_kind=self.default_kind).__finalize__(self)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
