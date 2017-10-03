@@ -1,3 +1,4 @@
+import warnings
 import copy
 from warnings import catch_warnings
 import itertools
@@ -547,12 +548,20 @@ class Block(PandasObject):
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
-            if (('categories' in kwargs or 'ordered' in kwargs) and
-                    isinstance(dtype, CategoricalDtype)):
-                raise TypeError("Cannot specify a CategoricalDtype and also "
-                                "`categories` or `ordered`. Use "
-                                "`dtype=CategoricalDtype(categories, ordered)`"
-                                " instead.")
+
+            # deprecated 17636
+            if ('categories' in kwargs or 'ordered' in kwargs):
+                if isinstance(dtype, CategoricalDtype):
+                    raise TypeError(
+                        "Cannot specify a CategoricalDtype and also "
+                        "`categories` or `ordered`. Use "
+                        "`dtype=CategoricalDtype(categories, ordered)`"
+                        " instead.")
+                warnings.warn("specifying 'categories' or 'ordered' in "
+                              ".astype() is deprecated; pass a "
+                              "CategoricalDtype instead",
+                              FutureWarning, stacklevel=7)
+
             kwargs = kwargs.copy()
             categories = getattr(dtype, 'categories', None)
             ordered = getattr(dtype, 'ordered', False)

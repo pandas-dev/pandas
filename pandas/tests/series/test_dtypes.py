@@ -186,6 +186,16 @@ class TestSeriesDtypes(TestData):
         with pytest.raises(KeyError):
             s.astype(dt5)
 
+    def test_astype_categories_deprecation(self):
+
+        # deprecated 17636
+        s = Series(['a', 'b', 'a'])
+        expected = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s.astype('category', categories=['a', 'b'], ordered=True)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_categoricaldtype(self):
         s = Series(['a', 'b', 'a'])
         result = s.astype(CategoricalDtype(['a', 'b'], ordered=True))

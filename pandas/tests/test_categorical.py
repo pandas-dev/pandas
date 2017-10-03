@@ -84,17 +84,17 @@ class TestCategorical(object):
 
         # get slice
         result = s.iloc[0:2]
-        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        expected = pd.Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
         tm.assert_series_equal(result, expected)
 
         # get list of indexes
         result = s.iloc[[0, 1]]
-        expected = pd.Series([1, 2]).astype('category', categories=[1, 2, 3])
+        expected = pd.Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
         tm.assert_series_equal(result, expected)
 
         # get boolean array
         result = s.iloc[[True, False, False]]
-        expected = pd.Series([1]).astype('category', categories=[1, 2, 3])
+        expected = pd.Series([1]).astype(CategoricalDtype([1, 2, 3]))
         tm.assert_series_equal(result, expected)
 
     def test_setitem(self):
@@ -2076,12 +2076,12 @@ class TestCategoricalAsBlock(object):
         l = ["a", "b", "c", "a"]
         s = pd.Series(l)
         exp = pd.Series(Categorical(l, ordered=True))
-        res = s.astype('category', ordered=True)
+        res = s.astype(CategoricalDtype(None, ordered=True))
         tm.assert_series_equal(res, exp)
 
         exp = pd.Series(Categorical(
             l, categories=list('abcdef'), ordered=True))
-        res = s.astype('category', categories=list('abcdef'), ordered=True)
+        res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
 
     def test_construction_series(self):
@@ -4262,11 +4262,11 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         b = Series(list('aabbca'))
 
         df2 = DataFrame({'A': a,
-                         'B': b.astype('category', categories=list('cab'))})
+                         'B': b.astype(CategoricalDtype(list('cab')))})
         res = pd.concat([df2, df2])
-        exp = DataFrame({'A': pd.concat([a, a]),
-                         'B': pd.concat([b, b]).astype(
-            'category', categories=list('cab'))})
+        exp = DataFrame(
+            {'A': pd.concat([a, a]),
+             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))})
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_index_preserver(self):
@@ -4275,13 +4275,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         b = Series(list('aabbca'))
 
         df2 = DataFrame({'A': a,
-                         'B': b.astype('category', categories=list('cab'))
+                         'B': b.astype(CategoricalDtype(list('cab')))
                          }).set_index('B')
         result = pd.concat([df2, df2])
-        expected = DataFrame({'A': pd.concat([a, a]),
-                              'B': pd.concat([b, b]).astype(
-                                  'category', categories=list('cab'))
-                              }).set_index('B')
+        expected = DataFrame(
+            {'A': pd.concat([a, a]),
+             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))
+             }).set_index('B')
         tm.assert_frame_equal(result, expected)
 
         # wrong catgories
@@ -4324,7 +4324,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')
         result = pd.merge(left, cright, how='left', left_on='b', right_on='c')
-        expected['d'] = expected['d'].astype('category', categories=['null'])
+        expected['d'] = expected['d'].astype(CategoricalDtype(['null']))
         tm.assert_frame_equal(result, expected)
 
         # cat-object
