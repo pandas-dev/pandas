@@ -532,7 +532,7 @@ class TestSparseSeries(SharedWithSparse):
         # pass in arguments to downstream .take() implementations.
         warning = FutureWarning if _np_version_under1p12 else None
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
                                    np.take(sp.to_dense(), indices, axis=0))
 
