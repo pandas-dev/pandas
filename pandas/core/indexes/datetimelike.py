@@ -656,7 +656,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (Timestamp, datetime)):
+            elif isinstance(other, (Timestamp, datetime, np.datetime64)):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
