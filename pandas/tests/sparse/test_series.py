@@ -9,7 +9,8 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, bdate_range, isna, compat
+from pandas import (Series, DataFrame, bdate_range,
+                    isna, compat, _np_version_under1p12)
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
@@ -527,8 +528,13 @@ class TestSparseSeries(SharedWithSparse):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
 
-        tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
-                               np.take(sp.to_dense(), indices, axis=0))
+        # gh-17352: older versions of numpy don't properly
+        # pass in arguments to downstream .take() implementations.
+        warning = FutureWarning if _np_version_under1p12 else None
+
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
+                                   np.take(sp.to_dense(), indices, axis=0))
 
         msg = "the 'out' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.take,
