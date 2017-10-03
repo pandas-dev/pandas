@@ -7,7 +7,7 @@ xlsxwriter
 xlrd
 xlwt
 numexpr
-pytables=3.4.2=np113py36_1
+pytables
 matplotlib
 lxml
 html5lib
