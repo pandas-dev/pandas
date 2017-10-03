@@ -48,7 +48,6 @@ cdef double NAN = nan
 # this is our tseries.pxd
 from datetime cimport (
     get_timedelta64_value, get_datetime64_value,
-    npy_timedelta, npy_datetime,
     PyDateTime_Check, PyDate_Check, PyTime_Check, PyDelta_Check,
     PyDateTime_IMPORT)
 
@@ -62,11 +61,8 @@ from interval import Interval
 
 cdef int64_t NPY_NAT = util.get_nat()
 
-ctypedef unsigned char UChar
-
 cimport util
-from util cimport (is_array, _checknull, _checknan, INT64_MAX,
-                   INT64_MIN, UINT8_MAX)
+from util cimport is_array, _checknull, _checknan
 
 cdef extern from "math.h":
     double sqrt(double x)
