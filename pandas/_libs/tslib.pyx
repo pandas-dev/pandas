@@ -1370,6 +1370,7 @@ class NaTType(_NaT):
 
 _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
+
 def __nat_unpickle(*args):
     # return constant defined in the module
     return NaT
