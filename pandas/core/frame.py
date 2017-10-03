@@ -1685,6 +1685,10 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.19.0
         """
 
+        if (justify is not None and
+                justify not in fmt._VALID_JUSTIFY_PARAMETERS):
+            raise ValueError("Invalid value for justify parameter")
+
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
