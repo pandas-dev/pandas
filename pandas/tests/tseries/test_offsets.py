@@ -520,7 +520,7 @@ class TestCommon(Base):
         here = os.path.dirname(__file__)
         tests_dir = os.path.split(here)[0]
         data_dir = os.path.join(tests_dir, 'io', 'data',
-                               'legacy_pickle', '0.20.3')
+                                'legacy_pickle', '0.20.3')
         flist = [x for x in os.listdir(data_dir) if x.endswith('.pickle')]
         # exclude e.g. .DS_Store that might sneak in there
         for name in flist:
