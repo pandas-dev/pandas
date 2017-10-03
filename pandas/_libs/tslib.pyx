@@ -1359,7 +1359,8 @@ def _make_error_func(func_name, cls):
         raise ValueError("NaTType does not support " + func_name)
 
     f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
+    if cls is not None:
+        f.__doc__ = getattr(cls, func_name).__doc__
     return f
 
 
@@ -1473,21 +1474,22 @@ cdef class _NaT(_Timestamp):
 
     utctimetuple = _make_error_func('utctimetuple', datetime)
     utcnow = _make_error_func('utcnow', datetime)
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', datetime)
     timetz = _make_error_func('timetz', datetime)
     timetuple = _make_error_func('timetuple', datetime)
     strptime = _make_error_func('strptime', datetime)
     strftime = _make_error_func('strftime', datetime)
     isocalendar = _make_error_func('isocalendar', datetime)
-    fromtimestamp = _make_error_func('fromtimestamp', datetime)
     dst = _make_error_func('dst', datetime)
     ctime = _make_error_func('ctime', datetime)
-    combine = _make_error_func('combine', datetime)
-
     time = _make_error_func('time', datetime)
     toordinal = _make_error_func('toordinal', datetime)
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
+
+    # Timestamp has empty docstring for some methods.
+    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
+    fromtimestamp = _make_error_func('fromtimestamp', None)
+    combine = _make_error_func('combine', None)
 
     if PY3:
         timestamp = _make_error_func('timestamp', datetime)
