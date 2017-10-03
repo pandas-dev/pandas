@@ -103,8 +103,8 @@ get_datetimestruct_days(const pandas_datetimestruct *dts);
 /*
  * Compares two pandas_datetimestruct objects chronologically
  */
-int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
-                              pandas_datetimestruct *b);
+int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
+                              const pandas_datetimestruct *b);
 
 
 /*
