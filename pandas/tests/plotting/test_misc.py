@@ -286,7 +286,7 @@ class TestDataFramePlots(TestPlotBase):
         assert title_list == title[:3] + ['']
 
     def test_get_standard_colors_random_seed(self):
-        """ For #17525 """
+        # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
         # Make sure that the random seed isn't reset by _get_standard_colors
