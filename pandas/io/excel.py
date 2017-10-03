@@ -170,6 +170,16 @@ def register_writer(klass):
             _writer_extensions.append(ext)
 
 
+def _get_default_writer(ext):
+    _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
+    try:
+        import xlsxwriter  # noqa
+        _default_writers['xlsx'] = 'xlsxwriter'
+    except ImportError:
+        pass
+    return _default_writers[ext]
+
+
 def get_writer(engine_name):
     if engine_name == 'openpyxl':
         try:
@@ -690,8 +700,10 @@ class ExcelWriter(object):
     # ExcelWriter.
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
+
         if issubclass(cls, ExcelWriter):
-            if engine is None:
+            if engine is None or (isinstance(engine, string_types) and
+                                  engine == 'auto'):
                 if isinstance(path, string_types):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
@@ -700,6 +712,8 @@ class ExcelWriter(object):
                 try:
                     engine = config.get_option('io.excel.{ext}.writer'
                                                .format(ext=ext))
+                    if engine == 'auto':
+                        engine = _get_default_writer(ext)
                 except KeyError:
                     error = ValueError("No engine for filetype: '{ext}'"
                                        .format(ext=ext))

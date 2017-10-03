@@ -101,7 +101,7 @@ You will need your own fork to work on the code. Go to the `pandas project
 page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
 want to clone your fork to your machine::
 
-    git clone git@github.com:your-user-name/pandas.git pandas-yourname
+    git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream git://github.com/pandas-dev/pandas.git
 

@@ -119,7 +119,7 @@ expanded to include the ``categories`` and ``ordered`` attributes. A
 ``CategoricalDtype`` can be used to specify the set of categories and
 orderedness of an array, independent of the data themselves. This can be useful,
 e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
-:issue:`15078`, :issue:`16015`):
+:issue:`15078`, :issue:`16015`, :issue:`17643`):
 
 .. ipython:: python
 
@@ -129,8 +129,39 @@ e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
    dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
    s.astype(dtype)
 
+One place that deserves special mention is in :meth:`read_csv`. Previously, with
+``dtype={'col': 'category'}``, the returned values and categories would always
+be strings.
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+.. ipython:: python
+
+   data = 'A,B\na,1\nb,2\nc,3'
+   pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
+
+Notice the "object" dtype.
+
+With a ``CategoricalDtype`` of all numerics, datetimes, or
+timedeltas, we can automatically convert to the correct type
+
+.. ipython:: python
+
+   dtype = {'B': CategoricalDtype([1, 2, 3])}
+   pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
+
+The values have been correctly interpreted as integers.
+
 The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
-``Series`` with categorical type will now return an instance of ``CategoricalDtype``.
+``Series`` with categorical type will now return an instance of
+``CategoricalDtype``. For the most part, this is backwards compatible, though
+the string repr has changed. If you were previously using ``str(s.dtype) ==
+'category'`` to detect categorical data, switch to
+:func:`pandas.api.types.is_categorical_dtype`, which is compatible with the old
+and new ``CategoricalDtype``.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
@@ -164,6 +195,7 @@ Other Enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
+- Improved the import time of pandas by about 2.25x  (:issue:`16764`)
 
 
 .. _whatsnew_0210.api_breaking:
@@ -253,8 +285,8 @@ New Behavior:
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`)
-). If installed, we now require:
+We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`).
+If installed, we now require:
 
    +--------------+-----------------+----------+
    | Package      | Minimum Version | Required |
@@ -267,6 +299,64 @@ We have updated our minimum supported versions of dependencies (:issue:`15206`, 
    +--------------+-----------------+----------+
    | Bottleneck   | 1.0.0           |          |
    +--------------+-----------------+----------+
+
+.. _whatsnew_0210.api_breaking.loc:
+
+Indexing with a list with missing labels is Deprecated
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
+This will now show a ``FutureWarning``, in the future this will raise a ``KeyError`` (:issue:`15747`).
+This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
+See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
+
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Previous Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Current Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Passing list-likes to .loc or [] with any missing label will raise
+   KeyError in the future, you can use .reindex() as an alternative.
+
+   See the documentation here:
+   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``
+
+.. ipython:: python
+
+  s.reindex([1, 2, 3])
+
+Selection with all keys found is unchanged.
+
+.. ipython:: python
+
+   s.loc[[1, 2]]
+
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
@@ -488,7 +578,7 @@ Additionally, DataFrames with datetime columns that were parsed by :func:`read_s
 Consistency of Range Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`cdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
+In previous versions, there were some inconsistencies between the various range functions: :func:`date_range`, :func:`bdate_range`, :func:`period_range`, :func:`timedelta_range`, and :func:`interval_range`. (:issue:`17471`).
 
 One of the inconsistent behaviors occurred when the ``start``, ``end`` and ``period`` parameters were all specified, potentially leading to ambiguous ranges.  When all three parameters were passed, ``interval_range`` ignored the ``period`` parameter, ``period_range`` ignored the ``end`` parameter, and the other range functions raised.  To promote consistency among the range functions, and avoid potentially ambiguous ranges, ``interval_range`` and ``period_range`` will now raise when all three parameters are passed.
 
@@ -560,6 +650,8 @@ Other API Changes
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
+- Pandas no longer registers matplotlib converters on import. The converters
+  will be registered and used when the first plot is draw (:issue:`17710`)
 
 .. _whatsnew_0210.deprecations:
 
@@ -572,8 +664,11 @@ Deprecations
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
 - :func:`DataFrame.as_blocks` is deprecated, as this is exposing the internal implementation (:issue:`17302`)
 - ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
+- ``cdate_range`` has been deprecated in favor of :func:`bdate_range`, which has gained ``weekmask`` and ``holidays`` parameters for building custom frequency date ranges. See the :ref:`documentation <timeseries.custom-freq-ranges>` for more details (:issue:`17596`)
+- passing ``categories`` or ``ordered`` kwargs to :func:`Series.astype` is deprecated, in favor of passing a :ref:`CategoricalDtype <whatsnew_0210.enhancements.categorical_dtype>` (:issue:`17636`)
+- Passing a non-existant column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 
-.. _whatsnew_0210.deprecations.argmin_min
+.. _whatsnew_0210.deprecations.argmin_min:
 
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -668,6 +763,7 @@ Indexing
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 - Bug in :func:`Series.rename` when called with a `callable`, incorrectly alters the name of the `Series`, rather than the name of the `Index`. (:issue:`17407`)
+- Bug in :func:`String.str_get` raises `index out of range` error instead of inserting NaNs when using a negative index. (:issue:`17704`)
 
 I/O
 ^^^
@@ -682,7 +778,8 @@ I/O
 - Bug in :func:`read_stata` where the index was not set (:issue:`16342`)
 - Bug in :func:`read_html` where import check fails when run in multiple threads (:issue:`16928`)
 - Bug in :func:`read_csv` where automatic delimiter detection caused a ``TypeError`` to be thrown when a bad line was encountered rather than the correct error message (:issue:`13374`)
-- Bug in ``DataFrame.to_html()`` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
+- Bug in :meth:`DataFrame.to_html` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
+- Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
 
 Plotting
@@ -691,7 +788,8 @@ Plotting
 - Bug when plotting ``timedelta`` and ``datetime`` dtypes on y-axis (:issue:`16953`)
 - Line plots no longer assume monotonic x data when calculating xlims, they show the entire lines now even for unsorted x data. (:issue:`11310`, :issue:`11471`)
 - With matplotlib 2.0.0 and above, calculation of x limits for line plots is left to matplotlib, so that its new default settings are applied. (:issue:`15495`)
-- Bug in ``Series.plot.bar`` or ``DataFramee.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
+- Bug in ``Series.plot.bar`` or ``DataFrame.plot.bar`` with ``y`` not respecting user-passed ``color`` (:issue:`16822`)
+- Bug causing ``plotting.parallel_coordinates`` to reset the random seed when using random colors (:issue:`17525`)
 
 
 Groupby/Resample/Rolling
@@ -739,9 +837,9 @@ Numeric
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :func:`Series.isin` when called with a categorical (:issue`16639`)
+- Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
-- Bug in categorical operations with :ref:`Series.cat <categorical.cat>' not preserving the original Series' name (:issue:`17509`)
+- Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
 
 PyPy
 ^^^^

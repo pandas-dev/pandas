@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_string_like, is_scalar)
 from pandas.core.dtypes.missing import notna
 
-import pandas.core.computation.expressions as expressions
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
@@ -1500,6 +1499,8 @@ Returns
         def _panel_arith_method(op, name, str_rep=None, default_axis=None,
                                 fill_zeros=None, **eval_kwargs):
             def na_op(x, y):
+                import pandas.core.computation.expressions as expressions
+
                 try:
                     result = expressions.evaluate(op, str_rep, x, y,
                                                   raise_on_error=True,

@@ -3002,6 +3002,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     CustomBusinessHour,        # 'CBH'
     MonthEnd,                  # 'M'
     MonthBegin,                # 'MS'
+    Nano,                      # 'N'
     SemiMonthEnd,              # 'SM'
     SemiMonthBegin,            # 'SMS'
     Week,                      # 'W'
@@ -3017,5 +3018,3 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     FY5253,
     FY5253Quarter,
 ])
-
-prefix_mapping['N'] = Nano

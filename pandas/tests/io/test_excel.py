@@ -1808,8 +1808,10 @@ class ExcelWriterBase(SharedItems):
             write_frame = DataFrame({'A': [1, 1, 1],
                                      'B': [2, 2, 2]})
 
-            write_frame.to_excel(path, 'test1', columns=['B', 'C'])
-            expected = write_frame.loc[:, ['B', 'C']]
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                write_frame.to_excel(path, 'test1', columns=['B', 'C'])
+            expected = write_frame.reindex(columns=['B', 'C'])
             read_frame = read_excel(path, 'test1')
             tm.assert_frame_equal(expected, read_frame)
 
