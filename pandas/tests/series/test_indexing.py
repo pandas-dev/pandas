@@ -854,11 +854,15 @@ class TestSeriesIndexing(TestData):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
         inds = [0, 2, 5, 7, 8]
         arr_inds = np.array([0, 2, 5, 7, 8])
-        result = s[inds]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[inds]
         expected = s.reindex(inds)
         assert_series_equal(result, expected)
 
-        result = s[arr_inds]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[arr_inds]
         expected = s.reindex(arr_inds)
         assert_series_equal(result, expected)
 
