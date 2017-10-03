@@ -3180,10 +3180,8 @@ class TestTimeGrouper(object):
     def test_timegrouper_repr(self):
         # Added in GH17727
         result = repr(TimeGrouper(key='key', freq='50Min', label='right'))
-        cls_name_result, attrib_result = result.split('(')
-        attrib_result = set(attrib_result.rstrip(')').split(', '))
-        assert cls_name_result == 'TimeGrouper'
-        assert attrib_result == {"key='key'", "freq='50T'", "label='right'"}
+        expected = "TimeGrouper(key='key', freq='50T', label='right')"
+        assert result == expected
 
     def test_apply(self):
         with tm.assert_produces_warning(FutureWarning,

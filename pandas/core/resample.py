@@ -1026,16 +1026,6 @@ class TimeGrouper(Grouper):
     Use begin, end, nperiods to generate intervals that cannot be derived
     directly from the associated object
     """
-    # _attributes is used in __repr__below
-    _attributes = Grouper._attributes.copy()
-    _attributes.update((('freq', 'Min'), ('closed', None), ('label', None),
-                        ('how', 'mean'), ('nperiods', None), ('axis', 0),
-                        ('fill_method', None), ('limit', None),
-                        ('loffset', None), ('kind', None),
-                        ('convention', None), ('base', 0),
-                        ('convention', 'e'), ('sort', True),
-                        ))
-    _end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
 
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
@@ -1079,6 +1069,14 @@ class TimeGrouper(Grouper):
         kwargs['sort'] = True
 
         super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
+
+    # _attributes is used in __repr__below
+    _attributes = Grouper._attributes.copy()
+    _attributes.update(
+        (k, v) for k, v in zip(compat.signature(__init__).args[1:],
+                               compat.signature(__init__).defaults))
+    _attributes.update(sort=True, convention='e')
+    _end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
 
     def _get_resampler(self, obj, kind=None):
         """
