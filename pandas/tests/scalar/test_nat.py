@@ -159,8 +159,12 @@ def test_NaT_methods():
 
 
 def test_NaT_docstrings():
+    # GH#17327
     nat_names = dir(NaT)
 
+    # NaT should have *most* of the Timestamp methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `ts_expected` below.
     ts_names = dir(Timestamp)
     ts_missing = [x for x in ts_names if x not in nat_names and
                   not x.startswith('_')]
@@ -177,6 +181,11 @@ def test_NaT_docstrings():
         natdoc = getattr(NaT, name).__doc__
         assert tsdoc == natdoc
 
+    # NaT should have *most* of the Timedelta methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `td_expected` below.
+    # For methods that are both Timestamp and Timedelta methods, the
+    # Timestamp docstring takes priority.
     td_names = dir(Timedelta)
     td_missing = [x for x in td_names if x not in nat_names and
                   not x.startswith('_')]
