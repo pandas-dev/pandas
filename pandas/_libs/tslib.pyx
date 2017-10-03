@@ -779,6 +779,32 @@ class Timestamp(_Timestamp):
 _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 
+def _make_nat_func(func_name, cls):
+    def f(*args, **kwargs):
+        return NaT
+    f.__name__ = func_name
+    f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
+def _make_nan_func(func_name, cls):
+    def f(*args, **kwargs):
+        return np.nan
+    f.__name__ = func_name
+    f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
+def _make_error_func(func_name, cls):
+    def f(*args, **kwargs):
+        raise ValueError("NaTType does not support " + func_name)
+
+    f.__name__ = func_name
+    if cls is not None:
+        f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
 
@@ -860,6 +886,72 @@ class NaTType(_NaT):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
+
+    # ----------------------------------------------------------------------
+    # inject the Timestamp field properties
+    # these by definition return np.nan
+
+    year = property(fget=lambda self: np.nan)
+    quarter = property(fget=lambda self: np.nan)
+    month = property(fget=lambda self: np.nan)
+    day = property(fget=lambda self: np.nan)
+    hour = property(fget=lambda self: np.nan)
+    minute = property(fget=lambda self: np.nan)
+    second = property(fget=lambda self: np.nan)
+    millisecond = property(fget=lambda self: np.nan)
+    microsecond = property(fget=lambda self: np.nan)
+    nanosecond = property(fget=lambda self: np.nan)
+
+    week = property(fget=lambda self: np.nan)
+    dayofyear = property(fget=lambda self: np.nan)
+    weekofyear = property(fget=lambda self: np.nan)
+    days_in_month = property(fget=lambda self: np.nan)
+    daysinmonth = property(fget=lambda self: np.nan)
+    dayofweek = property(fget=lambda self: np.nan)
+    weekday_name = property(fget=lambda self: np.nan)
+
+    # inject Timedelta properties
+    days = property(fget=lambda self: np.nan)
+    seconds = property(fget=lambda self: np.nan)
+    microseconds = property(fget=lambda self: np.nan)
+    nanoseconds = property(fget=lambda self: np.nan)
+
+    # inject pd.Period properties
+    qyear = property(fget=lambda self: np.nan)
+
+    # ----------------------------------------------------------------------
+    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
+    # return NaT create functions that raise, for binding to NaTType
+    # These are the ones that can get their docstrings from datetime.
+
+    # nan methods
+    weekday = _make_nan_func('weekday', datetime)
+    isoweekday = _make_nan_func('isoweekday', datetime)
+
+    # _nat_methods
+    date = _make_nat_func('date', datetime)
+
+    utctimetuple = _make_error_func('utctimetuple', datetime)
+    timetz = _make_error_func('timetz', datetime)
+    timetuple = _make_error_func('timetuple', datetime)
+    strptime = _make_error_func('strptime', datetime)
+    strftime = _make_error_func('strftime', datetime)
+    isocalendar = _make_error_func('isocalendar', datetime)
+    dst = _make_error_func('dst', datetime)
+    ctime = _make_error_func('ctime', datetime)
+    time = _make_error_func('time', datetime)
+    toordinal = _make_error_func('toordinal', datetime)
+    tzname = _make_error_func('tzname', datetime)
+    utcoffset = _make_error_func('utcoffset', datetime)
+
+    # Timestamp has empty docstring for some methods.
+    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
+    fromtimestamp = _make_error_func('fromtimestamp', None)
+    combine = _make_error_func('combine', None)
+    utcnow = _make_error_func('utcnow', None)
+
+    if PY3:
+        timestamp = _make_error_func('timestamp', datetime)
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
@@ -1338,32 +1430,6 @@ cdef _nat_rdivide_op(self, other):
     return NotImplemented
 
 
-def _make_nat_func(func_name, cls):
-    def f(*args, **kwargs):
-        return NaT
-    f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
-def _make_nan_func(func_name, cls):
-    def f(*args, **kwargs):
-        return np.nan
-    f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
-def _make_error_func(func_name, cls):
-    def f(*args, **kwargs):
-        raise ValueError("NaTType does not support " + func_name)
-
-    f.__name__ = func_name
-    if cls is not None:
-        f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
 cdef class _NaT(_Timestamp):
 
     def __hash__(_NaT self):
@@ -1427,72 +1493,6 @@ cdef class _NaT(_Timestamp):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
-
-    # ----------------------------------------------------------------------
-    # inject the Timestamp field properties
-    # these by definition return np.nan
-
-    year = property(fget=lambda self: np.nan)
-    quarter = property(fget=lambda self: np.nan)
-    month = property(fget=lambda self: np.nan)
-    day = property(fget=lambda self: np.nan)
-    hour = property(fget=lambda self: np.nan)
-    minute = property(fget=lambda self: np.nan)
-    second = property(fget=lambda self: np.nan)
-    millisecond = property(fget=lambda self: np.nan)
-    microsecond = property(fget=lambda self: np.nan)
-    nanosecond = property(fget=lambda self: np.nan)
-
-    week = property(fget=lambda self: np.nan)
-    dayofyear = property(fget=lambda self: np.nan)
-    weekofyear = property(fget=lambda self: np.nan)
-    days_in_month = property(fget=lambda self: np.nan)
-    daysinmonth = property(fget=lambda self: np.nan)
-    dayofweek = property(fget=lambda self: np.nan)
-    weekday_name = property(fget=lambda self: np.nan)
-
-    # inject Timedelta properties
-    days = property(fget=lambda self: np.nan)
-    seconds = property(fget=lambda self: np.nan)
-    microseconds = property(fget=lambda self: np.nan)
-    nanoseconds = property(fget=lambda self: np.nan)
-
-    # inject pd.Period properties
-    qyear = property(fget=lambda self: np.nan)
-
-    # ----------------------------------------------------------------------
-    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-    # return NaT create functions that raise, for binding to NaTType
-    # These are the ones that can get their docstrings from datetime.
-
-    # nan methods
-    weekday = _make_nan_func('weekday', datetime)
-    isoweekday = _make_nan_func('isoweekday', datetime)
-
-    # _nat_methods
-    date = _make_nat_func('date', datetime)
-
-    utctimetuple = _make_error_func('utctimetuple', datetime)
-    utcnow = _make_error_func('utcnow', datetime)
-    timetz = _make_error_func('timetz', datetime)
-    timetuple = _make_error_func('timetuple', datetime)
-    strptime = _make_error_func('strptime', datetime)
-    strftime = _make_error_func('strftime', datetime)
-    isocalendar = _make_error_func('isocalendar', datetime)
-    dst = _make_error_func('dst', datetime)
-    ctime = _make_error_func('ctime', datetime)
-    time = _make_error_func('time', datetime)
-    toordinal = _make_error_func('toordinal', datetime)
-    tzname = _make_error_func('tzname', datetime)
-    utcoffset = _make_error_func('utcoffset', datetime)
-
-    # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
-    fromtimestamp = _make_error_func('fromtimestamp', None)
-    combine = _make_error_func('combine', None)
-
-    if PY3:
-        timestamp = _make_error_func('timestamp', datetime)
 
 
 # lightweight C object to hold datetime & int64 pair
