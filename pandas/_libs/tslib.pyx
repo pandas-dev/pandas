@@ -777,98 +777,6 @@ class Timestamp(_Timestamp):
         return self + other
 
 
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
-
-
-class NaTType(_NaT):
-    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
-
-    def __new__(cls):
-        cdef _NaT base
-
-        base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
-
-        return base
-
-    def __repr__(self):
-        return 'NaT'
-
-    def __str__(self):
-        return 'NaT'
-
-    def isoformat(self, sep='T'):
-        # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
-        return 'NaT'
-
-    def __hash__(self):
-        return NPY_NAT
-
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
-        return NPY_NAT
-
-    def __reduce__(self):
-        return (__nat_unpickle, (None, ))
-
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to ns precision)
-        """
-        # GH 10939
-        return np.nan
-
-    @property
-    def is_leap_year(self):
-        return False
-
-    @property
-    def is_month_start(self):
-        return False
-
-    @property
-    def is_quarter_start(self):
-        return False
-
-    @property
-    def is_year_start(self):
-        return False
-
-    @property
-    def is_month_end(self):
-        return False
-
-    @property
-    def is_quarter_end(self):
-        return False
-
-    @property
-    def is_year_end(self):
-        return False
-
-    def __rdiv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rtruediv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rfloordiv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rmul__(self, other):
-        if is_integer_object(other) or is_float_object(other):
-            return NaT
-        return NotImplemented
-
-
-def __nat_unpickle(*args):
-    # return constant defined in the module
-    return NaT
-
-NaT = NaTType()
-
 cdef inline bint _checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
@@ -919,19 +827,6 @@ cpdef object get_value_box(ndarray arr, object loc):
         return Timedelta(util.get_value_1d(arr, i))
     else:
         return util.get_value_1d(arr, i)
-
-
-# Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
-
-# Resolution is in nanoseconds
-Timestamp.min = Timestamp(_NS_LOWER_BOUND)
-Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
 
 #----------------------------------------------------------------------
@@ -1297,7 +1192,8 @@ cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
 cdef inline bint is_timestamp(object o):
     return Py_TYPE(o) == ts_type # isinstance(o, Timestamp)
 
-
+#----------------------------------------------------------------------
+# NaT Construction
 cdef bint _nat_scalar_rules[6]
 
 _nat_scalar_rules[Py_EQ] = False
@@ -1385,6 +1281,208 @@ cdef class _NaT(_Timestamp):
         return NotImplemented
 
 
+class NaTType(_NaT):
+    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
+
+    def __new__(cls):
+        cdef _NaT base
+
+        base = _NaT.__new__(cls, 1, 1, 1)
+        base.value = NPY_NAT
+
+        return base
+
+    def __repr__(self):
+        return 'NaT'
+
+    def __str__(self):
+        return 'NaT'
+
+    def isoformat(self, sep='T'):
+        # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
+        return 'NaT'
+
+    def __hash__(self):
+        return NPY_NAT
+
+    def __int__(self):
+        return NPY_NAT
+
+    def __long__(self):
+        return NPY_NAT
+
+    def __reduce__(self):
+        return (__nat_unpickle, (None, ))
+
+    def total_seconds(self):
+        """
+        Total duration of timedelta in seconds (to ns precision)
+        """
+        # GH 10939
+        return np.nan
+
+    @property
+    def is_leap_year(self):
+        return False
+
+    @property
+    def is_month_start(self):
+        return False
+
+    @property
+    def is_quarter_start(self):
+        return False
+
+    @property
+    def is_year_start(self):
+        return False
+
+    @property
+    def is_month_end(self):
+        return False
+
+    @property
+    def is_quarter_end(self):
+        return False
+
+    @property
+    def is_year_end(self):
+        return False
+
+    def __rdiv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rtruediv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rfloordiv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rmul__(self, other):
+        if is_integer_object(other) or is_float_object(other):
+            return NaT
+        return NotImplemented
+
+
+_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+
+
+def __nat_unpickle(*args):
+    # return constant defined in the module
+    return NaT
+
+NaT = NaTType()
+
+
+#----------------------------------------------------------------------
+# NaT methods/property setups
+
+
+# inject the Timestamp field properties
+# these by definition return np.nan
+fields = ['year', 'quarter', 'month', 'day', 'hour',
+          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
+          'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
+          'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
+          'nanoseconds', 'qyear']
+for field in fields:
+    prop = property(fget=lambda self: np.nan)
+    setattr(NaTType, field, prop)
+
+
+# define how we are handling NaT methods & inject
+# to the NaTType class; these can return NaT, np.nan
+# or raise respectively
+_nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
+                'today', 'round', 'floor', 'ceil', 'tz_convert',
+                'tz_localize']
+_nan_methods = ['weekday', 'isoweekday']
+_implemented_methods = [
+    'to_datetime', 'to_datetime64', 'isoformat', 'total_seconds']
+_implemented_methods.extend(_nat_methods)
+_implemented_methods.extend(_nan_methods)
+
+
+def _get_docstring(_method_name):
+    # NaT serves double duty as Timestamp & Timedelta
+    # missing value, so need to acquire doc-strings for both
+
+    try:
+        return getattr(Timestamp, _method_name).__doc__
+    except AttributeError:
+        pass
+
+    try:
+        return getattr(Timedelta, _method_name).__doc__
+    except AttributeError:
+        pass
+
+    return None
+
+
+for _method_name in _nat_methods:
+
+    def _make_nat_func(func_name):
+        def f(*args, **kwargs):
+            return NaT
+        f.__name__ = func_name
+        f.__doc__ = _get_docstring(func_name)
+        return f
+
+    setattr(NaTType, _method_name, _make_nat_func(_method_name))
+
+
+for _method_name in _nan_methods:
+
+    def _make_nan_func(func_name):
+        def f(*args, **kwargs):
+            return np.nan
+        f.__name__ = func_name
+        f.__doc__ = _get_docstring(func_name)
+        return f
+
+    setattr(NaTType, _method_name, _make_nan_func(_method_name))
+
+
+# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
+# return NaT create functions that raise, for binding to NaTType
+for _maybe_method_name in dir(NaTType):
+    _maybe_method = getattr(NaTType, _maybe_method_name)
+    if (callable(_maybe_method)
+        and not _maybe_method_name.startswith("_")
+        and _maybe_method_name not in _implemented_methods):
+
+        def _make_error_func(func_name):
+            def f(*args, **kwargs):
+                raise ValueError("NaTType does not support " + func_name)
+            f.__name__ = func_name
+            f.__doc__ = _get_docstring(func_name)
+            return f
+
+        setattr(NaTType, _maybe_method_name,
+                _make_error_func(_maybe_method_name))
+
+
+#----------------------------------------------------------------------
+# Add the min and max fields at the class level
+cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+# the smallest value we could actually represent is
+#   INT64_MIN + 1 == -9223372036854775807
+# but to allow overflow free conversion with a microsecond resolution
+# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
+cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
+
+cdef pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+pandas_datetime_to_datetimestruct(_NS_LOWER_BOUND, PANDAS_FR_ns, &_NS_MIN_DTS)
+pandas_datetime_to_datetimestruct(_NS_UPPER_BOUND, PANDAS_FR_ns, &_NS_MAX_DTS)
+
+# Resolution is in nanoseconds
+Timestamp.min = Timestamp(_NS_LOWER_BOUND)
+Timestamp.max = Timestamp(_NS_UPPER_BOUND)
+# These cannot be defined until after `NaT` is defined.
+
+
+#----------------------------------------------------------------------
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
     cdef:
@@ -3253,95 +3351,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         raise ValueError("Invalid type for timedelta "
                          "scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
-
-
-#----------------------------------------------------------------------
-# NaT methods/property setups
-
-
-# inject the Timestamp field properties
-# these by definition return np.nan
-fields = ['year', 'quarter', 'month', 'day', 'hour',
-          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
-          'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
-          'nanoseconds', 'qyear']
-for field in fields:
-    prop = property(fget=lambda self: np.nan)
-    setattr(NaTType, field, prop)
-
-
-# define how we are handling NaT methods & inject
-# to the NaTType class; these can return NaT, np.nan
-# or raise respectively
-_nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
-                'today', 'round', 'floor', 'ceil', 'tz_convert',
-                'tz_localize']
-_nan_methods = ['weekday', 'isoweekday']
-_implemented_methods = [
-    'to_datetime', 'to_datetime64', 'isoformat', 'total_seconds']
-_implemented_methods.extend(_nat_methods)
-_implemented_methods.extend(_nan_methods)
-
-
-def _get_docstring(_method_name):
-    # NaT serves double duty as Timestamp & Timedelta
-    # missing value, so need to acquire doc-strings for both
-
-    try:
-        return getattr(Timestamp, _method_name).__doc__
-    except AttributeError:
-        pass
-
-    try:
-        return getattr(Timedelta, _method_name).__doc__
-    except AttributeError:
-        pass
-
-    return None
-
-
-for _method_name in _nat_methods:
-
-    def _make_nat_func(func_name):
-        def f(*args, **kwargs):
-            return NaT
-        f.__name__ = func_name
-        f.__doc__ = _get_docstring(func_name)
-        return f
-
-    setattr(NaTType, _method_name, _make_nat_func(_method_name))
-
-
-for _method_name in _nan_methods:
-
-    def _make_nan_func(func_name):
-        def f(*args, **kwargs):
-            return np.nan
-        f.__name__ = func_name
-        f.__doc__ = _get_docstring(func_name)
-        return f
-
-    setattr(NaTType, _method_name, _make_nan_func(_method_name))
-
-
-# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-# return NaT create functions that raise, for binding to NaTType
-for _maybe_method_name in dir(NaTType):
-    _maybe_method = getattr(NaTType, _maybe_method_name)
-    if (callable(_maybe_method)
-        and not _maybe_method_name.startswith("_")
-        and _maybe_method_name not in _implemented_methods):
-
-        def _make_error_func(func_name):
-            def f(*args, **kwargs):
-                raise ValueError("NaTType does not support " + func_name)
-            f.__name__ = func_name
-            f.__doc__ = _get_docstring(func_name)
-            return f
-
-        setattr(NaTType, _maybe_method_name,
-                _make_error_func(_maybe_method_name))
 
 
 #----------------------------------------------------------------------
