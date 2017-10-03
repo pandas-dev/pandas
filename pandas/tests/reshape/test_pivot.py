@@ -1,3 +1,4 @@
+
 from datetime import datetime, date, timedelta
 
 import pytest
@@ -13,6 +14,7 @@ from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.tseries.util import pivot_annual, isleapyear
+from pandas.api.types import CategoricalDtype as CDT
 
 
 class TestPivotTable(object):
@@ -98,13 +100,12 @@ class TestPivotTable(object):
                         'B': [1, 2, 3, 1, 2, 3, 1, 2, 3],
                         'C': range(0, 9)})
 
-        df['A'] = df['A'].astype('category', ordered=False,
-                                 categories=categories)
+        df['A'] = df['A'].astype(CDT(categories, ordered=False))
         result_true = df.pivot_table(index='B', columns='A', values='C',
                                      dropna=True)
         expected_columns = Series(['a', 'b', 'c'], name='A')
-        expected_columns = expected_columns.astype('category', ordered=False,
-                                                   categories=categories)
+        expected_columns = expected_columns.astype(
+            CDT(categories, ordered=False))
         expected_index = Series([1, 2, 3], name='B')
         expected_true = DataFrame([[0.0, 3.0, 6.0],
                                    [1.0, 4.0, 7.0],

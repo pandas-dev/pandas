@@ -9,7 +9,7 @@ import re
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.compat import range, lrange, lmap
+from pandas.compat import lrange, lmap
 import pandas.compat as compat
 from pandas.plotting._compat import _mpl_ge_2_0_0
 
@@ -44,11 +44,13 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
-            import random
+            from pandas.core.common import _random_state
 
             def random_color(column):
-                random.seed(column)
-                return [random.random() for _ in range(3)]
+                """ Returns a random color represented as a list of length 3"""
+                # GH17525 use common._random_state to avoid resetting the seed
+                rs = _random_state(column)
+                return rs.rand(3).tolist()
 
             colors = lmap(random_color, lrange(num_colors))
         else:
