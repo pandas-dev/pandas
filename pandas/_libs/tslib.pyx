@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+# cython: linetrace=False
+# distutils: define_macros=CYTHON_TRACE=0
+# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
