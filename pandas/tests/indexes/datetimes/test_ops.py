@@ -469,17 +469,18 @@ Freq: D"""
 
         dti = date_range('20130101', periods=3)
         dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
+        msg = 'cannot add DatetimeIndex and DatetimeIndex'
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             dti + dti
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             dti_tz + dti_tz
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             dti_tz + dti
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             dti + dti_tz
 
     def test_difference(self):
