@@ -184,7 +184,7 @@ def test_NaT_docstrings():
     assert td_missing == td_expected
 
     td_overlap = [x for x in nat_names if x in td_names and
-                  x not in ts_names and # Timestamp __doc__ takes priority
+                  x not in ts_names and  # Timestamp __doc__ takes priority
                   not x.startswith('_') and
                   callable(getattr(Timedelta, x))]
     assert td_overlap == ['total_seconds']
