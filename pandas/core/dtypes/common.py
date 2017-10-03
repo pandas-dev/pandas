@@ -1192,7 +1192,9 @@ def _is_unorderable_exception(e):
     """
 
     if PY36:
-        return "'>' not supported between instances of" in str(e)
+        str_e = str(e)
+        return ("'>' not supported between instances of" in str_e or
+                "'<' not supported between instances of" in str_e)
 
     elif PY3:
         return 'unorderable' in str(e)
