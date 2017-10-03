@@ -434,12 +434,34 @@ Freq: D"""
             tm.assert_index_equal(rng, expected)
 
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = "cannot add a datelike to a DatetimeIndex"
+        msg = "cannot add DatetimeIndex and Timestamp"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
 
         with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
+
+    def test_add_dti_ts(self):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        ts = Timestamp('2011-01-01')
+        msg = 'cannot add DatetimeIndex and Timestamp'
+
+        with tm.assert_raises_regex(TypeError, msg):
+            dti + ts
+
+        with tm.assert_raises_regex(TypeError, msg):
+            ts + dti
+
+    def test_add_dti_dt64(self):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        dt64 = np.datetime64('2005-02-25')
+        msg = 'cannot add DatetimeIndex and datetime64'
+
+        with tm.assert_raises_regex(TypeError, msg):
+            dti + dt64
+
+        with tm.assert_raises_regex(TypeError, msg):
+            dt64 + dti
 
     def test_add_dti_dti(self):
         # previously performed setop (deprecated in 0.16.0), now raises
