@@ -300,6 +300,64 @@ If installed, we now require:
    | Bottleneck   | 1.0.0           |          |
    +--------------+-----------------+----------+
 
+.. _whatsnew_0210.api_breaking.loc:
+
+Indexing with a list with missing labels is Deprecated
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
+This will now show a ``FutureWarning``, in the future this will raise a ``KeyError`` (:issue:`15747`).
+This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
+See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
+
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Previous Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Current Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Passing list-likes to .loc or [] with any missing label will raise
+   KeyError in the future, you can use .reindex() as an alternative.
+
+   See the documentation here:
+   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``
+
+.. ipython:: python
+
+  s.reindex([1, 2, 3])
+
+Selection with all keys found is unchanged.
+
+.. ipython:: python
+
+   s.loc[[1, 2]]
+
+
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
 Improved error handling during item assignment in pd.eval
@@ -607,6 +665,7 @@ Deprecations
 - ``pd.TimeGrouper`` is deprecated in favor of :class:`pandas.Grouper` (:issue:`16747`)
 - ``cdate_range`` has been deprecated in favor of :func:`bdate_range`, which has gained ``weekmask`` and ``holidays`` parameters for building custom frequency date ranges. See the :ref:`documentation <timeseries.custom-freq-ranges>` for more details (:issue:`17596`)
 - passing ``categories`` or ``ordered`` kwargs to :func:`Series.astype` is deprecated, in favor of passing a :ref:`CategoricalDtype <whatsnew_0210.enhancements.categorical_dtype>` (:issue:`17636`)
+- Passing a non-existant column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 
 .. _whatsnew_0210.deprecations.argmin_min:
 

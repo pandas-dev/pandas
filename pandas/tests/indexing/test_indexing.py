@@ -176,7 +176,8 @@ class TestFancy(Base):
              'test1': [7., 6, np.nan],
              'other': ['d', 'c', np.nan]}, index=rows)
 
-        result = df.loc[rows]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
         # see GH5553, make sure we use the right indexer
@@ -186,7 +187,8 @@ class TestFancy(Base):
                               'other': [np.nan, np.nan, np.nan,
                                         'd', 'c', np.nan]},
                              index=rows)
-        result = df.loc[rows]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
         # inconsistent returns for unique/duplicate indices when values are
@@ -203,12 +205,14 @@ class TestFancy(Base):
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        result = df.loc[[0, 8, 0]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
         df = DataFrame({"A": list('abc')})
-        result = df.loc[[0, 8, 0]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": ['a', np.nan, 'a']}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -216,7 +220,8 @@ class TestFancy(Base):
         df = DataFrame({'test': [5, 7, 9, 11]}, index=['A', 'A', 'B', 'C'])
         expected = DataFrame(
             {'test': [5, 7, 5, 7, np.nan]}, index=['A', 'A', 'A', 'A', 'E'])
-        result = df.loc[['A', 'A', 'E']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
         # GH 5835
@@ -227,7 +232,8 @@ class TestFancy(Base):
         expected = pd.concat(
             [df.loc[:, ['A', 'B']], DataFrame(np.nan, columns=['C'],
                                               index=df.index)], axis=1)
-        result = df.loc[:, ['A', 'B', 'C']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[:, ['A', 'B', 'C']]
         tm.assert_frame_equal(result, expected)
 
         # GH 6504, multi-axis indexing
