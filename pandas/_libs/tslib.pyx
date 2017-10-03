@@ -21,7 +21,6 @@ from cpython cimport (
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
-# this is our datetime.pxd
 from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_datetime64_object,
@@ -65,11 +64,8 @@ from .tslibs.parsing import parse_datetime_string
 
 cimport cython
 
-import time
-
 from pandas.compat import iteritems, callable
 
-import operator
 import collections
 import warnings
 
