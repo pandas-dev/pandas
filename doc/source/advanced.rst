@@ -1009,7 +1009,7 @@ The different indexing operation can potentially change the dtype of a ``Series`
 
    series1 = pd.Series([1, 2, 3])
    series1.dtype
-   res = series1[[0,4]]
+   res = series1.reindex([0, 4])
    res.dtype
    res
 

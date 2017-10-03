@@ -333,8 +333,15 @@ Selection By Label
 
      dfl.loc['20130102':'20130104']
 
+.. warning::
+
+   Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
+   this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`
+
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**.
+All of the labels for which you ask, must be in the index or a ``KeyError`` will be raised!
+When slicing, both the start bound **AND** the stop bound are *included*, if present in the index.
+Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
@@ -635,6 +642,107 @@ For getting *multiple* indexers, using ``.get_indexer``
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
+.. _indexing.deprecate_loc_reindex_listlike:
+
+Indexing with list with missing labels is Deprecated
+----------------------------------------------------
+
+.. warning::
+
+   Starting in 0.21.0, using ``.loc`` or ``[]`` with a list with one or more missing labels, is deprecated, in favor of ``.reindex``.
+
+In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
+would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
+recommeded alternative is to use ``.reindex()``.
+
+For example.
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Selection with all keys found is unchanged.
+
+.. ipython:: python
+
+   s.loc[[1, 2]]
+
+Previous Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Current Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Passing list-likes to .loc with any non-matching elements will raise
+   KeyError in the future, you can use .reindex() as an alternative.
+
+   See the documentation here:
+   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Reindexing
+~~~~~~~~~~
+
+The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
+
+.. ipython:: python
+
+  s.reindex([1, 2, 3])
+
+Alternatively, if you want to select only *valid* keys, the following is idiomatic and efficient; it is guaranteed to preserve the dtype of the selection.
+
+.. ipython:: python
+
+   labels = [1, 2, 3]
+   s.loc[s.index.intersection(labels)]
+
+Having a duplicated index will raise for a ``.reindex()``:
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(4), index=['a', 'a', 'b', 'c'])
+   labels = ['c', 'd']
+
+.. code-block:: ipython
+
+   In [17]: s.reindex(labels)
+   ValueError: cannot reindex from a duplicate axis
+
+Generally, you can interesect the desired labels with the current
+axis, and then reindex.
+
+.. ipython:: python
+
+   s.loc[s.index.intersection(labels)].reindex(labels)
+
+However, this would *still* raise if your resulting index is duplicated.
+
+.. code-block:: ipython
+
+   In [41]: labels = ['a', 'd']
+
+   In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
+   ValueError: cannot reindex from a duplicate axis
+
+
 .. _indexing.basics.partial_setting:
 
 Selecting Random Samples
@@ -852,7 +960,7 @@ when you don't know which of the sought labels are in fact present:
    s[s.index.isin([2, 4, 6])]
 
    # compare it to the following
-   s[[2, 4, 6]]
+   s.reindex([2, 4, 6])
 
 In addition to that, ``MultiIndex`` allows selecting a separate level to use
 in the membership check:

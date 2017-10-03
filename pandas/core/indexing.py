@@ -1419,13 +1419,33 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(key, tuple) and isinstance(ax, MultiIndex):
                 return True
 
-            # TODO: don't check the entire key unless necessary
-            if (not is_iterator(key) and len(key) and
-                    np.all(ax.get_indexer_for(key) < 0)):
+            if not is_iterator(key) and len(key):
 
-                raise KeyError(u"None of [{key}] are in the [{axis}]"
-                               .format(key=key,
-                                       axis=self.obj._get_axis_name(axis)))
+                # True indicates missing values
+                missing = ax.get_indexer_for(key) < 0
+
+                if np.any(missing):
+                    if len(key) == 1 or np.all(missing):
+                        raise KeyError(
+                            u"None of [{key}] are in the [{axis}]".format(
+                                key=key, axis=self.obj._get_axis_name(axis)))
+                    else:
+
+                        # we skip the warning on Categorical/Interval
+                        # as this check is actually done (check for
+                        # non-missing values), but a bit later in the
+                        # code, so we want to avoid warning & then
+                        # just raising
+                        _missing_key_warning = textwrap.dedent("""
+                        Passing list-likes to .loc or [] with any missing label will raise
+                        KeyError in the future, you can use .reindex() as an alternative.
+
+                        See the documentation here:
+                        http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+
+                        if not (ax.is_categorical() or ax.is_interval()):
+                            warnings.warn(_missing_key_warning,
+                                          FutureWarning, stacklevel=5)
 
             return True
 

@@ -590,8 +590,13 @@ class TestSeriesIndexing(TestData):
         # breaks reindex, so need to use .loc internally
         # GH 4246
         s = Series([1, 2, 3, 4], ['foo', 'bar', 'foo', 'bah'])
-        expected = s.loc[['foo', 'bar', 'bah', 'bam']]
-        result = s[['foo', 'bar', 'bah', 'bam']]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = s.loc[['foo', 'bar', 'bah', 'bam']]
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[['foo', 'bar', 'bah', 'bam']]
         assert_series_equal(result, expected)
 
     def test_getitem_dups(self):

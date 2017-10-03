@@ -108,7 +108,8 @@ class TestCategoricalIndex(object):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
-        pytest.raises(KeyError, lambda: self.df2.loc[['a', 'd']])
+        with pytest.raises(KeyError):
+            self.df2.loc[['a', 'd']]
 
     def test_loc_listlike_dtypes(self):
         # GH 11586

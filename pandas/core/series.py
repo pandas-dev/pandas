@@ -691,7 +691,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if key_type == 'integer':
                 if self.index.is_integer() or self.index.is_floating():
-                    return self.reindex(key)
+                    return self.loc[key]
                 else:
                     return self._get_values(key)
             elif key_type == 'boolean':

@@ -152,14 +152,28 @@ class TestLoc(Base):
                           [Timestamp('20130102'), Timestamp('20130103')],
                           typs=['ts'], axes=0)
 
+    def test_loc_getitem_label_list_with_missing(self):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
-        self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
-                          typs=['ints', 'uints'], axes=0, fails=KeyError)
-        self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
-                          typs=['ints', 'uints'], axes=1, fails=KeyError)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
+                              typs=['ints', 'uints'], axes=0, fails=KeyError)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
+                              typs=['ints', 'uints'], axes=1, fails=KeyError)
         self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
                           typs=['ints', 'uints'], axes=2, fails=KeyError)
+
+    def test_getitem_label_list_with_missing(self):
+        s = pd.Series(range(3), index=['a', 'b', 'c'])
+
+        # consistency
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            s[['a', 'd']]
+
+        s = pd.Series(range(3))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            s[[0, 3]]
 
     def test_loc_getitem_label_list_fails(self):
         # fails
@@ -249,7 +263,9 @@ class TestLoc(Base):
         pytest.raises(KeyError, lambda: s.loc[['4']])
 
         s.loc[-1] = 3
-        result = s.loc[[-1, -2]]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s.loc[[-1, -2]]
         expected = Series([3, np.nan], index=[-1, -2])
         tm.assert_series_equal(result, expected)
 
@@ -276,6 +292,23 @@ class TestLoc(Base):
             df.loc[[3]]
 
         pytest.raises(KeyError, f)
+
+    def test_loc_getitem_list_with_fail(self):
+        # 15747
+        # should KeyError if *any* missing labels
+
+        s = Series([1, 2, 3])
+
+        s.loc[[2]]
+
+        with pytest.raises(KeyError):
+            s.loc[[3]]
+
+        # a non-match and a match
+        with tm.assert_produces_warning(FutureWarning):
+            expected = s.loc[[2, 3]]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_label_slice(self):
 
