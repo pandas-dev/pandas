@@ -269,8 +269,8 @@ static void set_datetimestruct_days(npy_int64 days,
 /*
  * Compares two pandas_datetimestruct objects chronologically
  */
-int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
-                              pandas_datetimestruct *b) {
+int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
+                              const pandas_datetimestruct *b) {
     if (a->year > b->year) {
         return 1;
     } else if (a->year < b->year) {

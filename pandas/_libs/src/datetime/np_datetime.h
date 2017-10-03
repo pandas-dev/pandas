@@ -99,6 +99,14 @@ convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
 npy_int64
 get_datetimestruct_days(const pandas_datetimestruct *dts);
 
+
+/*
+ * Compares two pandas_datetimestruct objects chronologically
+ */
+int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
+                              const pandas_datetimestruct *b);
+
+
 /*
  * Adjusts a datetimestruct based on a minutes offset. Assumes
  * the current values are valid.
