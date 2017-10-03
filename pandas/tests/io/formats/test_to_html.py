@@ -1593,7 +1593,7 @@ class TestToHTML(object):
                     '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
-                    '</table>')
+                    '</table>'.format(justify=justify)
         assert result == expected
 
     @pytest.mark.parametrize("justify", ["super-right", "small-left",
