@@ -1784,7 +1784,8 @@ class TestNLargestNSmallest(object):
               # not supported on some archs
               # Series([3., 2, 1, 2, 5], dtype='complex256'),
               Series([3., 2, 1, 2, 5], dtype='complex128'),
-              Series(list('abcde'))])
+              Series(list('abcde')),
+              Series(list('abcde'), dtype='category')])
     def test_error(self, r):
         dt = r.dtype
         msg = ("Cannot use method 'n(larg|small)est' with "
@@ -1794,16 +1795,6 @@ class TestNLargestNSmallest(object):
         for method, arg in product(methods, args):
             with tm.assert_raises_regex(TypeError, msg):
                 method(arg)
-
-    def test_error_categorical_dtype(self):
-        # same as test_error, but regex hard to escape properly
-        msg = ("Cannot use method 'n(larg|small)est' with dtype "
-               "CategoricalDtype.+")
-        with tm.assert_raises_regex(TypeError, msg):
-            Series(list('ab'), dtype='category').nlargest(2)
-
-        with tm.assert_raises_regex(TypeError, msg):
-            Series(list('ab'), dtype='category').nsmallest(2)
 
     @pytest.mark.parametrize(
         "s",
