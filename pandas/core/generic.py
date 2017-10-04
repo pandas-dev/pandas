@@ -2339,6 +2339,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return data corresponding to axis labels matching criteria
 
+        DEPRECATED: use df.loc[df.index.map(crit)] to select via labels
+
         Parameters
         ----------
         crit : function
@@ -2349,6 +2351,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         selection : type of caller
         """
+        warnings.warn("'select' is deprecated and will be removed in a "
+                      "future release. You can use "
+                      ".loc[labels.map(crit)] as a replacement",
+                      FutureWarning, stacklevel=2)
+
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis)
@@ -3101,7 +3108,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.select
+        pandas.DataFrame.loc
 
         Notes
         -----
@@ -3120,20 +3127,23 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if axis is None:
             axis = self._info_axis_name
-        axis_name = self._get_axis_name(axis)
-        axis_values = self._get_axis(axis_name)
+        labels = self._get_axis(axis)
 
         if items is not None:
-            return self.reindex(**{axis_name:
-                                   [r for r in items if r in axis_values]})
+            name = self._get_axis_name(axis)
+            return self.reindex(
+                **{name: [r for r in items if r in labels]})
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, string_types) else
-                                like in str(x))
-            return self.select(matchf, axis=axis_name)
+            def f(x):
+                if not isinstance(x, string_types):
+                    x = str(x)
+                return like in x
+            values = labels.map(f)
+            return self.loc(axis=axis)[values]
         elif regex:
             matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(str(x)) is not None,
-                               axis=axis_name)
+            values = labels.map(lambda x: matcher.search(str(x)) is not None)
+            return self.loc(axis=axis)[values]
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
 

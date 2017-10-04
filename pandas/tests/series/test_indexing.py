@@ -2225,14 +2225,18 @@ class TestSeriesIndexing(TestData):
         assert result.name == expected.name
 
     def test_select(self):
-        n = len(self.ts)
-        result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
-        expected = self.ts.reindex(self.ts.index[n // 2:])
-        assert_series_equal(result, expected)
 
-        result = self.ts.select(lambda x: x.weekday() == 2)
-        expected = self.ts[self.ts.index.weekday == 2]
-        assert_series_equal(result, expected)
+        # deprecated: gh-12410
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            n = len(self.ts)
+            result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
+            expected = self.ts.reindex(self.ts.index[n // 2:])
+            assert_series_equal(result, expected)
+
+            result = self.ts.select(lambda x: x.weekday() == 2)
+            expected = self.ts[self.ts.index.weekday == 2]
+            assert_series_equal(result, expected)
 
     def test_cast_on_putmask(self):
 

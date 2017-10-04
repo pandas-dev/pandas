@@ -3103,7 +3103,8 @@ class TestGroupBy(MixIn):
             """
 
             def _func(data):
-                d = data.select(lambda x: x.hour < 11).dropna()
+                d = data.loc[data.index.map(
+                    lambda x: x.hour < 11)].dropna()
                 if fix:
                     data[data.index[0]]
                 if len(d) == 0:

@@ -83,6 +83,7 @@ class TestDataFrameMutateColumns(TestData):
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
         # non-keyword argument
         with pytest.raises(TypeError):
             df.assign(lambda x: x.A)

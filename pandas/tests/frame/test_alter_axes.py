@@ -143,10 +143,11 @@ class TestDataFrameAlterAxes(TestData):
     def test_set_index_bug(self):
         # GH1590
         df = DataFrame({'val': [0, 1, 2], 'key': ['a', 'b', 'c']})
-        df2 = df.select(lambda indx: indx >= 1)
-        rs = df2.set_index('key')
         xp = DataFrame({'val': [1, 2]},
                        Index(['b', 'c'], name='key'))
+
+        df2 = df.loc[df.index.map(lambda indx: indx >= 1)]
+        rs = df2.set_index('key')
         assert_frame_equal(rs, xp)
 
     def test_set_index_pass_arrays(self):
