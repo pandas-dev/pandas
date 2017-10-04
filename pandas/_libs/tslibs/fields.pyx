@@ -16,7 +16,6 @@ cimport numpy as np
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
-cdef int64_t NPY_NAT = np.datetime64('NaT').astype(np.int64)
 
 from datetime cimport (
     pandas_datetimestruct,
@@ -25,6 +24,10 @@ from datetime cimport (
     days_per_month_table,
     is_leapyear,
     dayofweek)
+
+cimport util
+
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 def build_field_sarray(ndarray[int64_t] dtindex):
@@ -513,7 +516,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                 out[i] = days_in_month(dts)
         return out
     elif field == 'is_leap_year':
-        return _isleapyear_arr(get_date_field(dtindex, 'Y'))
+        return isleapyear_arr(get_date_field(dtindex, 'Y'))
 
     raise ValueError("Field %s not supported" % field)
 
@@ -522,11 +525,11 @@ cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month -1]
 
 
-cpdef _isleapyear_arr(ndarray years):
+cpdef isleapyear_arr(ndarray years):
+    """vectorized version of isleapyear; NaT evaluates as False"""
     cdef:
         ndarray[int8_t] out
 
-    # to make NaT result as False
     out = np.zeros(len(years), dtype='int8')
     out[np.logical_or(years % 400 == 0,
                       np.logical_and(years % 4 == 0,

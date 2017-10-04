@@ -92,7 +92,7 @@ from tslibs.timezones cimport (
     )
 from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
-    _isleapyear_arr, build_field_sarray)  # noqa
+    build_field_sarray)
 
 
 cdef inline object create_timestamp_from_ts(
