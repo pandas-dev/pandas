@@ -617,7 +617,8 @@ class TestiLoc(Base):
         expected = DataFrame(new_list)
         expected = pd.concat([expected, DataFrame(index=idx[idx > sidx.max()])
                               ])
-        result = df2.loc[idx]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_iloc_empty_list_indexer_is_ok(self):

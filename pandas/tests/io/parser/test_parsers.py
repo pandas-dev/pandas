@@ -3,8 +3,10 @@
 import os
 import pandas.util.testing as tm
 
-from pandas import read_csv, read_table
+from pandas import read_csv, read_table, DataFrame
 from pandas.core.common import AbstractMethodError
+from pandas._libs.lib import Timestamp
+from pandas.compat import StringIO
 
 from .common import ParserTests
 from .header import HeaderTests
@@ -100,3 +102,51 @@ class TestPythonParser(BaseParser, PythonParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         return read_table(*args, **kwds)
+
+
+class TestUnsortedUsecols(object):
+    def test_override__set_noconvert_columns(self):
+        # GH 17351 - usecols needs to be sorted in _setnoconvert_columns
+        # based on the test_usecols_with_parse_dates test from usecols.py
+        from pandas.io.parsers import CParserWrapper, TextFileReader
+
+        s = """a,b,c,d,e
+        0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+
+        parse_dates = [[1, 2]]
+        cols = {
+            'a': [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        class MyTextFileReader(TextFileReader):
+            def __init__(self):
+                self._currow = 0
+                self.squeeze = False
+
+        class MyCParserWrapper(CParserWrapper):
+            def _set_noconvert_columns(self):
+                if self.usecols_dtype == 'integer':
+                    # self.usecols is a set, which is documented as unordered
+                    # but in practice, a CPython set of integers is sorted.
+                    # In other implementations this assumption does not hold.
+                    # The following code simulates a different order, which
+                    # before GH 17351 would cause the wrong columns to be
+                    # converted via the parse_dates parameter
+                    self.usecols = list(self.usecols)
+                    self.usecols.reverse()
+                return CParserWrapper._set_noconvert_columns(self)
+
+        parser = MyTextFileReader()
+        parser.options = {'usecols': [0, 2, 3],
+                          'parse_dates': parse_dates,
+                          'delimiter': ','}
+        parser._engine = MyCParserWrapper(StringIO(s), **parser.options)
+        df = parser.read()
+
+        tm.assert_frame_equal(df, expected)

@@ -20,7 +20,7 @@
    pd.options.display.max_rows=15
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
 
    np.set_printoptions(precision=4, suppress=True)
 
@@ -256,12 +256,6 @@ Panels
 
    pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
 
-   #Assignment using Transpose  (pandas < 0.15)
-   pf = pf.transpose(2,0,1)
-   pf['E'] = pd.DataFrame(data, rng, cols)
-   pf = pf.transpose(1,2,0);pf
-
-   #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
@@ -818,7 +812,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
 
-ignore_index is needed in pandas < v0.13, and depending on df construction
+Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 

@@ -1099,7 +1099,10 @@ class TestSparseDataFrame(SharedWithSparse):
         df = SparseDataFrame({'A': [1.1, 3.3], 'B': [nan, -3.9]},
                              dtype='float64')
 
-        df_blocks = df.blocks
+        # deprecated 0.21.0
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df_blocks = df.blocks
         assert list(df_blocks.keys()) == ['float64']
         tm.assert_frame_equal(df_blocks['float64'], df)
 

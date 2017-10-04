@@ -9,7 +9,7 @@ from copy import deepcopy
 import sys
 from distutils.version import LooseVersion
 
-from pandas.compat import range, lrange
+from pandas.compat import range, lrange, long
 from pandas import compat
 
 from numpy.random import randn
@@ -205,15 +205,18 @@ class SharedWithSparse(object):
                          'ints': lrange(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
-            assert isinstance(tup[1], np.integer)
+            assert isinstance(tup[1], (int, long))
 
         df = self.klass(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
 
         assert (list(dfaa.itertuples()) ==
                 [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
-        assert (repr(list(df.itertuples(name=None))) ==
-                '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
+
+        # repr with be int/long on 32-bit/windows
+        if not (compat.is_platform_windows() or compat.is_platform_32bit()):
+            assert (repr(list(df.itertuples(name=None))) ==
+                    '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
 
         tup = next(df.itertuples(name='TestName'))
 
@@ -435,3 +438,14 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
         # rename
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
         _check_f(d.copy(), f)
+
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; df = pd.DataFrame()"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('df.', 1))

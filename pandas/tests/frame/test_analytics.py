@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import warnings
 from datetime import timedelta
 from distutils.version import LooseVersion
 import sys
@@ -102,7 +103,6 @@ class TestDataFrameAnalytics(TestData):
         # dtypes other than float64 #1761
         df3 = DataFrame({"a": [1, 2, 3, 4], "b": [1, 2, 3, 4]})
 
-        # it works!
         df3.cov()
         df3.corr()
 
@@ -117,7 +117,11 @@ class TestDataFrameAnalytics(TestData):
         expected = DataFrame(np.ones((2, 2)), index=[
                              'a', 'b'], columns=['a', 'b'])
         for meth in ['pearson', 'kendall', 'spearman']:
-            tm.assert_frame_equal(df.corr(meth), expected)
+
+            # RuntimeWarning
+            with warnings.catch_warnings(record=True):
+                result = df.corr(meth)
+            tm.assert_frame_equal(result, expected)
 
     def test_corr_cov_independent_index_column(self):
         # GH 14617
@@ -2082,6 +2086,9 @@ class TestNLargestNSmallest(object):
         df = df_main_dtypes
         error_msg = self.dtype_error_msg_template.format(
             column=columns[1], method=method, dtype=df[columns[1]].dtype)
+        # escape some characters that may be in the repr
+        error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
+                              .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
             getattr(df, method)(2, columns)
 

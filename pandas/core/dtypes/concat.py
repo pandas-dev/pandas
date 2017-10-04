@@ -314,6 +314,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
+    from pandas.core.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -359,14 +360,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
         new_codes = []
         for c in to_union:
-            if len(c.categories) > 0:
-                indexer = categories.get_indexer(c.categories)
-
-                from pandas.core.algorithms import take_1d
-                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
-            else:
-                # must be all NaN
-                new_codes.append(c.codes)
+            new_codes.append(_recode_for_categories(c.codes, c.categories,
+                                                    categories))
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message

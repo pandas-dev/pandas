@@ -16,7 +16,6 @@ from pandas._libs import (lib, index as libindex,
 
 from pandas import compat
 from pandas.util._decorators import Appender
-import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing
@@ -186,8 +185,10 @@ def add_special_arithmetic_methods(cls, arith_method=None,
     arith_method : function (optional)
         factory for special arithmetic methods, with op string:
         f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
-    comp_method : function, optional,
+    comp_method : function (optional)
         factory for rich comparison - signature: f(op, name, str_rep)
+    bool_method : function (optional)
+        factory for boolean methods - signature: f(op, name, str_rep)
     use_numexpr : bool, default True
         whether to accelerate with numexpr, defaults to True
     force : bool, default False
@@ -234,9 +235,16 @@ def add_special_arithmetic_methods(cls, arith_method=None,
              __isub__=_wrap_inplace_method(new_methods["__sub__"]),
              __imul__=_wrap_inplace_method(new_methods["__mul__"]),
              __itruediv__=_wrap_inplace_method(new_methods["__truediv__"]),
-             __ipow__=_wrap_inplace_method(new_methods["__pow__"]), ))
+             __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
+             __imod__=_wrap_inplace_method(new_methods["__mod__"]),
+             __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
     if not compat.PY3:
-        new_methods["__idiv__"] = new_methods["__div__"]
+        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
+    if bool_method:
+        new_methods.update(
+            dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
+                 __ior__=_wrap_inplace_method(new_methods["__or__"]),
+                 __ixor__=_wrap_inplace_method(new_methods["__xor__"])))
 
     add_methods(cls, new_methods=new_methods, force=force, select=select,
                 exclude=exclude)
@@ -659,8 +667,9 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
@@ -1184,6 +1193,8 @@ def _align_method_FRAME(left, right, axis):
 def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                         fill_zeros=None, **eval_kwargs):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
@@ -1340,6 +1351,8 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
     # copied from Series na_op above, but without unnecessary branch for
     # non-scalar
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
@@ -1369,6 +1382,8 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
 
 def _comp_method_PANEL(op, name, str_rep=None, masker=False):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True)

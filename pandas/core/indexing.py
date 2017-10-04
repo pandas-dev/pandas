@@ -1093,7 +1093,7 @@ class _NDFrameIndexer(object):
         if is_bool_indexer(key):
             key = check_bool_indexer(labels, key)
             inds, = key.nonzero()
-            return self.obj.take(inds, axis=axis, convert=False)
+            return self.obj._take(inds, axis=axis, convert=False)
         else:
             # Have the index compute an indexer or return None
             # if it cannot handle; we only act on all found values
@@ -1126,15 +1126,15 @@ class _NDFrameIndexer(object):
                     keyarr)
 
                 if new_indexer is not None:
-                    result = self.obj.take(indexer[indexer != -1], axis=axis,
-                                           convert=False)
+                    result = self.obj._take(indexer[indexer != -1], axis=axis,
+                                            convert=False)
 
                     result = result._reindex_with_indexers(
                         {axis: [new_target, new_indexer]},
                         copy=True, allow_dups=True)
 
                 else:
-                    result = self.obj.take(indexer, axis=axis, convert=False)
+                    result = self.obj._take(indexer, axis=axis)
 
                 return result
 
@@ -1265,7 +1265,7 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
         else:
-            return self.obj.take(indexer, axis=axis, convert=False)
+            return self.obj._take(indexer, axis=axis, convert=False)
 
 
 class _IXIndexer(_NDFrameIndexer):
@@ -1350,7 +1350,7 @@ class _LocationIndexer(_NDFrameIndexer):
         key = check_bool_indexer(labels, key)
         inds, = key.nonzero()
         try:
-            return self.obj.take(inds, axis=axis, convert=False)
+            return self.obj._take(inds, axis=axis, convert=False)
         except Exception as detail:
             raise self._exception(detail)
 
@@ -1367,7 +1367,7 @@ class _LocationIndexer(_NDFrameIndexer):
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
         else:
-            return self.obj.take(indexer, axis=axis, convert=False)
+            return self.obj._take(indexer, axis=axis, convert=False)
 
 
 class _LocIndexer(_LocationIndexer):
@@ -1419,13 +1419,33 @@ class _LocIndexer(_LocationIndexer):
             if isinstance(key, tuple) and isinstance(ax, MultiIndex):
                 return True
 
-            # TODO: don't check the entire key unless necessary
-            if (not is_iterator(key) and len(key) and
-                    np.all(ax.get_indexer_for(key) < 0)):
+            if not is_iterator(key) and len(key):
 
-                raise KeyError(u"None of [{key}] are in the [{axis}]"
-                               .format(key=key,
-                                       axis=self.obj._get_axis_name(axis)))
+                # True indicates missing values
+                missing = ax.get_indexer_for(key) < 0
+
+                if np.any(missing):
+                    if len(key) == 1 or np.all(missing):
+                        raise KeyError(
+                            u"None of [{key}] are in the [{axis}]".format(
+                                key=key, axis=self.obj._get_axis_name(axis)))
+                    else:
+
+                        # we skip the warning on Categorical/Interval
+                        # as this check is actually done (check for
+                        # non-missing values), but a bit later in the
+                        # code, so we want to avoid warning & then
+                        # just raising
+                        _missing_key_warning = textwrap.dedent("""
+                        Passing list-likes to .loc or [] with any missing label will raise
+                        KeyError in the future, you can use .reindex() as an alternative.
+
+                        See the documentation here:
+                        http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+
+                        if not (ax.is_categorical() or ax.is_interval()):
+                            warnings.warn(_missing_key_warning,
+                                          FutureWarning, stacklevel=5)
 
             return True
 
@@ -1707,7 +1727,7 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(slice_obj, slice):
             return self._slice(slice_obj, axis=axis, kind='iloc')
         else:
-            return self.obj.take(slice_obj, axis=axis, convert=False)
+            return self.obj._take(slice_obj, axis=axis, convert=False)
 
     def _get_list_axis(self, key, axis=0):
         """
@@ -1723,7 +1743,7 @@ class _iLocIndexer(_LocationIndexer):
         Series object
         """
         try:
-            return self.obj.take(key, axis=axis, convert=False)
+            return self.obj._take(key, axis=axis, convert=False)
         except IndexError:
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")

@@ -13,11 +13,13 @@ from pandas.core.dtypes.common import (
     is_object_dtype, is_datetimetz,
     needs_i8_conversion)
 import pandas.util.testing as tm
-from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
-                    Timedelta, IntervalIndex, Interval)
-from pandas.compat import StringIO, PYPY
+from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
+                    PeriodIndex, Timedelta, IntervalIndex, Interval,
+                    CategoricalIndex, Timestamp)
+from pandas.compat import StringIO, PYPY, long
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
 
@@ -104,7 +106,7 @@ class TestPandasDelegate(object):
             """ a test bar method """
             pass
 
-    class Delegate(PandasDelegate):
+    class Delegate(PandasDelegate, PandasObject):
 
         def __init__(self, obj):
             self.obj = obj
@@ -433,7 +435,7 @@ class TestIndexOps(Ops):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
                 for r in result:
-                    assert isinstance(r, pd.Timestamp)
+                    assert isinstance(r, Timestamp)
                 tm.assert_numpy_array_equal(result,
                                             orig._values.asobject.values)
             else:
@@ -1031,3 +1033,144 @@ class TestNoNewAttributesMixin(object):
 
         pytest.raises(AttributeError, f)
         assert not hasattr(t, "b")
+
+
+class TestToIterable(object):
+    # test that we convert an iterable to python types
+
+    dtypes = [
+        ('int8', (int, long)),
+        ('int16', (int, long)),
+        ('int32', (int, long)),
+        ('int64', (int, long)),
+        ('uint8', (int, long)),
+        ('uint16', (int, long)),
+        ('uint32', (int, long)),
+        ('uint64', (int, long)),
+        ('float16', float),
+        ('float32', float),
+        ('float64', float),
+        ('datetime64[ns]', Timestamp),
+        ('datetime64[ns, US/Eastern]', Timestamp),
+        ('timedelta64[ns]', Timedelta)]
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype', dtypes)
+    @pytest.mark.parametrize(
+        'method',
+        [
+            lambda x: x.tolist(),
+            lambda x: list(x),
+            lambda x: list(x.__iter__()),
+        ], ids=['tolist', 'list', 'iter'])
+    @pytest.mark.parametrize('typ', [Series, Index])
+    def test_iterable(self, typ, method, dtype, rdtype):
+        # gh-10904
+        # gh-13258
+        # coerce iteration to underlying python / pandas types
+        s = typ([1], dtype=dtype)
+        result = method(s)[0]
+        assert isinstance(result, rdtype)
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype, obj',
+        [
+            ('object', object, 'a'),
+            ('object', (int, long), 1),
+            ('category', object, 'a'),
+            ('category', (int, long), 1)])
+    @pytest.mark.parametrize(
+        'method',
+        [
+            lambda x: x.tolist(),
+            lambda x: list(x),
+            lambda x: list(x.__iter__()),
+        ], ids=['tolist', 'list', 'iter'])
+    @pytest.mark.parametrize('typ', [Series, Index])
+    def test_iterable_object_and_category(self, typ, method,
+                                          dtype, rdtype, obj):
+        # gh-10904
+        # gh-13258
+        # coerce iteration to underlying python / pandas types
+        s = typ([obj], dtype=dtype)
+        result = method(s)[0]
+        assert isinstance(result, rdtype)
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype', dtypes)
+    def test_iterable_items(self, dtype, rdtype):
+        # gh-13258
+        # test items / iteritems yields the correct boxed scalars
+        # this only applies to series
+        s = Series([1], dtype=dtype)
+        _, result = list(s.items())[0]
+        assert isinstance(result, rdtype)
+
+        _, result = list(s.iteritems())[0]
+        assert isinstance(result, rdtype)
+
+    @pytest.mark.parametrize(
+        'dtype, rdtype',
+        dtypes + [
+            ('object', (int, long)),
+            ('category', (int, long))])
+    @pytest.mark.parametrize('typ', [Series, Index])
+    def test_iterable_map(self, typ, dtype, rdtype):
+        # gh-13236
+        # coerce iteration to underlying python / pandas types
+        s = typ([1], dtype=dtype)
+        result = s.map(type)[0]
+        if not isinstance(rdtype, tuple):
+            rdtype = tuple([rdtype])
+        assert result in rdtype
+
+    @pytest.mark.parametrize(
+        'method',
+        [
+            lambda x: x.tolist(),
+            lambda x: list(x),
+            lambda x: list(x.__iter__()),
+        ], ids=['tolist', 'list', 'iter'])
+    def test_categorial_datetimelike(self, method):
+        i = CategoricalIndex([Timestamp('1999-12-31'),
+                              Timestamp('2000-12-31')])
+
+        result = method(i)[0]
+        assert isinstance(result, Timestamp)
+
+    def test_iter_box(self):
+        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
+        s = pd.Series(vals)
+        assert s.dtype == 'datetime64[ns]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timestamp)
+            assert res.tz is None
+            assert res == exp
+
+        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+                pd.Timestamp('2011-01-02', tz='US/Eastern')]
+        s = pd.Series(vals)
+
+        assert s.dtype == 'datetime64[ns, US/Eastern]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timestamp)
+            assert res.tz == exp.tz
+            assert res == exp
+
+        # timedelta
+        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
+        s = pd.Series(vals)
+        assert s.dtype == 'timedelta64[ns]'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Timedelta)
+            assert res == exp
+
+        # period (object dtype, not boxed)
+        vals = [pd.Period('2011-01-01', freq='M'),
+                pd.Period('2011-01-02', freq='M')]
+        s = pd.Series(vals)
+        assert s.dtype == 'object'
+        for res, exp in zip(s, vals):
+            assert isinstance(res, pd.Period)
+            assert res.freq == 'M'
+            assert res == exp

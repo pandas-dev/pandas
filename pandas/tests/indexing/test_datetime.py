@@ -223,7 +223,9 @@ class TestDatetimeIndex(object):
                 Timestamp('2011-01-03')]
         exp = Series([np.nan, 0.2, np.nan],
                      index=pd.DatetimeIndex(keys, name='idx'), name='s')
-        tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
 
     def test_series_partial_set_period(self):
         # GH 11497
@@ -248,5 +250,7 @@ class TestDatetimeIndex(object):
                 pd.Period('2011-01-03', freq='D')]
         exp = Series([np.nan, 0.2, np.nan],
                      index=pd.PeriodIndex(keys, name='idx'), name='s')
-        result = ser.loc[keys]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = ser.loc[keys]
         tm.assert_series_equal(result, exp)

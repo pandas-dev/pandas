@@ -1557,15 +1557,16 @@ class TestToHTML(object):
 
         assert result == expected
 
-    def test_to_html_justify(self):
+    @pytest.mark.parametrize("justify", fmt._VALID_JUSTIFY_PARAMETERS)
+    def test_to_html_justify(self, justify):
         df = DataFrame({'A': [6, 30000, 2],
                         'B': [1, 2, 70000],
                         'C': [223442, 0, 1]},
                        columns=['A', 'B', 'C'])
-        result = df.to_html(justify='left')
+        result = df.to_html(justify=justify)
         expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
-                    '    <tr style="text-align: left;">\n'
+                    '    <tr style="text-align: {justify};">\n'
                     '      <th></th>\n'
                     '      <th>A</th>\n'
                     '      <th>B</th>\n'
@@ -1592,41 +1593,18 @@ class TestToHTML(object):
                     '      <td>1</td>\n'
                     '    </tr>\n'
                     '  </tbody>\n'
-                    '</table>')
+                    '</table>'.format(justify=justify))
         assert result == expected
 
-        result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: right;">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '      <th>B</th>\n'
-                    '      <th>C</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6</td>\n'
-                    '      <td>1</td>\n'
-                    '      <td>223442</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>30000</td>\n'
-                    '      <td>2</td>\n'
-                    '      <td>0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2</td>\n'
-                    '      <td>70000</td>\n'
-                    '      <td>1</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-        assert result == expected
+    @pytest.mark.parametrize("justify", ["super-right", "small-left",
+                                         "noinherit", "tiny", "pandas"])
+    def test_to_html_invalid_justify(self, justify):
+        # see gh-17527
+        df = DataFrame()
+        msg = "Invalid value for justify parameter"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            df.to_html(justify=justify)
 
     def test_to_html_index(self):
         index = ['foo', 'bar', 'baz']
@@ -1868,12 +1846,16 @@ class TestToHTML(object):
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
-        assert "thead tr:only-child" in result
+        assert "tbody tr th:only-of-type" in result
+        assert "vertical-align: middle;" in result
+        assert "thead th" in result
 
     def test_to_html_notebook_has_no_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html()
-        assert "thead tr:only-child" not in result
+        assert "tbody tr th:only-of-type" not in result
+        assert "vertical-align: middle;" not in result
+        assert "thead th" not in result
 
     def test_to_html_with_index_names_false(self):
         # gh-16493
