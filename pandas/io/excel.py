@@ -31,7 +31,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -86,7 +86,7 @@ index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
-    subset of data is selected with ``parse_cols``, index_col
+    subset of data is selected with ``usecols``, index_col
     is based on the subset.
 names : array-like, default None
     List of column names to use. If file contains no header row,
@@ -115,6 +115,10 @@ false_values : list, default None
     .. versionadded:: 0.19.0
 
 parse_cols : int or list, default None
+    .. deprecated:: 0.21.0
+       Pass in `usecols` instead.
+
+usecols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
@@ -205,8 +209,9 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
+@deprecate_kwarg("parse_cols", "usecols")
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
+               index_col=None, names=None, usecols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
@@ -226,7 +231,7 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
+        index_col=index_col, usecols=usecols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, skip_footer=skip_footer,
         converters=converters, dtype=dtype, true_values=true_values,
@@ -295,7 +300,7 @@ class ExcelFile(object):
         return self._io
 
     def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, parse_cols=None, parse_dates=False,
+              names=None, index_col=None, usecols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, converters=None, true_values=None,
               false_values=None, squeeze=False, **kwds):
@@ -309,7 +314,7 @@ class ExcelFile(object):
         return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
-                                 parse_cols=parse_cols,
+                                 usecols=usecols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands,
@@ -321,7 +326,7 @@ class ExcelFile(object):
                                  squeeze=squeeze,
                                  **kwds)
 
-    def _should_parse(self, i, parse_cols):
+    def _should_parse(self, i, usecols):
 
         def _range2cols(areas):
             """
@@ -347,15 +352,15 @@ class ExcelFile(object):
                     cols.append(_excel2num(rng))
             return cols
 
-        if isinstance(parse_cols, int):
-            return i <= parse_cols
-        elif isinstance(parse_cols, compat.string_types):
-            return i in _range2cols(parse_cols)
+        if isinstance(usecols, int):
+            return i <= usecols
+        elif isinstance(usecols, compat.string_types):
+            return i in _range2cols(usecols)
         else:
-            return i in parse_cols
+            return i in usecols
 
     def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, parse_cols=None,
+                     skip_footer=0, index_col=None, usecols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, convert_float=True, true_values=None,
                      false_values=None, verbose=False, dtype=None,
@@ -470,10 +475,10 @@ class ExcelFile(object):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if parse_cols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, parse_cols)
+                    if usecols is not None and j not in should_parse:
+                        should_parse[j] = self._should_parse(j, usecols)
 
-                    if parse_cols is None or should_parse[j]:
+                    if usecols is None or should_parse[j]:
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
