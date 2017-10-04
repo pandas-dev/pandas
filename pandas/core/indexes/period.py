@@ -35,6 +35,7 @@ from pandas._libs import tslib, period
 from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
+from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
@@ -589,7 +590,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def is_leap_year(self):
         """ Logical indicating if the date belongs to a leap year """
-        return tslib._isleapyear_arr(np.asarray(self.year))
+        return isleapyear_arr(np.asarray(self.year))
 
     @property
     def start_time(self):
