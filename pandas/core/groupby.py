@@ -234,6 +234,8 @@ class Grouper(object):
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
 
+    _attributes = ['key', 'level', 'freq', 'axis', 'sort']
+
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
             from pandas.core.resample import TimeGrouper
@@ -251,11 +253,6 @@ class Grouper(object):
         self.obj = None
         self.indexer = None
         self.binner = None
-
-    # _attributes is used in __repr__below
-    _attributes = collections.OrderedDict(
-        (k, v) for k, v in zip(signature(__init__).args[1:],
-                               signature(__init__).defaults))
 
     @property
     def ax(self):
@@ -339,10 +336,12 @@ class Grouper(object):
         return self.grouper.groups
 
     def __repr__(self):
+        grouper_defaults = compat.signature(self.__init__).defaults
         sd = self.__dict__
-        attr = self._attributes
-        attrs = collections.OrderedDict((k, sd[k]) for k, v in attr.items()
-                                        if k in sd and sd[k] != v)
+        attrs = collections.OrderedDict()
+        for k, v in zip(self._attributes, grouper_defaults):
+            if k in sd and sd[k] != v:
+                attrs[k] = sd[k]
         attrs = ", ".join("{}={!r}".format(k, v) for k, v in attrs.items())
         cls_name = self.__class__.__name__
         return "{}({})".format(cls_name, attrs)

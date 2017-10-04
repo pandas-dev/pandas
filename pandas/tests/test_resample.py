@@ -3180,7 +3180,9 @@ class TestTimeGrouper(object):
     def test_timegrouper_repr(self):
         # Added in GH17727
         result = repr(TimeGrouper(key='key', freq='50Min', label='right'))
-        expected = "TimeGrouper(key='key', freq='50T', label='right')"
+        expected = ("TimeGrouper(key='key', freq=<50 * Minutes>, axis=0,"
+                    " sort=True, closed='left', label='right', how='mean', "
+                    "loffset=None)")
         assert result == expected
 
     def test_apply(self):
