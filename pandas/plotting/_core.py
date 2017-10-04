@@ -20,7 +20,8 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator,
-    is_numeric_dtype)
+    is_numeric_dtype,
+    is_categorical_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
@@ -834,10 +835,15 @@ class ScatterPlot(PlanePlot):
         if s is None:
             # Set default size if no argument is given.
             s = 20
-        elif s in data.columns:
+        elif is_hashable(s) and s in data.columns:
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
             size_data = data[s]
+            if is_categorical_dtype(size_data):
+                if size_data.cat.ordered:
+                    size_data = size_data.cat.codes + 1
+                else:
+                    raise TypeError("'s' must be numeric or ordered categorical dtype")
             if is_numeric_dtype(size_data):
                 self.size_title = s
                 self.s_data_max = size_data.max()
@@ -845,7 +851,7 @@ class ScatterPlot(PlanePlot):
                 self.bubble_points = 200
                 s = self.bubble_points * size_factor * size_data / self.s_data_max
             else:
-                raise TypeError('s must be of numeric dtype')
+                raise TypeError("'s' must be numeric or ordered categorical dtype")
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -940,28 +946,25 @@ class ScatterPlot(PlanePlot):
                 return (sizes, labels)
 
     def _make_legend(self):
-        ax = self.axes[0]
         if hasattr(self, "size_title"):
-            size_title = self.size_title
-            s_data_max = self.s_data_max
-            size_factor = self.size_factor
-            bubble_points = self.bubble_points
+            ax = self.axes[0]
             import matplotlib.legend as legend
-            sizes, labels = self._legend_bubbles(s_data_max,
-                                                 size_factor,
-                                                 bubble_points)
+            from matplotlib.collections import CircleCollection
+            sizes, labels = self._legend_bubbles(self.s_data_max,
+                                                 self.size_factor,
+                                                 self.bubble_points)
+            color = self.plt.rcParams['axes.facecolor'],
+            edgecolor = self.plt.rcParams['axes.edgecolor']
             bubbles = []
             for size in sizes:
-                bubbles.append(ax.scatter([],
-                                          [],
-                                          s=size,
-                                          color='white',
-                                          edgecolor='gray'))
+                bubbles.append(CircleCollection(sizes=[size],
+                                                color=color,
+                                                edgecolor=edgecolor))
             bubble_legend = legend.Legend(ax,
                                           handles=bubbles,
                                           labels=labels,
                                           loc='lower right')
-            bubble_legend.set_title(size_title)
+            bubble_legend.set_title(self.size_title)
             ax.add_artist(bubble_legend)
         super()._make_legend()
 
