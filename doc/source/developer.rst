@@ -45,6 +45,8 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
+    'column_index_names': [<column index level name 0>, <column index level name 1>, ...],
+    'column_index_dtypes': [<dtype 0>, <dtype 1>, ..., <dtype N>]
     'columns': [<c0>, <c1>, ...],
     'pandas_version': $VERSION}
 
@@ -106,6 +108,8 @@ As an example of fully-formed metadata:
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__'],
+    'column_index_names': [None],
+    'column_index_dtypes': ['object'],
     'columns': [
         {'name': 'c0',
          'pandas_type': 'int8',
