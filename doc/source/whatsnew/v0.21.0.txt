@@ -667,6 +667,31 @@ Deprecations
 - passing ``categories`` or ``ordered`` kwargs to :func:`Series.astype` is deprecated, in favor of passing a :ref:`CategoricalDtype <whatsnew_0210.enhancements.categorical_dtype>` (:issue:`17636`)
 - Passing a non-existant column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 
+.. _whatsnew_0210.deprecations.select:
+
+Series.select and DataFrame.select
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in favor of using ``df.loc[labels.map(crit)]`` (:issue:`12401`)
+
+.. ipython:: python
+
+   df = DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
+
+.. code-block:: ipython
+
+   In [3]: df.select(lambda x: x in ['bar', 'baz'])
+   FutureWarning: select is deprecated and will be removed in a future release. You can use .loc[crit] as a replacement
+   Out[3]:
+        A
+   bar  2
+   baz  3
+
+.. ipython:: python
+
+   df.loc[df.index.map(lambda x: x in ['bar', 'baz'])]
+
+
 .. _whatsnew_0210.deprecations.argmin_min:
 
 Series.argmax and Series.argmin
