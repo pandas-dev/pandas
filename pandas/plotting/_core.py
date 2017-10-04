@@ -10,7 +10,6 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas.util._decorators import cache_readonly
-from pandas.core.base import PandasObject
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -30,6 +29,7 @@ import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import Appender
 
+from pandas.plotting import base
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0,
                                      _mpl_ge_2_0_0)
@@ -2460,16 +2460,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     return result
 
 
-class BasePlotMethods(PandasObject):
-
-    def __init__(self, data):
-        self._data = data
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-
-
-class SeriesPlotMethods(BasePlotMethods):
+class MPLSeriesPlotMethods(base.SeriesPlotMethods):
     """Series plotting accessor and method
 
     Examples
@@ -2482,6 +2473,9 @@ class SeriesPlotMethods(BasePlotMethods):
     with the ``kind`` argument:
     ``s.plot(kind='line')`` is equivalent to ``s.plot.line()``
     """
+    @property
+    def engine_name(self):
+        return 'matplotlib'
 
     def __call__(self, kind='line', ax=None,
                  figsize=None, use_index=True, title=None, grid=None,
@@ -2642,7 +2636,7 @@ class SeriesPlotMethods(BasePlotMethods):
         return self(kind='pie', **kwds)
 
 
-class FramePlotMethods(BasePlotMethods):
+class MPLFramePlotMethods(base.FramePlotMethods):
     """DataFrame plotting accessor and method
 
     Examples
@@ -2655,6 +2649,9 @@ class FramePlotMethods(BasePlotMethods):
     method with the ``kind`` argument:
     ``df.plot(kind='line')`` is equivalent to ``df.plot.line()``
     """
+    @property
+    def engine_name(self):
+        return 'matplotlib'
 
     def __call__(self, x=None, y=None, kind='line', ax=None,
                  subplots=False, sharex=None, sharey=False, layout=None,
@@ -2882,3 +2879,7 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
+
+
+base.register_engine("matplotlib", 'series', MPLSeriesPlotMethods)
+base.register_engine("matplotlib", 'frame', MPLFramePlotMethods)

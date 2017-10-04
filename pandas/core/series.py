@@ -77,6 +77,7 @@ from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 
 import pandas.plotting._core as gfx
+import pandas.plotting.base as gfx_base
 
 __all__ = ['Series']
 
@@ -2919,8 +2920,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
-                                     gfx.SeriesPlotMethods)
+    plot = accessor.AccessorProperty(gfx_base.SeriesPlotMethods,
+                                     gfx_base.SeriesPlotMethods)
     hist = gfx.hist_series
 
 
