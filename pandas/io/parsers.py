@@ -1665,7 +1665,7 @@ class CParserWrapper(ParserBase):
                 missing = [c for c in usecols if c not in self.orig_names]
                 raise ValueError(
                     "Usecols do not match columns, "
-                    "columns expected but not found: %s" % missing
+                    "columns expected but not found: {}".format(missing)
                 )
 
             if len(self.names) > len(usecols):
@@ -1673,10 +1673,10 @@ class CParserWrapper(ParserBase):
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                missing = [c for c in usecols if c not in self.orig_names]
+                missing = [c for c in usecols if c not in self.names]
                 raise ValueError(
                     "Usecols do not match columns, "
-                    "columns expected but not found: %s" % missing
+                    "columns expected but not found: {}".format(missing)
                 )
 
         self._set_noconvert_columns()
@@ -2450,6 +2450,14 @@ class PythonParser(ParserBase):
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
+
+                missing = [c for c in self.usecols if c not in usecols_key]
+                if len(missing) > 0:
+                    raise ValueError(
+                        "Usecols do not match columns, "
+                        "columns expected but not found: {}".format(missing)
+                    )
+
                 for col in self.usecols:
                     if isinstance(col, string_types):
                         col_indices.append(usecols_key.index(col))
