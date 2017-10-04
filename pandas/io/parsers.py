@@ -1068,8 +1068,24 @@ def _evaluate_usecols(usecols, names):
 def _validate_usecols(usecols, names):
     """
     Validates that all usecols are present in a given
-    list of names, if not, raise a ValueError that
+    list of names. If not, raise a ValueError that
     shows what usecols are missing.
+
+    Parameters
+    ----------
+    usecols : iterable of usecols
+        The columns to validate are present in names.
+    names : iterable of names
+        The column names to check against.
+
+    Returns
+    -------
+    usecols : iterable of usecols
+        The `usecols` parameter if the validation succeeds.
+
+    Raises
+    ------
+    ValueError : Detailing which usecols are missing, if any.
     """
     missing = [c for c in usecols if c not in names]
     if len(missing) > 0:
@@ -1077,6 +1093,8 @@ def _validate_usecols(usecols, names):
             "Usecols do not match columns, "
             "columns expected but not found: {missing}".format(missing=missing)
         )
+
+    return usecols
 
 
 def _validate_skipfooter_arg(skipfooter):
