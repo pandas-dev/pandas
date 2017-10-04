@@ -31,7 +31,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -115,6 +115,10 @@ false_values : list, default None
     .. versionadded:: 0.19.0
 
 parse_cols : int or list, default None
+    .. deprecated:: 0.21.0
+       Pass in `usecols` instead.
+
+usecols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
@@ -205,8 +209,9 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
+@deprecate_kwarg("parse_cols", "usecols")
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
+               index_col=None, names=None, usecols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
@@ -226,7 +231,7 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
+        index_col=index_col, parse_cols=usecols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, skip_footer=skip_footer,
         converters=converters, dtype=dtype, true_values=true_values,
