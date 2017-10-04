@@ -649,3 +649,9 @@ class TestCategoricalDtypeParametrized(object):
         result = CategoricalDtype._from_categorical_dtype(
             c1, categories=[1, 2], ordered=False)
         assert result == CategoricalDtype([1, 2], ordered=False)
+
+    def test_str_vs_repr(self):
+        c1 = CategoricalDtype(['a', 'b'])
+        assert str(c1) == 'category'
+        expected = "CategoricalDtype(categories=['a', 'b'], ordered=False)"
+        assert repr(c1) == expected
