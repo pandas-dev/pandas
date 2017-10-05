@@ -44,7 +44,8 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
     maybe_convert_objects,
     astype_nansafe,
-    find_common_type)
+    find_common_type,
+    maybe_infer_dtype_type)
 from pandas.core.dtypes.missing import (
     isna, notna, array_equivalent,
     _isna_compat,
@@ -629,10 +630,9 @@ class Block(PandasObject):
     def _can_hold_element(self, element):
         """ require the same dtype as ourselves """
         dtype = self.values.dtype.type
-        if is_list_like(element):
-            element = np.asarray(element)
-            tipo = element.dtype.type
-            return issubclass(tipo, dtype)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
     def _try_cast_result(self, result, dtype=None):
@@ -1806,11 +1806,10 @@ class FloatBlock(FloatOrComplexBlock):
     _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.asarray(element)
-            tipo = element.dtype.type
-            return (issubclass(tipo, (np.floating, np.integer)) and
-                    not issubclass(tipo, (np.datetime64, np.timedelta64)))
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return (issubclass(tipo.type, (np.floating, np.integer)) and
+                    not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
         return (isinstance(element, (float, int, np.floating, np.int_)) and
                 not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
@@ -1856,9 +1855,9 @@ class ComplexBlock(FloatOrComplexBlock):
     is_complex = True
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            return issubclass(element.dtype.type,
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
                            (float, int, complex, np.float_, np.int_)) and
@@ -1874,12 +1873,12 @@ class IntBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            tipo = element.dtype.type
-            return (issubclass(tipo, np.integer) and
-                    not issubclass(tipo, (np.datetime64, np.timedelta64)) and
-                    self.dtype.itemsize >= element.dtype.itemsize)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return (issubclass(tipo.type, np.integer) and
+                    not issubclass(tipo.type, (np.datetime64,
+                                               np.timedelta64)) and
+                    self.dtype.itemsize >= tipo.itemsize)
         return is_integer(element)
 
     def should_store(self, value):
@@ -1917,10 +1916,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return lambda x: tslib.Timedelta(x, unit='ns')
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            tipo = element.dtype.type
-            return issubclass(tipo, np.timedelta64)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, np.timedelta64)
         return isinstance(element, (timedelta, np.timedelta64))
 
     def fillna(self, value, **kwargs):
@@ -2018,9 +2016,9 @@ class BoolBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.asarray(element)
-            return issubclass(element.dtype.type, np.bool_)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
     def should_store(self, value):
@@ -2450,7 +2448,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return super(DatetimeBlock, self)._astype(dtype=dtype, **kwargs)
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            # TODO: this still uses asarray, instead of dtype.type
             element = np.array(element)
             return element.dtype == _NS_DTYPE or element.dtype == np.int64
         return (is_integer(element) or isinstance(element, datetime) or
