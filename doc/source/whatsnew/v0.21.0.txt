@@ -111,6 +111,21 @@ For example:
     # the following is now equivalent
     df.drop(columns=['B', 'C'])
 
+``rename`` now also accepts axis keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`~DataFrame.rename` method has gained the ``axis`` keyword as an
+alternative to specify the ``axis`` to target (:issue:`12392`).
+
+.. ipython:: 
+
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df.rename(str.lower, axis='columns')
+    df.rename(id, axis='index')
+
+The ``.rename(index=id, columns=str.lower)`` style continues to work as before.
+We *highly* encourage using named arguments to avoid confusion.
+
 .. _whatsnew_0210.enhancements.categorical_dtype:
 
 ``CategoricalDtype`` for specifying categoricals

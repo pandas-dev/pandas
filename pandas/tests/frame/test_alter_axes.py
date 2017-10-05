@@ -837,6 +837,101 @@ class TestDataFrameAlterAxes(TestData):
         assert 'FOO' in renamed
         assert 'foo' not in renamed
 
+    def test_rename_columns(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['X', 'Y'])
+        expected = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, index=['X', 'Y'])
+
+        result = df.rename(str.lower, axis=1)
+        assert_frame_equal(result, expected)
+
+        result = df.rename(str.lower, axis='columns')
+        assert_frame_equal(result, expected)
+
+        result = df.rename({"A": 'a', 'B': 'b'}, axis=1)
+        assert_frame_equal(result, expected)
+
+        result = df.rename({"A": 'a', 'B': 'b'}, axis='columns')
+        assert_frame_equal(result, expected)
+
+        # Index
+        expected = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['x', 'y'])
+        result = df.rename(str.lower, axis=0)
+        assert_frame_equal(result, expected)
+
+        result = df.rename(str.lower, axis='index')
+        assert_frame_equal(result, expected)
+
+        result = df.rename({'X': 'x', 'Y': 'y'}, axis=0)
+        assert_frame_equal(result, expected)
+
+        result = df.rename({'X': 'x', 'Y': 'y'}, axis='index')
+        assert_frame_equal(result, expected)
+
+    def test_rename_mapper_multi(self):
+        df = pd.DataFrame({"A": ['a', 'b'], "B": ['c', 'd'],
+                           'C': [1, 2]}).set_index(["A", "B"])
+        result = df.rename(str.upper)
+        expected = df.rename(index=str.upper)
+        assert_frame_equal(result, expected)
+
+    def test_rename_raises(self):
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['0', '1'])
+
+        # Named target and axis
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis=1)
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis='columns')
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis=0)
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis='columns')
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(columns=str.lower, axis='columns')
+
+        # Multiple targets and axis
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(str.lower, str.lower, axis='columns')
+
+        # Too many targets
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(str.lower, str.lower, str.lower)
+
+    def test_drop_api_equivalence(self):
+        # equivalence of the labels/axis and index/columns API's
+        df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+                       index=['a', 'b', 'c'],
+                       columns=['d', 'e', 'f'])
+
+        res1 = df.drop('a')
+        res2 = df.drop(index='a')
+        tm.assert_frame_equal(res1, res2)
+
+        res1 = df.drop('d', 1)
+        res2 = df.drop(columns='d')
+        tm.assert_frame_equal(res1, res2)
+
+        res1 = df.drop(labels='e', axis=1)
+        res2 = df.drop(columns='e')
+        tm.assert_frame_equal(res1, res2)
+
+        res1 = df.drop(['a'], axis=0)
+        res2 = df.drop(index=['a'])
+        tm.assert_frame_equal(res1, res2)
+
+        res1 = df.drop(['a'], axis=0).drop(['d'], axis=1)
+        res2 = df.drop(index=['a'], columns=['d'])
+
+        with pytest.raises(ValueError):
+            df.drop(labels='a', index='b')
+
+        with pytest.raises(ValueError):
+            df.drop(axis=1)
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 
@@ -859,6 +954,14 @@ class TestDataFrameAlterAxes(TestData):
             result = df.set_index(cols).reset_index()
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
+
+    def test_ambiguous_warns(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        with tm.assert_produces_warning(UserWarning):
+            df.rename(id, id)
+
+        with tm.assert_produces_warning(UserWarning):
+            df.rename({0: 10}, {"A": "B"})
 
 
 class TestIntervalIndex(object):

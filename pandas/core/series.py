@@ -85,7 +85,7 @@ _shared_doc_kwargs = dict(
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
-    optional_by='',
+    optional_by='', optional_mapper='', optional_axis='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
 
 

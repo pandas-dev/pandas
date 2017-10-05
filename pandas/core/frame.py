@@ -111,7 +111,13 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""",
-    versionadded_to_excel='')
+    versionadded_to_excel='',
+    optional_mapper="""mapper : dict-like or function
+            Applied to the axis specified by `axis`""",
+    optional_axis="""axis : int or str, optional
+            Axis to target. Can be either the axis name ('rows', 'columns')
+            or number (0, 1).""",
+)
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -2776,6 +2782,46 @@ class DataFrame(NDFrame):
 
         return np.atleast_2d(np.asarray(value))
 
+    def _validate_axis_style_args(self, arg, arg_name, index, columns,
+                                  axis, method_name):
+        if axis is not None:
+            # Using "axis" style, along with a positional arg
+            # Both index and columns should be None then
+            axis = self._get_axis_name(axis)
+            if index is not None or columns is not None:
+                msg = (
+                    "Can't specify both 'axis' and 'index' or 'columns'. "
+                    "Specify either\n"
+                    "\t.{method_name}.rename({arg_name}, axis=axis), or\n"
+                    "\t.{method_name}.rename(index=index, columns=columns)"
+                ).format(arg_name=arg_name, method_name=method_name)
+                raise TypeError(msg)
+            if axis == 'index':
+                index = arg
+            elif axis == 'columns':
+                columns = arg
+
+        elif all(x is not None for x in (arg, index, columns)):
+            msg = (
+                "Cannot specify all of '{arg_name}', 'index', and 'columns'. "
+                "Specify either {arg_name} and 'axis', or 'index' and "
+                "'columns'."
+            ).format(arg_name=arg_name)
+            raise TypeError(msg)
+
+        elif axis is None and (arg is not None and index is not None):
+            # This is the "ambiguous" case, so emit a warning
+            msg = (
+                "Interpreting call to '.{method_name}(a, b)' as "
+                "'.{method_name}(index=a, columns=b)'. "
+                "Use keyword arguments to remove any ambiguity."
+            ).format(method_name=method_name)
+            warnings.warn(msg)
+            index, columns = arg, index
+        elif index is None and columns is None:
+            index = arg
+        return index, columns
+
     @property
     def _series(self):
         result = {}
@@ -2915,7 +2961,11 @@ class DataFrame(NDFrame):
                                         limit=limit, fill_value=fill_value)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, columns=None, **kwargs):
+    def rename(self, mapper=None, index=None, columns=None, axis=None,
+               **kwargs):
+        index, columns = self._validate_axis_style_args(mapper, 'mapper',
+                                                        index, columns,
+                                                        axis, 'rename')
         return super(DataFrame, self).rename(index=index, columns=columns,
                                              **kwargs)
 
