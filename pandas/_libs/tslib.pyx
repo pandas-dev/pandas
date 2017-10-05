@@ -843,6 +843,12 @@ class NaTType(_NaT):
     def __long__(self):
         return NPY_NAT
 
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
 
@@ -1449,9 +1455,9 @@ cdef _nat_rdivide_op(self, other):
 
 
 cdef class _NaT(datetime):
-    cdef:
-        readonly int64_t value
-        readonly freq
+    cdef readonly:
+        int64_t value
+        object freq
 
     def __hash__(_NaT self):
         # py3k needs this defined here
