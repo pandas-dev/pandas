@@ -405,7 +405,9 @@ class SafeForSparse(object):
         for item in self.panel.items:
             for mjr in self.panel.major_axis[::2]:
                 for mnr in self.panel.minor_axis:
-                    result = self.panel.get_value(item, mjr, mnr)
+                    with tm.assert_produces_warning(FutureWarning,
+                                                    check_stacklevel=False):
+                        result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
 
@@ -867,16 +869,17 @@ class CheckIndexing(object):
                 test_comp(operator.le)
 
     def test_get_value(self):
-        for item in self.panel.items:
-            for mjr in self.panel.major_axis[::2]:
-                for mnr in self.panel.minor_axis:
-                    result = self.panel.get_value(item, mjr, mnr)
-                    expected = self.panel[item][mnr][mjr]
-                    assert_almost_equal(result, expected)
-        with tm.assert_raises_regex(TypeError,
-                                    "There must be an argument "
-                                    "for each axis"):
-            self.panel.get_value('a')
+        with catch_warnings(record=True):
+            for item in self.panel.items:
+                for mjr in self.panel.major_axis[::2]:
+                    for mnr in self.panel.minor_axis:
+                        result = self.panel.get_value(item, mjr, mnr)
+                        expected = self.panel[item][mnr][mjr]
+                        assert_almost_equal(result, expected)
+            with tm.assert_raises_regex(TypeError,
+                                        "There must be an argument "
+                                        "for each axis"):
+                self.panel.get_value('a')
 
     def test_set_value(self):
         with catch_warnings(record=True):
