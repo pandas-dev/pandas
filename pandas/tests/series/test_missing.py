@@ -292,15 +292,15 @@ class TestSeriesMissingData(TestData):
                           dtype='object')
         assert_series_equal(result, expected)
 
-        # where (we ignore the raise_on_error)
+        # where (we ignore the errors=)
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=False)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=True)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         # with a non-datetime

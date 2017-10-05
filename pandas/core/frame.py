@@ -3862,9 +3862,9 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
+    def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error,
+                                   errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
@@ -4035,8 +4035,7 @@ class DataFrame(NDFrame):
             else:
                 mask = isna(x_values)
 
-            return expressions.where(mask, y_values, x_values,
-                                     raise_on_error=True)
+            return expressions.where(mask, y_values, x_values)
 
         return self.combine(other, combiner, overwrite=False)
 
@@ -4091,8 +4090,7 @@ class DataFrame(NDFrame):
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that,
-                                          raise_on_error=True)
+            self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Misc methods
