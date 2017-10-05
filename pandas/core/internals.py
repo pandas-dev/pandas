@@ -1,6 +1,7 @@
 import warnings
 import copy
 from warnings import catch_warnings
+import inspect
 import itertools
 import re
 import operator
@@ -551,6 +552,11 @@ class Block(PandasObject):
                            "Supplied value is '{}'".format(
                                list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
+
+        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+            msg = ("Expected an instance of {}, but got the class instead. "
+                   "Try instantiating 'dtype'.".format(dtype.__name__))
+            raise TypeError(msg)
 
         # may need to convert to categorical
         # this is only called for non-categoricals
