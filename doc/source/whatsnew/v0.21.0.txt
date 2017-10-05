@@ -157,11 +157,10 @@ The values have been correctly interpreted as integers.
 
 The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
 ``Series`` with categorical type will now return an instance of
-``CategoricalDtype``. For the most part, this is backwards compatible, though
-the string repr has changed. If you were previously using ``str(s.dtype) ==
-'category'`` to detect categorical data, switch to
-:func:`pandas.api.types.is_categorical_dtype`, which is compatible with the old
-and new ``CategoricalDtype``.
+``CategoricalDtype``. This change should be backwards compatible, though the
+repr has changed. ``str(CategoricalDtype())`` is still the string
+``'category'``, but the preferred way to detect categorical data is to use
+:func:`pandas.api.types.is_categorical_dtype`.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 

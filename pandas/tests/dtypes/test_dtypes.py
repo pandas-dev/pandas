@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import pytest
 
 from itertools import product
@@ -649,3 +650,10 @@ class TestCategoricalDtypeParametrized(object):
         result = CategoricalDtype._from_categorical_dtype(
             c1, categories=[1, 2], ordered=False)
         assert result == CategoricalDtype([1, 2], ordered=False)
+
+    def test_str_vs_repr(self):
+        c1 = CategoricalDtype(['a', 'b'])
+        assert str(c1) == 'category'
+        # Py2 will have unicode prefixes
+        pat = r"CategoricalDtype\(categories=\[.*\], ordered=False\)"
+        assert re.match(pat, repr(c1))
