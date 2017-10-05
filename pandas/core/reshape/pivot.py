@@ -455,7 +455,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     from pandas import DataFrame
     df = DataFrame(data, index=common_idx)
     if not len(df):
-        return DataFrame(index=common_idx)
+        return df
     if values is None:
         df['__dummy__'] = 0
         kwargs = {'aggfunc': len, 'fill_value': 0}
