@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+# cython: linetrace=False
+# distutils: define_macros=CYTHON_TRACE=0
+# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
@@ -78,7 +81,6 @@ PyDateTime_IMPORT
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
-
 
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
@@ -783,6 +785,32 @@ class Timestamp(_Timestamp):
 _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 
+def _make_nat_func(func_name, cls):
+    def f(*args, **kwargs):
+        return NaT
+    f.__name__ = func_name
+    f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
+def _make_nan_func(func_name, cls):
+    def f(*args, **kwargs):
+        return np.nan
+    f.__name__ = func_name
+    f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
+def _make_error_func(func_name, cls):
+    def f(*args, **kwargs):
+        raise ValueError("NaTType does not support " + func_name)
+
+    f.__name__ = func_name
+    if cls is not None:
+        f.__doc__ = getattr(cls, func_name).__doc__
+    return f
+
+
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
 
@@ -864,6 +892,90 @@ class NaTType(_NaT):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
+
+    # ----------------------------------------------------------------------
+    # inject the Timestamp field properties
+    # these by definition return np.nan
+
+    year = property(fget=lambda self: np.nan)
+    quarter = property(fget=lambda self: np.nan)
+    month = property(fget=lambda self: np.nan)
+    day = property(fget=lambda self: np.nan)
+    hour = property(fget=lambda self: np.nan)
+    minute = property(fget=lambda self: np.nan)
+    second = property(fget=lambda self: np.nan)
+    millisecond = property(fget=lambda self: np.nan)
+    microsecond = property(fget=lambda self: np.nan)
+    nanosecond = property(fget=lambda self: np.nan)
+
+    week = property(fget=lambda self: np.nan)
+    dayofyear = property(fget=lambda self: np.nan)
+    weekofyear = property(fget=lambda self: np.nan)
+    days_in_month = property(fget=lambda self: np.nan)
+    daysinmonth = property(fget=lambda self: np.nan)
+    dayofweek = property(fget=lambda self: np.nan)
+    weekday_name = property(fget=lambda self: np.nan)
+
+    # inject Timedelta properties
+    days = property(fget=lambda self: np.nan)
+    seconds = property(fget=lambda self: np.nan)
+    microseconds = property(fget=lambda self: np.nan)
+    nanoseconds = property(fget=lambda self: np.nan)
+
+    # inject pd.Period properties
+    qyear = property(fget=lambda self: np.nan)
+
+    # ----------------------------------------------------------------------
+    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
+    # return NaT create functions that raise, for binding to NaTType
+    # These are the ones that can get their docstrings from datetime.
+
+    # nan methods
+    weekday = _make_nan_func('weekday', datetime)
+    isoweekday = _make_nan_func('isoweekday', datetime)
+
+    # _nat_methods
+    date = _make_nat_func('date', datetime)
+
+    utctimetuple = _make_error_func('utctimetuple', datetime)
+    timetz = _make_error_func('timetz', datetime)
+    timetuple = _make_error_func('timetuple', datetime)
+    strptime = _make_error_func('strptime', datetime)
+    strftime = _make_error_func('strftime', datetime)
+    isocalendar = _make_error_func('isocalendar', datetime)
+    dst = _make_error_func('dst', datetime)
+    ctime = _make_error_func('ctime', datetime)
+    time = _make_error_func('time', datetime)
+    toordinal = _make_error_func('toordinal', datetime)
+    tzname = _make_error_func('tzname', datetime)
+    utcoffset = _make_error_func('utcoffset', datetime)
+
+    # Timestamp has empty docstring for some methods.
+    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
+    fromtimestamp = _make_error_func('fromtimestamp', None)
+    combine = _make_error_func('combine', None)
+    utcnow = _make_error_func('utcnow', None)
+
+    if PY3:
+        timestamp = _make_error_func('timestamp', datetime)
+
+    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
+    # return NaT create functions that raise, for binding to NaTType
+    astimezone = _make_error_func('astimezone', Timestamp)
+    fromordinal = _make_error_func('fromordinal', Timestamp)
+
+    # _nat_methods
+    to_pydatetime = _make_nat_func('to_pydatetime', Timestamp)
+
+    now = _make_nat_func('now', Timestamp)
+    today = _make_nat_func('today', Timestamp)
+    round = _make_nat_func('round', Timestamp)
+    floor = _make_nat_func('floor', Timestamp)
+    ceil = _make_nat_func('ceil', Timestamp)
+
+    tz_convert = _make_nat_func('tz_convert', Timestamp)
+    tz_localize = _make_nat_func('tz_localize', Timestamp)
+    replace = _make_nat_func('replace', Timestamp)
 
 
 def __nat_unpickle(*args):
@@ -1323,6 +1435,7 @@ cdef _nat_rdivide_op(self, other):
         return np.nan
     return NotImplemented
 
+
 cdef class _NaT(_Timestamp):
 
     def __hash__(_NaT self):
@@ -1540,7 +1653,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     if is_timestamp(ts):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
-    
+
     if nanos:
         obj.value += nanos
         obj.dts.ps = nanos * 1000
@@ -3256,95 +3369,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         raise ValueError("Invalid type for timedelta "
                          "scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
-
-
-#----------------------------------------------------------------------
-# NaT methods/property setups
-
-
-# inject the Timestamp field properties
-# these by definition return np.nan
-fields = ['year', 'quarter', 'month', 'day', 'hour',
-          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
-          'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
-          'nanoseconds', 'qyear']
-for field in fields:
-    prop = property(fget=lambda self: np.nan)
-    setattr(NaTType, field, prop)
-
-
-# define how we are handling NaT methods & inject
-# to the NaTType class; these can return NaT, np.nan
-# or raise respectively
-_nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
-                'today', 'round', 'floor', 'ceil', 'tz_convert',
-                'tz_localize']
-_nan_methods = ['weekday', 'isoweekday']
-_implemented_methods = [
-    'to_datetime', 'to_datetime64', 'isoformat', 'total_seconds']
-_implemented_methods.extend(_nat_methods)
-_implemented_methods.extend(_nan_methods)
-
-
-def _get_docstring(_method_name):
-    # NaT serves double duty as Timestamp & Timedelta
-    # missing value, so need to acquire doc-strings for both
-
-    try:
-        return getattr(Timestamp, _method_name).__doc__
-    except AttributeError:
-        pass
-
-    try:
-        return getattr(Timedelta, _method_name).__doc__
-    except AttributeError:
-        pass
-
-    return None
-
-
-for _method_name in _nat_methods:
-
-    def _make_nat_func(func_name):
-        def f(*args, **kwargs):
-            return NaT
-        f.__name__ = func_name
-        f.__doc__ = _get_docstring(func_name)
-        return f
-
-    setattr(NaTType, _method_name, _make_nat_func(_method_name))
-
-
-for _method_name in _nan_methods:
-
-    def _make_nan_func(func_name):
-        def f(*args, **kwargs):
-            return np.nan
-        f.__name__ = func_name
-        f.__doc__ = _get_docstring(func_name)
-        return f
-
-    setattr(NaTType, _method_name, _make_nan_func(_method_name))
-
-
-# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-# return NaT create functions that raise, for binding to NaTType
-for _maybe_method_name in dir(NaTType):
-    _maybe_method = getattr(NaTType, _maybe_method_name)
-    if (callable(_maybe_method)
-        and not _maybe_method_name.startswith("_")
-        and _maybe_method_name not in _implemented_methods):
-
-        def _make_error_func(func_name):
-            def f(*args, **kwargs):
-                raise ValueError("NaTType does not support " + func_name)
-            f.__name__ = func_name
-            f.__doc__ = _get_docstring(func_name)
-            return f
-
-        setattr(NaTType, _maybe_method_name,
-                _make_error_func(_maybe_method_name))
 
 
 #----------------------------------------------------------------------

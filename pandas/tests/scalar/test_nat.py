@@ -10,6 +10,8 @@ from pandas import (NaT, Index, Timestamp, Timedelta, Period,
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
 
+from pandas.compat import callable
+
 
 @pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),
                                       (Timedelta('NaT'), TimedeltaIndex),
@@ -154,6 +156,53 @@ def test_NaT_methods():
 
     # GH 12300
     assert NaT.isoformat() == 'NaT'
+
+
+def test_NaT_docstrings():
+    # GH#17327
+    nat_names = dir(NaT)
+
+    # NaT should have *most* of the Timestamp methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `ts_expected` below.
+    ts_names = dir(Timestamp)
+    ts_missing = [x for x in ts_names if x not in nat_names and
+                  not x.startswith('_')]
+    ts_missing.sort()
+    ts_expected = ['freqstr', 'normalize', 'offset',
+                   'to_julian_date', 'to_period', 'tz']
+    assert ts_missing == ts_expected
+
+    ts_overlap = [x for x in nat_names if x in ts_names and
+                  not x.startswith('_') and
+                  callable(getattr(Timestamp, x))]
+    for name in ts_overlap:
+        tsdoc = getattr(Timestamp, name).__doc__
+        natdoc = getattr(NaT, name).__doc__
+        assert tsdoc == natdoc
+
+    # NaT should have *most* of the Timedelta methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `td_expected` below.
+    # For methods that are both Timestamp and Timedelta methods, the
+    # Timestamp docstring takes priority.
+    td_names = dir(Timedelta)
+    td_missing = [x for x in td_names if x not in nat_names and
+                  not x.startswith('_')]
+    td_missing.sort()
+    td_expected = ['components', 'delta', 'is_populated',
+                   'to_pytimedelta', 'to_timedelta64', 'view']
+    assert td_missing == td_expected
+
+    td_overlap = [x for x in nat_names if x in td_names and
+                  x not in ts_names and  # Timestamp __doc__ takes priority
+                  not x.startswith('_') and
+                  callable(getattr(Timedelta, x))]
+    assert td_overlap == ['total_seconds']
+    for name in td_overlap:
+        tddoc = getattr(Timedelta, name).__doc__
+        natdoc = getattr(NaT, name).__doc__
+        assert tddoc == natdoc
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta])
