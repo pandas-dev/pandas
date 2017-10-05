@@ -5758,7 +5758,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return left.__finalize__(self), right.__finalize__(other)
 
     def _where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-               try_cast=False, raise_on_error=True):
+               errors='raise', try_cast=False):
         """
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
@@ -5887,7 +5887,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             new_data = self._data.where(other=other, cond=cond, align=align,
-                                        raise_on_error=raise_on_error,
+                                        errors=errors,
                                         try_cast=try_cast, axis=block_axis,
                                         transpose=self._AXIS_REVERSED)
 
@@ -5924,11 +5924,20 @@ class NDFrame(PandasObject, SelectionMixin):
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
         level : alignment level if needed, default None
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
+            Note that currently this parameter won't affect
+            the results and will always coerce to a suitable dtype.
+
         try_cast : boolean, default False
             try to cast the result back to the input type (if possible),
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
             strings)
+
+            .. deprecated:: 0.21.0
 
         Returns
         -------
@@ -6005,24 +6014,46 @@ class NDFrame(PandasObject, SelectionMixin):
                                            cond_rev="False", name='where',
                                            name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
+              errors='raise', try_cast=False, raise_on_error=None):
+
+        if raise_on_error is not None:
+            warnings.warn(
+                "raise_on_error is deprecated in "
+                "favor of errors='raise|ignore'",
+                FutureWarning, stacklevel=2)
+
+            if raise_on_error:
+                errors = 'raise'
+            else:
+                errors = 'ignore'
 
         other = com._apply_if_callable(other, self)
-        return self._where(cond, other, inplace, axis, level, try_cast,
-                           raise_on_error)
+        return self._where(cond, other, inplace, axis, level,
+                           errors=errors, try_cast=try_cast)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
                                            cond_rev="True", name='mask',
                                            name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-             try_cast=False, raise_on_error=True):
+             errors='raise', try_cast=False, raise_on_error=None):
+
+        if raise_on_error is not None:
+            warnings.warn(
+                "raise_on_error is deprecated in "
+                "favor of errors='raise|ignore'",
+                FutureWarning, stacklevel=2)
+
+            if raise_on_error:
+                errors = 'raise'
+            else:
+                errors = 'ignore'
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
-                          raise_on_error=raise_on_error)
+                          errors=errors)
 
     _shared_docs['shift'] = ("""
         Shift index by desired number of periods with an optional time freq

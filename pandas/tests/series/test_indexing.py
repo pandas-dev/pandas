@@ -1096,6 +1096,17 @@ class TestSeriesIndexing(TestData):
         with tm.assert_produces_warning(FutureWarning):
             s.take([-1, 3, 4], convert=False)
 
+    def test_where_raise_on_error_deprecation(self):
+
+        # gh-14968
+        # deprecation of raise_on_error
+        s = Series(np.random.randn(5))
+        cond = s > 0
+        with tm.assert_produces_warning(FutureWarning):
+            s.where(cond, raise_on_error=True)
+        with tm.assert_produces_warning(FutureWarning):
+            s.mask(cond, raise_on_error=True)
+
     def test_where(self):
         s = Series(np.random.randn(5))
         cond = s > 0
