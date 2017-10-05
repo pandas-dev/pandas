@@ -430,22 +430,32 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # ok, as the index gets converted to object
         frame = self.frame.copy()
-        res = frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = frame.set_value('foobar', 'B', 1.5)
         assert res.index.dtype == 'object'
 
         res = self.frame
         res.index = res.index.astype(object)
 
-        res = self.frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.frame.set_value('foobar', 'B', 1.5)
         assert res is not self.frame
         assert res.index[-1] == 'foobar'
-        assert res.get_value('foobar', 'B') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res.get_value('foobar', 'B') == 1.5
 
-        res2 = res.set_value('foobar', 'qux', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res2 = res.set_value('foobar', 'qux', 1.5)
         assert res2 is not res
         tm.assert_index_equal(res2.columns,
                               pd.Index(list(self.frame.columns) + ['qux']))
-        assert res2.get_value('foobar', 'qux') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
         # axis = 0

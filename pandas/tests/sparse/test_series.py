@@ -465,15 +465,22 @@ class TestSparseSeries(SharedWithSparse):
         expected = self.btseries.to_dense()[dt]
         tm.assert_almost_equal(result, expected)
 
-        tm.assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            tm.assert_almost_equal(
+                self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
 
         idx = self.btseries.index[7]
-        self.btseries.set_value(idx, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.btseries.set_value(idx, 0)
         assert self.btseries[idx] == 0
 
-        self.iseries.set_value('foobar', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.iseries.set_value('foobar', 0)
         assert self.iseries.index[-1] == 'foobar'
         assert self.iseries['foobar'] == 0
 

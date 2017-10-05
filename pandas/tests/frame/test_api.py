@@ -69,7 +69,9 @@ class SharedWithSparse(object):
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                result = self.frame.get_value(idx, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
                 tm.assert_almost_equal(result, expected)
 
