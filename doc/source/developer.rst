@@ -58,7 +58,7 @@ for each column. This has JSON form:
    {'name': column_name,
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
-    'metadata': type_metadata}
+    'metadata': metadata}
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
@@ -75,7 +75,7 @@ result of ``str(dtype)`` for the underlying NumPy array that holds the data. So
 for ``datetimetz`` this is ``datetime64[ns]`` and for categorical, it may be
 any of the supported integer categorical types.
 
-The ``type_metadata`` is ``None`` except for:
+The ``metadata`` field is ``None`` except for:
 
 * ``datetimetz``: ``{'timezone': zone, 'unit': 'ns'}``, e.g. ``{'timezone',
   'America/New_York', 'unit': 'ns'}``. The ``'unit'`` is optional, and if
@@ -112,7 +112,7 @@ As an example of fully-formed metadata:
         {'name': None,
          'pandas_type': 'string',
          'numpy_type': 'object',
-         'type_metadata': None}
+         'metadata': None}
     ],
     'columns': [
         {'name': 'c0',
