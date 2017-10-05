@@ -45,20 +45,19 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
-    'column_index_names': [<column index level name 0>, <column index level name 1>, ...],
-    'column_index_dtypes': [<dtype 0>, <dtype 1>, ..., <dtype N>]
+    'column_indexes': [<ci0>, <ci1>, ..., <ciN>],
     'columns': [<c0>, <c1>, ...],
     'pandas_version': $VERSION}
 
-Here, ``<c0>`` and so forth are dictionaries containing the metadata for each
-column. This has JSON form:
+Here, ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
+for each column. This has JSON form:
 
 .. code-block:: text
 
    {'name': column_name,
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
-    'metadata': type_metadata}
+    'metadata': metadata}
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
@@ -75,7 +74,7 @@ result of ``str(dtype)`` for the underlying NumPy array that holds the data. So
 for ``datetimetz`` this is ``datetime64[ns]`` and for categorical, it may be
 any of the supported integer categorical types.
 
-The ``type_metadata`` is ``None`` except for:
+The ``metadata`` field is ``None`` except for:
 
 * ``datetimetz``: ``{'timezone': zone, 'unit': 'ns'}``, e.g. ``{'timezone',
   'America/New_York', 'unit': 'ns'}``. The ``'unit'`` is optional, and if
@@ -108,8 +107,12 @@ As an example of fully-formed metadata:
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__'],
-    'column_index_names': [None],
-    'column_index_dtypes': ['object'],
+    'column_indexes': [
+        {'name': None,
+         'pandas_type': 'string',
+         'numpy_type': 'object',
+         'metadata': None}
+    ],
     'columns': [
         {'name': 'c0',
          'pandas_type': 'int8',
