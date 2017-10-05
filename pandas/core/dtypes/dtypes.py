@@ -220,7 +220,7 @@ class CategoricalDtype(ExtensionDtype):
             # both unordered; this could probably be optimized / cached
             return hash(self) == hash(other)
 
-    def __unicode__(self):
+    def __repr__(self):
         tpl = u'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
             data = u"None, "
