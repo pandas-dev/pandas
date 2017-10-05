@@ -45,7 +45,6 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
-    'column_index_names': [<column index level name 0>, <column index level name 1>, ...],
     'column_indexes': [<ci0>, <ci1>, ..., <ciN>],
     'columns': [<c0>, <c1>, ...],
     'pandas_version': $VERSION}
