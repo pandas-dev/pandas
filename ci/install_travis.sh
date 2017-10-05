@@ -34,13 +34,9 @@ fi
 
 # install miniconda
 if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    # temporarily pin miniconda
-    # time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
-    time wget https://repo.continuum.io/miniconda/Miniconda2-4.3.21-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
 else
-    # temporarily pin miniconda
-    # time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
-    time wget https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
 fi
 time bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
@@ -52,7 +48,7 @@ echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
-# conda update -q conda
+conda update -q conda
 
 echo
 echo "[add channels]"
