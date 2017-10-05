@@ -1085,7 +1085,7 @@ def _validate_usecols(usecols, names):
 
     Raises
     ------
-    ValueError : Detailing which usecols are missing, if any.
+    ValueError : Columns were missing. Error message will list them.
     """
     missing = [c for c in usecols if c not in names]
     if len(missing) > 0:
