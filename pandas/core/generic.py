@@ -6362,20 +6362,22 @@ class NDFrame(PandasObject, SelectionMixin):
             - A list-like of dtypes : Limits the results to the
               provided data types.
               To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to categorical
-              objects submit the ``numpy.object`` data type. Strings
+              ``numpy.number``. To limit it instead to object columns submit
+              the ``numpy.object`` data type. Strings
               can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              select pandas categorical columns, use ``'category'``
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
             for ``Series``. Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
-              from the result. To select numeric types submit
-              ``numpy.number``. To select categorical objects submit the data
+              from the result. To exclude numeric types submit
+              ``numpy.number``. To exclude object columns submit the data
               type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
 
         Returns
@@ -6400,9 +6402,11 @@ class NDFrame(PandasObject, SelectionMixin):
         among those with the highest count.
 
         For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If ``include='all'``
-        is provided as an option, the result will include a union of
-        attributes of each type.
+        return only an analysis of numeric columns. If the dataframe consists
+        only of object and categorical data without any numeric columns, the
+        default is to return an analysis of both the object and categorical
+        columns. If ``include='all'`` is provided as an option, the result
+        will include a union of attributes of each type.
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
@@ -6452,8 +6456,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame([[1, 'a'], [2, 'b'], [3, 'c']],
-        ...                   columns=['numeric', 'object'])
+        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
+        ...                     'numeric': [1, 2, 3],
+        ...                     'categorical': pd.Categorical(['d','e','f'])
+        ...                   })
         >>> df.describe()
                numeric
         count      3.0
@@ -6468,18 +6474,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing all columns of a ``DataFrame`` regardless of data type.
 
         >>> df.describe(include='all')
-                numeric object
-        count       3.0      3
-        unique      NaN      3
-        top         NaN      b
-        freq        NaN      1
-        mean        2.0    NaN
-        std         1.0    NaN
-        min         1.0    NaN
-        25%         1.5    NaN
-        50%         2.0    NaN
-        75%         2.5    NaN
-        max         3.0    NaN
+                categorical  numeric object
+        count            3      3.0      3
+        unique           3      NaN      3
+        top              f      NaN      c
+        freq             1      NaN      1
+        mean           NaN      2.0    NaN
+        std            NaN      1.0    NaN
+        min            NaN      1.0    NaN
+        25%            NaN      1.5    NaN
+        50%            NaN      2.0    NaN
+        75%            NaN      2.5    NaN
+        max            NaN      3.0    NaN
 
         Describing a column from a ``DataFrame`` by accessing it as
         an attribute.
@@ -6514,30 +6520,42 @@ class NDFrame(PandasObject, SelectionMixin):
                object
         count       3
         unique      3
-        top         b
+        top         c
         freq        1
+
+        Including only categorical columns from a ``DataFrame`` description.
+
+        >>> df.describe(include=['category'])
+               categorical
+        count            3
+        unique           3
+        top              f
+        freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.number])
-               object
-        count       3
-        unique      3
-        top         b
-        freq        1
+               categorical object
+        count            3      3
+        unique           3      3
+        top              f      c
+        freq             1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
+                categorical  numeric
+        count            3      3.0
+        unique           3      NaN
+        top              f      NaN
+        freq             1      NaN
+        mean           NaN      2.0
+        std            NaN      1.0
+        min            NaN      1.0
+        25%            NaN      1.5
+        50%            NaN      2.0
+        75%            NaN      2.5
+        max            NaN      3.0
 
         See Also
         --------
