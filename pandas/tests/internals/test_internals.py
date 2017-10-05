@@ -1247,7 +1247,7 @@ class TestCanHoldElement(object):
         (1.0, 'f8'),
         (1j, 'complex128'),
         (True, 'bool'),
-        # (np.timedelta64(20, 'ns'), '<m8[ns]'),
+        (np.timedelta64(20, 'ns'), '<m8[ns]'),
         (np.datetime64(20, 'ns'), '<M8[ns]'),
     ])
     @pytest.mark.parametrize('op', [
@@ -1266,6 +1266,7 @@ class TestCanHoldElement(object):
                 (operator.mod, 'i8'),
                 (operator.mod, 'complex128'),
                 (operator.mod, '<M8[ns]'),
+                (operator.mod, '<m8[ns]'),
                 (operator.pow, 'bool')}
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
