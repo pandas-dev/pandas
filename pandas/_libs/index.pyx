@@ -17,7 +17,7 @@ from tslib cimport _to_i8
 
 from hashtable cimport HashTable
 
-from pandas._libs import algos, hashtable as _hash
+from pandas._libs import algos, period as periodlib, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
 
@@ -270,12 +270,15 @@ cdef class IndexEngine:
 
             values = self._get_index_values()
             self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values)
+            self._call_map_locations(values)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
 
         self.need_unique_check = 0
+
+    cpdef _call_map_locations(self, values):
+        self.mapping.map_locations(values)
 
     def clear_mapping(self):
         self.mapping = None
@@ -489,6 +492,76 @@ cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef _get_box_dtype(self):
         return 'm8[ns]'
+
+
+cdef class PeriodEngine(Int64Engine):
+
+    cdef _get_index_values(self):
+        return self.vgetter()
+
+    cpdef _call_map_locations(self, values):
+        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+
+    def _call_monotonic(self, values):
+        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+
+    cdef _maybe_get_bool_indexer(self, object val):
+        cdef:
+            ndarray[uint8_t, cast=True] indexer
+            ndarray[int64_t] values
+            int count = 0
+            Py_ssize_t i, n
+            int last_true
+
+        if not util.is_integer_object(val):
+            raise KeyError(val)
+
+        values = self._get_index_values().view('i8')
+        n = len(values)
+
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
+
+        for i in range(n):
+            if values[i] == val:
+                count += 1
+                indexer[i] = 1
+                last_true = i
+            else:
+                indexer[i] = 0
+
+        if count == 0:
+            raise KeyError(val)
+        if count == 1:
+            return last_true
+
+        return result
+
+    def get_indexer(self, values):
+        cdef ndarray[int64_t, ndim=1] ordinals
+
+        self._ensure_mapping_populated()
+        ordinals = periodlib.extract_ordinals(values, self.vgetter().freq)
+        return self.mapping.lookup(ordinals)
+
+    def get_pad_indexer(self, other, limit=None):
+        ordinal = periodlib.extract_ordinals(other, self.vgetter().freq)
+
+        return algos.pad_int64(self._get_index_values(),
+                               np.asarray(ordinal), limit=limit)
+
+    def get_backfill_indexer(self, other, limit=None):
+        ordinal = periodlib.extract_ordinals(other, self.vgetter().freq)
+
+        return algos.backfill_int64(self._get_index_values(),
+                                    np.asarray(ordinal), limit=limit)
+
+    def get_indexer_non_unique(self, targets):
+        ordinal = periodlib.extract_ordinals(targets, self.vgetter().freq)
+        ordinal_array = np.asarray(ordinal)
+
+        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+
 
 cpdef convert_scalar(ndarray arr, object value):
     # we don't turn integers
