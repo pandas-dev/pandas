@@ -109,8 +109,9 @@ def test_with_s3_url(compression):
             with open(path, 'rb') as f:
                 bucket.put_object(Key='test-1', Body=f)
 
-        s3_df = pd.read_json('s3://pandas-test/test-1', compression=compression)
-        assert_frame_equal(df, s3_df)
+        roundtripped_df = pd.read_json('s3://pandas-test/test-1',
+                                       compression=compression)
+        assert_frame_equal(df, roundtripped_df)
 
 
 @pytest.mark.parametrize('compression', COMPRESSION_TYPES)

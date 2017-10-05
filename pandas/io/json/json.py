@@ -5,7 +5,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, StringIO, long, u
+from pandas.compat import StringIO, long, u
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
@@ -443,7 +443,6 @@ class JsonReader(BaseIterator):
             data, _ = _get_handle(filepath_or_buffer, 'r',
                                   encoding=self.encoding,
                                   compression=self.compression)
-            # TODO (Simon): Determine if we need to worry about closing file pointers that are passed in from e.g. S3
             self.should_close = True
             self.open_stream = data
 
