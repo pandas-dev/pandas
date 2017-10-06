@@ -40,7 +40,7 @@ _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
     klass="Panel",
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
-    optional_mapper='', optional_axis='')
+    optional_mapper='', optional_axis='', optional_labels='')
 _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
                                         "of\n%s" %
                                         _shared_doc_kwargs['axes_single_arg'])

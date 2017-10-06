@@ -111,20 +111,39 @@ For example:
     # the following is now equivalent
     df.drop(columns=['B', 'C'])
 
-``rename`` now also accepts axis keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0210.enhancements.rename_reindex_axis:
 
-The :meth:`~DataFrame.rename` method has gained the ``axis`` keyword as an
-alternative to specify the ``axis`` to target (:issue:`12392`).
+``rename``, ``reindex`` now also accept axis keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: 
+The :meth:`DataFrame.rename` and :meth:`DataFrame.reindex` methods have gained
+the ``axis`` keyword to specify the axis to target with the operation
+(:issue:`12392`).
 
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-    df.rename(str.lower, axis='columns')
-    df.rename(id, axis='index')
+Here's ``rename``:
 
-The ``.rename(index=id, columns=str.lower)`` style continues to work as before.
-We *highly* encourage using named arguments to avoid confusion.
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+   df.rename(str.lower, axis='columns')
+   df.rename(id, axis='index')
+
+And ``reindex``:
+
+.. ipython:: python
+
+   df.reindex(['A', 'B', 'C'], axis='columns')
+   df.reindex([0, 1, 3], axis='index')
+
+The "index, columns" style continues to work as before.
+
+.. ipython:: python
+
+   df.rename(index=id, columns=str.lower)
+   df.reindex(index=[0, 1, 3], columns=['A', 'B', 'C'])
+
+We *highly* encourage using named arguments to avoid confusion when using either
+style.
 
 .. _whatsnew_0210.enhancements.categorical_dtype:
 
