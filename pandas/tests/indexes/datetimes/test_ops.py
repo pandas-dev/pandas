@@ -442,9 +442,10 @@ Freq: D"""
             Timestamp('2011-01-01') + idx
 
     @pytest.mark.parametrize('addend', [
-        date_range('20130101', periods=3).tz_localize('US/Eastern'),
+        date_range('20110101', periods=3).tz_localize('US/Eastern'),
+        datetime(2011, 1, 1),
         DatetimeIndex(['2011-01-01', '2011-01-02']),
-        np.datetime64('2005-02-25'),
+        np.datetime64('2011-01-01'),
         Timestamp('2011-01-01'),
     ])
     def test_add_datetimelike(self, addend):
@@ -457,6 +458,20 @@ Freq: D"""
             dti + addend
         with tm.assert_raises_regex(TypeError, msg):
             addend + dti
+
+    def test_add_dti_dti(self):
+        # previously performed setop (deprecated in 0.16.0)
+        # now raises TypeError (GH14164)
+
+        dti_tz = date_range('20110101', periods=3) \
+            .tz_localize('US/Eastern')
+        dti = date_range('20110101', periods=3)
+        combinations = product((dti_tz, dti), repeat=2)
+
+        msg = 'cannot add DatetimeIndex and DatetimeIndex'
+        for addend_1, addend_2 in combinations:
+            with tm.assert_raises_regex(TypeError, msg):
+                addend_1 + addend_2
 
     def test_difference(self):
         for tz in self.tz:
