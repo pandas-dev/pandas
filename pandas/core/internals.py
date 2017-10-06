@@ -4539,7 +4539,22 @@ class SingleBlockManager(BlockManager):
         return self._block.values[loc]
 
     def concat(self, to_concat, new_axis):
+        """
+        Concatenate a list of SingleBlockManagers into a single
+        SingleBlockManager.
 
+        Used for pd.concat of Series objects with axis=0.
+
+        Parameters
+        ----------
+        to_concat : list of SingleBlockManagers
+        new_axis : Index of the result
+
+        Returns
+        -------
+        SingleBlockManager
+
+        """
         non_empties = [x for x in to_concat if len(x) > 0]
 
         # check if all series are of the same block type:

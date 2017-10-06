@@ -366,12 +366,7 @@ class _Concatenator(object):
 
                 mgr = self.objs[0]._data.concat([x._data for x in self.objs],
                                                 self.new_axes)
-
-                if mgr._block.is_sparse:
-                    cons = SparseSeries
-                else:
-                    cons = self.objs[0].__class__
-
+                cons = _concat._get_series_result_type(mgr, self.objs)
                 return cons(mgr, name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame
