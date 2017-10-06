@@ -356,6 +356,61 @@ Selection with all keys found is unchanged.
 
    s.loc[[1, 2]]
 
+.. _whatsnew_0210.api_breaking.loc_with_index:
+
+Indexing with a Boolean Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously when passing a boolean ``Index`` to ``.loc``, if the index of the ``Series/DataFrame`` had ``boolean`` labels,
+you would get a label based selection, potentially duplicating result labels, rather than a boolean indexing selection
+(where ``True`` selects elements), this was inconsistent how a boolean numpy array indexed. The new behavior is to
+act like a boolean numpy array indexer. (:issue:`17738`)
+
+Previous Behavior:
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3], index=[False, True, False])
+   s
+
+.. code-block:: ipython
+
+   In [59]: s.loc[pd.Index([True, False, True])]
+   Out[59]:
+   True     2
+   False    1
+   False    3
+   True     2
+   dtype: int64
+
+Current Behavior
+
+.. ipython:: python
+
+   s.loc[pd.Index([True, False, True])]
+
+
+Furthermore, previously if you had an index that was non-numeric (e.g. strings), then a boolean Index would raise a ``KeyError``.
+This will now be treated as a boolean indexer.
+
+Previously Behavior:
+
+.. ipython:: python
+
+    s = pd.Series([1,2,3], index=['a', 'b', 'c'])
+    s
+
+.. code-block:: ipython
+
+    In [39]: s.loc[pd.Index([True, False, True])]
+    KeyError: "None of [Index([True, False, True], dtype='object')] are in the [index]"
+
+Current Behavior
+
+.. ipython:: python
+
+   s.loc[pd.Index([True, False, True])]
+
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
