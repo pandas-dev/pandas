@@ -1947,7 +1947,7 @@ class MultiIndex(Index):
         Notes
         -----
         This method only works if the MultiIndex is properly lex-sorted. So,
-        if only the first 2 levels of a 3-level MultiIndex  are lexsorted,
+        if only the first 2 levels of a 3-level MultiIndex are lexsorted,
         you can only pass two levels to ``.slice_locs``.
 
         Examples
