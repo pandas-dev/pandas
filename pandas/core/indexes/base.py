@@ -3589,6 +3589,19 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         start, end : int
 
+        Notes
+        -----
+        This method only works if the index is monotonic or unique.
+
+        Examples
+        ---------
+        >>> idx = pd.Index(list('abcd'))
+        >>> idx.slice_locs(start='b', end='c')
+        (1, 3)
+
+        See Also
+        --------
+        Index.get_loc : Get location for a single label
         """
         inc = (step is None or step >= 0)
 
