@@ -3556,7 +3556,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_locs(self, start=None, end=None, step=None, kind=None):
         """
-        For an ordered index, compute slice locations for input labels.
+        Compute slice locations for input labels.
 
         Parameters
         ----------
@@ -3574,7 +3574,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Notes
         -----
-        This method only works if the index is monotonic.
+        This method only works if the index is monotonic or unique.
 
         Examples
         ---------

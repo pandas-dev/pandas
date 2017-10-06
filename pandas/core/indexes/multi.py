@@ -1952,19 +1952,19 @@ class MultiIndex(Index):
 
         Examples
         --------
-        mi = pd.MultiIndex.from_arrays([list('abbd'), list('deff')],
-                                       names=['A', 'B'])
+        >>> mi = pd.MultiIndex.from_arrays([list('abbd'), list('deff')],
+        ...                                names=['A', 'B'])
 
         Get the slice locations from the beginning of 'b' in the first level
         until the end of the multiindex:
 
-        mi.slice_locs(start='b')
+        >>> mi.slice_locs(start='b')
         (1, 4)
 
         Like above, but stop at the end of 'b' in the first level and 'f' in
         the second level:
 
-        mi.slice_locs(start='b', end=('b', 'f'))
+        >>> mi.slice_locs(start='b', end=('b', 'f'))
         (1, 3)
 
         See Also
@@ -2042,8 +2042,8 @@ class MultiIndex(Index):
         See also
         --------
         Index.get_loc : get_loc method for (single-level) index.
-        MultiIndex.slice_locs : Get slice location given startlabel(s) and
-                                endlabel(s).
+        MultiIndex.slice_locs : Get slice location given start label(s) and
+                                end label(s).
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
@@ -2397,8 +2397,8 @@ class MultiIndex(Index):
         See also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
-        MultiIndex.slice_locs : Get slice location given startlabel(s) and
-                                endlabel(s).
+        MultiIndex.slice_locs : Get slice location given start label(s) and
+                                end label(s).
         """
 
         # must be lexsorted to at least as many levels
