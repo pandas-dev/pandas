@@ -164,6 +164,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
 
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    Period : Represents a period of time
+    DatetimeIndex : Index with datetime64 data
+    TimedeltaIndex : Index of timedelta64 data
     """
     _box_scalars = True
     _typ = 'periodindex'

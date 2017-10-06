@@ -208,9 +208,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Notes
     -----
-
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    TimedeltaIndex : Index of timedelta64 data
+    PeriodIndex : Index of Period data
     """
 
     _typ = 'datetimeindex'

@@ -123,6 +123,23 @@ class Index(IndexOpsMixin, PandasObject):
     Notes
     -----
     An Index instance can **only** contain hashable objects
+
+    Examples
+    --------
+    >>> pd.Index([1, 2, 3])
+    Int64Index([1, 2, 3], dtype='int64')
+
+    >>> pd.Index(list('abc'))
+    Index(['a', 'b', 'c'], dtype='object')
+
+    See Also
+    ---------
+    RangeIndex : Index implementing a monotonic integer range
+    CategoricalIndex : Index of :class:`Categorical` s.
+    MultiIndex : A multi-level, or hierarchical, Index
+    IntervalIndex : an Index of :class:`Interval` s.
+    DatetimeIndex, TimedeltaIndex, PeriodIndex
+    Int64Index, UInt64Index,  Float64Index
     """
     # To hand over control to subclasses
     _join_precedence = 1

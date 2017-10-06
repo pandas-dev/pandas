@@ -95,6 +95,7 @@ class MultiIndex(Index):
     MultiIndex.from_product : Create a MultiIndex from the cartesian product
                               of iterables
     MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
+    Index : The base pandas Index type
     """
 
     # initialize to zero-length tuples to make everything work
