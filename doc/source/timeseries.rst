@@ -1456,8 +1456,9 @@ The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
 operation.
 
-The ``how`` parameter can be a function name or numpy array function that takes
-an array and produces aggregated values:
+Any function available via :ref:`dispatching <groupby.dispatch>` is available as
+a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
+``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``:
 
 .. ipython:: python
 
@@ -1467,9 +1468,6 @@ an array and produces aggregated values:
 
    ts.resample('5Min').max()
 
-Any function available via :ref:`dispatching <groupby.dispatch>` can be given to
-the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``sem``,
-``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``.
 
 For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
 end of the interval is closed:
