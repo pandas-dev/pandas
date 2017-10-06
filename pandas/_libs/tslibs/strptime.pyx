@@ -321,7 +321,7 @@ def array_strptime(ndarray[object] values, object fmt,
 
         iresult[i] = dtstruct_to_dt64(&dts)
         try:
-            check_dts_bounds(&dts):
+            check_dts_bounds(&dts)
         except ValueError:
             if is_coerce:
                 iresult[i] = NPY_NAT
