@@ -3,7 +3,7 @@ concat routines
 """
 
 import numpy as np
-from pandas import compat, DataFrame, Series, Index, MultiIndex, SparseSeries
+from pandas import compat, DataFrame, Series, Index, MultiIndex
 from pandas.core.index import (_get_objs_combined_axis,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
