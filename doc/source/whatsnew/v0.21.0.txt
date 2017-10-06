@@ -195,7 +195,7 @@ Other Enhancements
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 - Improved the import time of pandas by about 2.25x  (:issue:`16764`)
-
+- :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 
 .. _whatsnew_0210.api_breaking:
 

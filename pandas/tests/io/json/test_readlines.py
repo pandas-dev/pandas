@@ -128,7 +128,7 @@ def test_readjson_chunks_closes(chunksize):
             path, orient=None, typ="frame", dtype=True, convert_axes=True,
             convert_dates=True, keep_default_dates=True, numpy=False,
             precise_float=False, date_unit=None, encoding=None,
-            lines=True, chunksize=chunksize)
+            lines=True, chunksize=chunksize, compression=None)
         reader.read()
         assert reader.open_stream.closed, "didn't close stream with \
             chunksize = %s" % chunksize

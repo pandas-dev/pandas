@@ -1258,7 +1258,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False):
+                default_handler=None, lines=False, compression=None):
         """
         Convert the object to a JSON string.
 
@@ -1320,6 +1320,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
+        compression : {None, 'gzip', 'bz2', 'xz'}
+            A string representing the compression to use in the output file,
+            only used when the first argument is a filename
+
+            .. versionadded:: 0.21.0
+
         Returns
         -------
         same type as input object with filtered info axis
@@ -1372,7 +1378,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
-                            lines=lines)
+                            lines=lines, compression=compression)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Write the contained data to an HDF5 file using HDFStore.
