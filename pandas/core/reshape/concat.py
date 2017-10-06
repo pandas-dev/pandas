@@ -9,7 +9,7 @@ from pandas.core.index import (_get_objs_combined_axis,
                                _all_indexes_same)
 from pandas.core.categorical import (_factorize_from_iterable,
                                      _factorize_from_iterables)
-from pandas.core.internals import concatenate_block_managers, SparseBlock
+from pandas.core.internals import concatenate_block_managers
 from pandas.core import common as com
 from pandas.core.generic import NDFrame
 import pandas.core.dtypes.concat as _concat

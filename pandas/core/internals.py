@@ -2421,13 +2421,15 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         Concatenate list of single blocks of the same type.
         """
         to_concat = [blk.values for blk in to_concat]
-        values = _concat._concat_categorical(to_concat)
+        values = _concat._concat_categorical(to_concat, axis=self.ndim - 1)
 
         if is_categorical_dtype(values.dtype):
             return self.make_block_same_class(
                 values, placement=placement or slice(0, len(values), 1))
         else:
-            return make_block(values, placement=placement or slice(0, len(values), 1))
+            return make_block(
+                values, placement=placement or slice(0, len(values), 1),
+                ndim=self.ndim)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2711,13 +2713,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         Concatenate list of single blocks of the same type.
         """
         to_concat = [blk.values for blk in to_concat]
-        values = _concat._concat_datetime(to_concat)
+        values = _concat._concat_datetime(to_concat, axis=self.ndim - 1)
 
         if is_datetimetz(values):
             return self.make_block_same_class(
                 values, placement=placement or slice(0, len(values), 1))
         else:
-            return make_block(values, placement=placement or slice(0, len(values), 1))
+            return make_block(
+                values, placement=placement or slice(0, len(values), 1))
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
@@ -5172,15 +5175,15 @@ def is_uniform_join_units(join_units):
     """
     return (
         # all blocks need to have the same type
-        all([type(ju.block) is type(join_units[0].block) for ju in join_units])  # noqa
+        all([type(ju.block) is type(join_units[0].block) for ju in join_units]) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        and all([not ju.is_na for ju in join_units])
+        all([not ju.is_na for ju in join_units]) and
         # no blocks with indexers (as then the dimensions do not fit)
-        and all([not ju.indexers for ju in join_units])
+        all([not ju.indexers for ju in join_units]) and
         # disregard Panels
-        and all([ju.block.ndim <= 2 for ju in join_units])
+        all([ju.block.ndim <= 2 for ju in join_units]) and
         # only use this path when there is something to concatenate
-        and len(join_units) > 1)
+        len(join_units) > 1)
 
 
 def get_empty_dtype_and_na(join_units):
