@@ -1,6 +1,39 @@
 #!/usr/env/bin python
 
-""" self-contained to write legacy storage (pickle/msgpack) files """
+"""
+self-contained to write legacy storage (pickle/msgpack) files
+
+To use this script. Create an environment where you want
+generate pickles, say its for 0.18.1, with your pandas clone
+in ~/pandas
+
+. activate pandas_0.18.1
+cd ~/
+
+$ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
+    pandas/pandas/tests/io/data/legacy_pickle/0.18.1/ pickle
+
+This script generates a storage file for the current arch, system,
+and python version
+  pandas version: 0.18.1
+  output dir    : pandas/pandas/tests/io/data/legacy_pickle/0.18.1/
+  storage format: pickle
+created pickle file: 0.18.1_x86_64_darwin_3.5.2.pickle
+
+The idea here is you are using the *current* version of the
+generate_legacy_storage_files with an *older* version of pandas to
+generate a pickle file. We will then check this file into a current
+branch, and test using test_pickle.py. This will load the *older*
+pickles and test versus the current data that is generated
+(with master). These are then compared.
+
+If we have cases where we changed the signature (e.g. we renamed
+offset -> freq in Timestamp). Then we have to conditionally execute
+in the generate_legacy_storage_files.py to make it
+run under the older AND the newer version.
+
+"""
+
 from __future__ import print_function
 from warnings import catch_warnings
 from distutils.version import LooseVersion
@@ -9,6 +42,11 @@ from pandas import (Series, DataFrame, Panel,
                     Index, MultiIndex, bdate_range, to_msgpack,
                     date_range, period_range,
                     Timestamp, NaT, Categorical, Period)
+from pandas.tseries.offsets import (
+    DateOffset, Hour, Minute, Day,
+    MonthBegin, MonthEnd, YearBegin,
+    YearEnd, Week,
+    QuarterBegin, QuarterEnd)
 from pandas.compat import u
 import os
 import sys
@@ -151,10 +189,28 @@ def create_data():
 
     timestamp = dict(normal=Timestamp('2011-01-01'),
                      nat=NaT,
-                     tz=Timestamp('2011-01-01', tz='US/Eastern'),
-                     freq=Timestamp('2011-01-01', freq='D'),
-                     both=Timestamp('2011-01-01', tz='Asia/Tokyo',
-                                    freq='M'))
+                     tz=Timestamp('2011-01-01', tz='US/Eastern'))
+
+    if _loose_version < '0.19.2':
+        timestamp['freq'] = Timestamp('2011-01-01', offset='D')
+        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                      offset='M')
+    else:
+        timestamp['freq'] = Timestamp('2011-01-01', freq='D')
+        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                      freq='M')
+
+    off = {'DateOffset': DateOffset(years=1),
+           'MonthBegin': MonthBegin(1),
+           'MonthEnd': MonthEnd(1),
+           'QuarterBegin': QuarterBegin(1),
+           'QuarterEnd': QuarterEnd(1),
+           'Day': Day(1),
+           'YearBegin': YearBegin(1),
+           'YearEnd': YearEnd(1),
+           'Week': Week(1),
+           'Hour': Hour(1),
+           'Minute': Minute(1)}
 
     return dict(series=series,
                 frame=frame,
@@ -166,7 +222,8 @@ def create_data():
                                ts=_create_sp_tsseries()),
                 sp_frame=dict(float=_create_sp_frame()),
                 cat=cat,
-                timestamp=timestamp)
+                timestamp=timestamp,
+                offsets=off)
 
 
 def create_pickle_data():

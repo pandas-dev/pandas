@@ -16,7 +16,6 @@ from pandas._libs import (lib, index as libindex,
 
 from pandas import compat
 from pandas.util._decorators import Appender
-import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing
@@ -668,11 +667,11 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
                 dtype = find_common_type([x.dtype, y.dtype])
@@ -1193,9 +1192,10 @@ def _align_method_FRAME(left, right, axis):
 def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                         fill_zeros=None, **eval_kwargs):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             xrav = x.ravel()
             if isinstance(y, (np.ndarray, ABCSeries)):
@@ -1327,7 +1327,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
-                                      raise_on_error=False,
+                                      errors='ignore',
                                       try_cast=False)
             return res.fillna(True).astype(bool)
 
@@ -1349,9 +1349,10 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
     # copied from Series na_op above, but without unnecessary branch for
     # non-scalar
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
 
             # TODO: might need to find_common_type here?
@@ -1378,9 +1379,10 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
 
 def _comp_method_PANEL(op, name, str_rep=None, masker=False):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True)
+            result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)

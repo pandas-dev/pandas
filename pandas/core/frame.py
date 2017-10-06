@@ -76,9 +76,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
-from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
@@ -299,7 +297,8 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
-    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
+    _deprecations = NDFrame._deprecations | frozenset(
+        ['sortlevel', 'get_value', 'set_value'])
 
     @property
     def _constructor_expanddim(self):
@@ -1687,6 +1686,10 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.19.0
         """
 
+        if (justify is not None and
+                justify not in fmt._VALID_JUSTIFY_PARAMETERS):
+            raise ValueError("Invalid value for justify parameter")
+
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
@@ -1920,6 +1923,10 @@ class DataFrame(NDFrame):
         """
         Quickly retrieve single value at passed column and index
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : row label
@@ -1930,6 +1937,14 @@ class DataFrame(NDFrame):
         -------
         value : scalar value
         """
+
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(index, col, takeable=takeable)
+
+    def _get_value(self, index, col, takeable=False):
 
         if takeable:
             series = self._iget_item_cache(col)
@@ -1946,11 +1961,16 @@ class DataFrame(NDFrame):
             # use positional
             col = self.columns.get_loc(col)
             index = self.index.get_loc(index)
-            return self.get_value(index, col, takeable=True)
+            return self._get_value(index, col, takeable=True)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1965,10 +1985,17 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(index, col, value, takeable=takeable)
+
+    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
-                return series.set_value(index, value, takeable=True)
+                return series._set_value(index, value, takeable=True)
 
             series = self._get_item_cache(col)
             engine = self.index._engine
@@ -1981,6 +2008,7 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i, axis=0):
         """
@@ -2034,7 +2062,7 @@ class DataFrame(NDFrame):
                 return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
-                    return self.take(i, axis=1, convert=True)
+                    return self._take(i, axis=1, convert=True)
 
                 index_len = len(self.index)
 
@@ -2116,10 +2144,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self.take(indexer, axis=0, convert=False)
+            return self._take(indexer, axis=0, convert=False)
         else:
             indexer = self.loc._convert_to_indexer(key, axis=1)
-            return self.take(indexer, axis=1, convert=True)
+            return self._take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2296,6 +2324,8 @@ class DataFrame(NDFrame):
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
+        from pandas.core.computation.eval import eval as _eval
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
@@ -2787,7 +2817,7 @@ class DataFrame(NDFrame):
         else:
             result = np.empty(n, dtype='O')
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self.get_value(r, c)
+                result[i] = self._get_value(r, c)
 
         if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
@@ -3355,7 +3385,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self.take(mask.nonzero()[0], axis=axis, convert=False)
+            result = self._take(mask.nonzero()[0], axis=axis, convert=False)
 
         if inplace:
             self._update_inplace(result)
@@ -3486,7 +3516,7 @@ class DataFrame(NDFrame):
 
         new_data = self._data.take(indexer,
                                    axis=self._get_block_manager_axis(axis),
-                                   convert=False, verify=False)
+                                   verify=False)
 
         if inplace:
             return self._update_inplace(new_data)
@@ -3547,7 +3577,7 @@ class DataFrame(NDFrame):
         baxis = self._get_block_manager_axis(axis)
         new_data = self._data.take(indexer,
                                    axis=baxis,
-                                   convert=False, verify=False)
+                                   verify=False)
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
@@ -3832,14 +3862,15 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
+    def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error,
+                                   errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
     def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
 
+        import pandas.core.computation.expressions as expressions
         # unique
         if self.columns.is_unique:
 
@@ -3992,6 +4023,7 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
         """
+        import pandas.core.computation.expressions as expressions
 
         def combiner(x, y, needs_i8_conversion=False):
             x_values = x.values if hasattr(x, 'values') else x
@@ -4003,8 +4035,7 @@ class DataFrame(NDFrame):
             else:
                 mask = isna(x_values)
 
-            return expressions.where(mask, y_values, x_values,
-                                     raise_on_error=True)
+            return expressions.where(mask, y_values, x_values)
 
         return self.combine(other, combiner, overwrite=False)
 
@@ -4027,6 +4058,7 @@ class DataFrame(NDFrame):
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
         """
+        import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
@@ -4058,8 +4090,7 @@ class DataFrame(NDFrame):
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that,
-                                          raise_on_error=True)
+            self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Misc methods

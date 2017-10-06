@@ -79,9 +79,15 @@ common_docstring = """
     line_width : int, optional
         Width to wrap a line in characters, default no wrap"""
 
+_VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
+                             "justify-all", "start", "end", "inherit",
+                             "match-parent", "initial", "unset")
+
 justify_docstring = """
-    justify : {'left', 'right'}, default None
-        Left or right-justify the column labels. If None uses the option from
+    justify : {'left', 'right', 'center', 'justify',
+               'justify-all', 'start', 'end', 'inherit',
+               'match-parent', 'initial', 'unset'}, default None
+        How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
         of the box."""
 

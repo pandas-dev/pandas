@@ -147,7 +147,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['sortlevel', 'reshape'])
+        ['sortlevel', 'reshape', 'get_value', 'set_value'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -253,7 +253,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False,
+                    data = data.astype(dtype=dtype, errors='ignore',
                                        copy=copy)
                 elif copy:
                     data = data.copy()
@@ -691,7 +691,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if key_type == 'integer':
                 if self.index.is_integer() or self.index.is_floating():
-                    return self.reindex(key)
+                    return self.loc[key]
                 else:
                     return self._get_values(key)
             elif key_type == 'boolean':
@@ -902,6 +902,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Quickly retrieve single value at passed index label
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : label
@@ -911,15 +915,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(label, takeable=takeable)
+
+    def _get_value(self, label, takeable=False):
         if takeable is True:
             return _maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
         index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -935,17 +951,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If label is contained, will be reference to calling Series,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(label, value, takeable=takeable)
+
+    def _set_value(self, label, value, takeable=False):
         try:
             if takeable:
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-            return self
         except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
-            return self
+
+        return self
+    _set_value.__doc__ = set_value.__doc__
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -2563,35 +2587,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    def take(self, indices, axis=0, convert=True, is_copy=False, **kwargs):
-        """
-        return Series corresponding to requested indices
-
-        Parameters
-        ----------
-        indices : list / array of ints
-        convert : translate negative to positive indices (default)
-
-        Returns
-        -------
-        taken : Series
-
-        See also
-        --------
-        numpy.ndarray.take
-        """
-        if kwargs:
-            nv.validate_take(tuple(), kwargs)
-
-        # check/convert indicies here
+    @Appender(generic._shared_docs['_take'])
+    def _take(self, indices, axis=0, convert=True, is_copy=False):
         if convert:
             indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         indices = _ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
-        return (self._constructor(new_values, index=new_index, fastpath=True)
-                    .__finalize__(self))
+
+        result = (self._constructor(new_values, index=new_index,
+                                    fastpath=True).__finalize__(self))
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
 
     def isin(self, values):
         """

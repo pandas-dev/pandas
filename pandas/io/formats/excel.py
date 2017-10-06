@@ -356,7 +356,21 @@ class ExcelFormatter(object):
             self.styler = None
         self.df = df
         if cols is not None:
-            self.df = df.loc[:, cols]
+
+            # all missing, raise
+            if not len(Index(cols) & df.columns):
+                raise KeyError(
+                    "passes columns are not ALL present dataframe")
+
+            # deprecatedin gh-17295
+            # 1 missing is ok (for now)
+            if len(Index(cols) & df.columns) != len(cols):
+                warnings.warn(
+                    "Not all names specified in 'columns' are found; "
+                    "this will raise a KeyError in the future",
+                    FutureWarning)
+
+            self.df = df.reindex(columns=cols)
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index

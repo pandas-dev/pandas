@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isna, concat,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
@@ -4529,7 +4529,7 @@ def _unconvert_index(data, kind, encoding=None):
 def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     kind = _ensure_decoded(kind)
     if kind == u('datetime'):
-        index = lib.time64_to_datetime(data)
+        index = to_datetime(data)
     elif kind in (u('integer')):
         index = np.asarray(data, dtype=object)
     elif kind in (u('string')):

@@ -8,6 +8,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange
+from pandas.api.types import CategoricalDtype
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range, NaT, IntervalIndex)
 
@@ -513,7 +514,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         df = (DataFrame({'A': np.arange(6, dtype='int64'),
                          'B': Series(list('aabbca'))
-                         .astype('category', categories=list('cab'))})
+                         .astype(CategoricalDtype(list('cab')))})
               .set_index('B'))
 
         result = df.sort_index()

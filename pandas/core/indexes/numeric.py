@@ -108,19 +108,21 @@ _num_index_shared_docs['class_descr'] = """
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+
     Notes
     -----
     An Index instance can **only** contain hashable objects.
+
+    See also
+    --------
+    Index : The base pandas Index type
 """
 
 _int64_descr_args = dict(
     klass='Int64Index',
     ltype='integer',
     dtype='int64',
-    extra="""This is the default index type used
-    by the DataFrame and Series ctors when no explicit
-    index is provided by the user.
-"""
+    extra=''
 )
 
 

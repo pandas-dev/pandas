@@ -10,9 +10,7 @@ echo "[Using clean Miniconda install]"
 rm -rf "$MINICONDA_DIR"
 
 # install miniconda
-# wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
-# Pin miniconda
-wget https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -q -O miniconda.sh || exit 1
+wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
 bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
 export PATH="$MINICONDA_DIR/bin:$PATH"
@@ -20,7 +18,7 @@ export PATH="$MINICONDA_DIR/bin:$PATH"
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set always_yes true --set changeps1 false || exit 1
-# conda update -q conda
+conda update -q conda
 
 # add the pandas channel to take priority
 # to add extra packages

@@ -38,6 +38,7 @@ from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
 import pandas.core.indexing as indexing
+from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
@@ -1822,7 +1823,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self.take(item, axis=self._info_axis_number, convert=True)
+            lower = self._take(item, axis=self._info_axis_number,
+                               convert=True)
         return lower
 
     def _box_item_values(self, key, values):
@@ -2057,8 +2059,63 @@ class NDFrame(PandasObject, SelectionMixin):
         except KeyError:
             pass
 
-    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
+    _shared_docs['_take'] = """
+        Return the elements in the given *positional* indices along an axis.
+
+        This means that we are not indexing according to actual values in
+        the index attribute of the object. We are indexing according to the
+        actual position of the element in the object.
+
+        This is the internal version of ``.take()`` and will contain a wider
+        selection of parameters useful for internal use but not as suitable
+        for public usage.
+
+        Parameters
+        ----------
+        indices : array-like
+            An array of ints indicating which positions to take.
+        axis : int, default 0
+            The axis on which to select elements. "0" means that we are
+            selecting rows, "1" means that we are selecting columns, etc.
+        convert : bool, default True
+            Whether to convert negative indices into positive ones.
+            For example, ``-1`` would map to the ``len(axis) - 1``.
+            The conversions are similar to the behavior of indexing a
+            regular Python list.
+        is_copy : bool, default True
+            Whether to return a copy of the original object or not.
+
+        Returns
+        -------
+        taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        numpy.ndarray.take
+        numpy.take
         """
+
+    @Appender(_shared_docs['_take'])
+    def _take(self, indices, axis=0, convert=True, is_copy=True):
+        self._consolidate_inplace()
+
+        if convert:
+            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
+
+        new_data = self._data.take(indices,
+                                   axis=self._get_block_manager_axis(axis),
+                                   verify=True)
+        result = self._constructor(new_data).__finalize__(self)
+
+        # Maybe set copy if we didn't actually change the index.
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+
+        return result
+
+    _shared_docs['take'] = """
         Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
@@ -2073,9 +2130,12 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis on which to select elements. "0" means that we are
             selecting rows, "1" means that we are selecting columns, etc.
         convert : bool, default True
-            Whether to convert negative indices to positive ones, just as with
-            indexing into Python lists. For example, if `-1` was passed in,
-            this index would be converted ``n - 1``.
+            .. deprecated:: 0.21.0
+
+            Whether to convert negative indices into positive ones.
+            For example, ``-1`` would map to the ``len(axis) - 1``.
+            The conversions are similar to the behavior of indexing a
+            regular Python list.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
 
@@ -2131,19 +2191,17 @@ class NDFrame(PandasObject, SelectionMixin):
         numpy.ndarray.take
         numpy.take
         """
+
+    @Appender(_shared_docs['take'])
+    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        self._consolidate_inplace()
-        new_data = self._data.take(indices,
-                                   axis=self._get_block_manager_axis(axis),
-                                   convert=True, verify=True)
-        result = self._constructor(new_data).__finalize__(self)
 
-        # maybe set copy if we didn't actually change the index
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
+        if not convert:
+            msg = ("The 'convert' parameter is deprecated "
+                   "and will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
-        return result
+        return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -2244,9 +2302,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self.take(inds, axis=axis, convert=False)
+                    return self._take(inds, axis=axis, convert=False)
                 else:
-                    return self.take(loc, axis=axis, convert=True)
+                    return self._take(loc, axis=axis, convert=True)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -2281,6 +2339,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return data corresponding to axis labels matching criteria
 
+        DEPRECATED: use df.loc[df.index.map(crit)] to select via labels
+
         Parameters
         ----------
         crit : function
@@ -2291,6 +2351,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         selection : type of caller
         """
+        warnings.warn("'select' is deprecated and will be removed in a "
+                      "future release. You can use "
+                      ".loc[labels.map(crit)] as a replacement",
+                      FutureWarning, stacklevel=2)
+
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis)
@@ -3043,7 +3108,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.select
+        pandas.DataFrame.loc
 
         Notes
         -----
@@ -3062,20 +3127,23 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if axis is None:
             axis = self._info_axis_name
-        axis_name = self._get_axis_name(axis)
-        axis_values = self._get_axis(axis_name)
+        labels = self._get_axis(axis)
 
         if items is not None:
-            return self.reindex(**{axis_name:
-                                   [r for r in items if r in axis_values]})
+            name = self._get_axis_name(axis)
+            return self.reindex(
+                **{name: [r for r in items if r in labels]})
         elif like:
-            matchf = lambda x: (like in x if isinstance(x, string_types) else
-                                like in str(x))
-            return self.select(matchf, axis=axis_name)
+            def f(x):
+                if not isinstance(x, string_types):
+                    x = str(x)
+                return like in x
+            values = labels.map(f)
+            return self.loc(axis=axis)[values]
         elif regex:
             matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(str(x)) is not None,
-                               axis=axis_name)
+            values = labels.map(lambda x: matcher.search(str(x)) is not None)
+            return self.loc(axis=axis)[values]
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
 
@@ -4260,7 +4328,7 @@ class NDFrame(PandasObject, SelectionMixin):
             dicts of such objects are also allowed.
         inplace : boolean, default False
             If True, in place. Note: this will modify any
-            other views on this object (e.g. a column form a DataFrame).
+            other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
         limit : int, default None
             Maximum size gap to forward or backward fill
@@ -5112,7 +5180,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
-            return self.take(indexer, convert=False)
+            return self._take(indexer, convert=False)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -5136,7 +5204,7 @@ class NDFrame(PandasObject, SelectionMixin):
             indexer = self.index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self.take(indexer, convert=False)
+            return self._take(indexer, convert=False)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -5690,7 +5758,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return left.__finalize__(self), right.__finalize__(other)
 
     def _where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-               try_cast=False, raise_on_error=True):
+               errors='raise', try_cast=False):
         """
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
@@ -5819,7 +5887,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             new_data = self._data.where(other=other, cond=cond, align=align,
-                                        raise_on_error=raise_on_error,
+                                        errors=errors,
                                         try_cast=try_cast, axis=block_axis,
                                         transpose=self._AXIS_REVERSED)
 
@@ -5856,11 +5924,20 @@ class NDFrame(PandasObject, SelectionMixin):
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
         level : alignment level if needed, default None
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
+            Note that currently this parameter won't affect
+            the results and will always coerce to a suitable dtype.
+
         try_cast : boolean, default False
             try to cast the result back to the input type (if possible),
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
             strings)
+
+            .. deprecated:: 0.21.0
 
         Returns
         -------
@@ -5937,24 +6014,46 @@ class NDFrame(PandasObject, SelectionMixin):
                                            cond_rev="False", name='where',
                                            name_other='mask'))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-              try_cast=False, raise_on_error=True):
+              errors='raise', try_cast=False, raise_on_error=None):
+
+        if raise_on_error is not None:
+            warnings.warn(
+                "raise_on_error is deprecated in "
+                "favor of errors='raise|ignore'",
+                FutureWarning, stacklevel=2)
+
+            if raise_on_error:
+                errors = 'raise'
+            else:
+                errors = 'ignore'
 
         other = com._apply_if_callable(other, self)
-        return self._where(cond, other, inplace, axis, level, try_cast,
-                           raise_on_error)
+        return self._where(cond, other, inplace, axis, level,
+                           errors=errors, try_cast=try_cast)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False",
                                            cond_rev="True", name='mask',
                                            name_other='where'))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
-             try_cast=False, raise_on_error=True):
+             errors='raise', try_cast=False, raise_on_error=None):
+
+        if raise_on_error is not None:
+            warnings.warn(
+                "raise_on_error is deprecated in "
+                "favor of errors='raise|ignore'",
+                FutureWarning, stacklevel=2)
+
+            if raise_on_error:
+                errors = 'raise'
+            else:
+                errors = 'ignore'
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
-                          raise_on_error=raise_on_error)
+                          errors=errors)
 
     _shared_docs['shift'] = ("""
         Shift index by desired number of periods with an optional time freq
@@ -6294,20 +6393,22 @@ class NDFrame(PandasObject, SelectionMixin):
             - A list-like of dtypes : Limits the results to the
               provided data types.
               To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to categorical
-              objects submit the ``numpy.object`` data type. Strings
+              ``numpy.number``. To limit it instead to object columns submit
+              the ``numpy.object`` data type. Strings
               can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              select pandas categorical columns, use ``'category'``
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
             for ``Series``. Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
-              from the result. To select numeric types submit
-              ``numpy.number``. To select categorical objects submit the data
+              from the result. To exclude numeric types submit
+              ``numpy.number``. To exclude object columns submit the data
               type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``)
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
 
         Returns
@@ -6332,9 +6433,11 @@ class NDFrame(PandasObject, SelectionMixin):
         among those with the highest count.
 
         For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If ``include='all'``
-        is provided as an option, the result will include a union of
-        attributes of each type.
+        return only an analysis of numeric columns. If the dataframe consists
+        only of object and categorical data without any numeric columns, the
+        default is to return an analysis of both the object and categorical
+        columns. If ``include='all'`` is provided as an option, the result
+        will include a union of attributes of each type.
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
@@ -6384,8 +6487,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame([[1, 'a'], [2, 'b'], [3, 'c']],
-        ...                   columns=['numeric', 'object'])
+        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
+        ...                     'numeric': [1, 2, 3],
+        ...                     'categorical': pd.Categorical(['d','e','f'])
+        ...                   })
         >>> df.describe()
                numeric
         count      3.0
@@ -6400,18 +6505,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing all columns of a ``DataFrame`` regardless of data type.
 
         >>> df.describe(include='all')
-                numeric object
-        count       3.0      3
-        unique      NaN      3
-        top         NaN      b
-        freq        NaN      1
-        mean        2.0    NaN
-        std         1.0    NaN
-        min         1.0    NaN
-        25%         1.5    NaN
-        50%         2.0    NaN
-        75%         2.5    NaN
-        max         3.0    NaN
+                categorical  numeric object
+        count            3      3.0      3
+        unique           3      NaN      3
+        top              f      NaN      c
+        freq             1      NaN      1
+        mean           NaN      2.0    NaN
+        std            NaN      1.0    NaN
+        min            NaN      1.0    NaN
+        25%            NaN      1.5    NaN
+        50%            NaN      2.0    NaN
+        75%            NaN      2.5    NaN
+        max            NaN      3.0    NaN
 
         Describing a column from a ``DataFrame`` by accessing it as
         an attribute.
@@ -6446,30 +6551,42 @@ class NDFrame(PandasObject, SelectionMixin):
                object
         count       3
         unique      3
-        top         b
+        top         c
         freq        1
+
+        Including only categorical columns from a ``DataFrame`` description.
+
+        >>> df.describe(include=['category'])
+               categorical
+        count            3
+        unique           3
+        top              f
+        freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.number])
-               object
-        count       3
-        unique      3
-        top         b
-        freq        1
+               categorical object
+        count            3      3
+        unique           3      3
+        top              f      c
+        freq             1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
+                categorical  numeric
+        count            3      3.0
+        unique           3      NaN
+        top              f      NaN
+        freq             1      NaN
+        mean           NaN      2.0
+        std            NaN      1.0
+        min            NaN      1.0
+        25%            NaN      1.5
+        50%            NaN      2.0
+        75%            NaN      2.5
+        max            NaN      3.0
 
         See Also
         --------
@@ -6631,7 +6748,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
-        grouped = self.groupby(level=level, axis=axis)
+        grouped = self.groupby(level=level, axis=axis, sort=False)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
