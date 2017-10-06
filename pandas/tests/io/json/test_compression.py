@@ -81,18 +81,6 @@ def test_read_zipped_json():
 
 
 @pytest.mark.parametrize('compression', COMPRESSION_TYPES)
-def test_with_file_url(compression):
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
-    with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
-        df.to_json(path, compression=compression)
-        file_url = 'file://localhost' + path
-        assert_frame_equal(df, pd.read_json(file_url, compression=compression))
-
-
-@pytest.mark.parametrize('compression', COMPRESSION_TYPES)
 def test_with_s3_url(compression):
     boto3 = pytest.importorskip('boto3')
     pytest.importorskip('s3fs')
