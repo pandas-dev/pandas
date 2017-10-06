@@ -441,47 +441,22 @@ Freq: D"""
         with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
 
-    def test_add_dti_ts(self):
+    @pytest.mark.parametrize('addend', [
+        date_range('20130101', periods=3).tz_localize('US/Eastern'),
+        DatetimeIndex(['2011-01-01', '2011-01-02']),
+        np.datetime64('2005-02-25'),
+        Timestamp('2011-01-01'),
+    ])
+    def test_add_datetimelike(self, addend):
+        # issue #9631
+
         dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        ts = Timestamp('2011-01-01')
-        msg = 'cannot add DatetimeIndex and Timestamp'
-
+        msg = 'cannot add DatetimeIndex and {0}'.format(
+            type(addend).__name__)
         with tm.assert_raises_regex(TypeError, msg):
-            dti + ts
-
+            dti + addend
         with tm.assert_raises_regex(TypeError, msg):
-            ts + dti
-
-    def test_add_dti_dt64(self):
-        dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        dt64 = np.datetime64('2005-02-25')
-        msg = 'cannot add DatetimeIndex and datetime64'
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dti + dt64
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dt64 + dti
-
-    def test_add_dti_dti(self):
-        # previously performed setop (deprecated in 0.16.0), now raises
-        # TypeError (GH14164)
-
-        dti = date_range('20130101', periods=3)
-        dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
-        msg = 'cannot add DatetimeIndex and DatetimeIndex'
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dti + dti
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dti_tz + dti_tz
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dti_tz + dti
-
-        with tm.assert_raises_regex(TypeError, msg):
-            dti + dti_tz
+            addend + dti
 
     def test_difference(self):
         for tz in self.tz:
