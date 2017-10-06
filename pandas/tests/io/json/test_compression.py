@@ -10,54 +10,43 @@ from pandas.util.testing import assert_frame_equal, assert_raises_regex
 COMPRESSION_TYPES = [None, 'bz2', 'gzip', 'xz']
 
 
-def test_compress_gzip():
-    df = pd.DataFrame([[0.123456, 0.234567, 0.567567],
-                       [12.32112, 123123.2, 321321.2]],
-                      index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-    with tm.ensure_clean() as path:
-        df.to_json(path, compression='gzip')
-        assert_frame_equal(df, pd.read_json(path, compression='gzip'))
-
-        # explicitly make sure file is gzipped
+def decompress_file(path, compression):
+    if compression is None:
+        f = open(path, 'rb')
+    elif compression == 'gzip':
         import gzip
-        with gzip.GzipFile(path, 'rb') as f:
-            text = f.read().decode('utf8')
-        assert_frame_equal(df, pd.read_json(text))
-
-
-def test_compress_bz2():
-    df = pd.DataFrame([[0.123456, 0.234567, 0.567567],
-                       [12.32112, 123123.2, 321321.2]],
-                      index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-    with tm.ensure_clean() as path:
-        df.to_json(path, compression='bz2')
-        assert_frame_equal(df, pd.read_json(path, compression='bz2'))
-
-        # explicitly make sure file is bz2ed
+        f = gzip.GzipFile(path, 'rb')
+    elif compression == 'bz2':
         import bz2
-        with bz2.BZ2File(path, 'rb') as f:
-            text = f.read().decode('utf8')
-        assert_frame_equal(df, pd.read_json(text))
+        f = bz2.BZ2File(path, 'rb')
+    elif compression == 'xz':
+        lzma = compat.import_lzma()
+        f = lzma.open(path, 'rb')
+    else:
+        msg = 'Unrecognized compression type: {}'.format(compression)
+        raise ValueError(msg)
+
+    result = f.read().decode('utf8')
+    f.close()
+    return result
 
 
-def test_compress_xz():
-    tm._skip_if_no_lzma()
+@pytest.mark.parametrize('compression', COMPRESSION_TYPES)
+def test_compression_roundtrip(compression):
+    if compression == 'xz':
+        tm._skip_if_no_lzma()
 
     df = pd.DataFrame([[0.123456, 0.234567, 0.567567],
                        [12.32112, 123123.2, 321321.2]],
                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
     with tm.ensure_clean() as path:
-        df.to_json(path, compression='xz')
-        assert_frame_equal(df, pd.read_json(path, compression='xz'))
+        df.to_json(path, compression=compression)
+        assert_frame_equal(df, pd.read_json(path, compression=compression))
 
-        # explicitly make sure file is xzipped
-        lzma = compat.import_lzma()
-        with lzma.open(path, 'rb') as f:
-            text = f.read().decode('utf8')
-        assert_frame_equal(df, pd.read_json(text))
+        # explicitly ensure file was compressed.
+        uncompressed_content = decompress_file(path, compression)
+        assert_frame_equal(df, pd.read_json(uncompressed_content))
 
 
 def test_compress_zip_value_error():
