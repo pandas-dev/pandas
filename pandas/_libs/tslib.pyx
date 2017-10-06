@@ -46,7 +46,6 @@ from datetime cimport (
     npy_datetime,
     is_leapyear,
     dayofweek,
-    check_dts_bounds,
     PANDAS_FR_ns,
     PyDateTime_Check, PyDate_Check,
     PyDateTime_IMPORT,
@@ -56,6 +55,9 @@ from datetime cimport (
 # stdlib datetime imports
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+
+from tslibs.npy_dtime cimport check_dts_bounds as _check_dts_bounds
+from tslibs.npy_dtime import OutOfBoundsDatetime
 
 from khash cimport (
     khiter_t,
@@ -1825,18 +1827,6 @@ cpdef inline object _localize_pydatetime(object dt, object tz):
         return dt.replace(tzinfo=tz)
 
 
-class OutOfBoundsDatetime(ValueError):
-    pass
-
-cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
-    if check_dts_bounds(dts):
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-        raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: %s' % fmt)
-
-
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1959,8 +1949,6 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
 
 # const for parsers
 
-_DEFAULT_DATETIME = datetime(1, 1, 1).replace(
-    hour=0, minute=0, second=0, microsecond=0)
 _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
