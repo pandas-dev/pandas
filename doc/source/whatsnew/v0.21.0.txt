@@ -196,7 +196,6 @@ Other Enhancements
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 - Improved the import time of pandas by about 2.25x  (:issue:`16764`)
 
-
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
@@ -714,6 +713,10 @@ We've deprecated the current behavior of ``Series.argmax`` and
 ``Series.values.argmax()`` if you want the position of the maximum. Likewise for
 the minimum. In a future release ``Series.argmax`` and ``Series.argmin`` will
 return the position of the maximum or minimum.
+
+
+- :func: `to_datetime` now takes ``tz`` keyword argument, ``utc`` argument is deprecated (:issue:`13712`)
+
 
 .. _whatsnew_0210.prior_deprecations:
 

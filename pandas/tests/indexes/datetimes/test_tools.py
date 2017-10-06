@@ -309,6 +309,23 @@ class TestToDatetime(object):
         result = pd.to_datetime(pd.Series([date], dtype=dtype), utc=True)
         tm.assert_series_equal(result, expected)
 
+    def test_to_datetime_tz_kw(self):
+        # See gh-13712
+        for tz in [None, 'US/Eastern', 'Asia/Tokyo', 'UTC']:
+            data = ['20140101 000000', '20140102 000000', '20140103 000000']
+            start = pd.Timestamp(data[0], tz=tz)
+            end = pd.Timestamp(data[-1], tz=tz)
+            date_range = pd.bdate_range(start, end)
+
+            result = pd.to_datetime(data, format='%Y%m%d %H%M%S', tz=tz)
+            expected = pd.DatetimeIndex(data=date_range)
+            tm.assert_numpy_array_equal(result.values, expected.values)
+
+            if result.tz is None:
+                assert expected.tz is None
+            else:
+                assert result.tz.zone == expected.tz.zone
+
     def test_to_datetime_tz_psycopg2(self):
 
         # xref 8260
