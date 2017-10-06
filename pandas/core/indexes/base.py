@@ -3579,7 +3579,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         ---------
         >>> idx = pd.Index(list('abcd'))
-        >>>  idx.slice_locs(start='b', end='c')
+        >>> idx.slice_locs(start='b', end='c')
         (1, 3)
 
         See Also
