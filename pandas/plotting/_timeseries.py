@@ -32,7 +32,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
     ax : matplotlib axes object, optional, default=None
         Axis to plot upon. If none, plots on current axis.
     kwargs
-        Additional keywords arguments passed to plotf.
+        Additional keyword arguments passed to plotf.
 
     Returns
     -------
