@@ -1080,7 +1080,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     prefix : string, list of strings, or dict of strings, default None
         String to append DataFrame column names
         Pass a list with length equal to the number of columns
-        when calling get_dummies on a DataFrame. Alternativly, `prefix`
+        when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
     prefix_sep : string, default '_'
         If appending prefix, separator/delimiter to use. Or pass a
