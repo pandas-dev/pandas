@@ -28,14 +28,18 @@ cdef extern from "../src/datetime/np_datetime.h":
     int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
                                   pandas_datetimestruct *b)
 
-    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
-                                                   pandas_datetimestruct *d) nogil
+    npy_datetime pandas_datetimestruct_to_datetime(
+                                        PANDAS_DATETIMEUNIT fr,
+                                        pandas_datetimestruct *d) nogil
+
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
+
     pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 # ----------------------------------------------------------------------
+
 
 class OutOfBoundsDatetime(ValueError):
     pass
@@ -52,7 +56,7 @@ cdef inline check_dts_bounds(pandas_datetimestruct *dts):
     elif (dts.year >= 2262 and
           cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
         error = True
-       
+
     if error:
         fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
                                                dts.day, dts.hour,
@@ -70,7 +74,8 @@ cdef inline int64_t dtstruct_to_dt64(pandas_datetimestruct* dts) nogil:
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
-cdef inline void dt64_to_dtstruct(int64_t dt64, pandas_datetimestruct* out) nogil:
+cdef inline void dt64_to_dtstruct(int64_t dt64,
+                                  pandas_datetimestruct* out) nogil:
     """Convenience function to call pandas_datetime_to_datetimestruct
     with the by-far-most-common frequency PANDAS_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
