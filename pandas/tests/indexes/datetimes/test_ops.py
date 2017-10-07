@@ -442,13 +442,14 @@ Freq: D"""
             Timestamp('2011-01-01') + idx
 
     @pytest.mark.parametrize('addend', [
-        date_range('20110101', periods=3).tz_localize('US/Eastern'),
         datetime(2011, 1, 1),
         DatetimeIndex(['2011-01-01', '2011-01-02']),
+        DatetimeIndex(['2011-01-01', '2011-01-02'])
+                .tz_localize('US/Eastern'),
         np.datetime64('2011-01-01'),
         Timestamp('2011-01-01'),
     ])
-    def test_add_datetimelike(self, addend):
+    def test_add_datetimelike_and_dti(self, addend):
         # issue #9631
 
         dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
@@ -459,19 +460,25 @@ Freq: D"""
         with tm.assert_raises_regex(TypeError, msg):
             addend + dti
 
-    def test_add_dti_dti(self):
-        # previously performed setop (deprecated in 0.16.0)
-        # now raises TypeError (GH14164)
+    @pytest.mark.parametrize('addend', [
+        datetime(2011, 1, 1),
+        DatetimeIndex(['2011-01-01', '2011-01-02']),
+        DatetimeIndex(['2011-01-01', '2011-01-02'])
+                .tz_localize('US/Eastern'),
+        np.datetime64('2011-01-01'),
+        Timestamp('2011-01-01'),
+    ])
+    def test_add_datetimelike_and_dti_tz(self, addend):
+        # issue #9631
 
-        dti_tz = date_range('20110101', periods=3) \
+        dti_tz = DatetimeIndex(['2011-01-01', '2011-01-02']) \
             .tz_localize('US/Eastern')
-        dti = date_range('20110101', periods=3)
-        combinations = product((dti_tz, dti), repeat=2)
-
-        msg = 'cannot add DatetimeIndex and DatetimeIndex'
-        for addend_1, addend_2 in combinations:
-            with tm.assert_raises_regex(TypeError, msg):
-                addend_1 + addend_2
+        msg = 'cannot add DatetimeIndex and {0}'.format(
+            type(addend).__name__)
+        with tm.assert_raises_regex(TypeError, msg):
+            dti_tz + addend
+        with tm.assert_raises_regex(TypeError, msg):
+            addend + dti_tz
 
     def test_difference(self):
         for tz in self.tz:
