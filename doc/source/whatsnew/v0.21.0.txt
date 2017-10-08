@@ -31,6 +31,7 @@ New features
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
 - :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`)
 
 .. _whatsnew_0210.enhancements.infer_objects:
 

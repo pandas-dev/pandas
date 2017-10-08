@@ -1376,6 +1376,7 @@ Conversion
    Index.tolist
    Index.to_datetime
    Index.to_series
+   Index.to_frame
 
 Sorting
 ~~~~~~~
@@ -1591,6 +1592,7 @@ Conversion
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
+   DatetimeIndex.to_frame
 
 TimedeltaIndex
 --------------
@@ -1623,6 +1625,7 @@ Conversion
    TimedeltaIndex.round
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
+   TimedeltaIndex.to_frame
 
 .. currentmodule:: pandas
 
