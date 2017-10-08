@@ -382,7 +382,8 @@ class TestToDatetime(object):
     def test_week_without_day_and_calendar_year(self, date, format):
         # GH16774
 
-        with pytest.raises(ValueError):
+        msg = "Cannot use '%W' or '%U' without day and year"
+        with tm.assert_raises_regex(ValueError, msg):
             pd.to_datetime(date, format=format)
 
 
