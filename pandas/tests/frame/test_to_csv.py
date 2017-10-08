@@ -555,8 +555,12 @@ class TestDataFrameToCSV(TestData):
             # tupleize_cols=True and index=False
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=True, index=False)
-            result = read_csv(
-                path, header=0, tupleize_cols=True, index_col=None)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = read_csv(path, header=0,
+                                  tupleize_cols=True,
+                                  index_col=None)
             result.columns = df.columns
             assert_frame_equal(df, result)
 
@@ -576,8 +580,11 @@ class TestDataFrameToCSV(TestData):
             # column & index are multi-index (compatibility)
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
             df.to_csv(path, tupleize_cols=True)
-            result = read_csv(path, header=0, index_col=[
-                              0, 1], tupleize_cols=True)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = read_csv(path, header=0, index_col=[0, 1],
+                                  tupleize_cols=True)
             result.columns = df.columns
             assert_frame_equal(df, result)
 
