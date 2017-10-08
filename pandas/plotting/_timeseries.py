@@ -22,7 +22,7 @@ from pandas.plotting._converter import (TimeSeries_DateLocator,
 
 def tsplot(series, plotf, ax=None, **kwargs):
     """
-    Plots a Series on the given Matplotlib axes or the current axis.
+    Plots a Series on the given Matplotlib axes or the current axes.
 
     Parameters
     ----------
@@ -30,7 +30,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
     plotf : function
         Function to plot the given Series.
     ax : matplotlib axes object, optional, default=None
-        Axis to plot upon. If none, plots on current axis.
+        Axes to plot upon. If none, plots on current axis.
     kwargs
         Additional keyword arguments passed to plotf.
 
