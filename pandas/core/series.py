@@ -45,7 +45,8 @@ from pandas.core.common import (is_bool_indexer,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
-                                standardize_mapping)
+                                standardize_mapping,
+                                _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -713,7 +714,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if any(k is None for k in key):
+        if _any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):

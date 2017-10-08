@@ -34,7 +34,7 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe
+from pandas.core.common import _asarray_tuplesafe, _all_none
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,
@@ -905,7 +905,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2363,7 +2363,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 

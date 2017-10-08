@@ -233,6 +233,20 @@ def _any_none(*args):
     return False
 
 
+def _all_none(*args):
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
+def _any_not_none(*args):
+    for arg in args:
+        if arg is not None:
+            return True
+    return False
+
+
 def _all_not_none(*args):
     for arg in args:
         if arg is None:
@@ -457,13 +471,6 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
-
-
-def _all_none(*args):
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
 
 
 def _where_compat(mask, arr1, arr2):

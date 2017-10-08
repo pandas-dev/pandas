@@ -15,13 +15,13 @@ from pandas.core.dtypes.common import (
     is_string_like, is_scalar)
 from pandas.core.dtypes.missing import notna
 
-import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _try_sort, _default_index
+from pandas.core.common import (_try_sort, _default_index, _all_not_none,
+                                _any_not_none, _apply_if_callable)
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -166,7 +166,7 @@ class Panel(NDFrame):
 
         axes = None
         if isinstance(data, BlockManager):
-            if any(x is not None for x in passed_axes):
+            if _any_not_none(*passed_axes):
                 axes = [x if x is not None else y
                         for x, y in zip(passed_axes, data.axes)]
             mgr = data
@@ -178,7 +178,7 @@ class Panel(NDFrame):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
             copy = False
             dtype = None
-        elif is_scalar(data) and all(x is not None for x in passed_axes):
+        elif is_scalar(data) and _all_not_none(*passed_axes):
             values = cast_scalar_to_array([len(x) for x in passed_axes],
                                           data, dtype=dtype)
             mgr = self._init_matrix(values, passed_axes, dtype=values.dtype,
@@ -279,7 +279,7 @@ class Panel(NDFrame):
         return cls(**d)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = _apply_if_callable(key, self)
 
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
@@ -594,7 +594,7 @@ class Panel(NDFrame):
         return self._constructor_sliced(values, **d)
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = _apply_if_callable(key, self)
         shape = tuple(self.shape)
         if isinstance(value, self._constructor_sliced):
             value = value.reindex(
@@ -616,7 +616,9 @@ class Panel(NDFrame):
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"
-        _unpickle = com._unpickle_array
+        from pandas.io.pickle import _unpickle_array
+
+        _unpickle = _unpickle_array
         vals, items, major, minor = state
 
         items = _unpickle(items)
