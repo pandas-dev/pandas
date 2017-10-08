@@ -254,6 +254,16 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 require_iso8601 = not infer_datetime_format
                 format = None
 
+        if format is not None:
+            if '%W' in format or '%U' in format:
+                if '%Y' not in format and '%y' not in format:
+                    raise ValueError("Cannot use '%W' or '%U' without "
+                                     "day and year")
+                if ('%A' not in format and '%a' not in format and '%w' not
+                        in format):
+                    raise ValueError("Cannot use '%W' or '%U' without "
+                                     "day and year")
+
         try:
             result = None
 
