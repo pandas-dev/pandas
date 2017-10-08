@@ -1227,7 +1227,6 @@ class TestCrosstab(object):
 
         actual = crosstab(s1, s2)
         expected = pd.DataFrame(
-            columns=['col_0', 'row_0'],
             index=pd.Index([], dtype='int64')).astype('int64')
 
         tm.assert_frame_equal(actual, expected)
