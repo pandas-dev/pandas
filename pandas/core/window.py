@@ -1138,8 +1138,8 @@ class Rolling(_Rolling_and_Expanding):
         try:
             return to_offset(self.window)
         except (TypeError, ValueError):
-            raise ValueError("passed window {0} in not "
-                             "compat with a datetimelike "
+            raise ValueError("passed window {0} is not "
+                             "compatible with a datetimelike "
                              "index".format(self.window))
 
     _agg_doc = dedent("""
