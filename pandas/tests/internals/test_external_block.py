@@ -42,6 +42,7 @@ def test_custom_repr():
 
 
 def test_concat_series():
+    # GH17728
     values = np.arange(3, dtype='int64')
     block = CustomBlock(values, placement=slice(0, 3))
     s = pd.Series(block, pd.RangeIndex(3), fastpath=True)
@@ -51,6 +52,7 @@ def test_concat_series():
 
 
 def test_concat_dataframe():
+    # GH17728
     df = pd.DataFrame({'a': [1, 2, 3]})
     blocks = df._data.blocks
     values = np.arange(3, dtype='int64')

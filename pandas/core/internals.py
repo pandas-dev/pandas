@@ -2448,13 +2448,10 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         to_concat = [blk.values for blk in to_concat]
         values = _concat._concat_categorical(to_concat, axis=self.ndim - 1)
 
-        if is_categorical_dtype(values.dtype):
-            return self.make_block_same_class(
-                values, placement=placement or slice(0, len(values), 1))
-        else:
-            return make_block(
-                values, placement=placement or slice(0, len(values), 1),
-                ndim=self.ndim)
+        # not using self.make_block_same_class as values can be object dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1),
+            ndim=self.ndim)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2742,12 +2739,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         to_concat = [blk.values for blk in to_concat]
         values = _concat._concat_datetime(to_concat, axis=self.ndim - 1)
 
-        if is_datetimetz(values):
-            return self.make_block_same_class(
-                values, placement=placement or slice(0, len(values), 1))
-        else:
-            return make_block(
-                values, placement=placement or slice(0, len(values), 1))
+        # not using self.make_block_same_class as values can be non-tz dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1))
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
