@@ -3430,7 +3430,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
-        For an ordered Index, compute the slice indexer for input labels and
+        For an ordered index, compute the slice indexer for input labels and
         step
 
         Parameters
@@ -3444,11 +3444,23 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : ndarray or slice
+        indexer : slice
 
         Notes
         -----
         This function assumes that the data is sorted, so use at your own peril
+
+        Examples
+        ---------
+        This is a method on all index types. For example you can do:
+
+        >>> idx = pd.Index(list('abcd'))
+        >>> idx.slice_indexer(start='b', end='c')
+        slice(1, 3)
+
+        >>> idx = pd.MultiIndex.from_arrays([list('abcd'), list('efgh')])
+        >>> idx.slice_indexer(start='b', end=('c', 'g'))
+        slice(1, 3)
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step,
                                                  kind=kind)
