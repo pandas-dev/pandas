@@ -112,7 +112,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded: 0.20.0
-    cache : boolean, default False
+    cache : boolean, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. Produces signficant speed-ups when parsing duplicate dates.
 
@@ -310,16 +310,32 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    def _maybe_convert_cache(arg, cache, tz):
-        """Try to convert the datetimelike arg using
-           a cache of converted dates.
+    def _maybe_convert_cache(arg, cache, box, format, name=None, tz=tz):
+        """
+        Try to convert the datetimelike arg using
+        a cache of converted dates.
 
-           arg: datetimelike arg from to_datetime
-           cache: bool whether to convert using a cache
-
-           Returns:
-               Series of converted datetime arg or
-               None if the conversion failed
+        Parameters
+        ----------
+        arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+            Datetime argument to convert     
+        cache : boolean
+            If True, try to convert the dates with a cache
+            If False, short circuit and return None
+            Flag whether to cache the converted dates
+        box : boolean
+            If True, return a DatetimeIndex  
+            if False, return an ndarray of values     
+        tz : String or None
+            'utc' if UTC=True was passed else None
+        name : String, default None
+            DatetimeIndex name
+        Returns
+        -------
+        Series if original argument was a Series
+        DatetimeIndex if box=True and original argument was not a Series
+        ndarray if box=False and original argument was not a Series
+        None if the conversion failed
         """
         if cache and is_list_like(arg) and len(arg) >= 1000:
             unique_dates = algorithms.unique(arg)
@@ -328,9 +344,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 cache_dates = _convert_listlike(unique_dates, True, format,
                                                 tz=tz)
                 convert_cache = Series(cache_dates, index=unique_dates)
-                if not isinstance(arg, Series):
-                    arg = Series(arg)
-                return arg.map(convert_cache)
+                result = Series(arg, name=name).map(convert_cache)
+                if isinstance(arg, Series):
+                    return result
+                elif box:
+                    return DatetimeIndex(result, name=name)
+                else:
+                    return result.values
         return None
 
     if arg is None:
@@ -397,7 +417,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        result = _maybe_convert_cache(arg, cache, tz)
+        result = _maybe_convert_cache(arg, cache, box, format, name=arg.name)
         if result is None:
             from pandas import Series
             values = _convert_listlike(arg._values, True, format)
@@ -405,21 +425,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _maybe_convert_cache(arg, cache, tz)
+        result = _maybe_convert_cache(arg, cache, box, format, name=arg.name)
         if result is None:
             result = _convert_listlike(arg, box, format, name=arg.name)
-        else:
-            result = result.values
-            if box:
-                result = DatetimeIndex(result, tz=tz, name=arg.name)
     elif is_list_like(arg):
-        result = _maybe_convert_cache(arg, cache, tz)
+        result = _maybe_convert_cache(arg, cache, box, format)
         if result is None:
             result = _convert_listlike(arg, box, format)
-        else:
-            result = result.values
-            if box:
-                result = DatetimeIndex(result, tz=tz)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
 
