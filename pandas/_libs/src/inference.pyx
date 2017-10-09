@@ -226,7 +226,7 @@ cdef _try_infer_map(v):
 
 def infer_dtype(object value, bint skipna=False):
     """
-    Effeciently infer the type of a passed val, or list-like
+    Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
 
     Parameters
