@@ -1010,18 +1010,18 @@ class MultiIndex(Index):
 
     def to_frame(self, index=True):
         """
-        Create a DataFrame with the columns the levels of the MultiIndex
+        Create a DataFrame with the levels of the MultiIndex as columns.
 
         .. versionadded:: 0.20.0
 
         Parameters
         ----------
         index : boolean, default True
-            return this MultiIndex as the index
+            Set the index of the returned DataFrame as the original MultiIndex.
 
         Returns
         -------
-        DataFrame
+        DataFrame : a DataFrame containing the original MultiIndex data.
         """
 
         from pandas import DataFrame
