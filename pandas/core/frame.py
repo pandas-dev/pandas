@@ -2295,13 +2295,13 @@ class DataFrame(NDFrame):
         levels_to_reset = [k for k in drop_keys
                            if self._is_index_reference(k)]
         if levels_to_reset:
-            dropped.reset_index(levels_to_reset, inplace=True)
+            dropped.reset_index(levels_to_reset, drop=True, inplace=True)
 
         # Handle dropping columns
         cols_to_drop = [k for k in drop_keys
                         if not self._is_index_reference(k)]
         if cols_to_drop:
-            dropped.drop(drop_keys, axis=1, inplace=True)
+            dropped.drop(cols_to_drop, axis=1, inplace=True)
 
         return dropped
 
