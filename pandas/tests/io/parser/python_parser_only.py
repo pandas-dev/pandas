@@ -19,6 +19,15 @@ from pandas.compat import StringIO, BytesIO, u
 
 class PythonParserTests(object):
 
+    def test_default_separator(self):
+        # GH17333
+        text = 'aob\n1o2\n3o4'
+        expected = DataFrame({'a': [1, 3], 'b': [2, 4]})
+
+        result = self.read_csv(StringIO(text), sep=None)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_invalid_skipfooter(self):
         text = "a\n1\n2"
 
