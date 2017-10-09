@@ -1359,137 +1359,198 @@ class TestMergeMulti(object):
             household.join(log_return, how='outer')
         pytest.raises(NotImplementedError, f)
 
-    def test_merge_on_index_and_column(self):
-        # GH14355
 
-        # Construct DataFrames
-        df1 = DataFrame(dict(
+class TestMergeColumnAndIndex(object):
+    # GH14355
+
+    @staticmethod
+    def df_left_with_index(levels):
+        """ Construct left test DataFrame with specified levels
+        (any of 'outer', 'inner', and 'v1')"""
+        res = DataFrame(dict(
             outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
             inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
             v1=np.linspace(0, 1, 11)
-        )).set_index(['outer'])
+        ))
 
-        df2 = DataFrame(dict(
+        if levels:
+            res = res.set_index(levels)
+
+        return res
+
+    @staticmethod
+    def df_right_with_index(levels):
+        """ Construct right test DataFrame with specified levels
+        (any of 'outer', 'inner', and 'v2')"""
+        res = DataFrame(dict(
             outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
             inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
             v2=np.linspace(10, 11, 12)
-        )).set_index(['outer'])
+        ))
 
-        # Test merge on outer (index) and inner (column)
-        for how in ['inner', 'left', 'right', 'outer']:
-            expected = (df1.reset_index()
-                        .merge(df2.reset_index(),
-                               on=['outer', 'inner'], how=how)
-                        .set_index('outer'))
+        if levels:
+            res = res.set_index(levels)
 
-            result = df1.merge(df2, on=['outer', 'inner'], how=how)
-            assert_frame_equal(result, expected)
+        return res
 
-            # Same result when index/column order is flipped
-            result = df1.merge(df2, on=['inner', 'outer'], how=how)
-            assert_frame_equal(result, expected)
+    @staticmethod
+    def compute_expected(df_left, df_right,
+                         on=None, left_on=None, right_on=None, how=None):
+        """
+        Compute the expected merge result for the test case.
 
-    def test_merge_on_index_and_column_multi(self):
-        # GH14355
+        This method computes the expected result of merging two DataFrames on
+        a combination of their columns and index levels. It does so by
+        explicitly dropping/resetting their named index levels, performing a
+        merge on their columns, and then finally restoring the appropriate
+        index in the result.
 
-        # Construct DataFrames
-        df1 = DataFrame(dict(
-            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
-            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
-            v1=np.linspace(0, 1, 11)
-        )).set_index(['outer', 'inner'])
+        Parameters
+        ----------
+        df_left : DataFrame
+            The left DataFrame (may have zero or more named index levels)
+        df_right : DataFrame
+            The right DataFrame (may have zero or more named index levels)
+        on : list of str
+            The on parameter to the merge operation
+        left_on : list of str
+            The left_on parameter to the merge operation
+        right_on : list of str
+            The right_on parameter to the merge operation
+        how : str
+            The how parameter to the merge operation
 
-        df2 = DataFrame(dict(
-            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
-            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
-            v2=np.linspace(10, 11, 12)
-        )).set_index(['outer'])
+        Returns
+        -------
+        DataFrame
+            The expected merge result
+        """
 
-        # Test merge on outer (both index) and inner (one as index and
-        # one as column)
-        for how in ['inner', 'left', 'right', 'outer']:
-            expected = (df1.reset_index()
-                        .merge(df2.reset_index(),
-                               on=['outer', 'inner'], how=how)
-                        .set_index('outer'))
+        # Handle on param if specified
+        if on is not None:
+            left_on, right_on = on, on
 
-            result = df1.merge(df2,
-                               on=['outer', 'inner'], how=how)
-            assert_frame_equal(result, expected)
+        # Compute input named index levels
+        left_levels = [n for n in df_left.index.names if n is not None]
+        right_levels = [n for n in df_right.index.names if n is not None]
 
-            # Same result when index/column order is flipped
-            result = df1.merge(df2,
-                               on=['inner', 'outer'], how=how)
-            assert_frame_equal(result, expected)
+        # Compute output named index levels
+        output_levels = [i for i in left_on
+                         if i in right_levels and i in left_levels]
 
-    def test_merge_on_index_and_column_multi2(self):
-        # GH14355
+        # Drop index levels that aren't involved in the merge
+        drop_left = [n for n in left_levels if n not in left_on]
+        if drop_left:
+            df_left = df_left.reset_index(drop_left, drop=True)
 
-        # Construct DataFrames
-        df1 = DataFrame(dict(
-            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
-            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
-            v1=np.linspace(0, 1, 11)
-        )).set_index(['outer', 'inner'])
+        drop_right = [n for n in right_levels if n not in right_on]
+        if drop_right:
+            df_right = df_right.reset_index(drop_right, drop=True)
 
-        df2 = DataFrame(dict(
-            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
-            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
-            v2=np.linspace(10, 11, 12)
-        )).set_index(['outer', 'inner'])
+        # Convert remaining index levels to columns
+        reset_left = [n for n in left_levels if n in left_on]
+        if reset_left:
+            df_left = df_left.reset_index(level=reset_left)
 
-        # Test merge on outer (both index) and inner (both index)
-        for how in ['inner', 'left', 'right', 'outer']:
-            expected = (df1.reset_index()
-                        .merge(df2.reset_index(),
-                               on=['outer', 'inner'], how=how)
-                        .set_index(['outer', 'inner']))
+        reset_right = [n for n in right_levels if n in right_on]
+        if reset_right:
+            df_right = df_right.reset_index(level=reset_right)
 
-            result = df1.merge(df2, on=['outer', 'inner'], how=how)
-            assert_frame_equal(result, expected)
+        # Perform merge
+        expected = df_left.merge(df_right,
+                                 left_on=left_on,
+                                 right_on=right_on,
+                                 how=how)
 
-            # Flip index/column order
-            expected = (df1.reset_index()
-                        .merge(df2.reset_index(),
-                               on=['inner', 'outer'], how=how)
-                        .set_index(['inner', 'outer']))
+        # Restore index levels
+        if output_levels:
+            expected = expected.set_index(output_levels)
 
-            result = df1.merge(df2, on=['inner', 'outer'], how=how)
-            assert_frame_equal(result, expected)
+        return expected
+
+    @pytest.mark.parametrize('left_levels',
+                             [[], ['outer'], ['outer', 'inner']])
+    @pytest.mark.parametrize('right_levels',
+                             [[], ['outer'], ['outer', 'inner']])
+    @pytest.mark.parametrize('on',
+                             [['outer'], ['inner'],
+                              ['outer', 'inner'],
+                              ['inner', 'outer']])
+    @pytest.mark.parametrize('how', ['inner', 'left', 'right', 'outer'])
+    def test_merge_indexes_and_columns_on(
+            self, left_levels, right_levels, on, how):
+
+        # Construct test DataFrames
+        df_left = self.df_left_with_index(left_levels)
+        df_right = self.df_right_with_index(right_levels)
+
+        # Construct expected result
+        expected = self.compute_expected(df_left, df_right, on=on, how=how)
+
+        # Perform merge
+        result = df_left.merge(df_right, on=on, how=how)
+        assert_frame_equal(result, expected, check_like=True)
+
+    @pytest.mark.parametrize('left_levels',
+                             [[], ['outer'], ['outer', 'inner']])
+    @pytest.mark.parametrize('right_levels',
+                             [[], ['outer'], ['outer', 'inner']])
+    @pytest.mark.parametrize('left_on,right_on',
+                             [(['outer'], ['outer']), (['inner'], ['inner']),
+                              (['outer', 'inner'], ['outer', 'inner']),
+                              (['inner', 'outer'], ['inner', 'outer'])])
+    @pytest.mark.parametrize('how', ['inner', 'left', 'right', 'outer'])
+    def test_merge_indexes_and_columns_lefton_righton(
+            self, left_levels, right_levels, left_on, right_on, how):
+
+        # Construct test DataFrames
+        df_left = self.df_left_with_index(left_levels)
+        df_right = self.df_right_with_index(right_levels)
+
+        # Construct expected result
+        expected = self.compute_expected(df_left, df_right,
+                                         left_on=left_on,
+                                         right_on=right_on,
+                                         how=how)
+
+        # Perform merge
+        result = df_left.merge(df_right,
+                               left_on=left_on, right_on=right_on, how=how)
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_merge_index_column_precedence(self):
-        # GH14355
 
-        # Construct DataFrames
-        df1 = DataFrame(dict(
-            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
-            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
-            v1=np.linspace(0, 1, 11)
-        )).set_index(['outer'])
-        #  - df1 has both a column and index named 'outer'
-        df1['outer'] = df1['inner']
+        # Construct df_left with both an index and a column named 'outer'.
+        # We make this 'outer' column equal to the 'inner' column so that we
+        # can verify that the correct values are used by the merge operation
+        df_left = self.df_left_with_index(['outer'])
+        df_left['outer'] = df_left['inner']
 
-        df2 = DataFrame(dict(
-            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
-            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
-            v2=np.linspace(10, 11, 12)
-        )).set_index(['outer'])
+        # Construct df_right with an index level named 'outer'
+        df_right = self.df_right_with_index(['outer'])
 
-        # Merge df1 and df2 on 'outer' and 'inner'
-        #  - 'outer' for df1 should refer to the 'outer' column
+        # Construct expected result.
+        # The 'outer' column from df_left is chosen and the resulting
+        # frame has no index levels
+        expected = (df_left.reset_index(level='outer', drop=True)
+                    .merge(df_right.reset_index(), on=['outer', 'inner']))
+
+        # Merge df_left and df_right on 'outer' and 'inner'
+        #  'outer' for df_left should refer to the 'outer' column, not the
+        #  'outer' index level and a FutureWarning should be raised
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df1.merge(df2, on=['outer', 'inner'])
-
-        # Remove 'outer' index from df1 prior to merge
-        expected = df1.reset_index(drop=True).merge(df2.reset_index(),
-                                                    on=['outer', 'inner'])
-        # Remove 'outer' column from df1 prior to merge
-        not_expected = df1.drop('outer', axis=1).reset_index().merge(
-            df2.reset_index(), on=['outer', 'inner'])
+            result = df_left.merge(df_right, on=['outer', 'inner'])
 
         # Check results
         assert_frame_equal(result, expected)
-        assert not result.equals(not_expected)
+
+        # Perform the same using the left_on and right_on parameters
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df_left.merge(df_right,
+                                   left_on=['outer', 'inner'],
+                                   right_on=['outer', 'inner'])
+
+        assert_frame_equal(result, expected)
 
 
 @pytest.fixture
