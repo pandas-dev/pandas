@@ -956,6 +956,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
+- Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
 
 Plotting
 ^^^^^^^^
@@ -1033,3 +1034,4 @@ Other
 ^^^^^
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+
