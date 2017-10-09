@@ -1135,8 +1135,8 @@ Merging on a combination of columns and index levels
 .. versionadded:: 0.21
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
-may refer to either column names or index level names.  This enables
-the merging of DataFrames on a combination of index levels and columns without
+may refer to either column names or index level names.  This enables merging
+``DataFrame`` instances on a combination of index levels and columns without
 resetting indexes.
 
 .. ipython:: python
