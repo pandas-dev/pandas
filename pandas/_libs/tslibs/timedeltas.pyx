@@ -297,4 +297,3 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     n = ''.join(number) + '.' + ''.join(frac)
     return cast_from_unit(float(n), unit)
-

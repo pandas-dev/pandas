@@ -82,6 +82,7 @@ PyDateTime_IMPORT
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
+from tslibs.timedeltas cimport parse_timedelta_string, cast_from_unit
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
@@ -3077,9 +3078,6 @@ cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
                     raise
 
     return iresult
-
-
-from tslibs.timedeltas cimport parse_timedelta_string, cast_from_unit
 
 
 cpdef convert_to_timedelta64(object ts, object unit):
