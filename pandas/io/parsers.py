@@ -260,8 +260,11 @@ dialect : str or csv.Dialect instance, default None
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
 tupleize_cols : boolean, default False
+    .. deprecated:: 0.21.0
+       This argument will be removed and will always convert to MultiIndex
+
     Leave a list of tuples on columns as is (default is to convert to
-    a Multi Index on the columns)
+    a MultiIndex on the columns)
 error_bad_lines : boolean, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -510,6 +513,7 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
+    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -529,6 +533,7 @@ _deprecated_args = {
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
+    'tupleize_cols',
 }
 
 
@@ -962,6 +967,9 @@ class TextFileReader(BaseIterator):
 
             if arg == 'as_recarray':
                 msg += ' Please call pd.to_csv(...).to_records() instead.'
+            elif arg == 'tupleize_cols':
+                msg += (' Column tuples will then '
+                        'always be converted to MultiIndex')
 
             if result.get(arg, parser_default) != parser_default:
                 depr_warning += msg + '\n\n'

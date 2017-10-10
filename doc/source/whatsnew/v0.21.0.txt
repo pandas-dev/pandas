@@ -12,6 +12,7 @@ Highlights include:
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -31,6 +32,7 @@ New features
 - Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
 - :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`)
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -108,6 +110,40 @@ For example:
     df.drop(['B', 'C'], axis=1)
     # the following is now equivalent
     df.drop(columns=['B', 'C'])
+
+.. _whatsnew_0210.enhancements.rename_reindex_axis:
+
+``rename``, ``reindex`` now also accept axis keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`DataFrame.rename` and :meth:`DataFrame.reindex` methods have gained
+the ``axis`` keyword to specify the axis to target with the operation
+(:issue:`12392`).
+
+Here's ``rename``:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+   df.rename(str.lower, axis='columns')
+   df.rename(id, axis='index')
+
+And ``reindex``:
+
+.. ipython:: python
+
+   df.reindex(['A', 'B', 'C'], axis='columns')
+   df.reindex([0, 1, 3], axis='index')
+
+The "index, columns" style continues to work as before.
+
+.. ipython:: python
+
+   df.rename(index=id, columns=str.lower)
+   df.reindex(index=[0, 1, 3], columns=['A', 'B', 'C'])
+
+We *highly* encourage using named arguments to avoid confusion when using either
+style.
 
 .. _whatsnew_0210.enhancements.categorical_dtype:
 
@@ -195,7 +231,7 @@ Other Enhancements
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
 - Improved the import time of pandas by about 2.25x  (:issue:`16764`)
-
+- :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -356,6 +392,107 @@ Selection with all keys found is unchanged.
 
    s.loc[[1, 2]]
 
+.. _whatsnew_0210.api_breaking.loc_with_index:
+
+Indexing with a Boolean Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously when passing a boolean ``Index`` to ``.loc``, if the index of the ``Series/DataFrame`` had ``boolean`` labels,
+you would get a label based selection, potentially duplicating result labels, rather than a boolean indexing selection
+(where ``True`` selects elements), this was inconsistent how a boolean numpy array indexed. The new behavior is to
+act like a boolean numpy array indexer. (:issue:`17738`)
+
+Previous Behavior:
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3], index=[False, True, False])
+   s
+
+.. code-block:: ipython
+
+   In [59]: s.loc[pd.Index([True, False, True])]
+   Out[59]:
+   True     2
+   False    1
+   False    3
+   True     2
+   dtype: int64
+
+Current Behavior
+
+.. ipython:: python
+
+   s.loc[pd.Index([True, False, True])]
+
+
+Furthermore, previously if you had an index that was non-numeric (e.g. strings), then a boolean Index would raise a ``KeyError``.
+This will now be treated as a boolean indexer.
+
+Previously Behavior:
+
+.. ipython:: python
+
+    s = pd.Series([1,2,3], index=['a', 'b', 'c'])
+    s
+
+.. code-block:: ipython
+
+    In [39]: s.loc[pd.Index([True, False, True])]
+    KeyError: "None of [Index([True, False, True], dtype='object')] are in the [index]"
+
+Current Behavior
+
+.. ipython:: python
+
+   s.loc[pd.Index([True, False, True])]
+
+.. _whatsnew_0210.api_breaking.bottleneck:
+
+Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on
+whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
+
+With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+
+.. ipython:: python
+
+   s = Series([np.nan])
+
+Previously NO ``bottleneck``
+
+.. code_block:: ipython
+
+   In [2]: s.sum()
+   Out[2]: np.nan
+
+Previously WITH ``bottleneck``
+
+.. code_block:: ipython
+
+   In [2]: s.sum()
+   Out[2]: 0.0
+
+New Behavior, without regards to the bottleneck installation.
+
+.. ipython:: python
+
+   s.sum()
+
+Note that this also changes the sum of an empty ``Series``
+
+Previously regardless of ``bottlenck``
+
+.. code_block:: ipython
+
+   In [1]: pd.Series([]).sum()
+   Out[1]: 0
+
+.. ipython:: python
+
+   pd.Series([]).sum()
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
@@ -648,16 +785,21 @@ Other API Changes
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
+- Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
 - Pandas no longer registers matplotlib converters on import. The converters
   will be registered and used when the first plot is draw (:issue:`17710`)
+- Setting on a column with a scalar value and 0-len index now raises a ``ValueError`` (:issue:`16823`)
+
 
 .. _whatsnew_0210.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
+- :meth:`DataFrame.from_csv` and :meth:`Series.from_csv` have been deprecated in favor of :func:`read_csv()` (:issue:`4191`)
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 - :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
+- :func:`read_csv()` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
 - The ``convert`` parameter has been deprecated in the ``.take()`` method, as it was not being respected (:issue:`16948`)
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
@@ -769,6 +911,7 @@ Conversion
 - Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 - Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
 - Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (`DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
+- Bug in :meth:`to_numeric` in which elements were not always being coerced to numeric when ``errors='coerce'`` (:issue:`17007`, :issue:`17125`)
 
 Indexing
 ^^^^^^^^

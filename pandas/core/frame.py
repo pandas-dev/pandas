@@ -65,6 +65,7 @@ from pandas.core.common import (_try_sort,
                                 _values_from_object,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
+                                _all_not_none,
                                 standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -111,7 +112,13 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""",
-    versionadded_to_excel='')
+    versionadded_to_excel='',
+    optional_labels="""labels : array-like, optional
+            New labels / index to conform the axis specified by 'axis' to.""",
+    optional_axis="""axis : int or str, optional
+            Axis to target. Can be either the axis name ('index', 'columns')
+            or number (0, 1).""",
+)
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -298,7 +305,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value'])
+        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
 
     @property
     def _constructor_expanddim(self):
@@ -1291,7 +1298,7 @@ class DataFrame(NDFrame):
                  encoding=None, tupleize_cols=False,
                  infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -1339,6 +1346,13 @@ class DataFrame(NDFrame):
         y : DataFrame
 
         """
+
+        warnings.warn("from_csv is deprecated. Please use read_csv(...) "
+                      "instead. Note that some of the default arguments are "
+                      "different, so please refer to the documentation "
+                      "for from_csv when changing your function calls",
+                      FutureWarning, stacklevel=2)
+
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
@@ -2531,13 +2545,17 @@ class DataFrame(NDFrame):
         passed value
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index):
+            if not is_list_like(value):
+                # GH16823, Raise an error due to loss of information
+                raise ValueError('If using all scalar values, you must pass'
+                                 ' an index')
             try:
                 value = Series(value)
             except:
-                raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a '
-                                 'Series')
+                raise ValueError('Cannot set a frame with no defined'
+                                 'index and a value that cannot be '
+                                 'converted to a Series')
 
             self._data = self._data.reindex_axis(value.index.copy(), axis=1,
                                                  fill_value=np.nan)
@@ -2765,6 +2783,47 @@ class DataFrame(NDFrame):
 
         return np.atleast_2d(np.asarray(value))
 
+    def _validate_axis_style_args(self, arg, arg_name, index, columns,
+                                  axis, method_name):
+        if axis is not None:
+            # Using "axis" style, along with a positional arg
+            # Both index and columns should be None then
+            axis = self._get_axis_name(axis)
+            if index is not None or columns is not None:
+                msg = (
+                    "Can't specify both 'axis' and 'index' or 'columns'. "
+                    "Specify either\n"
+                    "\t.{method_name}.rename({arg_name}, axis=axis), or\n"
+                    "\t.{method_name}.rename(index=index, columns=columns)"
+                ).format(arg_name=arg_name, method_name=method_name)
+                raise TypeError(msg)
+            if axis == 'index':
+                index = arg
+            elif axis == 'columns':
+                columns = arg
+
+        elif _all_not_none(arg, index, columns):
+            msg = (
+                "Cannot specify all of '{arg_name}', 'index', and 'columns'. "
+                "Specify either {arg_name} and 'axis', or 'index' and "
+                "'columns'."
+            ).format(arg_name=arg_name)
+            raise TypeError(msg)
+
+        elif _all_not_none(arg, index):
+            # This is the "ambiguous" case, so emit a warning
+            msg = (
+                "Interpreting call to '.{method_name}(a, b)' as "
+                "'.{method_name}(index=a, columns=b)'. "
+                "Use keyword arguments to remove any ambiguity."
+            ).format(method_name=method_name)
+            warnings.warn(msg, stacklevel=3)
+            index, columns = arg, index
+        elif index is None:
+            # This is for the default axis, like reindex([0, 1])
+            index = arg
+        return index, columns
+
     @property
     def _series(self):
         result = {}
@@ -2891,7 +2950,11 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, index=None, columns=None, **kwargs):
+    def reindex(self, labels=None, index=None, columns=None, axis=None,
+                **kwargs):
+        index, columns = self._validate_axis_style_args(labels, 'labels',
+                                                        index, columns,
+                                                        axis, 'reindex')
         return super(DataFrame, self).reindex(index=index, columns=columns,
                                               **kwargs)
 
@@ -2903,8 +2966,84 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
-    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, columns=None, **kwargs):
+    def rename(self, mapper=None, index=None, columns=None, axis=None,
+               **kwargs):
+        """Alter axes labels.
+
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is. Extra labels listed don't throw an
+        error.
+
+        See the :ref:`user guide <basics.rename>` for more.
+
+        Parameters
+        ----------
+        mapper, index, columns : dict-like or function, optional
+            dict-like or functions transformations to apply to
+            that axis' values. Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index`` and
+            ``columns``.
+        axis : int or str, optional
+            Axis to target with ``mapper``. Can be either the axis name
+            ('index', 'columns') or number (0, 1). The default is 'index'.
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new %(klass)s. If True then value of copy is
+            ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
+
+        Returns
+        -------
+        renamed : DataFrame
+
+        See Also
+        --------
+        pandas.DataFrame.rename_axis
+
+        Examples
+        --------
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)
+        * ``(mapper, axis={'index', 'columns'}, ...)
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+           a  c
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+           a  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+        """
+        index, columns = self._validate_axis_style_args(mapper, 'mapper',
+                                                        index, columns,
+                                                        axis, 'rename')
         return super(DataFrame, self).rename(index=index, columns=columns,
                                              **kwargs)
 

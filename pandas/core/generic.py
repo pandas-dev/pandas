@@ -742,11 +742,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
+        %(optional_mapper)s
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
+        %(optional_axis)s
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -766,6 +768,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -787,27 +790,58 @@ class NDFrame(PandasObject, SelectionMixin):
         3    2
         5    3
         dtype: int64
+
+        Since ``DataFrame`` doesn't have a ``.name`` attribute,
+        only mapping-type arguments are allowed.
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(2)
         Traceback (most recent call last):
         ...
         TypeError: 'int' object is not callable
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)
+        * ``(mapper, axis={'index', 'columns'}, ...)
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
         >>> df.rename(index=str, columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
+
         >>> df.rename(index=str, columns={"A": "a", "C": "c"})
            a  B
         0  1  4
         1  2  5
         2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+
+        See the :ref:`user guide <basics.rename>` for more.
         """
 
     @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
-                                            ' object', klass='NDFrame'))
+                                            ' object', klass='NDFrame',
+                                            optional_mapper='',
+                                            optional_axis=''))
     def rename(self, *args, **kwargs):
-
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
@@ -886,6 +920,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename_axis("foo")  # scalar, alters df.index.name
              A  B
@@ -1258,7 +1293,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False):
+                default_handler=None, lines=False, compression=None):
         """
         Convert the object to a JSON string.
 
@@ -1320,6 +1355,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
+        compression : {None, 'gzip', 'bz2', 'xz'}
+            A string representing the compression to use in the output file,
+            only used when the first argument is a filename
+
+            .. versionadded:: 0.21.0
+
         Returns
         -------
         same type as input object with filtered info axis
@@ -1372,7 +1413,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
-                            lines=lines)
+                            lines=lines, compression=compression)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Write the contained data to an HDF5 file using HDFStore.
@@ -2740,10 +2781,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        %(axes)s : array-like, optional (can be specified in order, or as
-            keywords)
+        %(optional_labels)s
+        %(axes)s : array-like, optional (should be specified using keywords)
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
+        %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
             Please note: this is only  applicable to DataFrames/Series with a
@@ -2774,6 +2816,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+
+        ``DataFrame.reindex`` supports two calling conventions
+
+        * ``(index=index_labels, columns=column_labels, ...)
+        * ``(labels, axis={'index', 'columns'}, ...)
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
 
         Create a dataframe with some fictional data.
 
@@ -2824,6 +2874,26 @@ class NDFrame(PandasObject, SelectionMixin):
         Comodo Dragon     missing       missing
         IE10                  404          0.08
         Chrome                200          0.02
+
+        We can also reindex the columns.
+
+        >>> df.reindex(columns=['http_status', 'user_agent'])
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        Or we can use "axis-style" keyword arguments
+
+        >>> df.reindex(['http_status', 'user_agent'], axis="columns")
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
 
         To further illustrate the filling functionality in
         ``reindex``, we will create a dataframe with a
@@ -2887,6 +2957,8 @@ class NDFrame(PandasObject, SelectionMixin):
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original dataframe, use the ``fillna()`` method.
 
+        See the :ref:`user guide <basics.reindexing>` for more.
+
         Returns
         -------
         reindexed : %(klass)s
@@ -2895,7 +2967,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # TODO: Decide if we care about having different examples for different
     #       kinds
 
-    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame"))
+    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame",
+                                             optional_labels="",
+                                             optional_axis=""))
     def reindex(self, *args, **kwargs):
 
         # construct the args
@@ -6984,7 +7058,7 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
+    Exclude NA/null values. If an entire row/column is NA or empty, the result
     will be NA
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a

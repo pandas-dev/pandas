@@ -165,20 +165,8 @@ cdef class Seen(object):
                      two conflict cases was also detected. However, we are
                      trying to force conversion to a numeric dtype.
         """
-        if self.uint_ and (self.null_ or self.sint_):
-            if not self.coerce_numeric:
-                return True
-
-            if self.null_:
-                msg = ("uint64 array detected, and such an "
-                       "array cannot contain NaN.")
-            else:  # self.sint_ = 1
-                msg = ("uint64 and negative values detected. "
-                       "Cannot safely return a numeric array "
-                       "without truncating data.")
-
-            raise ValueError(msg)
-        return False
+        return (self.uint_ and (self.null_ or self.sint_)
+                and not self.coerce_numeric)
 
     cdef inline saw_null(self):
         """
@@ -226,7 +214,7 @@ cdef _try_infer_map(v):
 
 def infer_dtype(object value, bint skipna=False):
     """
-    Effeciently infer the type of a passed val, or list-like
+    Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
 
     Parameters
@@ -1103,10 +1091,17 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_int(val)
 
             if val >= 0:
-                uints[i] = val
+                if val <= oUINT64_MAX:
+                    uints[i] = val
+                else:
+                    seen.float_ = True
 
             if val <= oINT64_MAX:
                 ints[i] = val
+
+            if seen.sint_ and seen.uint_:
+                seen.float_ = True
+
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
@@ -1154,6 +1149,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                             uints[i] = as_int
                         if as_int <= oINT64_MAX:
                             ints[i] = as_int
+
+                    seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:

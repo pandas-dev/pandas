@@ -45,7 +45,10 @@ from pandas import (Series, DataFrame, Panel,
 from pandas.tseries.offsets import (
     DateOffset, Hour, Minute, Day,
     MonthBegin, MonthEnd, YearBegin,
-    YearEnd, Week,
+    YearEnd, Week, WeekOfMonth, LastWeekOfMonth,
+    BusinessDay, BusinessHour, CustomBusinessDay, FY5253,
+    Easter,
+    SemiMonthEnd, SemiMonthBegin,
     QuarterBegin, QuarterEnd)
 from pandas.compat import u
 import os
@@ -53,7 +56,7 @@ import sys
 import numpy as np
 import pandas
 import platform as pl
-
+from datetime import timedelta
 
 _loose_version = LooseVersion(pandas.__version__)
 
@@ -201,6 +204,12 @@ def create_data():
                                       freq='M')
 
     off = {'DateOffset': DateOffset(years=1),
+           'DateOffset_h_ns': DateOffset(hour=6, nanoseconds=5824),
+           'BusinessDay': BusinessDay(offset=timedelta(seconds=9)),
+           'BusinessHour': BusinessHour(normalize=True, n=6, end='15:14'),
+           'CustomBusinessDay': CustomBusinessDay(weekmask='Mon Fri'),
+           'SemiMonthBegin': SemiMonthBegin(day_of_month=9),
+           'SemiMonthEnd': SemiMonthEnd(day_of_month=24),
            'MonthBegin': MonthBegin(1),
            'MonthEnd': MonthEnd(1),
            'QuarterBegin': QuarterBegin(1),
@@ -209,6 +218,11 @@ def create_data():
            'YearBegin': YearBegin(1),
            'YearEnd': YearEnd(1),
            'Week': Week(1),
+           'Week_Tues': Week(2, normalize=False, weekday=1),
+           'WeekOfMonth': WeekOfMonth(week=3, weekday=4),
+           'LastWeekOfMonth': LastWeekOfMonth(n=1, weekday=3),
+           'FY5253': FY5253(n=2, weekday=6, startingMonth=7, variation="last"),
+           'Easter': Easter(),
            'Hour': Hour(1),
            'Minute': Minute(1)}
 

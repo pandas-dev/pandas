@@ -172,7 +172,7 @@ class SafeForLongAndSparse(object):
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            if not tm._incompat_bottleneck_version(name):
+            if name in ['sum', 'prod']:
                 assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         pytest.raises(Exception, f, axis=obj.ndim)

@@ -447,6 +447,98 @@ class TestDataFrameSelectReindex(TestData):
         # reindex fails
         pytest.raises(ValueError, df.reindex, index=list(range(len(df))))
 
+    def test_reindex_axis_style(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        expected = pd.DataFrame({"A": [1, 2, np.nan], "B": [4, 5, np.nan]},
+                                index=[0, 1, 3])
+        result = df.reindex([0, 1, 3])
+        assert_frame_equal(result, expected)
+
+        result = df.reindex([0, 1, 3], axis=0)
+        assert_frame_equal(result, expected)
+
+        result = df.reindex([0, 1, 3], axis='index')
+        assert_frame_equal(result, expected)
+
+    def test_reindex_positional_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        expected = pd.DataFrame({"A": [1., 2], 'B': [4., 5],
+                                 "C": [np.nan, np.nan]})
+        with tm.assert_produces_warning(UserWarning):
+            result = df.reindex([0, 1], ['A', 'B', 'C'])
+
+        assert_frame_equal(result, expected)
+
+    def test_reindex_axis_style_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2, 3], 'B': [4, 5, 6]})
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex([0, 1], ['A'], axis=1)
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex([0, 1], ['A'], axis='index')
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(index=[0, 1], axis='index')
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(index=[0, 1], axis='columns')
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(columns=[0, 1], axis='columns')
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(index=[0, 1], columns=[0, 1], axis='columns')
+
+        with tm.assert_raises_regex(TypeError, 'Cannot specify all'):
+            df.reindex([0, 1], [0], ['A'])
+
+        # Mixing styles
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(index=[0, 1], axis='index')
+
+        with tm.assert_raises_regex(TypeError, 'reindex'):
+            df.reindex(index=[0, 1], axis='columns')
+
+    def test_reindex_single_named_indexer(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]})
+        result = df.reindex([0, 1], columns=['A'])
+        expected = pd.DataFrame({"A": [1, 2]})
+        assert_frame_equal(result, expected)
+
+    def test_reindex_api_equivalence(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        # equivalence of the labels/axis and index/columns API's
+        df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+                       index=['a', 'b', 'c'],
+                       columns=['d', 'e', 'f'])
+
+        res1 = df.reindex(['b', 'a'])
+        res2 = df.reindex(index=['b', 'a'])
+        res3 = df.reindex(labels=['b', 'a'])
+        res4 = df.reindex(labels=['b', 'a'], axis=0)
+        res5 = df.reindex(['b', 'a'], axis=0)
+        for res in [res2, res3, res4, res5]:
+            tm.assert_frame_equal(res1, res)
+
+        res1 = df.reindex(columns=['e', 'd'])
+        res2 = df.reindex(['e', 'd'], axis=1)
+        res3 = df.reindex(labels=['e', 'd'], axis=1)
+        for res in [res2, res3]:
+            tm.assert_frame_equal(res1, res)
+
+        with tm.assert_produces_warning(UserWarning) as m:
+            res1 = df.reindex(['b', 'a'], ['e', 'd'])
+        assert 'reindex' in str(m[0].message)
+        res2 = df.reindex(columns=['e', 'd'], index=['b', 'a'])
+        res3 = df.reindex(labels=['b', 'a'], axis=0).reindex(labels=['e', 'd'],
+                                                             axis=1)
+        for res in [res2, res3]:
+            tm.assert_frame_equal(res1, res)
+
     def test_align(self):
         af, bf = self.frame.align(self.frame)
         assert af._data is not self.frame._data
@@ -974,21 +1066,21 @@ class TestDataFrameSelectReindex(TestData):
     def test_reindex_multi(self):
         df = DataFrame(np.random.randn(3, 3))
 
-        result = df.reindex(lrange(4), lrange(4))
+        result = df.reindex(index=lrange(4), columns=lrange(4))
         expected = df.reindex(lrange(4)).reindex(columns=lrange(4))
 
         assert_frame_equal(result, expected)
 
         df = DataFrame(np.random.randint(0, 10, (3, 3)))
 
-        result = df.reindex(lrange(4), lrange(4))
+        result = df.reindex(index=lrange(4), columns=lrange(4))
         expected = df.reindex(lrange(4)).reindex(columns=lrange(4))
 
         assert_frame_equal(result, expected)
 
         df = DataFrame(np.random.randint(0, 10, (3, 3)))
 
-        result = df.reindex(lrange(2), lrange(2))
+        result = df.reindex(index=lrange(2), columns=lrange(2))
         expected = df.reindex(lrange(2)).reindex(columns=lrange(2))
 
         assert_frame_equal(result, expected)
