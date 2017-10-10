@@ -20,43 +20,73 @@ from .common import TestData
 
 class TestSeriesToCSV(TestData):
 
+    def read_csv(self, path, **kwargs):
+        params = dict(squeeze=True, index_col=0,
+                      header=None, parse_dates=True)
+        params.update(**kwargs)
+
+        header = params.get("header")
+        out = pd.read_csv(path, **params)
+
+        if header is None:
+            out.name = out.index.name = None
+
+        return out
+
+    def test_from_csv_deprecation(self):
+        # see gh-17812
+        with ensure_clean() as path:
+            self.ts.to_csv(path)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                ts = self.read_csv(path)
+                depr_ts = Series.from_csv(path)
+                assert_series_equal(depr_ts, ts)
+
     def test_from_csv(self):
 
         with ensure_clean() as path:
             self.ts.to_csv(path)
-            ts = Series.from_csv(path)
+            ts = self.read_csv(path)
             assert_series_equal(self.ts, ts, check_names=False)
+
             assert ts.name is None
             assert ts.index.name is None
 
-            # GH10483
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                depr_ts = Series.from_csv(path)
+                assert_series_equal(depr_ts, ts)
+
+            # see gh-10483
             self.ts.to_csv(path, header=True)
-            ts_h = Series.from_csv(path, header=0)
-            assert ts_h.name == 'ts'
+            ts_h = self.read_csv(path, header=0)
+            assert ts_h.name == "ts"
 
             self.series.to_csv(path)
-            series = Series.from_csv(path)
-            assert series.name is None
-            assert series.index.name is None
+            series = self.read_csv(path)
             assert_series_equal(self.series, series, check_names=False)
+
             assert series.name is None
             assert series.index.name is None
 
             self.series.to_csv(path, header=True)
-            series_h = Series.from_csv(path, header=0)
-            assert series_h.name == 'series'
+            series_h = self.read_csv(path, header=0)
+            assert series_h.name == "series"
 
-            outfile = open(path, 'w')
-            outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
+            outfile = open(path, "w")
+            outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
             outfile.close()
-            series = Series.from_csv(path, sep='|')
-            checkseries = Series({datetime(1998, 1, 1): 1.0,
-                                  datetime(1999, 1, 1): 2.0})
-            assert_series_equal(checkseries, series)
 
-            series = Series.from_csv(path, sep='|', parse_dates=False)
-            checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
-            assert_series_equal(checkseries, series)
+            series = self.read_csv(path, sep="|")
+            check_series = Series({datetime(1998, 1, 1): 1.0,
+                                   datetime(1999, 1, 1): 2.0})
+            assert_series_equal(check_series, series)
+
+            series = self.read_csv(path, sep="|", parse_dates=False)
+            check_series = Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
+            assert_series_equal(check_series, series)
 
     def test_to_csv(self):
         import io
@@ -76,20 +106,19 @@ class TestSeriesToCSV(TestData):
         buf = StringIO()
         s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
 
-        s.to_csv(buf, encoding='UTF-8')
+        s.to_csv(buf, encoding="UTF-8")
         buf.seek(0)
 
-        s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
-
+        s2 = self.read_csv(buf, index_col=0, encoding="UTF-8")
         assert_series_equal(s, s2)
 
     def test_to_csv_float_format(self):
 
         with ensure_clean() as filename:
             ser = Series([0.123456, 0.234567, 0.567567])
-            ser.to_csv(filename, float_format='%.2f')
+            ser.to_csv(filename, float_format="%.2f")
 
-            rs = Series.from_csv(filename)
+            rs = self.read_csv(filename)
             xp = Series([0.12, 0.23, 0.57])
             assert_series_equal(rs, xp)
 
