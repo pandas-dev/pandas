@@ -35,7 +35,8 @@ from pandas.core.sparse.scipy_sparse import (
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
-                          axes_single_arg="{0, 'index'}")
+                          axes_single_arg="{0, 'index'}",
+                          optional_labels='', optional_axis='')
 
 # -----------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
