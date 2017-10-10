@@ -546,6 +546,23 @@ class TestSeriesIndexing(TestData):
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
 
+    def test_getitem_with_duplicates_indices(self):
+        s = pd.Series({1: 12, 2: [1, 2, 2, 3]})
+        s = s.append(pd.Series({1: 313}))
+        s_1 = pd.Series({1: 12, },)
+        s_1 = s_1.append(pd.Series({1: 313}))
+
+        assert_series_equal(s[1], s_1, check_dtype=False)
+        assert s[2] == [1, 2, 2, 3]
+
+        s = pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]})
+        s = s.append(pd.Series({1: [1, 2, 3]}))
+        s_1 = pd.Series({1: [1, 2, 3], })
+        s_1 = s_1.append(pd.Series({1: [1, 2, 3]}))
+        
+        assert_series_equal(s[1], s_1, check_dtype=False)
+        assert s[2] == [1, 2, 2, 3]
+
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
         s = Series(np.random.randn(13), index=index)
