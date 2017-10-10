@@ -12,6 +12,7 @@ Highlights include:
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -412,6 +413,52 @@ Current Behavior
 
    s.loc[pd.Index([True, False, True])]
 
+.. _whatsnew_0210.api_breaking.bottleneck:
+
+Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on
+whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
+
+With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+
+.. ipython:: python
+
+   s = Series([np.nan])
+
+Previously NO ``bottleneck``
+
+.. code_block:: ipython
+
+   In [2]: s.sum()
+   Out[2]: np.nan
+
+Previously WITH ``bottleneck``
+
+.. code_block:: ipython
+
+   In [2]: s.sum()
+   Out[2]: 0.0
+
+New Behavior, without regards to the bottleneck installation.
+
+.. ipython:: python
+
+   s.sum()
+
+Note that this also changes the sum of an empty ``Series``
+
+Previously regardless of ``bottlenck``
+
+.. code_block:: ipython
+
+   In [1]: pd.Series([]).sum()
+   Out[1]: 0
+
+.. ipython:: python
+
+   pd.Series([]).sum()
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 

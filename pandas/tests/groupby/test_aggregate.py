@@ -562,7 +562,7 @@ class TestGroupByAggregate(object):
             exp.name = 'C'
 
             result = op(grouped)['C']
-            if not tm._incompat_bottleneck_version(name):
+            if name in ['sum', 'prod']:
                 assert_series_equal(result, exp)
 
         _testit('count')
