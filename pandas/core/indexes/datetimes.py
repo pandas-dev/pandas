@@ -915,46 +915,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                       index=self._shallow_copy(),
                       name=self.name)
 
-    def to_frame(self, index=True, keep_tz=False):
-        """
-        Create a DataFrame with a column containing the DatetimeIndex.
-
-        .. versionadded:: 0.21.0
-
-        Parameters
-        ----------
-        index : boolean, default True
-            Set the index of the returned DataFrame
-            as the original DatetimeIndex.
-
-        keep_tz : optional, defaults False.
-            return the data keeping the timezone.
-
-            If keep_tz is True:
-
-              If the timezone is not set, the resulting
-              Series will have a datetime64[ns] dtype.
-
-              Otherwise the DataFrame will have an datetime64[ns, tz] dtype;
-              the tz will be preserved.
-
-            If keep_tz is False:
-
-              DataFrame will have a datetime64[ns] dtype. TZ aware
-              objects will have the tz removed.
-
-        Returns
-        -------
-        DataFrame : a DataFrame containing the original DatetimeIndex data.
-        """
-
-        from pandas import DataFrame
-        result = DataFrame(self._to_embed(keep_tz), columns=[self.name or 0])
-
-        if index:
-            result.index = self
-        return result
-
     def _to_embed(self, keep_tz=False):
         """
         return an array repr of this object, potentially casting to object
