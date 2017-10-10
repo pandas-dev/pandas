@@ -130,7 +130,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if axes is not None:
                 for i, ax in enumerate(axes):
-                    data = data.reindex(ax, axis=i)
+                    data = data.reindex_axis(ax, axis=i)
 
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
@@ -963,7 +963,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename
+        pandas.Series.rename, pandas.DataFrame.rename
         pandas.Index.rename
 
         Examples
