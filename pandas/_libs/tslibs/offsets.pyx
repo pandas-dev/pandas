@@ -25,6 +25,7 @@ _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
 _int_to_month = {(k + 1): v for k, v in enumerate(_MONTHS)}
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
 
+
 class WeekDay(object):
     MON = 0
     TUE = 1
@@ -74,8 +75,7 @@ _offset_to_period_map = {
     'Y': 'A',
     'BY': 'A',
     'YS': 'A',
-    'BYS': 'A'
-    }
+    'BYS': 'A'}
 
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
@@ -169,7 +169,7 @@ def _to_dt64(dt, dtype='datetime64'):
         dt = tz_convert_single(i8, 'UTC', dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
-	    dt = np.datetime64(dt)
+        dt = np.datetime64(dt)
     if dt.dtype.name != dtype:
         dt = dt.astype(dtype)
     return dt
@@ -196,6 +196,7 @@ def _validate_business_time(t_input):
 
 # ---------------------------------------------------------------------
 # Mixins & Singletons
+
 
 class ApplyTypeError(TypeError):
     # sentinel class for catching the apply error to return NotImplemented
