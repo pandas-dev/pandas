@@ -11,7 +11,6 @@ import pandas.util.testing as tm
 
 import numpy as np
 from numpy import random
-from numpy.random import randn
 
 import pandas.plotting as plotting
 
@@ -35,8 +34,8 @@ def _skip_if_mpl_14_or_dev_boxplot():
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
-    def test_boxplot_legacy(self):
-        df = DataFrame(randn(6, 4),
+    def test_boxplot_legacy1(self):
+        df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
         df['indic'] = ['foo', 'bar'] * 3
@@ -60,6 +59,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic', notch=1)
 
+    @pytest.mark.slow
+    def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=['Col1', 'Col2'])
         df['X'] = Series(['A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B'])
         df['Y'] = Series(['A'] * 10)
@@ -103,7 +104,7 @@ class TestDataFramePlots(TestPlotBase):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
 
-        df = DataFrame(randn(6, 4),
+        df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
         with pytest.raises(ValueError):
@@ -176,7 +177,7 @@ class TestDataFramePlots(TestPlotBase):
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
-    def test_boxplot_legacy(self):
+    def test_boxplot_legacy1(self):
         grouped = self.hist_df.groupby(by='gender')
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
@@ -184,10 +185,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False,
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+
+    @pytest.mark.slow
+    def test_boxplot_legacy2(self):
         tuples = lzip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
-
         grouped = df.groupby(level=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')
@@ -197,6 +200,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                  return_type='axes')
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    @pytest.mark.slow
+    def test_boxplot_legacy3(self):
+        tuples = lzip(string.ascii_letters[:10], range(10))
+        df = DataFrame(np.random.rand(10, 3),
+                       index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type='axes')

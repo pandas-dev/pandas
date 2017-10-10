@@ -2000,7 +2000,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na_arraylike(v) for v in values]
+        values = [np.asarray(remove_na_arraylike(v)) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)
