@@ -126,7 +126,7 @@ class TestGroupByIndexAsString(object):
 
         assert not result.index.equals(not_expected.index)
 
-        # Group MultiIndex by two keys ('inner', 'B')
+        # Group by two keys ('inner', 'B')
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = frame.groupby(['inner', 'B']).mean()
 
