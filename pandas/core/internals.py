@@ -102,6 +102,7 @@ class Block(PandasObject):
     _validate_ndim = True
     _ftype = 'dense'
     _holder = None
+    _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None, fastpath=False):
         if ndim is None:
@@ -318,8 +319,8 @@ class Block(PandasObject):
         """
         Concatenate list of single blocks of the same type.
         """
-        values = np.concatenate([blk.values for blk in to_concat],
-                                axis=self.ndim - 1)
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
         return self.make_block_same_class(
             values, placement=placement or slice(0, len(values), 1))
 
@@ -2318,6 +2319,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     _verify_integrity = True
     _can_hold_na = True
     _holder = Categorical
+    _concatenator = staticmethod(_concat._concat_categorical)
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
 
@@ -2445,9 +2447,8 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         """
         Concatenate list of single blocks of the same type.
         """
-        to_concat = [blk.values for blk in to_concat]
-        values = _concat._concat_categorical(to_concat, axis=self.ndim - 1)
-
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
         # not using self.make_block_same_class as values can be object dtype
         return make_block(
             values, placement=placement or slice(0, len(values), 1),
@@ -2592,6 +2593,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
     _holder = DatetimeIndex
+    _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
     def __init__(self, values, placement, ndim=2, **kwargs):
@@ -2736,9 +2738,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         """
         Concatenate list of single blocks of the same type.
         """
-        to_concat = [blk.values for blk in to_concat]
-        values = _concat._concat_datetime(to_concat, axis=self.ndim - 1)
-
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
         # not using self.make_block_same_class as values can be non-tz dtype
         return make_block(
             values, placement=placement or slice(0, len(values), 1))
@@ -2753,6 +2754,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _can_hold_na = True
     _ftype = 'sparse'
     _holder = SparseArray
+    _concatenator = staticmethod(_concat._concat_sparse)
 
     @property
     def shape(self):
@@ -2909,16 +2911,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
             values.sp_values.astype('float64'), values.fill_value, new_index)
         return self.make_block_same_class(values, sparse_index=new_index,
                                           placement=self.mgr_locs)
-
-    def concat_same_type(self, to_concat, placement=None):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        to_concat = [blk.values for blk in to_concat]
-        values = _concat._concat_sparse(to_concat)
-
-        return self.make_block_same_class(
-            values, placement=placement or slice(0, len(values), 1))
 
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
