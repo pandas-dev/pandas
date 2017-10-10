@@ -46,7 +46,8 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
                                 standardize_mapping,
-                                _any_none)
+                                _any_none,
+                                _get_range_parameters)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -3176,6 +3177,15 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = maybe_convert_platform(data)
 
         subarr = maybe_cast_to_datetime(subarr, dtype)
+
+    elif isinstance(data, range):
+        # GH 16804
+        start, stop, step = _get_range_parameters(data)
+        if is_extension_type(dtype):
+            arr = np.arange(start, stop, step, dtype='int64')
+            subarr = _try_cast(arr, False)
+        else:
+            subarr = np.arange(start, stop, step, dtype=dtype or 'int64')
 
     else:
         subarr = _try_cast(data, False)

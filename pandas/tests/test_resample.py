@@ -3030,7 +3030,7 @@ class TestResamplerGrouper(object):
         # GH 17496
         # Resample nearest
         index = pd.date_range('1/1/2000', periods=3, freq='T')
-        result = pd.Series(range(3), index=index).resample('20s').nearest()
+        result = pd.Series(np.arange(3), index=index).resample('20s').nearest()
 
         expected = pd.Series(
             np.array([0, 0, 1, 1, 1, 2, 2]),

@@ -552,6 +552,30 @@ def sentinel_factory():
     return Sentinel()
 
 
+def _get_range_parameters(data):
+    """Gets the start, stop, and step parameters from a range object"""
+    if compat.PY3:
+        step = data.step
+        stop = data.stop
+        start = data.start
+    else:
+        # seems we only have indexing ops to infer
+        # rather than direct accessors
+        if len(data) > 1:
+            step = data[1] - data[0]
+            stop = data[-1] + step
+            start = data[0]
+        elif len(data):
+            start = data[0]
+            stop = data[0] + 1
+            step = 1
+        else:
+            start = stop = 0
+            step = 1
+
+    return start, stop, step
+
+
 # ----------------------------------------------------------------------
 # Detect our environment
 

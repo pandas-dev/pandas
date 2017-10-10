@@ -846,3 +846,14 @@ class TestSeriesConstructors(TestData):
         msg = "cannot convert datetimelike"
         with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')
+
+    def test_constructor_range_dtype(self):
+        # GH 16804
+        expected = Series([0, 1, 2, 3, 4], dtype='int64')
+        result = Series(range(5))
+        tm.assert_series_equal(result, expected)
+
+        # override default dtype
+        expected = Series([0, 1, 2, 3, 4], dtype='uint8')
+        result = Series(range(5), dtype='uint8')
+        tm.assert_series_equal(result, expected)

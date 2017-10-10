@@ -698,8 +698,8 @@ class Dtype(object):
         return expects
 
     def _create_dtype_data(self, dtype):
-        sr1 = Series(range(5), dtype=dtype)
-        sr2 = Series(range(10, 0, -2), dtype=dtype)
+        sr1 = Series(np.arange(5), dtype=dtype)
+        sr2 = Series(np.arange(10, 0, -2), dtype=dtype)
         df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
 
         data = {

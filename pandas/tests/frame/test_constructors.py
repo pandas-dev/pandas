@@ -829,7 +829,7 @@ class TestDataFrameConstructors(TestData):
 
         # GH 4851
         # list of 0-dim ndarrays
-        expected = DataFrame({0: range(10)})
+        expected = DataFrame({0: np.arange(10)})
         data = [np.array(x) for x in range(10)]
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
@@ -1926,6 +1926,17 @@ class TestDataFrameConstructors(TestData):
 
         result = DataFrame(Series(name=0)).dtypes
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_range_dtype(self):
+        # GH 16804
+        expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype='int64')
+        result = DataFrame({'A': range(5)})
+        tm.assert_frame_equal(result, expected)
+
+        # override default dtype
+        expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype='uint8')
+        result = DataFrame({'A': range(5)}, dtype='uint8')
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorWithDatetimeTZ(TestData):
