@@ -2777,10 +2777,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
-                    obj._check_column_or_level_ambiguity(gpr)
+                    obj._check_label_or_level_ambiguity(gpr)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif obj._is_index_reference(gpr):
+            elif obj._is_level_reference(gpr):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)

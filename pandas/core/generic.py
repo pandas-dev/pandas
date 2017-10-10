@@ -1001,6 +1001,184 @@ class NDFrame(PandasObject, SelectionMixin):
             return False
         return self._data.equals(other._data)
 
+    # -------------------------------------------------------------------------
+    # Label or Level Combination Helpers
+    #
+    # A collection of helper methods for DataFrame/Series operations that
+    # accept a combination of column/index labels and levels.  All such
+    # operations should utilize/extend these methods when possible so that we
+    # have consistent precedence and validation logic throughout the library.
+
+    _shared_docs['_is_level_reference'] = """
+        Test whether a key is a level reference for a given axis.
+
+        To be considered a level reference, `key` must be a string that:
+          - (axis=0): Matches the name of an index level and does NOT match
+            a column label.
+          - (axis=1): Matches the name of a column level and does NOT match
+            an index label.
+
+        Parameters
+        ----------
+        key: str
+            Potential level name for the given axis
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        is_level: bool"""
+
+    @Appender(_shared_docs['_is_level_reference'])
+    def _is_level_reference(self, key, axis=0):
+        raise NotImplementedError()
+
+
+    _shared_docs['_is_label_reference'] = """
+        Test whether a key is a label reference for a given axis.
+
+        To be considered a label reference, `key` must be a string that:
+          - (axis=0): Matches a column label
+          - (axis=1): Matches an index label
+
+        Parameters
+        ----------
+        key: str
+            Potential label name
+        axis: int, default 0
+            Axis perpendicular to the axis that labels are associated with
+            (0 means search for column labels, 1 means search for index labels)
+
+        Returns
+        -------
+        is_label: bool"""
+
+    @Appender(_shared_docs['_is_label_reference'])
+    def _is_label_reference(self, key, axis=0):
+        raise NotImplementedError()
+
+
+    _shared_docs['_is_label_or_level_reference'] = """
+        Test whether a key is a label or level reference for a given axis.
+
+        To be considered either a label or a level reference, `key` must be a 
+        string that:
+          - (axis=0): Matches a column label or an index level
+          - (axis=1): Matches an index label or a column level
+
+        Parameters
+        ----------
+        key: str
+            Potential label or level name
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        is_label_or_level: bool"""
+
+    @Appender(_shared_docs['_is_label_or_level_reference'])
+    def _is_label_or_level_reference(self, key, axis=0):
+        return (self._is_level_reference(key, axis=axis) or
+                self._is_label_reference(key, axis=axis))
+
+
+    _shared_docs['_check_label_or_level_ambiguity'] = """
+        Check whether `key` matches both a level of the input `axis` and a
+        label of the other axis and raise a ``FutureWarning`` if this is the
+        case.
+
+        Note: This method will be altered to raise an ambiguity exception in
+        a future version.
+
+        Parameters
+        ----------
+        key: str or object
+            label or level name
+
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        ambiguous: bool
+
+        Raises
+        ------
+        FutureWarning
+            if `key` is ambiguous. This will become an ambiguity error in a
+            future version
+        """
+
+    @Appender(_shared_docs['_check_label_or_level_ambiguity'])
+    def _check_label_or_level_ambiguity(self, key, axis=0):
+        return False
+
+    _shared_docs['_get_label_or_level_values'] = """
+
+        Return a 1-D array of values associated with `key`, a label or level 
+        from the given `axis`.
+
+        Retrieval logic:
+          - (axis=0): Return column values if `key` matches a column label. 
+            Otherwise return index level values if `key` matches an index 
+            level.
+          - (axis=1): Return row values if `key` matches an index label.
+            Otherwise return column level values if 'key' matches a column 
+            level            
+            
+        Parameters
+        ----------
+        key: str
+            Label or level name.
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        values: np.ndarray
+
+        Raises
+        ------
+        KeyError
+            if `key` matches neither a label nor a level
+        ValueError
+            if `key` matches multiple labels"""
+
+    @Appender(_shared_docs['_get_label_or_level_values'])
+    def _get_label_or_level_values(self, key, axis=0):
+        raise NotImplementedError()
+
+    _shared_docs['_drop_labels_or_levels'] = """
+
+        Drop labels and/or levels for the given `axis`. 
+        
+        For each key in `keys`:
+          - (axis=0): If key matches a column label then drop the column. 
+            Otherwise if key matches an index level then drop the level.  
+          - (axis=1): If key matches an index label then drop the row. 
+            Otherwise if key matches a column level then drop the level.
+            
+        Parameters
+        ----------
+        keys: str or list of str
+            labels or levels to drop
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+            
+        Returns
+        -------
+        dropped: DataFrame
+        
+        Raises
+        ------
+        ValueError
+            if any `keys` match neither a label nor a level"""
+
+    @Appender(_shared_docs['_drop_labels_or_levels'])
+    def _drop_labels_or_levels(self, key, axis=0):
+        raise NotImplementedError()
+
     # ----------------------------------------------------------------------
     # Iteration
 

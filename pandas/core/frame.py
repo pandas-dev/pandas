@@ -68,7 +68,7 @@ from pandas.core.common import (_try_sort,
                                 standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               _ensure_index_from_sequences)
+                               _ensure_index_from_sequences, RangeIndex)
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
@@ -2162,146 +2162,155 @@ class DataFrame(NDFrame):
         return self.where(key)
 
     # -------------------------------------------------------------------------
-    # Column and Index Combination Helpers
-    #
-    # A collection of helper methods for DataFrame operations that accept a
-    # combination of columns and index levels.  All such operations should
-    # utilize/extend these methods when possible so that we have consistent
-    # precedence and validation logic throughout the library.
-    #
-    # General Notes:
-    #
-    #   - If a column and index level share the same name, the column takes
-    #     precedence. Currently a ``FutureWarning`` should be issued in this
-    #     situation. In a future version we will convert this into an
-    #     exception.
-    #
-    #   - These methods assume axis=1
-    #
-    #   - Only string keys may be used to reference index levels.
-    #
+    # Label or Level Combination Helpers
 
-    def _get_column_or_level_values(self, key):
-        """
-        Return an array of values from a DataFrame column or named index level
+    @Appender(_shared_docs['_is_level_reference'])
+    def _is_level_reference(self, key, axis=0):
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            return (isinstance(key, compat.string_types) and
+                    key not in self.columns and
+                    key in self.index.names)
+        elif axis == 1:
+            return (isinstance(key, compat.string_types) and
+                    key not in self.index and
+                    key in self.columns.names)
 
-        Parameters
-        ----------
-        key: str or object
-            Label of column or index level. If `key` is present in the frame as
-            a column label, the corresponding column is chosen. Otherwise,
-            if `key` is a string and the is present in the frame as the name
-            of an index level, the corresponding index level is chosen.
-            Otherwise, a ``KeyError`` is raised.
+    @Appender(_shared_docs['_is_label_reference'])
+    def _is_label_reference(self, key, axis=0):
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            return (isinstance(key, compat.string_types) and
+                    key in self.columns)
+        elif axis == 1:
+            return (isinstance(key, compat.string_types) and
+                    key in self.index)
 
-        Returns
-        -------
-        values: np.ndarray
+    @Appender(_shared_docs['_check_label_or_level_ambiguity'])
+    def _check_label_or_level_ambiguity(self, key, axis=0):
 
-        Raises
-        ------
-        KeyError
-            if `key` matches neither a column label nor an index level name
-        """
-        if key in self:
-            self._check_column_or_level_ambiguity(key)
-            values = self[key]._values
-        elif self._is_index_reference(key):
-            values = self.index.get_level_values(key)._values
+        axis = self._get_axis_number(axis)
+
+        def raise_warning():
+
+            # Build an informative and grammatical warning
+            level_article, level_type = (('an', 'index')
+                                         if axis==0 else
+                                         ('a', 'column'))
+
+            label_article, label_type = (('a', 'column')
+                                         if axis==0 else
+                                         ('an', 'index'))
+
+            warnings.warn(
+                ("'{key}' is both {level_article} {level_type} level and "
+                 "{label_article} {label_type} label.\n"
+                 "Defaulting to {label_type}, but this will raise an "
+                 "ambiguity error in a future version"
+                 ).format(key=key,
+                          level_article=level_article,
+                          level_type=level_type,
+                          label_article=label_article,
+                          label_type=label_type), FutureWarning)
+
+        if axis == 0:
+            if (isinstance(key, compat.string_types) and
+                    key in self.columns and
+                    key in self.index.names):
+
+                raise_warning()
+                return True
+            else:
+                return False
         else:
-            raise KeyError(key)
+            if (isinstance(key, compat.string_types) and
+                        key in self.index and
+                        key in self.columns.names):
+
+                raise_warning()
+                return True
+            else:
+                return False
+
+    @Appender(_shared_docs['_get_label_or_level_values'])
+    def _get_label_or_level_values(self, key, axis=0):
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            if key in self:
+                self._check_label_or_level_ambiguity(key, axis=axis)
+                values = self[key]._values
+            elif self._is_level_reference(key, axis=axis):
+                values = self.index.get_level_values(key)._values
+            else:
+                raise KeyError(key)
+        else:
+            if key in self.index:
+                self._check_label_or_level_ambiguity(key, axis=axis)
+                values = self.loc[key]._values
+            elif self._is_level_reference(key, axis=axis):
+                values = self.columns.get_level_values(key)._values
+            else:
+                raise KeyError(key)
+
+        # Check for duplicates
+        if values.ndim > 1:
+            label_axis_name = 'column' if axis == 0 else 'index'
+            raise ValueError(("The {label_axis_name} label '{key}' "
+                              "is not unique")
+                             .format(key=key,
+                                     label_axis_name=label_axis_name))
 
         return values
 
-    def _check_column_or_level_ambiguity(self, key):
-        """
-        Check whether `key` matches both a column label and an index level
-        and issue a ``FutureWarning`` if this is the case.
+    @Appender(_shared_docs['_drop_labels_or_levels'])
+    def _drop_labels_or_levels(self, keys, axis=0):
+        axis = self._get_axis_number(axis)
+        keys = com._maybe_make_list(keys)
 
-        Note: This method will be altered to raise an ambiguity exception in
-        a future version.
+        # Validate keys
+        invalid_keys = [k for k in keys if not
+                        self._is_label_or_level_reference(k, axis=axis)]
 
-        Parameters
-        ----------
-        key: str or object
-            Label of column or index level
+        if invalid_keys:
+            raise ValueError(("The following keys are not valid labels or "
+                             "levels for {axis}: {invalid_keys}")
+                             .format(axis=axis,
+                                     invalid_keys=invalid_keys))
 
-        Returns
-        -------
-        ambiguous: bool
+        # Compute levels and labels to drop
+        levels_to_drop = [k for k in keys
+                          if self._is_level_reference(k, axis=axis)]
 
-        Raises
-        ------
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
-
-        """
-        if (isinstance(key, compat.string_types) and
-                key in self.columns and
-                key in self.index.names):
-
-            warnings.warn(
-                ("'{key}' is both a column name and an index level.\n"
-                 "Defaulting to column, but this will raise an "
-                 "ambiguity error in a future version"
-                 ).format(key=key), FutureWarning)
-
-            return True
-        else:
-            return False
-
-    def _is_index_reference(self, key):
-        """
-        Test whether a key is an index level reference
-
-        To be considered an index level reference `key` must be a string that
-        matches the name of an index level and does NOT match the label
-        of any column.
-
-        Parameters
-        ----------
-        key: str or object
-            Label of column or index level
-
-        Returns
-        -------
-        is_index: bool
-        """
-        return (isinstance(key, compat.string_types) and
-                key not in self.columns and
-                key in self.index.names)
-
-    def _drop_columns_or_levels(self, drop_keys):
-        """
-        Drop columns or levels from the dataframe
-
-        Parameters
-        ----------
-        drop_keys: single label or list-like of labels
-
-        Returns
-        -------
-        dropped: DataFrame
-        """
-        drop_keys = com._maybe_make_list(drop_keys)
+        labels_to_drop = [k for k in keys
+                          if not self._is_level_reference(k, axis=axis)]
 
         # Perform copy upfront and then use inplace operations below.
         # This ensures that we always perform exactly one copy.
         # ``copy`` and/or ``inplace`` options could be added in the future.
         dropped = self.copy()
 
-        # Handle dropping index levels
-        levels_to_reset = [k for k in drop_keys
-                           if self._is_index_reference(k)]
-        if levels_to_reset:
-            dropped.reset_index(levels_to_reset, drop=True, inplace=True)
+        if axis == 0:
+            # Handle dropping index levels
+            if levels_to_drop:
+                dropped.reset_index(levels_to_drop, drop=True, inplace=True)
 
-        # Handle dropping columns
-        cols_to_drop = [k for k in drop_keys
-                        if not self._is_index_reference(k)]
-        if cols_to_drop:
-            dropped.drop(cols_to_drop, axis=1, inplace=True)
+            # Handle dropping columns labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=1, inplace=True)
+        else:
+            # Handle dropping column levels
+            if levels_to_drop:
+                if isinstance(dropped.columns, MultiIndex):
+                    # Drop the specified levels from the MultiIndex
+                    dropped.columns = dropped.columns.droplevel(levels_to_drop)
+                else:
+                    # Drop the last level of Index by replacing with
+                    # a RangeIndex
+                    dropped.columns = RangeIndex(dropped.columns.size)
+
+            # Handle dropping index labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=0, inplace=True)
 
         return dropped
 
