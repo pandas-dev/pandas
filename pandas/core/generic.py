@@ -6990,7 +6990,7 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
+    Exclude NA/null values. If an entire row/column is NA or empty, the result
     will be NA
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
