@@ -147,7 +147,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['sortlevel', 'reshape'])
+        ['sortlevel', 'reshape', 'get_value', 'set_value', 'from_csv'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -253,7 +253,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False,
+                    data = data.astype(dtype=dtype, errors='ignore',
                                        copy=copy)
                 elif copy:
                     data = data.copy()
@@ -691,7 +691,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if key_type == 'integer':
                 if self.index.is_integer() or self.index.is_floating():
-                    return self.reindex(key)
+                    return self.loc[key]
                 else:
                     return self._get_values(key)
             elif key_type == 'boolean':
@@ -902,6 +902,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Quickly retrieve single value at passed index label
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : label
@@ -911,15 +915,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(label, takeable=takeable)
+
+    def _get_value(self, label, takeable=False):
         if takeable is True:
             return _maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
         index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -935,17 +951,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If label is contained, will be reference to calling Series,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(label, value, takeable=takeable)
+
+    def _set_value(self, label, value, takeable=False):
         try:
             if takeable:
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-            return self
         except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
-            return self
+
+        return self
+    _set_value.__doc__ = set_value.__doc__
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
@@ -2664,7 +2688,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None, infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -2712,6 +2736,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series
         """
+
+        # We're calling `DataFrame.from_csv` in the implementation,
+        # which will propagate a warning regarding `from_csv` deprecation.
         from pandas.core.frame import DataFrame
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,

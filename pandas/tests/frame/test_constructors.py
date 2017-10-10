@@ -258,8 +258,12 @@ class TestDataFrameConstructors(TestData):
         # Dict with None value
         frame_none = DataFrame(dict(a=None), index=[0])
         frame_none_list = DataFrame(dict(a=[None]), index=[0])
-        assert frame_none.get_value(0, 'a') is None
-        assert frame_none_list.get_value(0, 'a') is None
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert frame_none.get_value(0, 'a') is None
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert frame_none_list.get_value(0, 'a') is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
         # GH10856
@@ -509,7 +513,9 @@ class TestDataFrameConstructors(TestData):
         data = {}
         for col in df.columns:
             for row in df.index:
-                data.setdefault(col, {})[row] = df.get_value(row, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    data.setdefault(col, {})[row] = df.get_value(row, col)
 
         result = DataFrame(data, columns=rng)
         tm.assert_frame_equal(result, df)
@@ -517,7 +523,9 @@ class TestDataFrameConstructors(TestData):
         data = {}
         for col in df.columns:
             for row in df.index:
-                data.setdefault(row, {})[col] = df.get_value(row, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    data.setdefault(row, {})[col] = df.get_value(row, col)
 
         result = DataFrame(data, index=rng).T
         tm.assert_frame_equal(result, df)

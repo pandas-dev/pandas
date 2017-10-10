@@ -138,7 +138,7 @@ class SafeForLongAndSparse(object):
         with catch_warnings(record=True):
             for i in range(obj.ndim):
                 result = f(axis=i)
-                if not tm._incompat_bottleneck_version(name):
+                if name in ['sum', 'prod']:
                     expected = obj.apply(skipna_wrapper, axis=i)
                     tm.assert_panel_equal(result, expected)
 

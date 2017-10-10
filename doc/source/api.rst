@@ -1376,6 +1376,7 @@ Conversion
    Index.tolist
    Index.to_datetime
    Index.to_series
+   Index.to_frame
 
 Sorting
 ~~~~~~~
@@ -1591,6 +1592,7 @@ Conversion
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
+   DatetimeIndex.to_frame
 
 TimedeltaIndex
 --------------
@@ -1623,8 +1625,55 @@ Conversion
    TimedeltaIndex.round
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
+   TimedeltaIndex.to_frame
 
 .. currentmodule:: pandas
+
+PeriodIndex
+--------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   PeriodIndex
+
+Attributes
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    PeriodIndex.day
+    PeriodIndex.dayofweek
+    PeriodIndex.dayofyear
+    PeriodIndex.days_in_month
+    PeriodIndex.daysinmonth
+    PeriodIndex.end_time
+    PeriodIndex.freq
+    PeriodIndex.freqstr
+    PeriodIndex.hour
+    PeriodIndex.is_leap_year
+    PeriodIndex.minute
+    PeriodIndex.month
+    PeriodIndex.quarter
+    PeriodIndex.qyear
+    PeriodIndex.second
+    PeriodIndex.start_time
+    PeriodIndex.week
+    PeriodIndex.weekday
+    PeriodIndex.weekofyear
+    PeriodIndex.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    PeriodIndex.asfreq
+    PeriodIndex.strftime
+    PeriodIndex.to_timestamp
+    PeriodIndex.tz_convert
+    PeriodIndex.tz_localize
 
 Scalars
 -------
@@ -1653,13 +1702,11 @@ Attributes
     Period.is_leap_year
     Period.minute
     Period.month
-    Period.now
     Period.ordinal
     Period.quarter
     Period.qyear
     Period.second
     Period.start_time
-    Period.strftime
     Period.week
     Period.weekday
     Period.weekofyear
@@ -1671,6 +1718,7 @@ Methods
     :toctree: generated/
 
     Period.asfreq
+    Period.now
     Period.strftime
     Period.to_timestamp
 

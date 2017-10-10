@@ -147,7 +147,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     See Also
     --------
-    Index
+    Index : The base pandas Index type
     Interval : A bounded slice-like interval
     interval_range : Function to create a fixed frequency
     IntervalIndex, IntervalIndex.from_arrays, IntervalIndex.from_breaks,

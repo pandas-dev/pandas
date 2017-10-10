@@ -612,6 +612,20 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("cls", [
+        pd.api.types.CategoricalDtype,
+        pd.api.types.DatetimeTZDtype,
+        pd.api.types.IntervalDtype
+    ])
+    def test_astype_categoricaldtype_class_raises(self, cls):
+        df = DataFrame({"A": ['a', 'a', 'b', 'c']})
+        xpr = "Expected an instance of {}".format(cls.__name__)
+        with tm.assert_raises_regex(TypeError, xpr):
+            df.astype({"A": cls})
+
+        with tm.assert_raises_regex(TypeError, xpr):
+            df['A'].astype(cls)
+
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),

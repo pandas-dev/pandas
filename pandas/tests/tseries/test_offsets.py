@@ -101,14 +101,8 @@ def test_to_m8():
 class Base(object):
     _offset = None
 
-    _offset_types = [getattr(offsets, o) for o in offsets.__all__]
-
     timezones = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
                  'dateutil/Asia/Tokyo', 'dateutil/US/Pacific']
-
-    @property
-    def offset_types(self):
-        return self._offset_types
 
     def _get_offset(self, klass, value=1, normalize=False):
         # create instance from offset class
@@ -134,7 +128,7 @@ class Base(object):
                 klass = klass(normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self):
+    def test_apply_out_of_range(self, tz):
         if self._offset is None:
             return
 
@@ -153,11 +147,10 @@ class Base(object):
             assert result.tzinfo is None
 
             # Check tz is preserved
-            for tz in self.timezones:
-                t = Timestamp('20080101', tz=tz)
-                result = t + offset
-                assert isinstance(result, datetime)
-                assert t.tzinfo == result.tzinfo
+            t = Timestamp('20080101', tz=tz)
+            result = t + offset
+            assert isinstance(result, datetime)
+            assert t.tzinfo == result.tzinfo
 
         except tslib.OutOfBoundsDatetime:
             raise
@@ -214,42 +207,39 @@ class TestCommon(Base):
                           'Nano': Timestamp(np_datetime64_compat(
                               '2011-01-01T09:00:00.000000001Z'))}
 
-    def test_return_type(self):
-        for offset in self.offset_types:
-            offset = self._get_offset(offset)
+    def test_return_type(self, offset_types):
+        offset = self._get_offset(offset_types)
 
-            # make sure that we are returning a Timestamp
-            result = Timestamp('20080101') + offset
-            assert isinstance(result, Timestamp)
+        # make sure that we are returning a Timestamp
+        result = Timestamp('20080101') + offset
+        assert isinstance(result, Timestamp)
 
-            # make sure that we are returning NaT
-            assert NaT + offset is NaT
-            assert offset + NaT is NaT
+        # make sure that we are returning NaT
+        assert NaT + offset is NaT
+        assert offset + NaT is NaT
 
-            assert NaT - offset is NaT
-            assert (-offset).apply(NaT) is NaT
+        assert NaT - offset is NaT
+        assert (-offset).apply(NaT) is NaT
 
-    def test_offset_n(self):
-        for offset_klass in self.offset_types:
-            offset = self._get_offset(offset_klass)
-            assert offset.n == 1
+    def test_offset_n(self, offset_types):
+        offset = self._get_offset(offset_types)
+        assert offset.n == 1
 
-            neg_offset = offset * -1
-            assert neg_offset.n == -1
+        neg_offset = offset * -1
+        assert neg_offset.n == -1
 
-            mul_offset = offset * 3
-            assert mul_offset.n == 3
+        mul_offset = offset * 3
+        assert mul_offset.n == 3
 
-    def test_offset_freqstr(self):
-        for offset_klass in self.offset_types:
-            offset = self._get_offset(offset_klass)
+    def test_offset_freqstr(self, offset_types):
+        offset = self._get_offset(offset_types)
 
-            freqstr = offset.freqstr
-            if freqstr not in ('<Easter>',
-                               "<DateOffset: kwds={'days': 1}>",
-                               'LWOM-SAT', ):
-                code = get_offset(freqstr)
-                assert offset.rule_code == code
+        freqstr = offset.freqstr
+        if freqstr not in ('<Easter>',
+                           "<DateOffset: kwds={'days': 1}>",
+                           'LWOM-SAT', ):
+            code = get_offset(freqstr)
+            assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
@@ -319,20 +309,19 @@ class TestCommon(Base):
             else:
                 assert result == expected_localize
 
-    def test_apply(self):
+    def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
-        for offset in self.offset_types:
-            for dt in [sdt, ndt]:
-                expected = self.expecteds[offset.__name__]
-                self._check_offsetfunc_works(offset, 'apply', dt, expected)
+        for dt in [sdt, ndt]:
+            expected = self.expecteds[offset_types.__name__]
+            self._check_offsetfunc_works(offset_types, 'apply', dt, expected)
 
-                expected = Timestamp(expected.date())
-                self._check_offsetfunc_works(offset, 'apply', dt, expected,
-                                             normalize=True)
+            expected = Timestamp(expected.date())
+            self._check_offsetfunc_works(offset_types, 'apply', dt, expected,
+                                         normalize=True)
 
-    def test_rollforward(self):
+    def test_rollforward(self, offset_types):
         expecteds = self.expecteds.copy()
 
         # result will not be changed if the target is on the offset
@@ -366,16 +355,15 @@ class TestCommon(Base):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
-        for offset in self.offset_types:
-            for dt in [sdt, ndt]:
-                expected = expecteds[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollforward', dt,
-                                             expected)
-                expected = norm_expected[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollforward', dt,
-                                             expected, normalize=True)
+        for dt in [sdt, ndt]:
+            expected = expecteds[offset_types.__name__]
+            self._check_offsetfunc_works(offset_types, 'rollforward', dt,
+                                         expected)
+            expected = norm_expected[offset_types.__name__]
+            self._check_offsetfunc_works(offset_types, 'rollforward', dt,
+                                         expected, normalize=True)
 
-    def test_rollback(self):
+    def test_rollback(self, offset_types):
         expecteds = {'BusinessDay': Timestamp('2010-12-31 09:00:00'),
                      'CustomBusinessDay': Timestamp('2010-12-31 09:00:00'),
                      'CustomBusinessMonthEnd':
@@ -428,66 +416,62 @@ class TestCommon(Base):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
-        for offset in self.offset_types:
-            for dt in [sdt, ndt]:
-                expected = expecteds[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollback', dt, expected)
+        for dt in [sdt, ndt]:
+            expected = expecteds[offset_types.__name__]
+            self._check_offsetfunc_works(offset_types, 'rollback', dt,
+                                         expected)
 
-                expected = norm_expected[offset.__name__]
-                self._check_offsetfunc_works(offset, 'rollback', dt, expected,
-                                             normalize=True)
+            expected = norm_expected[offset_types.__name__]
+            self._check_offsetfunc_works(offset_types, 'rollback', dt,
+                                         expected, normalize=True)
 
-    def test_onOffset(self):
-        for offset in self.offset_types:
-            dt = self.expecteds[offset.__name__]
-            offset_s = self._get_offset(offset)
-            assert offset_s.onOffset(dt)
+    def test_onOffset(self, offset_types):
+        dt = self.expecteds[offset_types.__name__]
+        offset_s = self._get_offset(offset_types)
+        assert offset_s.onOffset(dt)
 
-            # when normalize=True, onOffset checks time is 00:00:00
-            offset_n = self._get_offset(offset, normalize=True)
-            assert not offset_n.onOffset(dt)
+        # when normalize=True, onOffset checks time is 00:00:00
+        offset_n = self._get_offset(offset_types, normalize=True)
+        assert not offset_n.onOffset(dt)
 
-            if offset in (BusinessHour, CustomBusinessHour):
-                # In default BusinessHour (9:00-17:00), normalized time
-                # cannot be in business hour range
-                continue
-            date = datetime(dt.year, dt.month, dt.day)
-            assert offset_n.onOffset(date)
+        if offset_types in (BusinessHour, CustomBusinessHour):
+            # In default BusinessHour (9:00-17:00), normalized time
+            # cannot be in business hour range
+            return
+        date = datetime(dt.year, dt.month, dt.day)
+        assert offset_n.onOffset(date)
 
-    def test_add(self):
+    def test_add(self, offset_types, tz):
         dt = datetime(2011, 1, 1, 9, 0)
 
-        for offset in self.offset_types:
-            offset_s = self._get_offset(offset)
-            expected = self.expecteds[offset.__name__]
+        offset_s = self._get_offset(offset_types)
+        expected = self.expecteds[offset_types.__name__]
 
-            result_dt = dt + offset_s
-            result_ts = Timestamp(dt) + offset_s
-            for result in [result_dt, result_ts]:
-                assert isinstance(result, Timestamp)
-                assert result == expected
+        result_dt = dt + offset_s
+        result_ts = Timestamp(dt) + offset_s
+        for result in [result_dt, result_ts]:
+            assert isinstance(result, Timestamp)
+            assert result == expected
 
-            for tz in self.timezones:
-                expected_localize = expected.tz_localize(tz)
-                result = Timestamp(dt, tz=tz) + offset_s
-                assert isinstance(result, Timestamp)
-                assert result == expected_localize
+        expected_localize = expected.tz_localize(tz)
+        result = Timestamp(dt, tz=tz) + offset_s
+        assert isinstance(result, Timestamp)
+        assert result == expected_localize
 
-            # normalize=True
-            offset_s = self._get_offset(offset, normalize=True)
-            expected = Timestamp(expected.date())
+        # normalize=True
+        offset_s = self._get_offset(offset_types, normalize=True)
+        expected = Timestamp(expected.date())
 
-            result_dt = dt + offset_s
-            result_ts = Timestamp(dt) + offset_s
-            for result in [result_dt, result_ts]:
-                assert isinstance(result, Timestamp)
-                assert result == expected
+        result_dt = dt + offset_s
+        result_ts = Timestamp(dt) + offset_s
+        for result in [result_dt, result_ts]:
+            assert isinstance(result, Timestamp)
+            assert result == expected
 
-            for tz in self.timezones:
-                expected_localize = expected.tz_localize(tz)
-                result = Timestamp(dt, tz=tz) + offset_s
-                assert isinstance(result, Timestamp)
-                assert result == expected_localize
+        expected_localize = expected.tz_localize(tz)
+        result = Timestamp(dt, tz=tz) + offset_s
+        assert isinstance(result, Timestamp)
+        assert result == expected_localize
 
     def test_pickle_v0_15_2(self):
         offsets = {'DateOffset': DateOffset(years=1),

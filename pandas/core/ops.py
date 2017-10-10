@@ -671,8 +671,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         import pandas.core.computation.expressions as expressions
 
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
                 dtype = find_common_type([x.dtype, y.dtype])
@@ -1196,8 +1195,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
         import pandas.core.computation.expressions as expressions
 
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             xrav = x.ravel()
             if isinstance(y, (np.ndarray, ABCSeries)):
@@ -1329,7 +1327,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
-                                      raise_on_error=False,
+                                      errors='ignore',
                                       try_cast=False)
             return res.fillna(True).astype(bool)
 
@@ -1354,8 +1352,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
         import pandas.core.computation.expressions as expressions
 
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
 
             # TODO: might need to find_common_type here?
@@ -1385,8 +1382,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
         import pandas.core.computation.expressions as expressions
 
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True)
+            result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)

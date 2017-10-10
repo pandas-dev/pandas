@@ -297,7 +297,8 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
-    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
+    _deprecations = NDFrame._deprecations | frozenset(
+        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
 
     @property
     def _constructor_expanddim(self):
@@ -1290,7 +1291,7 @@ class DataFrame(NDFrame):
                  encoding=None, tupleize_cols=False,
                  infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -1338,6 +1339,13 @@ class DataFrame(NDFrame):
         y : DataFrame
 
         """
+
+        warnings.warn("from_csv is deprecated. Please use read_csv(...) "
+                      "instead. Note that some of the default arguments are "
+                      "different, so please refer to the documentation "
+                      "for from_csv when changing your function calls",
+                      FutureWarning, stacklevel=2)
+
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
@@ -1685,6 +1693,10 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.19.0
         """
 
+        if (justify is not None and
+                justify not in fmt._VALID_JUSTIFY_PARAMETERS):
+            raise ValueError("Invalid value for justify parameter")
+
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
@@ -1918,6 +1930,10 @@ class DataFrame(NDFrame):
         """
         Quickly retrieve single value at passed column and index
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : row label
@@ -1928,6 +1944,14 @@ class DataFrame(NDFrame):
         -------
         value : scalar value
         """
+
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(index, col, takeable=takeable)
+
+    def _get_value(self, index, col, takeable=False):
 
         if takeable:
             series = self._iget_item_cache(col)
@@ -1944,11 +1968,16 @@ class DataFrame(NDFrame):
             # use positional
             col = self.columns.get_loc(col)
             index = self.index.get_loc(index)
-            return self.get_value(index, col, takeable=True)
+            return self._get_value(index, col, takeable=True)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1963,10 +1992,17 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(index, col, value, takeable=takeable)
+
+    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
-                return series.set_value(index, value, takeable=True)
+                return series._set_value(index, value, takeable=True)
 
             series = self._get_item_cache(col)
             engine = self.index._engine
@@ -1979,6 +2015,7 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i, axis=0):
         """
@@ -2501,13 +2538,17 @@ class DataFrame(NDFrame):
         passed value
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index):
+            if not is_list_like(value):
+                # GH16823, Raise an error due to loss of information
+                raise ValueError('If using all scalar values, you must pass'
+                                 ' an index')
             try:
                 value = Series(value)
             except:
-                raise ValueError('Cannot set a frame with no defined index '
-                                 'and a value that cannot be converted to a '
-                                 'Series')
+                raise ValueError('Cannot set a frame with no defined'
+                                 'index and a value that cannot be '
+                                 'converted to a Series')
 
             self._data = self._data.reindex_axis(value.index.copy(), axis=1,
                                                  fill_value=np.nan)
@@ -2787,7 +2828,7 @@ class DataFrame(NDFrame):
         else:
             result = np.empty(n, dtype='O')
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self.get_value(r, c)
+                result[i] = self._get_value(r, c)
 
         if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
@@ -3832,9 +3873,9 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
+    def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error,
+                                   errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
@@ -4005,8 +4046,7 @@ class DataFrame(NDFrame):
             else:
                 mask = isna(x_values)
 
-            return expressions.where(mask, y_values, x_values,
-                                     raise_on_error=True)
+            return expressions.where(mask, y_values, x_values)
 
         return self.combine(other, combiner, overwrite=False)
 
@@ -4061,8 +4101,7 @@ class DataFrame(NDFrame):
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that,
-                                          raise_on_error=True)
+            self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Misc methods

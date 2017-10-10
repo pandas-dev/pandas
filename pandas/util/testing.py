@@ -401,21 +401,6 @@ def _skip_if_no_localpath():
         pytest.skip("py.path not installed")
 
 
-def _incompat_bottleneck_version(method):
-    """ skip if we have bottleneck installed
-    and its >= 1.0
-    as we don't match the nansum/nanprod behavior for all-nan
-    ops, see GH9422
-    """
-    if method not in ['sum', 'prod']:
-        return False
-    try:
-        import bottleneck as bn
-        return bn.__version__ >= LooseVersion('1.0')
-    except ImportError:
-        return False
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,

@@ -343,6 +343,10 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
 tupleize_cols : boolean, default ``False``
+    .. deprecated:: 0.21.0
+
+    This argument will be removed and will always convert to MultiIndex
+
   Leave a list of tuples on columns as is (default is to convert to a MultiIndex
   on the columns).
 
@@ -2800,21 +2804,21 @@ Parsing Specific Columns
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
-a `parse_cols` keyword to allow you to specify a subset of columns to parse.
+a `usecols` keyword to allow you to specify a subset of columns to parse.
 
-If `parse_cols` is an integer, then it is assumed to indicate the last column
+If `usecols` is an integer, then it is assumed to indicate the last column
 to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_cols=2)
+   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `parse_cols` is a list of integers, then it is assumed to be the file column
+If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
+   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 
 Parsing Dates
