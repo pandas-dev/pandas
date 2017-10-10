@@ -1547,6 +1547,8 @@ class TestMergeCategorical(object):
         assert_frame_equal(result_inner, expected_inner)
 
     def test_merging_with_boolean_cateorical_column(self):
+        # GH 17187
+        # merging with a boolean/int categorical column
         df1 = pd.DataFrame({'id': [1, 2, 3, 4],
                             'cat': [False, True, True, False]})
         df1['cat'] = df1['cat'].astype('category',
@@ -1561,6 +1563,8 @@ class TestMergeCategorical(object):
         assert_frame_equal(expected, result)
 
     def test_merging_with_integer_cateorical_column(self):
+        # GH 17187
+        # merging with a boolean/int categorical column
         df1 = pd.DataFrame({'id': [1, 2, 3, 4],
                             'cat': [2, 1, 1, 2]})
         df1['cat'] = df1['cat'].astype('category',
@@ -1575,6 +1579,8 @@ class TestMergeCategorical(object):
         assert_frame_equal(expected, result)
 
     def test_merging_with_string_cateorical_column(self):
+        # GH 17187
+        # merging with a boolean/int categorical column
         df1 = pd.DataFrame({'id': [1, 2, 3, 4],
                             'cat': ['False', 'True', 'True', 'False']})
         df1['cat'] = df1['cat'].astype('category',
