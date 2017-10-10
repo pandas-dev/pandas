@@ -2913,7 +2913,8 @@ class DataFrame(NDFrame):
         axes = self._validate_axis_style_args(labels, 'labels',
                                               axes=[index, columns],
                                               axis=axis, method_name='reindex')
-        return super(DataFrame, self).reindex(**axes, **kwargs)
+        kwargs.update(axes)
+        return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
@@ -3001,7 +3002,8 @@ class DataFrame(NDFrame):
         axes = self._validate_axis_style_args(mapper, 'mapper',
                                               axes=[index, columns],
                                               axis=axis, method_name='rename')
-        return super(DataFrame, self).rename(**axes, **kwargs)
+        kwargs.update(axes)
+        return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,

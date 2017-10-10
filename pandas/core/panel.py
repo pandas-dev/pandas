@@ -1210,7 +1210,8 @@ class Panel(NDFrame):
         if self.ndim >= 4:
             # Hack for PanelND
             axes = {}
-        return super(Panel, self).reindex(**axes, **kwargs)
+        kwargs.update(axes)
+        return super(Panel, self).reindex(**kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):

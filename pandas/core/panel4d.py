@@ -66,7 +66,8 @@ def panel4d_reindex(self, labs=None, labels=None, items=None, major_axis=None,
         labs, 'labels',
         axes=[labels, items, major_axis, minor_axis],
         axis=axis, method_name='reindex')
-    return super(Panel, self).reindex(**axes, **kwargs)
+    kwargs.update(axes)
+    return super(Panel, self).reindex(**kwargs)
 
 
 Panel4D.__init__ = panel4d_init
