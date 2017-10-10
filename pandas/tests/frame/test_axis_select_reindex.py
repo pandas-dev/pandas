@@ -945,6 +945,10 @@ class TestDataFrameSelectReindex(TestData):
             assert_frame_equal(result, expected)
 
             with tm.assert_produces_warning(FutureWarning):
+                result = df.take(order, convert=True, axis=0)
+                assert_frame_equal(result, expected)
+
+            with tm.assert_produces_warning(FutureWarning):
                 result = df.take(order, convert=False, axis=0)
                 assert_frame_equal(result, expected)
 
