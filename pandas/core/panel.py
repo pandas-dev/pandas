@@ -1207,6 +1207,9 @@ class Panel(NDFrame):
         axes = self._validate_axis_style_args(
             labels, 'labels', axes=[items, major_axis, minor_axis],
             axis=axis, method_name='reindex')
+        if self.ndim >= 4:
+            # Hack for PanelND
+            axes = {}
         return super(Panel, self).reindex(**axes, **kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
