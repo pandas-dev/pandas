@@ -2736,7 +2736,7 @@ class DataFrame(NDFrame):
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
-                        value = value.reindex_axis(cols, axis=1)
+                        value = value.reindex(cols, axis=1)
             # now align rows
             value = reindexer(value).T
 

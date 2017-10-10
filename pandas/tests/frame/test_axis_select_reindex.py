@@ -418,11 +418,13 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(result, expected)
 
         # reindex_axis
-        result = df.reindex_axis(lrange(15), fill_value=0., axis=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.reindex_axis(lrange(15), fill_value=0., axis=0)
         expected = df.reindex(lrange(15)).fillna(0)
         assert_frame_equal(result, expected)
 
-        result = df.reindex_axis(lrange(5), fill_value=0., axis=1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.reindex_axis(lrange(5), fill_value=0., axis=1)
         expected = df.reindex(columns=lrange(5)).fillna(0)
         assert_frame_equal(result, expected)
 
@@ -1030,12 +1032,16 @@ class TestDataFrameSelectReindex(TestData):
 
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']
-        reindexed1 = self.intframe.reindex_axis(cols, axis=1)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            reindexed1 = self.intframe.reindex_axis(cols, axis=1)
+            assert 'reindex' in str(m[0].message)
         reindexed2 = self.intframe.reindex(columns=cols)
         assert_frame_equal(reindexed1, reindexed2)
 
         rows = self.intframe.index[0:5]
-        reindexed1 = self.intframe.reindex_axis(rows, axis=0)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            reindexed1 = self.intframe.reindex_axis(rows, axis=0)
+            assert 'reindex' in str(m[0].message)
         reindexed2 = self.intframe.reindex(index=rows)
         assert_frame_equal(reindexed1, reindexed2)
 
@@ -1043,7 +1049,9 @@ class TestDataFrameSelectReindex(TestData):
 
         # no-op case
         cols = self.frame.columns.copy()
-        newFrame = self.frame.reindex_axis(cols, axis=1)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            newFrame = self.frame.reindex_axis(cols, axis=1)
+            assert 'reindex' in str(m[0].message)
         assert_frame_equal(newFrame, self.frame)
 
     def test_reindex_with_nans(self):

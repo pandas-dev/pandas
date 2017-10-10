@@ -1201,8 +1201,11 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
-For convenience, you may utilize the :meth:`~Series.reindex_axis` method, which
-takes the labels and a keyword ``axis`` parameter.
+You may also use ``reindex`` with an ``axis`` keyword:
+
+.. ipython:: python
+
+   df.reindex(index=['c', 'f', 'b'], axis='index')
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the

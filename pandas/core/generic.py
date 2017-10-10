@@ -129,7 +129,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if axes is not None:
                 for i, ax in enumerate(axes):
-                    data = data.reindex_axis(ax, axis=i)
+                    data = data.reindex(ax, axis=i)
 
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
@@ -893,17 +893,12 @@ class NDFrame(PandasObject, SelectionMixin):
     rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
-        """
-        Alter index and / or columns using input function or functions.
-        A scalar or list-like for ``mapper`` will alter the ``Index.name``
-        or ``MultiIndex.names`` attribute.
-        A function or dict for ``mapper`` will alter the labels.
-        Function / dict values must be unique (1-to-1). Labels not contained in
-        a dict / Series will be left as-is.
+        """Alter the name of the index or columns.
 
         Parameters
         ----------
-        mapper : scalar, list-like, dict-like or function, optional
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
         axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data
@@ -912,6 +907,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         renamed : type of caller or None if inplace=True
+
+        Notes
+        -----
+        Prior to version 0.21.0, ``rename_axis`` could also be used to change
+        the axis *labels* by passing a mapping or scalar. This behavior is
+        deprecated and will be removed in a future version. Use ``rename``
+        instead.
 
         See Also
         --------
@@ -922,22 +924,19 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
 
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename_axis("foo")  # scalar, alters df.index.name
+        >>> df.rename_axis("foo")
              A  B
         foo
         0    1  4
         1    2  5
         2    3  6
-        >>> df.rename_axis(lambda x: 2 * x)  # function: alters labels
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-        >>> df.rename_axis({"A": "ehh", "C": "see"}, axis="columns")  # mapping
-           ehh  B
+
+        >>> df.rename_axis("bar", axis="columns")
+        bar  A  B
         0    1  4
         1    2  5
         2    3  6
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
@@ -945,6 +944,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if non_mapper:
             return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
+            msg = ("Using 'rename_axis' to alter labels is deprecated. "
+                   "Use '.rename' instead")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             axis = self._get_axis_name(axis)
             d = {'copy': copy, 'inplace': inplace}
             d[axis] = mapper
@@ -2981,6 +2983,11 @@ class NDFrame(PandasObject, SelectionMixin):
         tolerance = kwargs.pop('tolerance', None)
         fill_value = kwargs.pop('fill_value', np.nan)
 
+        # Series.reindex doesn't use / need the axis kwarg
+        # We pop and ignore it here, to make writing Series/Frame generic code
+        # easier
+        kwargs.pop("axis", None)
+
         if kwargs:
             raise TypeError('reindex() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
@@ -3085,11 +3092,14 @@ class NDFrame(PandasObject, SelectionMixin):
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
+        msg = ("'.reindex_axis' is deprecated and will be removed in a future "
+               "version. Use '.reindex' instead.")
         self._consolidate_inplace()
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
         method = missing.clean_reindex_fill_method(method)
+        warnings.warn(msg, FutureWarning, stacklevel=3)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers({axis: [new_index, indexer]},

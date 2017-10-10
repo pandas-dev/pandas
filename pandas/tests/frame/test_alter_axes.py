@@ -436,6 +436,25 @@ class TestDataFrameAlterAxes(TestData):
         assert no_return is None
         assert_frame_equal(result, expected)
 
+    def test_rename_axis_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/17833
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis({0: 10, 1: 20}, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=1)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df['A'].rename_axis(id)
+            assert 'rename' in str(w[0].message)
+
     def test_rename_multiindex(self):
 
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]

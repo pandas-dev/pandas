@@ -901,7 +901,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                         result.index.get_indexer_for(ax.values))
                     result = result.take(indexer, axis=self.axis)
                 else:
-                    result = result.reindex_axis(ax, axis=self.axis)
+                    result = result.reindex(ax, axis=self.axis)
 
         elif self.group_keys:
 
@@ -4580,7 +4580,7 @@ class NDFrameSplitter(DataSplitter):
 
         # this is sort of wasteful but...
         sorted_axis = data.axes[self.axis].take(self.sort_idx)
-        sorted_data = data.reindex_axis(sorted_axis, axis=self.axis)
+        sorted_data = data.reindex(sorted_axis, axis=self.axis)
 
         return sorted_data
 

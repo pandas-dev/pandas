@@ -89,6 +89,7 @@ def _align_core(terms):
         for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
+            # TODO: handle this for when reindex_axis is removed...
             if hasattr(ti, 'reindex_axis'):
                 transpose = isinstance(ti, pd.Series) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
@@ -104,11 +105,7 @@ def _align_core(terms):
                          ).format(axis=axis, term=terms[i].name, ordm=ordm)
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
-                if transpose:
-                    f = partial(ti.reindex, index=reindexer, copy=False)
-                else:
-                    f = partial(ti.reindex_axis, reindexer, axis=axis,
-                                copy=False)
+                f = partial(ti.reindex, reindexer, axis=axis, copy=False)
 
                 terms[i].update(f())
 

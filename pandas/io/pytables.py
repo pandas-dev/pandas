@@ -1040,7 +1040,7 @@ class HDFStore(StringMixin):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis)
+            val = value.reindex(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 

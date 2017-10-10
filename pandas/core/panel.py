@@ -722,7 +722,7 @@ class Panel(NDFrame):
             cond = mask == per_slice
 
         new_ax = self._get_axis(axis)[cond]
-        result = self.reindex_axis(new_ax, axis=axis)
+        result = self.reindex(new_ax, axis=axis)
         if inplace:
             self._update_inplace(result)
         else:
