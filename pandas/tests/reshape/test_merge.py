@@ -1546,6 +1546,49 @@ class TestMergeCategorical(object):
         result_inner = pd.merge(df, df2, how='inner', on=['date'])
         assert_frame_equal(result_inner, expected_inner)
 
+    def test_merging_with_boolean_cateorical_column(self):
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': [False, True, True, False]})
+        df1['cat'] = df1['cat'].astype('category',
+                                       categories=[True, False], ordered=True)
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': [True, False],
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype('category',
+                                                 categories=[True, False],
+                                                 ordered=True)
+        assert_frame_equal(expected, result)
+
+    def test_merging_with_integer_cateorical_column(self):
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': [2, 1, 1, 2]})
+        df1['cat'] = df1['cat'].astype('category',
+                                       categories=[1, 2], ordered=True)
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': [1, 2],
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype('category',
+                                                 categories=[1, 2],
+                                                 ordered=True)
+        assert_frame_equal(expected, result)
+
+    def test_merging_with_string_cateorical_column(self):
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': ['False', 'True', 'True', 'False']})
+        df1['cat'] = df1['cat'].astype('category',
+                                       categories=['True', 'False'],
+                                       ordered=True)
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': ['True', 'False'],
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype('category',
+                                                 categories=['True', 'False'],
+                                                 ordered=True)
+        assert_frame_equal(expected, result)
+
 
 @pytest.fixture
 def left_df():
