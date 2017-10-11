@@ -21,6 +21,7 @@ class PythonParserTests(object):
 
     def test_default_separator(self):
         # GH17333
+        # csv.Sniffer in Python treats 'o' as separator.
         text = 'aob\n1o2\n3o4'
         expected = DataFrame({'a': [1, 3], 'b': [2, 4]})
 
