@@ -139,16 +139,16 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys
 on : label or list
-    Column or index level names to join on. These must be found in both 
-    DataFrames. If on is None and not merging on indexes then this defaults to 
+    Column or index level names to join on. These must be found in both
+    DataFrames. If on is None and not merging on indexes then this defaults to
     the intersection of the columns in both DataFrames.
 left_on : label or list, or array-like
-    Column or index level names to join on in the left DataFrame. Can also 
-    be a vector or list of vectors of the length of the left DataFrame. 
+    Column or index level names to join on in the left DataFrame. Can also
+    be a vector or list of vectors of the length of the left DataFrame.
     These vectors are treated as though they are columns.
 right_on : label or list, or array-like
-    Column or index level names to join on in the right DataFrame. Can also 
-    be a vector or list of vectors of the length of the right DataFrame. 
+    Column or index level names to join on in the right DataFrame. Can also
+    be a vector or list of vectors of the length of the right DataFrame.
     These vectors are treated as though they are columns.
 left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
@@ -2195,11 +2195,11 @@ class DataFrame(NDFrame):
 
             # Build an informative and grammatical warning
             level_article, level_type = (('an', 'index')
-                                         if axis==0 else
+                                         if axis == 0 else
                                          ('a', 'column'))
 
             label_article, label_type = (('a', 'column')
-                                         if axis==0 else
+                                         if axis == 0 else
                                          ('an', 'index'))
 
             warnings.warn(
@@ -2224,8 +2224,8 @@ class DataFrame(NDFrame):
                 return False
         else:
             if (isinstance(key, compat.string_types) and
-                        key in self.index and
-                        key in self.columns.names):
+                    key in self.index and
+                    key in self.columns.names):
 
                 raise_warning()
                 return True

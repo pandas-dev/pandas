@@ -1033,7 +1033,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _is_level_reference(self, key, axis=0):
         raise NotImplementedError()
 
-
     _shared_docs['_is_label_reference'] = """
         Test whether a key is a label reference for a given axis.
 
@@ -1057,11 +1056,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def _is_label_reference(self, key, axis=0):
         raise NotImplementedError()
 
-
     _shared_docs['_is_label_or_level_reference'] = """
         Test whether a key is a label or level reference for a given axis.
 
-        To be considered either a label or a level reference, `key` must be a 
+        To be considered either a label or a level reference, `key` must be a
         string that:
           - (axis=0): Matches a column label or an index level
           - (axis=1): Matches an index label or a column level
@@ -1081,7 +1079,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _is_label_or_level_reference(self, key, axis=0):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
-
 
     _shared_docs['_check_label_or_level_ambiguity'] = """
         Check whether `key` matches both a level of the input `axis` and a
@@ -1116,17 +1113,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['_get_label_or_level_values'] = """
 
-        Return a 1-D array of values associated with `key`, a label or level 
+        Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
 
         Retrieval logic:
-          - (axis=0): Return column values if `key` matches a column label. 
-            Otherwise return index level values if `key` matches an index 
+          - (axis=0): Return column values if `key` matches a column label.
+            Otherwise return index level values if `key` matches an index
             level.
           - (axis=1): Return row values if `key` matches an index label.
-            Otherwise return column level values if 'key' matches a column 
-            level            
-            
+            Otherwise return column level values if 'key' matches a column
+            level
+
         Parameters
         ----------
         key: str
@@ -1151,25 +1148,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['_drop_labels_or_levels'] = """
 
-        Drop labels and/or levels for the given `axis`. 
-        
+        Drop labels and/or levels for the given `axis`.
+
         For each key in `keys`:
-          - (axis=0): If key matches a column label then drop the column. 
-            Otherwise if key matches an index level then drop the level.  
-          - (axis=1): If key matches an index label then drop the row. 
+          - (axis=0): If key matches a column label then drop the column.
+            Otherwise if key matches an index level then drop the level.
+          - (axis=1): If key matches an index label then drop the row.
             Otherwise if key matches a column level then drop the level.
-            
+
         Parameters
         ----------
         keys: str or list of str
             labels or levels to drop
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-            
+
         Returns
         -------
         dropped: DataFrame
-        
+
         Raises
         ------
         ValueError
