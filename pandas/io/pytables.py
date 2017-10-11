@@ -2391,8 +2391,11 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, klass):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
-                return DatetimeIndex._simple_new(values, None, freq=freq,
-                                                 tz=tz)
+                # data are already in UTC, localize and convert if tz present
+                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                if tz is not None:
+                    result = result.tz_localize('UTC').tz_convert(tz)
+                return result
             return f
         elif klass == PeriodIndex:
             def f(values, freq=None, tz=None):
