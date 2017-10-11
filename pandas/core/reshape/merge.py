@@ -1529,7 +1529,6 @@ def _get_join_keys(llab, rlab, shape, sort):
         stride //= shape[i]
         lkey += llab[i] * stride
         rkey += rlab[i] * stride
-    
     np.seterr(divide='warn')
     if nlev == len(shape):  # all done!
         return lkey, rkey
