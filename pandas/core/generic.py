@@ -744,10 +744,10 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = self._get_axis_name(axis)
             if any(x is not None for x in axes):
                 msg = (
-                    "Can't specify both 'axis' and {aliases}"
+                    "Can't specify both 'axis' and {aliases}. "
                     "Specify either\n"
                     "\t.{method_name}({arg_name}, axis=axis), or\n"
-                    "\t.{method_name}(index=index, columns=columns)"  # TODO
+                    "\t.{method_name}(index=index, columns=columns)"
                 ).format(arg_name=arg_name, method_name=method_name,
                          aliases=aliases)
                 raise TypeError(msg)
@@ -755,7 +755,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         elif _all_not_none(arg, *axes):
             msg = (
-                "Cannot specify all of '{arg_name}', {aliases}"
+                "Cannot specify all of '{arg_name}', {aliases}. "
                 "Specify either {arg_name} and 'axis', or {aliases}."
             ).format(arg_name=arg_name, aliases=aliases)
             raise TypeError(msg)
