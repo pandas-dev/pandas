@@ -65,7 +65,6 @@ from pandas.core.common import (_try_sort,
                                 _values_from_object,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
-                                _all_not_none,
                                 standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -2736,7 +2735,7 @@ class DataFrame(NDFrame):
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
-                        value = value.reindex_axis(cols, axis=1)
+                        value = value.reindex(cols, axis=1)
             # now align rows
             value = reindexer(value).T
 
@@ -2782,47 +2781,6 @@ class DataFrame(NDFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
 
         return np.atleast_2d(np.asarray(value))
-
-    def _validate_axis_style_args(self, arg, arg_name, index, columns,
-                                  axis, method_name):
-        if axis is not None:
-            # Using "axis" style, along with a positional arg
-            # Both index and columns should be None then
-            axis = self._get_axis_name(axis)
-            if index is not None or columns is not None:
-                msg = (
-                    "Can't specify both 'axis' and 'index' or 'columns'. "
-                    "Specify either\n"
-                    "\t.{method_name}.rename({arg_name}, axis=axis), or\n"
-                    "\t.{method_name}.rename(index=index, columns=columns)"
-                ).format(arg_name=arg_name, method_name=method_name)
-                raise TypeError(msg)
-            if axis == 'index':
-                index = arg
-            elif axis == 'columns':
-                columns = arg
-
-        elif _all_not_none(arg, index, columns):
-            msg = (
-                "Cannot specify all of '{arg_name}', 'index', and 'columns'. "
-                "Specify either {arg_name} and 'axis', or 'index' and "
-                "'columns'."
-            ).format(arg_name=arg_name)
-            raise TypeError(msg)
-
-        elif _all_not_none(arg, index):
-            # This is the "ambiguous" case, so emit a warning
-            msg = (
-                "Interpreting call to '.{method_name}(a, b)' as "
-                "'.{method_name}(index=a, columns=b)'. "
-                "Use keyword arguments to remove any ambiguity."
-            ).format(method_name=method_name)
-            warnings.warn(msg, stacklevel=3)
-            index, columns = arg, index
-        elif index is None:
-            # This is for the default axis, like reindex([0, 1])
-            index = arg
-        return index, columns
 
     @property
     def _series(self):
@@ -2952,11 +2910,11 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, labels=None, index=None, columns=None, axis=None,
                 **kwargs):
-        index, columns = self._validate_axis_style_args(labels, 'labels',
-                                                        index, columns,
-                                                        axis, 'reindex')
-        return super(DataFrame, self).reindex(index=index, columns=columns,
-                                              **kwargs)
+        axes = self._validate_axis_style_args(labels, 'labels',
+                                              axes=[index, columns],
+                                              axis=axis, method_name='reindex')
+        kwargs.update(axes)
+        return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
@@ -3041,11 +2999,11 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        index, columns = self._validate_axis_style_args(mapper, 'mapper',
-                                                        index, columns,
-                                                        axis, 'rename')
-        return super(DataFrame, self).rename(index=index, columns=columns,
-                                             **kwargs)
+        axes = self._validate_axis_style_args(mapper, 'mapper',
+                                              axes=[index, columns],
+                                              axis=axis, method_name='rename')
+        kwargs.update(axes)
+        return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,

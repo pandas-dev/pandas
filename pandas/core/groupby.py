@@ -901,7 +901,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                         result.index.get_indexer_for(ax.values))
                     result = result.take(indexer, axis=self.axis)
                 else:
-                    result = result.reindex_axis(ax, axis=self.axis)
+                    result = result.reindex(ax, axis=self.axis)
 
         elif self.group_keys:
 

@@ -3283,8 +3283,8 @@ class BlockManager(PandasObject):
 
                 for k, obj in aligned_args.items():
                     axis = getattr(obj, '_info_axis_number', 0)
-                    kwargs[k] = obj.reindex_axis(b_items, axis=axis,
-                                                 copy=align_copy)
+                    kwargs[k] = obj.reindex(b_items, axis=axis,
+                                            copy=align_copy)
 
             kwargs['mgr'] = self
             applied = getattr(b, f)(**kwargs)

@@ -368,7 +368,7 @@ class _NDFrameIndexer(object):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._data = self.obj.reindex_axis(labels, i)._data
+                    self.obj._data = self.obj.reindex(labels, axis=i)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj.is_copy = None
 
@@ -1132,7 +1132,7 @@ class _NDFrameIndexer(object):
             if labels.is_unique and Index(keyarr).is_unique:
 
                 try:
-                    return self.obj.reindex_axis(keyarr, axis=axis)
+                    return self.obj.reindex(keyarr, axis=axis)
                 except AttributeError:
 
                     # Series
