@@ -1514,6 +1514,7 @@ def _sort_labels(uniques, left, right):
 
 
 def _get_join_keys(llab, rlab, shape, sort):
+    np.seterr(divide='ignore')
 
     # how many levels can be done without overflow
     pred = lambda i: not is_int64_overflow_possible(shape[:i])
@@ -1528,7 +1529,7 @@ def _get_join_keys(llab, rlab, shape, sort):
         stride //= shape[i]
         lkey += llab[i] * stride
         rkey += rlab[i] * stride
-
+    np.seterr(divide='warn')
     if nlev == len(shape):  # all done!
         return lkey, rkey
 
