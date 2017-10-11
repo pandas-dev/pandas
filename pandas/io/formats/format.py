@@ -1612,12 +1612,20 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
+        if self.encoding is None:
+            if compat.PY2:
+                encoding = 'ascii'
+            else:
+                encoding = 'utf-8'
+        else:
+            encoding = self.encoding
+
         if hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=self.encoding,
+                                     encoding=encoding,
                                      compression=self.compression)
             close = True
 
@@ -1627,11 +1635,11 @@ class CSVFormatter(object):
                                  doublequote=self.doublequote,
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
-            if self.encoding is not None:
-                writer_kwargs['encoding'] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
-            else:
+            if encoding == 'ascii':
                 self.writer = csv.writer(f, **writer_kwargs)
+            else:
+                writer_kwargs['encoding'] = encoding
+                self.writer = UnicodeWriter(f, **writer_kwargs)
 
             self._save()
 

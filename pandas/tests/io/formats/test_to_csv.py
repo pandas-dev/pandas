@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from pandas import DataFrame
 import numpy as np
 import pandas as pd
@@ -5,6 +7,21 @@ from pandas.util import testing as tm
 
 
 class TestToCSV(object):
+
+    def test_to_csv_defualt_encoding(self):
+        # GH17097
+        df = DataFrame({'col': [u"AAAAA", u"ÄÄÄÄÄ", u"ßßßßß", u"聞聞聞聞聞"]})
+
+        with tm.ensure_clean('test.csv') as path:
+            # the default to_csv encoding in Python 2 is ascii, and that in
+            # Python 3 is uft-8.
+            if pd.compat.PY2:
+                # the encoding argument parameter should be utf-8
+                with tm.assert_raises_regex(UnicodeEncodeError, 'ascii'):
+                    df.to_csv(path)
+            else:
+                df.to_csv(path)
+                tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
