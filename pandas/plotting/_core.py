@@ -697,7 +697,7 @@ class MPLPlot(object):
         from pandas import DataFrame, Series
 
         def match_labels(data, e):
-            e = e.reindex_axis(data.index)
+            e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame

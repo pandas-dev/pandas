@@ -57,4 +57,18 @@ def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
                     dtype=dtype)
 
 
+def panel4d_reindex(self, labs=None, labels=None, items=None, major_axis=None,
+                    minor_axis=None, axis=None, **kwargs):
+    # Hack for reindex_axis deprecation
+    # Ha, we used labels for two different things
+    # I think this will work still.
+    axes = self._validate_axis_style_args(
+        labs, 'labels',
+        axes=[labels, items, major_axis, minor_axis],
+        axis=axis, method_name='reindex')
+    kwargs.update(axes)
+    return super(Panel, self).reindex(**kwargs)
+
+
 Panel4D.__init__ = panel4d_init
+Panel4D.reindex = panel4d_reindex

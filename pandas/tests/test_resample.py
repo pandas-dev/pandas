@@ -1422,7 +1422,7 @@ class TestDatetimeIndex(Base):
                     Timestamp('2011-01-06 10:59:05', tz=None): 1500000000,
                     Timestamp('2011-01-06 12:43:33', tz=None): 5000000000,
                     Timestamp('2011-01-06 12:54:09', tz=None): 100000000}})
-        ).reindex_axis(['VOLUME', 'PRICE'], axis=1)
+        ).reindex(['VOLUME', 'PRICE'], axis=1)
         res = df.resample('H').ohlc()
         exp = pd.concat([df['VOLUME'].resample('H').ohlc(),
                          df['PRICE'].resample('H').ohlc()],
@@ -1652,7 +1652,7 @@ class TestDatetimeIndex(Base):
         expected = DataFrame({'Group_obj': ['A', 'A'],
                               'Group': ['A', 'A']},
                              index=pd.to_timedelta([0, 10], unit='s'))
-        expected = expected.reindex_axis(['Group_obj', 'Group'], 1)
+        expected = expected.reindex(['Group_obj', 'Group'], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_resample_daily_anchored(self):

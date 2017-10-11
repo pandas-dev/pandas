@@ -810,6 +810,8 @@ Deprecations
 - ``.get_value`` and ``.set_value`` on ``Series``, ``DataFrame``, ``Panel``, ``SparseSeries``, and ``SparseDataFrame`` are deprecated in favor of using ``.iat[]`` or ``.at[]`` accessors (:issue:`15269`)
 - Passing a non-existent column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 - ``raise_on_error`` parameter to :func:`Series.where`, :func:`Series.mask`, :func:`DataFrame.where`, :func:`DataFrame.mask` is deprecated, in favor of ``errors=`` (:issue:`14968`)
+- Using :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis` to alter index or column *labels* is now deprecated in favor of using ``.rename``. ``rename_axis`` may still be used to alter the name of the index or columns (:issue:`17833`).
+- :meth:`~DataFrame.reindex_axis` has been deprecated in favor of :meth:`~DataFrame.reindex`. See :ref`here` <whatsnew_0210.enhancements.rename_reindex_axis> for more (:issue:`17833`).
 
 .. _whatsnew_0210.deprecations.select:
 
@@ -998,6 +1000,7 @@ Reshaping
 - Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
 - Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
+- Bug in :fun:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
 
 Numeric
 ^^^^^^^

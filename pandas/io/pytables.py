@@ -1040,7 +1040,7 @@ class HDFStore(StringMixin):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis)
+            val = value.reindex(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 
@@ -3493,7 +3493,7 @@ class Table(Fixed):
             data_columns = self.validate_data_columns(
                 data_columns, min_itemsize)
             if len(data_columns):
-                mgr = block_obj.reindex_axis(
+                mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)),
                     axis=axis
                 )._data
@@ -3501,7 +3501,7 @@ class Table(Fixed):
                 blocks = list(mgr.blocks)
                 blk_items = get_blk_items(mgr, blocks)
                 for c in data_columns:
-                    mgr = block_obj.reindex_axis([c], axis=axis)._data
+                    mgr = block_obj.reindex([c], axis=axis)._data
                     blocks.extend(mgr.blocks)
                     blk_items.extend(get_blk_items(mgr, mgr.blocks))
 

@@ -1197,13 +1197,21 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+    def reindex(self, labels=None,
+                items=None, major_axis=None, minor_axis=None,
+                axis=None, **kwargs):
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
                       kwargs.pop('minor', None))
-        return super(Panel, self).reindex(items=items, major_axis=major_axis,
-                                          minor_axis=minor_axis, **kwargs)
+        axes = self._validate_axis_style_args(
+            labels, 'labels', axes=[items, major_axis, minor_axis],
+            axis=axis, method_name='reindex')
+        if self.ndim >= 4:
+            # Hack for PanelND
+            axes = {}
+        kwargs.update(axes)
+        return super(Panel, self).reindex(**kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):

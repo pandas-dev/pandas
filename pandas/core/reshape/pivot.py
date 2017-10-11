@@ -101,14 +101,14 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
-            table = table.reindex_axis(m, axis=0)
+            table = table.reindex(m, axis=0)
         except AttributeError:
             pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels),
                                        names=table.columns.names)
-            table = table.reindex_axis(m, axis=1)
+            table = table.reindex(m, axis=1)
         except AttributeError:
             pass  # it's a single level or a series
 

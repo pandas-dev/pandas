@@ -134,5 +134,5 @@ def _coo_to_sparse_series(A, dense_index=False):
         i = range(A.shape[0])
         j = range(A.shape[1])
         ind = MultiIndex.from_product([i, j])
-        s = s.reindex_axis(ind)
+        s = s.reindex(ind)
     return s

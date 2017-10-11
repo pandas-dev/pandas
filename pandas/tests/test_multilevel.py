@@ -1805,7 +1805,7 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.frame.iloc[[0, 1, 2, 7, 8, 9]]
         tm.assert_frame_equal(result, expected)
 
-        result = self.frame.T.reindex_axis(['foo', 'qux'], axis=1, level=0)
+        result = self.frame.T.reindex(['foo', 'qux'], axis=1, level=0)
         tm.assert_frame_equal(result, expected.T)
 
         result = self.frame.loc[['foo', 'qux']]
