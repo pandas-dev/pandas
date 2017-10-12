@@ -102,6 +102,7 @@ class Block(PandasObject):
     _validate_ndim = True
     _ftype = 'dense'
     _holder = None
+    _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None, fastpath=False):
         if ndim is None:
@@ -313,6 +314,15 @@ class Block(PandasObject):
 
     def merge(self, other):
         return _merge_blocks([self, other])
+
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        return self.make_block_same_class(
+            values, placement=placement or slice(0, len(values), 1))
 
     def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
                      limit=None, mask_info=None):
@@ -2309,6 +2319,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     _verify_integrity = True
     _can_hold_na = True
     _holder = Categorical
+    _concatenator = staticmethod(_concat._concat_categorical)
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
 
@@ -2431,6 +2442,17 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
+
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        # not using self.make_block_same_class as values can be object dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1),
+            ndim=self.ndim)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2571,6 +2593,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
     _holder = DatetimeIndex
+    _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
     def __init__(self, values, placement, ndim=2, **kwargs):
@@ -2711,6 +2734,16 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        # not using self.make_block_same_class as values can be non-tz dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1))
+
 
 class SparseBlock(NonConsolidatableMixIn, Block):
     """ implement as a list of sparse arrays of the same dtype """
@@ -2721,6 +2754,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _can_hold_na = True
     _ftype = 'sparse'
     _holder = SparseArray
+    _concatenator = staticmethod(_concat._concat_sparse)
 
     @property
     def shape(self):
@@ -4517,6 +4551,45 @@ class SingleBlockManager(BlockManager):
         """
         return self._block.values[loc]
 
+    def concat(self, to_concat, new_axis):
+        """
+        Concatenate a list of SingleBlockManagers into a single
+        SingleBlockManager.
+
+        Used for pd.concat of Series objects with axis=0.
+
+        Parameters
+        ----------
+        to_concat : list of SingleBlockManagers
+        new_axis : Index of the result
+
+        Returns
+        -------
+        SingleBlockManager
+
+        """
+        non_empties = [x for x in to_concat if len(x) > 0]
+
+        # check if all series are of the same block type:
+        if len(non_empties) > 0:
+            blocks = [obj.blocks[0] for obj in non_empties]
+
+            if all([type(b) is type(blocks[0]) for b in blocks[1:]]):  # noqa
+                new_block = blocks[0].concat_same_type(blocks)
+            else:
+                values = [x.values for x in blocks]
+                values = _concat._concat_compat(values)
+                new_block = make_block(
+                    values, placement=slice(0, len(values), 1))
+        else:
+            values = [x._block.values for x in to_concat]
+            values = _concat._concat_compat(values)
+            new_block = make_block(
+                values, placement=slice(0, len(values), 1))
+
+        mgr = SingleBlockManager(new_block, new_axis)
+        return mgr
+
 
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
@@ -5105,11 +5178,40 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         [get_mgr_concatenation_plan(mgr, indexers)
          for mgr, indexers in mgrs_indexers], concat_axis)
 
-    blocks = [make_block(
-        concatenate_join_units(join_units, concat_axis, copy=copy),
-        placement=placement) for placement, join_units in concat_plan]
+    blocks = []
+
+    for placement, join_units in concat_plan:
+
+        if is_uniform_join_units(join_units):
+            b = join_units[0].block.concat_same_type(
+                [ju.block for ju in join_units], placement=placement)
+        else:
+            b = make_block(
+                concatenate_join_units(join_units, concat_axis, copy=copy),
+                placement=placement)
+        blocks.append(b)
 
     return BlockManager(blocks, axes)
+
+
+def is_uniform_join_units(join_units):
+    """
+    Check if the join units consist of blocks of uniform type that can
+    be concatenated using Block.concat_same_type instead of the generic
+    concatenate_join_units (which uses `_concat._concat_compat`).
+
+    """
+    return (
+        # all blocks need to have the same type
+        all([type(ju.block) is type(join_units[0].block) for ju in join_units]) and  # noqa
+        # no blocks that would get missing values (can lead to type upcasts)
+        all([not ju.is_na for ju in join_units]) and
+        # no blocks with indexers (as then the dimensions do not fit)
+        all([not ju.indexers for ju in join_units]) and
+        # disregard Panels
+        all([ju.block.ndim <= 2 for ju in join_units]) and
+        # only use this path when there is something to concatenate
+        len(join_units) > 1)
 
 
 def get_empty_dtype_and_na(join_units):
