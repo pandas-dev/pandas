@@ -37,17 +37,26 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.20.2
--------------
+pandas 0.21.0RC1
+----------------
 
-**Release date:** June 4, 2017
+**Release date:** October 13, 2017
 
-This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
-bug fixes and performance improvements.
-We recommend that all users upgrade to this version.
+This is a major release from 0.20.3 and includes a number of API changes,
+deprecations, new features, enhancements, and performance improvements along
+with a large number of bug fixes. We recommend that all users upgrade to this
+version.
 
-See the :ref:`v0.20.2 Whatsnew <whatsnew_0202>` overview for an extensive list
-of all enhancements and bugs that have been fixed in 0.20.2.
+Highlights include:
+
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
+- Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+
+See the :ref:`v0.21.0 Whatsnew <whatsnew_0210>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.21.0
 
 Thanks
 ~~~~~~
