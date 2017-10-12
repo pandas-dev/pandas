@@ -2220,6 +2220,7 @@ class NDFrame(PandasObject, SelectionMixin):
             selecting rows, "1" means that we are selecting columns, etc.
         convert : bool, default True
             .. deprecated:: 0.21.0
+               In the future, negative indices will always be converted.
 
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
@@ -2282,14 +2283,15 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['take'])
-    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-
-        if not convert:
+    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+        if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
             warnings.warn(msg, FutureWarning, stacklevel=2)
+        else:
+            convert = True
 
+        convert = nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
