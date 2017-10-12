@@ -4167,6 +4167,7 @@ class DataFrame(NDFrame):
         0  a  d
         1  b  e
         2  c  f
+
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
                                'B': [1, 2, 3]})
         >>> new_column = pd.Series(['d', 'e', 'f'], name='B')

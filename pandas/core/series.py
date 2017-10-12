@@ -1780,7 +1780,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
-        
+
         Examples
         --------
         >>> s = pd.Series(['a', 'b', 'c', 'd'])
@@ -1791,7 +1791,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    3
         3    4
         dtype: object
-        
+
         >>> s = pd.Series(['a', 'b', 'c', 'd'])
         >>> s.update(pd.Series([1, 4], index=[0, 3]))
         >>> s
@@ -1800,7 +1800,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         3    4
         dtype: object
-        
+
         If ``other`` contains NaNs the corresponding values are not updated
         in the original Series.
 
