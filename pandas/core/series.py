@@ -626,9 +626,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # we need to box if we have a non-unique index here
                     # otherwise have inline ndarray/lists
                     if not self.index.is_unique:
-                        result = self._constructor(
-                            result, index=[key] * len(result),
-                            dtype=self.dtype).__finalize__(self)
+                        if key in self.index.get_duplicates():
+                            result = self._constructor(
+                                result, index=[key] * len(result),
+                                dtype=self.dtype).__finalize__(self)
 
             return result
         except InvalidIndexError:
