@@ -61,40 +61,205 @@ of all enhancements and bugs that have been fixed in 0.21.0
 Thanks
 ~~~~~~
 
-- Aaron Barber
-- Andrew 亮
-- Becky Sweger
-- Christian Prinoth
-- Christian Stade-Schuldt
-- DSM
-- Erik Fredriksen
-- Hugues Valois
-- Jeff Reback
-- Jeff Tratner
-- JimStearns206
-- John W. O'Brien
-- Joris Van den Bossche
-- JosephWagner
-- Keith Webber
-- Mehmet Ali "Mali" Akmanalp
-- Pankaj Pandey
-- Patrick Luo
-- Patrick O'Melveny
-- Pietro Battiston
-- RobinFiveWords
-- Ryan Hendrickson
-- SimonBaron
-- Tom Augspurger
-- WBare
-- bpraggastis
-- chernrick
-- chris-b1
-- economy
-- gfyoung
-- jaredsnyder
-- keitakurita
-- linebp
-- lloydkirk
+A total of 196 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* 3553x +
+* Aaron Barber
+* Adam Gleave +
+* Adam Smith +
+* Adrian Liaw +
+* Alan Velasco +
+* Alan Yee +
+* Alex B +
+* Alex Lubbock +
+* Alex Marchenko +
+* Alex Rychyk +
+* Amol K +
+* Andreas Winkler
+* Andrew +
+* Andrew 亮
+* André Jonasson +
+* Becky Sweger
+* Berkay +
+* Bob Haffner +
+* Bran Yang
+* Brock Mendel +
+* Carol Willing +
+* Carter Green +
+* Chankey Pathak +
+* Chris
+* Chris Billington
+* Chris Filo Gorgolewski +
+* Chris Kerr
+* Chris M +
+* Chris Mazzullo +
+* Christian Prinoth
+* Christian Stade-Schuldt
+* Christoph Moehl +
+* DSM
+* Daniel Chen +
+* Daniel Grady
+* Daniel Himmelstein
+* Dave Willmer
+* David Cook
+* David Gwynne
+* David Read +
+* Dillon Niederhut +
+* Douglas Rudd
+* Eric Stein +
+* Eric Wieser +
+* Erik Fredriksen
+* Florian Wilhelm +
+* Floris Kint +
+* Forbidden Donut
+* Gabe F +
+* Giftlin +
+* Giftlin Rajaiah +
+* Giulio Pepe +
+* Guilherme Beltramini
+* Guillem Borrell +
+* Hanmin Qin +
+* Hendrik Makait +
+* Hugues Valois
+* Hussain Tamboli +
+* Iva Miholic +
+* Jan Novotný +
+* Jean Helie +
+* Jean-Baptiste Schiratti +
+* Jean-Mathieu Deschenes
+* Jeff Knupp +
+* Jeff Reback
+* Jeff Tratner
+* JennaVergeynst
+* JimStearns206
+* Joel Nothman
+* John W. O'Brien
+* Jon Crall +
+* Joris Van den Bossche
+* JosephWagner
+* Juarez Bochi
+* Julian Kuhlmann +
+* Karel De Brabandere
+* Kassandra Keeton +
+* Keiron Pizzey +
+* Keith Webber
+* Kernc
+* Kevin Sheppard
+* Kirk Hansen +
+* Licht Takeuchi +
+* Lucas Kushner +
+* Mahdi Ben Jelloul +
+* Makarov Andrey +
+* Malgorzata Turzanska +
+* Marc Garcia +
+* Margaret Sy +
+* MarsGuy +
+* Matt Bark +
+* Matthew Roeschke
+* Matti Picus
+* Mehmet Ali "Mali" Akmanalp
+* Michael Gasvoda +
+* Michael Penkov +
+* Milo +
+* Morgan Stuart +
+* Morgan243 +
+* Nathan Ford +
+* Nick Eubank
+* Nick Garvey +
+* Oleg Shteynbuk +
+* P-Tillmann +
+* Pankaj Pandey
+* Patrick Luo
+* Patrick O'Melveny
+* Paula +
+* Peter Quackenbush
+* Peter Yanovich +
+* Phillip Cloud
+* Pierre Haessig
+* Pietro Battiston
+* Pradyumna Reddy Chinthala
+* Prasanjit Prakash
+* RobinFiveWords
+* Ryan Hendrickson
+* Sam Foo
+* Sangwoong Yoon +
+* Simon Gibbons +
+* SimonBaron
+* Steven Cutting +
+* Sudeep +
+* Sylvia +
+* T N +
+* Telt
+* Thomas A Caswell
+* Tim Swast +
+* Tom Augspurger
+* Tong SHEN
+* Tuan +
+* Utkarsh Upadhyay +
+* Vincent La +
+* Vivek +
+* WANG Aiyong
+* WBare
+* Wes McKinney
+* XF +
+* Yi Liu +
+* Yosuke Nakabayashi +
+* abarber4gh +
+* aernlund +
+* agustín méndez +
+* andymaheshw +
+* ante328 +
+* aviolov +
+* bpraggastis
+* cbertinato +
+* cclauss +
+* chernrick
+* chris-b1
+* dkamm +
+* dwkenefick
+* economy
+* faic +
+* fding253 +
+* gfyoung
+* guygoldberg +
+* hhuuggoo +
+* huashuai +
+* ian
+* iulia +
+* jaredsnyder
+* jbrockmendel +
+* jdeschenes
+* jebob +
+* jschendel +
+* keitakurita
+* kernc +
+* kiwirob +
+* kjford
+* linebp
+* lloydkirk
+* louispotok +
+* majiang +
+* manikbhandari +
+* mattip
+* maxwasserman +
+* mjlove12 +
+* nmartensen +
+* pandas-docs-bot +
+* parchd-1 +
+* philipphanemann +
+* rdk1024 +
+* reidy-p +
+* ri938
+* ruiann +
+* rvernica +
+* s-weigand +
+* skwbc +
+* step4me +
+* topper-123 +
+* tsdlovell
+* ysau +
+* zzgao +
 
 pandas 0.20.0 / 0.20.1
 ----------------------

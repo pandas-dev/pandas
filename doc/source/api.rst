@@ -645,8 +645,12 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-.. autoclass:: api.types.CategoricalDtype
-   :members: categories, ordered
+The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.CategoricalDtype`.
+
+.. autosummary::
+   :toctree: generated/
+
+   api.types.CategoricalDtype
 
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
