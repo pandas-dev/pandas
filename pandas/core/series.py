@@ -1780,6 +1780,38 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
+        
+        Examples
+        --------
+        >>> s = pd.Series(['a', 'b', 'c', 'd'])
+        >>> s.update(pd.Series([1, 2, 3, 4]))
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: object
+        
+        >>> s = pd.Series(['a', 'b', 'c', 'd'])
+        >>> s.update(pd.Series([1, 4], index=[0, 3]))
+        >>> s
+        0    1
+        1    b
+        2    c
+        3    4
+        dtype: object
+        
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original Series.
+
+        >>> s = pd.Series(['a', 'b', 'c', 'd'])
+        >>> s.update(pd.Series([1, 2, np.nan, 4]))
+        >>> s
+        0    1
+        1    2
+        2    c
+        3    4
+        dtype: object
         """
         other = other.reindex_like(self)
         mask = notna(other)

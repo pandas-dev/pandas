@@ -4154,6 +4154,42 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                               'B': [1, 2, 3]})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e', 'f'],
+                                   'C': ['g', 'h', 'i']})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  d
+        1  b  e
+        2  c  f
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                               'B': [1, 2, 3]})
+        >>> new_column = pd.Series(['d', 'e', 'f'], name='B')
+        >>> df.update(new_column)
+        >>> df
+           A  B
+        0  a  d
+        1  b  e
+        2  c  f
+
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original dataframe.
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                               'B': [1, 2, 3]})
+        >>> new_df = pd.DataFrame({'B': ['d', np.nan, 'f']})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  d
+        1  b  2
+        2  c  f
+
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
