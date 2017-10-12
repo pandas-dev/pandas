@@ -2,6 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+import functools
 import warnings
 
 from pandas.core.dtypes.common import is_bool
@@ -320,3 +321,33 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
         msg = "Cannot specify all of '{}', 'index', 'columns'."
         raise TypeError(msg.format(arg_name))
     return out
+
+
+def validate_keywords_as_bool(*keywords):
+    """For a list of keywords, ensure all are bool
+
+    Usage
+    -----
+    Designed to be used as decorator around methods to check many
+    keywords at once:
+
+    @validate_keywords_as_bool('inplace', 'append')
+    def set_index(self, keys, inplace=False, append=False):
+        etc.
+
+    See Also
+    --------
+    validate_bool_kwargs
+
+    """
+    keywords = set(keywords)
+
+    def validate_kwargs(func):
+        @functools.wraps(func)
+        def validator(*args, **kwargs):
+            # only validate present keywords
+            for kw in keywords.intersection(kwargs.keys()):
+                validate_bool_kwarg(kwargs[kw], kw)
+            return func(*args, **kwargs)
+        return validator
+    return validate_kwargs

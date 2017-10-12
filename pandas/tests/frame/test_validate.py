@@ -31,3 +31,11 @@ class TestDataFrameValidate(object):
 
         with tm.assert_raises_regex(ValueError, msg):
             getattr(dataframe, func)(**kwargs)
+
+    @pytest.mark.parametrize('keyword', ('drop', 'append', 'inplace',
+                                         'verify_integrity'))
+    def test_set_index_validation(self, dataframe, keyword):
+        msg = 'For argument "{}" expected type bool'.format(keyword)
+        kw = {keyword: 'yes please'}
+        with tm.assert_raises_regex(ValueError, msg):
+            dataframe.set_index('b', **kw)
