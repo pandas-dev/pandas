@@ -529,27 +529,26 @@ class TestSparseSeries(SharedWithSparse):
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
         with tm.assert_produces_warning(FutureWarning):
+            sp.take([1, 5], convert=True)
+
+        with tm.assert_produces_warning(FutureWarning):
             sp.take([1, 5], convert=False)
 
     def test_numpy_take(self):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
 
-        # gh-17352: older versions of numpy don't properly
-        # pass in arguments to downstream .take() implementations.
-        warning = FutureWarning if _np_version_under1p12 else None
-
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
+        if not _np_version_under1p12:
             tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
                                    np.take(sp.to_dense(), indices, axis=0))
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=np.empty(sp.shape))
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.take,
+                                   sp, indices, out=np.empty(sp.shape))
 
-        msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, mode='clip')
+            msg = "the 'mode' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.take,
+                                   sp, indices, out=None, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
