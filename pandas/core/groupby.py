@@ -39,7 +39,8 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
-                                _default_index)
+                                _default_index, _not_none, _get_callable_name,
+                                _asarray_tuplesafe)
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
@@ -60,7 +61,6 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_kwargs
 
 import pandas.core.algorithms as algorithms
-import pandas.core.common as com
 from pandas.core.config import option_context
 
 from pandas.plotting._core import boxplot_frame_groupby
@@ -877,10 +877,9 @@ class _GroupBy(PandasObject, SelectionMixin):
         def reset_identity(values):
             # reset the identities of the components
             # of the values to prevent aliasing
-            for v in values:
-                if v is not None:
-                    ax = v._get_axis(self.axis)
-                    ax._reset_identity()
+            for v in _not_none(*values):
+                ax = v._get_axis(self.axis)
+                ax._reset_identity()
             return values
 
         if not not_indexed_same:
@@ -1806,7 +1805,7 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        f_name = com._get_callable_name(f)
+        f_name = _get_callable_name(f)
         if (f_name not in _plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
@@ -2533,7 +2532,7 @@ class Grouping(object):
                 self.grouper = self.obj[self.name]
 
             elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = com._asarray_tuplesafe(self.grouper)
+                self.grouper = _asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
@@ -2739,7 +2738,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
-        keys = [com._asarray_tuplesafe(keys)]
+        keys = [_asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
         if key is None:
@@ -3028,7 +3027,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(com._get_callable_name(f))
+                    columns.append(_get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
@@ -3686,14 +3685,13 @@ class NDFrameGroupBy(GroupBy):
         key_names = self.grouper.names
 
         # GH12824.
-        def first_non_None_value(values):
+        def first_not_none(values):
             try:
-                v = next(v for v in values if v is not None)
+                return next(_not_none(*values))
             except StopIteration:
                 return None
-            return v
 
-        v = first_non_None_value(values)
+        v = first_not_none(values)
 
         if v is None:
             # GH9684. If all values are None, then this will throw an error.
@@ -3726,7 +3724,7 @@ class NDFrameGroupBy(GroupBy):
                     key_index = None
 
             # make Nones an empty object
-            v = first_non_None_value(values)
+            v = first_not_none(values)
             if v is None:
                 return DataFrame()
             elif isinstance(v, NDFrame):

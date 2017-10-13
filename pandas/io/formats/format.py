@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -36,7 +37,6 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
@@ -1257,7 +1257,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1426,7 +1426,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -2352,7 +2352,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return any([x is not None for x in index.names])
+        return _any_not_none(*index.names)
     else:
         return index.name is not None
 

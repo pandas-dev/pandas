@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
 from pandas import compat
 from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -83,7 +84,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None and stop is None and step is None:
+        if _all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:

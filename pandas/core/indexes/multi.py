@@ -21,7 +21,8 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.common import (_values_from_object,
+from pandas.core.common import (_any_not_none,
+                                _values_from_object,
                                 is_bool_indexer,
                                 is_null_slice,
                                 is_true_slices)
@@ -509,7 +510,7 @@ class MultiIndex(Index):
                                             max_seq_items=False)),
             ('labels', ibase.default_pprint(self._labels,
                                             max_seq_items=False))]
-        if not all(name is None for name in self.names):
+        if _any_not_none(*self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
         if self.sortorder is not None:
             attrs.append(('sortorder', ibase.default_pprint(self.sortorder)))

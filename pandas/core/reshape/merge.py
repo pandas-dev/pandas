@@ -1550,4 +1550,4 @@ def _should_fill(lname, rname):
 
 
 def _any(x):
-    return x is not None and len(x) > 0 and any([y is not None for y in x])
+    return x is not None and com._any_not_none(*x)

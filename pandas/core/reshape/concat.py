@@ -241,7 +241,7 @@ class _Concatenator(object):
             raise ValueError('No objects to concatenate')
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None]
+            objs = list(com._not_none(*objs))
         else:
             # #1649
             clean_keys = []
