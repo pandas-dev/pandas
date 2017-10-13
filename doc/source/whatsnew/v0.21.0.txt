@@ -1,18 +1,19 @@
 .. _whatsnew_0210:
 
-v0.21.0 (???)
--------------
+v0.21.0 RC1 (October 13, 2017)
+------------------------------
 
-This is a major release from 0.20.x and includes a number of API changes, deprecations, new features,
+This is a major release from 0.20.3 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
 Highlights include:
 
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 - The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
+- Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -46,7 +47,7 @@ method. See the documentation :ref:`here <basics.object_conversion>`
 for more details. (:issue:`11221`)
 
 This method only performs soft conversions on object columns, converting Python objects
-to native types, but not any coercive conversions.  For example:
+to native types, but not any coercive conversions. For example:
 
 .. ipython:: python
 
@@ -57,7 +58,7 @@ to native types, but not any coercive conversions.  For example:
    df.infer_objects().dtypes
 
 Note that column ``'C'`` was not converted - only scalar numeric types
-will be inferred to a new type.  Other types of conversion should be accomplished
+will be converted to a new type.  Other types of conversion should be accomplished
 using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
 
 .. ipython:: python
@@ -71,25 +72,26 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
 Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-New users are often flummoxed by the relationship between column operations and attribute
-access on ``DataFrame`` instances (:issue:`7175`). One specific instance
-of this confusion is attempting to create a new column by setting into an attribute:
+New users are often flummoxed by the relationship between column operations and
+attribute access on ``DataFrame`` instances (:issue:`7175`). One specific
+instance of this confusion is attempting to create a new column by setting an
+attribute on the ``DataFrame``:
 
 .. code-block:: ipython
 
-  In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-  In[2]: df.two = [4, 5, 6]
+   In[1]: df = pd.DataFrame({'one': [1., 2., 3.]})
+   In[2]: df.two = [4, 5, 6]
 
 This does not raise any obvious exceptions, but also does not create a new column:
 
 .. code-block:: ipython
 
-  In[3]: df
-  Out[3]:
-      one
-  0  1.0
-  1  2.0
-  2  3.0
+   In[3]: df
+   Out[3]:
+       one
+   0  1.0
+   1  2.0
+   2  3.0
 
 Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
 
@@ -97,7 +99,7 @@ Setting a list-like data structure into a new attribute now raise a ``UserWarnin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an
-alternative to specify the ``axis`` and to make it similar in usage to ``reindex``
+alternative to specifying the ``axis``. This is similar to the behavior of ``reindex``
 (:issue:`12392`).
 
 For example:
@@ -153,8 +155,8 @@ style.
 :class:`pandas.api.types.CategoricalDtype` has been added to the public API and
 expanded to include the ``categories`` and ``ordered`` attributes. A
 ``CategoricalDtype`` can be used to specify the set of categories and
-orderedness of an array, independent of the data themselves. This can be useful,
-e.g., when converting string data to a ``Categorical`` (:issue:`14711`,
+orderedness of an array, independent of the data. This can be useful for example,
+when converting string data to a ``Categorical`` (:issue:`14711`,
 :issue:`15078`, :issue:`16015`, :issue:`17643`):
 
 .. ipython:: python
@@ -193,10 +195,10 @@ The values have been correctly interpreted as integers.
 
 The ``.dtype`` property of a ``Categorical``, ``CategoricalIndex`` or a
 ``Series`` with categorical type will now return an instance of
-``CategoricalDtype``. This change should be backwards compatible, though the
-repr has changed. ``str(CategoricalDtype())`` is still the string
-``'category'``, but the preferred way to detect categorical data is to use
-:func:`pandas.api.types.is_categorical_dtype`.
+``CategoricalDtype``. While the repr has changed, ``str(CategoricalDtype())`` is
+still the string ``'category'``. We'll take this moment to remind users that the
+*preferred* way to detect categorical data is to use
+:func:`pandas.api.types.is_categorical_dtype`, and not ``str(dtype) == 'category'``.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
@@ -205,8 +207,8 @@ See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- The ``validate`` argument for :func:`merge` function now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
-- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ to the build system (:issue:`16745`)
+- The ``validate`` argument for :func:`merge` now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
+- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ (``pyproject.toml``) to the build system (:issue:`16745`)
 - :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 - :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
 - :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
@@ -217,26 +219,46 @@ Other Enhancements
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
-- :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year (:issue:`9313`)
-- :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year (:issue:`9313`)
+- :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year. (:issue:`9313`)
+- :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year. (:issue:`9313`)
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
-- Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from non-string paths, such as ``pathlib.Path`` objects (:issue:`17206`).
-- :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files (:issue:`15871`).
-- :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
-- :func:`Styler.where` has been implemented. It is as a convenience for :func:`Styler.applymap` and enables simple DataFrame styling on the Jupyter notebook (:issue:`17474`).
+- Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from path-like objects, such as ``pathlib.Path``. (:issue:`17206`)
+- :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files. (:issue:`15871`)
+- :func:`DataFrame.items` and :func:`Series.items` are now present in both Python 2 and 3 and is lazy in all cases. (:issue:`13918`, :issue:`17213`)
+- :func:`Styler.where` has been implemented as a convenience for :func:`Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
-- :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names
-- Improved the import time of pandas by about 2.25x  (:issue:`16764`)
+- :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
+- Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
 - :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0210.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`).
+If installed, we now require:
+
+   +--------------+-----------------+----------+
+   | Package      | Minimum Version | Required |
+   +==============+=================+==========+
+   | Numpy        | 1.9.0           |    X     |
+   +--------------+-----------------+----------+
+   | Matplotlib   | 1.4.3           |          |
+   +--------------+-----------------+----------+
+   | Scipy        | 0.14.0          |          |
+   +--------------+-----------------+----------+
+   | Bottleneck   | 1.0.0           |          |
+   +--------------+-----------------+----------+
 
 .. _whatsnew_0210.api_breaking.period_index_resampling:
 
@@ -314,34 +336,13 @@ New Behavior:
 
    s.resample('M').ohlc()
 
-
-.. _whatsnew_0210.api_breaking.deps:
-
-Dependencies have increased minimum versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We have updated our minimum supported versions of dependencies (:issue:`15206`, :issue:`15543`, :issue:`15214`).
-If installed, we now require:
-
-   +--------------+-----------------+----------+
-   | Package      | Minimum Version | Required |
-   +==============+=================+==========+
-   | Numpy        | 1.9.0           |    X     |
-   +--------------+-----------------+----------+
-   | Matplotlib   | 1.4.3           |          |
-   +--------------+-----------------+----------+
-   | Scipy        | 0.14.0          |          |
-   +--------------+-----------------+----------+
-   | Bottleneck   | 1.0.0           |          |
-   +--------------+-----------------+----------+
-
 .. _whatsnew_0210.api_breaking.loc:
 
 Indexing with a list with missing labels is Deprecated
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
-This will now show a ``FutureWarning``, in the future this will raise a ``KeyError`` (:issue:`15747`).
+This will now show a ``FutureWarning``. In the future this will raise a ``KeyError`` (:issue:`15747`).
 This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
 See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
 
@@ -452,10 +453,10 @@ Current Behavior
 Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on
+The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
 whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
 
-With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
 
 .. ipython:: python
 
@@ -463,19 +464,19 @@ With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a 
 
 Previously NO ``bottleneck``
 
-.. code_block:: ipython
+.. code-block:: ipython
 
    In [2]: s.sum()
    Out[2]: np.nan
 
 Previously WITH ``bottleneck``
 
-.. code_block:: ipython
+.. code-block:: ipython
 
    In [2]: s.sum()
    Out[2]: 0.0
 
-New Behavior, without regards to the bottleneck installation.
+New Behavior, without regard to the bottleneck installation.
 
 .. ipython:: python
 
@@ -485,7 +486,7 @@ Note that this also changes the sum of an empty ``Series``
 
 Previously regardless of ``bottlenck``
 
-.. code_block:: ipython
+.. code-block:: ipython
 
    In [1]: pd.Series([]).sum()
    Out[1]: 0
@@ -660,7 +661,7 @@ The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and 
 MultiIndex Constructor with a Single Level
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``MultiIndex`` constructors no longer squeeze a MultiIndex with all
+The ``MultiIndex`` constructors no longer squeezes a MultiIndex with all
 length-one levels down to a regular ``Index``. This affects all the
 ``MultiIndex`` constructors. (:issue:`17178`)
 
@@ -1001,7 +1002,7 @@ Reshaping
 - Bug in :func:`unique` where checking a tuple of strings raised a ``TypeError`` (:issue:`17108`)
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
 - Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
-- Bug in :fun:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
+- Bug in :func:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
 
 Numeric
 ^^^^^^^
@@ -1014,6 +1015,8 @@ Categorical
 - Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
 - Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
+
+.. _whatsnew_0210.pypy:
 
 PyPy
 ^^^^

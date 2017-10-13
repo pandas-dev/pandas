@@ -109,7 +109,6 @@ class CategoricalDtypeType(type):
 
 
 class CategoricalDtype(ExtensionDtype):
-
     """
     Type for categorical data with the categories and orderedness
 
@@ -140,7 +139,7 @@ class CategoricalDtype(ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    pandas.Categorical
     """
     # TODO: Document public vs. private API
     name = 'category'

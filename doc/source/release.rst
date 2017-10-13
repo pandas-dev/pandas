@@ -37,55 +37,229 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.20.2
--------------
+pandas 0.21.0RC1
+----------------
 
-**Release date:** June 4, 2017
+**Release date:** October 13, 2017
 
-This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
-bug fixes and performance improvements.
-We recommend that all users upgrade to this version.
+This is a major release from 0.20.3 and includes a number of API changes,
+deprecations, new features, enhancements, and performance improvements along
+with a large number of bug fixes. We recommend that all users upgrade to this
+version.
 
-See the :ref:`v0.20.2 Whatsnew <whatsnew_0202>` overview for an extensive list
-of all enhancements and bugs that have been fixed in 0.20.2.
+Highlights include:
+
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
+- Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+
+See the :ref:`v0.21.0 Whatsnew <whatsnew_0210>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.21.0
 
 Thanks
 ~~~~~~
 
-- Aaron Barber
-- Andrew 亮
-- Becky Sweger
-- Christian Prinoth
-- Christian Stade-Schuldt
-- DSM
-- Erik Fredriksen
-- Hugues Valois
-- Jeff Reback
-- Jeff Tratner
-- JimStearns206
-- John W. O'Brien
-- Joris Van den Bossche
-- JosephWagner
-- Keith Webber
-- Mehmet Ali "Mali" Akmanalp
-- Pankaj Pandey
-- Patrick Luo
-- Patrick O'Melveny
-- Pietro Battiston
-- RobinFiveWords
-- Ryan Hendrickson
-- SimonBaron
-- Tom Augspurger
-- WBare
-- bpraggastis
-- chernrick
-- chris-b1
-- economy
-- gfyoung
-- jaredsnyder
-- keitakurita
-- linebp
-- lloydkirk
+A total of 196 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* 3553x +
+* Aaron Barber
+* Adam Gleave +
+* Adam Smith +
+* Adrian Liaw +
+* Alan Velasco +
+* Alan Yee +
+* Alex B +
+* Alex Lubbock +
+* Alex Marchenko +
+* Alex Rychyk +
+* Amol K +
+* Andreas Winkler
+* Andrew +
+* Andrew 亮
+* André Jonasson +
+* Becky Sweger
+* Berkay +
+* Bob Haffner +
+* Bran Yang
+* Brock Mendel +
+* Carol Willing +
+* Carter Green +
+* Chankey Pathak +
+* Chris
+* Chris Billington
+* Chris Filo Gorgolewski +
+* Chris Kerr
+* Chris M +
+* Chris Mazzullo +
+* Christian Prinoth
+* Christian Stade-Schuldt
+* Christoph Moehl +
+* DSM
+* Daniel Chen +
+* Daniel Grady
+* Daniel Himmelstein
+* Dave Willmer
+* David Cook
+* David Gwynne
+* David Read +
+* Dillon Niederhut +
+* Douglas Rudd
+* Eric Stein +
+* Eric Wieser +
+* Erik Fredriksen
+* Florian Wilhelm +
+* Floris Kint +
+* Forbidden Donut
+* Gabe F +
+* Giftlin +
+* Giftlin Rajaiah +
+* Giulio Pepe +
+* Guilherme Beltramini
+* Guillem Borrell +
+* Hanmin Qin +
+* Hendrik Makait +
+* Hugues Valois
+* Hussain Tamboli +
+* Iva Miholic +
+* Jan Novotný +
+* Jean Helie +
+* Jean-Baptiste Schiratti +
+* Jean-Mathieu Deschenes
+* Jeff Knupp +
+* Jeff Reback
+* Jeff Tratner
+* JennaVergeynst
+* JimStearns206
+* Joel Nothman
+* John W. O'Brien
+* Jon Crall +
+* Joris Van den Bossche
+* JosephWagner
+* Juarez Bochi
+* Julian Kuhlmann +
+* Karel De Brabandere
+* Kassandra Keeton +
+* Keiron Pizzey +
+* Keith Webber
+* Kernc
+* Kevin Sheppard
+* Kirk Hansen +
+* Licht Takeuchi +
+* Lucas Kushner +
+* Mahdi Ben Jelloul +
+* Makarov Andrey +
+* Malgorzata Turzanska +
+* Marc Garcia +
+* Margaret Sy +
+* MarsGuy +
+* Matt Bark +
+* Matthew Roeschke
+* Matti Picus
+* Mehmet Ali "Mali" Akmanalp
+* Michael Gasvoda +
+* Michael Penkov +
+* Milo +
+* Morgan Stuart +
+* Morgan243 +
+* Nathan Ford +
+* Nick Eubank
+* Nick Garvey +
+* Oleg Shteynbuk +
+* P-Tillmann +
+* Pankaj Pandey
+* Patrick Luo
+* Patrick O'Melveny
+* Paula +
+* Peter Quackenbush
+* Peter Yanovich +
+* Phillip Cloud
+* Pierre Haessig
+* Pietro Battiston
+* Pradyumna Reddy Chinthala
+* Prasanjit Prakash
+* RobinFiveWords
+* Ryan Hendrickson
+* Sam Foo
+* Sangwoong Yoon +
+* Simon Gibbons +
+* SimonBaron
+* Steven Cutting +
+* Sudeep +
+* Sylvia +
+* T N +
+* Telt
+* Thomas A Caswell
+* Tim Swast +
+* Tom Augspurger
+* Tong SHEN
+* Tuan +
+* Utkarsh Upadhyay +
+* Vincent La +
+* Vivek +
+* WANG Aiyong
+* WBare
+* Wes McKinney
+* XF +
+* Yi Liu +
+* Yosuke Nakabayashi +
+* abarber4gh +
+* aernlund +
+* agustín méndez +
+* andymaheshw +
+* ante328 +
+* aviolov +
+* bpraggastis
+* cbertinato +
+* cclauss +
+* chernrick
+* chris-b1
+* dkamm +
+* dwkenefick
+* economy
+* faic +
+* fding253 +
+* gfyoung
+* guygoldberg +
+* hhuuggoo +
+* huashuai +
+* ian
+* iulia +
+* jaredsnyder
+* jbrockmendel +
+* jdeschenes
+* jebob +
+* jschendel +
+* keitakurita
+* kernc +
+* kiwirob +
+* kjford
+* linebp
+* lloydkirk
+* louispotok +
+* majiang +
+* manikbhandari +
+* mattip
+* maxwasserman +
+* mjlove12 +
+* nmartensen +
+* pandas-docs-bot +
+* parchd-1 +
+* philipphanemann +
+* rdk1024 +
+* reidy-p +
+* ri938
+* ruiann +
+* rvernica +
+* s-weigand +
+* skwbc +
+* step4me +
+* topper-123 +
+* tsdlovell
+* ysau +
+* zzgao +
 
 pandas 0.20.0 / 0.20.1
 ----------------------

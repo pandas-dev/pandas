@@ -43,6 +43,11 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
+.. ipython:: python
+   :suppress:
+
+   import pandas.util.testing as tm
+
 .. _whatsnew_0200.enhancements.agg:
 
 ``agg`` API for DataFrame/Series
