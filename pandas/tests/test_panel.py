@@ -172,7 +172,7 @@ class SafeForLongAndSparse(object):
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            if not tm._incompat_bottleneck_version(name):
+            if name in ['sum', 'prod']:
                 assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         pytest.raises(Exception, f, axis=obj.ndim)
@@ -405,7 +405,9 @@ class SafeForSparse(object):
         for item in self.panel.items:
             for mjr in self.panel.major_axis[::2]:
                 for mnr in self.panel.minor_axis:
-                    result = self.panel.get_value(item, mjr, mnr)
+                    with tm.assert_produces_warning(FutureWarning,
+                                                    check_stacklevel=False):
+                        result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
 
@@ -867,16 +869,17 @@ class CheckIndexing(object):
                 test_comp(operator.le)
 
     def test_get_value(self):
-        for item in self.panel.items:
-            for mjr in self.panel.major_axis[::2]:
-                for mnr in self.panel.minor_axis:
-                    result = self.panel.get_value(item, mjr, mnr)
-                    expected = self.panel[item][mnr][mjr]
-                    assert_almost_equal(result, expected)
-        with tm.assert_raises_regex(TypeError,
-                                    "There must be an argument "
-                                    "for each axis"):
-            self.panel.get_value('a')
+        with catch_warnings(record=True):
+            for item in self.panel.items:
+                for mjr in self.panel.major_axis[::2]:
+                    for mnr in self.panel.minor_axis:
+                        result = self.panel.get_value(item, mjr, mnr)
+                        expected = self.panel[item][mnr][mjr]
+                        assert_almost_equal(result, expected)
+            with tm.assert_raises_regex(TypeError,
+                                        "There must be an argument "
+                                        "for each axis"):
+                self.panel.get_value('a')
 
     def test_set_value(self):
         with catch_warnings(record=True):
@@ -1440,6 +1443,22 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 major=self.panel.major_axis, copy=False)
             assert_panel_equal(result, self.panel)
             assert result is self.panel
+
+    def test_reindex_axis_style(self):
+        with catch_warnings(record=True):
+            panel = Panel(np.random.rand(5, 5, 5))
+            expected0 = Panel(panel.values).iloc[[0, 1]]
+            expected1 = Panel(panel.values).iloc[:, [0, 1]]
+            expected2 = Panel(panel.values).iloc[:, :, [0, 1]]
+
+        result = panel.reindex([0, 1], axis=0)
+        assert_panel_equal(result, expected0)
+
+        result = panel.reindex([0, 1], axis=1)
+        assert_panel_equal(result, expected1)
+
+        result = panel.reindex([0, 1], axis=2)
+        assert_panel_equal(result, expected2)
 
     def test_reindex_multi(self):
         with catch_warnings(record=True):

@@ -9,7 +9,8 @@ from pandas.compat import StringIO, long, u
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _stringify_path, BaseIterator)
+                              _infer_compression, _stringify_path,
+                              BaseIterator)
 from pandas.io.parsers import _validate_integer
 from pandas.core.common import AbstractMethodError
 from pandas.core.reshape.concat import concat
@@ -27,7 +28,7 @@ TABLE_SCHEMA_VERSION = '0.20.0'
 # interface to/from
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None, lines=False):
+            default_handler=None, lines=False, compression=None):
 
     path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
@@ -54,8 +55,11 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
         s = _convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, compat.string_types):
-        with open(path_or_buf, 'w') as fh:
+        fh, handles = _get_handle(path_or_buf, 'w', compression=compression)
+        try:
             fh.write(s)
+        finally:
+            fh.close()
     elif path_or_buf is None:
         return s
     else:
@@ -178,7 +182,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False, chunksize=None):
+              lines=False, chunksize=None, compression='infer'):
     """
     Convert a JSON string to pandas object
 
@@ -277,6 +281,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.21.0
 
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer', then use
+        gzip, bz2, zip or xz if path_or_buf is a string ending in
+        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
+        otherwise. If using 'zip', the ZIP file must contain only one data
+        file to be read in. Set to None for no decompression.
+
+        .. versionadded:: 0.21.0
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
@@ -334,15 +347,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
 
-    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf,
-                                                      encoding=encoding)
+    compression = _infer_compression(path_or_buf, compression)
+    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+        path_or_buf, encoding=encoding, compression=compression,
+    )
 
     json_reader = JsonReader(
         filepath_or_buffer, orient=orient, typ=typ, dtype=dtype,
         convert_axes=convert_axes, convert_dates=convert_dates,
         keep_default_dates=keep_default_dates, numpy=numpy,
         precise_float=precise_float, date_unit=date_unit, encoding=encoding,
-        lines=lines, chunksize=chunksize
+        lines=lines, chunksize=chunksize, compression=compression,
     )
 
     if chunksize:
@@ -361,7 +376,7 @@ class JsonReader(BaseIterator):
     """
     def __init__(self, filepath_or_buffer, orient, typ, dtype, convert_axes,
                  convert_dates, keep_default_dates, numpy, precise_float,
-                 date_unit, encoding, lines, chunksize):
+                 date_unit, encoding, lines, chunksize, compression):
 
         self.path_or_buf = filepath_or_buffer
         self.orient = orient
@@ -374,6 +389,7 @@ class JsonReader(BaseIterator):
         self.precise_float = precise_float
         self.date_unit = date_unit
         self.encoding = encoding
+        self.compression = compression
         self.lines = lines
         self.chunksize = chunksize
         self.nrows_seen = 0
@@ -415,20 +431,20 @@ class JsonReader(BaseIterator):
 
         data = filepath_or_buffer
 
+        exists = False
         if isinstance(data, compat.string_types):
             try:
                 exists = os.path.exists(filepath_or_buffer)
-
             # gh-5874: if the filepath is too long will raise here
             except (TypeError, ValueError):
                 pass
 
-            else:
-                if exists:
-                    data, _ = _get_handle(filepath_or_buffer, 'r',
-                                          encoding=self.encoding)
-                    self.should_close = True
-                    self.open_stream = data
+        if exists or self.compression is not None:
+            data, _ = _get_handle(filepath_or_buffer, 'r',
+                                  encoding=self.encoding,
+                                  compression=self.compression)
+            self.should_close = True
+            self.open_stream = data
 
         return data
 

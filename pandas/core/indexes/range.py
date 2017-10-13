@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
 from pandas import compat
 from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -23,9 +24,14 @@ from pandas.core.indexes.numeric import Int64Index
 class RangeIndex(Int64Index):
 
     """
-    Immutable Index implementing a monotonic range. RangeIndex is a
-    memory-saving special case of Int64Index limited to representing
-    monotonic ranges.
+    Immutable Index implementing a monotonic integer range.
+
+    RangeIndex is a memory-saving special case of Int64Index limited to
+    representing monotonic ranges. Using RangeIndex may in some instances
+    improve computing speed.
+
+    This is the default index type used
+    by DataFrame and Series when no explicit index is provided by the user.
 
     Parameters
     ----------
@@ -38,6 +44,10 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
+    See Also
+    --------
+    Index : The base pandas Index type
+    Int64Index : Index of int64 data
     """
 
     _typ = 'rangeindex'
@@ -74,7 +84,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None and stop is None and step is None:
+        if _all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:

@@ -109,7 +109,6 @@ class CategoricalDtypeType(type):
 
 
 class CategoricalDtype(ExtensionDtype):
-
     """
     Type for categorical data with the categories and orderedness
 
@@ -140,7 +139,7 @@ class CategoricalDtype(ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    pandas.Categorical
     """
     # TODO: Document public vs. private API
     name = 'category'
@@ -220,7 +219,7 @@ class CategoricalDtype(ExtensionDtype):
             # both unordered; this could probably be optimized / cached
             return hash(self) == hash(other)
 
-    def __unicode__(self):
+    def __repr__(self):
         tpl = u'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
             data = u"None, "

@@ -2272,6 +2272,17 @@ class TestHDFStore(Base):
             result = store.select('table')
             assert_series_equal(result, s)
 
+    def test_roundtrip_tz_aware_index(self):
+        # GH 17618
+        time = pd.Timestamp('2000-01-01 01:00:00', tz='US/Eastern')
+        df = pd.DataFrame(data=[0], index=[time])
+
+        with ensure_clean_store(self.path) as store:
+            store.put('frame', df, format='fixed')
+            recons = store['frame']
+            tm.assert_frame_equal(recons, df)
+            assert recons.index[0].value == 946706400000000000
+
     def test_append_with_timedelta(self):
         # GH 3577
         # append timedelta

@@ -143,10 +143,11 @@ class TestDataFrameAlterAxes(TestData):
     def test_set_index_bug(self):
         # GH1590
         df = DataFrame({'val': [0, 1, 2], 'key': ['a', 'b', 'c']})
-        df2 = df.select(lambda indx: indx >= 1)
-        rs = df2.set_index('key')
         xp = DataFrame({'val': [1, 2]},
                        Index(['b', 'c'], name='key'))
+
+        df2 = df.loc[df.index.map(lambda indx: indx >= 1)]
+        rs = df2.set_index('key')
         assert_frame_equal(rs, xp)
 
     def test_set_index_pass_arrays(self):
@@ -434,6 +435,25 @@ class TestDataFrameAlterAxes(TestData):
 
         assert no_return is None
         assert_frame_equal(result, expected)
+
+    def test_rename_axis_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/17833
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis({0: 10, 1: 20}, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=1)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df['A'].rename_axis(id)
+            assert 'rename' in str(w[0].message)
 
     def test_rename_multiindex(self):
 
@@ -836,6 +856,106 @@ class TestDataFrameAlterAxes(TestData):
         assert 'FOO' in renamed
         assert 'foo' not in renamed
 
+    def test_rename_axis_style(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['X', 'Y'])
+        expected = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, index=['X', 'Y'])
+
+        result = df.rename(str.lower, axis=1)
+        assert_frame_equal(result, expected)
+
+        result = df.rename(str.lower, axis='columns')
+        assert_frame_equal(result, expected)
+
+        result = df.rename({"A": 'a', 'B': 'b'}, axis=1)
+        assert_frame_equal(result, expected)
+
+        result = df.rename({"A": 'a', 'B': 'b'}, axis='columns')
+        assert_frame_equal(result, expected)
+
+        # Index
+        expected = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['x', 'y'])
+        result = df.rename(str.lower, axis=0)
+        assert_frame_equal(result, expected)
+
+        result = df.rename(str.lower, axis='index')
+        assert_frame_equal(result, expected)
+
+        result = df.rename({'X': 'x', 'Y': 'y'}, axis=0)
+        assert_frame_equal(result, expected)
+
+        result = df.rename({'X': 'x', 'Y': 'y'}, axis='index')
+        assert_frame_equal(result, expected)
+
+    def test_rename_mapper_multi(self):
+        df = pd.DataFrame({"A": ['a', 'b'], "B": ['c', 'd'],
+                           'C': [1, 2]}).set_index(["A", "B"])
+        result = df.rename(str.upper)
+        expected = df.rename(index=str.upper)
+        assert_frame_equal(result, expected)
+
+    def test_rename_positional_named(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, index=['X', 'Y'])
+        result = df.rename(str.lower, columns=str.upper)
+        expected = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['x', 'y'])
+        assert_frame_equal(result, expected)
+
+    def test_rename_axis_style_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/12392
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]}, index=['0', '1'])
+
+        # Named target and axis
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis=1)
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis='columns')
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis='columns')
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(columns=str.lower, axis='columns')
+
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(index=str.lower, axis=0)
+
+        # Multiple targets and axis
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(str.lower, str.lower, axis='columns')
+
+        # Too many targets
+        with tm.assert_raises_regex(TypeError, None):
+            df.rename(str.lower, str.lower, str.lower)
+
+    def test_reindex_api_equivalence(self):
+        # equivalence of the labels/axis and index/columns API's
+        df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+                       index=['a', 'b', 'c'],
+                       columns=['d', 'e', 'f'])
+
+        res1 = df.reindex(['b', 'a'])
+        res2 = df.reindex(index=['b', 'a'])
+        res3 = df.reindex(labels=['b', 'a'])
+        res4 = df.reindex(labels=['b', 'a'], axis=0)
+        res5 = df.reindex(['b', 'a'], axis=0)
+        for res in [res2, res3, res4, res5]:
+            tm.assert_frame_equal(res1, res)
+
+        res1 = df.reindex(columns=['e', 'd'])
+        res2 = df.reindex(['e', 'd'], axis=1)
+        res3 = df.reindex(labels=['e', 'd'], axis=1)
+        for res in [res2, res3]:
+            tm.assert_frame_equal(res1, res)
+
+        res1 = df.reindex(index=['b', 'a'], columns=['e', 'd'])
+        res2 = df.reindex(columns=['e', 'd'], index=['b', 'a'])
+        res3 = df.reindex(labels=['b', 'a'], axis=0).reindex(labels=['e', 'd'],
+                                                             axis=1)
+        for res in [res2, res3]:
+            tm.assert_frame_equal(res1, res)
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 
@@ -858,6 +978,14 @@ class TestDataFrameAlterAxes(TestData):
             result = df.set_index(cols).reset_index()
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
+
+    def test_ambiguous_warns(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        with tm.assert_produces_warning(UserWarning):
+            df.rename(id, id)
+
+        with tm.assert_produces_warning(UserWarning):
+            df.rename({0: 10}, {"A": "B"})
 
 
 class TestIntervalIndex(object):

@@ -7,8 +7,7 @@ from cpython cimport (
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
-from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
-                    NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
+from numpy cimport int64_t, import_array, ndarray
 import numpy as np
 import_array()
 
@@ -23,12 +22,11 @@ from datetime cimport (
     pandas_datetimestruct,
     pandas_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
-    PANDAS_FR_ns,
-    INT32_MIN)
+    PANDAS_FR_ns)
 
 
 cimport util
-from util cimport is_period_object, is_string_object
+from util cimport is_period_object, is_string_object, INT32_MIN
 
 from lib cimport is_null_datetimelike
 from pandas._libs import tslib
@@ -90,12 +88,8 @@ cdef extern from "period_helper.h":
                                int microseconds, int picoseconds,
                                int freq) nogil except INT32_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal,
-                               int freq) except INT32_MIN
-
     int get_date_info(int64_t ordinal, int freq,
                       date_info *dinfo) nogil except INT32_MIN
-    double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
     int pqyear(int64_t ordinal, int freq) except INT32_MIN

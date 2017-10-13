@@ -10,6 +10,7 @@ import numpy as np
 from pandas.compat import reduce
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
+from pandas.core.common import _any_not_none
 from pandas.core.dtypes.common import is_float
 import pandas._libs.lib as lib
 from pandas import Index, MultiIndex, PeriodIndex
@@ -356,7 +357,21 @@ class ExcelFormatter(object):
             self.styler = None
         self.df = df
         if cols is not None:
-            self.df = df.loc[:, cols]
+
+            # all missing, raise
+            if not len(Index(cols) & df.columns):
+                raise KeyError(
+                    "passes columns are not ALL present dataframe")
+
+            # deprecatedin gh-17295
+            # 1 missing is ok (for now)
+            if len(Index(cols) & df.columns) != len(cols):
+                warnings.warn(
+                    "Not all names specified in 'columns' are found; "
+                    "this will raise a KeyError in the future",
+                    FutureWarning)
+
+            self.df = df.reindex(columns=cols)
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index
@@ -534,8 +549,7 @@ class ExcelFormatter(object):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
-            if (any(x is not None for x in index_labels) and
-                    self.header is not False):
+            if _any_not_none(*index_labels) and self.header is not False:
 
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name,
