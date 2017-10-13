@@ -28,12 +28,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-
-from pandas.core.common import (_all_not_none,
-                                _values_from_object,
-                                _maybe_box_datetimelike,
-                                SettingWithCopyError, SettingWithCopyWarning,
-                                AbstractMethodError)
+from pandas.core.common import (_all_not_none, _count_not_none,
+                                _maybe_box_datetimelike, _values_from_object,
+                                AbstractMethodError, SettingWithCopyError,
+                                SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -3252,7 +3250,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = sum([x is not None for x in [items, like, regex]])
+        nkw = _count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')

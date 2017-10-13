@@ -42,16 +42,15 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
-from pandas.core.common import (is_bool_indexer,
-                                _values_from_object,
-                                _asarray_tuplesafe)
+from pandas.core.common import (is_bool_indexer, _values_from_object,
+                                _asarray_tuplesafe, _not_none,
+                                _index_labels_to_array)
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
-import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -3168,8 +3167,8 @@ class Index(IndexOpsMixin, PandasObject):
         other_is_mi = isinstance(other, MultiIndex)
 
         # figure out join names
-        self_names = [n for n in self.names if n is not None]
-        other_names = [n for n in other.names if n is not None]
+        self_names = _not_none(*self.names)
+        other_names = _not_none(*other.names)
         overlap = list(set(self_names) & set(other_names))
 
         # need at least 1 in common, but not more than 1
@@ -3714,7 +3713,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         dropped : Index
         """
-        labels = com._index_labels_to_array(labels)
+        labels = _index_labels_to_array(labels)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
