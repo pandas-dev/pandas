@@ -1783,35 +1783,41 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'b', 'c', 'd'])
-        >>> s.update(pd.Series([1, 2, 3, 4]))
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, 5, 6]))
         >>> s
-        0    1
-        1    2
-        2    3
-        3    4
+        0    4
+        1    5
+        2    6
+        dtype: int64
+
+        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s.update(pd.Series(['d', 'e'], index=[0, 2]))
+        >>> s
+        0    d
+        1    b
+        2    e
         dtype: object
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'])
-        >>> s.update(pd.Series([1, 4], index=[0, 3]))
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, 5, 6, 7, 8]))
         >>> s
-        0    1
-        1    b
-        2    c
-        3    4
-        dtype: object
+        0    4
+        1    5
+        2    6
+        dtype: int64
 
         If ``other`` contains NaNs the corresponding values are not updated
         in the original Series.
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'])
-        >>> s.update(pd.Series([1, 2, np.nan, 4]))
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, np.nan, 6]))
         >>> s
-        0    1
+        0    4
         1    2
-        2    c
-        3    4
-        dtype: object
+        2    6
+        dtype: int64
+
         """
         other = other.reindex_like(self)
         mask = notna(other)
