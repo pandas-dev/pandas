@@ -30,9 +30,9 @@ class Base(object):
         for name, idx in self.indices.items():
             setattr(self, name, idx)
 
-    def verify_pickle(self, index):
-        unpickled = tm.round_trip_pickle(index)
-        assert index.equals(unpickled)
+    def verify_pickle(self, indices):
+        unpickled = tm.round_trip_pickle(indices)
+        assert indices.equals(unpickled)
 
     def test_pickle_compat_construction(self):
         # this is testing for pickle compat
@@ -50,6 +50,21 @@ class Base(object):
         assert s.values is not idx.values
         assert s.index is not idx
         assert s.name == idx.name
+
+    def test_to_frame(self):
+        # see gh-15230
+        idx = self.create_index()
+        name = idx.name or 0
+
+        df = idx.to_frame()
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == name
+        assert df[name].values is not idx.values
+
+        df = idx.to_frame(index=False)
+        assert df.index is not idx
 
     def test_shift(self):
 
@@ -97,7 +112,7 @@ class Base(object):
                                lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
-                  else "cannot perform __div__"
+            else "cannot perform __div__"
         tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
         tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
         tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
@@ -178,11 +193,10 @@ class Base(object):
         assert "'foo'" in str(idx)
         assert idx.__class__.__name__ in str(idx)
 
-    def test_dtype_str(self):
-        for idx in self.indices.values():
-            dtype = idx.dtype_str
-            assert isinstance(dtype, compat.string_types)
-            assert dtype == str(idx.dtype)
+    def test_dtype_str(self, indices):
+        dtype = indices.dtype_str
+        assert isinstance(dtype, compat.string_types)
+        assert dtype == str(indices.dtype)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -192,48 +206,43 @@ class Base(object):
             repr(idx)
             assert '...' not in str(idx)
 
-    def test_wrong_number_names(self):
+    def test_wrong_number_names(self, indices):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
+        tm.assert_raises_regex(ValueError, "^Length", testit, indices)
 
-        for ind in self.indices.values():
-            tm.assert_raises_regex(ValueError, "^Length", testit, ind)
-
-    def test_set_name_methods(self):
+    def test_set_name_methods(self, indices):
         new_name = "This is the new name for this index"
-        for ind in self.indices.values():
 
-            # don't tests a MultiIndex here (as its tested separated)
-            if isinstance(ind, MultiIndex):
-                continue
+        # don't tests a MultiIndex here (as its tested separated)
+        if isinstance(indices, MultiIndex):
+            return
+        original_name = indices.name
+        new_ind = indices.set_names([new_name])
+        assert new_ind.name == new_name
+        assert indices.name == original_name
+        res = indices.rename(new_name, inplace=True)
 
-            original_name = ind.name
-            new_ind = ind.set_names([new_name])
-            assert new_ind.name == new_name
-            assert ind.name == original_name
-            res = ind.rename(new_name, inplace=True)
+        # should return None
+        assert res is None
+        assert indices.name == new_name
+        assert indices.names == [new_name]
+        # with tm.assert_raises_regex(TypeError, "list-like"):
+        #    # should still fail even if it would be the right length
+        #    ind.set_names("a")
+        with tm.assert_raises_regex(ValueError, "Level must be None"):
+            indices.set_names("a", level=0)
 
-            # should return None
-            assert res is None
-            assert ind.name == new_name
-            assert ind.names == [new_name]
-            # with tm.assert_raises_regex(TypeError, "list-like"):
-            #    # should still fail even if it would be the right length
-            #    ind.set_names("a")
-            with tm.assert_raises_regex(ValueError, "Level must be None"):
-                ind.set_names("a", level=0)
+        # rename in place just leaves tuples and other containers alone
+        name = ('A', 'B')
+        indices.rename(name, inplace=True)
+        assert indices.name == name
+        assert indices.names == [name]
 
-            # rename in place just leaves tuples and other containers alone
-            name = ('A', 'B')
-            ind.rename(name, inplace=True)
-            assert ind.name == name
-            assert ind.names == [name]
-
-    def test_hash_error(self):
-        for ind in self.indices.values():
-            with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                        type(ind).__name__):
-                hash(ind)
+    def test_hash_error(self, indices):
+        index = indices
+        tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                               type(index).__name__, hash, indices)
 
     def test_copy_name(self):
         # gh-12309: Check that the "name" argument
@@ -298,106 +307,87 @@ class Base(object):
                 tm.assert_numpy_array_equal(index._values, result._values,
                                             check_same='same')
 
-    def test_copy_and_deepcopy(self):
+    def test_copy_and_deepcopy(self, indices):
         from copy import copy, deepcopy
 
-        for ind in self.indices.values():
+        if isinstance(indices, MultiIndex):
+            return
+        for func in (copy, deepcopy):
+            idx_copy = func(indices)
+            assert idx_copy is not indices
+            assert idx_copy.equals(indices)
 
-            # don't tests a MultiIndex here (as its tested separated)
-            if isinstance(ind, MultiIndex):
-                continue
+        new_copy = indices.copy(deep=True, name="banana")
+        assert new_copy.name == "banana"
 
-            for func in (copy, deepcopy):
-                idx_copy = func(ind)
-                assert idx_copy is not ind
-                assert idx_copy.equals(ind)
+    def test_duplicates(self, indices):
+        if type(indices) is not self._holder:
+            return
+        if not len(indices) or isinstance(indices, MultiIndex):
+            return
+        idx = self._holder([indices[0]] * 5)
+        assert not idx.is_unique
+        assert idx.has_duplicates
 
-            new_copy = ind.copy(deep=True, name="banana")
-            assert new_copy.name == "banana"
+    def test_get_unique_index(self, indices):
+        # MultiIndex tested separately
+        if not len(indices) or isinstance(indices, MultiIndex):
+            return
 
-    def test_duplicates(self):
-        for ind in self.indices.values():
+        idx = indices[[0] * 5]
+        idx_unique = indices[[0]]
 
-            if not len(ind):
-                continue
-            if isinstance(ind, MultiIndex):
-                continue
-            idx = self._holder([ind[0]] * 5)
-            assert not idx.is_unique
-            assert idx.has_duplicates
+        # We test against `idx_unique`, so first we make sure it's unique
+        # and doesn't contain nans.
+        assert idx_unique.is_unique
+        try:
+            assert not idx_unique.hasnans
+        except NotImplementedError:
+            pass
 
-            # GH 10115
-            # preserve names
-            idx.name = 'foo'
-            result = idx.drop_duplicates()
-            assert result.name == 'foo'
-            tm.assert_index_equal(result, Index([ind[0]], name='foo'))
+        for dropna in [False, True]:
+            result = idx._get_unique_index(dropna=dropna)
+            tm.assert_index_equal(result, idx_unique)
 
-    def test_get_unique_index(self):
-        for ind in self.indices.values():
+        # nans:
+        if not indices._can_hold_na:
+            return
 
-            # MultiIndex tested separately
-            if not len(ind) or isinstance(ind, MultiIndex):
-                continue
+        if needs_i8_conversion(indices):
+            vals = indices.asi8[[0] * 5]
+            vals[0] = iNaT
+        else:
+            vals = indices.values[[0] * 5]
+            vals[0] = np.nan
 
-            idx = ind[[0] * 5]
-            idx_unique = ind[[0]]
+        vals_unique = vals[:2]
+        idx_nan = indices._shallow_copy(vals)
+        idx_unique_nan = indices._shallow_copy(vals_unique)
+        assert idx_unique_nan.is_unique
 
-            # We test against `idx_unique`, so first we make sure it's unique
-            # and doesn't contain nans.
-            assert idx_unique.is_unique
-            try:
-                assert not idx_unique.hasnans
-            except NotImplementedError:
-                pass
+        assert idx_nan.dtype == indices.dtype
+        assert idx_unique_nan.dtype == indices.dtype
 
-            for dropna in [False, True]:
-                result = idx._get_unique_index(dropna=dropna)
-                tm.assert_index_equal(result, idx_unique)
+        for dropna, expected in zip([False, True],
+                                    [idx_unique_nan,
+                                     idx_unique]):
+            for i in [idx_nan, idx_unique_nan]:
+                result = i._get_unique_index(dropna=dropna)
+                tm.assert_index_equal(result, expected)
 
-            # nans:
-            if not ind._can_hold_na:
-                continue
+    def test_sort(self, indices):
+        pytest.raises(TypeError, indices.sort)
 
-            if needs_i8_conversion(ind):
-                vals = ind.asi8[[0] * 5]
-                vals[0] = iNaT
-            else:
-                vals = ind.values[[0] * 5]
-                vals[0] = np.nan
+    def test_mutability(self, indices):
+        if not len(indices):
+            return
+        pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
 
-            vals_unique = vals[:2]
-            idx_nan = ind._shallow_copy(vals)
-            idx_unique_nan = ind._shallow_copy(vals_unique)
-            assert idx_unique_nan.is_unique
+    def test_view(self, indices):
+        assert indices.view().name == indices.name
 
-            assert idx_nan.dtype == ind.dtype
-            assert idx_unique_nan.dtype == ind.dtype
-
-            for dropna, expected in zip([False, True],
-                                        [idx_unique_nan, idx_unique]):
-                for i in [idx_nan, idx_unique_nan]:
-                    result = i._get_unique_index(dropna=dropna)
-                    tm.assert_index_equal(result, expected)
-
-    def test_sort(self):
-        for ind in self.indices.values():
-            pytest.raises(TypeError, ind.sort)
-
-    def test_mutability(self):
-        for ind in self.indices.values():
-            if not len(ind):
-                continue
-            pytest.raises(TypeError, ind.__setitem__, 0, ind[0])
-
-    def test_view(self):
-        for ind in self.indices.values():
-            i_view = ind.view()
-            assert i_view.name == ind.name
-
-    def test_compat(self):
-        for ind in self.indices.values():
-            assert ind.tolist() == list(ind)
+    def test_compat(self, indices):
+        assert indices.tolist() == list(indices)
 
     def test_memory_usage(self):
         for name, index in compat.iteritems(self.indices):
@@ -457,11 +447,11 @@ class Base(object):
                 tm.assert_raises_regex(ValueError, msg, np.argsort,
                                        ind, order=('a', 'b'))
 
-    def test_pickle(self):
-        for ind in self.indices.values():
-            self.verify_pickle(ind)
-            ind.name = 'foo'
-            self.verify_pickle(ind)
+    def test_pickle(self, indices):
+        self.verify_pickle(indices)
+        original_name, indices.name = indices.name, 'foo'
+        self.verify_pickle(indices)
+        indices.name = original_name
 
     def test_take(self):
         indexer = [4, 3, 0, 2]
@@ -962,46 +952,47 @@ class Base(object):
             joined = index.join(index, how=how)
             assert (index == joined).all()
 
-    def test_searchsorted_monotonic(self):
+    def test_searchsorted_monotonic(self, indices):
         # GH17271
-        for index in self.indices.values():
-            # not implemented for tuple searches in MultiIndex
-            # or Intervals searches in IntervalIndex
-            if isinstance(index, (MultiIndex, IntervalIndex)):
-                continue
+        # not implemented for tuple searches in MultiIndex
+        # or Intervals searches in IntervalIndex
+        if isinstance(indices, (MultiIndex, IntervalIndex)):
+            return
 
-            # nothing to test if the index is empty
-            if index.empty:
-                continue
-            value = index[0]
+        # nothing to test if the index is empty
+        if indices.empty:
+            return
+        value = indices[0]
 
-            # determine the expected results (handle dupes for 'right')
-            expected_left, expected_right = 0, (index == value).argmin()
-            if expected_right == 0:
-                # all values are the same, expected_right should be length
-                expected_right = len(index)
+        # determine the expected results (handle dupes for 'right')
+        expected_left, expected_right = 0, (indices == value).argmin()
+        if expected_right == 0:
+            # all values are the same, expected_right should be length
+            expected_right = len(indices)
 
-            # test _searchsorted_monotonic in all cases
-            # test searchsorted only for increasing
-            if index.is_monotonic_increasing:
-                ssm_left = index._searchsorted_monotonic(value, side='left')
-                assert expected_left == ssm_left
+        # test _searchsorted_monotonic in all cases
+        # test searchsorted only for increasing
+        if indices.is_monotonic_increasing:
+            ssm_left = indices._searchsorted_monotonic(value, side='left')
+            assert expected_left == ssm_left
 
-                ssm_right = index._searchsorted_monotonic(value, side='right')
-                assert expected_right == ssm_right
+            ssm_right = indices._searchsorted_monotonic(value, side='right')
+            assert expected_right == ssm_right
 
-                ss_left = index.searchsorted(value, side='left')
-                assert expected_left == ss_left
+            ss_left = indices.searchsorted(value, side='left')
+            assert expected_left == ss_left
 
-                ss_right = index.searchsorted(value, side='right')
-                assert expected_right == ss_right
-            elif index.is_monotonic_decreasing:
-                ssm_left = index._searchsorted_monotonic(value, side='left')
-                assert expected_left == ssm_left
+            ss_right = indices.searchsorted(value, side='right')
+            assert expected_right == ss_right
 
-                ssm_right = index._searchsorted_monotonic(value, side='right')
-                assert expected_right == ssm_right
-            else:
-                # non-monotonic should raise.
-                with pytest.raises(ValueError):
-                    index._searchsorted_monotonic(value, side='left')
+        elif indices.is_monotonic_decreasing:
+            ssm_left = indices._searchsorted_monotonic(value, side='left')
+            assert expected_left == ssm_left
+
+            ssm_right = indices._searchsorted_monotonic(value, side='right')
+            assert expected_right == ssm_right
+
+        else:
+            # non-monotonic should raise.
+            with pytest.raises(ValueError):
+                indices._searchsorted_monotonic(value, side='left')

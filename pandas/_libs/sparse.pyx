@@ -848,3 +848,22 @@ def reindex_integer(ndarray[float64_t, ndim=1] values,
                     IntIndex sparse_index,
                     ndarray[int32_t, ndim=1] indexer):
     pass
+
+
+# -----------------------------------------------------------------------------
+# SparseArray mask create operations
+
+def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
+    cdef object value
+    cdef Py_ssize_t i
+    cdef Py_ssize_t new_length = len(arr)
+    cdef ndarray[int8_t, ndim=1] mask
+
+    mask = np.ones(new_length, dtype=np.int8)
+
+    for i in range(new_length):
+        value = arr[i]
+        if value == fill_value and type(value) == type(fill_value):
+            mask[i] = 0
+
+    return mask.view(dtype=np.bool)

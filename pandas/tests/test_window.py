@@ -1175,7 +1175,7 @@ class TestMoments(Base):
         # is analogus to Numpy's percentile
         row = 10
         col = 5
-        idx = pd.date_range(20100101, periods=row, freq='B')
+        idx = pd.date_range('20100101', periods=row, freq='B')
         df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
                           index=idx)
 
@@ -2355,7 +2355,8 @@ class TestMomentsConsistency(Base):
                         expanding_apply_f_result = x.expanding(
                             min_periods=min_periods).apply(func=f)
 
-                    if not tm._incompat_bottleneck_version(name):
+                    # GH 9422
+                    if name in ['sum', 'prod']:
                         assert_equal(expanding_f_result,
                                      expanding_apply_f_result)
 
@@ -2453,7 +2454,9 @@ class TestMomentsConsistency(Base):
                         rolling_apply_f_result = x.rolling(
                             window=window, min_periods=min_periods,
                             center=center).apply(func=f)
-                    if not tm._incompat_bottleneck_version(name):
+
+                    # GH 9422
+                    if name in ['sum', 'prod']:
                         assert_equal(rolling_f_result,
                                      rolling_apply_f_result)
 

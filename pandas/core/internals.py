@@ -1,5 +1,7 @@
+import warnings
 import copy
 from warnings import catch_warnings
+import inspect
 import itertools
 import re
 import operator
@@ -43,7 +45,8 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
     maybe_convert_objects,
     astype_nansafe,
-    find_common_type)
+    find_common_type,
+    maybe_infer_dtype_type)
 from pandas.core.dtypes.missing import (
     isna, notna, array_equivalent,
     _isna_compat,
@@ -56,7 +59,7 @@ import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
-from pandas.core.categorical import Categorical, maybe_to_categorical
+from pandas.core.categorical import Categorical, _maybe_to_categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.formats.printing import pprint_thing
 
@@ -66,7 +69,6 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
-import pandas.core.computation.expressions as expressions
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 from pandas import compat
@@ -100,6 +102,7 @@ class Block(PandasObject):
     _validate_ndim = True
     _ftype = 'dense'
     _holder = None
+    _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None, fastpath=False):
         if ndim is None:
@@ -139,13 +142,13 @@ class Block(PandasObject):
         validate that we have a astypeable to categorical,
         returns a boolean if we are a categorical
         """
-        if is_categorical_dtype(dtype):
-            if dtype == CategoricalDtype():
-                return True
-
+        if dtype is Categorical or dtype is CategoricalDtype:
             # this is a pd.Categorical, but is not
             # a valid type for astypeing
             raise TypeError("invalid type {0} for astype".format(dtype))
+
+        elif is_categorical_dtype(dtype):
+            return True
 
         return False
 
@@ -311,6 +314,15 @@ class Block(PandasObject):
 
     def merge(self, other):
         return _merge_blocks([self, other])
+
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        return self.make_block_same_class(
+            values, placement=placement or slice(0, len(values), 1))
 
     def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
                      limit=None, mask_info=None):
@@ -532,10 +544,16 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None, raise_on_error=False, **kwargs):
+                klass=None, mgr=None, **kwargs):
         """
-        Coerce to the new type (if copy=True, return a new copy)
-        raise on an except if raise == True
+        Coerce to the new type
+
+        dtype : str, dtype convertible
+        copy : boolean, default False
+            copy if indicated
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
         """
         errors_legal_values = ('raise', 'ignore')
 
@@ -545,9 +563,34 @@ class Block(PandasObject):
                                list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
 
+        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+            msg = ("Expected an instance of {}, but got the class instead. "
+                   "Try instantiating 'dtype'.".format(dtype.__name__))
+            raise TypeError(msg)
+
         # may need to convert to categorical
         # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
+
+            # deprecated 17636
+            if ('categories' in kwargs or 'ordered' in kwargs):
+                if isinstance(dtype, CategoricalDtype):
+                    raise TypeError(
+                        "Cannot specify a CategoricalDtype and also "
+                        "`categories` or `ordered`. Use "
+                        "`dtype=CategoricalDtype(categories, ordered)`"
+                        " instead.")
+                warnings.warn("specifying 'categories' or 'ordered' in "
+                              ".astype() is deprecated; pass a "
+                              "CategoricalDtype instead",
+                              FutureWarning, stacklevel=7)
+
+            kwargs = kwargs.copy()
+            categories = getattr(dtype, 'categories', None)
+            ordered = getattr(dtype, 'ordered', False)
+
+            kwargs.setdefault('categories', categories)
+            kwargs.setdefault('ordered', ordered)
             return self.make_block(Categorical(self.values, **kwargs))
 
         # astype processing
@@ -609,10 +652,9 @@ class Block(PandasObject):
     def _can_hold_element(self, element):
         """ require the same dtype as ourselves """
         dtype = self.values.dtype.type
-        if is_list_like(element):
-            element = np.asarray(element)
-            tipo = element.dtype.type
-            return issubclass(tipo, dtype)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
     def _try_cast_result(self, result, dtype=None):
@@ -1228,7 +1270,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values, fastpath=True)]
 
-    def eval(self, func, other, raise_on_error=True, try_cast=False, mgr=None):
+    def eval(self, func, other, errors='raise', try_cast=False, mgr=None):
         """
         evaluate the block; return result block from the result
 
@@ -1236,8 +1278,10 @@ class Block(PandasObject):
         ----------
         func  : how to combine self, other
         other : a ndarray/object
-        raise_on_error : if True, raise when I can't perform the function,
-            False by default (and just return the data that we had coming in)
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
         try_cast : try casting the results to the input type
 
         Returns
@@ -1275,7 +1319,7 @@ class Block(PandasObject):
         except TypeError:
             block = self.coerce_to_target_dtype(orig_other)
             return block.eval(func, orig_other,
-                              raise_on_error=raise_on_error,
+                              errors=errors,
                               try_cast=try_cast, mgr=mgr)
 
         # get the result, may need to transpose the other
@@ -1289,6 +1333,15 @@ class Block(PandasObject):
             elif is_numeric_v_string_like(values, other):
                 result = False
 
+            # avoid numpy warning of elementwise comparisons
+            elif func.__name__ == 'eq':
+                if is_list_like(other) and not isinstance(other, np.ndarray):
+                    other = np.asarray(other)
+
+                    # if we can broadcast, then ok
+                    if values.shape[-1] != other.shape[-1]:
+                        return False
+                result = func(values, other)
             else:
                 result = func(values, other)
 
@@ -1308,7 +1361,7 @@ class Block(PandasObject):
         # error handler if we have an issue operating with the function
         def handle_error():
 
-            if raise_on_error:
+            if errors == 'raise':
                 # The 'detail' variable is defined in outer scope.
                 raise TypeError('Could not operate %s with block values %s' %
                                 (repr(other), str(detail)))  # noqa
@@ -1354,7 +1407,7 @@ class Block(PandasObject):
         result = _block_shape(result, ndim=self.ndim)
         return [self.make_block(result, fastpath=True, )]
 
-    def where(self, other, cond, align=True, raise_on_error=True,
+    def where(self, other, cond, align=True, errors='raise',
               try_cast=False, axis=0, transpose=False, mgr=None):
         """
         evaluate the block; return result block(s) from the result
@@ -1364,8 +1417,10 @@ class Block(PandasObject):
         other : a ndarray/object
         cond  : the condition to respect
         align : boolean, perform alignment on other/cond
-        raise_on_error : if True, raise when I can't perform the function,
-            False by default (and just return the data that we had coming in)
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
         axis : int
         transpose : boolean
             Set to True if self is stored with axes reversed
@@ -1374,6 +1429,9 @@ class Block(PandasObject):
         -------
         a new block(s), the result of the func
         """
+        import pandas.core.computation.expressions as expressions
+        assert errors in ['raise', 'ignore']
+
         values = self.values
         orig_other = other
         if transpose:
@@ -1405,9 +1463,9 @@ class Block(PandasObject):
 
             try:
                 return self._try_coerce_result(expressions.where(
-                    cond, values, other, raise_on_error=True))
+                    cond, values, other))
             except Exception as detail:
-                if raise_on_error:
+                if errors == 'raise':
                     raise TypeError('Could not operate [%s] with block values '
                                     '[%s]' % (repr(other), str(detail)))
                 else:
@@ -1423,10 +1481,10 @@ class Block(PandasObject):
         except TypeError:
 
             # we cannot coerce, return a compat dtype
-            # we are explicity ignoring raise_on_error here
+            # we are explicity ignoring errors
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond, align=align,
-                                 raise_on_error=raise_on_error,
+                                 errors=errors,
                                  try_cast=try_cast, axis=axis,
                                  transpose=transpose)
             return self._maybe_downcast(blocks, 'infer')
@@ -1462,6 +1520,35 @@ class Block(PandasObject):
         if self.dtype != other.dtype or self.shape != other.shape:
             return False
         return array_equivalent(self.values, other.values)
+
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        unstacker = unstacker_func(self.values.T)
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
+        blocks = [make_block(new_values, placement=new_placement)]
+        return blocks, mask
 
     def quantile(self, qs, interpolation='linear', axis=0, mgr=None):
         """
@@ -1691,6 +1778,38 @@ class NonConsolidatableMixIn(object):
     def _try_cast_result(self, result, dtype=None):
         return result
 
+    def _unstack(self, unstacker_func, new_columns):
+        """Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            Partially applied unstacker.
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array_like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        # NonConsolidatable blocks can have a single item only, so we return
+        # one block per item
+        unstacker = unstacker_func(self.values.T)
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
+        blocks = [self.make_block_same_class(vals, [place])
+                  for vals, place in zip(new_values, new_placement)]
+        return blocks, mask
+
 
 class NumericBlock(Block):
     __slots__ = ()
@@ -1714,11 +1833,10 @@ class FloatBlock(FloatOrComplexBlock):
     _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.asarray(element)
-            tipo = element.dtype.type
-            return (issubclass(tipo, (np.floating, np.integer)) and
-                    not issubclass(tipo, (np.datetime64, np.timedelta64)))
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return (issubclass(tipo.type, (np.floating, np.integer)) and
+                    not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
         return (isinstance(element, (float, int, np.floating, np.int_)) and
                 not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
@@ -1764,9 +1882,9 @@ class ComplexBlock(FloatOrComplexBlock):
     is_complex = True
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            return issubclass(element.dtype.type,
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
                            (float, int, complex, np.float_, np.int_)) and
@@ -1782,12 +1900,12 @@ class IntBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            tipo = element.dtype.type
-            return (issubclass(tipo, np.integer) and
-                    not issubclass(tipo, (np.datetime64, np.timedelta64)) and
-                    self.dtype.itemsize >= element.dtype.itemsize)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return (issubclass(tipo.type, np.integer) and
+                    not issubclass(tipo.type, (np.datetime64,
+                                               np.timedelta64)) and
+                    self.dtype.itemsize >= tipo.itemsize)
         return is_integer(element)
 
     def should_store(self, value):
@@ -1825,10 +1943,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return lambda x: tslib.Timedelta(x, unit='ns')
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.array(element)
-            tipo = element.dtype.type
-            return issubclass(tipo, np.timedelta64)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, np.timedelta64)
         return isinstance(element, (timedelta, np.timedelta64))
 
     def fillna(self, value, **kwargs):
@@ -1926,9 +2043,9 @@ class BoolBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
-            element = np.asarray(element)
-            return issubclass(element.dtype.type, np.bool_)
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
     def should_store(self, value):
@@ -2202,11 +2319,12 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     _verify_integrity = True
     _can_hold_na = True
     _holder = Categorical
+    _concatenator = staticmethod(_concat._concat_categorical)
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(maybe_to_categorical(values),
+        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                fastpath=True,
                                                placement=placement, **kwargs)
 
@@ -2325,6 +2443,17 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        # not using self.make_block_same_class as values can be object dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1),
+            ndim=self.ndim)
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2358,7 +2487,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return super(DatetimeBlock, self)._astype(dtype=dtype, **kwargs)
 
     def _can_hold_element(self, element):
-        if is_list_like(element):
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            # TODO: this still uses asarray, instead of dtype.type
             element = np.array(element)
             return element.dtype == _NS_DTYPE or element.dtype == np.int64
         return (is_integer(element) or isinstance(element, datetime) or
@@ -2462,6 +2593,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
     _holder = DatetimeIndex
+    _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
     def __init__(self, values, placement, ndim=2, **kwargs):
@@ -2602,6 +2734,16 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._concatenator([blk.values for blk in to_concat],
+                                    axis=self.ndim - 1)
+        # not using self.make_block_same_class as values can be non-tz dtype
+        return make_block(
+            values, placement=placement or slice(0, len(values), 1))
+
 
 class SparseBlock(NonConsolidatableMixIn, Block):
     """ implement as a list of sparse arrays of the same dtype """
@@ -2612,6 +2754,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _can_hold_na = True
     _ftype = 'sparse'
     _holder = SparseArray
+    _concatenator = staticmethod(_concat._concat_sparse)
 
     @property
     def shape(self):
@@ -2653,7 +2796,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def kind(self):
         return self.values.kind
 
-    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
+    def _astype(self, dtype, copy=False, errors='raise', values=None,
                 klass=None, mgr=None, **kwargs):
         if values is None:
             values = self.values
@@ -3174,8 +3317,8 @@ class BlockManager(PandasObject):
 
                 for k, obj in aligned_args.items():
                     axis = getattr(obj, '_info_axis_number', 0)
-                    kwargs[k] = obj.reindex_axis(b_items, axis=axis,
-                                                 copy=align_copy)
+                    kwargs[k] = obj.reindex(b_items, axis=axis,
+                                            copy=align_copy)
 
             kwargs['mgr'] = self
             applied = getattr(b, f)(**kwargs)
@@ -3561,6 +3704,31 @@ class BlockManager(PandasObject):
             raise AssertionError('Some items were not contained in blocks')
 
         return result
+
+    def to_dict(self, copy=True):
+        """
+        Return a dict of str(dtype) -> BlockManager
+
+        Parameters
+        ----------
+        copy : boolean, default True
+
+        Returns
+        -------
+        values : a dict of dtype -> BlockManager
+
+        Notes
+        -----
+        This consolidates based on str(dtype)
+        """
+        self._consolidate_inplace()
+
+        bd = {}
+        for b in self.blocks:
+            bd.setdefault(str(b.dtype), []).append(b)
+
+        return {dtype: self.combine(blocks, copy=copy)
+                for dtype, blocks in bd.items()}
 
     def xs(self, key, axis=1, copy=True, takeable=False):
         if axis < 1:
@@ -4146,6 +4314,38 @@ class BlockManager(PandasObject):
         return all(block.equals(oblock)
                    for block, oblock in zip(self_blocks, other_blocks))
 
+    def unstack(self, unstacker_func):
+        """Return a blockmanager with all blocks unstacked.
+
+        Parameters
+        ----------
+        unstacker_func : callable
+            A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+
+        Returns
+        -------
+        unstacked : BlockManager
+        """
+        dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
+        new_columns = dummy.get_new_columns()
+        new_index = dummy.get_new_index()
+        new_blocks = []
+        columns_mask = []
+
+        for blk in self.blocks:
+            blocks, mask = blk._unstack(
+                partial(unstacker_func,
+                        value_columns=self.items[blk.mgr_locs.indexer]),
+                new_columns)
+
+            new_blocks.extend(blocks)
+            columns_mask.extend(mask)
+
+        new_columns = new_columns[columns_mask]
+
+        bm = BlockManager(new_blocks, [new_columns, new_index])
+        return bm
+
 
 class SingleBlockManager(BlockManager):
     """ manage a single block with """
@@ -4350,6 +4550,45 @@ class SingleBlockManager(BlockManager):
         return a view of the data
         """
         return self._block.values[loc]
+
+    def concat(self, to_concat, new_axis):
+        """
+        Concatenate a list of SingleBlockManagers into a single
+        SingleBlockManager.
+
+        Used for pd.concat of Series objects with axis=0.
+
+        Parameters
+        ----------
+        to_concat : list of SingleBlockManagers
+        new_axis : Index of the result
+
+        Returns
+        -------
+        SingleBlockManager
+
+        """
+        non_empties = [x for x in to_concat if len(x) > 0]
+
+        # check if all series are of the same block type:
+        if len(non_empties) > 0:
+            blocks = [obj.blocks[0] for obj in non_empties]
+
+            if all([type(b) is type(blocks[0]) for b in blocks[1:]]):  # noqa
+                new_block = blocks[0].concat_same_type(blocks)
+            else:
+                values = [x.values for x in blocks]
+                values = _concat._concat_compat(values)
+                new_block = make_block(
+                    values, placement=slice(0, len(values), 1))
+        else:
+            values = [x._block.values for x in to_concat]
+            values = _concat._concat_compat(values)
+            new_block = make_block(
+                values, placement=slice(0, len(values), 1))
+
+        mgr = SingleBlockManager(new_block, new_axis)
+        return mgr
 
 
 def construction_error(tot_items, block_shape, axes, e=None):
@@ -4939,11 +5178,40 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         [get_mgr_concatenation_plan(mgr, indexers)
          for mgr, indexers in mgrs_indexers], concat_axis)
 
-    blocks = [make_block(
-        concatenate_join_units(join_units, concat_axis, copy=copy),
-        placement=placement) for placement, join_units in concat_plan]
+    blocks = []
+
+    for placement, join_units in concat_plan:
+
+        if is_uniform_join_units(join_units):
+            b = join_units[0].block.concat_same_type(
+                [ju.block for ju in join_units], placement=placement)
+        else:
+            b = make_block(
+                concatenate_join_units(join_units, concat_axis, copy=copy),
+                placement=placement)
+        blocks.append(b)
 
     return BlockManager(blocks, axes)
+
+
+def is_uniform_join_units(join_units):
+    """
+    Check if the join units consist of blocks of uniform type that can
+    be concatenated using Block.concat_same_type instead of the generic
+    concatenate_join_units (which uses `_concat._concat_compat`).
+
+    """
+    return (
+        # all blocks need to have the same type
+        all([type(ju.block) is type(join_units[0].block) for ju in join_units]) and  # noqa
+        # no blocks that would get missing values (can lead to type upcasts)
+        all([not ju.is_na for ju in join_units]) and
+        # no blocks with indexers (as then the dimensions do not fit)
+        all([not ju.indexers for ju in join_units]) and
+        # disregard Panels
+        all([ju.block.ndim <= 2 for ju in join_units]) and
+        # only use this path when there is something to concatenate
+        len(join_units) > 1)
 
 
 def get_empty_dtype_and_na(join_units):

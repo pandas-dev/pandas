@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.common import AbstractMethodError, _try_sort
+from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 
@@ -31,20 +31,25 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0)
-from pandas.plotting._style import (mpl_stylesheet, plot_params,
+                                     _mpl_ge_1_5_0,
+                                     _mpl_ge_2_0_0)
+from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _handle_shared_axes, _get_all_lines,
                                     _get_xlim, _set_ticks_props,
                                     format_date_labels)
 
+_registered = False
 
-if _mpl_ge_1_5_0():
-    # Compat with mp 1.5, which uses cycler.
-    import cycler
-    colors = mpl_stylesheet.pop('axes.color_cycle')
-    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
+
+def _setup():
+    # delay the import of matplotlib until nescessary
+    global _registered
+    if not _registered:
+        from pandas.plotting import _converter
+        _converter.register()
+        _registered = True
 
 
 def _get_standard_kind(kind):
@@ -94,6 +99,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        _setup()
         self.data = data
         self.by = by
 
@@ -601,7 +607,7 @@ class MPLPlot(object):
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
-            if any(x is not None for x in name):
+            if _any_not_none(*name):
                 name = ','.join([pprint_thing(x) for x in name])
             else:
                 name = None
@@ -691,7 +697,7 @@ class MPLPlot(object):
         from pandas import DataFrame, Series
 
         def match_labels(data, e):
-            e = e.reindex_axis(data.index)
+            e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
@@ -949,7 +955,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = any(e is not None for e in self.errors.values())
+        is_errorbar = _any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -969,9 +975,10 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            lines = _get_all_lines(ax)
-            left, right = _get_xlim(lines)
-            ax.set_xlim(left, right)
+            if not _mpl_ge_2_0_0():
+                lines = _get_all_lines(ax)
+                left, right = _get_xlim(lines)
+                ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1150,6 +1157,9 @@ class BarPlot(MPLPlot):
     orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
+        # we have to treat a series differently than a
+        # 1-column DataFrame w.r.t. color handling
+        self._is_series = isinstance(data, ABCSeries)
         self.bar_width = kwargs.pop('width', 0.5)
         pos = kwargs.pop('position', 0.5)
         kwargs.setdefault('align', 'center')
@@ -1204,7 +1214,10 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
-            kwds['color'] = colors[i % ncolors]
+            if self._is_series:
+                kwds['color'] = colors
+            else:
+                kwds['color'] = colors[i % ncolors]
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1987,7 +2000,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na_arraylike(v) for v in values]
+        values = [np.asarray(remove_na_arraylike(v)) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)
@@ -2048,6 +2061,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
     import matplotlib.pyplot as plt
+    _setup()
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -2143,7 +2157,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
-
+    _setup()
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
                             figsize=figsize, sharex=sharex, sharey=sharey,
@@ -2340,6 +2354,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
+    _setup()
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
@@ -2718,7 +2733,7 @@ class FramePlotMethods(BasePlotMethods):
         return self(kind='barh', x=x, y=y, **kwds)
 
     def box(self, by=None, **kwds):
-        """
+        r"""
         Boxplot
 
         .. versionadded:: 0.17.0

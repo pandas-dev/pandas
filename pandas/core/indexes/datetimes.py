@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
+    is_string_like,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -37,7 +38,8 @@ from pandas.tseries.frequencies import (
     Resolution)
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
-from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
+from pandas.tseries.offsets import (
+    DateOffset, generate_range, Tick, CDay, prefix_mapping)
 from pandas.core.tools.datetimes import (
     parse_time_string, normalize_date, to_time)
 from pandas.core.tools.timedeltas import to_timedelta
@@ -50,6 +52,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
+from pandas._libs.tslibs import timezones
 
 
 def _utc():
@@ -205,9 +208,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Notes
     -----
-
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    TimedeltaIndex : Index of timedelta64 data
+    PeriodIndex : Index of Period data
     """
 
     _typ = 'datetimeindex'
@@ -292,8 +300,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise TypeError(msg.format(periods=periods))
 
         if data is None and freq is None:
             raise ValueError("Must provide freq argument if no data is "
@@ -372,7 +380,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = subarr.tz
         else:
             if tz is not None:
-                tz = libts.maybe_get_tz(tz)
+                tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
                         getattr(data, 'tz', None) is None):
@@ -412,7 +420,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Must specify two of start, end, or periods')
+            raise ValueError('Of the three parameters: start, end, and '
+                             'periods, exactly two must be specified')
 
         _normalized = True
 
@@ -441,22 +450,23 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Closed has to be either 'left', 'right' or None")
 
         try:
-            inferred_tz = tools._infer_tzinfo(start, end)
+            inferred_tz = timezones.infer_tzinfo(start, end)
         except:
             raise TypeError('Start and end cannot both be tz-aware with '
                             'different timezones')
 
-        inferred_tz = libts.maybe_get_tz(inferred_tz)
+        inferred_tz = timezones.maybe_get_tz(inferred_tz)
 
         # these may need to be localized
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
         if tz is not None:
             date = start or end
             if date.tzinfo is not None and hasattr(tz, 'localize'):
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not libts.get_timezone(inferred_tz) == libts.get_timezone(tz):
+            if not (timezones.get_timezone(inferred_tz) ==
+                    timezones.get_timezone(tz)):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -592,7 +602,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._data = values
         result.name = name
         result.offset = freq
-        result.tz = libts.maybe_get_tz(tz)
+        result.tz = timezones.maybe_get_tz(tz)
         result._reset_identity()
         return result
 
@@ -606,7 +616,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @cache_readonly
     def _timezone(self):
         """ Comparable timezone both for pytz / dateutil"""
-        return libts.get_timezone(self.tzinfo)
+        return timezones.get_timezone(self.tzinfo)
 
     def _has_same_tz(self, other):
         zzone = self._timezone
@@ -615,7 +625,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
-        vzone = libts.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
+        vzone = timezones.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
         return zzone == vzone
 
     @classmethod
@@ -744,7 +754,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # adding a timedeltaindex to a datetimelike
         if other is libts.NaT:
             return self._nat_new(box=True)
-        raise TypeError("cannot add a datelike to a DatetimeIndex")
+        raise TypeError("cannot add {0} and {1}"
+                        .format(type(self).__name__,
+                                type(other).__name__))
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
@@ -1577,7 +1589,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     days_in_month = _field_accessor(
         'days_in_month',
         'dim',
-        "The number of days in the month\n\n.. versionadded:: 0.16.0")
+        "The number of days in the month")
     daysinmonth = days_in_month
     is_month_start = _field_accessor(
         'is_month_start',
@@ -1778,7 +1790,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         TypeError
             If DatetimeIndex is tz-naive.
         """
-        tz = libts.maybe_get_tz(tz)
+        tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
             # tz naive, use tz_localize
@@ -1838,7 +1850,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
-            tz = libts.maybe_get_tz(tz)
+            tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
             new_dates = libts.tz_localize_to_utc(self.asi8, tz,
@@ -2004,7 +2016,7 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency datetime index, with day (calendar) as the default
+    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
     frequency
 
     Parameters
@@ -2013,24 +2025,25 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'
-    tz : string or None
+    tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name of the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2045,9 +2058,10 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None, closed=None, **kwargs):
+                normalize=True, name=None, weekmask=None, holidays=None,
+                closed=None, **kwargs):
     """
-    Return a fixed frequency datetime index, with business day as the default
+    Return a fixed frequency DatetimeIndex, with business day as the default
     frequency
 
     Parameters
@@ -2056,8 +2070,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
@@ -2065,15 +2079,30 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name for the resulting index
-    closed : string or None, default None
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    weekmask : string or None, default None
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
+        only used when custom frequency strings are passed.  The default
+        value None is equivalent to 'Mon Tue Wed Thu Fri'
+
+        .. versionadded:: 0.21.0
+
+    holidays : list-like or None, default None
+        Dates to exclude from the set of valid business days, passed to
+        ``numpy.busdaycalendar``, only used when custom frequency strings
+        are passed
+
+        .. versionadded:: 0.21.0
+
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2082,6 +2111,18 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     -------
     rng : DatetimeIndex
     """
+
+    if is_string_like(freq) and freq.startswith('C'):
+        try:
+            weekmask = weekmask or 'Mon Tue Wed Thu Fri'
+            freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
+        except (KeyError, TypeError):
+            msg = 'invalid custom frequency string: {freq}'.format(freq=freq)
+            raise ValueError(msg)
+    elif holidays or weekmask:
+        msg = ('a custom frequency string is required when holidays or '
+               'weekmask are passed, got frequency {freq}').format(freq=freq)
+        raise ValueError(msg)
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
@@ -2091,13 +2132,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
                 normalize=True, name=None, closed=None, **kwargs):
     """
-    **EXPERIMENTAL** Return a fixed frequency datetime index, with
-    CustomBusinessDay as the default frequency
+    Return a fixed frequency DatetimeIndex, with CustomBusinessDay as the
+    default frequency
 
-    .. warning:: EXPERIMENTAL
-
-        The CustomBusinessDay class is not officially supported and the API is
-        likely to change in future versions. Use this at your own risk.
+    .. deprecated:: 0.21.0
 
     Parameters
     ----------
@@ -2105,29 +2143,30 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         Left bound for generating dates
     end : string or datetime-like, default None
         Right bound for generating dates
-    periods : integer or None, default None
-        If None, must specify start and end
+    periods : integer, default None
+        Number of periods to generate
     freq : string or DateOffset, default 'C' (CustomBusinessDay)
         Frequency strings can have multiples, e.g. '5H'
-    tz : string or None
+    tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
-    name : str, default None
-        Name for the resulting index
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+    name : string, default None
+        Name of the resulting DatetimeIndex
+    weekmask : string, Default 'Mon Tue Wed Thu Fri'
         weekmask of valid business days, passed to ``numpy.busdaycalendar``
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
-    closed : string or None, default None
+    closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
 
     Notes
     -----
-    2 of start, end, or periods must be specified
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2136,6 +2175,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     -------
     rng : DatetimeIndex
     """
+    warnings.warn("cdate_range is deprecated and will be removed in a future "
+                  "version, instead use pd.bdate_range(..., freq='{freq}')"
+                  .format(freq=freq), FutureWarning, stacklevel=2)
 
     if freq == 'C':
         holidays = kwargs.pop('holidays', [])

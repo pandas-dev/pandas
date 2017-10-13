@@ -15,110 +15,103 @@ from pandas import (Series, Categorical, DataFrame, isna, notna,
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
-import pandas.core.config as cf
-
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range, is_platform_windows
+from pandas.compat import lrange, range
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
-
 from .common import TestData
-
-
-skip_if_bottleneck_on_windows = (is_platform_windows() and
-                                 nanops._USE_BOTTLENECK)
 
 
 class TestSeriesAnalytics(TestData):
 
-    def test_sum_zero(self):
-        arr = np.array([])
-        assert nanops.nansum(arr) == 0
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    @pytest.mark.parametrize("method", ["sum", "prod"])
+    def test_empty(self, method, use_bottleneck):
 
-        arr = np.empty((10, 0))
-        assert (nanops.nansum(arr, axis=1) == 0).all()
+        with pd.option_context("use_bottleneck", use_bottleneck):
+            # GH 9422
+            # treat all missing as NaN
+            s = Series([])
+            result = getattr(s, method)()
+            assert isna(result)
 
-        # GH #844
-        s = Series([], index=[])
-        assert s.sum() == 0
+            result = getattr(s, method)(skipna=True)
+            assert isna(result)
 
-        df = DataFrame(np.empty((10, 0)))
-        assert (df.sum(1) == 0).all()
+            s = Series([np.nan])
+            result = getattr(s, method)()
+            assert isna(result)
+
+            result = getattr(s, method)(skipna=True)
+            assert isna(result)
+
+            s = Series([np.nan, 1])
+            result = getattr(s, method)()
+            assert result == 1.0
+
+            s = Series([np.nan, 1])
+            result = getattr(s, method)(skipna=True)
+            assert result == 1.0
+
+            # GH #844 (changed in 9422)
+            df = DataFrame(np.empty((10, 0)))
+            assert (df.sum(1).isnull()).all()
+
+    @pytest.mark.parametrize(
+        "method", ['sum', 'mean', 'median', 'std', 'var'])
+    def test_ops_consistency_on_empty(self, method):
+
+        # GH 7869
+        # consistency on empty
+
+        # float
+        result = getattr(Series(dtype=float), method)()
+        assert isna(result)
+
+        # timedelta64[ns]
+        result = getattr(Series(dtype='m8[ns]'), method)()
+        assert result is pd.NaT
 
     def test_nansum_buglet(self):
         s = Series([1.0, np.nan], index=[0, 1])
         result = np.nansum(s)
         assert_almost_equal(result, 1)
 
-    def test_overflow(self):
-        # GH 6915
-        # overflowing on the smaller int dtypes
-        for dtype in ['int32', 'int64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    def test_sum_overflow(self, use_bottleneck):
 
-            # no bottleneck
-            result = s.sum(skipna=False)
-            assert int(result) == v.sum(dtype='int64')
-            result = s.min(skipna=False)
-            assert int(result) == 0
-            result = s.max(skipna=False)
-            assert int(result) == v[-1]
+        with pd.option_context('use_bottleneck', use_bottleneck):
+            # GH 6915
+            # overflowing on the smaller int dtypes
+            for dtype in ['int32', 'int64']:
+                v = np.arange(5000000, dtype=dtype)
+                s = Series(v)
 
-        for dtype in ['float32', 'float64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+                result = s.sum(skipna=False)
+                assert int(result) == v.sum(dtype='int64')
+                result = s.min(skipna=False)
+                assert int(result) == 0
+                result = s.max(skipna=False)
+                assert int(result) == v[-1]
 
-            # no bottleneck
-            result = s.sum(skipna=False)
-            assert result == v.sum(dtype=dtype)
-            result = s.min(skipna=False)
-            assert np.allclose(float(result), 0.0)
-            result = s.max(skipna=False)
-            assert np.allclose(float(result), v[-1])
+            for dtype in ['float32', 'float64']:
+                v = np.arange(5000000, dtype=dtype)
+                s = Series(v)
 
-    @pytest.mark.xfail(
-        skip_if_bottleneck_on_windows,
-        reason="buggy bottleneck with sum overflow on windows")
-    def test_overflow_with_bottleneck(self):
-        # GH 6915
-        # overflowing on the smaller int dtypes
-        for dtype in ['int32', 'int64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+                result = s.sum(skipna=False)
+                assert result == v.sum(dtype=dtype)
+                result = s.min(skipna=False)
+                assert np.allclose(float(result), 0.0)
+                result = s.max(skipna=False)
+                assert np.allclose(float(result), v[-1])
 
-            # use bottleneck if available
-            result = s.sum()
-            assert int(result) == v.sum(dtype='int64')
-            result = s.min()
-            assert int(result) == 0
-            result = s.max()
-            assert int(result) == v[-1]
-
-        for dtype in ['float32', 'float64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
-
-            # use bottleneck if available
-            result = s.sum()
-            assert result == v.sum(dtype=dtype)
-            result = s.min()
-            assert np.allclose(float(result), 0.0)
-            result = s.max()
-            assert np.allclose(float(result), v[-1])
-
-    @pytest.mark.xfail(
-        skip_if_bottleneck_on_windows,
-        reason="buggy bottleneck with sum overflow on windows")
     def test_sum(self):
         self._check_stat_op('sum', np.sum, check_allna=True)
 
     def test_sum_inf(self):
-        import pandas.core.nanops as nanops
-
         s = Series(np.random.randn(10))
         s2 = s.copy()
 
@@ -130,7 +123,7 @@ class TestSeriesAnalytics(TestData):
         arr = np.random.randn(100, 100).astype('f4')
         arr[:, 2] = np.inf
 
-        with cf.option_context("mode.use_inf_as_na", True):
+        with pd.option_context("mode.use_inf_as_na", True):
             assert_almost_equal(s.sum(), s2.sum())
 
         res = nanops.nansum(arr, axis=1)
@@ -510,9 +503,8 @@ class TestSeriesAnalytics(TestData):
 
     def _check_stat_op(self, name, alternate, check_objects=False,
                        check_allna=False):
-        import pandas.core.nanops as nanops
 
-        def testit():
+        with pd.option_context('use_bottleneck', False):
             f = getattr(Series, name)
 
             # add some NaNs
@@ -535,15 +527,7 @@ class TestSeriesAnalytics(TestData):
             allna = self.series * nan
 
             if check_allna:
-                # xref 9422
-                # bottleneck >= 1.0 give 0.0 for an allna Series sum
-                try:
-                    assert nanops._USE_BOTTLENECK
-                    import bottleneck as bn  # noqa
-                    assert bn.__version__ >= LooseVersion('1.0')
-                    assert f(allna) == 0.0
-                except:
-                    assert np.isnan(f(allna))
+                assert np.isnan(f(allna))
 
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])
@@ -573,16 +557,6 @@ class TestSeriesAnalytics(TestData):
             if 'numeric_only' in compat.signature(f).args:
                 tm.assert_raises_regex(NotImplementedError, name, f,
                                        self.series, numeric_only=True)
-
-        testit()
-
-        try:
-            import bottleneck as bn  # noqa
-            nanops._USE_BOTTLENECK = False
-            testit()
-            nanops._USE_BOTTLENECK = True
-        except ImportError:
-            pass
 
     def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
@@ -732,31 +706,6 @@ class TestSeriesAnalytics(TestData):
             result = 0 % s
             expected = Series([nan, 0.0])
             assert_series_equal(result, expected)
-
-    def test_ops_consistency_on_empty(self):
-
-        # GH 7869
-        # consistency on empty
-
-        # float
-        result = Series(dtype=float).sum()
-        assert result == 0
-
-        result = Series(dtype=float).mean()
-        assert isna(result)
-
-        result = Series(dtype=float).median()
-        assert isna(result)
-
-        # timedelta64[ns]
-        result = Series(dtype='m8[ns]').sum()
-        assert result == Timedelta(0)
-
-        result = Series(dtype='m8[ns]').mean()
-        assert result is pd.NaT
-
-        result = Series(dtype='m8[ns]').median()
-        assert result is pd.NaT
 
     def test_corr(self):
         tm._skip_if_no_scipy()
@@ -1242,16 +1191,31 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1
 
-    def test_numpy_argmin(self):
-        # argmin is aliased to idxmin
-        data = np.random.randint(0, 11, size=10)
-        result = np.argmin(Series(data))
-        assert result == np.argmin(data)
+    def test_numpy_argmin_deprecated(self):
+        # See gh-16830
+        data = np.arange(1, 11)
+
+        s = Series(data, index=data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmin also causes a deprecation
+            # warning when calling np.argmin. This behavior is temporary
+            # until the implemention of Series.argmin is corrected.
+            result = np.argmin(s)
+
+        assert result == 1
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmin is aliased to idxmin
+            result = s.argmin()
+
+        assert result == 1
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                       s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1297,17 +1261,30 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1.1
 
-    def test_numpy_argmax(self):
+    def test_numpy_argmax_deprecated(self):
+        # See gh-16830
+        data = np.arange(1, 11)
 
-        # argmax is aliased to idxmax
-        data = np.random.randint(0, 11, size=10)
-        result = np.argmax(Series(data))
-        assert result == np.argmax(data)
+        s = Series(data, index=data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmax also causes a deprecation
+            # warning when calling np.argmax. This behavior is temporary
+            # until the implemention of Series.argmax is corrected.
+            result = np.argmax(s)
+        assert result == 10
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmax is aliased to idxmax
+            result = s.argmax()
+
+        assert result == 10
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                       s, out=data)
 
     def test_ptp(self):
         N = 1000
@@ -1756,8 +1733,8 @@ class TestNLargestNSmallest(object):
               # not supported on some archs
               # Series([3., 2, 1, 2, 5], dtype='complex256'),
               Series([3., 2, 1, 2, 5], dtype='complex128'),
-              Series(list('abcde'), dtype='category'),
-              Series(list('abcde'))])
+              Series(list('abcde')),
+              Series(list('abcde'), dtype='category')])
     def test_error(self, r):
         dt = r.dtype
         msg = ("Cannot use method 'n(larg|small)est' with "

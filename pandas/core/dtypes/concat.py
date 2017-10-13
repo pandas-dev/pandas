@@ -63,11 +63,12 @@ def get_dtype_kinds(l):
     return typs
 
 
-def _get_series_result_type(result):
+def _get_series_result_type(result, objs=None):
     """
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(is_sparse(c) for c in compat.itervalues(result)):
@@ -77,13 +78,12 @@ def _get_series_result_type(result):
             from pandas.core.frame import DataFrame
             return DataFrame
 
-    elif is_sparse(result):
-        # concat Series with axis 1
+    # otherwise it is a SingleBlockManager (axis = 0)
+    if result._block.is_sparse:
         from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
-        from pandas.core.series import Series
-        return Series
+        return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
@@ -314,6 +314,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
+    from pandas.core.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -359,14 +360,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
         new_codes = []
         for c in to_union:
-            if len(c.categories) > 0:
-                indexer = categories.get_indexer(c.categories)
-
-                from pandas.core.algorithms import take_1d
-                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
-            else:
-                # must be all NaN
-                new_codes.append(c.codes)
+            new_codes.append(_recode_for_categories(c.codes, c.categories,
+                                                    categories))
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message

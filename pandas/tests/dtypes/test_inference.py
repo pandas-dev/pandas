@@ -39,6 +39,11 @@ from pandas.core.dtypes.common import (
 from pandas.util import testing as tm
 
 
+@pytest.fixture(params=[True, False], ids=lambda val: str(val))
+def coerce(request):
+    return request.param
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert (is_seq((1, 2)))
@@ -58,7 +63,7 @@ def test_is_sequence():
 def test_is_list_like():
     passes = ([], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
               Series([]), Series(['a']).str)
-    fails = (1, '2', object())
+    fails = (1, '2', object(), str)
 
     for p in passes:
         assert inference.is_list_like(p)
@@ -340,44 +345,38 @@ class TestInference(object):
         exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
 
-    def test_convert_numeric_uint64_nan(self):
-        msg = 'uint64 array detected'
-        cases = [(np.array([2**63, np.nan], dtype=object), set()),
-                 (np.array([str(2**63), np.nan], dtype=object), set()),
-                 (np.array([np.nan, 2**63], dtype=object), set()),
-                 (np.array([np.nan, str(2**63)], dtype=object), set()),
-                 (np.array([2**63, 2**63 + 1], dtype=object), set([2**63])),
-                 (np.array([str(2**63), str(2**63 + 1)],
-                           dtype=object), set([2**63]))]
+    @pytest.mark.parametrize("arr", [
+        np.array([2**63, np.nan], dtype=object),
+        np.array([str(2**63), np.nan], dtype=object),
+        np.array([np.nan, 2**63], dtype=object),
+        np.array([np.nan, str(2**63)], dtype=object)])
+    def test_convert_numeric_uint64_nan(self, coerce, arr):
+        expected = arr.astype(float) if coerce else arr.copy()
+        result = lib.maybe_convert_numeric(arr, set(),
+                                           coerce_numeric=coerce)
+        tm.assert_almost_equal(result, expected)
 
-        for coerce in (True, False):
-            for arr, na_values in cases:
-                if coerce:
-                    with tm.assert_raises_regex(ValueError, msg):
-                        lib.maybe_convert_numeric(arr, na_values,
-                                                  coerce_numeric=coerce)
-                else:
-                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
-                        arr, na_values), arr)
+    def test_convert_numeric_uint64_nan_values(self, coerce):
+        arr = np.array([2**63, 2**63 + 1], dtype=object)
+        na_values = set([2**63])
 
-    def test_convert_numeric_int64_uint64(self):
-        msg = 'uint64 and negative values detected'
-        cases = [np.array([2**63, -1], dtype=object),
-                 np.array([str(2**63), -1], dtype=object),
-                 np.array([str(2**63), str(-1)], dtype=object),
-                 np.array([-1, 2**63], dtype=object),
-                 np.array([-1, str(2**63)], dtype=object),
-                 np.array([str(-1), str(2**63)], dtype=object)]
+        expected = (np.array([np.nan, 2**63 + 1], dtype=float)
+                    if coerce else arr.copy())
+        result = lib.maybe_convert_numeric(arr, na_values,
+                                           coerce_numeric=coerce)
+        tm.assert_almost_equal(result, expected)
 
-        for coerce in (True, False):
-            for case in cases:
-                if coerce:
-                    with tm.assert_raises_regex(ValueError, msg):
-                        lib.maybe_convert_numeric(case, set(),
-                                                  coerce_numeric=coerce)
-                else:
-                    tm.assert_numpy_array_equal(lib.maybe_convert_numeric(
-                        case, set()), case)
+    @pytest.mark.parametrize("case", [
+        np.array([2**63, -1], dtype=object),
+        np.array([str(2**63), -1], dtype=object),
+        np.array([str(2**63), str(-1)], dtype=object),
+        np.array([-1, 2**63], dtype=object),
+        np.array([-1, str(2**63)], dtype=object),
+        np.array([str(-1), str(2**63)], dtype=object)])
+    def test_convert_numeric_int64_uint64(self, case, coerce):
+        expected = case.astype(float) if coerce else case.copy()
+        result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
+        tm.assert_almost_equal(result, expected)
 
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471

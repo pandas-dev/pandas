@@ -15,7 +15,7 @@ from pandas._libs import lib, tslib
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
@@ -96,8 +96,8 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return ("This method must be defined in the concrete class of %s" %
-                self.class_instance.__class__.__name__)
+        msg = "This method must be defined in the concrete class of {name}"
+        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -150,8 +150,8 @@ def _maybe_match_name(a, b):
 def _get_info_slice(obj, indexer):
     """Slice the info axis of `obj` with `indexer`."""
     if not hasattr(obj, '_info_axis_number'):
-        raise TypeError('object of type %r has no info axis' %
-                        type(obj).__name__)
+        msg = 'object of type {typ!r} has no info axis'
+        raise TypeError(msg.format(typ=type(obj).__name__))
     slices = [slice(None)] * obj.ndim
     slices[obj._info_axis_number] = indexer
     return tuple(slices)
@@ -182,7 +182,7 @@ _values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray)):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
@@ -214,8 +214,8 @@ def _mut_exclusive(**kwargs):
     label1, val1 = item1
     label2, val2 = item2
     if val1 is not None and val2 is not None:
-        raise TypeError('mutually exclusive arguments: %r and %r' %
-                        (label1, label2))
+        msg = 'mutually exclusive arguments: {label1!r} and {label2!r}'
+        raise TypeError(msg.format(label1=label1, label2=label2))
     elif val1 is not None:
         return val1
     else:
@@ -223,17 +223,36 @@ def _mut_exclusive(**kwargs):
 
 
 def _not_none(*args):
+    """Returns a generator consisting of the arguments that are not None"""
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
+    """Returns a boolean indicating if any argument is None"""
     for arg in args:
         if arg is None:
             return True
     return False
 
 
+def _all_none(*args):
+    """Returns a boolean indicating if all arguments are None"""
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
+def _any_not_none(*args):
+    """Returns a boolean indicating if any argument is not None"""
+    for arg in args:
+        if arg is not None:
+            return True
+    return False
+
+
 def _all_not_none(*args):
+    """Returns a boolean indicating if all arguments are not None"""
     for arg in args:
         if arg is None:
             return False
@@ -241,6 +260,7 @@ def _all_not_none(*args):
 
 
 def _count_not_none(*args):
+    """Returns the count of arguments that are not None"""
     return sum(x is not None for x in args)
 
 
@@ -445,17 +465,18 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
     otherwise return as it is
+
+    Parameters
+    ----------
+    maybe_callable : possibly a callable
+    obj : NDFrame
+    **kwargs
     """
+
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
+
     return maybe_callable
-
-
-def _all_none(*args):
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
 
 
 def _where_compat(mask, arr1, arr2):
@@ -517,7 +538,7 @@ def standardize_mapping(into):
                 collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, collections.Mapping):
-        raise TypeError('unsupported type: {}'.format(into))
+        raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')

@@ -15,7 +15,6 @@ cdef double Log2(double x):
     return log(x) / log(2.)
 
 cimport numpy as np
-from numpy cimport *
 import numpy as np
 
 from random import random

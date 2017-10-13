@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -36,7 +37,6 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
@@ -79,9 +79,15 @@ common_docstring = """
     line_width : int, optional
         Width to wrap a line in characters, default no wrap"""
 
+_VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
+                             "justify-all", "start", "end", "inherit",
+                             "match-parent", "initial", "unset")
+
 justify_docstring = """
-    justify : {'left', 'right'}, default None
-        Left or right-justify the column labels. If None uses the option from
+    justify : {'left', 'right', 'center', 'justify',
+               'justify-all', 'start', 'end', 'inherit',
+               'match-parent', 'initial', 'unset'}, default None
+        How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
         of the box."""
 
@@ -598,9 +604,7 @@ class DataFrameFormatter(TableFormatter):
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
-                row_lens = Series(text).apply(len)
-                max_len_col_ix = np.argmax(row_lens)
-                max_len = row_lens[max_len_col_ix]
+                max_len = Series(text).str.len().max()
                 headers = [ele[0] for ele in strcols]
                 # Size of last col determines dot col size. See
                 # `self._to_str_columns
@@ -1132,20 +1136,42 @@ class HTMLFormatter(TableFormatter):
         self.write('</tr>', indent)
 
     def write_style(self):
-        template = dedent("""\
-            <style>
-                .dataframe thead tr:only-child th {
-                    text-align: right;
-                }
-
-                .dataframe thead th {
-                    text-align: left;
-                }
-
-                .dataframe tbody tr th {
-                    vertical-align: top;
-                }
-            </style>""")
+        # We use the "scoped" attribute here so that the desired
+        # style properties for the data frame are not then applied
+        # throughout the entire notebook.
+        template_first = """\
+            <style scoped>"""
+        template_last = """\
+            </style>"""
+        template_select = """\
+                .dataframe %s {
+                    %s: %s;
+                }"""
+        element_props = [('tbody tr th:only-of-type',
+                          'vertical-align',
+                          'middle'),
+                         ('tbody tr th',
+                          'vertical-align',
+                          'top')]
+        if isinstance(self.columns, MultiIndex):
+            element_props.append(('thead tr th',
+                                  'text-align',
+                                  'left'))
+            if all((self.fmt.has_index_names,
+                    self.fmt.index,
+                    self.fmt.show_index_names)):
+                element_props.append(('thead tr:last-of-type th',
+                                      'text-align',
+                                      'right'))
+        else:
+            element_props.append(('thead th',
+                                  'text-align',
+                                  'right'))
+        template_mid = '\n\n'.join(map(lambda t: template_select % t,
+                                       element_props))
+        template = dedent('\n'.join((template_first,
+                                     template_mid,
+                                     template_last)))
         if self.notebook:
             self.write(template)
 
@@ -1231,7 +1257,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1400,7 +1426,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -1586,12 +1612,20 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
+        if self.encoding is None:
+            if compat.PY2:
+                encoding = 'ascii'
+            else:
+                encoding = 'utf-8'
+        else:
+            encoding = self.encoding
+
         if hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=self.encoding,
+                                     encoding=encoding,
                                      compression=self.compression)
             close = True
 
@@ -1601,11 +1635,11 @@ class CSVFormatter(object):
                                  doublequote=self.doublequote,
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
-            if self.encoding is not None:
-                writer_kwargs['encoding'] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
-            else:
+            if encoding == 'ascii':
                 self.writer = csv.writer(f, **writer_kwargs)
+            else:
+                writer_kwargs['encoding'] = encoding
+                self.writer = UnicodeWriter(f, **writer_kwargs)
 
             self._save()
 
@@ -2318,7 +2352,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return any([x is not None for x in index.names])
+        return _any_not_none(*index.names)
     else:
         return index.name is not None
 

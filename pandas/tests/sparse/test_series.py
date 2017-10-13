@@ -9,7 +9,8 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, bdate_range, isna, compat
+from pandas import (Series, DataFrame, bdate_range,
+                    isna, compat, _np_version_under1p12)
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
@@ -464,15 +465,22 @@ class TestSparseSeries(SharedWithSparse):
         expected = self.btseries.to_dense()[dt]
         tm.assert_almost_equal(result, expected)
 
-        tm.assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            tm.assert_almost_equal(
+                self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
 
         idx = self.btseries.index[7]
-        self.btseries.set_value(idx, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.btseries.set_value(idx, 0)
         assert self.btseries[idx] == 0
 
-        self.iseries.set_value('foobar', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.iseries.set_value('foobar', 0)
         assert self.iseries.index[-1] == 'foobar'
         assert self.iseries['foobar'] == 0
 
@@ -520,20 +528,27 @@ class TestSparseSeries(SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
+        with tm.assert_produces_warning(FutureWarning):
+            sp.take([1, 5], convert=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            sp.take([1, 5], convert=False)
+
     def test_numpy_take(self):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
 
-        tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
-                               np.take(sp.to_dense(), indices, axis=0))
+        if not _np_version_under1p12:
+            tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
+                                   np.take(sp.to_dense(), indices, axis=0))
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=np.empty(sp.shape))
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.take,
+                                   sp, indices, out=np.empty(sp.shape))
 
-        msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, mode='clip')
+            msg = "the 'mode' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.take,
+                                   sp, indices, out=None, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
@@ -1379,10 +1394,30 @@ class TestSparseSeriesAnalytics(object):
         # numpy passes in 'axis=None' or `axis=-1'
         funcs = ['sum', 'cumsum', 'var', 'mean',
                  'prod', 'cumprod', 'std', 'argsort',
-                 'argmin', 'argmax', 'min', 'max']
+                 'min', 'max']
         for func in funcs:
             for series in ('bseries', 'zbseries'):
                 getattr(np, func)(getattr(self, series))
+
+    def test_deprecated_numpy_func_call(self):
+        # NOTE: These should be add to the 'test_numpy_func_call' test above
+        # once the behavior of argmin/argmax is corrected.
+        funcs = ['argmin', 'argmax']
+        for func in funcs:
+            for series in ('bseries', 'zbseries'):
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    getattr(np, func)(getattr(self, series))
+
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    getattr(getattr(self, series), func)()
+
+    def test_deprecated_reindex_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/17833
+        with tm.assert_produces_warning(FutureWarning) as m:
+            self.bseries.reindex_axis([0, 1, 2])
+        assert 'reindex' in str(m[0].message)
 
 
 @pytest.mark.parametrize(
