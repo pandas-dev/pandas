@@ -941,6 +941,7 @@ Indexing
 I/O
 ^^^
 
+- Bug in :func:`read_hdf` when reading a timezone aware index from ``fixed`` format HDFStore (:issue:`17618`)
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
 - Bug in :func:`read_csv` in which specified column names were not being thoroughly de-duplicated (:issue:`17095`)
 - Bug in :func:`read_csv` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
