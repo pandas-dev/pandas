@@ -2703,7 +2703,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        binner, grouper, obj = key._get_grouper(obj)
+        binner, grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
             return grouper, [], obj
         else:
