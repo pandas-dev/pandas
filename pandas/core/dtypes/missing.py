@@ -327,6 +327,12 @@ def array_equivalent(left, right, strict_nan=False):
         left = left.view('i8')
         right = right.view('i8')
 
+    # if we have structured dtypes, compare first
+    if (left.dtype.type is np.void or
+            right.dtype.type is np.void):
+        if left.dtype != right.dtype:
+            return False
+
     return np.array_equal(left, right)
 
 
