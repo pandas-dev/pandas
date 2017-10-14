@@ -1017,6 +1017,7 @@ Categorical
 - Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
 - Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
+- Bug in :func:`DataFrame.merge` failing for categorical columns with boolean/int data types (:issue:`17187`)
 
 .. _whatsnew_0210.pypy:
 
