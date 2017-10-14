@@ -19,3 +19,4 @@ psycopg2
 beautifulsoup4
 s3fs
 xarray
+ipython
