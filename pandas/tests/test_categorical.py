@@ -3592,7 +3592,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(res_fancy, exp_fancy)
 
         # get_value
-        res_val = df.get_value("j", "cats")
+        res_val = df.at["j", "cats"]
         assert res_val == exp_val
 
         # i : int, slice, or sequence of integers
@@ -3956,12 +3956,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # set_value
         df = orig.copy()
-        df.set_value("j", "cats", "b")
+        df.at["j", "cats"] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         def f():
             df = orig.copy()
-            df.set_value("j", "cats", "c")
+            df.at["j", "cats"] = "c"
 
         pytest.raises(ValueError, f)
 

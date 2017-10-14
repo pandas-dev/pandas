@@ -458,7 +458,7 @@ class TestMultiIndex(Base):
         df = df.sort_index()
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
-        df = df.set_value(('grethe', '4'), 'one', 99.34)
+        df.at[('grethe', '4'), 'one'] = 99.34
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
 
