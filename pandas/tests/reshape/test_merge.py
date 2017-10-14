@@ -1546,6 +1546,30 @@ class TestMergeCategorical(object):
         result_inner = pd.merge(df, df2, how='inner', on=['date'])
         assert_frame_equal(result_inner, expected_inner)
 
+    @pytest.mark.parametrize('category_column,categories,expected_categories',
+                             [([False, True, True, False], [True, False],
+                               [True, False]),
+                              ([2, 1, 1, 2], [1, 2], [1, 2]),
+                              (['False', 'True', 'True', 'False'],
+                               ['True', 'False'], ['True', 'False'])])
+    def test_merging_with_bool_or_int_cateorical_column(self, category_column,
+                                                        categories,
+                                                        expected_categories):
+        # GH 17187
+        # merging with a boolean/int categorical column
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': category_column})
+        df1['cat'] = df1['cat'].astype('category',
+                                       categories=categories, ordered=True)
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': expected_categories,
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype('category',
+                                                 categories=categories,
+                                                 ordered=True)
+        assert_frame_equal(expected, result)
+
 
 @pytest.fixture
 def left_df():
