@@ -1,5 +1,4 @@
 import pytest
-import sys
 import os
 import tempfile
 from contextlib import contextmanager
@@ -16,7 +15,8 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     date_range, timedelta_range, Index, DatetimeIndex,
                     isna)
 
-from pandas.compat import is_platform_windows, PY3, PY35, BytesIO, text_type
+from pandas.compat import (is_platform_windows, is_platform_little_endian,
+                           PY3, PY35, PY36, BytesIO, text_type)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -1042,10 +1042,9 @@ class TestHDFStore(Base):
                 with catch_warnings(record=True):
                     check('fixed', index)
 
+    @pytest.mark.skipif(not is_platform_little_endian(),
+                        reason="reason platform is not little endian")
     def test_encoding(self):
-
-        if sys.byteorder != 'little':
-            pytest.skip('system byteorder is not little')
 
         with ensure_clean_store(self.path) as store:
             df = DataFrame(dict(A='foo', B='bar'), index=range(5))
@@ -2887,9 +2886,6 @@ class TestHDFStore(Base):
 
     def test_timeseries_preepoch(self):
 
-        if sys.version_info[0] == 2 and sys.version_info[1] < 7:
-            pytest.skip("won't work on Python < 2.7")
-
         dr = bdate_range('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
         try:
@@ -4274,12 +4270,10 @@ class TestHDFStore(Base):
                           ['df1', 'df3'], where=['A>0', 'B>0'],
                           selector='df1')
 
+    @pytest.mark.skipf(
+        LooseVersion(tables.__version__) < '3.1.0',
+        "tables version does not support fix for nan selection bug: GH 4858")
     def test_nan_selection_bug_4858(self):
-
-        # GH 4858; nan selection bug, only works for pytables >= 3.1
-        if LooseVersion(tables.__version__) < '3.1.0':
-            pytest.skip('tables version does not support fix for nan '
-                        'selection bug: GH 4858')
 
         with ensure_clean_store(self.path) as store:
 
@@ -4598,11 +4592,9 @@ class TestHDFStore(Base):
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
+    @pytest.mark.skipif(PY35 and is_platform_windows(),
+                        reason="native2 read fails oddly on windows / 3.5")
     def test_pytables_native2_read(self):
-        # fails on win/3.5 oddly
-        if PY35 and is_platform_windows():
-            pytest.skip("native2 read fails oddly on windows / 3.5")
-
         with ensure_clean_store(
                 tm.get_data_path('legacy_hdf/pytables_native2.h5'),
                 mode='r') as store:
@@ -4689,31 +4681,6 @@ class TestHDFStore(Base):
                 do_copy(f=path, propindexes=False)
             finally:
                 safe_remove(path)
-
-    def test_legacy_table_write(self):
-        pytest.skip("cannot write legacy tables")
-
-        store = HDFStore(tm.get_data_path(
-            'legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
-
-        df = tm.makeDataFrame()
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['foo', 'bar'])
-        df = DataFrame(np.random.randn(10, 3), index=index,
-                       columns=['A', 'B', 'C'])
-        store.append('mi', df)
-
-        df = DataFrame(dict(A='foo', B='bar'), index=lrange(10))
-        store.append('df', df, data_columns=['B'], min_itemsize={'A': 200})
-        store.append('wp', wp)
-
-        store.close()
 
     def test_store_datetime_fractional_secs(self):
 
@@ -5260,7 +5227,7 @@ class TestHDFStore(Base):
             result = pd.read_hdf(path, key='data', mode='r')
         tm.assert_series_equal(result, series)
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason="Need python 3.6")
+    @pytest.mark.skipif(not PY36, reason="Need python 3.6")
     def test_fspath(self):
         with tm.ensure_clean('foo.h5') as path:
             with pd.HDFStore(path) as store:
