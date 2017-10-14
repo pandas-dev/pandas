@@ -957,6 +957,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
+- Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
 
 Plotting
 ^^^^^^^^
@@ -980,6 +981,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
 - Bug in ``groupby.nunique()`` with ``TimeGrouper`` which cannot handle ``NaT`` correctly (:issue:`17575`)
 - Bug in ``DataFrame.groupby`` where a single level selection from a ``MultiIndex`` unexpectedly sorts (:issue:`17537`)
+- Bug in ``DataFrame.groupby`` where spurious warning is raised when ``Grouper`` object is used to override ambiguous column name (:issue:`17383`)
 - Bug in ``TimeGrouper`` differs when passes as a list and as a scalar (:issue:`17530`)
 
 Sparse
@@ -1017,6 +1019,7 @@ Categorical
 - Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
 - Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
+- Bug in :func:`DataFrame.merge` failing for categorical columns with boolean/int data types (:issue:`17187`)
 
 .. _whatsnew_0210.pypy:
 
@@ -1034,3 +1037,4 @@ Other
 ^^^^^
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+

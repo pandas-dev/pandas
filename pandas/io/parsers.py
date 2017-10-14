@@ -529,6 +529,14 @@ _python_unsupported = {
     'buffer_lines',
     'float_precision',
 }
+
+_deprecated_defaults = {
+    'as_recarray': None,
+    'buffer_lines': None,
+    'compact_ints': None,
+    'use_unsigned': None,
+    'tupleize_cols': None
+}
 _deprecated_args = {
     'as_recarray',
     'buffer_lines',
@@ -594,7 +602,7 @@ def _make_parser_function(name, sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=False,
+                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -606,9 +614,9 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=False,
-                 compact_ints=False,
-                 use_unsigned=False,
+                 as_recarray=None,
+                 compact_ints=None,
+                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
                  buffer_lines=None,
                  memory_map=False,
@@ -831,12 +839,14 @@ class TextFileReader(BaseIterator):
                     if ('python' in engine and
                             argname not in _python_unsupported):
                         pass
+                    elif value == _deprecated_defaults.get(argname, default):
+                        pass
                     else:
                         raise ValueError(
                             'The %r option is not supported with the'
                             ' %r engine' % (argname, engine))
             else:
-                value = default
+                value = _deprecated_defaults.get(argname, default)
             options[argname] = value
 
         if engine == 'python-fwf':
@@ -962,6 +972,8 @@ class TextFileReader(BaseIterator):
 
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
+            depr_default = _deprecated_defaults[arg]
+
             msg = ("The '{arg}' argument has been deprecated "
                    "and will be removed in a future version."
                    .format(arg=arg))
@@ -970,10 +982,13 @@ class TextFileReader(BaseIterator):
                 msg += ' Please call pd.to_csv(...).to_records() instead.'
             elif arg == 'tupleize_cols':
                 msg += (' Column tuples will then '
-                        'always be converted to MultiIndex')
+                        'always be converted to MultiIndex.')
 
-            if result.get(arg, parser_default) != parser_default:
+            if result.get(arg, depr_default) != depr_default:
+                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
+            else:
+                result[arg] = parser_default
 
         if depr_warning != '':
             warnings.warn(depr_warning, FutureWarning, stacklevel=2)

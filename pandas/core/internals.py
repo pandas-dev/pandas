@@ -5596,7 +5596,7 @@ class JoinUnit(object):
                     # preserve these for validation in _concat_compat
                     return self.block.values
 
-            if self.block.is_bool:
+            if self.block.is_bool and not self.block.is_categorical:
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
