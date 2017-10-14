@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
+from pandas.core.tools.timedeltas import to_timedelta
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -431,13 +432,12 @@ class DatetimeIndexOpsMixin(object):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
-    def _convert_tolerance(self, tolerance):
-        try:
-            return Timedelta(tolerance).to_timedelta64()
-        except ValueError:
-            raise ValueError('tolerance argument for %s must be convertible '
-                             'to Timedelta: %r'
-                             % (type(self).__name__, tolerance))
+    def _convert_tolerance(self, tolerance, target):
+        tolerance = np.asarray(to_timedelta(tolerance, box=False))
+        if target.size != tolerance.size and tolerance.size > 1:
+            raise ValueError('list-like tolerance size must match '
+                             'target index size')
+        return tolerance
 
     def _maybe_mask_results(self, result, fill_value=None, convert=None):
         """

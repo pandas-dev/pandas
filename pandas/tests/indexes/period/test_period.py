@@ -9,6 +9,7 @@ from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
                     offsets, compat)
+from pandas.core.indexes.period import IncompatibleFrequency
 
 from ..datetimelike import DatetimeLike
 
@@ -83,7 +84,8 @@ class TestPeriodIndex(DatetimeLike):
                            tolerance=np.timedelta64(1, 'D')) == 1
         assert idx.get_loc('2000-01-02T12', method='nearest',
                            tolerance=timedelta(1)) == 1
-        with tm.assert_raises_regex(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError,
+                                    'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
         msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
@@ -91,6 +93,12 @@ class TestPeriodIndex(DatetimeLike):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
+        with pytest.raises(
+                ValueError,
+                match='list-like tolerance size must match target index size'):
+            idx.get_loc('2000-01-10', method='nearest',
+                        tolerance=[pd.Timedelta('1 day').to_timedelta64(),
+                                   pd.Timedelta('1 day').to_timedelta64()])
 
     def test_where(self):
         i = self.create_index()
@@ -158,6 +166,20 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',
                                                     tolerance='1 day'),
                                     np.array([0, 1, 1], dtype=np.intp))
+        tol_raw = [pd.Timedelta('1 hour'),
+                   pd.Timedelta('1 hour'),
+                   np.timedelta64(1, 'D'), ]
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest',
+                            tolerance=[np.timedelta64(x) for x in tol_raw]),
+            np.array([0, -1, 1], dtype=np.intp))
+        tol_bad = [pd.Timedelta('2 hour').to_timedelta64(),
+                   pd.Timedelta('1 hour').to_timedelta64(),
+                   np.timedelta64(1, 'M'), ]
+        with pytest.raises(
+                IncompatibleFrequency,
+                match='Input has different freq from'):
+            idx.get_indexer(target, 'nearest', tolerance=tol_bad)
 
     def test_repeat(self):
         # GH10183

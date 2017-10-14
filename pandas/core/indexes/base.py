@@ -2484,7 +2484,14 @@ class Index(IndexOpsMixin, PandasObject):
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
 
+            Tolerance may be a scalar
+            value, which applies the same tolerance to all values, or
+            list-like, which applies variable tolerance per element. List-like
+            includes list, tuple, array, Series, and must be the same size as
+            the index and its dtype must exactly match the index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
         -------
@@ -2627,7 +2634,14 @@ class Index(IndexOpsMixin, PandasObject):
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
         --------
@@ -2647,7 +2661,7 @@ class Index(IndexOpsMixin, PandasObject):
         method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, target)
 
         # Treat boolean labels passed to a numeric index as not found. Without
         # this fix False and True would be treated as 0 and 1 respectively.
@@ -2683,10 +2697,15 @@ class Index(IndexOpsMixin, PandasObject):
                                  'backfill or nearest reindexing')
 
             indexer = self._engine.get_indexer(target._values)
+
         return _ensure_platform_int(indexer)
 
-    def _convert_tolerance(self, tolerance):
+    def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
+        tolerance = np.asarray(tolerance)
+        if target.size != tolerance.size and tolerance.size > 1:
+            raise ValueError('list-like tolerance size must match '
+                             'target index size')
         return tolerance
 
     def _get_fill_indexer(self, target, method, limit=None, tolerance=None):

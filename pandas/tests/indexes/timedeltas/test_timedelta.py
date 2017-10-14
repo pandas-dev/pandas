@@ -60,8 +60,16 @@ class TestTimedeltaIndex(DatetimeLike):
         assert idx.get_loc(idx[1], 'pad',
                            tolerance=timedelta(0)) == 1
 
-        with tm.assert_raises_regex(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError,
+                                    'unit abbreviation w/o a number'):
             idx.get_loc(idx[1], method='nearest', tolerance='foo')
+
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match'):
+            idx.get_loc(idx[1], method='nearest',
+                        tolerance=[Timedelta(0).to_timedelta64(),
+                                   Timedelta(0).to_timedelta64()])
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
             assert idx.get_loc('1 day 1 hour', method) == loc
