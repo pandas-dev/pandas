@@ -1973,6 +1973,7 @@ Function application
    GroupBy.apply
    GroupBy.aggregate
    GroupBy.transform
+   GroupBy.pipe
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
