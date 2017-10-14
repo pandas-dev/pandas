@@ -1294,7 +1294,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0, parse_dates=True,
-                 encoding=None, tupleize_cols=False,
+                 encoding=None, tupleize_cols=None,
                  infer_datetime_format=False):
         """
         Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
