@@ -765,7 +765,7 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.mark.xfail(resaon="Complex bug. GH 16399")(
+        pytest.mark.xfail(reason="Complex bug. GH 16399")(
             np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
                      2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j])
         ),

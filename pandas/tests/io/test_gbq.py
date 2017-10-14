@@ -92,7 +92,6 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
-@pytest.mark.xfail(reason="gbq having issues")
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
