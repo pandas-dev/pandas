@@ -759,7 +759,7 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
-              tupleize_cols=False, thousands=',', encoding=None,
+              tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
               keep_default_na=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -827,6 +827,9 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         If ``False`` try to parse multiple header rows into a
         :class:`~pandas.MultiIndex`, otherwise return raw tuples. Defaults to
         ``False``.
+
+        .. deprecated:: 0.21.0
+           This argument will be removed and will always convert to MultiIndex
 
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
