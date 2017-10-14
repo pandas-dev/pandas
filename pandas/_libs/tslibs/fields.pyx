@@ -160,7 +160,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     if field == 'is_month_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -172,7 +174,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -185,7 +189,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_month_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -202,7 +208,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -219,7 +227,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -232,7 +242,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -245,7 +257,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -263,7 +277,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -280,7 +296,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -293,7 +311,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -306,7 +326,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -324,7 +346,9 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = 0; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = 0
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -367,7 +391,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     if field == 'Y':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -377,7 +403,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'M':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -387,7 +415,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'D':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -397,7 +427,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'h':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -407,7 +439,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'm':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -417,7 +451,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 's':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -427,7 +463,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'us':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -437,7 +475,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'ns':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -446,7 +486,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'doy':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -457,7 +499,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'dow':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -467,7 +511,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'woy':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -477,7 +523,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                 doy = mo_off + dts.day
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
-                #estimate
+                # estimate
                 woy = (doy - 1) - dow + 3
                 if woy >= 0:
                     woy = woy / 7 + 1
@@ -498,7 +544,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'q':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -509,7 +557,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     elif field == 'dim':
         with nogil:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -522,7 +572,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 
 cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
-    return days_per_month_table[is_leapyear(dts.year)][dts.month -1]
+    return days_per_month_table[is_leapyear(dts.year)][dts.month - 1]
 
 
 cpdef isleapyear_arr(ndarray years):
