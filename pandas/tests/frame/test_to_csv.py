@@ -267,8 +267,8 @@ class TestDataFrameToCSV(TestData):
 
                 with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8',
-                              chunksize=chunksize, tupleize_cols=False)
-                    recons = self.read_csv(path, tupleize_cols=False, **kwargs)
+                              chunksize=chunksize)
+                    recons = self.read_csv(path, **kwargs)
             else:
                 kwargs['header'] = 0
 
@@ -542,35 +542,35 @@ class TestDataFrameToCSV(TestData):
 
             # column & index are multi-index
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1, 2, 3], index_col=[
-                              0, 1], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1, 2, 3],
+                              index_col=[0, 1])
             assert_frame_equal(df, result)
 
             # column is mi
             df = mkdf(5, 3, r_idx_nlevels=1, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
+            df.to_csv(path)
             result = read_csv(
-                path, header=[0, 1, 2, 3], index_col=0, tupleize_cols=False)
+                path, header=[0, 1, 2, 3], index_col=0)
             assert_frame_equal(df, result)
 
             # dup column names?
             df = mkdf(5, 3, r_idx_nlevels=3, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1, 2, 3], index_col=[
-                              0, 1, 2], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1, 2, 3],
+                              index_col=[0, 1, 2])
             assert_frame_equal(df, result)
 
             # writing with no index
             df = _make_frame()
-            df.to_csv(path, tupleize_cols=False, index=False)
-            result = read_csv(path, header=[0, 1], tupleize_cols=False)
+            df.to_csv(path, index=False)
+            result = read_csv(path, header=[0, 1])
             assert_frame_equal(df, result)
 
             # we lose the names here
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False, index=False)
-            result = read_csv(path, header=[0, 1], tupleize_cols=False)
+            df.to_csv(path, index=False)
+            result = read_csv(path, header=[0, 1])
             assert _all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
@@ -589,15 +589,15 @@ class TestDataFrameToCSV(TestData):
 
             # whatsnew example
             df = _make_frame()
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1], index_col=[
-                              0], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1],
+                              index_col=[0])
             assert_frame_equal(df, result)
 
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1], index_col=[
-                              0], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1],
+                              index_col=[0])
             assert_frame_equal(df, result)
 
             # column & index are multi-index (compatibility)
@@ -613,18 +613,17 @@ class TestDataFrameToCSV(TestData):
 
             # invalid options
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False)
+            df.to_csv(path)
 
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
                 with tm.assert_raises_regex(ParserError, msg):
-                    read_csv(path, tupleize_cols=False,
-                             header=lrange(i), index_col=0)
+                    read_csv(path, header=lrange(i), index_col=0)
 
             # write with cols
             with tm.assert_raises_regex(TypeError, 'cannot specify cols '
                                         'with a MultiIndex'):
-                df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
+                df.to_csv(path, columns=['foo', 'bar'])
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
             # empty
