@@ -129,10 +129,15 @@ class TestDeprecatedFeatures(object):
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     @pytest.mark.parametrize("kwargs", [{"as_recarray": True},
+                                        {"as_recarray": False},
                                         {"buffer_lines": True},
+                                        {"buffer_lines": False},
                                         {"compact_ints": True},
+                                        {"compact_ints": False},
                                         {"use_unsigned": True},
+                                        {"use_unsigned": False},
                                         {"tupleize_cols": True},
+                                        {"tupleize_cols": False},
                                         {"skip_footer": 1}])
     def test_deprecated_args(self, engine, kwargs):
         data = "1,2,3"

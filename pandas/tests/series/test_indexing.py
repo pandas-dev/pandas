@@ -2117,9 +2117,17 @@ class TestSeriesIndexing(TestData):
 
         actual = s.reindex_like(actual, method='nearest', tolerance=1)
         assert_series_equal(expected, actual)
+        actual = s.reindex_like(actual, method='nearest',
+                                tolerance=[1, 2, 3, 4])
+        assert_series_equal(expected, actual)
 
         actual = s.reindex(target, method='nearest', tolerance=0.2)
         expected = Series([0, 1, np.nan, 2], target)
+        assert_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest',
+                           tolerance=[0.3, 0.01, 0.4, 3])
+        expected = Series([0, np.nan, np.nan, 2], target)
         assert_series_equal(expected, actual)
 
     def test_reindex_backfill(self):

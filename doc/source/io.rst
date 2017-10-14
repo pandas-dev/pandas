@@ -84,7 +84,8 @@ filepath_or_buffer : various
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
   the separator, but the Python parsing engine can, meaning the latter will be
-  used automatically. In addition, separators longer than 1 character and
+  used and automatically detect the separator by Python's builtin sniffer tool,
+  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
   different from ``'\s+'`` will be interpreted as regular expressions and
   will also force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
