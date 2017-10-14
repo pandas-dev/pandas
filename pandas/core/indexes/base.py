@@ -2326,7 +2326,7 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2366,14 +2366,15 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, sort=True):
         """
         Compute the symmetric difference of two Index objects.
         It's sorted if sorting is possible.
@@ -2426,10 +2427,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
@@ -4220,3 +4222,4 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
+
