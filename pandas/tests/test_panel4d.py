@@ -563,8 +563,8 @@ class CheckIndexing(object):
             for item in self.panel4d.items:
                 for mjr in self.panel4d.major_axis[::2]:
                     for mnr in self.panel4d.minor_axis:
-                        result = self.panel4d.get_value(
-                            label, item, mjr, mnr)
+                        result = self.panel4d.loc[
+                            label, item, mjr, mnr]
                         expected = self.panel4d[label][item][mnr][mjr]
                         assert_almost_equal(result, expected)
 
