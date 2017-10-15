@@ -335,8 +335,10 @@ class TestReadHtml(ReadHtmlMixin):
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows_tuples(self):
-        df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
-        assert isinstance(df.columns, Index)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df = self._bank_data(header=[0, 1], skiprows=1,
+                                 tupleize_cols=True)[0]
+            assert isinstance(df.columns, Index)
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows(self):
