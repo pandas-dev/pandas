@@ -2246,7 +2246,8 @@ class Index(IndexOpsMixin, PandasObject):
                         self._values[0] < other_diff[0]
                     except TypeError as e:
                         warnings.warn("%s, sort order is undefined for "
-                                      "incomparable objects" % e, RuntimeWarning,
+                                      "incomparable objects" % e,
+                                      RuntimeWarning,
                                       stacklevel=3)
                     else:
                         types = frozenset((self.inferred_type,
@@ -2262,7 +2263,8 @@ class Index(IndexOpsMixin, PandasObject):
                         result = np.sort(result)
                     except TypeError as e:
                         warnings.warn("%s, sort order is undefined for "
-                                      "incomparable objects" % e, RuntimeWarning,
+                                      "incomparable objects" % e,
+                                      RuntimeWarning,
                                       stacklevel=3)
 
         # for subclasses
@@ -4243,4 +4245,3 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
-
