@@ -896,6 +896,33 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.name == first.name
 
+    def test_difference_sorting_false(self):
+
+        first = pd.Index([2, 0, 4, 3])
+        second = pd.Index([2, 1])
+        answer = pd.Index([0, 4, 3])
+        first.name = 'name'
+        # different names
+        result = first.difference(second, sort=False)
+
+        assert tm.equalContents(result, answer)
+        assert result.name is None
+
+        # same names
+        second.name = 'name'
+        result = first.difference(second, sort=False)
+        assert result.name == 'name'
+
+        # with empty
+        result = first.difference([], sort=False)
+        assert tm.equalContents(result, first)
+        assert result.name == first.name
+
+        # with everything
+        result = first.difference(first, sort=False)
+        assert len(result) == 0
+        assert result.name == first.name
+
     def test_symmetric_difference(self):
         # smoke
         idx1 = Index([1, 2, 3, 4], name='idx1')
@@ -2174,3 +2201,4 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
+
