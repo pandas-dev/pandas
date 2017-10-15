@@ -16,8 +16,7 @@ from cpython.datetime cimport datetime
 from datetime cimport (
     PANDAS_FR_ns,
     pandas_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    )
+    pandas_datetime_to_datetimestruct)
 
 cimport util
 
