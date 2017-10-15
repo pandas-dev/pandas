@@ -83,6 +83,16 @@ def array_strptime(ndarray[object] values, object fmt,
 
     assert is_raise or is_ignore or is_coerce
 
+    if fmt is not None:
+        if '%W' in fmt or '%U' in fmt:
+            if '%Y' not in fmt and '%y' not in fmt:
+                raise ValueError("Cannot use '%W' or '%U' without "
+                                 "day and year")
+            if ('%A' not in fmt and '%a' not in fmt and '%w' not
+                    in fmt):
+                raise ValueError("Cannot use '%W' or '%U' without "
+                                 "day and year")
+
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
         if _getlang() != _TimeRE_cache.locale_time.lang:

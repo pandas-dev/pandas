@@ -234,6 +234,7 @@ Other Enhancements
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
 - Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
 - :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
+- :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -784,6 +785,7 @@ Other API Changes
 - :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
+- :func:`to_datetime` now raises a ``ValueError`` when format includes ``%W`` or ``%U`` without also including day of the week and calendar year (:issue:`16774`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
@@ -956,6 +958,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
+- Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
 
 Plotting
 ^^^^^^^^
@@ -979,6 +982,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
 - Bug in ``groupby.nunique()`` with ``TimeGrouper`` which cannot handle ``NaT`` correctly (:issue:`17575`)
 - Bug in ``DataFrame.groupby`` where a single level selection from a ``MultiIndex`` unexpectedly sorts (:issue:`17537`)
+- Bug in ``DataFrame.groupby`` where spurious warning is raised when ``Grouper`` object is used to override ambiguous column name (:issue:`17383`)
 - Bug in ``TimeGrouper`` differs when passes as a list and as a scalar (:issue:`17530`)
 
 Sparse
@@ -1016,6 +1020,7 @@ Categorical
 - Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
 - Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
+- Bug in :func:`DataFrame.merge` failing for categorical columns with boolean/int data types (:issue:`17187`)
 
 .. _whatsnew_0210.pypy:
 
@@ -1033,3 +1038,4 @@ Other
 ^^^^^
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+
