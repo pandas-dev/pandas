@@ -33,8 +33,8 @@ from numpy cimport ndarray, int64_t
 from datetime import date as datetime_date
 from datetime cimport datetime
 
-from npy_dtime cimport (check_dts_bounds,
-                        dtstruct_to_dt64, pandas_datetimestruct)
+from np_datetime cimport (check_dts_bounds,
+                          dtstruct_to_dt64, pandas_datetimestruct)
 
 from util cimport is_string_object, get_nat
 
