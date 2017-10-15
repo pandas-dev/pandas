@@ -1204,6 +1204,12 @@ class TestDataFrameConstructors(TestData):
                        columns=['one', 'two', 'three'])
         tm.assert_frame_equal(rs, xp)
 
+        # GH 17312
+        with tm.assert_raises_regex(TypeError,
+                                    'The value in each \(key, value\) '
+                                    'pair must be an array or a Series'):
+            DataFrame.from_items([('A', 1), ('B', 4)])
+
     def test_constructor_mix_series_nonseries(self):
         df = DataFrame({'A': self.frame['A'],
                         'B': list(self.frame['B'])}, columns=['A', 'B'])
