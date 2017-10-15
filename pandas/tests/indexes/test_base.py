@@ -2201,4 +2201,3 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
-
