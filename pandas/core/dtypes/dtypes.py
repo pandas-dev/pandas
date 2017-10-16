@@ -178,7 +178,7 @@ class CategoricalDtype(ExtensionDtype):
         if categories is not None:
             categories = Index(categories, tupleize_cols=False)
             # validation
-            self._validate_categories(categories)
+            self._validate_categories(categories, fastpath=fastpath)
             self._validate_ordered(ordered)
         self._categories = categories
         self._ordered = ordered
