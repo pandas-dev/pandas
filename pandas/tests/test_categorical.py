@@ -519,6 +519,18 @@ class TestCategorical(object):
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
+    def test_constructor_with_categorical_categories(self):
+        # GH17884
+        expected = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = pd.Categorical(
+            ['a', 'b'], categories=pd.Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = pd.Categorical(
+            ['a', 'b'], categories=pd.CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -559,6 +571,18 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
+
+    def test_from_codes_with_categorical_categories(self):
+        # GH17884
+        expected = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = pd.Categorical.from_codes(
+            [0, 1], categories=pd.Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = pd.Categorical.from_codes(
+            [0, 1], categories=pd.CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):

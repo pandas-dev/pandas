@@ -657,3 +657,10 @@ class TestCategoricalDtypeParametrized(object):
         # Py2 will have unicode prefixes
         pat = r"CategoricalDtype\(categories=\[.*\], ordered=False\)"
         assert re.match(pat, repr(c1))
+
+    def test_categorical_categories(self):
+        # GH17884
+        c1 = CategoricalDtype(pd.Categorical(['a', 'b']))
+        tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
+        c1 = CategoricalDtype(pd.CategoricalIndex(['a', 'b']))
+        tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))

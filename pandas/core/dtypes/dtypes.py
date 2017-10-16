@@ -174,12 +174,12 @@ class CategoricalDtype(ExtensionDtype):
 
         if ordered is None:
             ordered = False
+        else:
+            self._validate_ordered(ordered)
 
         if categories is not None:
-            categories = Index(categories, tupleize_cols=False)
-            # validation
-            self._validate_categories(categories)
-            self._validate_ordered(ordered)
+            categories = self._validate_categories(categories)
+
         self._categories = categories
         self._ordered = ordered
 
@@ -316,7 +316,11 @@ class CategoricalDtype(ExtensionDtype):
         from pandas import Index
 
         if not isinstance(categories, ABCIndexClass):
-            categories = Index(categories)
+            categories = Index(categories, tupleize_cols=False)
+
+        if hasattr(categories, 'categories'):
+            # I am a CategoricalIndex
+            categories = categories.categories
 
         if not fastpath:
 
