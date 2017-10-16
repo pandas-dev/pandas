@@ -1255,10 +1255,8 @@ class DataFrame(NDFrame):
         """
         keys, values = lzip(*items)
 
-        import array
         for val in values:
-            if not isinstance(val, (list, Series, np.ndarray, Categorical,
-                                    array.array)):
+            if not is_list_like(val):
                 raise TypeError('The value in each (key, value) pair must '
                                 'be an array or a Series')
 
