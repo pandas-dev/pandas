@@ -8,7 +8,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
    pd.options.display.max_rows=15
@@ -654,7 +654,7 @@ aggregation with, outputting a DataFrame:
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-On a widowed DataFrame, you can pass a list of functions to apply to each
+On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
@@ -924,15 +924,12 @@ EWM has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
-(This is a change from versions prior to 0.15.0, in which the ``min_periods``
-argument affected only the ``min_periods`` consecutive entries starting at the
-first non-null value.)
 
-EWM also has an ``ignore_na`` argument, which deterines how
+EWM also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.
-When ``ignore_na=True`` (which reproduces the behavior in versions prior to 0.15.0),
+When ``ignore_na=True``,
 weights are calculated by ignoring intermediate null values.
 For example, assuming ``adjust=True``, if ``ignore_na=False``, the weighted
 average of ``3, NaN, 5`` would be calculated as

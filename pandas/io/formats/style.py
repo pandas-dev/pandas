@@ -27,7 +27,7 @@ from pandas.api.types import is_list_like
 from pandas.compat import range
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
-import pandas.core.common as com
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util._decorators import Appender
 try:
@@ -230,7 +230,7 @@ class Styler(object):
             # ... except maybe the last for columns.names
             name = self.data.columns.names[r]
             cs = [BLANK_CLASS if name is None else INDEX_NAME_CLASS,
-                  "level%s" % r]
+                  "level{lvl}".format(lvl=r)]
             name = BLANK_VALUE if name is None else name
             row_es.append({"type": "th",
                            "value": name,
@@ -240,7 +240,8 @@ class Styler(object):
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
-                    cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
+                    cs = [COL_HEADING_CLASS, "level{lvl}".format(lvl=r),
+                          "col{col}".format(col=c)]
                     cs.extend(cell_context.get(
                         "col_headings", {}).get(r, {}).get(c, []))
                     es = {
@@ -258,13 +259,12 @@ class Styler(object):
                     row_es.append(es)
                 head.append(row_es)
 
-        if self.data.index.names and not all(x is None
-                                             for x in self.data.index.names):
+        if self.data.index.names and _any_not_none(*self.data.index.names):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
                 cs = [INDEX_NAME_CLASS,
-                      "level%s" % c]
+                      "level{lvl}".format(lvl=c)]
                 name = '' if name is None else name
                 index_header_row.append({"type": "th", "value": name,
                                          "class": " ".join(cs)})
@@ -281,7 +281,8 @@ class Styler(object):
         for r, idx in enumerate(self.data.index):
             row_es = []
             for c, value in enumerate(rlabels[r]):
-                rid = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
+                rid = [ROW_HEADING_CLASS, "level{lvl}".format(lvl=c),
+                       "row{row}".format(row=r)]
                 es = {
                     "type": "th",
                     "is_visible": _is_visible(r, c, idx_lengths),
@@ -298,7 +299,8 @@ class Styler(object):
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
-                cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
+                cs = [DATA_CLASS, "row{row}".format(row=r),
+                      "col{col}".format(col=c)]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
@@ -317,7 +319,8 @@ class Styler(object):
                     else:
                         props.append(['', ''])
                 cellstyle.append({'props': props,
-                                  'selector': "row%s_col%s" % (r, c)})
+                                  'selector': "row{row}_col{col}"
+                                  .format(row=r, col=c)})
             body.append(row_es)
 
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
@@ -512,22 +515,23 @@ class Styler(object):
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
                 raise TypeError(
-                    "Function {!r} must return a DataFrame when "
-                    "passed to `Styler.apply` with axis=None".format(func))
+                    "Function {func!r} must return a DataFrame when "
+                    "passed to `Styler.apply` with axis=None"
+                    .format(func=func))
             if not (result.index.equals(data.index) and
                     result.columns.equals(data.columns)):
-                msg = ('Result of {!r} must have identical index and columns '
-                       'as the input'.format(func))
+                msg = ('Result of {func!r} must have identical index and '
+                       'columns as the input'.format(func=func))
                 raise ValueError(msg)
 
         result_shape = result.shape
         expected_shape = self.data.loc[subset].shape
         if result_shape != expected_shape:
-            msg = ("Function {!r} returned the wrong shape.\n"
-                   "Result has shape: {}\n"
-                   "Expected shape:   {}".format(func,
-                                                 result.shape,
-                                                 expected_shape))
+            msg = ("Function {func!r} returned the wrong shape.\n"
+                   "Result has shape: {res}\n"
+                   "Expected shape:   {expect}".format(func=func,
+                                                       res=result.shape,
+                                                       expect=expected_shape))
             raise ValueError(msg)
         self._update_ctx(result)
         return self
@@ -613,10 +617,52 @@ class Styler(object):
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.where
+
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
                            (func, subset), kwargs))
         return self
+
+    def where(self, cond, value, other=None, subset=None, **kwargs):
+        """
+        Apply a function elementwise, updating the HTML
+        representation with a style which is selected in
+        accordance with the return value of a function.
+
+        .. versionadded:: 0.21.0
+
+        Parameters
+        ----------
+        cond : callable
+            ``cond`` should take a scalar and return a boolean
+        value : str
+            applied when ``cond`` returns true
+        other : str
+            applied when ``cond`` returns false
+        subset : IndexSlice
+            a valid indexer to limit ``data`` to *before* applying the
+            function. Consider using a pandas.IndexSlice
+        kwargs : dict
+            pass along to ``cond``
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.applymap
+
+        """
+
+        if other is None:
+            other = ''
+
+        return self.applymap(lambda val: value if cond(val) else other,
+                             subset=subset, **kwargs)
 
     def set_precision(self, precision):
         """
@@ -771,7 +817,8 @@ class Styler(object):
 
     @staticmethod
     def _highlight_null(v, null_color):
-        return 'background-color: %s' % null_color if pd.isna(v) else ''
+        return ('background-color: {color}'.format(color=null_color)
+                if pd.isna(v) else '')
 
     def highlight_null(self, null_color='red'):
         """
@@ -839,7 +886,8 @@ class Styler(object):
             # https://github.com/matplotlib/matplotlib/issues/5427
             normed = norm(s.values)
             c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            return ['background-color: %s' % color for color in c]
+            return ['background-color: {color}'.format(color=color)
+                    for color in c]
 
     def set_properties(self, subset=None, **kwargs):
         """
@@ -1155,7 +1203,7 @@ def _get_level_lengths(index):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = com.sentinel_factory()
+    sentinel = sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if index.nlevels == 1:
@@ -1182,6 +1230,6 @@ def _maybe_wrap_formatter(formatter):
     elif callable(formatter):
         return formatter
     else:
-        msg = "Expected a template string or callable, got {} instead".format(
-            formatter)
+        msg = ("Expected a template string or callable, got {formatter} "
+               "instead".format(formatter=formatter))
         raise TypeError(msg)

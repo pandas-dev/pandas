@@ -35,6 +35,7 @@ from pandas._libs import tslib, period
 from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
+from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
@@ -163,6 +164,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
 
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    Period : Represents a period of time
+    DatetimeIndex : Index with datetime64 data
+    TimedeltaIndex : Index of timedelta64 data
     """
     _box_scalars = True
     _typ = 'periodindex'
@@ -199,8 +207,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if is_float(periods):
                 periods = int(periods)
             elif not is_integer(periods):
-                raise ValueError('Periods must be a number, got %s' %
-                                 str(periods))
+                msg = 'periods must be a number, got {periods}'
+                raise TypeError(msg.format(periods=periods))
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -589,7 +597,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def is_leap_year(self):
         """ Logical indicating if the date belongs to a leap year """
-        return tslib._isleapyear_arr(np.asarray(self.year))
+        return isleapyear_arr(np.asarray(self.year))
 
     @property
     def start_time(self):
@@ -633,12 +641,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def _maybe_convert_timedelta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        if isinstance(
+                other, (timedelta, np.timedelta64, offsets.Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
-                nanos = tslib._delta_to_nanoseconds(other)
+                if isinstance(other, np.ndarray):
+                    nanos = np.vectorize(tslib._delta_to_nanoseconds)(other)
+                else:
+                    nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
-                if nanos % offset_nanos == 0:
+                check = np.all(nanos % offset_nanos == 0)
+                if check:
                     return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
             freqstr = other.rule_code
@@ -774,7 +787,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             target = target.asi8
 
         if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, target)
         return Index.get_indexer(self._int64index, target, method,
                                  limit, tolerance)
 
@@ -817,7 +830,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             try:
                 ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
                 if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance)
+                    tolerance = self._convert_tolerance(tolerance,
+                                                        np.asarray(key))
                 return self._int64index.get_loc(ordinal, method, tolerance)
 
             except KeyError:
@@ -900,8 +914,12 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return slice(self.searchsorted(t1.ordinal, side='left'),
                      self.searchsorted(t2.ordinal, side='right'))
 
-    def _convert_tolerance(self, tolerance):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance)
+    def _convert_tolerance(self, tolerance, target):
+        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance,
+                                                             target)
+        if target.size != tolerance.size and tolerance.size > 1:
+            raise ValueError('list-like tolerance size must match '
+                             'target index size')
         return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):
@@ -1051,8 +1069,9 @@ PeriodIndex._add_datetimelike_methods()
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
-    if com._count_not_none(start, end, periods) < 2:
-        raise ValueError('Must specify 2 of start, end, periods')
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
 
     if freq is not None:
         _, mult = _gfc(freq)
@@ -1066,9 +1085,9 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     is_end_per = isinstance(end, Period)
 
     if is_start_per and is_end_per and start.freq != end.freq:
-        raise ValueError('Start and end must have same freq')
+        raise ValueError('start and end must have same freq')
     if (start is tslib.NaT or end is tslib.NaT):
-        raise ValueError('Start and end must not be NaT')
+        raise ValueError('start and end must not be NaT')
 
     if freq is None:
         if is_start_per:
@@ -1157,24 +1176,55 @@ def pnow(freq=None):
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
-    Return a fixed frequency datetime index, with day (calendar) as the default
+    Return a fixed frequency PeriodIndex, with day (calendar) as the default
     frequency
-
 
     Parameters
     ----------
-    start : starting value, period-like, optional
-    end : ending value, period-like, optional
-    periods : int, default None
-        Number of periods in the index
-    freq : str/DateOffset, default 'D'
+    start : string or period-like, default None
+        Left bound for generating periods
+    end : string or period-like, default None
+        Right bound for generating periods
+    periods : integer, default None
+        Number of periods to generate
+    freq : string or DateOffset, default 'D' (calendar daily)
         Frequency alias
-    name : str, default None
-        Name for the resulting PeriodIndex
+    name : string, default None
+        Name of the resulting PeriodIndex
+
+    Notes
+    -----
+    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    must be specified.
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
     prng : PeriodIndex
+
+    Examples
+    --------
+
+    >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
+    PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
+                 '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',
+                 '2017-10', '2017-11', '2017-12', '2018-01'],
+                dtype='period[M]', freq='M')
+
+    If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
+    endpoints for a ``PeriodIndex`` with frequency matching that of the
+    ``period_range`` constructor.
+
+    >>> pd.period_range(start=pd.Period('2017Q1', freq='Q'),
+    ...                 end=pd.Period('2017Q2', freq='Q'), freq='M')
+    PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
+                dtype='period[M]', freq='M')
     """
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
+
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)

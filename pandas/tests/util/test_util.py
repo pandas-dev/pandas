@@ -8,8 +8,9 @@ from collections import OrderedDict
 
 import pytest
 from pandas.compat import intern
+from pandas.core.common import _all_none
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_args_and_kwargs,
                                      validate_bool_kwarg)
@@ -437,7 +438,7 @@ class TestLocaleUtils(object):
             pytest.skip("Only a single locale found, no point in "
                         "trying to test setting another locale")
 
-        if all(x is None for x in self.current_locale):
+        if _all_none(*self.current_locale):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
             pytest.skip("Current locale is not set.")
@@ -467,3 +468,17 @@ class TestLocaleUtils(object):
 
         current_locale = locale.getlocale()
         assert current_locale == self.current_locale
+
+
+def test_make_signature():
+    # See GH 17608
+    # Case where the func does not have default kwargs
+    sig = make_signature(validate_kwargs)
+    assert sig == (['fname', 'kwargs', 'compat_args'],
+                   ['fname', 'kwargs', 'compat_args'])
+
+    # Case where the func does have default kwargs
+    sig = make_signature(deprecate_kwarg)
+    assert sig == (['old_arg_name', 'new_arg_name',
+                    'mapping=None', 'stacklevel=2'],
+                   ['old_arg_name', 'new_arg_name', 'mapping', 'stacklevel'])

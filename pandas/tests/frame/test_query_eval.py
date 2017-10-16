@@ -17,7 +17,7 @@ from pandas.util.testing import (assert_series_equal,
                                  makeCustomDataframe as mkdf)
 
 import pandas.util.testing as tm
-from pandas.core.computation import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
 from pandas.tests.frame.common import TestData
 

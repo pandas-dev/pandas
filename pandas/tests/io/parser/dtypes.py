@@ -149,6 +149,105 @@ one,two
         for actual, expected in zip(actuals, expecteds):
             tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('categories', [
+        ['a', 'b', 'c'],
+        ['a', 'c', 'b'],
+        ['a', 'b', 'c', 'd'],
+        ['c', 'b', 'a'],
+    ])
+    def test_categorical_categoricaldtype(self, categories, ordered):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expected = pd.DataFrame({
+            "a": [1, 1, 1, 2],
+            "b": Categorical(['a', 'b', 'b', 'c'],
+                             categories=categories,
+                             ordered=ordered)
+        })
+        dtype = {"b": CategoricalDtype(categories=categories,
+                                       ordered=ordered)}
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_unsorted(self):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        dtype = CategoricalDtype(['c', 'b', 'a'])
+        expected = pd.DataFrame({
+            'a': [1, 1, 1, 2],
+            'b': Categorical(['a', 'b', 'b', 'c'], categories=['c', 'b', 'a'])
+        })
+        result = self.read_csv(StringIO(data), dtype={'b': dtype})
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_numeric(self):
+        dtype = {'b': CategoricalDtype([1, 2, 3])}
+        data = "b\n1\n1\n2\n3"
+        expected = pd.DataFrame({'b': Categorical([1, 1, 2, 3])})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_datetime(self):
+        dtype = {
+            'b': CategoricalDtype(pd.date_range('2017', '2019', freq='AS'))
+        }
+        data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
+        expected = pd.DataFrame({'b': Categorical(dtype['b'].categories)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        dtype = {
+            'b': CategoricalDtype([pd.Timestamp("2014")])
+        }
+        data = "b\n2014-01-01\n2014-01-01T00:00:00"
+        expected = pd.DataFrame({'b': Categorical([pd.Timestamp('2014')] * 2)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_timedelta(self):
+        dtype = {'b': CategoricalDtype(pd.to_timedelta(['1H', '2H', '3H']))}
+        data = "b\n1H\n2H\n3H"
+        expected = pd.DataFrame({'b': Categorical(dtype['b'].categories)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_unexpected_categories(self):
+        dtype = {'b': CategoricalDtype(['a', 'b', 'd', 'e'])}
+        data = "b\nd\na\nc\nd"  # Unexpected c
+        expected = pd.DataFrame({"b": Categorical(list('dacd'),
+                                                  dtype=dtype['b'])})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        cats = ['a', 'b', 'c']
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'],
+                                                    categories=cats)}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'],
+                                                    categories=cats)},
+                                  index=[2, 3])]
+        dtype = CategoricalDtype(cats)
+        actuals = self.read_csv(StringIO(data), dtype={'b': dtype},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
+
     def test_empty_pass_dtype(self):
         data = 'one,two'
         result = self.read_csv(StringIO(data), dtype={'one': 'u1'})
@@ -204,10 +303,11 @@ one,two
         result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-        data = ''
-        result = self.read_csv(StringIO(data), names=['one', 'one'],
-                               dtype={0: 'u1', 1: 'f'})
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            data = ''
+            result = self.read_csv(StringIO(data), names=['one', 'one'],
+                                   dtype={0: 'u1', 1: 'f'})
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_raise_on_passed_int_dtype_with_nas(self):
         # see gh-2631

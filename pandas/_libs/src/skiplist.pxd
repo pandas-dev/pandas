@@ -14,9 +14,9 @@ cdef extern from "skiplist.h":
         int size
         int maxlevels
 
-    inline skiplist_t* skiplist_init(int) nogil
-    inline void skiplist_destroy(skiplist_t*) nogil
-    inline double skiplist_get(skiplist_t*, int, int*) nogil
-    inline int skiplist_insert(skiplist_t*, double) nogil
-    inline int skiplist_remove(skiplist_t*, double) nogil
+    skiplist_t* skiplist_init(int) nogil
+    void skiplist_destroy(skiplist_t*) nogil
+    double skiplist_get(skiplist_t*, int, int*) nogil
+    int skiplist_insert(skiplist_t*, double) nogil
+    int skiplist_remove(skiplist_t*, double) nogil
 

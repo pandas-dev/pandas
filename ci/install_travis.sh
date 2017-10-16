@@ -47,7 +47,7 @@ which conda
 echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
-conda config --set always_yes true --set changeps1 false || exit 1
+conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
 echo
@@ -104,7 +104,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
-time pip install pytest-xdist
+time pip install pytest-xdist moto
 
 if [ "$LINT" ]; then
    conda install flake8

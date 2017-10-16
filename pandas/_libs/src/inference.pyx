@@ -2,7 +2,8 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT, get_timezone
+from tslib import NaT
+from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -164,20 +165,8 @@ cdef class Seen(object):
                      two conflict cases was also detected. However, we are
                      trying to force conversion to a numeric dtype.
         """
-        if self.uint_ and (self.null_ or self.sint_):
-            if not self.coerce_numeric:
-                return True
-
-            if self.null_:
-                msg = ("uint64 array detected, and such an "
-                       "array cannot contain NaN.")
-            else:  # self.sint_ = 1
-                msg = ("uint64 and negative values detected. "
-                       "Cannot safely return a numeric array "
-                       "without truncating data.")
-
-            raise ValueError(msg)
-        return False
+        return (self.uint_ and (self.null_ or self.sint_)
+                and not self.coerce_numeric)
 
     cdef inline saw_null(self):
         """
@@ -225,7 +214,7 @@ cdef _try_infer_map(v):
 
 def infer_dtype(object value, bint skipna=False):
     """
-    Effeciently infer the type of a passed val, or list-like
+    Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
 
     Parameters
@@ -1014,7 +1003,7 @@ cpdef bint is_interval_array(ndarray[object] values):
 
 
 cdef extern from "parse_helper.h":
-    inline int floatify(object, double *result, int *maybe_int) except -1
+    int floatify(object, double *result, int *maybe_int) except -1
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -1102,10 +1091,17 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_int(val)
 
             if val >= 0:
-                uints[i] = val
+                if val <= oUINT64_MAX:
+                    uints[i] = val
+                else:
+                    seen.float_ = True
 
             if val <= oINT64_MAX:
                 ints[i] = val
+
+            if seen.sint_ and seen.uint_:
+                seen.float_ = True
+
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
@@ -1153,6 +1149,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                             uints[i] = as_int
                         if as_int <= oINT64_MAX:
                             ints[i] = as_int
+
+                    seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:
@@ -1381,165 +1379,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 def convert_sql_column(x):
     return maybe_convert_objects(x, try_float=1)
-
-
-def try_parse_dates(ndarray[object] values, parser=None,
-                    dayfirst=False, default=None):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] result
-
-    n = len(values)
-    result = np.empty(n, dtype='O')
-
-    if parser is None:
-        if default is None: # GH2618
-            date=datetime.now()
-            default=datetime(date.year, date.month, 1)
-
-        try:
-            from dateutil.parser import parse
-            parse_date = lambda x: parse(x, dayfirst=dayfirst, default=default)
-        except ImportError: # pragma: no cover
-            def parse_date(s):
-                try:
-                    return datetime.strptime(s, '%m/%d/%Y')
-                except Exception:
-                    return s
-        # EAFP here
-        try:
-            for i from 0 <= i < n:
-                if values[i] == '':
-                    result[i] = np.nan
-                else:
-                    result[i] = parse_date(values[i])
-        except Exception:
-            # failed
-            return values
-    else:
-        parse_date = parser
-
-        try:
-            for i from 0 <= i < n:
-                if values[i] == '':
-                    result[i] = np.nan
-                else:
-                    result[i] = parse_date(values[i])
-        except Exception:
-            # raise if passed parser and it failed
-            raise
-
-    return result
-
-
-def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
-                            date_parser=None, time_parser=None,
-                            dayfirst=False, default=None):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] result
-
-    from datetime import date, time, datetime, timedelta
-
-    n = len(dates)
-    if len(times) != n:
-        raise ValueError('Length of dates and times must be equal')
-    result = np.empty(n, dtype='O')
-
-    if date_parser is None:
-        if default is None: # GH2618
-            date=datetime.now()
-            default=datetime(date.year, date.month, 1)
-
-        try:
-            from dateutil.parser import parse
-            parse_date = lambda x: parse(x, dayfirst=dayfirst, default=default)
-        except ImportError: # pragma: no cover
-            def parse_date(s):
-                try:
-                    return date.strptime(s, '%m/%d/%Y')
-                except Exception:
-                    return s
-    else:
-        parse_date = date_parser
-
-    if time_parser is None:
-        try:
-            from dateutil.parser import parse
-            parse_time = lambda x: parse(x)
-        except ImportError: # pragma: no cover
-            def parse_time(s):
-                try:
-                    return time.strptime(s, '%H:%M:%S')
-                except Exception:
-                    return s
-
-    else:
-        parse_time = time_parser
-
-    for i from 0 <= i < n:
-        d = parse_date(str(dates[i]))
-        t = parse_time(str(times[i]))
-        result[i] = datetime(d.year, d.month, d.day,
-                             t.hour, t.minute, t.second)
-
-    return result
-
-
-def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
-                             ndarray[object] days):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] result
-
-    from datetime import datetime
-
-    n = len(years)
-    if len(months) != n or len(days) != n:
-        raise ValueError('Length of years/months/days must all be equal')
-    result = np.empty(n, dtype='O')
-
-    for i from 0 <= i < n:
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
-
-    return result
-
-
-def try_parse_datetime_components(ndarray[object] years,
-                                  ndarray[object] months,
-                                  ndarray[object] days,
-                                  ndarray[object] hours,
-                                  ndarray[object] minutes,
-                                  ndarray[object] seconds):
-
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] result
-        int secs
-        double float_secs
-        double micros
-
-    from datetime import datetime
-
-    n = len(years)
-    if (len(months) != n or len(days) != n or len(hours) != n or
-        len(minutes) != n or len(seconds) != n):
-        raise ValueError('Length of all datetime components must be equal')
-    result = np.empty(n, dtype='O')
-
-    for i from 0 <= i < n:
-        float_secs = float(seconds[i])
-        secs = int(float_secs)
-
-        micros = float_secs - secs
-        if micros > 0:
-            micros = micros * 1000000
-
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), secs,
-                             int(micros))
-
-    return result
 
 
 def sanitize_objects(ndarray[object] values, set na_values,

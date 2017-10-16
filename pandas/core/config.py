@@ -80,7 +80,7 @@ def _get_single_key(pat, silent):
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError('No such keys(s): %r' % pat)
+        raise OptionError('No such keys(s): {pat!r}'.format(pat=pat))
     if len(keys) > 1:
         raise OptionError('Pattern matched multiple keys')
     key = keys[0]
@@ -112,8 +112,8 @@ def _set_option(*args, **kwargs):
     silent = kwargs.pop('silent', False)
 
     if kwargs:
-        raise TypeError('_set_option() got an unexpected keyword '
-                        'argument "{0}"'.format(list(kwargs.keys())[0]))
+        msg = '_set_option() got an unexpected keyword argument "{kwarg}"'
+        raise TypeError(msg.format(list(kwargs.keys())[0]))
 
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k, silent)
@@ -436,9 +436,11 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     key = key.lower()
 
     if key in _registered_options:
-        raise OptionError("Option '%s' has already been registered" % key)
+        msg = "Option '{key}' has already been registered"
+        raise OptionError(msg.format(key=key))
     if key in _reserved_keys:
-        raise OptionError("Option '%s' is a reserved key" % key)
+        msg = "Option '{key}' is a reserved key"
+        raise OptionError(msg.format(key=key))
 
     # the default value should be legal
     if validator:
@@ -449,22 +451,21 @@ def register_option(key, defval, doc='', validator=None, cb=None):
 
     for k in path:
         if not bool(re.match('^' + tokenize.Name + '$', k)):
-            raise ValueError("%s is not a valid identifier" % k)
+            raise ValueError("{k} is not a valid identifier".format(k=k))
         if keyword.iskeyword(k):
-            raise ValueError("%s is a python keyword" % k)
+            raise ValueError("{k} is a python keyword".format(k=k))
 
     cursor = _global_config
+    msg = "Path prefix to option '{option}' is already an option"
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise OptionError("Path prefix to option '%s' is already an option"
-                              % '.'.join(path[:i]))
+            raise OptionError(msg.format(option='.'.join(path[:i])))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError("Path prefix to option '%s' is already an option" %
-                          '.'.join(path[:-1]))
+        raise OptionError(msg.format(option='.'.join(path[:-1])))
 
     cursor[path[-1]] = defval  # initialize
 
@@ -516,8 +517,8 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     key = key.lower()
 
     if key in _deprecated_options:
-        raise OptionError("Option '%s' has already been defined as deprecated."
-                          % key)
+        msg = "Option '{key}' has already been defined as deprecated."
+        raise OptionError(msg.format(key=key))
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
@@ -614,11 +615,12 @@ def _warn_if_deprecated(key):
             print(d.msg)
             warnings.warn(d.msg, DeprecationWarning)
         else:
-            msg = "'%s' is deprecated" % key
+            msg = "'{key}' is deprecated".format(key=key)
             if d.removal_ver:
-                msg += ' and will be removed in %s' % d.removal_ver
+                msg += (' and will be removed in {version}'
+                        .format(version=d.removal_ver))
             if d.rkey:
-                msg += ", please use '%s' instead." % d.rkey
+                msg += ", please use '{rkey}' instead.".format(rkey=d.rkey)
             else:
                 msg += ', please refrain from using it.'
 
@@ -633,7 +635,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('%s ') % k
+    s = u('{k} ').format(k=k)
 
     if o.doc:
         s += '\n'.join(o.doc.strip().split('\n'))
@@ -641,12 +643,13 @@ def _build_option_description(k):
         s += 'No description available.'
 
     if o:
-        s += u('\n    [default: %s] [currently: %s]') % (o.defval,
-                                                         _get_option(k, True))
+        s += (u('\n    [default: {default}] [currently: {current}]')
+              .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
         s += u('\n    (Deprecated')
-        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += (u(', use `{rkey}` instead.')
+              .format(rkey=d.rkey if d.rkey else ''))
         s += u(')')
 
     s += '\n\n'
@@ -718,7 +721,7 @@ def config_prefix(prefix):
 
     def wrap(func):
         def inner(key, *args, **kwds):
-            pkey = '%s.%s' % (prefix, key)
+            pkey = '{prefix}.{key}'.format(prefix=prefix, key=key)
             return func(pkey, *args, **kwds)
 
         return inner
@@ -754,7 +757,8 @@ def is_type_factory(_type):
 
     def inner(x):
         if type(x) != _type:
-            raise ValueError("Value must have type '%s'" % str(_type))
+            msg = "Value must have type '{typ!s}'"
+            raise ValueError(msg.format(typ=_type))
 
     return inner
 
@@ -777,11 +781,12 @@ def is_instance_factory(_type):
         from pandas.io.formats.printing import pprint_thing
         type_repr = "|".join(map(pprint_thing, _type))
     else:
-        type_repr = "'%s'" % _type
+        type_repr = "'{typ}'".format(typ=_type)
 
     def inner(x):
         if not isinstance(x, _type):
-            raise ValueError("Value must be an instance of %s" % type_repr)
+            msg = "Value must be an instance of {type_repr}"
+            raise ValueError(msg.format(type_repr=type_repr))
 
     return inner
 
@@ -797,10 +802,10 @@ def is_one_of_factory(legal_values):
 
             if not any([c(x) for c in callables]):
                 pp_values = pp("|".join(lmap(pp, legal_values)))
-                msg = "Value must be one of {0}".format(pp_values)
+                msg = "Value must be one of {pp_values}"
                 if len(callables):
                     msg += " or a callable"
-                raise ValueError(msg)
+                raise ValueError(msg.format(pp_values=pp_values))
 
     return inner
 

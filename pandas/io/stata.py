@@ -9,31 +9,30 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
-import numpy as np
 
-import sys
-import struct
-from dateutil.relativedelta import relativedelta
-
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype,
-    _ensure_object)
-
-from pandas.core.base import StringMixin
-from pandas.core.categorical import Categorical
-from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 import datetime
-from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
-from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
-    zip, BytesIO
-from pandas.util._decorators import Appender
-import pandas as pd
+import struct
+import sys
 
-from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
-                              _stringify_path)
+import numpy as np
+from dateutil.relativedelta import relativedelta
 from pandas._libs.lib import max_len_string_array, infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
+
+import pandas as pd
+from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
+from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
+                           zip, BytesIO)
+from pandas.core.base import StringMixin
+from pandas.core.categorical import Categorical
+from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
+                                       is_datetime64_dtype)
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
+from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
+                              _stringify_path)
+from pandas.util._decorators import Appender
+from pandas.util._decorators import deprecate_kwarg
 
 VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
                    'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
@@ -53,11 +52,11 @@ encoding : string, None or encoding
     Encoding used to parse the files. None defaults to latin-1."""
 
 _statafile_processing_params2 = """\
-index : identifier of index column
-    identifier of column that should be used as index of the DataFrame
+index_col : string, optional, default: None
+    Column to set as index
 convert_missing : boolean, defaults to False
     Flag indicating whether to convert missing values to their Stata
-    representations.  If False, missing values are replaced with nans.
+    representations.  If False, missing values are replaced with nan.
     If True, columns containing missing values are returned with
     object data types and missing values are represented by
     StataMissingValue objects.
@@ -159,15 +158,16 @@ path_or_buf : string or file-like object
 
 
 @Appender(_read_stata_doc)
+@deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
 def read_stata(filepath_or_buffer, convert_dates=True,
-               convert_categoricals=True, encoding=None, index=None,
+               convert_categoricals=True, encoding=None, index_col=None,
                convert_missing=False, preserve_dtypes=True, columns=None,
                order_categoricals=True, chunksize=None, iterator=False):
 
     reader = StataReader(filepath_or_buffer,
                          convert_dates=convert_dates,
                          convert_categoricals=convert_categoricals,
-                         index=index, convert_missing=convert_missing,
+                         index_col=index_col, convert_missing=convert_missing,
                          preserve_dtypes=preserve_dtypes,
                          columns=columns,
                          order_categoricals=order_categoricals,
@@ -248,8 +248,9 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
     def convert_year_month_safe(year, month):
         """
         Convert year and month to datetimes, using pandas vectorized versions
-        when the date range falls within the range supported by pandas.  Other
-        wise it falls back to a slower but more robust method using datetime.
+        when the date range falls within the range supported by pandas.
+        Otherwise it falls back to a slower but more robust method
+        using datetime.
         """
         if year.max() < MAX_YEAR and year.min() > MIN_YEAR:
             return to_datetime(100 * year + month, format='%Y%m')
@@ -510,8 +511,8 @@ def _cast_to_stata_types(data):
     this range.  If the int64 values are outside of the range of those
     perfectly representable as float64 values, a warning is raised.
 
-    bool columns are cast to int8.  uint colums are converted to int of the
-    same size if there is no loss in precision, other wise are upcast to a
+    bool columns are cast to int8.  uint columns are converted to int of the
+    same size if there is no loss in precision, otherwise are upcast to a
     larger type.  uint64 is currently not supported since it is concerted to
     object in a DataFrame.
     """
@@ -944,8 +945,9 @@ class StataParser(object):
 class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
+    @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
     def __init__(self, path_or_buf, convert_dates=True,
-                 convert_categoricals=True, index=None,
+                 convert_categoricals=True, index_col=None,
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
                  encoding='latin-1', chunksize=None):
@@ -956,7 +958,7 @@ class StataReader(StataParser, BaseIterator):
         # calls to read).
         self._convert_dates = convert_dates
         self._convert_categoricals = convert_categoricals
-        self._index = index
+        self._index_col = index_col
         self._convert_missing = convert_missing
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
@@ -1460,8 +1462,9 @@ class StataReader(StataParser, BaseIterator):
         return self.read(nrows=size)
 
     @Appender(_read_method_doc)
+    @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
     def read(self, nrows=None, convert_dates=None,
-             convert_categoricals=None, index=None,
+             convert_categoricals=None, index_col=None,
              convert_missing=None, preserve_dtypes=None,
              columns=None, order_categoricals=None):
         # Handle empty file or chunk.  If reading incrementally raise
@@ -1486,6 +1489,8 @@ class StataReader(StataParser, BaseIterator):
             columns = self._columns
         if order_categoricals is None:
             order_categoricals = self._order_categoricals
+        if index_col is None:
+            index_col = self._index_col
 
         if nrows is None:
             nrows = self.nobs
@@ -1524,14 +1529,14 @@ class StataReader(StataParser, BaseIterator):
             self._read_value_labels()
 
         if len(data) == 0:
-            data = DataFrame(columns=self.varlist, index=index)
+            data = DataFrame(columns=self.varlist)
         else:
-            data = DataFrame.from_records(data, index=index)
+            data = DataFrame.from_records(data)
             data.columns = self.varlist
 
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
-        if index is None:
+        if index_col is None:
             ix = np.arange(self._lines_read - read_lines, self._lines_read)
             data = data.set_index(ix)
 
@@ -1553,7 +1558,7 @@ class StataReader(StataParser, BaseIterator):
         cols_ = np.where(self.dtyplist)[0]
 
         # Convert columns (if needed) to match input type
-        index = data.index
+        ix = data.index
         requires_type_conversion = False
         data_formatted = []
         for i in cols_:
@@ -1563,7 +1568,7 @@ class StataReader(StataParser, BaseIterator):
                 if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
-                        (col, Series(data[col], index, self.dtyplist[i])))
+                        (col, Series(data[col], ix, self.dtyplist[i])))
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
@@ -1605,6 +1610,9 @@ class StataReader(StataParser, BaseIterator):
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
                 data = DataFrame.from_items(retyped_data)
+
+        if index_col is not None:
+            data = data.set_index(data.pop(index_col))
 
         return data
 

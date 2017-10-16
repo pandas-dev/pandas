@@ -14,4 +14,7 @@ pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS numpy scipy
 # install dateutil from master
 pip install -U git+git://github.com/dateutil/dateutil.git
 
+# cython via pip
+pip install cython
+
 true
