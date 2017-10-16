@@ -4154,6 +4154,61 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, 5, 6],
+        ...                        'C': [7, 8, 9]})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e', 'f', 'g', 'h', 'i']})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  d
+        1  b  e
+        2  c  f
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_column = pd.Series(['d', 'e'], name='B', index=[0, 2])
+        >>> df.update(new_column)
+        >>> df
+           A  B
+        0  a  d
+        1  b  y
+        2  c  e
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e']}, index=[1, 2])
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  x
+        1  b  d
+        2  c  e
+
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original dataframe.
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
+        >>> df.update(new_df)
+        >>> df
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
