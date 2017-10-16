@@ -577,7 +577,8 @@ class TestDataFrameToCSV(TestData):
 
             # tupleize_cols=True and index=False
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=True, index=False)
+            with tm.assert_produces_warning(FutureWarning):
+                df.to_csv(path, tupleize_cols=True, index=False)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -602,7 +603,8 @@ class TestDataFrameToCSV(TestData):
 
             # column & index are multi-index (compatibility)
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=True)
+            with tm.assert_produces_warning(FutureWarning):
+                df.to_csv(path, tupleize_cols=True)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
