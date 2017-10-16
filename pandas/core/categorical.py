@@ -287,6 +287,9 @@ class Categorical(PandasObject):
         # if dtype.categories is None, we are inferring
 
         if fastpath:
+            warn("`fastpath` parameter is deprecated. Use `dtype` parameter "
+                 "to construct or pass `CategorialDtype` instance instead.",
+                 DeprecationWarning, stacklevel=2)
             self._codes = coerce_indexer_dtype(values, categories)
             self._dtype = dtype
             return
@@ -413,7 +416,7 @@ class Categorical(PandasObject):
         return self._constructor(values=self._codes.copy(),
                                  categories=self.categories,
                                  ordered=self.ordered,
-                                 fastpath=True)
+                                 dtype=self.dtype)
 
     def astype(self, dtype, copy=True):
         """
@@ -545,7 +548,7 @@ class Categorical(PandasObject):
             dtype = CategoricalDtype(cats, ordered=False)
             codes = inferred_codes
 
-        return cls(codes, dtype=dtype, fastpath=True)
+        return cls(codes, dtype=dtype)
 
     @classmethod
     def from_array(cls, data, **kwargs):
@@ -640,13 +643,15 @@ class Categorical(PandasObject):
 
     labels = property(fget=_get_labels, fset=_set_codes)
 
-    def _set_categories(self, categories, fastpath=False):
+    def _set_categories(self, categories=None, dtype=None):
         """ Sets new categories inplace
 
         Parameters
         ----------
-        fastpath : boolean (default: False)
-           Don't perform validation of the categories for uniqueness or nulls
+        categories : Index-like (unique)
+           Unique new categories
+        dtype : CategorialDtype or string (Default: None)
+           An instance of ``CategorialDtype``.
 
         Examples
         --------
@@ -661,13 +666,35 @@ class Categorical(PandasObject):
         Categories (2, object): [a, c]
         """
 
-        if fastpath:
-            new_dtype = CategoricalDtype._from_fastpath(categories,
-                                                        self.ordered)
+        if dtype is None and categories is None:
+            raise ValueError("categories and dtype both cannot be None")
+
+        if dtype is not None:
+            if isinstance(dtype, compat.string_types):
+                if dtype == 'category':
+                    new_dtype = CategorialDtype(categories, self.ordered)
+
+                else:
+                    msg = "Unknown `dtype` {dtype}"
+                    raise ValueError(msg.format(dtype=dtype))
+
+            elif categories is not None:
+                raise ValueError("Cannot specify both categories and dtype")
+            
+
+            else:
+                if not(isinstance(dtype, CategorialDtype)):
+                    raise ValueError("dtype must be an instance of "
+                                     "CategorialDtype")
+                else:
+                    new_dtype = dtype
+
         else:
-            new_dtype = CategoricalDtype(categories, ordered=self.ordered)
-        if (not fastpath and self.dtype.categories is not None and
-                len(new_dtype.categories) != len(self.dtype.categories)):
+            new_dtype = CategorialDtype(categories, self.ordered)
+
+        
+        if (self.dtype.categories is not None and
+            len(new_dtype.categories) != len(self.dtype.categories)):
             raise ValueError("new categories need to have the same number of "
                              "items than the old categories!")
 
