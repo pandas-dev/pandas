@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
     is_list_like,
+    is_nested_list_like,
     is_iterator,
     is_sequence,
     is_named_tuple)
@@ -1255,11 +1256,6 @@ class DataFrame(NDFrame):
         """
         keys, values = lzip(*items)
 
-        for val in values:
-            if not is_list_like(val):
-                raise TypeError('The value in each (key, value) pair must '
-                                'be an array or a Series')
-
         if orient == 'columns':
             if columns is not None:
                 columns = _ensure_index(columns)
@@ -1276,16 +1272,31 @@ class DataFrame(NDFrame):
                 columns = _ensure_index(keys)
                 arrays = values
 
-            return cls._from_arrays(arrays, columns, None)
+            try:
+                return cls._from_arrays(arrays, columns, None)
+
+            except ValueError:
+                if not is_nested_list_like(values):
+                    raise TypeError('The value in each (key, value) pair must '
+                                    'be an array or a Series')
+
         elif orient == 'index':
             if columns is None:
                 raise TypeError("Must pass columns with orient='index'")
 
-            keys = _ensure_index(keys)
+            try:
+                keys = _ensure_index(keys)
 
-            arr = np.array(values, dtype=object).T
-            data = [lib.maybe_convert_objects(v) for v in arr]
-            return cls._from_arrays(data, columns, keys)
+                arr = np.array(values, dtype=object).T
+                data = [lib.maybe_convert_objects(v) for v in arr]
+
+                return cls._from_arrays(data, columns, keys)
+
+            except TypeError:
+                if not is_nested_list_like(values):
+                    raise TypeError('The value in each (key, value) pair must '
+                                    'be an array or a Series')
+
         else:  # pragma: no cover
             raise ValueError("'orient' must be either 'columns' or 'index'")
 
