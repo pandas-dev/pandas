@@ -170,7 +170,6 @@ class CategoricalDtype(ExtensionDtype):
         return cls(categories, ordered)
 
     def _finalize(self, categories, ordered, fastpath=False):
-        from pandas.core.indexes.base import Index
 
         if ordered is None:
             ordered = False
