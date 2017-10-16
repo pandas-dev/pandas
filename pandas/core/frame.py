@@ -1432,7 +1432,7 @@ class DataFrame(NDFrame):
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
-               tupleize_cols=False, date_format=None, doublequote=True,
+               tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""Write DataFrame to a comma-separated values (csv) file
 
@@ -1485,8 +1485,13 @@ class DataFrame(NDFrame):
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
-            write multi_index columns as a list of tuples (if True)
-            or new (expanded format) if False)
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
         date_format : string, default None
             Format string for datetime objects
         decimal: string, default '.'
@@ -1494,6 +1499,14 @@ class DataFrame(NDFrame):
             European data
 
         """
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
                                      encoding=encoding,
