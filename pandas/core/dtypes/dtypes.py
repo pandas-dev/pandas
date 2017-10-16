@@ -3,7 +3,7 @@
 import re
 import numpy as np
 from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass
+from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
 
 class ExtensionDtype(object):
@@ -318,8 +318,7 @@ class CategoricalDtype(ExtensionDtype):
         if not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
-        if hasattr(categories, 'categories'):
-            # I am a CategoricalIndex
+        if isinstance(categories, ABCCategoricalIndex):
             categories = categories.categories
 
         if not fastpath:
