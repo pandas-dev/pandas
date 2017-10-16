@@ -1008,6 +1008,7 @@ Reshaping
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
 - Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
 - Bug in :func:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
+- Bug in ``DataFrame.drop_duplicates`` where dropping with non-unique column names raised a ``ValueError`` (:issue:`17836`)
 
 Numeric
 ^^^^^^^
