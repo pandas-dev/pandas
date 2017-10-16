@@ -14,7 +14,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import PeriodIndex
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -250,7 +250,7 @@ class Resampler(_GroupBy):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
-        bin_grouper = BinGrouper(bins, binlabels)
+        bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
     def _assure_grouper(self):
@@ -455,6 +455,10 @@ class Resampler(_GroupBy):
         limit : integer, optional
             limit of how many values to fill
 
+        Returns
+        -------
+        an upsampled Series
+
         See Also
         --------
         Series.fillna
@@ -462,6 +466,28 @@ class Resampler(_GroupBy):
         """
         return self._upsample('pad', limit=limit)
     ffill = pad
+
+    def nearest(self, limit=None):
+        """
+        Fill values with nearest neighbor starting from center
+
+        Parameters
+        ----------
+        limit : integer, optional
+            limit of how many values to fill
+
+            .. versionadded:: 0.21.0
+
+        Returns
+        -------
+        an upsampled Series
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
+        """
+        return self._upsample('nearest', limit=limit)
 
     def backfill(self, limit=None):
         """
@@ -471,6 +497,10 @@ class Resampler(_GroupBy):
         ----------
         limit : integer, optional
             limit of how many values to fill
+
+        Returns
+        -------
+        an upsampled Series
 
         See Also
         --------
@@ -804,52 +834,31 @@ class PeriodIndexResampler(DatetimeIndexResampler):
     def _resampler_for_grouping(self):
         return PeriodIndexResamplerGroupby
 
+    def _get_binner_for_time(self):
+        if self.kind == 'timestamp':
+            return super(PeriodIndexResampler, self)._get_binner_for_time()
+        return self.groupby._get_period_bins(self.ax)
+
     def _convert_obj(self, obj):
         obj = super(PeriodIndexResampler, self)._convert_obj(obj)
 
-        offset = to_offset(self.freq)
-        if offset.n > 1:
-            if self.kind == 'period':  # pragma: no cover
-                print('Warning: multiple of frequency -> timestamps')
+        if self._from_selection:
+            # see GH 14008, GH 12871
+            msg = ("Resampling from level= or on= selection"
+                   " with a PeriodIndex is not currently supported,"
+                   " use .set_index(...) to explicitly set index")
+            raise NotImplementedError(msg)
 
-            # Cannot have multiple of periods, convert to timestamp
+        if self.loffset is not None:
+            # Cannot apply loffset/timedelta to PeriodIndex -> convert to
+            # timestamps
             self.kind = 'timestamp'
 
         # convert to timestamp
-        if not (self.kind is None or self.kind == 'period'):
-            if self._from_selection:
-                # see GH 14008, GH 12871
-                msg = ("Resampling from level= or on= selection"
-                       " with a PeriodIndex is not currently supported,"
-                       " use .set_index(...) to explicitly set index")
-                raise NotImplementedError(msg)
-            else:
-                obj = obj.to_timestamp(how=self.convention)
+        if self.kind == 'timestamp':
+            obj = obj.to_timestamp(how=self.convention)
 
         return obj
-
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
-        if result is None:
-            result = self._downsample(arg, *args, **kwargs)
-
-        result = self._apply_loffset(result)
-        return result
-
-    agg = aggregate
-
-    def _get_new_index(self):
-        """ return our new index """
-        ax = self.ax
-
-        if len(ax) == 0:
-            values = []
-        else:
-            start = ax[0].asfreq(self.freq, how=self.convention)
-            end = ax[-1].asfreq(self.freq, how='end')
-            values = period_range(start, end, freq=self.freq).asi8
-
-        return ax._shallow_copy(values, freq=self.freq)
 
     def _downsample(self, how, **kwargs):
         """
@@ -868,22 +877,17 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how = self._is_cython_func(how) or how
         ax = self.ax
 
-        new_index = self._get_new_index()
-
-        # Start vs. end of period
-        memb = ax.asfreq(self.freq, how=self.convention)
-
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            if len(new_index) == 0:
-                bins = []
-            else:
-                i8 = memb.asi8
-                rng = np.arange(i8[0], i8[-1] + 1)
-                bins = memb.searchsorted(rng, side='right')
-            grouper = BinGrouper(bins, new_index)
-            return self._groupby_and_aggregate(how, grouper=grouper)
+            return self._groupby_and_aggregate(how, grouper=self.grouper)
         elif is_superperiod(ax.freq, self.freq):
+            if how == 'ohlc':
+                # GH #13083
+                # upsampling to subperiods is handled as an asfreq, which works
+                # for pure aggregating/reducing methods
+                # OHLC reduces along the time dimension, but creates multiple
+                # values for each period -> handle by _groupby_and_aggregate()
+                return self._groupby_and_aggregate(how, grouper=self.grouper)
             return self.asfreq()
         elif ax.freq == self.freq:
             return self.asfreq()
@@ -906,19 +910,16 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         .fillna
 
         """
-        if self._from_selection:
-            raise ValueError("Upsampling from level= or on= selection"
-                             " is not supported, use .set_index(...)"
-                             " to explicitly set index to"
-                             " datetime-like")
+
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
             return super(PeriodIndexResampler, self)._upsample(
                 method, limit=limit, fill_value=fill_value)
 
+        self._set_binner()
         ax = self.ax
         obj = self.obj
-        new_index = self._get_new_index()
+        new_index = self.binner
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
@@ -1104,34 +1105,11 @@ class TimeGrouper(Grouper):
                         "TimedeltaIndex or PeriodIndex, "
                         "but got an instance of %r" % type(ax).__name__)
 
-    def _get_grouper(self, obj):
+    def _get_grouper(self, obj, validate=True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         r._set_binner()
         return r.binner, r.grouper, r.obj
-
-    def _get_binner_for_grouping(self, obj):
-        # return an ordering of the transformed group labels,
-        # suitable for multi-grouping, e.g the labels for
-        # the resampled intervals
-        binner, grouper, obj = self._get_grouper(obj)
-
-        l = []
-        for key, group in grouper.get_iterator(self.ax):
-            l.extend([key] * len(group))
-
-        if isinstance(self.ax, PeriodIndex):
-            grouper = binner.__class__(l, freq=binner.freq, name=binner.name)
-        else:
-            # resampling causes duplicated values, specifying freq is invalid
-            grouper = binner.__class__(l, name=binner.name)
-
-        # since we may have had to sort
-        # may need to reorder groups here
-        if self.indexer is not None:
-            indexer = self.indexer.argsort(kind='quicksort')
-            grouper = grouper.take(indexer)
-        return grouper
 
     def _get_time_bins(self, ax):
         if not isinstance(ax, DatetimeIndex):
@@ -1260,6 +1238,51 @@ class TimeGrouper(Grouper):
         if ax.tzinfo:
             end_stamps = end_stamps.tz_localize(ax.tzinfo)
         bins = ax.searchsorted(end_stamps, side='left')
+
+        return binner, bins, labels
+
+    def _get_period_bins(self, ax):
+        if not isinstance(ax, PeriodIndex):
+            raise TypeError('axis must be a PeriodIndex, but got '
+                            'an instance of %r' % type(ax).__name__)
+
+        memb = ax.asfreq(self.freq, how=self.convention)
+
+        # NaT handling as in pandas._lib.lib.generate_bins_dt64()
+        nat_count = 0
+        if memb.hasnans:
+            nat_count = np.sum(memb._isnan)
+            memb = memb[~memb._isnan]
+
+        # if index contains no valid (non-NaT) values, return empty index
+        if not len(memb):
+            binner = labels = PeriodIndex(
+                data=[], freq=self.freq, name=ax.name)
+            return binner, [], labels
+
+        start = ax.min().asfreq(self.freq, how=self.convention)
+        end = ax.max().asfreq(self.freq, how='end')
+
+        labels = binner = PeriodIndex(start=start, end=end,
+                                      freq=self.freq, name=ax.name)
+
+        i8 = memb.asi8
+        freq_mult = self.freq.n
+
+        # when upsampling to subperiods, we need to generate enough bins
+        expected_bins_count = len(binner) * freq_mult
+        i8_extend = expected_bins_count - (i8[-1] - i8[0])
+        rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
+        rng += freq_mult
+        bins = memb.searchsorted(rng, side='left')
+
+        if nat_count > 0:
+            # NaT handling as in pandas._lib.lib.generate_bins_dt64()
+            # shift bins by the number of NaT
+            bins += nat_count
+            bins = np.insert(bins, 0, nat_count)
+            binner = binner.insert(0, tslib.NaT)
+            labels = labels.insert(0, tslib.NaT)
 
         return binner, bins, labels
 

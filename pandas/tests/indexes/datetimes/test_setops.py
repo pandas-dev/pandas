@@ -4,7 +4,6 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
                     Int64Index, Index, to_datetime)
 from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
@@ -325,8 +324,8 @@ class TestBusinessDatetimeIndex(object):
     def test_month_range_union_tz_dateutil(self):
         tm._skip_if_windows_python_3()
 
-        from pandas._libs.tslib import _dateutil_gettz as timezone
-        tz = timezone('US/Eastern')
+        from pandas._libs.tslibs.timezones import dateutil_gettz
+        tz = dateutil_gettz('US/Eastern')
 
         early_start = datetime(2011, 1, 1)
         early_end = datetime(2011, 3, 1)
@@ -345,7 +344,7 @@ class TestBusinessDatetimeIndex(object):
 class TestCustomDatetimeIndex(object):
 
     def setup_method(self, method):
-        self.rng = cdate_range(START, END)
+        self.rng = bdate_range(START, END, freq='C')
 
     def test_union(self):
         # overlapping
@@ -412,7 +411,7 @@ class TestCustomDatetimeIndex(object):
 
     def test_intersection_bug(self):
         # GH #771
-        a = cdate_range('11/30/2011', '12/31/2011')
-        b = cdate_range('12/10/2011', '12/20/2011')
+        a = bdate_range('11/30/2011', '12/31/2011', freq='C')
+        b = bdate_range('12/10/2011', '12/20/2011', freq='C')
         result = a.intersection(b)
         tm.assert_index_equal(result, b)

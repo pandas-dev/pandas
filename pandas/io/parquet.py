@@ -58,13 +58,23 @@ class PyArrowImpl(object):
                               "\nor via pip\n"
                               "pip install -U pyarrow\n")
 
+        self._pyarrow_lt_050 = LooseVersion(pyarrow.__version__) < '0.5.0'
+        self._pyarrow_lt_060 = LooseVersion(pyarrow.__version__) < '0.6.0'
         self.api = pyarrow
 
-    def write(self, df, path, compression='snappy', **kwargs):
+    def write(self, df, path, compression='snappy',
+              coerce_timestamps='ms', **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
-        self.api.parquet.write_table(
-            table, path, compression=compression, **kwargs)
+        if self._pyarrow_lt_060:
+            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
+            self.api.parquet.write_table(
+                table, path, compression=compression, **kwargs)
+
+        else:
+            table = self.api.Table.from_pandas(df)
+            self.api.parquet.write_table(
+                table, path, compression=compression,
+                coerce_timestamps=coerce_timestamps, **kwargs)
 
     def read(self, path):
         path, _, _ = get_filepath_or_buffer(path)

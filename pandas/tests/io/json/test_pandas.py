@@ -511,6 +511,51 @@ class TestPandasContainer(object):
                            by_blocks=True,
                            check_exact=True)
 
+    def test_frame_nonprintable_bytes(self):
+        # GH14256: failing column caused segfaults, if it is not the last one
+
+        class BinaryThing(object):
+
+            def __init__(self, hexed):
+                self.hexed = hexed
+                if compat.PY2:
+                    self.binary = hexed.decode('hex')
+                else:
+                    self.binary = bytes.fromhex(hexed)
+
+            def __str__(self):
+                return self.hexed
+
+        hexed = '574b4454ba8c5eb4f98a8f45'
+        binthing = BinaryThing(hexed)
+
+        # verify the proper conversion of printable content
+        df_printable = DataFrame({'A': [binthing.hexed]})
+        assert df_printable.to_json() == '{"A":{"0":"%s"}}' % hexed
+
+        # check if non-printable content throws appropriate Exception
+        df_nonprintable = DataFrame({'A': [binthing]})
+        with pytest.raises(OverflowError):
+            df_nonprintable.to_json()
+
+        # the same with multiple columns threw segfaults
+        df_mixed = DataFrame({'A': [binthing], 'B': [1]},
+                             columns=['A', 'B'])
+        with pytest.raises(OverflowError):
+            df_mixed.to_json()
+
+        # default_handler should resolve exceptions for non-string types
+        assert df_nonprintable.to_json(default_handler=str) == \
+            '{"A":{"0":"%s"}}' % hexed
+        assert df_mixed.to_json(default_handler=str) == \
+            '{"A":{"0":"%s"},"B":{"0":1}}' % hexed
+
+    def test_label_overflow(self):
+        # GH14256: buffer length not checked when writing label
+        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        assert df.to_json() == \
+            '{"%s":{"0":1},"foo":{"0":1337}}' % ('bar' * 100000)
+
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
 
@@ -984,53 +1029,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({'DT': dti})
         assert dumps(df, iso_dates=True) == dfexp
-
-    def test_read_jsonl(self):
-        # GH9180
-        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-    def test_read_jsonl_unicode_chars(self):
-        # GH15132: non-ascii unicode characters
-        # \u201d == RIGHT DOUBLE QUOTATION MARK
-
-        # simulate file handle
-        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-        json = StringIO(json)
-        result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
-                             columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-        # simulate string
-        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-        result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
-                             columns=['a', 'b'])
-        assert_frame_equal(result, expected)
-
-    def test_to_jsonl(self):
-        # GH9180
-        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
-        assert result == expected
-
-        df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
-        assert result == expected
-        assert_frame_equal(pd.read_json(result, lines=True), df)
-
-        # GH15096: escaped characters in columns and data
-        df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]],
-                       columns=["a\\", 'b'])
-        result = df.to_json(orient="records", lines=True)
-        expected = ('{"a\\\\":"foo\\\\","b":"bar"}\n'
-                    '{"a\\\\":"foo\\"","b":"bar"}')
-        assert result == expected
-        assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
         if compat.PY2:

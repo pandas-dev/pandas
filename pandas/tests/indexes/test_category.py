@@ -125,6 +125,16 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_create_categorical(self):
+        # https://github.com/pandas-dev/pandas/pull/17513
+        # The public CI constructor doesn't hit this code path with
+        # instances of CategoricalIndex, but we still want to test the code
+        ci = CategoricalIndex(['a', 'b', 'c'])
+        # First ci is self, second ci is data.
+        result = CategoricalIndex._create_categorical(ci, ci)
+        expected = Categorical(['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_disallow_set_ops(self):
 
         # GH 10039
@@ -365,24 +375,36 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
-
-        # determined by cat ordering
-        idx = self.create_index()
+        # Determined by cat ordering.
+        idx = CategoricalIndex(list("cab"), categories=list("cab"))
         expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
-            idx.get_indexer(idx, method='invalid')
+        with tm.assert_raises_regex(ValueError, "Invalid fill method"):
+            idx.get_indexer(idx, method="invalid")
 
     def test_reindexing(self):
+        np.random.seed(123456789)
 
         ci = self.create_index()
         oidx = Index(np.array(ci))
 
         for n in [1, 2, 5, len(ci)]:
             finder = oidx[np.random.randint(0, len(ci), size=n)]
+            expected = oidx.get_indexer_non_unique(finder)[0]
+
+            actual = ci.get_indexer(finder)
+            tm.assert_numpy_array_equal(expected, actual)
+
+        # see gh-17323
+        #
+        # Even when indexer is equal to the
+        # members in the index, we should
+        # respect duplicates instead of taking
+        # the fast-track path.
+        for finder in [list("aabbca"), list("aababca")]:
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
@@ -564,12 +586,13 @@ class TestCategoricalIndex(Base):
             ci.isin(['c', 'a', 'b', np.nan]), np.array([True] * 6))
 
         # mismatched categorical -> coerced to ndarray so doesn't matter
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('abcdefghi'))), np.array([True] *
-                                                                    6))
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('defghi'))),
-            np.array([False] * 5 + [True]))
+        result = ci.isin(ci.set_categories(list('abcdefghi')))
+        expected = np.array([True] * 6)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ci.isin(ci.set_categories(list('defghi')))
+        expected = np.array([False] * 5 + [True])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
 
@@ -631,7 +654,11 @@ class TestCategoricalIndex(Base):
         # make sure that we are testing for category inclusion properly
         ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca'))
-        assert not ci.equals(CategoricalIndex(list('aabca')))
+        # Same categories, but different order
+        # Unordered
+        assert ci.equals(CategoricalIndex(list('aabca')))
+        # Ordered
+        assert not ci.equals(CategoricalIndex(list('aabca'), ordered=True))
         assert ci.equals(ci.copy())
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
@@ -643,7 +670,9 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca') + [np.nan])
-        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan],
+                                              ordered=True))
         assert ci.equals(ci.copy())
 
     def test_string_categorical_index_repr(self):

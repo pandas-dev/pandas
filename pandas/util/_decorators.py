@@ -1,5 +1,5 @@
 from pandas.compat import callable, signature
-from pandas._libs.lib import cache_readonly  # noqa
+from pandas._libs.properties import cache_readonly  # noqa
 import types
 import warnings
 from textwrap import dedent
@@ -7,7 +7,7 @@ from functools import wraps, update_wrapper
 
 
 def deprecate(name, alternative, alt_name=None, klass=None,
-              stacklevel=2):
+              stacklevel=2, msg=None):
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -21,14 +21,16 @@ def deprecate(name, alternative, alt_name=None, klass=None,
         Name to use in preference of alternative.__name__
     klass : Warning, default FutureWarning
     stacklevel : int, default 2
+    msg : str
+          The message to display in the warning.
+          Default is '{name} is deprecated. Use {alt_name} instead.'
     """
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
+    msg = msg or "{} is deprecated. Use {} instead".format(name, alt_name)
 
     def wrapper(*args, **kwargs):
-        msg = "{name} is deprecated. Use {alt_name} instead".format(
-            name=name, alt_name=alt_name)
         warnings.warn(msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
     return wrapper
@@ -242,7 +244,7 @@ def make_signature(func):
         defaults = ('',) * n_wo_defaults
     else:
         n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + spec.defaults
+        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
     for i, (var, default) in enumerate(zip(spec.args, defaults)):
         args.append(var if default == '' else var + '=' + repr(default))

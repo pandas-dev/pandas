@@ -23,7 +23,7 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-from numpy cimport *
+from numpy cimport ndarray, uint8_t, uint32_t
 
 from libc.stdlib cimport malloc, free
 from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
@@ -50,14 +50,6 @@ cnp.import_ufunc()
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
-
-PyDateTime_IMPORT
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 cdef size_t _INIT_VEC_CAP = 128
 

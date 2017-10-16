@@ -9,6 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
+from pandas.core.common import _all_none
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
@@ -31,6 +32,21 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameToCSV(TestData):
 
+    def read_csv(self, path, **kwargs):
+        params = dict(index_col=0, parse_dates=True)
+        params.update(**kwargs)
+
+        return pd.read_csv(path, **params)
+
+    def test_from_csv_deprecation(self):
+        # see gh-17812
+        with ensure_clean('__tmp_from_csv_deprecation__') as path:
+            self.tsframe.to_csv(path)
+
+            with tm.assert_produces_warning(FutureWarning):
+                depr_recons = DataFrame.from_csv(path)
+                assert_frame_equal(self.tsframe, depr_recons)
+
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
@@ -43,24 +59,25 @@ class TestDataFrameToCSV(TestData):
 
             # test roundtrip
             self.tsframe.to_csv(path)
-            recons = DataFrame.from_csv(path)
-
+            recons = self.read_csv(path)
             assert_frame_equal(self.tsframe, recons)
 
             self.tsframe.to_csv(path, index_label='index')
-            recons = DataFrame.from_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None)
+
             assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
             # no index
             self.tsframe.to_csv(path, index=False)
-            recons = DataFrame.from_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None)
             assert_almost_equal(self.tsframe.values, recons.values)
 
             # corner case
             dm = DataFrame({'s1': Series(lrange(3), lrange(3)),
                             's2': Series(lrange(2), lrange(2))})
             dm.to_csv(path)
-            recons = DataFrame.from_csv(path)
+
+            recons = self.read_csv(path)
             assert_frame_equal(dm, recons)
 
     def test_to_csv_from_csv2(self):
@@ -71,27 +88,26 @@ class TestDataFrameToCSV(TestData):
             df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
                            columns=['x', 'y', 'z'])
             df.to_csv(path)
-            result = DataFrame.from_csv(path)
+            result = self.read_csv(path)
             assert_frame_equal(result, df)
 
             midx = MultiIndex.from_tuples(
                 [('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
             df = DataFrame(np.random.randn(3, 3), index=midx,
                            columns=['x', 'y', 'z'])
+
             df.to_csv(path)
-            result = DataFrame.from_csv(path, index_col=[0, 1, 2],
-                                        parse_dates=False)
-            # TODO from_csv names index ['Unnamed: 1', 'Unnamed: 2'] should it
-            # ?
+            result = self.read_csv(path, index_col=[0, 1, 2],
+                                   parse_dates=False)
             assert_frame_equal(result, df, check_names=False)
 
             # column aliases
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
             self.frame2.to_csv(path, header=col_aliases)
-            rs = DataFrame.from_csv(path)
+
+            rs = self.read_csv(path)
             xp = self.frame2.copy()
             xp.columns = col_aliases
-
             assert_frame_equal(xp, rs)
 
             pytest.raises(ValueError, self.frame2.to_csv, path,
@@ -231,8 +247,9 @@ class TestDataFrameToCSV(TestData):
         with ensure_clean('1.csv') as pth:
             df = DataFrame(dict(a=s1, b=s2))
             df.to_csv(pth, chunksize=chunksize)
-            recons = DataFrame.from_csv(pth)._convert(datetime=True,
-                                                      coerce=True)
+
+            recons = self.read_csv(pth)._convert(datetime=True,
+                                                 coerce=True)
             assert_frame_equal(df, recons, check_names=False,
                                check_less_precise=True)
 
@@ -247,16 +264,17 @@ class TestDataFrameToCSV(TestData):
                 if rnlvl is not None:
                     kwargs['index_col'] = lrange(rnlvl)
                 kwargs['header'] = lrange(cnlvl)
+
                 with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8',
-                              chunksize=chunksize, tupleize_cols=False)
-                    recons = DataFrame.from_csv(
-                        path, tupleize_cols=False, **kwargs)
+                              chunksize=chunksize)
+                    recons = self.read_csv(path, **kwargs)
             else:
                 kwargs['header'] = 0
+
                 with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8', chunksize=chunksize)
-                    recons = DataFrame.from_csv(path, **kwargs)
+                    recons = self.read_csv(path, **kwargs)
 
             def _to_uni(x):
                 if not isinstance(x, compat.text_type):
@@ -398,7 +416,7 @@ class TestDataFrameToCSV(TestData):
 
         with ensure_clean() as path:
             self.frame.to_csv(path)
-            recons = DataFrame.from_csv(path)
+            recons = self.read_csv(path)
 
             # TODO to_csv drops column name
             assert_frame_equal(self.frame, recons, check_names=False)
@@ -413,7 +431,7 @@ class TestDataFrameToCSV(TestData):
 
         with ensure_clean() as path:
             self.frame.to_csv(path)
-            recons = DataFrame.from_csv(path)
+            recons = self.read_csv(path)
 
             # TODO to_csv drops column name
             assert_frame_equal(self.frame, recons, check_names=False)
@@ -448,11 +466,13 @@ class TestDataFrameToCSV(TestData):
         to_df = DataFrame([[1, 2], [3, 4]], columns=['X', 'Y'])
         with ensure_clean('__tmp_to_csv_headers__') as path:
             from_df.to_csv(path, header=['X', 'Y'])
-            recons = DataFrame.from_csv(path)
+            recons = self.read_csv(path)
+
             assert_frame_equal(to_df, recons)
 
             from_df.to_csv(path, index=False, header=['X', 'Y'])
-            recons = DataFrame.from_csv(path)
+            recons = self.read_csv(path)
+
             recons.reset_index(inplace=True)
             assert_frame_equal(to_df, recons)
 
@@ -471,13 +491,15 @@ class TestDataFrameToCSV(TestData):
 
             # round trip
             frame.to_csv(path)
-            df = DataFrame.from_csv(path, index_col=[0, 1], parse_dates=False)
+
+            df = self.read_csv(path, index_col=[0, 1],
+                               parse_dates=False)
 
             # TODO to_csv drops column name
             assert_frame_equal(frame, df, check_names=False)
             assert frame.index.names == df.index.names
 
-            # needed if setUP becomes a classmethod
+            # needed if setUp becomes a class method
             self.frame.index = old_index
 
             # try multiindex with dates
@@ -487,21 +509,22 @@ class TestDataFrameToCSV(TestData):
             tsframe.index = MultiIndex.from_arrays(new_index)
 
             tsframe.to_csv(path, index_label=['time', 'foo'])
-            recons = DataFrame.from_csv(path, index_col=[0, 1])
+            recons = self.read_csv(path, index_col=[0, 1])
+
             # TODO to_csv drops column name
             assert_frame_equal(tsframe, recons, check_names=False)
 
             # do not load index
             tsframe.to_csv(path)
-            recons = DataFrame.from_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None)
             assert len(recons.columns) == len(tsframe.columns) + 2
 
             # no index
             tsframe.to_csv(path, index=False)
-            recons = DataFrame.from_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None)
             assert_almost_equal(recons.values, self.tsframe.values)
 
-            # needed if setUP becomes classmethod
+            # needed if setUp becomes class method
             self.tsframe.index = old_index
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
@@ -519,87 +542,94 @@ class TestDataFrameToCSV(TestData):
 
             # column & index are multi-index
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1, 2, 3], index_col=[
-                              0, 1], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1, 2, 3],
+                              index_col=[0, 1])
             assert_frame_equal(df, result)
 
             # column is mi
             df = mkdf(5, 3, r_idx_nlevels=1, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
+            df.to_csv(path)
             result = read_csv(
-                path, header=[0, 1, 2, 3], index_col=0, tupleize_cols=False)
+                path, header=[0, 1, 2, 3], index_col=0)
             assert_frame_equal(df, result)
 
             # dup column names?
             df = mkdf(5, 3, r_idx_nlevels=3, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1, 2, 3], index_col=[
-                              0, 1, 2], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1, 2, 3],
+                              index_col=[0, 1, 2])
             assert_frame_equal(df, result)
 
             # writing with no index
             df = _make_frame()
-            df.to_csv(path, tupleize_cols=False, index=False)
-            result = read_csv(path, header=[0, 1], tupleize_cols=False)
+            df.to_csv(path, index=False)
+            result = read_csv(path, header=[0, 1])
             assert_frame_equal(df, result)
 
             # we lose the names here
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False, index=False)
-            result = read_csv(path, header=[0, 1], tupleize_cols=False)
-            assert all([x is None for x in result.columns.names])
+            df.to_csv(path, index=False)
+            result = read_csv(path, header=[0, 1])
+            assert _all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 
             # tupleize_cols=True and index=False
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=True, index=False)
-            result = read_csv(
-                path, header=0, tupleize_cols=True, index_col=None)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = read_csv(path, header=0,
+                                  tupleize_cols=True,
+                                  index_col=None)
             result.columns = df.columns
             assert_frame_equal(df, result)
 
             # whatsnew example
             df = _make_frame()
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1], index_col=[
-                              0], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1],
+                              index_col=[0])
             assert_frame_equal(df, result)
 
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False)
-            result = read_csv(path, header=[0, 1], index_col=[
-                              0], tupleize_cols=False)
+            df.to_csv(path)
+            result = read_csv(path, header=[0, 1],
+                              index_col=[0])
             assert_frame_equal(df, result)
 
             # column & index are multi-index (compatibility)
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
             df.to_csv(path, tupleize_cols=True)
-            result = read_csv(path, header=0, index_col=[
-                              0, 1], tupleize_cols=True)
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = read_csv(path, header=0, index_col=[0, 1],
+                                  tupleize_cols=True)
             result.columns = df.columns
             assert_frame_equal(df, result)
 
             # invalid options
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=False)
+            df.to_csv(path)
 
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
                 with tm.assert_raises_regex(ParserError, msg):
-                    read_csv(path, tupleize_cols=False,
-                             header=lrange(i), index_col=0)
+                    read_csv(path, header=lrange(i), index_col=0)
 
             # write with cols
             with tm.assert_raises_regex(TypeError, 'cannot specify cols '
                                         'with a MultiIndex'):
-                df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
+                df.to_csv(path, columns=['foo', 'bar'])
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
             # empty
             tsframe[:0].to_csv(path)
-            recons = DataFrame.from_csv(path)
+            recons = self.read_csv(path)
+
             exp = tsframe[:0]
             exp.index = []
 
@@ -624,7 +654,7 @@ class TestDataFrameToCSV(TestData):
 
         with ensure_clean('__tmp_to_csv_withcommas__.csv') as path:
             df.to_csv(path)
-            df2 = DataFrame.from_csv(path)
+            df2 = self.read_csv(path)
             assert_frame_equal(df2, df)
 
     def test_to_csv_mixed(self):
@@ -739,7 +769,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_bug(self):
         f1 = StringIO('a,1.0\nb,2.0')
-        df = DataFrame.from_csv(f1, header=None)
+        df = self.read_csv(f1, header=None)
         newdf = DataFrame({'t': df[df.columns[0]]})
 
         with ensure_clean() as path:

@@ -23,6 +23,19 @@ from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
 
 
+@pytest.fixture
+def dirpath():
+    return tm.get_data_path()
+
+
+@pytest.fixture
+def parsed_114(dirpath):
+    dta14_114 = os.path.join(dirpath, 'stata5_114.dta')
+    parsed_114 = read_stata(dta14_114, convert_dates=True)
+    parsed_114.index.name = 'index'
+    return parsed_114
+
+
 class TestStata(object):
 
     def setup_method(self, method):
@@ -108,10 +121,12 @@ class TestStata(object):
             parsed_114_read = rdr.read()
         tm.assert_frame_equal(parsed_114_data, parsed_114_read)
 
-    def test_read_dta1(self):
+    @pytest.mark.parametrize(
+        'file', ['dta1_114', 'dta1_117'])
+    def test_read_dta1(self, file):
 
-        parsed_114 = self.read_dta(self.dta1_114)
-        parsed_117 = self.read_dta(self.dta1_117)
+        file = getattr(self, file)
+        parsed = self.read_dta(file)
 
         # Pandas uses np.nan as missing value.
         # Thus, all columns will be of type float, regardless of their name.
@@ -123,8 +138,7 @@ class TestStata(object):
         # the casting doesn't fail so need to match stata here
         expected['float_miss'] = expected['float_miss'].astype(np.float32)
 
-        tm.assert_frame_equal(parsed_114, expected)
-        tm.assert_frame_equal(parsed_117, expected)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self):
         if LooseVersion(sys.version) < '2.7':
@@ -193,11 +207,12 @@ class TestStata(object):
         tm.assert_frame_equal(parsed_117, expected,
                               check_datetimelike_compat=True)
 
-    def test_read_dta3(self):
-        parsed_113 = self.read_dta(self.dta3_113)
-        parsed_114 = self.read_dta(self.dta3_114)
-        parsed_115 = self.read_dta(self.dta3_115)
-        parsed_117 = self.read_dta(self.dta3_117)
+    @pytest.mark.parametrize(
+        'file', ['dta3_113', 'dta3_114', 'dta3_115', 'dta3_117'])
+    def test_read_dta3(self, file):
+
+        file = getattr(self, file)
+        parsed = self.read_dta(file)
 
         # match stata here
         expected = self.read_csv(self.csv3)
@@ -205,16 +220,14 @@ class TestStata(object):
         expected['year'] = expected['year'].astype(np.int16)
         expected['quarter'] = expected['quarter'].astype(np.int8)
 
-        tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected)
-        tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_117, expected)
+        tm.assert_frame_equal(parsed, expected)
 
-    def test_read_dta4(self):
-        parsed_113 = self.read_dta(self.dta4_113)
-        parsed_114 = self.read_dta(self.dta4_114)
-        parsed_115 = self.read_dta(self.dta4_115)
-        parsed_117 = self.read_dta(self.dta4_117)
+    @pytest.mark.parametrize(
+        'file', ['dta4_113', 'dta4_114', 'dta4_115', 'dta4_117'])
+    def test_read_dta4(self, file):
+
+        file = getattr(self, file)
+        parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
             [
@@ -237,10 +250,7 @@ class TestStata(object):
                               for col in expected], axis=1)
 
         # stata doesn't save .category metadata
-        tm.assert_frame_equal(parsed_113, expected, check_categorical=False)
-        tm.assert_frame_equal(parsed_114, expected, check_categorical=False)
-        tm.assert_frame_equal(parsed_115, expected, check_categorical=False)
-        tm.assert_frame_equal(parsed_117, expected, check_categorical=False)
+        tm.assert_frame_equal(parsed, expected, check_categorical=False)
 
     # File containing strls
     def test_read_dta12(self):
@@ -427,7 +437,13 @@ class TestStata(object):
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   formatted)
 
-    def test_read_write_reread_dta14(self):
+    @pytest.mark.parametrize(
+        'file', ['dta14_113', 'dta14_114', 'dta14_115', 'dta14_117'])
+    def test_read_write_reread_dta14(self, file, parsed_114):
+        file = getattr(self, file)
+        parsed = self.read_dta(file)
+        parsed.index.name = 'index'
+
         expected = self.read_csv(self.csv14)
         cols = ['byte_', 'int_', 'long_', 'float_', 'double_']
         for col in cols:
@@ -436,18 +452,7 @@ class TestStata(object):
         expected['date_td'] = pd.to_datetime(
             expected['date_td'], errors='coerce')
 
-        parsed_113 = self.read_dta(self.dta14_113)
-        parsed_113.index.name = 'index'
-        parsed_114 = self.read_dta(self.dta14_114)
-        parsed_114.index.name = 'index'
-        parsed_115 = self.read_dta(self.dta14_115)
-        parsed_115.index.name = 'index'
-        parsed_117 = self.read_dta(self.dta14_117)
-        parsed_117.index.name = 'index'
-
-        tm.assert_frame_equal(parsed_114, parsed_113)
-        tm.assert_frame_equal(parsed_114, parsed_115)
-        tm.assert_frame_equal(parsed_114, parsed_117)
+        tm.assert_frame_equal(parsed_114, parsed)
 
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, {'date_td': 'td'})
@@ -455,7 +460,10 @@ class TestStata(object):
             tm.assert_frame_equal(
                 written_and_read_again.set_index('index'), parsed_114)
 
-    def test_read_write_reread_dta15(self):
+    @pytest.mark.parametrize(
+        'file', ['dta15_113', 'dta15_114', 'dta15_115', 'dta15_117'])
+    def test_read_write_reread_dta15(self, file):
+
         expected = self.read_csv(self.csv15)
         expected['byte_'] = expected['byte_'].astype(np.int8)
         expected['int_'] = expected['int_'].astype(np.int16)
@@ -465,18 +473,13 @@ class TestStata(object):
         expected['date_td'] = expected['date_td'].apply(
             datetime.strptime, args=('%Y-%m-%d',))
 
-        parsed_113 = self.read_dta(self.dta15_113)
-        parsed_114 = self.read_dta(self.dta15_114)
-        parsed_115 = self.read_dta(self.dta15_115)
-        parsed_117 = self.read_dta(self.dta15_117)
+        file = getattr(self, file)
+        parsed = self.read_dta(file)
 
-        tm.assert_frame_equal(expected, parsed_114)
-        tm.assert_frame_equal(parsed_113, parsed_114)
-        tm.assert_frame_equal(parsed_114, parsed_115)
-        tm.assert_frame_equal(parsed_114, parsed_117)
+        tm.assert_frame_equal(expected, parsed)
 
     def test_timestamp_and_label(self):
-        original = DataFrame([(1,)], columns=['var'])
+        original = DataFrame([(1,)], columns=['variable'])
         time_stamp = datetime(2000, 2, 29, 14, 21)
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
@@ -710,7 +713,9 @@ class TestStata(object):
             '<d', b'\x00\x00\x00\x00\x00\x1a\xe0\x7f')[0])
         assert val.string == '.z'
 
-    def test_missing_value_conversion(self):
+    @pytest.mark.parametrize(
+        'file', ['dta17_113', 'dta17_115', 'dta17_117'])
+    def test_missing_value_conversion(self, file):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
         smv = StataMissingValue(101)
         keys = [key for key in iterkeys(smv.MISSING_VALUES)]
@@ -721,13 +726,8 @@ class TestStata(object):
             data.append(row)
         expected = DataFrame(data, columns=columns)
 
-        parsed_113 = read_stata(self.dta17_113, convert_missing=True)
-        parsed_115 = read_stata(self.dta17_115, convert_missing=True)
-        parsed_117 = read_stata(self.dta17_117, convert_missing=True)
-
-        tm.assert_frame_equal(expected, parsed_113)
-        tm.assert_frame_equal(expected, parsed_115)
-        tm.assert_frame_equal(expected, parsed_117)
+        parsed = read_stata(getattr(self, file), convert_missing=True)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_big_dates(self):
         yr = [1960, 2000, 9999, 100, 2262, 1677]
@@ -919,7 +919,9 @@ class TestStata(object):
             res = written_and_read_again.set_index('index')
             tm.assert_frame_equal(res, original, check_categorical=False)
 
-    def test_categorical_order(self):
+    @pytest.mark.parametrize(
+        'file', ['dta19_115', 'dta19_117'])
+    def test_categorical_order(self, file):
         # Directly construct using expected codes
         # Format is is_cat, col_name, labels (in order), underlying data
         expected = [(True, 'ordered', ['a', 'b', 'c', 'd', 'e'], np.arange(5)),
@@ -944,91 +946,91 @@ class TestStata(object):
         expected = DataFrame.from_items(cols)
 
         # Read with and with out categoricals, ensure order is identical
-        parsed_115 = read_stata(self.dta19_115)
-        parsed_117 = read_stata(self.dta19_117)
-        tm.assert_frame_equal(expected, parsed_115, check_categorical=False)
-        tm.assert_frame_equal(expected, parsed_117, check_categorical=False)
+        file = getattr(self, file)
+        parsed = read_stata(file)
+        tm.assert_frame_equal(expected, parsed, check_categorical=False)
 
         # Check identity of codes
         for col in expected:
             if is_categorical_dtype(expected[col]):
                 tm.assert_series_equal(expected[col].cat.codes,
-                                       parsed_115[col].cat.codes)
+                                       parsed[col].cat.codes)
                 tm.assert_index_equal(expected[col].cat.categories,
-                                      parsed_115[col].cat.categories)
+                                      parsed[col].cat.categories)
 
-    def test_categorical_sorting(self):
-        parsed_115 = read_stata(self.dta20_115)
-        parsed_117 = read_stata(self.dta20_117)
+    @pytest.mark.parametrize(
+        'file', ['dta20_115', 'dta20_117'])
+    def test_categorical_sorting(self, file):
+        parsed = read_stata(getattr(self, file))
+
         # Sort based on codes, not strings
-        parsed_115 = parsed_115.sort_values("srh")
-        parsed_117 = parsed_117.sort_values("srh")
+        parsed = parsed.sort_values("srh")
+
         # Don't sort index
-        parsed_115.index = np.arange(parsed_115.shape[0])
-        parsed_117.index = np.arange(parsed_117.shape[0])
+        parsed.index = np.arange(parsed.shape[0])
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
         cat = pd.Categorical.from_codes(codes=codes, categories=categories)
         expected = pd.Series(cat, name='srh')
-        tm.assert_series_equal(expected, parsed_115["srh"],
-                               check_categorical=False)
-        tm.assert_series_equal(expected, parsed_117["srh"],
+        tm.assert_series_equal(expected, parsed["srh"],
                                check_categorical=False)
 
-    def test_categorical_ordering(self):
-        parsed_115 = read_stata(self.dta19_115)
-        parsed_117 = read_stata(self.dta19_117)
+    @pytest.mark.parametrize(
+        'file', ['dta19_115', 'dta19_117'])
+    def test_categorical_ordering(self, file):
+        file = getattr(self, file)
+        parsed = read_stata(file)
 
-        parsed_115_unordered = read_stata(self.dta19_115,
-                                          order_categoricals=False)
-        parsed_117_unordered = read_stata(self.dta19_117,
-                                          order_categoricals=False)
-        for col in parsed_115:
-            if not is_categorical_dtype(parsed_115[col]):
+        parsed_unordered = read_stata(file,
+                                      order_categoricals=False)
+        for col in parsed:
+            if not is_categorical_dtype(parsed[col]):
                 continue
-            assert parsed_115[col].cat.ordered
-            assert parsed_117[col].cat.ordered
-            assert not parsed_115_unordered[col].cat.ordered
-            assert not parsed_117_unordered[col].cat.ordered
+            assert parsed[col].cat.ordered
+            assert not parsed_unordered[col].cat.ordered
 
-    def test_read_chunks_117(self):
-        files_117 = [self.dta1_117, self.dta2_117, self.dta3_117,
-                     self.dta4_117, self.dta14_117, self.dta15_117,
-                     self.dta16_117, self.dta17_117, self.dta18_117,
-                     self.dta19_117, self.dta20_117]
+    @pytest.mark.parametrize(
+        'file', ['dta1_117', 'dta2_117', 'dta3_117',
+                 'dta4_117', 'dta14_117', 'dta15_117',
+                 'dta16_117', 'dta17_117', 'dta18_117',
+                 'dta19_117', 'dta20_117'])
+    @pytest.mark.parametrize(
+        'chunksize', [1, 2])
+    @pytest.mark.parametrize(
+        'convert_categoricals', [False, True])
+    @pytest.mark.parametrize(
+        'convert_dates', [False, True])
+    def test_read_chunks_117(self, file, chunksize,
+                             convert_categoricals, convert_dates):
+        fname = getattr(self, file)
 
-        for fname in files_117:
-            for chunksize in 1, 2:
-                for convert_categoricals in False, True:
-                    for convert_dates in False, True:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            parsed = read_stata(
+                fname,
+                convert_categoricals=convert_categoricals,
+                convert_dates=convert_dates)
+        itr = read_stata(
+            fname, iterator=True,
+            convert_categoricals=convert_categoricals,
+            convert_dates=convert_dates)
 
-                        with warnings.catch_warnings(record=True) as w:
-                            warnings.simplefilter("always")
-                            parsed = read_stata(
-                                fname,
-                                convert_categoricals=convert_categoricals,
-                                convert_dates=convert_dates)
-                        itr = read_stata(
-                            fname, iterator=True,
-                            convert_categoricals=convert_categoricals,
-                            convert_dates=convert_dates)
+        pos = 0
+        for j in range(5):
+            with warnings.catch_warnings(record=True) as w:  # noqa
+                warnings.simplefilter("always")
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
+            from_frame = parsed.iloc[pos:pos + chunksize, :]
+            tm.assert_frame_equal(
+                from_frame, chunk, check_dtype=False,
+                check_datetimelike_compat=True,
+                check_categorical=False)
 
-                        pos = 0
-                        for j in range(5):
-                            with warnings.catch_warnings(record=True) as w:  # noqa
-                                warnings.simplefilter("always")
-                                try:
-                                    chunk = itr.read(chunksize)
-                                except StopIteration:
-                                    break
-                            from_frame = parsed.iloc[pos:pos + chunksize, :]
-                            tm.assert_frame_equal(
-                                from_frame, chunk, check_dtype=False,
-                                check_datetimelike_compat=True,
-                                check_categorical=False)
-
-                            pos += chunksize
-                        itr.close()
+            pos += chunksize
+        itr.close()
 
     def test_iterator(self):
 
@@ -1053,49 +1055,54 @@ class TestStata(object):
             tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
         # GH12153
-        from_chunks = pd.concat(read_stata(fname, chunksize=4))
+        with read_stata(fname, chunksize=4) as itr:
+            from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
-    def test_read_chunks_115(self):
-        files_115 = [self.dta2_115, self.dta3_115, self.dta4_115,
-                     self.dta14_115, self.dta15_115, self.dta16_115,
-                     self.dta17_115, self.dta18_115, self.dta19_115,
-                     self.dta20_115]
+    @pytest.mark.parametrize(
+        'file', ['dta2_115', 'dta3_115', 'dta4_115',
+                 'dta14_115', 'dta15_115', 'dta16_115',
+                 'dta17_115', 'dta18_115', 'dta19_115',
+                 'dta20_115'])
+    @pytest.mark.parametrize(
+        'chunksize', [1, 2])
+    @pytest.mark.parametrize(
+        'convert_categoricals', [False, True])
+    @pytest.mark.parametrize(
+        'convert_dates', [False, True])
+    def test_read_chunks_115(self, file, chunksize,
+                             convert_categoricals, convert_dates):
+        fname = getattr(self, file)
 
-        for fname in files_115:
-            for chunksize in 1, 2:
-                for convert_categoricals in False, True:
-                    for convert_dates in False, True:
+        # Read the whole file
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            parsed = read_stata(
+                fname,
+                convert_categoricals=convert_categoricals,
+                convert_dates=convert_dates)
 
-                        # Read the whole file
-                        with warnings.catch_warnings(record=True) as w:
-                            warnings.simplefilter("always")
-                            parsed = read_stata(
-                                fname,
-                                convert_categoricals=convert_categoricals,
-                                convert_dates=convert_dates)
+        # Compare to what we get when reading by chunk
+        itr = read_stata(
+            fname, iterator=True,
+            convert_dates=convert_dates,
+            convert_categoricals=convert_categoricals)
+        pos = 0
+        for j in range(5):
+            with warnings.catch_warnings(record=True) as w:  # noqa
+                warnings.simplefilter("always")
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
+            from_frame = parsed.iloc[pos:pos + chunksize, :]
+            tm.assert_frame_equal(
+                from_frame, chunk, check_dtype=False,
+                check_datetimelike_compat=True,
+                check_categorical=False)
 
-                        # Compare to what we get when reading by chunk
-                        itr = read_stata(
-                            fname, iterator=True,
-                            convert_dates=convert_dates,
-                            convert_categoricals=convert_categoricals)
-                        pos = 0
-                        for j in range(5):
-                            with warnings.catch_warnings(record=True) as w:  # noqa
-                                warnings.simplefilter("always")
-                                try:
-                                    chunk = itr.read(chunksize)
-                                except StopIteration:
-                                    break
-                            from_frame = parsed.iloc[pos:pos + chunksize, :]
-                            tm.assert_frame_equal(
-                                from_frame, chunk, check_dtype=False,
-                                check_datetimelike_compat=True,
-                                check_categorical=False)
-
-                            pos += chunksize
-                        itr.close()
+            pos += chunksize
+        itr.close()
 
     def test_read_chunks_columns(self):
         fname = self.dta3_117
@@ -1298,7 +1305,8 @@ class TestStata(object):
         result = tm.round_trip_localpath(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize('write_index', [True, False])
+    @pytest.mark.parametrize(
+        'write_index', [True, False])
     def test_value_labels_iterator(self, write_index):
         # GH 16923
         d = {'A': ['B', 'E', 'C', 'A', 'E']}
@@ -1306,6 +1314,16 @@ class TestStata(object):
         df['A'] = df['A'].astype('category')
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=write_index)
-            dta_iter = pd.read_stata(path, iterator=True)
-            value_labels = dta_iter.value_labels()
+
+            with pd.read_stata(path, iterator=True) as dta_iter:
+                value_labels = dta_iter.value_labels()
         assert value_labels == {'A': {0: 'A', 1: 'B', 2: 'C', 3: 'E'}}
+
+    def test_set_index(self):
+        # GH 17328
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        with tm.ensure_clean() as path:
+            df.to_stata(path)
+            reread = pd.read_stata(path, index_col='index')
+        tm.assert_frame_equal(df, reread)

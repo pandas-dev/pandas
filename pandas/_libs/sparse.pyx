@@ -12,8 +12,6 @@ from distutils.version import LooseVersion
 
 # numpy versioning
 _np_version = np.version.short_version
-_np_version_under1p8 = LooseVersion(_np_version) < '1.8'
-_np_version_under1p9 = LooseVersion(_np_version) < '1.9'
 _np_version_under1p10 = LooseVersion(_np_version) < '1.10'
 _np_version_under1p11 = LooseVersion(_np_version) < '1.11'
 
@@ -850,3 +848,22 @@ def reindex_integer(ndarray[float64_t, ndim=1] values,
                     IntIndex sparse_index,
                     ndarray[int32_t, ndim=1] indexer):
     pass
+
+
+# -----------------------------------------------------------------------------
+# SparseArray mask create operations
+
+def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
+    cdef object value
+    cdef Py_ssize_t i
+    cdef Py_ssize_t new_length = len(arr)
+    cdef ndarray[int8_t, ndim=1] mask
+
+    mask = np.ones(new_length, dtype=np.int8)
+
+    for i in range(new_length):
+        value = arr[i]
+        if value == fill_value and type(value) == type(fill_value):
+            mask[i] = 0
+
+    return mask.view(dtype=np.bool)

@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas.compat import lrange
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (DatetimeIndex, Index, date_range, Series, DataFrame,
-                    Timestamp, datetime, offsets, _np_version_under1p8)
+                    Timestamp, datetime, offsets)
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 
@@ -41,10 +41,17 @@ class TestDatetimeIndex(object):
                            tolerance=np.timedelta64(1, 'D')) == 1
         assert idx.get_loc('2000-01-01T12', method='nearest',
                            tolerance=timedelta(1)) == 1
-        with tm.assert_raises_regex(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError,
+                                    'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-01T03', method='nearest', tolerance='2 hours')
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match target index size'):
+            idx.get_loc('2000-01-01', method='nearest',
+                        tolerance=[pd.Timedelta('1day').to_timedelta64(),
+                                   pd.Timedelta('1day').to_timedelta64()])
 
         assert idx.get_loc('2000', method='nearest') == slice(0, 3)
         assert idx.get_loc('2000-01', method='nearest') == slice(0, 3)
@@ -93,6 +100,19 @@ class TestDatetimeIndex(object):
             idx.get_indexer(target, 'nearest',
                             tolerance=pd.Timedelta('1 hour')),
             np.array([0, -1, 1], dtype=np.intp))
+        tol_raw = [pd.Timedelta('1 hour'),
+                   pd.Timedelta('1 hour'),
+                   pd.Timedelta('1 hour').to_timedelta64(), ]
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest',
+                            tolerance=[np.timedelta64(x) for x in tol_raw]),
+            np.array([0, -1, 1], dtype=np.intp))
+        tol_bad = [pd.Timedelta('2 hour').to_timedelta64(),
+                   pd.Timedelta('1 hour').to_timedelta64(),
+                   'foo', ]
+        with pytest.raises(
+                ValueError, match='abbreviation w/o a number'):
+            idx.get_indexer(target, 'nearest', tolerance=tol_bad)
         with pytest.raises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
@@ -276,11 +296,7 @@ class TestDatetimeIndex(object):
                          np_datetime64_compat('2014-06-01 00:00Z'),
                          np_datetime64_compat('2014-07-01 00:00Z')])
 
-        if _np_version_under1p8:
-            # cannot test array because np.datetime('nat') returns today's date
-            cases = [(fidx1, fidx2), (didx1, didx2)]
-        else:
-            cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
+        cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
         # Check pd.NaT is handles as the same as np.nan
         with tm.assert_produces_warning(None):

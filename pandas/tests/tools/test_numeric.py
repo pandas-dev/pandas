@@ -3,7 +3,7 @@ import decimal
 
 import numpy as np
 import pandas as pd
-from pandas import to_numeric, _np_version_under1p9
+from pandas import to_numeric
 
 from pandas.util import testing as tm
 from numpy import iinfo
@@ -355,9 +355,6 @@ class TestToNumeric(object):
 
     def test_downcast_limits(self):
         # Test the limits of each downcast. Bug: #14401.
-        # Check to make sure numpy is new enough to run this test.
-        if _np_version_under1p9:
-            pytest.skip("Numpy version is under 1.9")
 
         i = 'integer'
         u = 'unsigned'
@@ -384,3 +381,28 @@ class TestToNumeric(object):
         for dtype, downcast, min_max in dtype_downcast_min_max:
             series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
             assert series.dtype == dtype
+
+    def test_coerce_uint64_conflict(self):
+        # see gh-17007 and gh-17125
+        #
+        # Still returns float despite the uint64-nan conflict,
+        # which would normally force the casting to object.
+        df = pd.DataFrame({"a": [200, 300, "", "NaN", 30000000000000000000]})
+        expected = pd.Series([200, 300, np.nan, np.nan,
+                              30000000000000000000], dtype=float, name="a")
+        result = to_numeric(df["a"], errors="coerce")
+        tm.assert_series_equal(result, expected)
+
+        s = pd.Series(["12345678901234567890", "1234567890", "ITEM"])
+        expected = pd.Series([12345678901234567890,
+                              1234567890, np.nan], dtype=float)
+        result = to_numeric(s, errors="coerce")
+        tm.assert_series_equal(result, expected)
+
+        # For completeness, check against "ignore" and "raise"
+        result = to_numeric(s, errors="ignore")
+        tm.assert_series_equal(result, s)
+
+        msg = "Unable to parse string"
+        with tm.assert_raises_regex(ValueError, msg):
+            to_numeric(s, errors="raise")
