@@ -3,8 +3,7 @@
 import re
 import numpy as np
 from pandas import compat
-from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCCategoricalIndex, ABCCategorical)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
 
 class ExtensionDtype(object):
@@ -316,9 +315,7 @@ class CategoricalDtype(ExtensionDtype):
         """
         from pandas import Index
 
-        if isinstance(categories, (ABCCategorical, ABCCategoricalIndex)):
-            categories = categories.categories
-        elif not isinstance(categories, ABCIndexClass):
+        if not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -328,6 +325,9 @@ class CategoricalDtype(ExtensionDtype):
 
             if not categories.is_unique:
                 raise ValueError('Categorical categories must be unique')
+
+        if isinstance(categories, ABCCategoricalIndex):
+            categories = categories.categories
 
         return categories
 

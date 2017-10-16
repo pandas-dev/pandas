@@ -584,6 +584,10 @@ class TestCategorical(object):
             [0, 1], categories=CategoricalIndex(['a', 'b', 'c']))
         tm.assert_categorical_equal(result, expected)
 
+        # non-unique Categorical still raises
+        with pytest.raises(ValueError):
+            Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
+
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
         cats = ['a', 'b']
