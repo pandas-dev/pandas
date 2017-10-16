@@ -521,14 +521,14 @@ class TestCategorical(object):
 
     def test_constructor_with_categorical_categories(self):
         # GH17884
-        expected = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
 
-        result = pd.Categorical(
-            ['a', 'b'], categories=pd.Categorical(['a', 'b', 'c']))
+        result = Categorical(
+            ['a', 'b'], categories=Categorical(['a', 'b', 'c']))
         tm.assert_categorical_equal(result, expected)
 
-        result = pd.Categorical(
-            ['a', 'b'], categories=pd.CategoricalIndex(['a', 'b', 'c']))
+        result = Categorical(
+            ['a', 'b'], categories=CategoricalIndex(['a', 'b', 'c']))
         tm.assert_categorical_equal(result, expected)
 
     def test_from_codes(self):
@@ -574,14 +574,14 @@ class TestCategorical(object):
 
     def test_from_codes_with_categorical_categories(self):
         # GH17884
-        expected = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
 
-        result = pd.Categorical.from_codes(
-            [0, 1], categories=pd.Categorical(['a', 'b', 'c']))
+        result = Categorical.from_codes(
+            [0, 1], categories=Categorical(['a', 'b', 'c']))
         tm.assert_categorical_equal(result, expected)
 
-        result = pd.Categorical.from_codes(
-            [0, 1], categories=pd.CategoricalIndex(['a', 'b', 'c']))
+        result = Categorical.from_codes(
+            [0, 1], categories=CategoricalIndex(['a', 'b', 'c']))
         tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, 'category'])

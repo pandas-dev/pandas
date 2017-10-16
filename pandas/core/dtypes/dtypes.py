@@ -3,7 +3,8 @@
 import re
 import numpy as np
 from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
+from pandas.core.dtypes.generic import (
+    ABCIndexClass, ABCCategoricalIndex, ABCCategorical)
 
 
 class ExtensionDtype(object):
@@ -315,11 +316,10 @@ class CategoricalDtype(ExtensionDtype):
         """
         from pandas import Index
 
-        if not isinstance(categories, ABCIndexClass):
-            categories = Index(categories, tupleize_cols=False)
-
-        if isinstance(categories, ABCCategoricalIndex):
+        if isinstance(categories, (ABCCategorical, ABCCategoricalIndex)):
             categories = categories.categories
+        elif not isinstance(categories, ABCIndexClass):
+            categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
 
