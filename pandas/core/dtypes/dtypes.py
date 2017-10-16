@@ -177,7 +177,8 @@ class CategoricalDtype(ExtensionDtype):
             self._validate_ordered(ordered)
 
         if categories is not None:
-            categories = self._validate_categories(categories)
+            categories = self._validate_categories(categories,
+                                                   fastpath=fastpath)
 
         self._categories = categories
         self._ordered = ordered
