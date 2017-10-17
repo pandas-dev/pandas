@@ -1754,7 +1754,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     """
     cdef:
         ndarray[int64_t] trans, deltas
-        Py_ssize_t delta, pos
+        Py_ssize_t pos
         datetime dt
         int64_t delta
 
@@ -1785,8 +1785,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
                 pandas_datetime_to_datetimestruct(obj.value + deltas[0],
                                                   PANDAS_FR_ns, &obj.dts)
             else:
-                pandas_datetime_to_datetimestruct(
-                    obj.value, PANDAS_FR_ns, &obj.dts)
+                pandas_datetime_to_datetimestruct(obj.value,
+                                                  PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz
         elif treat_tz_as_pytz(tz):
             inf = tz._transition_info[pos]
