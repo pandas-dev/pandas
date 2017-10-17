@@ -1508,8 +1508,6 @@ cdef class _NaT(_Timestamp):
         return NotImplemented
 
 
-
-
 # helper to extract datetime and int64 from several different possibilities
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst):
