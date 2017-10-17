@@ -1342,7 +1342,7 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
 
-    cpdef _get_field(self, field):
+    cdef _get_field(self, field):
         cdef:
             int64_t val
             ndarray[int32_t] out
@@ -1350,7 +1350,7 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cpdef _get_named_field(self, field):
+    cdef _get_named_field(self, field):
         cdef:
             int64_t val
             ndarray[object] out
@@ -1358,7 +1358,7 @@ cdef class _Timestamp(datetime):
         out = get_date_name_field(np.array([val], dtype=np.int64), field)
         return out[0]
 
-    cpdef _get_start_end_field(self, field):
+    cdef _get_start_end_field(self, field):
         month_kw = self.freq.kwds.get(
             'startingMonth', self.freq.kwds.get(
                 'month', 12)) if self.freq else 12
