@@ -721,6 +721,13 @@ class TestDataFrameIndexing(TestData):
                 df[df > df2] = 47
                 assert_frame_equal(df, df2)
 
+    def test_setitem_scalars_no_index(self):
+        # GH16823 / 17894
+        df = DataFrame()
+        df['foo'] = 1
+        expected = DataFrame(columns=['foo']).astype(np.int64)
+        assert_frame_equal(df, expected)
+
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue #11859
 
