@@ -500,8 +500,11 @@ class Timestamp(_Timestamp):
         return self.weekday()
 
     @property
-    def weekday_name(self):
-        return self._get_named_field('weekday_name')
+    def str weekday_name(self):
+        cdef dict  wdays = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
+                            3: 'Thursday', 4: 'Friday', 5: 'Saturday',
+                            6: 'Sunday'}
+        return wdays[self.weekday()]
 
     @property
     def dayofyear(self):
@@ -1349,14 +1352,6 @@ cdef class _Timestamp(datetime):
         val = self._maybe_convert_value_to_local()
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
-
-    cdef _get_named_field(self, field):
-        cdef:
-            int64_t val
-            ndarray[object] out
-        val = self._maybe_convert_value_to_local()
-        out = get_date_name_field(np.array([val], dtype=np.int64), field)
-        return out[0]
 
     cdef _get_start_end_field(self, field):
         month_kw = self.freq.kwds.get(
