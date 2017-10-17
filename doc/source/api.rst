@@ -1793,6 +1793,7 @@ Methods
     Timestamp.strftime
     Timestamp.strptime
     Timestamp.time
+    Timestamp.timestamp
     Timestamp.timetuple
     Timestamp.timetz
     Timestamp.to_datetime64
