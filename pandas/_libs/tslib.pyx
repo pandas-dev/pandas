@@ -501,7 +501,7 @@ class Timestamp(_Timestamp):
         return self.weekday()
 
     @property
-    def str weekday_name(self):
+    def weekday_name(self):
         cdef dict wdays = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
                            3: 'Thursday', 4: 'Friday', 5: 'Saturday',
                            6: 'Sunday'}
@@ -2192,9 +2192,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                          'be converted to datetime64 unless '
                                          'utc=True')
                 else:
-                    iresult[i] = _pydatetime_to_dts(val, &dts)
                     if is_timestamp(val):
-                        iresult[i] += (<_Timestamp>val).nanosecond
+                        iresult[i] = val.value
+                    else:
+                        iresult[i] = _pydatetime_to_dts(val, &dts)
                     try:
                         _check_dts_bounds(&dts)
                     except ValueError:
