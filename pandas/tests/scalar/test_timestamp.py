@@ -1083,7 +1083,7 @@ class TestTimestamp(object):
         # Gh#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
         ts = Timestamp.now()
-        uts = ts.replace(tz=utc)
+        uts = ts.replace(tzinfo=utc)
         assert ts.timestamp() == uts.timestamp()
 
         tsc = Timestamp('2014-10-11 11:00:01.12345678', tz='US/Central')
