@@ -1466,7 +1466,7 @@ cdef class _NaT(_Timestamp):
         return NaT
 
     def __sub__(self, other):
-        if isinstance(other, (datetime, timedelta)):
+        if PyDateTime_Check(other) or PyDelta_Check(other):
             return NaT
         try:
             result = _Timestamp.__sub__(self, other)
@@ -2877,8 +2877,7 @@ class Timedelta(_Timedelta):
         # return True if we are compat with operating
         if _checknull_with_nat(other):
             return True
-        elif (isinstance(other, (Timedelta, timedelta)) or
-              is_timedelta64_object(other)):
+        elif PyDelta_Check(other) or is_timedelta64_object(other):
             return True
         elif util.is_string_object(other):
             return True
