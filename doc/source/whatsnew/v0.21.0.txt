@@ -791,8 +791,6 @@ Other API Changes
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
 - Pandas no longer registers matplotlib converters on import. The converters
   will be registered and used when the first plot is draw (:issue:`17710`)
-- Setting on a column with a scalar value and 0-len index now raises a ``ValueError`` (:issue:`16823`)
-
 
 .. _whatsnew_0210.deprecations:
 
