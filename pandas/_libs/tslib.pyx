@@ -956,7 +956,7 @@ class NaTType(_NaT):
     combine = _make_error_func('combine', None)
     utcnow = _make_error_func('utcnow', None)
 
-    timestamp = _make_error_func('timestamp', datetime)
+    timestamp = _make_error_func('timestamp', Timestamp)
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
