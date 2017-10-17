@@ -1201,8 +1201,11 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
-For convenience, you may utilize the :meth:`~Series.reindex_axis` method, which
-takes the labels and a keyword ``axis`` parameter.
+You may also use ``reindex`` with an ``axis`` keyword:
+
+.. ipython:: python
+
+   df.reindex(index=['c', 'f', 'b'], axis='index')
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -1217,6 +1220,15 @@ following can be done:
 This means that the reindexed Series's index is the same Python object as the
 DataFrame's index.
 
+.. versionadded:: 0.21.0
+
+:meth:`DataFrame.reindex` also supports an "axis-style" calling convention,
+where you specify a single ``labels`` argument and the ``axis`` it applies to.
+
+.. ipython:: python
+
+   df.reindex(['c', 'f', 'b'], axis='index')
+   df.reindex(['three', 'two', 'one'], axis='columns')
 
 .. seealso::
 
@@ -1413,11 +1425,22 @@ Series can also be used:
 
 .. ipython:: python
 
-   df.rename(columns={'one' : 'foo', 'two' : 'bar'},
-             index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+   df.rename(columns={'one': 'foo', 'two': 'bar'},
+             index={'a': 'apple', 'b': 'banana', 'd': 'durian'})
 
 If the mapping doesn't include a column/index label, it isn't renamed. Also
 extra labels in the mapping don't throw an error.
+
+.. versionadded:: 0.21.0
+
+:meth:`DataFrame.rename` also supports an "axis-style" calling convention, where
+you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
+
+.. ipython:: python
+
+   df.rename({'one': 'foo', 'two': 'bar'}, axis='columns'})
+   df.rename({'a': 'apple', 'b': 'banana', 'd': 'durian'}, axis='columns'})
+
 
 The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass

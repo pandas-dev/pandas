@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.common import AbstractMethodError, _try_sort
+from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 
@@ -607,7 +607,7 @@ class MPLPlot(object):
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
-            if any(x is not None for x in name):
+            if _any_not_none(*name):
                 name = ','.join([pprint_thing(x) for x in name])
             else:
                 name = None
@@ -697,7 +697,7 @@ class MPLPlot(object):
         from pandas import DataFrame, Series
 
         def match_labels(data, e):
-            e = e.reindex_axis(data.index)
+            e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
@@ -955,7 +955,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = any(e is not None for e in self.errors.values())
+        is_errorbar = _any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -2000,7 +2000,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na_arraylike(v) for v in values]
+        values = [np.asarray(remove_na_arraylike(v)) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)

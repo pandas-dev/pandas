@@ -1935,8 +1935,12 @@ class TestDataFrameIndexing(TestData):
 
             actual = df.reindex_like(df, method=method, tolerance=0)
             assert_frame_equal(df, actual)
+            actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
+            assert_frame_equal(df, actual)
 
             actual = df.reindex(target, method=method, tolerance=1)
+            assert_frame_equal(expected, actual)
+            actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
             assert_frame_equal(expected, actual)
 
             e2 = expected[::-1]
@@ -1956,6 +1960,11 @@ class TestDataFrameIndexing(TestData):
 
         expected = pd.DataFrame({'x': [0, 1, 1, np.nan]}, index=target)
         actual = df.reindex(target, method='nearest', tolerance=0.2)
+        assert_frame_equal(expected, actual)
+
+        expected = pd.DataFrame({'x': [0, np.nan, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method='nearest',
+                            tolerance=[0.5, 0.01, 0.4, 0.1])
         assert_frame_equal(expected, actual)
 
     def test_reindex_frame_add_nat(self):

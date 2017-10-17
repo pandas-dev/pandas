@@ -241,7 +241,7 @@ class _Concatenator(object):
             raise ValueError('No objects to concatenate')
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None]
+            objs = list(com._not_none(*objs))
         else:
             # #1649
             clean_keys = []
@@ -362,20 +362,12 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                # concat Series with length to keep dtype as much
-                non_empties = [x for x in self.objs if len(x) > 0]
-                if len(non_empties) > 0:
-                    values = [x._values for x in non_empties]
-                else:
-                    values = [x._values for x in self.objs]
-                new_data = _concat._concat_compat(values)
-
                 name = com._consensus_name_attr(self.objs)
-                cons = _concat._get_series_result_type(new_data)
 
-                return (cons(new_data, index=self.new_axes[0],
-                             name=name, dtype=new_data.dtype)
-                        .__finalize__(self, method='concat'))
+                mgr = self.objs[0]._data.concat([x._data for x in self.objs],
+                                                self.new_axes)
+                cons = _concat._get_series_result_type(mgr, self.objs)
+                return cons(mgr, name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame
             else:

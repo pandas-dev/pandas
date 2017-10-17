@@ -111,7 +111,13 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""",
-    versionadded_to_excel='')
+    versionadded_to_excel='',
+    optional_labels="""labels : array-like, optional
+            New labels / index to conform the axis specified by 'axis' to.""",
+    optional_axis="""axis : int or str, optional
+            Axis to target. Can be either the axis name ('index', 'columns')
+            or number (0, 1).""",
+)
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -298,7 +304,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value'])
+        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
 
     @property
     def _constructor_expanddim(self):
@@ -1288,10 +1294,10 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0, parse_dates=True,
-                 encoding=None, tupleize_cols=False,
+                 encoding=None, tupleize_cols=None,
                  infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -1339,6 +1345,13 @@ class DataFrame(NDFrame):
         y : DataFrame
 
         """
+
+        warnings.warn("from_csv is deprecated. Please use read_csv(...) "
+                      "instead. Note that some of the default arguments are "
+                      "different, so please refer to the documentation "
+                      "for from_csv when changing your function calls",
+                      FutureWarning, stacklevel=2)
+
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
@@ -1419,7 +1432,7 @@ class DataFrame(NDFrame):
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
-               tupleize_cols=False, date_format=None, doublequote=True,
+               tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""Write DataFrame to a comma-separated values (csv) file
 
@@ -1472,8 +1485,13 @@ class DataFrame(NDFrame):
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
-            write multi_index columns as a list of tuples (if True)
-            or new (expanded format) if False)
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
         date_format : string, default None
             Format string for datetime objects
         decimal: string, default '.'
@@ -1481,6 +1499,14 @@ class DataFrame(NDFrame):
             European data
 
         """
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
                                      encoding=encoding,
@@ -2722,7 +2748,7 @@ class DataFrame(NDFrame):
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
-                        value = value.reindex_axis(cols, axis=1)
+                        value = value.reindex(cols, axis=1)
             # now align rows
             value = reindexer(value).T
 
@@ -2895,9 +2921,13 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, index=None, columns=None, **kwargs):
-        return super(DataFrame, self).reindex(index=index, columns=columns,
-                                              **kwargs)
+    def reindex(self, labels=None, index=None, columns=None, axis=None,
+                **kwargs):
+        axes = self._validate_axis_style_args(labels, 'labels',
+                                              axes=[index, columns],
+                                              axis=axis, method_name='reindex')
+        kwargs.update(axes)
+        return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
@@ -2907,10 +2937,86 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
-    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, columns=None, **kwargs):
-        return super(DataFrame, self).rename(index=index, columns=columns,
-                                             **kwargs)
+    def rename(self, mapper=None, index=None, columns=None, axis=None,
+               **kwargs):
+        """Alter axes labels.
+
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is. Extra labels listed don't throw an
+        error.
+
+        See the :ref:`user guide <basics.rename>` for more.
+
+        Parameters
+        ----------
+        mapper, index, columns : dict-like or function, optional
+            dict-like or functions transformations to apply to
+            that axis' values. Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index`` and
+            ``columns``.
+        axis : int or str, optional
+            Axis to target with ``mapper``. Can be either the axis name
+            ('index', 'columns') or number (0, 1). The default is 'index'.
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new %(klass)s. If True then value of copy is
+            ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
+
+        Returns
+        -------
+        renamed : DataFrame
+
+        See Also
+        --------
+        pandas.DataFrame.rename_axis
+
+        Examples
+        --------
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)
+        * ``(mapper, axis={'index', 'columns'}, ...)
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+           a  c
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+           a  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+        """
+        axes = self._validate_axis_style_args(mapper, 'mapper',
+                                              axes=[index, columns],
+                                              axis=axis, method_name='rename')
+        kwargs.update(axes)
+        return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
@@ -3463,7 +3569,8 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
-        vals = (self[col].values for col in subset)
+        vals = (col.values for name, col in self.iteritems()
+                if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -4061,6 +4168,61 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, 5, 6],
+        ...                        'C': [7, 8, 9]})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e', 'f', 'g', 'h', 'i']})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  d
+        1  b  e
+        2  c  f
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_column = pd.Series(['d', 'e'], name='B', index=[0, 2])
+        >>> df.update(new_column)
+        >>> df
+           A  B
+        0  a  d
+        1  b  y
+        2  c  e
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e']}, index=[1, 2])
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  x
+        1  b  d
+        2  c  e
+
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original dataframe.
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
+        >>> df.update(new_df)
+        >>> df
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
