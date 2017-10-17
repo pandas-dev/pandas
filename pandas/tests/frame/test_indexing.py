@@ -2299,8 +2299,11 @@ class TestDataFrameIndexing(TestData):
         IndexType = namedtuple("IndexType", ["a", "b"])
         idx1 = IndexType("foo", "bar")
         idx2 = IndexType("baz", "bof")
-        index = Index([idx1, idx2],
-                      name="composite_index", tupleize_cols=False)
+
+        with tm.assert_produces_warning(FutureWarning):
+            index = Index([idx1, idx2],
+                          name="composite_index", tupleize_cols=False)
+
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
 
         with catch_warnings(record=True):

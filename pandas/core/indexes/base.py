@@ -179,8 +179,21 @@ class Index(IndexOpsMixin, PandasObject):
     str = accessor.AccessorProperty(strings.StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, tupleize_cols=True, **kwargs):
+                fastpath=False, tupleize_cols=None, **kwargs):
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = True
 
+        return cls._construct_index(data=data, dtype=dtype, copy=copy,
+                                    name=name, fastpath=fastpath,
+                                    tupleize_cols=tupleize_cols, **kwargs)
+
+    @classmethod
+    def _construct_index(cls, data=None, dtype=None, copy=False, name=None,
+                         fastpath=False, tupleize_cols=True, **kwargs):
         if name is None and hasattr(data, 'name'):
             name = data.name
 

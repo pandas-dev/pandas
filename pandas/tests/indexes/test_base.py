@@ -475,7 +475,11 @@ class TestIndex(Base):
         assert i1.identical(i2)
 
         i3 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')])
-        i4 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')], tupleize_cols=False)
+
+        with tm.assert_produces_warning(FutureWarning):
+            i4 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')],
+                       tupleize_cols=False)
+
         assert not i3.identical(i4)
 
     def test_is_(self):

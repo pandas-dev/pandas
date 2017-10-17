@@ -172,9 +172,11 @@ class SharedWithSparse(object):
         d['z'] = 111.
         _d.insert(0, ('z', d['z']))
         result = self.series_klass(d)
-        expected = self.series_klass([x[1] for x in _d],
-                                     index=pd.Index([x[0] for x in _d],
-                                                    tupleize_cols=False))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = self.series_klass([x[1] for x in _d],
+                                         index=pd.Index([x[0] for x in _d],
+                                                        tupleize_cols=False))
         result = result.reindex(index=expected.index)
         self._assert_series_equal(result, expected)
 
