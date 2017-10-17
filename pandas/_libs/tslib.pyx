@@ -1145,7 +1145,7 @@ cdef class _Timestamp(datetime):
 
             if ndim != -1:
                 if ndim == 0:
-                    if isinstance(other, np.datetime64):
+                    if is_datetime64_object(other):
                         other = Timestamp(other)
                     else:
                         if op == Py_EQ:
@@ -1420,7 +1420,8 @@ _nat_scalar_rules[Py_GE] = False
 
 
 cdef _nat_divide_op(self, other):
-    if isinstance(other, (Timedelta, np.timedelta64)) or other is NaT:
+    if (isinstance(other, Timedelta) or
+        is_timedelta64_object(other) or other is NaT):
         return np.nan
     if is_integer_object(other) or is_float_object(other):
         return NaT
@@ -1445,7 +1446,7 @@ cdef class _NaT(_Timestamp):
             return _nat_scalar_rules[op]
 
         if ndim == 0:
-            if isinstance(other, np.datetime64):
+            if is_datetime64_object(other):
                 other = Timestamp(other)
             else:
                 raise TypeError('Cannot compare type %r with type %r' %
@@ -2405,7 +2406,7 @@ cdef class _Timedelta(timedelta):
 
             if ndim != -1:
                 if ndim == 0:
-                    if isinstance(other, np.timedelta64):
+                    if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
                         if op == Py_EQ:
@@ -2417,7 +2418,7 @@ cdef class _Timedelta(timedelta):
                         raise TypeError('Cannot compare type %r with type %r' %
                                         (type(self).__name__,
                                          type(other).__name__))
-                if isinstance(other, np.ndarray):
+                if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, _reverse_ops[op])
             else:
@@ -2574,7 +2575,7 @@ class Timedelta(_Timedelta):
             value = np.timedelta64(parse_timedelta_string(value))
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
-        elif isinstance(value, np.timedelta64):
+        elif is_timedelta64_object(value):
             if unit is not None:
                 value = value.astype('timedelta64[{0}]'.format(unit))
             value = value.astype('timedelta64[ns]')
@@ -2590,7 +2591,7 @@ class Timedelta(_Timedelta):
                 "Value must be Timedelta, string, integer, "
                 "float, timedelta or convertible")
 
-        if isinstance(value, np.timedelta64):
+        if is_timedelta64_object(value):
             value = value.view('i8')
 
         # nat
@@ -2876,7 +2877,8 @@ class Timedelta(_Timedelta):
         # return True if we are compat with operating
         if _checknull_with_nat(other):
             return True
-        elif isinstance(other, (Timedelta, timedelta, np.timedelta64)):
+        elif (isinstance(other, (Timedelta, timedelta)) or
+              is_timedelta64_object(other)):
             return True
         elif util.is_string_object(other):
             return True
@@ -3333,7 +3335,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
         # only accept a NaT here
         if ts.astype('int64') == NPY_NAT:
             return np.timedelta64(NPY_NAT)
-    elif isinstance(ts, np.timedelta64):
+    elif is_timedelta64_object(ts):
         ts = ts.astype("m8[{0}]".format(unit.lower()))
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -3361,7 +3363,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
 
     if PyDelta_Check(ts):
         ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
-    elif not isinstance(ts, np.timedelta64):
+    elif not is_timedelta64_object(ts):
         raise ValueError("Invalid type for timedelta "
                          "scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
@@ -3371,7 +3373,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
 # Conversion routines
 
 cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
-    if isinstance(delta, np.ndarray):
+    if util.is_array(delta):
         return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
         return delta.nanos
