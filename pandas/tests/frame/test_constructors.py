@@ -434,10 +434,17 @@ class TestDataFrameConstructors(TestData):
 
         d['z'] = {'y': 123., ('i', 'i'): 111, ('i', 'j'): 111, ('j', 'i'): 111}
         _d.insert(0, ('z', d['z']))
-        expected = DataFrame(
-            [x[1] for x in _d],
-            index=Index([x[0] for x in _d], tupleize_cols=False)).T
-        expected.index = Index(expected.index, tupleize_cols=False)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = DataFrame(
+                [x[1] for x in _d],
+                index=Index([x[0] for x in _d], tupleize_cols=False)).T
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected.index = Index(expected.index, tupleize_cols=False)
+
         df = DataFrame(d)
         df = df.reindex(columns=expected.columns, index=expected.index)
         check(df, expected)
