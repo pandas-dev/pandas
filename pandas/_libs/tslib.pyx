@@ -1666,7 +1666,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
     cdef:
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
-        datetime dtime
+        datetime dt
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -1702,10 +1702,10 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                     # Keep the converter same as PyDateTime's
                     obj = convert_to_tsobject(obj.value, obj.tzinfo,
                                               None, 0, 0)
-                    dtime = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                                      obj.dts.hour, obj.dts.min, obj.dts.sec,
                                      obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(dtime, tz,
+                    obj = convert_datetime_to_tsobject(dt, tz,
                                                        nanos=obj.dts.ps / 1000)
                     return obj
 
