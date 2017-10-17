@@ -49,6 +49,7 @@ from datetime cimport (
     check_dts_bounds,
     PANDAS_FR_ns,
     PyDateTime_Check, PyDate_Check,
+    PyDelta_Check,  # PyDelta_Check(x) --> isinstance(x, timedelta)
     PyDateTime_IMPORT,
     timedelta, datetime
     )
@@ -1127,10 +1128,10 @@ cdef class _Timestamp(datetime):
             int ndim
 
         if isinstance(other, _Timestamp):
-            if isinstance(other, _NaT):
+            if other is NaT:
                 return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
-        elif isinstance(other, datetime):
+        elif PyDateTime_Check(other):
             if self.nanosecond == 0:
                 val = self.to_pydatetime()
                 return PyObject_RichCompareBool(val, other, op)
@@ -1276,7 +1277,7 @@ cdef class _Timestamp(datetime):
                                  "without freq.")
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
 
-        elif isinstance(other, timedelta) or hasattr(other, 'delta'):
+        elif PyDelta_Check(other) or hasattr(other, 'delta'):
             nanos = _delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)
@@ -1289,14 +1290,14 @@ cdef class _Timestamp(datetime):
             return NotImplemented
 
         result = datetime.__add__(self, other)
-        if isinstance(result, datetime):
+        if PyDateTime_Check(result):
             result = Timestamp(result)
             result.nanosecond = self.nanosecond
         return result
 
     def __sub__(self, other):
         if is_timedelta64_object(other) or is_integer_object(other) \
-                or isinstance(other, timedelta) or hasattr(other, 'delta'):
+                or PyDelta_Check(other) or hasattr(other, 'delta'):
             neg_other = -other
             return self + neg_other
 
@@ -1313,8 +1314,8 @@ cdef class _Timestamp(datetime):
             return NaT
 
         # coerce if necessary if we are a Timestamp-like
-        if (isinstance(self, datetime)
-            and (isinstance(other, datetime)
+        if (PyDateTime_Check(self)
+            and (PyDateTime_Check(other)
                  or is_datetime64_object(other))):
             self = Timestamp(self)
             other = Timestamp(other)
@@ -1453,7 +1454,7 @@ cdef class _NaT(_Timestamp):
 
     def __add__(self, other):
         try:
-            if isinstance(other, datetime):
+            if PyDateTime_Check(other):
                 return NaT
             result = _Timestamp.__add__(self, other)
             # Timestamp.__add__ doesn't return DatetimeIndex/TimedeltaIndex
@@ -2397,7 +2398,7 @@ cdef class _Timedelta(timedelta):
 
         if isinstance(other, _Timedelta):
             ots = other
-        elif isinstance(other, timedelta):
+        elif PyDelta_Check(other):
             ots = Timedelta(other)
         else:
             ndim = getattr(other, _NDIM_STRING, -1)
@@ -2571,7 +2572,7 @@ class Timedelta(_Timedelta):
             value = value.value
         elif util.is_string_object(value):
             value = np.timedelta64(parse_timedelta_string(value))
-        elif isinstance(value, timedelta):
+        elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif isinstance(value, np.timedelta64):
             if unit is not None:
@@ -2896,7 +2897,7 @@ class Timedelta(_Timedelta):
 
             # a datetimelike
             if (isinstance(other, (datetime, np.datetime64))
-                    and not isinstance(other, (Timestamp, NaTType))):
+                    and not (isinstance(other, Timestamp) or other is NaT)):
                 return op(self, Timestamp(other))
 
             # nd-array like
@@ -3358,7 +3359,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     elif hasattr(ts, 'delta'):
         ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
 
-    if isinstance(ts, timedelta):
+    if PyDelta_Check(ts):
         ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
     elif not isinstance(ts, np.timedelta64):
         raise ValueError("Invalid type for timedelta "
