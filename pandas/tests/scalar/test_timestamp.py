@@ -1080,7 +1080,7 @@ class TestTimestamp(object):
             assert not dt.is_leap_year
 
     def test_timestamp(self):
-        # Gh#17329
+        # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
         ts = Timestamp.now()
         uts = ts.replace(tzinfo=utc)
@@ -1090,6 +1090,10 @@ class TestTimestamp(object):
         utsc = tsc.tz_convert('UTC')
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
+
+        if PY3:
+            dt = ts.to_pydatetime()
+            assert dt.timestamp() == ts.timestamp() - ts.nanoseconds
 
 
 class TestTimestampNsOperations(object):

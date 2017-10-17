@@ -1405,6 +1405,7 @@ cdef class _Timestamp(datetime):
             return np.datetime64(self.value, 'ns')
 
     def timestamp(self):
+        """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
         return self.value / 1e9
 
