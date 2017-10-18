@@ -1389,7 +1389,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        Write a ``DataFrame`` two columns into a string.
+        Write a ``DataFrame`` with two columns into a string.
         >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': [1, 2, 3]})
         >>> print(df.to_csv())
         ,A,B
