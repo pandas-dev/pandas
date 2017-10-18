@@ -1386,6 +1386,16 @@ class DataFrame(NDFrame):
             European data
 
             .. versionadded:: 0.16.0
+            
+        Examples
+        --------
+        Returning a ``DataFrame`` with a numeric and a non-numeric column as a string.
+        >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': [1, 2, 3]})
+        >>> print(df.to_csv())
+        ,A,B
+        0,x,1
+        1,y,2
+        2,z,3
 
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
