@@ -1386,10 +1386,10 @@ class DataFrame(NDFrame):
             European data
 
             .. versionadded:: 0.16.0
-            
+
         Examples
         --------
-        Returning a ``DataFrame`` with a numeric and a non-numeric column as a string.
+        Write a ``DataFrame`` two columns into a string.
         >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': [1, 2, 3]})
         >>> print(df.to_csv())
         ,A,B
