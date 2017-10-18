@@ -1068,6 +1068,54 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
+    def test_symmetric_difference_sorting_false(self):
+
+        # GH 17839
+        # smoke
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = Index([2, 3, 4, 5])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = Index([1, 5])
+        assert tm.equalContents(result, expected)
+        assert result.name is None
+
+        # __xor__ syntax
+        expected = idx1 ^ idx2
+        assert tm.equalContents(result, expected)
+        assert result.name is None
+
+        # multiIndex
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
+        assert tm.equalContents(result, expected)
+
+        # nans:
+        idx1 = Index([1, np.nan, 2, 3])
+        idx2 = Index([0, 1, np.nan])
+        idx3 = Index([0, 1])
+
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = Index([2.0, 3.0, 0.0])
+        tm.assert_index_equal(result, expected)
+
+        result = idx1.symmetric_difference(idx3, sort=False)
+        expected = Index([np.nan, 2.0, 3.0, 0.0])
+        tm.assert_index_equal(result, expected)
+
+        # other not an Index:
+        idx1 = Index([5, 3, 4, 2], name='idx1')
+        idx2 = np.array([3, 2, 4, 1])
+        expected = Index([5, 1])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        assert tm.equalContents(result, expected)
+        assert result.name == 'idx1'
+
+        result = idx1.symmetric_difference(idx2, result_name='new_name', sort=False)
+        assert tm.equalContents(result, expected)
+        assert result.name == 'new_name'
+
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
         assert not self.strIndex.is_numeric()
