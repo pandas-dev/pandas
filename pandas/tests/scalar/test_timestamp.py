@@ -19,7 +19,7 @@ from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
 from pandas._libs.tslibs.timezones import get_timezone
 
-from pandas.compat import lrange, long
+from pandas.compat import lrange, long, PY3
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, compat,
