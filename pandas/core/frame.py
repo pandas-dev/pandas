@@ -1387,6 +1387,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.16.0
 
+        Examples
+        --------
+        Write a ``DataFrame`` with two columns into a string.
+        >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': [1, 2, 3]})
+        >>> print(df.to_csv())
+        ,A,B
+        0,x,1
+        1,y,2
+        2,z,3
+
         """
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
