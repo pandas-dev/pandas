@@ -1113,7 +1113,8 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'idx1'
 
-        result = idx1.symmetric_difference(idx2, result_name='new_name', sort=False)
+        result = idx1.symmetric_difference(idx2, result_name='new_name',
+                                           sort=False)
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
