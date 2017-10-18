@@ -1344,7 +1344,7 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
 
-    cdef int _get_field(self, field):
+    cpdef int _get_field(self, field):
         cdef:
             int64_t val
             ndarray[int32_t] out
@@ -1352,17 +1352,23 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cdef _get_start_end_field(self, field):
+    cpdef _get_start_end_field(self, field):
         cdef:
             int64_t val
+            dict kwds
 
-        month_kw = self.freq.kwds.get(
-            'startingMonth', self.freq.kwds.get(
-                'month', 12)) if self.freq else 12
-        freqstr = self.freqstr if self.freq else None
+        freq = self.freq
+        if freq:
+            kwds = freq.kwds
+            month_kw = kwds.get('startingMonth', kwds.get('month', 12))
+            freqstr = self.freqstr
+        else:
+            month_kw = 12
+            freqstr = None
+
         val = self._maybe_convert_value_to_local()
-        out = get_start_end_field(
-            np.array([val], dtype=np.int64), field, freqstr, month_kw)
+        out = get_start_end_field(np.array([val], dtype=np.int64),
+                                  field, freqstr, month_kw)
         return out[0]
 
     property _repr_base:
@@ -1865,8 +1871,8 @@ def datetime_to_datetime64(ndarray[object] values):
                 _check_dts_bounds(&_ts.dts)
             else:
                 if inferred_tz is not None:
-                    raise ValueError(
-                        'Cannot mix tz-aware with tz-naive values')
+                    raise ValueError('Cannot mix tz-aware with '
+                                     'tz-naive values')
                 iresult[i] = _pydatetime_to_dts(val, &dts)
                 _check_dts_bounds(&dts)
         else:
@@ -2192,10 +2198,9 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                          'be converted to datetime64 unless '
                                          'utc=True')
                 else:
+                    iresult[i] = _pydatetime_to_dts(val, &dts)
                     if is_timestamp(val):
-                        iresult[i] = val.value
-                    else:
-                        iresult[i] = _pydatetime_to_dts(val, &dts)
+                        iresult[i] += val.nanosecond
                     try:
                         _check_dts_bounds(&dts)
                     except ValueError:
