@@ -769,7 +769,8 @@ class TestIndex(Base):
     def test_union_sorting_false(self):
 
         # GH 17839
-        dt_index = pd.DatetimeIndex(["20/12/2012", "15/05/2015", "1/1/2011", "1/7/2017"])
+        dt_index = pd.DatetimeIndex(["20/12/2012", "15/05/2015",
+                                     "1/1/2011", "1/7/2017"])
         first = pd.Index([2, 0, 4, 3])
         second = pd.Index([1, 4])
         everything = pd.Index([2, 0, 4, 3, 1])
