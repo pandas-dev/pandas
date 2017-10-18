@@ -46,8 +46,7 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
                                 standardize_mapping,
-                                _any_none,
-                                _get_range_parameters)
+                                _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -61,7 +60,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.compat import zip, u, OrderedDict, StringIO
+from pandas.compat import (
+    zip, u, OrderedDict, StringIO, range, _get_range_parameters)
 from pandas.compat.numpy import function as nv
 
 from pandas.core import accessor
@@ -3181,12 +3181,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, range):
         # GH 16804
         start, stop, step = _get_range_parameters(data)
-        if is_extension_type(dtype):
-            arr = np.arange(start, stop, step, dtype='int64')
-            subarr = _try_cast(arr, False)
-        else:
-            subarr = np.arange(start, stop, step, dtype=dtype or 'int64')
-
+        arr = np.arange(start, stop, step, dtype='int64')
+        subarr = _try_cast(arr, False)
     else:
         subarr = _try_cast(data, False)
 

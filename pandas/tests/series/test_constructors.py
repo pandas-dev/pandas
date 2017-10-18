@@ -847,13 +847,9 @@ class TestSeriesConstructors(TestData):
         with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')
 
-    def test_constructor_range_dtype(self):
+    @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
+    def test_constructor_range_dtype(self, dtype):
         # GH 16804
-        expected = Series([0, 1, 2, 3, 4], dtype='int64')
-        result = Series(range(5))
-        tm.assert_series_equal(result, expected)
-
-        # override default dtype
-        expected = Series([0, 1, 2, 3, 4], dtype='uint8')
-        result = Series(range(5), dtype='uint8')
+        expected = Series([0, 1, 2, 3, 4], dtype=dtype or 'int64')
+        result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)

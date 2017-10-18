@@ -7,7 +7,7 @@ from functools import partial
 import numpy as np
 
 from pandas import Series, Timestamp
-from pandas.compat import range, lmap, PY2
+from pandas.compat import range, lmap
 import pandas.core.common as com
 import pandas.util.testing as tm
 
@@ -221,20 +221,3 @@ def test_standardize_mapping():
 
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
-
-
-@pytest.mark.parametrize(
-    'start,stop,step', [(0, 10, 2), (11, -2, -1), (0, -5, 1), (2, 4, 8)])
-def test_get_range_parameters(start, stop, step):
-    rng = range(start, stop, step)
-    if PY2 and len(rng) == 0:
-        start_expected, stop_expected, step_expected = 0, 0, 1
-    elif PY2 and len(rng) == 1:
-        start_expected, stop_expected, step_expected = start, start + 1, 1
-    else:
-        start_expected, stop_expected, step_expected = start, stop, step
-
-    start_result, stop_result, step_result = com._get_range_parameters(rng)
-    assert start_result == start_expected
-    assert stop_result == stop_expected
-    assert step_result == step_expected

@@ -10,9 +10,9 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 
 from pandas import compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, _get_range_parameters
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _all_none, _get_range_parameters
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
