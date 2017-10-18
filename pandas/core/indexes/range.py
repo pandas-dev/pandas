@@ -10,7 +10,7 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 
 from pandas import compat
-from pandas.compat import lrange, range, _get_range_parameters
+from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
 from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -113,7 +113,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        start, stop, step = _get_range_parameters(data)
+        start, stop, step = get_range_parameters(data)
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod

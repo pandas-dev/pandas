@@ -100,7 +100,7 @@ if PY3:
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
 
-    def _get_range_parameters(data):
+    def get_range_parameters(data):
         """Gets the start, stop, and step parameters from a range object"""
         return data.start, data.stop, data.step
 
@@ -150,7 +150,7 @@ else:
     def signature(f):
         return inspect.getargspec(f)
 
-    def _get_range_parameters(data):
+    def get_range_parameters(data):
         """Gets the start, stop, and step parameters from a range object"""
         # seems we only have indexing ops to infer
         # rather than direct accessors

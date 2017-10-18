@@ -6,7 +6,7 @@ Testing that functions from compat work as expected
 import pytest
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
-                           next, _get_range_parameters, PY2)
+                           next, get_range_parameters, PY2)
 
 
 class TestBuiltinIterators(object):
@@ -85,7 +85,7 @@ class TestCompatFunctions(object):
         else:
             start_expected, stop_expected, step_expected = start, stop, step
 
-        start_result, stop_result, step_result = _get_range_parameters(rng)
+        start_result, stop_result, step_result = get_range_parameters(rng)
         assert start_result == start_expected
         assert stop_result == stop_expected
         assert step_result == step_expected
