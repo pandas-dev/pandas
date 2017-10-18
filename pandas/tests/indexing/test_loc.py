@@ -423,14 +423,15 @@ class TestLoc(Base):
 
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
-        # GH16823
+        expected = DataFrame(columns=['x', 'y'])
+        expected['x'] = expected['x'].astype(np.int64)
         df = DataFrame(columns=['x', 'y'])
-        with tm.assert_raises_regex(ValueError, 'If using all scalar values'):
-            df.loc[:, 'x'] = 1
+        df.loc[:, 'x'] = 1
+        tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=['x', 'y'])
-        with tm.assert_raises_regex(ValueError, 'If using all scalar values'):
-            df['x'] = 1
+        df['x'] = 1
+        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
