@@ -2634,7 +2634,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         For python 3.6 and above, the columns are inserted in the order of
-        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        \*\*kwargs. For python 3.5 and earlier, since \*\*kwargs is unordered,
         the columns are inserted in alphabetical order at the end of your
         DataFrame.  Assigning multiple columns within the same ``assign``
         is possible, but you cannot reference other columns created within
