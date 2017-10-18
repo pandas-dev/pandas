@@ -766,6 +766,102 @@ class TestIndex(Base):
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
 
+    def test_union_sorting_false(self):
+
+        # GH 17839
+        dt_index = pd.DatetimeIndex(["20/12/2012", "15/05/2015", "1/1/2011", "1/7/2017"])
+        first = pd.Index([2, 0, 4, 3])
+        second = pd.Index([1, 4])
+        everything = pd.Index([2, 0, 4, 3, 1])
+        union = first.union(second, sort=False)
+        assert tm.equalContents(union, everything)
+
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case, sort=False)
+            assert tm.equalContents(result, everything)
+
+        # Corner cases
+        union = first.union(first, sort=False)
+        assert union is first
+
+        union = first.union([], sort=False)
+        assert union is first
+
+        union = Index([]).union(first, sort=False)
+        assert union is first
+
+        # preserve names
+        first = Index(list('ba'), name='A')
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index([], name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index([], name='A')
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'))
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index([])
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'))
+        second = Index([], name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index(list('ba'))
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index([])
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = Index([], name='A')
+        second = Index(list('ba'))
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = pd.Index([2, 0, 4, 3])
+        with tm.assert_produces_warning(RuntimeWarning):
+            firstCat = first.union(dt_index, sort=False)
+        secondCat = first.union(first, sort=False)
+
+        if dt_index.dtype == np.object_:
+            appended = np.append(first, dt_index)
+        else:
+            appended = np.append(first, dt_index.astype('O'))
+
+        assert tm.equalContents(firstCat, appended)
+        assert tm.equalContents(secondCat, first)
+        tm.assert_contains_all(first, firstCat)
+        tm.assert_contains_all(first, secondCat)
+        tm.assert_contains_all(dt_index, firstCat)
+
     def test_add(self):
         idx = self.strIndex
         expected = Index(self.strIndex.values * 2)
@@ -898,6 +994,7 @@ class TestIndex(Base):
 
     def test_difference_sorting_false(self):
 
+        # GH 17839
         first = pd.Index([2, 0, 4, 3])
         second = pd.Index([2, 1])
         answer = pd.Index([0, 4, 3])
