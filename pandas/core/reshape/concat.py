@@ -262,7 +262,10 @@ class _Concatenator(object):
         ndims = set()
         for obj in objs:
             if not isinstance(obj, NDFrame):
-                raise TypeError("cannot concatenate a non-NDFrame object")
+                msg = ('cannot concatenate object of type "{0}";'
+                       ' only pd.Series, pd.DataFrame, and pd.Panel'
+                       ' (deprecated) objs are valid'.format(type(obj)))
+                raise TypeError(msg)
 
             # consolidate
             obj._consolidate(inplace=True)
