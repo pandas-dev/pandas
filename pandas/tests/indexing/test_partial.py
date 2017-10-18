@@ -575,16 +575,24 @@ class TestPartialSetting(object):
     def test_partial_set_empty_frame_row(self):
         # GH5720, GH5744
         # don't create rows when empty
+        expected = DataFrame(columns=['A', 'B', 'New'],
+                             index=pd.Index([], dtype='int64'))
+        expected['A'] = expected['A'].astype('int64')
+        expected['B'] = expected['B'].astype('float64')
+        expected['New'] = expected['New'].astype('float64')
+
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
-        # GH16823
-        # Setting a column with a scalar and no index should raise
-        with tm.assert_raises_regex(ValueError, 'If using all scalar values'):
-            y['New'] = np.nan
+        y['New'] = np.nan
+        tm.assert_frame_equal(y, expected)
+        # tm.assert_frame_equal(y,expected)
 
+        expected = DataFrame(columns=['a', 'b', 'c c', 'd'])
+        expected['d'] = expected['d'].astype('int64')
         df = DataFrame(columns=['a', 'b', 'c c'])
-        with tm.assert_raises_regex(ValueError, 'If using all scalar values'):
-            df['d'] = 3
+        df['d'] = 3
+        tm.assert_frame_equal(df, expected)
+        tm.assert_series_equal(df['c c'], Series(name='c c', dtype=object))
 
         # reindex columns is ok
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
