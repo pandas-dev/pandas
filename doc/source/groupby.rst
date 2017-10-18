@@ -1165,6 +1165,55 @@ See the :ref:`visualization documentation<visualization.box>` for more.
   to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>` for
   an explanation.
 
+.. _groupby.pipe:
+
+Piping function calls
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.21.0
+
+Similar to the functionality provided by ``DataFrame`` and ``Series``, functions
+that take ``GroupBy`` objects can be chained together using a ``pipe`` method to
+allow for a cleaner, more readable syntax. To read about ``.pipe`` in general terms,
+see :ref:`here <basics.pipe>`.
+
+Combining ``.groupby`` and ``.pipe`` is often useful when you need to reuse
+GroupB objects.
+
+For an example, imagine having a DataFrame with columns for stores, products,
+revenue and sold quantity. We'd like to do a groupwise calculation of *prices*
+(i.e. revenue/quantity) per store and per product. We could do this in a
+multi-step operation, but expressing it in terms of piping can make the
+code more readable. First we set the data:
+
+.. ipython:: python
+
+   import numpy as np
+   n = 1000
+   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
+                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Quantity': np.random.randint(1, 10, size=n)})
+   df.head(2)
+
+Now, to find prices per store/product, we can simply do:
+
+.. ipython:: python
+
+   (df.groupby(['Store', 'Product'])
+      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .unstack().round(2))
+
+Piping can also be expressive when you want to deliver a grouped object to some
+arbitrary function, for example:
+
+.. code-block:: python
+
+   (df.groupby(['Store', 'Product']).pipe(report_func)
+
+where ``report_func`` takes a GroupBy object and creates a report
+from that.
+
 Examples
 --------
 

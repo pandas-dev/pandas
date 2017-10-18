@@ -40,7 +40,7 @@ from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index, _not_none, _get_callable_name,
-                                _asarray_tuplesafe)
+                                _asarray_tuplesafe, _pipe)
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
@@ -656,9 +656,10 @@ class _GroupBy(PandasObject, SelectionMixin):
     @Substitution(name='groupby')
     def apply(self, func, *args, **kwargs):
         """
-        Apply function and combine results together in an intelligent way. The
-        split-apply-combine combination rules attempt to be as common sense
-        based as possible. For example:
+        Apply function and combine results together in an intelligent way.
+
+        The split-apply-combine combination rules attempt to be as common
+        sense based as possible. For example:
 
         case 1:
         group DataFrame
@@ -692,7 +693,10 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         See also
         --------
-        aggregate, transform"""
+        pipe : Apply function to the full GroupBy object instead of to each
+            group.
+        aggregate, transform
+        """
 
         func = self._is_builtin_func(func)
 
@@ -1690,6 +1694,54 @@ class GroupBy(_GroupBy):
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
+
+    def pipe(self, func, *args, **kwargs):
+        """ Apply a function with arguments to this GroupBy object,
+
+        .. versionadded:: 0.21.0
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, string)
+            Function to apply to this GroupBy object or, alternatively, a
+            ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+            string indicating the keyword of ``callable`` that expects the
+            GroupBy object.
+        args : iterable, optional
+               positional arguments passed into ``func``.
+        kwargs : dict, optional
+                 a dictionary of keyword arguments passed into ``func``.
+
+        Returns
+        -------
+        object : the return type of ``func``.
+
+        Notes
+        -----
+        Use ``.pipe`` when chaining together functions that expect
+        Series, DataFrames or GroupBy objects. Instead of writing
+
+        >>> f(g(h(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+
+        You can write
+
+        >>> (df
+        ...    .groupby('group')
+        ...    .pipe(f, arg1)
+        ...    .pipe(g, arg2)
+        ...    .pipe(h, arg3))
+
+        See more `here
+        <http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+
+        See Also
+        --------
+        pandas.Series.pipe : Apply a function with arguments to a series
+        pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+        apply : Apply function to each group instead of to the
+            full GroupBy object.
+        """
+        return _pipe(self, func, *args, **kwargs)
 
 
 GroupBy._add_numeric_operations()

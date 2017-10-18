@@ -14,6 +14,8 @@ Highlights include:
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 - The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series``.
+  This allows for functions that take a ``GroupBy`` to be composed in a clean, readable syntax, see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -201,6 +203,43 @@ still the string ``'category'``. We'll take this moment to remind users that the
 :func:`pandas.api.types.is_categorical_dtype`, and not ``str(dtype) == 'category'``.
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
+
+.. _whatsnew_0210.enhancements.GroupBy_pipe:
+
+``GroupBy`` objects now have a ``pipe`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``GroupBy`` objects now have a ``pipe`` method, similar to the one on
+``DataFrame`` and ``Series``, that allow for functions that take a
+``GroupBy`` to be composed in a clean, readable syntax. (:issue:`17871`)
+
+For a concrete example on combining ``.groupby`` and ``.pipe`` , imagine having a
+DataFrame with columns for stores, products, revenue and sold quantity. We'd like to
+do a groupwise calculation of *prices* (i.e. revenue/quantity) per store and per product.
+We could do this in a multi-step operation, but expressing it in terms of piping can make the
+code more readable.
+
+First we set the data:
+
+.. ipython:: python
+
+   import numpy as np
+   n = 1000
+   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
+                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Quantity': np.random.randint(1, 10, size=n)})
+   df.head(2)
+
+Now, to find prices per store/product, we can simply do:
+
+.. ipython:: python
+
+   (df.groupby(['Store', 'Product'])
+      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .unstack().round(2))
+
+See the :ref:`documentation <groupby.pipe>` for more.
 
 .. _whatsnew_0210.enhancements.other:
 
