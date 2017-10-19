@@ -60,7 +60,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.compat import zip, u, OrderedDict, StringIO
+from pandas.compat import (
+    zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
 from pandas.core import accessor
@@ -3177,6 +3178,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         subarr = maybe_cast_to_datetime(subarr, dtype)
 
+    elif isinstance(data, range):
+        # GH 16804
+        start, stop, step = get_range_parameters(data)
+        arr = np.arange(start, stop, step, dtype='int64')
+        subarr = _try_cast(arr, False)
     else:
         subarr = _try_cast(data, False)
 
