@@ -657,11 +657,14 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A ``truncate`` convenience function is provided that is equivalent to slicing:
+A ``truncate`` convenience function is provided that is similar to slicing.
+Note that ``truncate`` assumes a 0 value for any unspecified date component
+in a ``DatetimeIndex`` in contrast to slicing which returns any partially
+matching dates:
 
 .. ipython:: python
 
-   ts.truncate(before='10/31/2011', after='12/31/2011')
+   ts.truncate(before='2011', after='2012')
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
 regularity will result in a ``DatetimeIndex``, although frequency is lost:
