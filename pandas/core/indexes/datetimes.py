@@ -1273,52 +1273,57 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         lower, upper: pd.Timestamp
 
         """
+        if parsed.tzinfo is None:
+            target_tz = self.tz
+        else:
+            target_tz = parsed.tzinfo
+
         if reso == 'year':
-            return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
+            return (Timestamp(datetime(parsed.year, 1, 1), tz=target_tz),
                     Timestamp(datetime(parsed.year, 12, 31, 23,
-                                       59, 59, 999999), tz=self.tz))
+                                       59, 59, 999999), tz=target_tz))
         elif reso == 'month':
             d = libts.monthrange(parsed.year, parsed.month)[1]
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=self.tz),
+                              tz=target_tz),
                     Timestamp(datetime(parsed.year, parsed.month, d, 23,
-                                       59, 59, 999999), tz=self.tz))
+                                       59, 59, 999999), target_tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = libts.monthrange(parsed.year, qe)[1]   # at end of month
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=self.tz),
+                              tz=target_tz),
                     Timestamp(datetime(parsed.year, qe, d, 23, 59,
-                                       59, 999999), tz=self.tz))
+                                       59, 999999), tz=target_tz))
         elif reso == 'day':
             st = datetime(parsed.year, parsed.month, parsed.day)
-            return (Timestamp(st, tz=self.tz),
+            return (Timestamp(st, tz=target_tz),
                     Timestamp(Timestamp(st + offsets.Day(),
-                                        tz=self.tz).value - 1))
+                                        tz=target_tz).value - 1))
         elif reso == 'hour':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
-            return (Timestamp(st, tz=self.tz),
+            return (Timestamp(st, tz=target_tz),
                     Timestamp(Timestamp(st + offsets.Hour(),
-                                        tz=self.tz).value - 1))
+                                        tz=target_tz).value - 1))
         elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
-            return (Timestamp(st, tz=self.tz),
+            return (Timestamp(st, tz=target_tz),
                     Timestamp(Timestamp(st + offsets.Minute(),
-                                        tz=self.tz).value - 1))
+                                        tz=target_tz).value - 1))
         elif reso == 'second':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute,
                           second=parsed.second)
-            return (Timestamp(st, tz=self.tz),
+            return (Timestamp(st, tz=target_tz),
                     Timestamp(Timestamp(st + offsets.Second(),
-                                        tz=self.tz).value - 1))
+                                        tz=target_tz).value - 1))
         elif reso == 'microsecond':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
                           parsed.microsecond)
-            return (Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz))
+            return (Timestamp(st, tz=target_tz), Timestamp(st, tz=target_tz))
         else:
             raise KeyError
 
