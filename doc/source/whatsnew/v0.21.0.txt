@@ -267,7 +267,7 @@ Other Enhancements
 - :func:`DataFrame.items` and :func:`Series.items` are now present in both Python 2 and 3 and is lazy in all cases. (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented as a convenience for :func:`Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
-- :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
+- :func:`Categorical.rename_categories` now accepts a dict-like argument as ``new_categories`` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
@@ -975,8 +975,8 @@ Indexing
 - Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
-- Bug in :func:`Series.rename` when called with a `callable`, incorrectly alters the name of the `Series`, rather than the name of the `Index`. (:issue:`17407`)
-- Bug in :func:`String.str_get` raises `index out of range` error instead of inserting NaNs when using a negative index. (:issue:`17704`)
+- Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
+- Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
 
 I/O
 ^^^
