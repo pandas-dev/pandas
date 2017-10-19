@@ -2975,8 +2975,8 @@ class DataFrame(NDFrame):
 
         ``DataFrame.rename`` supports two calling conventions
 
-        * ``(index=index_mapper, columns=columns_mapper, ...)
-        * ``(mapper, axis={'index', 'columns'}, ...)
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
