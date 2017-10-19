@@ -1205,7 +1205,7 @@ You may also use ``reindex`` with an ``axis`` keyword:
 
 .. ipython:: python
 
-   df.reindex(index=['c', 'f', 'b'], axis='index')
+   df.reindex(['c', 'f', 'b'], axis='index')
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the

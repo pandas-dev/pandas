@@ -833,9 +833,9 @@ cdef class _Period(object):
 
         Parameters
         ----------
-        freq : string or DateOffset, default is 'D' if self.freq is week or
-               longer and 'S' otherwise
-            Target frequency
+        freq : string or DateOffset
+            Target frequency. Default is 'D' if self.freq is week or
+            longer and 'S' otherwise
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
@@ -1067,46 +1067,48 @@ cdef class _Period(object):
         | ``%%``    | A literal ``'%'`` character.   |       |
         +-----------+--------------------------------+-------+
 
-        .. note::
+        Notes
+        -----
 
-            (1)
-                The ``%f`` directive is the same as ``%y`` if the frequency is
-                not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by
-                the :attr:`qyear` attribute.
+        (1)
+            The ``%f`` directive is the same as ``%y`` if the frequency is
+            not quarterly.
+            Otherwise, it corresponds to the 'fiscal' year, as defined by
+            the :attr:`qyear` attribute.
 
-            (2)
-                The ``%F`` directive is the same as ``%Y`` if the frequency is
-                not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by
-                the :attr:`qyear` attribute.
+        (2)
+            The ``%F`` directive is the same as ``%Y`` if the frequency is
+            not quarterly.
+            Otherwise, it corresponds to the 'fiscal' year, as defined by
+            the :attr:`qyear` attribute.
 
-            (3)
-                The ``%p`` directive only affects the output hour field
-                if the ``%I`` directive is used to parse the hour.
+        (3)
+            The ``%p`` directive only affects the output hour field
+            if the ``%I`` directive is used to parse the hour.
 
-            (4)
-                The range really is ``0`` to ``61``; this accounts for leap
-                seconds and the (very rare) double leap seconds.
+        (4)
+            The range really is ``0`` to ``61``; this accounts for leap
+            seconds and the (very rare) double leap seconds.
 
-            (5)
-                The ``%U`` and ``%W`` directives are only used in calculations
-                when the day of the week and the year are specified.
+        (5)
+            The ``%U`` and ``%W`` directives are only used in calculations
+            when the day of the week and the year are specified.
 
-        .. rubric::  Examples
+        Examples
+        --------
 
-            >>> a = Period(freq='Q@JUL', year=2006, quarter=1)
-            >>> a.strftime('%F-Q%q')
-            '2006-Q1'
-            >>> # Output the last month in the quarter of this date
-            >>> a.strftime('%b-%Y')
-            'Oct-2005'
-            >>>
-            >>> a = Period(freq='D', year=2001, month=1, day=1)
-            >>> a.strftime('%d-%b-%Y')
-            '01-Jan-2006'
-            >>> a.strftime('%b. %d, %Y was a %A')
-            'Jan. 01, 2001 was a Monday'
+        >>> a = Period(freq='Q@JUL', year=2006, quarter=1)
+        >>> a.strftime('%F-Q%q')
+        '2006-Q1'
+        >>> # Output the last month in the quarter of this date
+        >>> a.strftime('%b-%Y')
+        'Oct-2005'
+        >>>
+        >>> a = Period(freq='D', year=2001, month=1, day=1)
+        >>> a.strftime('%d-%b-%Y')
+        '01-Jan-2006'
+        >>> a.strftime('%b. %d, %Y was a %A')
+        'Jan. 01, 2001 was a Monday'
         """
         base, mult = get_freq_code(self.freq)
         return period_format(self.ordinal, base, fmt)
