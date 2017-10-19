@@ -649,6 +649,7 @@ The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.Ca
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    api.types.CategoricalDtype
 

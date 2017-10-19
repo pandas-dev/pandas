@@ -846,8 +846,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         ``DataFrame.rename`` supports two calling conventions
 
-        * ``(index=index_mapper, columns=columns_mapper, ...)
-        * ``(mapper, axis={'index', 'columns'}, ...)
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -2875,8 +2875,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         ``DataFrame.reindex`` supports two calling conventions
 
-        * ``(index=index_labels, columns=column_labels, ...)
-        * ``(labels, axis={'index', 'columns'}, ...)
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
