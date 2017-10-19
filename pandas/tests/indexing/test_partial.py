@@ -532,7 +532,7 @@ class TestPartialSetting(object):
 
         def f():
             df = DataFrame()
-            df['foo'] = Series(range(len(df)))
+            df['foo'] = Series(np.arange(len(df)), dtype='float64')
             return df
 
         tm.assert_frame_equal(f(), expected)

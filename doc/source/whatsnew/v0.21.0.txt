@@ -955,6 +955,7 @@ Conversion
 - Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
 - Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (`DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
 - Bug in :meth:`to_numeric` in which elements were not always being coerced to numeric when ``errors='coerce'`` (:issue:`17007`, :issue:`17125`)
+- Bug in ``DataFrame`` and ``Series`` constructors where ``range`` objects are converted to ``int32`` dtype on Windows instead of ``int64`` (:issue:`16804`)
 
 Indexing
 ^^^^^^^^
