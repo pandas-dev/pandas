@@ -1093,7 +1093,7 @@ class TestTimestamp(object):
 
         if PY3:
             dt = ts.to_pydatetime()
-            assert dt.timestamp() == ts.timestamp() - ts.nanoseconds
+            assert dt.timestamp() == ts.timestamp() - ts.nanosecond
 
 
 class TestTimestampNsOperations(object):
