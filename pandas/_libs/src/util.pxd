@@ -3,7 +3,6 @@ cimport numpy as cnp
 cimport cpython
 
 cdef extern from "numpy_helper.h":
-    void set_array_owndata(ndarray ao)
     void set_array_not_contiguous(ndarray ao)
 
     int is_integer_object(object)
@@ -16,7 +15,6 @@ cdef extern from "numpy_helper.h":
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
-    int floatify(object, double*) except -1
     char *get_c_string(object) except NULL
     object char_to_string(char*)
     void transfer_object_column(char *dst, char *src, size_t stride,
