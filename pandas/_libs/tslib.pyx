@@ -3719,7 +3719,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
-        int64_t v, left, right, delta
+        int64_t v, left, right
         ndarray[int64_t] result, result_a, result_b, dst_hours
         pandas_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
