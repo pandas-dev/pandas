@@ -338,8 +338,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         None if the conversion failed
         """
         if cache and is_list_like(arg) and len(arg) >= 1000:
-            unique_dates = algorithms.unique(arg)
-            if len(unique_dates) != len(arg):
+            # Perform a quicker unique check
+            from pandas import Index
+            if not Index(arg).is_unique:
+                unique_dates = algorithms.unique(arg)
                 from pandas import Series
                 cache_dates = _convert_listlike(unique_dates, True, format,
                                                 tz=tz)
