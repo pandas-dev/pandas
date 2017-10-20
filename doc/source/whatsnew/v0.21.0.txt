@@ -1049,6 +1049,7 @@ Reshaping
 - Bug in :func:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
 - Bug in ``DataFrame.drop_duplicates`` where dropping with non-unique column names raised a ``ValueError`` (:issue:`17836`)
 - Bug in :func:`unstack` which, when called on a list of levels, would discard the ``fillna`` argument (:issue:`13971`)
+- Bug in the alignment of ``range`` objects and other list-likes with ``DataFrame`` leading to operations being performed row-wise instead of column-wise (:issue:`17901`)
 
 Numeric
 ^^^^^^^
