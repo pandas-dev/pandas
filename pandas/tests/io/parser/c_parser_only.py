@@ -497,8 +497,8 @@ No,No,No"""
         df = self.read_csv(csv, low_memory=False)
         assert not df.empty
 
-    # Test for issue #16698
     def test_casting_boolean_nas(self):
+        # Test for issue #16698
         data = "c1,c2\nfalse,1\n,1"
         expected = DataFrame({'c1': [0.0, np.nan],
                               'c2': [1, 1]})
