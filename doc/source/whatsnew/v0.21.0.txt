@@ -978,6 +978,7 @@ Indexing
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 - Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
+- Bug in ``Series`` containing duplicate indexing when gets embedded non-orderables or orderables, raises error or returns unexpected result. (:issue:`17610`)
 
 I/O
 ^^^
