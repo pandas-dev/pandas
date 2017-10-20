@@ -21,7 +21,7 @@ import pandas.tseries.offsets as offsets
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
-from pandas._libs.tslibs.frequencies import (  # noqa
+from pandas._libs.tslibs.frequencies import (  # noqa:F811
     get_freq_code, _base_and_stride, _period_str_to_code,
     _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
     _period_code_map, _reverse_period_code_map, get_base_alias,
