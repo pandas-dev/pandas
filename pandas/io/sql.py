@@ -109,7 +109,10 @@ def _handle_date_column(col, utc=None, format=None):
               issubclass(col.dtype.type, np.integer)):
             # parse dates as timestamp
             format = 's' if format is None else format
-            return to_datetime(col, errors='coerce', unit=format, utc=utc)
+            if '%' in format:
+                return to_datetime(col, errors='coerce', format=format, utc=utc)
+            else:
+                return to_datetime(col, errors='coerce', unit=format, utc=utc)
         elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
             # GH11216
