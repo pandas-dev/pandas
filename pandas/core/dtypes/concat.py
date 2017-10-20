@@ -63,11 +63,12 @@ def get_dtype_kinds(l):
     return typs
 
 
-def _get_series_result_type(result):
+def _get_series_result_type(result, objs=None):
     """
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(is_sparse(c) for c in compat.itervalues(result)):
@@ -77,13 +78,12 @@ def _get_series_result_type(result):
             from pandas.core.frame import DataFrame
             return DataFrame
 
-    elif is_sparse(result):
-        # concat Series with axis 1
+    # otherwise it is a SingleBlockManager (axis = 0)
+    if result._block.is_sparse:
         from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
-        from pandas.core.series import Series
-        return Series
+        return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):

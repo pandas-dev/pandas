@@ -116,7 +116,9 @@ class TestPivotTable(object):
 
         result_false = df.pivot_table(index='B', columns='A', values='C',
                                       dropna=False)
-        expected_columns = Series(['a', 'b', 'c', 'd'], name='A')
+        expected_columns = (
+            Series(['a', 'b', 'c', 'd'], name='A').astype('category')
+        )
         expected_false = DataFrame([[0.0, 3.0, 6.0, np.NaN],
                                     [1.0, 4.0, 7.0, np.NaN],
                                     [2.0, 5.0, 8.0, np.NaN]],
@@ -1226,8 +1228,7 @@ class TestCrosstab(object):
         s2 = pd.Series([4, 5, 6], index=[4, 5, 6])
 
         actual = crosstab(s1, s2)
-        expected = pd.DataFrame(
-            index=pd.Index([], dtype='int64')).astype('int64')
+        expected = pd.DataFrame()
 
         tm.assert_frame_equal(actual, expected)
 

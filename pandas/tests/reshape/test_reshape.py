@@ -311,7 +311,7 @@ class TestGetDummies(object):
                             'a': {0: 1, 1: 0, 2: 0},
                             'b': {0: 0, 1: 1, 2: 0}},
                            dtype=np.uint8)
-        exp_na = exp_na.reindex_axis(['a', 'b', nan], 1)
+        exp_na = exp_na.reindex(['a', 'b', nan], axis=1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         assert_frame_equal(res_na, exp_na)
@@ -542,8 +542,8 @@ class TestGetDummies(object):
                                   2: 0},
                             nan: {0: 0,
                                   1: 0,
-                                  2: 1}}, dtype=np.uint8).reindex_axis(
-                                      ['b', nan], 1)
+                                  2: 1}}, dtype=np.uint8).reindex(
+                                      ['b', nan], axis=1)
         assert_frame_equal(res_na, exp_na)
 
         res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse,

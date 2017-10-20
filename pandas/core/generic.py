@@ -28,11 +28,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-
-from pandas.core.common import (_values_from_object,
-                                _maybe_box_datetimelike,
-                                SettingWithCopyError, SettingWithCopyWarning,
-                                AbstractMethodError)
+from pandas.core.common import (_all_not_none, _count_not_none,
+                                _maybe_box_datetimelike, _values_from_object,
+                                AbstractMethodError, SettingWithCopyError,
+                                SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -729,6 +728,51 @@ class NDFrame(PandasObject, SelectionMixin):
         result._data.set_axis(axis, labels.swaplevel(i, j))
         return result
 
+    def _validate_axis_style_args(self, arg, arg_name, axes,
+                                  axis, method_name):
+        out = {}
+        for i, value in enumerate(axes):
+            if value is not None:
+                out[self._AXIS_NAMES[i]] = value
+
+        aliases = ', '.join(self._AXIS_NAMES.values())
+        if axis is not None:
+            # Using "axis" style, along with a positional arg
+            # Both index and columns should be None then
+            axis = self._get_axis_name(axis)
+            if any(x is not None for x in axes):
+                msg = (
+                    "Can't specify both 'axis' and {aliases}. "
+                    "Specify either\n"
+                    "\t.{method_name}({arg_name}, axis=axis), or\n"
+                    "\t.{method_name}(index=index, columns=columns)"
+                ).format(arg_name=arg_name, method_name=method_name,
+                         aliases=aliases)
+                raise TypeError(msg)
+            out[axis] = arg
+
+        elif _all_not_none(arg, *axes):
+            msg = (
+                "Cannot specify all of '{arg_name}', {aliases}. "
+                "Specify either {arg_name} and 'axis', or {aliases}."
+            ).format(arg_name=arg_name, aliases=aliases)
+            raise TypeError(msg)
+
+        elif _all_not_none(arg, axes[0]):
+            # This is the "ambiguous" case, so emit a warning
+            msg = (
+                "Interpreting call to '.{method_name}(a, b)' as "
+                "'.{method_name}(index=a, columns=b)'. "  # TODO
+                "Use keyword arguments to remove any ambiguity."
+            ).format(method_name=method_name)
+            warnings.warn(msg, stacklevel=3)
+            out[self._AXIS_ORDERS[0]] = arg
+            out[self._AXIS_ORDERS[1]] = axes[0]
+        elif axes[0] is None:
+            # This is for the default axis, like reindex([0, 1])
+            out[self._AXIS_ORDERS[0]] = arg
+        return out
+
     # ----------------------------------------------------------------------
     # Rename
 
@@ -742,11 +786,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
+        %(optional_mapper)s
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
+        %(optional_axis)s
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -766,6 +812,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -787,27 +834,58 @@ class NDFrame(PandasObject, SelectionMixin):
         3    2
         5    3
         dtype: int64
+
+        Since ``DataFrame`` doesn't have a ``.name`` attribute,
+        only mapping-type arguments are allowed.
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(2)
         Traceback (most recent call last):
         ...
         TypeError: 'int' object is not callable
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
         >>> df.rename(index=str, columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
+
         >>> df.rename(index=str, columns={"A": "a", "C": "c"})
            a  B
         0  1  4
         1  2  5
         2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+
+        See the :ref:`user guide <basics.rename>` for more.
         """
 
     @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
-                                            ' object', klass='NDFrame'))
+                                            ' object', klass='NDFrame',
+                                            optional_mapper='',
+                                            optional_axis=''))
     def rename(self, *args, **kwargs):
-
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
@@ -859,17 +937,12 @@ class NDFrame(PandasObject, SelectionMixin):
     rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
-        """
-        Alter index and / or columns using input function or functions.
-        A scalar or list-like for ``mapper`` will alter the ``Index.name``
-        or ``MultiIndex.names`` attribute.
-        A function or dict for ``mapper`` will alter the labels.
-        Function / dict values must be unique (1-to-1). Labels not contained in
-        a dict / Series will be left as-is.
+        """Alter the name of the index or columns.
 
         Parameters
         ----------
-        mapper : scalar, list-like, dict-like or function, optional
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
         axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data
@@ -879,30 +952,35 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         renamed : type of caller or None if inplace=True
 
+        Notes
+        -----
+        Prior to version 0.21.0, ``rename_axis`` could also be used to change
+        the axis *labels* by passing a mapping or scalar. This behavior is
+        deprecated and will be removed in a future version. Use ``rename``
+        instead.
+
         See Also
         --------
-        pandas.NDFrame.rename
+        pandas.Series.rename, pandas.DataFrame.rename
         pandas.Index.rename
 
         Examples
         --------
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename_axis("foo")  # scalar, alters df.index.name
+        >>> df.rename_axis("foo")
              A  B
         foo
         0    1  4
         1    2  5
         2    3  6
-        >>> df.rename_axis(lambda x: 2 * x)  # function: alters labels
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-        >>> df.rename_axis({"A": "ehh", "C": "see"}, axis="columns")  # mapping
-           ehh  B
+
+        >>> df.rename_axis("bar", axis="columns")
+        bar  A  B
         0    1  4
         1    2  5
         2    3  6
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
@@ -910,6 +988,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if non_mapper:
             return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
+            msg = ("Using 'rename_axis' to alter labels is deprecated. "
+                   "Use '.rename' instead")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             axis = self._get_axis_name(axis)
             d = {'copy': copy, 'inplace': inplace}
             d[axis] = mapper
@@ -2137,6 +2218,7 @@ class NDFrame(PandasObject, SelectionMixin):
             selecting rows, "1" means that we are selecting columns, etc.
         convert : bool, default True
             .. deprecated:: 0.21.0
+               In the future, negative indices will always be converted.
 
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
@@ -2199,14 +2281,15 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['take'])
-    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-
-        if not convert:
+    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+        if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
             warnings.warn(msg, FutureWarning, stacklevel=2)
+        else:
+            convert = True
 
+        convert = nv.validate_take(tuple(), kwargs)
         return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
@@ -2387,9 +2470,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
             Maximum distance between labels of the other object and this
-            object for inexact matches.
+            object for inexact matches. Can be list-like.
 
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Notes
         -----
@@ -2746,10 +2830,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        %(axes)s : array-like, optional (can be specified in order, or as
-            keywords)
+        %(optional_labels)s
+        %(axes)s : array-like, optional (should be specified using keywords)
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
+        %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
             Please note: this is only  applicable to DataFrames/Series with a
@@ -2776,10 +2861,25 @@ class NDFrame(PandasObject, SelectionMixin):
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
         --------
+
+        ``DataFrame.reindex`` supports two calling conventions
+
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
 
         Create a dataframe with some fictional data.
 
@@ -2830,6 +2930,26 @@ class NDFrame(PandasObject, SelectionMixin):
         Comodo Dragon     missing       missing
         IE10                  404          0.08
         Chrome                200          0.02
+
+        We can also reindex the columns.
+
+        >>> df.reindex(columns=['http_status', 'user_agent'])
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        Or we can use "axis-style" keyword arguments
+
+        >>> df.reindex(['http_status', 'user_agent'], axis="columns")
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
 
         To further illustrate the filling functionality in
         ``reindex``, we will create a dataframe with a
@@ -2893,6 +3013,8 @@ class NDFrame(PandasObject, SelectionMixin):
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original dataframe, use the ``fillna()`` method.
 
+        See the :ref:`user guide <basics.reindexing>` for more.
+
         Returns
         -------
         reindexed : %(klass)s
@@ -2901,7 +3023,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # TODO: Decide if we care about having different examples for different
     #       kinds
 
-    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame"))
+    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame",
+                                             optional_labels="",
+                                             optional_axis=""))
     def reindex(self, *args, **kwargs):
 
         # construct the args
@@ -2912,6 +3036,11 @@ class NDFrame(PandasObject, SelectionMixin):
         limit = kwargs.pop('limit', None)
         tolerance = kwargs.pop('tolerance', None)
         fill_value = kwargs.pop('fill_value', np.nan)
+
+        # Series.reindex doesn't use / need the axis kwarg
+        # We pop and ignore it here, to make writing Series/Frame generic code
+        # easier
+        kwargs.pop("axis", None)
 
         if kwargs:
             raise TypeError('reindex() got an unexpected keyword '
@@ -2999,7 +3128,14 @@ class NDFrame(PandasObject, SelectionMixin):
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
         --------
@@ -3017,11 +3153,14 @@ class NDFrame(PandasObject, SelectionMixin):
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
+        msg = ("'.reindex_axis' is deprecated and will be removed in a future "
+               "version. Use '.reindex' instead.")
         self._consolidate_inplace()
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
         method = missing.clean_reindex_fill_method(method)
+        warnings.warn(msg, FutureWarning, stacklevel=3)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers({axis: [new_index, indexer]},
@@ -3126,7 +3265,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = sum([x is not None for x in [items, like, regex]])
+        nkw = _count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -3358,8 +3497,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the %(klass)s.
-        args : positional arguments passed into ``func``.
-        kwargs : a dictionary of keyword arguments passed into ``func``.
+        args : iterable, optional
+            positional arguments passed into ``func``.
+        kwargs : mapping, optional
+            a dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
@@ -3369,7 +3510,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
 
         Use ``.pipe`` when chaining together functions that expect
-        on Series or DataFrames. Instead of writing
+        Series, DataFrames or GroupBy objects. Instead of writing
 
         >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
 
@@ -3398,15 +3539,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        if isinstance(func, tuple):
-            func, target = func
-            if target in kwargs:
-                raise ValueError('%s is both the pipe target and a keyword '
-                                 'argument' % target)
-            kwargs[target] = self
-            return func(*args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
+        return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
     Aggregate using callable, string, dict, or list of string/callables
@@ -6990,7 +7123,7 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
+    Exclude NA/null values. If an entire row/column is NA or empty, the result
     will be NA
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a

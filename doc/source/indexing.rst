@@ -1509,18 +1509,6 @@ default value.
    s.get('a')               # equivalent to s['a']
    s.get('x', default=-1)
 
-The :meth:`~pandas.DataFrame.select` Method
--------------------------------------------
-
-Another way to extract slices from an object is with the ``select`` method of
-Series, DataFrame, and Panel. This method should be used only when there is no
-more direct way.  ``select`` takes a function which operates on labels along
-``axis`` and returns a boolean.  For instance:
-
-.. ipython:: python
-
-   df.select(lambda x: x == 'A', axis=1)
-
 The :meth:`~pandas.DataFrame.lookup` Method
 -------------------------------------------
 

@@ -45,7 +45,8 @@ from pandas.core.common import (is_bool_indexer,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
-                                standardize_mapping)
+                                standardize_mapping,
+                                _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -59,7 +60,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.compat import zip, u, OrderedDict, StringIO
+from pandas.compat import (
+    zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
 from pandas.core import accessor
@@ -85,7 +87,7 @@ _shared_doc_kwargs = dict(
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
-    optional_by='',
+    optional_by='', optional_mapper='', optional_labels='', optional_axis='',
     versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
 
 
@@ -147,7 +149,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['sortlevel', 'reshape', 'get_value', 'set_value'])
+        ['sortlevel', 'reshape', 'get_value', 'set_value', 'from_csv'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -713,7 +715,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if any(k is None for k in key):
+        if _any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
@@ -1780,6 +1782,44 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, 5, 6]))
+        >>> s
+        0    4
+        1    5
+        2    6
+        dtype: int64
+
+        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s.update(pd.Series(['d', 'e'], index=[0, 2]))
+        >>> s
+        0    d
+        1    b
+        2    e
+        dtype: object
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, 5, 6, 7, 8]))
+        >>> s
+        0    4
+        1    5
+        2    6
+        dtype: int64
+
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original Series.
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.update(pd.Series([4, np.nan, 6]))
+        >>> s
+        0    4
+        1    2
+        2    6
+        dtype: int64
+
         """
         other = other.reindex_like(self)
         mask = notna(other)
@@ -2525,8 +2565,67 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          limit=limit, fill_axis=fill_axis,
                                          broadcast_axis=broadcast_axis)
 
-    @Appender(generic._shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, index=None, **kwargs):
+        """Alter Series index labels or name
+
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is. Extra labels listed don't throw an
+        error.
+
+        Alternatively, change ``Series.name`` with a scalar value.
+
+        See the :ref:`user guide <basics.rename>` for more.
+
+        Parameters
+        ----------
+        index : scalar, hashable sequence, dict-like or function, optional
+            dict-like or functions are transformations to apply to
+            the index.
+            Scalar or hashable sequence-like will alter the ``Series.name``
+            attribute.
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new %(klass)s. If True then value of copy is
+            ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
+
+        Returns
+        -------
+        renamed : Series (new object)
+
+        See Also
+        --------
+        pandas.Series.rename_axis
+
+        Examples
+        --------
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.rename("my_name") # scalar, changes Series.name
+        0    1
+        1    2
+        2    3
+        Name: my_name, dtype: int64
+        >>> s.rename(lambda x: x ** 2)  # function, changes labels
+        0    1
+        1    2
+        4    3
+        dtype: int64
+        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
+        0    1
+        3    2
+        5    3
+        dtype: int64
+
+        """
         kwargs['inplace'] = validate_bool_kwarg(kwargs.get('inplace', False),
                                                 'inplace')
 
@@ -2556,6 +2655,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ for compatibility with higher dims """
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
+        msg = ("'.reindex_axis' is deprecated and will be removed in a future "
+               "version. Use '.reindex' instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         return self.reindex(index=labels, **kwargs)
 
     def memory_usage(self, index=True, deep=False):
@@ -2688,7 +2791,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None, infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -2736,6 +2839,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series
         """
+
+        # We're calling `DataFrame.from_csv` in the implementation,
+        # which will propagate a warning regarding `from_csv` deprecation.
         from pandas.core.frame import DataFrame
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
@@ -3072,6 +3178,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         subarr = maybe_cast_to_datetime(subarr, dtype)
 
+    elif isinstance(data, range):
+        # GH 16804
+        start, stop, step = get_range_parameters(data)
+        arr = np.arange(start, stop, step, dtype='int64')
+        subarr = _try_cast(arr, False)
     else:
         subarr = _try_cast(data, False)
 

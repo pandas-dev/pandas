@@ -2835,7 +2835,7 @@ class TestDataFramePlots(TestPlotBase):
         Series(rand(10)).plot(ax=cax)
 
         fig, ax = self.plt.subplots()
-        from mpl_toolkits.axes_grid.inset_locator import inset_axes
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         iax = inset_axes(ax, width="30%", height=1., loc=3)
         Series(rand(10)).plot(ax=ax)
         Series(rand(10)).plot(ax=iax)

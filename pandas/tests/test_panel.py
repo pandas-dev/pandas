@@ -172,7 +172,7 @@ class SafeForLongAndSparse(object):
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            if not tm._incompat_bottleneck_version(name):
+            if name in ['sum', 'prod']:
                 assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         pytest.raises(Exception, f, axis=obj.ndim)
@@ -1443,6 +1443,22 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 major=self.panel.major_axis, copy=False)
             assert_panel_equal(result, self.panel)
             assert result is self.panel
+
+    def test_reindex_axis_style(self):
+        with catch_warnings(record=True):
+            panel = Panel(np.random.rand(5, 5, 5))
+            expected0 = Panel(panel.values).iloc[[0, 1]]
+            expected1 = Panel(panel.values).iloc[:, [0, 1]]
+            expected2 = Panel(panel.values).iloc[:, :, [0, 1]]
+
+            result = panel.reindex([0, 1], axis=0)
+            assert_panel_equal(result, expected0)
+
+            result = panel.reindex([0, 1], axis=1)
+            assert_panel_equal(result, expected1)
+
+            result = panel.reindex([0, 1], axis=2)
+            assert_panel_equal(result, expected2)
 
     def test_reindex_multi(self):
         with catch_warnings(record=True):

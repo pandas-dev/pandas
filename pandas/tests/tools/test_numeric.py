@@ -381,3 +381,28 @@ class TestToNumeric(object):
         for dtype, downcast, min_max in dtype_downcast_min_max:
             series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
             assert series.dtype == dtype
+
+    def test_coerce_uint64_conflict(self):
+        # see gh-17007 and gh-17125
+        #
+        # Still returns float despite the uint64-nan conflict,
+        # which would normally force the casting to object.
+        df = pd.DataFrame({"a": [200, 300, "", "NaN", 30000000000000000000]})
+        expected = pd.Series([200, 300, np.nan, np.nan,
+                              30000000000000000000], dtype=float, name="a")
+        result = to_numeric(df["a"], errors="coerce")
+        tm.assert_series_equal(result, expected)
+
+        s = pd.Series(["12345678901234567890", "1234567890", "ITEM"])
+        expected = pd.Series([12345678901234567890,
+                              1234567890, np.nan], dtype=float)
+        result = to_numeric(s, errors="coerce")
+        tm.assert_series_equal(result, expected)
+
+        # For completeness, check against "ignore" and "raise"
+        result = to_numeric(s, errors="ignore")
+        tm.assert_series_equal(result, s)
+
+        msg = "Unable to parse string"
+        with tm.assert_raises_regex(ValueError, msg):
+            to_numeric(s, errors="raise")
