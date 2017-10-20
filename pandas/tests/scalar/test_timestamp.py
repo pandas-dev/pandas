@@ -1092,8 +1092,11 @@ class TestTimestamp(object):
         assert tsc.timestamp() == utsc.timestamp()
 
         if PY3:
+            # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
             assert dt.timestamp() == round(ts.timestamp(), 6)
+
+        pytest.raises(ValueError, NaT.timestamp)
 
 
 class TestTimestampNsOperations(object):
