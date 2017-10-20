@@ -196,7 +196,7 @@ With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a 
 
 .. ipython:: python
 
-   s = Series([np.nan])
+   s = pd.Series([np.nan])
 
    s.sum()
 

@@ -846,8 +846,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         ``DataFrame.rename`` supports two calling conventions
 
-        * ``(index=index_mapper, columns=columns_mapper, ...)
-        * ``(mapper, axis={'index', 'columns'}, ...)
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -2645,9 +2645,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
             Maximum distance between labels of the other object and this
-            object for inexact matches.
+            object for inexact matches. Can be list-like.
 
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Notes
         -----
@@ -3035,15 +3036,22 @@ class NDFrame(PandasObject, SelectionMixin):
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
         --------
 
         ``DataFrame.reindex`` supports two calling conventions
 
-        * ``(index=index_labels, columns=column_labels, ...)
-        * ``(labels, axis={'index', 'columns'}, ...)
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -3295,7 +3303,14 @@ class NDFrame(PandasObject, SelectionMixin):
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
             .. versionadded:: 0.17.0
+            .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
         --------
@@ -3657,8 +3672,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the %(klass)s.
-        args : positional arguments passed into ``func``.
-        kwargs : a dictionary of keyword arguments passed into ``func``.
+        args : iterable, optional
+            positional arguments passed into ``func``.
+        kwargs : mapping, optional
+            a dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
@@ -3668,7 +3685,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
 
         Use ``.pipe`` when chaining together functions that expect
-        on Series or DataFrames. Instead of writing
+        Series, DataFrames or GroupBy objects. Instead of writing
 
         >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
 
@@ -3697,15 +3714,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        if isinstance(func, tuple):
-            func, target = func
-            if target in kwargs:
-                raise ValueError('%s is both the pipe target and a keyword '
-                                 'argument' % target)
-            kwargs[target] = self
-            return func(*args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
+        return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
     Aggregate using callable, string, dict, or list of string/callables

@@ -1847,8 +1847,6 @@ _shared_docs['plot'] = """
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
     table : boolean, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.

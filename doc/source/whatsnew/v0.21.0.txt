@@ -14,6 +14,8 @@ Highlights include:
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 - The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series``.
+  This allows for functions that take a ``GroupBy`` to be composed in a clean, readable syntax, see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -202,6 +204,42 @@ still the string ``'category'``. We'll take this moment to remind users that the
 
 See the :ref:`CategoricalDtype docs <categorical.categoricaldtype>` for more.
 
+.. _whatsnew_0210.enhancements.GroupBy_pipe:
+
+``GroupBy`` objects now have a ``pipe`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``GroupBy`` objects now have a ``pipe`` method, similar to the one on
+``DataFrame`` and ``Series``, that allow for functions that take a
+``GroupBy`` to be composed in a clean, readable syntax. (:issue:`17871`)
+
+For a concrete example on combining ``.groupby`` and ``.pipe`` , imagine having a
+DataFrame with columns for stores, products, revenue and sold quantity. We'd like to
+do a groupwise calculation of *prices* (i.e. revenue/quantity) per store and per product.
+We could do this in a multi-step operation, but expressing it in terms of piping can make the
+code more readable.
+
+First we set the data:
+
+.. ipython:: python
+
+   import numpy as np
+   n = 1000
+   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
+                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Quantity': np.random.randint(1, 10, size=n)})
+   df.head(2)
+
+Now, to find prices per store/product, we can simply do:
+
+.. ipython:: python
+
+   (df.groupby(['Store', 'Product'])
+      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .unstack().round(2))
+
+See the :ref:`documentation <groupby.pipe>` for more.
 
 .. _whatsnew_0210.enhancements.merge_on_columns_and_levels:
 
@@ -260,12 +298,13 @@ Other Enhancements
 - :func:`DataFrame.items` and :func:`Series.items` are now present in both Python 2 and 3 and is lazy in all cases. (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented as a convenience for :func:`Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
-- :func:`Categorical.rename_categories` now accepts a dict-like argument as `new_categories` and only updates the categories found in that dict. (:issue:`17336`)
+- :func:`Categorical.rename_categories` now accepts a dict-like argument as ``new_categories`` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
 - Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
 - :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
+- :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -816,13 +855,12 @@ Other API Changes
 - :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
 - :class:`Period` is now immutable, and will now raise an ``AttributeError`` when a user tries to assign a new value to the ``ordinal`` or ``freq`` attributes (:issue:`17116`).
 - :func:`to_datetime` when passed a tz-aware ``origin=`` kwarg will now raise a more informative ``ValueError`` rather than a ``TypeError`` (:issue:`16842`)
+- :func:`to_datetime` now raises a ``ValueError`` when format includes ``%W`` or ``%U`` without also including day of the week and calendar year (:issue:`16774`)
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
 - Pandas no longer registers matplotlib converters on import. The converters
   will be registered and used when the first plot is draw (:issue:`17710`)
-- Setting on a column with a scalar value and 0-len index now raises a ``ValueError`` (:issue:`16823`)
-
 
 .. _whatsnew_0210.deprecations:
 
@@ -833,6 +871,7 @@ Deprecations
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 - :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
 - :func:`read_csv()` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
+- :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. Multi-index columns will be always written as rows in the CSV file (:issue:`17060`)
 - The ``convert`` parameter has been deprecated in the ``.take()`` method, as it was not being respected (:issue:`16948`)
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
@@ -947,6 +986,7 @@ Conversion
 - Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
 - Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (`DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
 - Bug in :meth:`to_numeric` in which elements were not always being coerced to numeric when ``errors='coerce'`` (:issue:`17007`, :issue:`17125`)
+- Bug in ``DataFrame`` and ``Series`` constructors where ``range`` objects are converted to ``int32`` dtype on Windows instead of ``int64`` (:issue:`16804`)
 
 Indexing
 ^^^^^^^^
@@ -967,8 +1007,8 @@ Indexing
 - Bug in intersection of ``RangeIndex`` with negative step (:issue:`17296`)
 - Bug in ``IntervalIndex`` where performing a scalar lookup fails for included right endpoints of non-overlapping monotonic decreasing indexes (:issue:`16417`, :issue:`17271`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
-- Bug in :func:`Series.rename` when called with a `callable`, incorrectly alters the name of the `Series`, rather than the name of the `Index`. (:issue:`17407`)
-- Bug in :func:`String.str_get` raises `index out of range` error instead of inserting NaNs when using a negative index. (:issue:`17704`)
+- Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
+- Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
 
 I/O
 ^^^
@@ -988,6 +1028,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` with ``notebook=True`` where DataFrames with named indices or non-MultiIndex indices had undesired horizontal or vertical alignment for column or row labels, respectively (:issue:`16792`)
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
+- Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
 
 Plotting
 ^^^^^^^^
@@ -1011,6 +1052,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.groupby`` where index and column keys were not recognized correctly when the number of keys equaled the number of elements on the groupby axis (:issue:`16859`)
 - Bug in ``groupby.nunique()`` with ``TimeGrouper`` which cannot handle ``NaT`` correctly (:issue:`17575`)
 - Bug in ``DataFrame.groupby`` where a single level selection from a ``MultiIndex`` unexpectedly sorts (:issue:`17537`)
+- Bug in ``DataFrame.groupby`` where spurious warning is raised when ``Grouper`` object is used to override ambiguous column name (:issue:`17383`)
 - Bug in ``TimeGrouper`` differs when passes as a list and as a scalar (:issue:`17530`)
 
 Sparse
@@ -1036,6 +1078,9 @@ Reshaping
 - Bug in :func:`concat` where order of result index was unpredictable if it contained non-comparable elements (:issue:`17344`)
 - Fixes regression when sorting by multiple columns on a ``datetime64`` dtype ``Series`` with ``NaT`` values (:issue:`16836`)
 - Bug in :func:`pivot_table` where the result's columns did not preserve the categorical dtype of ``columns`` when ``dropna`` was ``False`` (:issue:`17842`)
+- Bug in ``DataFrame.drop_duplicates`` where dropping with non-unique column names raised a ``ValueError`` (:issue:`17836`)
+- Bug in :func:`unstack` which, when called on a list of levels, would discard the ``fillna`` argument (:issue:`13971`)
+- Bug in the alignment of ``range`` objects and other list-likes with ``DataFrame`` leading to operations being performed row-wise instead of column-wise (:issue:`17901`)
 
 Numeric
 ^^^^^^^
@@ -1048,6 +1093,8 @@ Categorical
 - Bug in :func:`Series.isin` when called with a categorical (:issue:`16639`)
 - Bug in the categorical constructor with empty values and categories causing the ``.categories`` to be an empty ``Float64Index`` rather than an empty ``Index`` with object dtype (:issue:`17248`)
 - Bug in categorical operations with :ref:`Series.cat <categorical.cat>` not preserving the original Series' name (:issue:`17509`)
+- Bug in :func:`DataFrame.merge` failing for categorical columns with boolean/int data types (:issue:`17187`)
+- Bug in constructing a ``Categorical``/``CategoricalDtype`` when the specified ``categories`` are of categorical type (:issue:`17884`).
 
 .. _whatsnew_0210.pypy:
 
@@ -1065,3 +1112,4 @@ Other
 ^^^^^
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
+
