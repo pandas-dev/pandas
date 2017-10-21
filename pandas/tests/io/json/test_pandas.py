@@ -845,8 +845,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             index=df.index, columns=df.columns), df)
 
     @network
-    def test_url(self):
+    def test_url_encoded(self):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
+        result = read_json(url, convert_dates=True)
+        for c in ['created_at', 'closed_at', 'updated_at']:
+            assert result[c].dtype == 'datetime64[ns]'
+
+    @network
+    def test_url_unencoded(self):
+        url = ('https://api.github.com/repos/pandas-dev/pandas/issues?per_pag'
+               'e=5&test=fake parameter')
         result = read_json(url, convert_dates=True)
         for c in ['created_at', 'closed_at', 'updated_at']:
             assert result[c].dtype == 'datetime64[ns]'

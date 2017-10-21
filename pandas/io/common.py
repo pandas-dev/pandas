@@ -29,7 +29,7 @@ _NA_VALUES = set([
 
 
 if compat.PY3:
-    from urllib.request import urlopen, pathname2url
+    from urllib.request import urlopen, pathname2url, quote
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
@@ -38,7 +38,7 @@ if compat.PY3:
     from http.client import HTTPException  # noqa
 else:
     from urllib2 import urlopen as _urlopen
-    from urllib import urlencode, pathname2url  # noqa
+    from urllib import urlencode, pathname2url, quote  # noqa
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params, urljoin
     from urllib2 import URLError  # noqa
@@ -187,6 +187,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
+        filepath_or_buffer = quote(filepath_or_buffer, safe=';/?:@&=+$,')
         req = _urlopen(filepath_or_buffer)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
