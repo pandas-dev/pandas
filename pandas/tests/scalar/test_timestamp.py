@@ -1094,7 +1094,7 @@ class TestTimestamp(object):
         if PY3:
             # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
-            assert dt.timestamp() == round(ts.timestamp(), 6)
+            assert dt.timestamp() == ts.timestamp()
 
 
 class TestTimestampNsOperations(object):
