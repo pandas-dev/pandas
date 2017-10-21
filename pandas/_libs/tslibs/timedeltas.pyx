@@ -333,12 +333,6 @@ cdef class _Timedelta(timedelta):
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
 
-    def __hash__(_Timedelta self):
-        if self._has_ns():
-            return hash(self.value)
-        else:
-            return timedelta.__hash__(self)
-
     cpdef bint _has_ns(self):
         return self.value % 1000 != 0
 

@@ -2390,6 +2390,12 @@ from tslibs.timedeltas cimport _Timedelta as __Timedelta
 # heavy lifting.
 cdef class _Timedelta(__Timedelta):
 
+    def __hash__(_Timedelta self):
+        if self._has_ns():
+            return hash(self.value)
+        else:
+            return timedelta.__hash__(self)
+
     def __richcmp__(_Timedelta self, object other, int op):
         cdef:
             _Timedelta ots
