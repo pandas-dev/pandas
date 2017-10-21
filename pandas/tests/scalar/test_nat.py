@@ -123,6 +123,11 @@ def test_round_nat(klass):
             assert round_method(freq) is ts
 
 
+def test_timestamp():
+    # GH#17329
+    pytest.raises(ValueError, NaT.timestamp)
+
+
 def test_NaT_methods():
     # GH 9513
     raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
