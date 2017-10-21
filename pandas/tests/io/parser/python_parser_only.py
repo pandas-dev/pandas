@@ -19,6 +19,16 @@ from pandas.compat import StringIO, BytesIO, u
 
 class PythonParserTests(object):
 
+    def test_default_separator(self):
+        # GH17333
+        # csv.Sniffer in Python treats 'o' as separator.
+        text = 'aob\n1o2\n3o4'
+        expected = DataFrame({'a': [1, 3], 'b': [2, 4]})
+
+        result = self.read_csv(StringIO(text), sep=None)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_invalid_skipfooter(self):
         text = "a\n1\n2"
 
@@ -232,9 +242,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.read_csv(StringIO(data), header=0,
                                sep=None,
                                error_bad_lines=False,
-                               warn_bad_lines=True,
-                               engine='python',
-                               tupleize_cols=True)
+                               warn_bad_lines=True)
         tm.assert_frame_equal(result, expected)
 
     def test_skipfooter_bad_row(self):

@@ -641,12 +641,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def _maybe_convert_timedelta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        if isinstance(
+                other, (timedelta, np.timedelta64, offsets.Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
-                nanos = tslib._delta_to_nanoseconds(other)
+                if isinstance(other, np.ndarray):
+                    nanos = np.vectorize(tslib._delta_to_nanoseconds)(other)
+                else:
+                    nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
-                if nanos % offset_nanos == 0:
+                check = np.all(nanos % offset_nanos == 0)
+                if check:
                     return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
             freqstr = other.rule_code
@@ -782,7 +787,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             target = target.asi8
 
         if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, target)
         return Index.get_indexer(self._int64index, target, method,
                                  limit, tolerance)
 
@@ -825,7 +830,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             try:
                 ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
                 if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance)
+                    tolerance = self._convert_tolerance(tolerance,
+                                                        np.asarray(key))
                 return self._int64index.get_loc(ordinal, method, tolerance)
 
             except KeyError:
@@ -908,8 +914,12 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return slice(self.searchsorted(t1.ordinal, side='left'),
                      self.searchsorted(t2.ordinal, side='right'))
 
-    def _convert_tolerance(self, tolerance):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance)
+    def _convert_tolerance(self, tolerance, target):
+        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance,
+                                                             target)
+        if target.size != tolerance.size and tolerance.size > 1:
+            raise ValueError('list-like tolerance size must match '
+                             'target index size')
         return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):

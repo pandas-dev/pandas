@@ -27,7 +27,7 @@ from pandas.api.types import is_list_like
 from pandas.compat import range
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
-import pandas.core.common as com
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util._decorators import Appender
 try:
@@ -259,8 +259,7 @@ class Styler(object):
                     row_es.append(es)
                 head.append(row_es)
 
-        if self.data.index.names and not all(x is None
-                                             for x in self.data.index.names):
+        if self.data.index.names and _any_not_none(*self.data.index.names):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
@@ -1204,7 +1203,7 @@ def _get_level_lengths(index):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = com.sentinel_factory()
+    sentinel = sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if index.nlevels == 1:

@@ -721,6 +721,13 @@ class TestDataFrameIndexing(TestData):
                 df[df > df2] = 47
                 assert_frame_equal(df, df2)
 
+    def test_setitem_scalars_no_index(self):
+        # GH16823 / 17894
+        df = DataFrame()
+        df['foo'] = 1
+        expected = DataFrame(columns=['foo']).astype(np.int64)
+        assert_frame_equal(df, expected)
+
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue #11859
 
@@ -1930,8 +1937,12 @@ class TestDataFrameIndexing(TestData):
 
             actual = df.reindex_like(df, method=method, tolerance=0)
             assert_frame_equal(df, actual)
+            actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
+            assert_frame_equal(df, actual)
 
             actual = df.reindex(target, method=method, tolerance=1)
+            assert_frame_equal(expected, actual)
+            actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
             assert_frame_equal(expected, actual)
 
             e2 = expected[::-1]
@@ -1951,6 +1962,11 @@ class TestDataFrameIndexing(TestData):
 
         expected = pd.DataFrame({'x': [0, 1, 1, np.nan]}, index=target)
         actual = df.reindex(target, method='nearest', tolerance=0.2)
+        assert_frame_equal(expected, actual)
+
+        expected = pd.DataFrame({'x': [0, np.nan, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method='nearest',
+                            tolerance=[0.5, 0.01, 0.4, 0.1])
         assert_frame_equal(expected, actual)
 
     def test_reindex_frame_add_nat(self):

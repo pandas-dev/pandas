@@ -754,7 +754,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # adding a timedeltaindex to a datetimelike
         if other is libts.NaT:
             return self._nat_new(box=True)
-        raise TypeError("cannot add a datelike to a DatetimeIndex")
+        raise TypeError("cannot add {0} and {1}"
+                        .format(type(self).__name__,
+                                type(other).__name__))
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
@@ -1421,7 +1423,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         if isinstance(key, datetime):
             # needed to localize naive datetimes
@@ -1445,7 +1447,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             try:
                 stamp = Timestamp(key, tz=self.tz)
                 return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
+            except KeyError:
+                raise KeyError(key)
+            except ValueError as e:
+                # list-like tolerance size must match target index size
+                if 'list-like' in str(e):
+                    raise e
                 raise KeyError(key)
 
     def _maybe_cast_slice_bound(self, label, side, kind):

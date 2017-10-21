@@ -354,6 +354,14 @@ class TestFloat64Index(Numeric):
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
 
+        with pytest.raises(ValueError, match='must contain numeric elements'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array(['foo']))
+
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match target index size'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array([1, 2]))
+
     def test_get_loc_na(self):
         idx = Float64Index([np.nan, 1, 2])
         assert idx.get_loc(1) == 1

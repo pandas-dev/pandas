@@ -239,17 +239,17 @@ def test_groupby_blacklist(df_letters):
 def test_tab_completion(mframe):
     grp = mframe.groupby(level='second')
     results = set([v for v in dir(grp) if not v.startswith('_')])
-    expected = set(
-        ['A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
-         'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
-         'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
-         'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-         'nunique', 'head', 'describe', 'cummax', 'quantile',
-         'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
-         'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
-         'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-         'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-         'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
+    expected = {
+        'A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
+        'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
+        'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
+        'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
+        'nunique', 'head', 'describe', 'cummax', 'quantile',
+        'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
+        'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
+        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+        'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe'}
     assert results == expected
 
 

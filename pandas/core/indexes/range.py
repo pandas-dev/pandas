@@ -10,8 +10,9 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 
 from pandas import compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -83,7 +84,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None and stop is None and step is None:
+        if _all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:
@@ -112,24 +113,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        if compat.PY3:
-            step = data.step
-            stop = data.stop
-            start = data.start
-        else:
-            # seems we only have indexing ops to infer
-            # rather than direct accessors
-            if len(data) > 1:
-                step = data[1] - data[0]
-                stop = data[-1] + step
-                start = data[0]
-            elif len(data):
-                start = data[0]
-                stop = data[0] + 1
-                step = 1
-            else:
-                start = stop = 0
-                step = 1
+        start, stop, step = get_range_parameters(data)
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
