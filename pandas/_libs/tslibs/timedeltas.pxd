@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from cpython.datetime cimport timedelta
+
 from numpy cimport int64_t
 
 # Exposed for tslib, not intended for outside use.
@@ -14,3 +16,6 @@ cdef class _Timedelta(timedelta):
         object freq       # frequency reference
         bint is_populated # are my components populated
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
+
+    cpdef timedelta to_pytimedelta(_Timedelta self)
+    cpdef bint _has_ns(self)

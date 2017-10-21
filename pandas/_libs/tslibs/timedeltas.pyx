@@ -7,7 +7,10 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from cpython cimport PyUnicode_Check
 
+import numpy as np
+cimport numpy as np
 from numpy cimport int64_t
+np.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
                                PyDelta_Check, PyDateTime_IMPORT)
