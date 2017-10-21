@@ -28,9 +28,9 @@ cdef extern from "../src/datetime/np_datetime.h":
     int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
                                   pandas_datetimestruct *b)
 
-    npy_datetime pandas_datetimestruct_to_datetime(
-                                        PANDAS_DATETIMEUNIT fr,
-                                        pandas_datetimestruct *d) nogil
+    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
+                                                   pandas_datetimestruct *d
+                                                   ) nogil
 
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            PANDAS_DATETIMEUNIT fr,
