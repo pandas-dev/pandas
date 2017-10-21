@@ -767,7 +767,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise TypeError("DatetimeIndex subtraction must have the same "
                                 "timezones or no timezones")
             result = self._sub_datelike_dti(other)
-        elif isinstance(other, (libts.Timestamp, datetime)):
+        elif isinstance(other, datetime):
             other = Timestamp(other)
             if other is libts.NaT:
                 result = self._nat_new(box=False)
