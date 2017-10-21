@@ -5362,9 +5362,13 @@ class NDFrame(PandasObject, SelectionMixin):
             the offset string or object representing target conversion
         axis : int, optional, default 0
         closed : {'right', 'left'}
-            Which side of bin interval is closed
+            Which side of bin interval is closed. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {'right', 'left'}
-            Which bin edge label to label bucket with
+            Which bin edge label to label bucket with. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}
             For PeriodIndex only, controls whether to use the start or end of
             `rule`
@@ -5424,7 +5428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         value in the bucket used as the label is not included in the bucket,
         which it labels. For example, in the original series the
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
-        value in the resampled bucket with the label``2000-01-01 00:03:00``
+        value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
         To include this value close the right side of the bin interval as
         illustrated in the example below this one.
