@@ -6324,9 +6324,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
-        """Truncates a sorted NDFrame before and/or after some particular
-        index value. If the axis contains only datetime values, before/after
-        parameters are converted to datetime values.
+        """
+        Truncates a sorted DataFrame/Series before and/or after some
+        particular index value. If the axis contains only datetime values,
+        before/after parameters are converted to datetime values.
 
         Parameters
         ----------
@@ -6335,6 +6336,7 @@ class NDFrame(PandasObject, SelectionMixin):
         after : date, string, int
             Truncate all rows after this index value
         axis : {0 or 'index', 1 or 'columns'}
+
             * 0 or 'index': apply truncation to rows
             * 1 or 'columns': apply truncation to columns
             Default is stat axis for given data type (0 for Series and
@@ -6372,16 +6374,16 @@ class NDFrame(PandasObject, SelectionMixin):
         date component in a ``DatetimeIndex`` in contrast to slicing which
         returns any partially matching dates.
 
-        >>> dates = pd.date_range('2016-1-1', '2016-2-1', freq='s')
+        >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
         >>> df = pd.DataFrame(index=dates, data={'A': 1})
-        >>> df.truncate('2016-1-5', '2016-1-10').tail()
+        >>> df.truncate('2016-01-05', '2016-01-10').tail()
                              A
         2016-01-09 23:59:56  1
         2016-01-09 23:59:57  1
         2016-01-09 23:59:58  1
         2016-01-09 23:59:59  1
         2016-01-10 00:00:00  1
-        >>> df.loc['2016-1-5':'2016-1-10', :].tail()
+        >>> df.loc['2016-01-05':'2016-01-10', :].tail()
                              A
         2016-01-10 23:59:55  1
         2016-01-10 23:59:56  1

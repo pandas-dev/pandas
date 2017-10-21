@@ -664,14 +664,18 @@ matching dates:
 
 .. ipython:: python
 
-   ts.truncate(before='2011', after='2012')
+   rng2 = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+   ts2 = pd.Series(np.random.randn(len(rng2)), index=rng2)
+
+   ts2.truncate(before='2011-11', after='2011-12')
+   ts2['2011-11':'2011-12']
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
 regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts[[0, 2, 6]].index
+   ts2[[0, 2, 6]].index
 
 .. _timeseries.components:
 
