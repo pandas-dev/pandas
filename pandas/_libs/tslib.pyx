@@ -1407,7 +1407,7 @@ cdef class _Timestamp(datetime):
     def timestamp(self):
         """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
-        return self.value / 1e9
+        return round(self.value / 1e9, 6)
 
 
 cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
