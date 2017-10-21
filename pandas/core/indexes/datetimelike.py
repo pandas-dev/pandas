@@ -24,8 +24,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
-from pandas._libs import (tslib as libts, lib,
-                          Timedelta, Timestamp, iNaT, NaT)
+from pandas._libs import (tslib as libts, lib, iNaT, NaT)
 from pandas._libs.period import Period
 
 from pandas.core.indexes.base import Index, _index_shared_docs
