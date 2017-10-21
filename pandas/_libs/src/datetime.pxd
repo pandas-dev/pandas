@@ -5,12 +5,6 @@ from cpython cimport PyObject
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
 
 
-cdef extern from "headers/stdint.h":
-    enum: INT64_MIN
-    enum: INT32_MIN
-
-
-
 cdef extern from "datetime.h":
 
     ctypedef class datetime.date [object PyDateTime_Date]:
