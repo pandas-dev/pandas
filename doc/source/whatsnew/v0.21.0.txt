@@ -998,6 +998,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
 - Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
+- Bug in :func:`read_json` where all utf-8 characters were not encoded properly when reading json data from a url (:issue:`17918`)
 
 Plotting
 ^^^^^^^^
