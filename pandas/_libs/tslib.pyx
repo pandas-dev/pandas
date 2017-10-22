@@ -30,6 +30,7 @@ from util cimport (is_integer_object, is_float_object, is_datetime64_object,
                    is_timedelta64_object, INT64_MAX)
 cimport util
 
+from cpython.datetime cimport PyTZInfo_Check
 # this is our datetime.pxd
 from datetime cimport (
     pandas_datetimestruct,
@@ -68,7 +69,7 @@ from .tslibs.parsing import parse_datetime_string
 
 cimport cython
 
-from pandas.compat import iteritems, callable
+from pandas.compat import iteritems
 
 import collections
 import warnings
@@ -373,8 +374,24 @@ class Timestamp(_Timestamp):
                           FutureWarning)
             freq = offset
 
+        if tzinfo is not None:
+            if not PyTZInfo_Check(tzinfo):
+                # tzinfo must be a datetime.tzinfo object, GH#17690
+                raise TypeError('tzinfo must be a datetime.tzinfo object, '
+                                'not %s' % type(tzinfo))
+            elif tz is not None:
+                raise ValueError('Can provide at most one of tz, tzinfo')
+            elif ts_input is not _no_input:
+                raise ValueError('When creating a Timestamp with this type '
+                                 'of inputs, the `tzfinfo` argument is '
+                                 'ignored.  Use `tz` instead.')
+
         if ts_input is _no_input:
             # User passed keyword arguments.
+            if tz is not None:
+                raise ValueError('When creating a Timestamp from component '
+                                 'elements, the `tz` argument is ignored.  '
+                                 'Use `tzinfo` instead.')
             return Timestamp(datetime(year, month, day, hour or 0,
                                       minute or 0, second or 0,
                                       microsecond or 0, tzinfo),
