@@ -3,6 +3,7 @@ Table Schema builders
 
 http://specs.frictionlessdata.io/json-table-schema/
 """
+from pandas.core.common import _all_not_none
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
     is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -61,7 +62,7 @@ def as_json_table_type(x):
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
-    if all(name is not None for name in data.index.names):
+    if _all_not_none(*data.index.names):
         return data
 
     data = data.copy()

@@ -258,8 +258,12 @@ class TestDataFrameConstructors(TestData):
         # Dict with None value
         frame_none = DataFrame(dict(a=None), index=[0])
         frame_none_list = DataFrame(dict(a=[None]), index=[0])
-        assert frame_none.get_value(0, 'a') is None
-        assert frame_none_list.get_value(0, 'a') is None
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert frame_none.get_value(0, 'a') is None
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert frame_none_list.get_value(0, 'a') is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
         # GH10856
@@ -509,7 +513,9 @@ class TestDataFrameConstructors(TestData):
         data = {}
         for col in df.columns:
             for row in df.index:
-                data.setdefault(col, {})[row] = df.get_value(row, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    data.setdefault(col, {})[row] = df.get_value(row, col)
 
         result = DataFrame(data, columns=rng)
         tm.assert_frame_equal(result, df)
@@ -517,7 +523,9 @@ class TestDataFrameConstructors(TestData):
         data = {}
         for col in df.columns:
             for row in df.index:
-                data.setdefault(row, {})[col] = df.get_value(row, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    data.setdefault(row, {})[col] = df.get_value(row, col)
 
         result = DataFrame(data, index=rng).T
         tm.assert_frame_equal(result, df)
@@ -821,7 +829,7 @@ class TestDataFrameConstructors(TestData):
 
         # GH 4851
         # list of 0-dim ndarrays
-        expected = DataFrame({0: range(10)})
+        expected = DataFrame({0: np.arange(10)})
         data = [np.array(x) for x in range(10)]
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
@@ -1918,6 +1926,13 @@ class TestDataFrameConstructors(TestData):
 
         result = DataFrame(Series(name=0)).dtypes
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
+    def test_constructor_range_dtype(self, dtype):
+        # GH 16804
+        expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype=dtype or 'int64')
+        result = DataFrame({'A': range(5)}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorWithDatetimeTZ(TestData):

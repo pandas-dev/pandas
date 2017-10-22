@@ -8,7 +8,7 @@ matplotlib
 openpyxl
 xlrd
 sqlalchemy
-lxml=3.2.1
+lxml
 scipy
 xlsxwriter
 s3fs

@@ -800,13 +800,17 @@ class TestSeriesIndexing(TestData):
 
     def test_set_value(self):
         idx = self.ts.index[10]
-        res = self.ts.set_value(idx, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.ts.set_value(idx, 0)
         assert res is self.ts
         assert self.ts[idx] == 0
 
         # equiv
         s = self.series.copy()
-        res = s.set_value('foobar', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = s.set_value('foobar', 0)
         assert res is s
         assert res.index[-1] == 'foobar'
         assert res['foobar'] == 0
@@ -1091,6 +1095,17 @@ class TestSeriesIndexing(TestData):
 
         with tm.assert_produces_warning(FutureWarning):
             s.take([-1, 3, 4], convert=False)
+
+    def test_where_raise_on_error_deprecation(self):
+
+        # gh-14968
+        # deprecation of raise_on_error
+        s = Series(np.random.randn(5))
+        cond = s > 0
+        with tm.assert_produces_warning(FutureWarning):
+            s.where(cond, raise_on_error=True)
+        with tm.assert_produces_warning(FutureWarning):
+            s.mask(cond, raise_on_error=True)
 
     def test_where(self):
         s = Series(np.random.randn(5))
@@ -2102,9 +2117,17 @@ class TestSeriesIndexing(TestData):
 
         actual = s.reindex_like(actual, method='nearest', tolerance=1)
         assert_series_equal(expected, actual)
+        actual = s.reindex_like(actual, method='nearest',
+                                tolerance=[1, 2, 3, 4])
+        assert_series_equal(expected, actual)
 
         actual = s.reindex(target, method='nearest', tolerance=0.2)
         expected = Series([0, 1, np.nan, 2], target)
+        assert_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest',
+                           tolerance=[0.3, 0.01, 0.4, 3])
+        expected = Series([0, np.nan, np.nan, 2], target)
         assert_series_equal(expected, actual)
 
     def test_reindex_backfill(self):
@@ -2632,8 +2655,12 @@ class TestDatetimeIndexing(object):
         dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
         index = DatetimeIndex(dates)
 
-        s = Series().set_value(dates[0], 1.)
-        s2 = s.set_value(dates[1], np.nan)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s = Series().set_value(dates[0], 1.)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s2 = s.set_value(dates[1], np.nan)
 
         exp = Series([1., np.nan], index=index)
 

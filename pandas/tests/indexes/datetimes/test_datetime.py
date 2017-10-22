@@ -41,10 +41,17 @@ class TestDatetimeIndex(object):
                            tolerance=np.timedelta64(1, 'D')) == 1
         assert idx.get_loc('2000-01-01T12', method='nearest',
                            tolerance=timedelta(1)) == 1
-        with tm.assert_raises_regex(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError,
+                                    'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-01T03', method='nearest', tolerance='2 hours')
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match target index size'):
+            idx.get_loc('2000-01-01', method='nearest',
+                        tolerance=[pd.Timedelta('1day').to_timedelta64(),
+                                   pd.Timedelta('1day').to_timedelta64()])
 
         assert idx.get_loc('2000', method='nearest') == slice(0, 3)
         assert idx.get_loc('2000-01', method='nearest') == slice(0, 3)
@@ -93,6 +100,19 @@ class TestDatetimeIndex(object):
             idx.get_indexer(target, 'nearest',
                             tolerance=pd.Timedelta('1 hour')),
             np.array([0, -1, 1], dtype=np.intp))
+        tol_raw = [pd.Timedelta('1 hour'),
+                   pd.Timedelta('1 hour'),
+                   pd.Timedelta('1 hour').to_timedelta64(), ]
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, 'nearest',
+                            tolerance=[np.timedelta64(x) for x in tol_raw]),
+            np.array([0, -1, 1], dtype=np.intp))
+        tol_bad = [pd.Timedelta('2 hour').to_timedelta64(),
+                   pd.Timedelta('1 hour').to_timedelta64(),
+                   'foo', ]
+        with pytest.raises(
+                ValueError, match='abbreviation w/o a number'):
+            idx.get_indexer(target, 'nearest', tolerance=tol_bad)
         with pytest.raises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
