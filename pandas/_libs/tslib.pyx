@@ -2456,7 +2456,7 @@ def _binary_op_method_timedeltalike(op, name):
                 return NotImplemented
             return op(self.to_timedelta64(), other)
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         if other is NaT:
@@ -2480,6 +2480,19 @@ def _op_unary_method(func, name):
         return Timedelta(func(self.value), unit='ns')
     f.__name__ = name
     return f
+
+
+cdef bint _validate_ops_compat(other):
+    # return True if we are compat with operating
+    if _checknull_with_nat(other):
+        return True
+    elif PyDelta_Check(other) or is_timedelta64_object(other):
+        return True
+    elif util.is_string_object(other):
+        return True
+    elif hasattr(other, 'delta'):
+        return True
+    return False
 
 
 # Python front end to C extension type _Timedelta
@@ -2629,19 +2642,6 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _validate_ops_compat(self, other):
-
-        # return True if we are compat with operating
-        if _checknull_with_nat(other):
-            return True
-        elif PyDelta_Check(other) or is_timedelta64_object(other):
-            return True
-        elif util.is_string_object(other):
-            return True
-        elif hasattr(other, 'delta'):
-            return True
-        return False
-
     __add__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__add__')
     __radd__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__radd__')
     __sub__ = _binary_op_method_timedeltalike(lambda x, y: x - y, '__sub__')
@@ -2673,7 +2673,7 @@ class Timedelta(_Timedelta):
         if is_integer_object(other) or is_float_object(other):
             return Timedelta(self.value /other, unit='ns')
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2685,7 +2685,7 @@ class Timedelta(_Timedelta):
         if hasattr(other, 'dtype'):
             return other / self.to_timedelta64()
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2710,7 +2710,7 @@ class Timedelta(_Timedelta):
         if is_integer_object(other):
             return Timedelta(self.value // other, unit='ns')
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2725,7 +2725,7 @@ class Timedelta(_Timedelta):
             other = other.astype('m8[ns]').astype('i8')
             return other // self.value
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
