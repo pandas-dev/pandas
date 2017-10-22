@@ -1491,22 +1491,24 @@ labels.
 
    ts.resample('5Min', label='left', loffset='1s').mean()
 
-It is important to note that the default values for ``label`` and ``closed``
-is 'left' for all frequency offsets except for 'M', 'A', 'Q', 'BM',
-'BA', 'BQ', and 'W' which all have a default of 'right'.
+.. note::
 
-.. ipython:: python
+    The default values for ``label`` and ``closed`` is 'left' for all 
+    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' 
+    which all have a default of 'right'.
 
-   rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
-   ts2 = pd.Series(range(len(rng2)), index=rng2)
+    .. ipython:: python
 
-   # default: label='right', closed='right'
-   ts2.resample('M').max()
+       rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
+       ts2 = pd.Series(range(len(rng2)), index=rng2)
 
-   # default: label='left', closed='left'
-   ts2.resample('SM').max()
+       # default: label='right', closed='right'
+       ts2.resample('M').max()
 
-   ts2.resample('SM', label='right', closed='right').max()
+       # default: label='left', closed='left'
+       ts2.resample('SM').max()
+
+       ts2.resample('SM', label='right', closed='right').max()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
