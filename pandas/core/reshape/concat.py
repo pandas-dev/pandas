@@ -66,6 +66,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Returns
     -------
     concatenated : object, type of objs
+        When concatenating all ``Series`` along the index, a ``Series`` is
+        returned. When ``objs`` includes at least one ``DataFrame`` or when
+        concatenating along the columns, a ``DataFrame`` is returned.
 
     Notes
     -----
