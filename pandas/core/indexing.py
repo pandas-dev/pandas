@@ -23,7 +23,7 @@ import pandas.core.common as com
 from pandas.core.common import (is_bool_indexer, _asarray_tuplesafe,
                                 is_null_slice, is_full_slice,
                                 _values_from_object)
-from pandas._libs.lib import _NDFrameIndexerBase
+from pandas._libs.indexing import _NDFrameIndexerBase
 
 
 # the supported indexers

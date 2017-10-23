@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 import collections
+import functools
 import warnings
 import operator
 import weakref
@@ -1841,10 +1842,8 @@ class NDFrame(PandasObject, SelectionMixin):
     @classmethod
     def _create_indexer(cls, name, indexer):
         """Create an indexer like _name in the class."""
-        from functools import partial
-
         if getattr(cls, name, None) is None:
-            _indexer = partial(indexer, name)
+            _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
 
     def get(self, key, default=None):
