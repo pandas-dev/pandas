@@ -206,28 +206,28 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     Parameters
     ----------
     table_name : string
-        Name of SQL table in database
+        Name of SQL table in database.
     con : SQLAlchemy connectable (or database string URI)
-        Sqlite DBAPI connection mode not supported
+        SQLite DBAPI connection mode not supported.
     schema : string, default None
         Name of SQL schema in database to query (if database flavor
         supports this). If None, use default schema (default).
     index_col : string or list of strings, optional, default: None
-        Column(s) to set as index(MultiIndex)
+        Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
-        Attempt to convert values of non-string, non-numeric objects (like
+        Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
     parse_dates : list or dict, default: None
-        - List of column names to parse as dates
+        - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
-          (D, s, ns, ms, us) in case of parsing integer timestamps
+          (D, s, ns, ms, us) in case of parsing integer timestamps.
         - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
-          such as SQLite
+          such as SQLite.
     columns : list, default: None
-        List of column names to select from sql table
+        List of column names to select from SQL table
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
         rows to include in each chunk.
