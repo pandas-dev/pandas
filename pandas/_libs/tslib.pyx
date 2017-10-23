@@ -383,7 +383,7 @@ class Timestamp(_Timestamp):
                 raise ValueError('Can provide at most one of tz, tzinfo')
             elif ts_input is not _no_input:
                 raise ValueError('When creating a Timestamp with this type '
-                                 'of inputs, the `tzfinfo` argument is '
+                                 'of inputs, the `tzinfo` argument is '
                                  'ignored.  Use `tz` instead.')
 
         if ts_input is _no_input:
