@@ -24,8 +24,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
-from pandas._libs import (tslib as libts, lib,
-                          Timedelta, Timestamp, iNaT, NaT)
+from pandas._libs import (tslib as libts, lib, iNaT, NaT)
 from pandas._libs.period import Period
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -649,13 +648,11 @@ class DatetimeIndexOpsMixin(object):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}"
                                 .format(typ=type(other)))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
-                                    Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (Index, Timestamp, datetime,
-                                    np.datetime64)):
+            elif isinstance(other, (Index, datetime, np.datetime64)):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
@@ -680,12 +677,11 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
-                                    Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
-            elif isinstance(other, (Timestamp, datetime)):
+            elif isinstance(other, datetime):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
