@@ -584,7 +584,6 @@ class TestTimestamp(object):
 
     def test_to_datetime_depr(self):
         # see gh-8254
-        assert False
         ts = Timestamp('2011-01-01')
 
         with tm.assert_produces_warning(FutureWarning,
@@ -594,7 +593,6 @@ class TestTimestamp(object):
             assert result == expected
 
     def test_to_pydatetime_nonzero_nano(self):
-        assert False
         ts = Timestamp('2011-01-01 9:00:00.123456789')
 
         # Warn the user of data loss (nanoseconds).
