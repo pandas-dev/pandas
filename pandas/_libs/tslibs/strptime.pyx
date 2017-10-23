@@ -33,7 +33,7 @@ from numpy cimport ndarray, int64_t
 from datetime import date as datetime_date
 from datetime cimport datetime
 
-from np_datetime cimport (check_dts_bounds,
+from np_datetime cimport (_check_dts_bounds,
                           dtstruct_to_dt64, pandas_datetimestruct)
 
 from util cimport is_string_object, get_nat
@@ -331,7 +331,7 @@ def array_strptime(ndarray[object] values, object fmt,
 
         iresult[i] = dtstruct_to_dt64(&dts)
         try:
-            check_dts_bounds(&dts)
+            _check_dts_bounds(&dts)
         except ValueError:
             if is_coerce:
                 iresult[i] = NPY_NAT

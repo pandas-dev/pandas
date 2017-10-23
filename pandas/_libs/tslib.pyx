@@ -57,7 +57,7 @@ from datetime cimport (
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
 
-from tslibs.np_datetime cimport check_dts_bounds as _check_dts_bounds
+from tslibs.np_datetime cimport _check_dts_bounds
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (
