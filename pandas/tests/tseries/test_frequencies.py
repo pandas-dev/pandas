@@ -528,11 +528,14 @@ class TestFrequencyCode(object):
         expected = offsets.Minute(5)
         assert result == expected
 
-        pytest.raises(ValueError, frequencies.get_freq_code, (5, 'baz'))
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.get_freq_code((5, 'baz'))
 
-        pytest.raises(ValueError, frequencies.to_offset, '100foo')
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.to_offset('100foo')
 
-        pytest.raises(ValueError, frequencies.to_offset, ('', ''))
+        with tm.assert_raises_regex(ValueError, 'Could not evaluate'):
+            frequencies.to_offset(('', ''))
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = frequencies.get_standard_freq(offsets.Hour())
