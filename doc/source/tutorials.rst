@@ -155,7 +155,7 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 Modern Pandas
 -------------
 
-- `Modern Pandas <http://tomaugspurger.github.io/modern-1.html>`_
+- `Modern Pandas <http://tomaugspurger.github.io/modern-1-intro.html>`_
 - `Method Chaining <http://tomaugspurger.github.io/method-chaining.html>`_
 - `Indexes <http://tomaugspurger.github.io/modern-3-indexes.html>`_
 - `Performance <http://tomaugspurger.github.io/modern-4-performance.html>`_
