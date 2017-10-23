@@ -180,13 +180,13 @@ class TestTimestamp(object):
         with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
             Timestamp('2017-10-22', tzinfo='US/Eastern')
 
-        with tm.assert_raises_regex(TypeError, 'at most one of'):
+        with tm.assert_raises_regex(ValueError, 'at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
 
-        with tm.assert_raises_regex(TypeError, 'Use `tzinfo` instead'):
+        with tm.assert_raises_regex(ValueError, 'Use `tzinfo` instead'):
             Timestamp(year=2017, month=10, day=22, tz='UTC')
 
-        with tm.assert_raises_regex(TypeError, 'Use `tz` instead'):
+        with tm.assert_raises_regex(ValueError, 'Use `tz` instead'):
             dt = datetime(2017, 10, 22)
             Timestamp(dt, tzinfo=utc)
 
