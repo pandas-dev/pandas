@@ -381,16 +381,15 @@ class Timestamp(_Timestamp):
                                 'not %s' % type(tzinfo))
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
+            elif not is_integer_object(freq):
+                # tz takes on a special meaning in this case; leave it alone
+                tz, tzinfo = tzinfo, None
 
         if ts_input is _no_input:
             # User passed keyword arguments.
-            if tz is None:
-                # This allows us to handle the case where the user passes
-                # `tz` and not `tzinfo`.
-                tz = tzinfo
             return Timestamp(datetime(year, month, day, hour or 0,
                                       minute or 0, second or 0,
-                                      microsecond or 0, tzinfo),
+                                      microsecond or 0, tz),
                              tz=tz)
         elif is_integer_object(freq):
             # User passed positional arguments:
@@ -399,10 +398,6 @@ class Timestamp(_Timestamp):
             return Timestamp(datetime(ts_input, freq, tz, unit or 0,
                                       year or 0, month or 0, day or 0,
                                       hour), tz=hour)
-
-        if tzinfo is not None:
-            # User passed tzinfo instead of tz; avoid silently ignoring
-            tz, tzinfo = tzinfo, None
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
