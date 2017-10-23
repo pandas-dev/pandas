@@ -1268,26 +1268,19 @@ class TestTimestampToJulianDate(object):
 class TestTimeSeries(object):
 
     def test_timestamp_to_datetime(self):
-        rng = date_range('20090415', '20090519', tz='US/Eastern')
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz='US/Eastern', freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_dateutil(self):
-        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_explicit_pytz(self):
-        rng = date_range('20090415', '20090519',
-                         tz=pytz.timezone('US/Eastern'))
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
@@ -1296,9 +1289,7 @@ class TestTimeSeries(object):
         tm._skip_if_windows_python_3()
 
         from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
-        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
@@ -1494,3 +1485,61 @@ class TestTsUtil(object):
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
                     Timestamp.min.value / 1000)
+
+
+class TestTimestampEquivDateRange(object):
+    # Older tests in TestTimeSeries constructed their `stamp` objects
+    # using `date_range` instead of the `Timestamp` constructor.
+    # TestTimestampEquivDateRange checks that these are equivalent in the
+    # pertinent cases.
+
+    def test_date_range_timestamp_equiv(self):
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_dateutil(self):
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_pytz(self):
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+        
+        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_from_datetime_instance(self):
+        # This test refers to TestTimestampOps.test_addition_subtraction_types
+        datetime_instance = datetime(2014, 3, 4)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
+
+        ts = Timestamp(datetime_instance, freq='D')
+        assert ts == timestamp_instance
+
+    def test_date_range_timestamp_equiv_preserve_frequency(self):
+        # This test refers to
+        # TestTimestampOps.test_addition_subtraction_preserve_frequency
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        ts = Timestamp('2014-03-05', freq='D')
+
+        assert timestamp_instance == ts
