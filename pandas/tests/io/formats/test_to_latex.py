@@ -367,7 +367,7 @@ b &       b &     b \\
 \midrule
 \endhead
 \midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
+\multicolumn{2}{r}{{Continued on next page}} \\
 \midrule
 \endfoot
 
