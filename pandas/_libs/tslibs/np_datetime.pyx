@@ -7,7 +7,6 @@ cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
     ctypedef int64_t npy_datetime
 
-
 cdef extern from "../src/datetime/np_datetime.h":
     ctypedef enum PANDAS_DATETIMEUNIT:
         PANDAS_FR_Y
