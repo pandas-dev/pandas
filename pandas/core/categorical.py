@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
-    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
@@ -352,28 +351,7 @@ class Categorical(PandasObject):
                 dtype = CategoricalDtype(categories, ordered)
 
         else:
-            # there were two ways if categories are present
-            # - the old one, where each value is a int pointer to the levels
-            #   array -> not anymore possible, but code outside of pandas could
-            #   call us like that, so make some checks
-            # - the new one, where each value is also in the categories array
-            #   (or np.nan)
-
             codes = _get_codes_for_values(values, dtype.categories)
-
-            # TODO: check for old style usage. These warnings should be removes
-            # after 0.18/ in 2016
-            if (is_integer_dtype(values) and
-                    not is_integer_dtype(dtype.categories)):
-                warn("Values and categories have different dtypes. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
-
-            if (len(values) and is_integer_dtype(values) and
-                    (codes == -1).all()):
-                warn("None of the categories were found in values. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
 
         if null_mask.any():
             # Reinsert -1 placeholders for previously removed missing values
