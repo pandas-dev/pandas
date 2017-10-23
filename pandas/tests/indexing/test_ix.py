@@ -21,8 +21,7 @@ class TestIX(object):
 
         df = DataFrame({'A': [1, 2, 3]})
         with tm.assert_produces_warning(DeprecationWarning,
-                                        check_stacklevel=False,
-                                        clear=[pd.core.indexing]):
+                                        check_stacklevel=False):
             df.ix[1, 'A']
 
     def test_ix_loc_setitem_consistency(self):

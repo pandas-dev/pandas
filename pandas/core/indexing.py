@@ -1328,7 +1328,7 @@ class _IXIndexer(_NDFrameIndexer):
             http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
 
         warnings.warn(_ix_deprecation_warning,
-                      DeprecationWarning, stacklevel=3)
+                      DeprecationWarning, stacklevel=2)
         super(_IXIndexer, self).__init__(name, obj)
 
     def _has_valid_type(self, key, axis):
