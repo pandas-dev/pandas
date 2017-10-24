@@ -956,6 +956,17 @@ class TestDataFrameAlterAxes(TestData):
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
+    def test_rename_positional(self):
+        df = pd.DataFrame(columns=['A', 'B'])
+        with tm.assert_produces_warning(UserWarning) as rec:
+            result = df.rename(None, str.lower)
+        expected = pd.DataFrame(columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+        assert len(rec) == 1
+        message = str(rec[0].message)
+        assert 'rename' in message
+        assert 'Use named arguments' in message
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 

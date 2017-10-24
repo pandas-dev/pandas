@@ -2917,12 +2917,12 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, labels=None, index=None, columns=None, axis=None,
-                **kwargs):
-        axes = self._validate_axis_style_args(labels, 'labels',
-                                              axes=[index, columns],
-                                              axis=axis, method_name='reindex')
+    def reindex(self, *args, **kwargs):
+        axes = self._validate_axis_style_args(args, kwargs, 'labels',
+                                              'reindex')
         kwargs.update(axes)
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
         return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
@@ -2933,8 +2933,7 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
-    def rename(self, mapper=None, index=None, columns=None, axis=None,
-               **kwargs):
+    def rename(self, *args, **kwargs):
         """Alter axes labels.
 
         Function / dict values must be unique (1-to-1). Labels not contained in
@@ -3008,10 +3007,9 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = self._validate_axis_style_args(mapper, 'mapper',
-                                              axes=[index, columns],
-                                              axis=axis, method_name='rename')
+        axes = self._validate_axis_style_args(args, kwargs, 'mapper', 'rename')
         kwargs.update(axes)
+        kwargs.pop('axis', None)
         return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
@@ -3026,6 +3024,57 @@ class DataFrame(NDFrame):
     def shift(self, periods=1, freq=None, axis=0):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
                                             axis=axis)
+
+    def _validate_axis_style_args(self, args, kwargs, arg_name, method_name):
+        out = {}
+        # Goal: fill out with index/columns-style arguments
+        # like out = {'index': foo, 'columns': bar}
+        # Start by validaing for consistency
+        if 'axis' in kwargs and any(x in kwargs for x in self._AXIS_NUMBERS):
+            msg = "Cannot specify both 'axis' and any of 'columns' or 'index'."
+            raise TypeError(msg)
+
+        # Start with explicit values provided by the user...
+        if arg_name in kwargs:
+            if args:
+                msg = "{} got multiple values for argument '{}'".format(
+                    method_name, arg_name)
+                raise TypeError(msg)
+            axis = self._get_axis_name(kwargs.get('axis', 0))
+            out[axis] = kwargs[arg_name]
+
+        # fill in axes
+        for k, v in kwargs.items():
+            try:
+                ax = self._get_axis_name(k)
+            except ValueError:
+                pass
+            else:
+                out[ax] = v
+
+        # All user-provided kwargs have been handled now.
+        # Now we supplement with positional arguments, raising when there's
+        # ambiguity
+
+        if len(args) == 0:
+            pass  # validate later
+        elif len(args) == 1:
+            axis = self._get_axis_name(kwargs.get('axis', 0))
+            out[axis] = args[0]
+        elif len(args) == 2:
+            if 'axis' in kwargs:
+                msg = "Cannot specify both {} and any of 'index' or 'columns'"
+                raise TypeError(msg.format(arg_name))
+            msg = ("Intepreting call\n\t'.{method_name}(a, b)' as "
+                   "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
+                   "arguments to remove any ambiguity.")
+            warnings.warn(msg.format(method_name=method_name,), stacklevel=3)
+            out[self._AXIS_NAMES[0]] = args[0]
+            out[self._AXIS_NAMES[1]] = args[1]
+        else:
+            msg = "Cannot specify all of '{}', 'index', 'columns'."
+            raise TypeError(msg.format(arg_name))
+        return out
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):

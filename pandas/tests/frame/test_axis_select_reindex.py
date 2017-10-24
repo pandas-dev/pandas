@@ -476,32 +476,32 @@ class TestDataFrameSelectReindex(TestData):
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = pd.DataFrame({"A": [1, 2, 3], 'B': [4, 5, 6]})
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, 'Cannot specify both labels'):
             df.reindex([0, 1], ['A'], axis=1)
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, 'Cannot specify both labels'):
             df.reindex([0, 1], ['A'], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(columns=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], columns=[0, 1], axis='columns')
 
         with tm.assert_raises_regex(TypeError, 'Cannot specify all'):
             df.reindex([0, 1], [0], ['A'])
 
         # Mixing styles
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
     def test_reindex_single_named_indexer(self):
