@@ -2,13 +2,14 @@
 
 from __future__ import print_function
 
+import inspect
 import pytest
 
 from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas.compat import lrange
+from pandas.compat import lrange, PY2
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     RangeIndex, date_range, IntervalIndex,
                     to_datetime)
@@ -997,6 +998,21 @@ class TestDataFrameAlterAxes(TestData):
 
         with tm.assert_produces_warning(UserWarning):
             df.rename({0: 10}, {"A": "B"})
+
+    @pytest.mark.skipif(PY2, reason="inspect.signature")
+    def test_rename_signature(self):
+        sig = inspect.signature(pd.DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {"self", "mapper", "index", "columns", "axis",
+                              "inplace", "copy", "level"}
+
+    @pytest.mark.skipif(PY2, reason="inspect.signature")
+    def test_reindex_signature(self):
+        sig = inspect.signature(pd.DataFrame.reindex)
+        parameters = set(sig.parameters)
+        assert parameters == {"self", "labels", "index", "columns", "axis",
+                              "limit", "copy", "level", "method",
+                              "fill_value", "tolerance"}
 
 
 class TestIntervalIndex(object):

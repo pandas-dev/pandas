@@ -82,7 +82,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.indexes.period import PeriodIndex
@@ -2917,6 +2918,12 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @rewrite_axis_style_signature('labels', [('method', None),
+                                             ('copy', True),
+                                             ('level', None),
+                                             ('fill_value', np.nan),
+                                             ('limit', None),
+                                             ('tolerance', None)])
     def reindex(self, *args, **kwargs):
         axes = self._validate_axis_style_args(args, kwargs, 'labels',
                                               'reindex')
@@ -2933,6 +2940,9 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False),
+                                             ('level', None)])
     def rename(self, *args, **kwargs):
         """Alter axes labels.
 
