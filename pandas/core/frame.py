@@ -3025,57 +3025,6 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
                                             axis=axis)
 
-    def _validate_axis_style_args(self, args, kwargs, arg_name, method_name):
-        out = {}
-        # Goal: fill out with index/columns-style arguments
-        # like out = {'index': foo, 'columns': bar}
-        # Start by validaing for consistency
-        if 'axis' in kwargs and any(x in kwargs for x in self._AXIS_NUMBERS):
-            msg = "Cannot specify both 'axis' and any of 'columns' or 'index'."
-            raise TypeError(msg)
-
-        # Start with explicit values provided by the user...
-        if arg_name in kwargs:
-            if args:
-                msg = "{} got multiple values for argument '{}'".format(
-                    method_name, arg_name)
-                raise TypeError(msg)
-            axis = self._get_axis_name(kwargs.get('axis', 0))
-            out[axis] = kwargs[arg_name]
-
-        # fill in axes
-        for k, v in kwargs.items():
-            try:
-                ax = self._get_axis_name(k)
-            except ValueError:
-                pass
-            else:
-                out[ax] = v
-
-        # All user-provided kwargs have been handled now.
-        # Now we supplement with positional arguments, raising when there's
-        # ambiguity
-
-        if len(args) == 0:
-            pass  # validate later
-        elif len(args) == 1:
-            axis = self._get_axis_name(kwargs.get('axis', 0))
-            out[axis] = args[0]
-        elif len(args) == 2:
-            if 'axis' in kwargs:
-                msg = "Cannot specify both {} and any of 'index' or 'columns'"
-                raise TypeError(msg.format(arg_name))
-            msg = ("Intepreting call\n\t'.{method_name}(a, b)' as "
-                   "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-                   "arguments to remove any ambiguity.")
-            warnings.warn(msg.format(method_name=method_name,), stacklevel=3)
-            out[self._AXIS_NAMES[0]] = args[0]
-            out[self._AXIS_NAMES[1]] = args[1]
-        else:
-            msg = "Cannot specify all of '{}', 'index', 'columns'."
-            raise TypeError(msg.format(arg_name))
-        return out
-
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
