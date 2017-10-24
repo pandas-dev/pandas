@@ -44,7 +44,7 @@ _SQLALCHEMY_INSTALLED = None
 def _validate_flavor_parameter(flavor):
     """
     Checks whether a database 'flavor' was specified.
-    If not None, produces FutureWarning if 'SQLite' and
+    If not None, produces FutureWarning if 'sqlite' and
     raises a ValueError if anything else.
     """
     if flavor is not None:
