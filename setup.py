@@ -581,16 +581,16 @@ packer_ext = Extension('pandas.io.msgpack._packer',
                        define_macros=macros,
                        extra_compile_args=extra_compile_args)
 unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                        depends=['pandas/_libs/src/msgpack/unpack.h',
-                                 'pandas/_libs/src/msgpack/unpack_define.h',
-                                 'pandas/_libs/src/msgpack/unpack_template.h'],
-                        sources=[srcpath('_unpacker',
-                                 suffix=suffix if suffix == '.pyx' else '.cpp',
-                                 subdir='io/msgpack')],
-                        language='c++',
-                        include_dirs=['pandas/_libs/src/msgpack'] + common_include,
-                        define_macros=macros,
-                        extra_compile_args=extra_compile_args)
+                         depends=['pandas/_libs/src/msgpack/unpack.h',
+                                  'pandas/_libs/src/msgpack/unpack_define.h',
+                                  'pandas/_libs/src/msgpack/unpack_template.h'],
+                         sources=[srcpath('_unpacker',
+                                  suffix=suffix if suffix == '.pyx' else '.cpp',
+                                  subdir='io/msgpack')],
+                         language='c++',
+                         include_dirs=['pandas/_libs/src/msgpack'] + common_include,
+                         define_macros=macros,
+                         extra_compile_args=extra_compile_args)
 extensions.append(packer_ext)
 extensions.append(unpacker_ext)
 
