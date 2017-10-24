@@ -1497,7 +1497,6 @@ class TestTimestampEquivDateRange(object):
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_from_datetime_instance(self):
-        # This test refers to TestTimestampOps.test_addition_subtraction_types
         datetime_instance = datetime(2014, 3, 4)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
@@ -1508,8 +1507,6 @@ class TestTimestampEquivDateRange(object):
         assert ts == timestamp_instance
 
     def test_date_range_timestamp_equiv_preserve_frequency(self):
-        # This test refers to
-        # TestTimestampOps.test_addition_subtraction_preserve_frequency
         timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
         ts = Timestamp('2014-03-05', freq='D')
 
