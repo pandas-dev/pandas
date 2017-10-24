@@ -19,9 +19,9 @@ from pandas.tseries.offsets import DateOffset
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
-from pandas._libs import lib, tslib
+from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
-from pandas._libs.tslibs.frequencies import (  # noqa:F811
+from pandas._libs.tslibs.frequencies import (  # noqa:F401
     get_freq_code, _base_and_stride, _period_str_to_code,
     _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
     _period_code_map, _reverse_period_code_map, get_base_alias,
@@ -138,7 +138,7 @@ class Resolution(object):
         """
         return get_freq_group(cls.get_freq(resostr))
 
-    @classmethod
+    @classmethod  # noqa:F811  # Disable flake8 false-positive
     def get_freq(cls, resostr):
         """
         Return frequency str against resolution str.
@@ -582,7 +582,7 @@ class _FrequencyInferer(object):
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):
+    def get_freq(self):  # noqa:F811  # Disable flake8 false-positive
         if not self.is_monotonic or not self.index.is_unique:
             return None
 
@@ -632,7 +632,7 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def rep_stamp(self):
-        return lib.Timestamp(self.values[0])
+        return tslib.Timestamp(self.values[0])
 
     def month_position_check(self):
         # TODO: cythonize this, very slow
