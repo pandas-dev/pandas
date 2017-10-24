@@ -5185,7 +5185,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         if len(join_units) == 1 and not join_units[0].indexers:
             b = join_units[0].block
             values = b.values
-            if copy and values.base is not None:
+            if copy:  # and values.base is not None:
                 values = values.copy()
             elif not copy:
                 values = values.view()
