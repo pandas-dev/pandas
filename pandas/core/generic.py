@@ -846,8 +846,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         ``DataFrame.rename`` supports two calling conventions
 
-        * ``(index=index_mapper, columns=columns_mapper, ...)
-        * ``(mapper, axis={'index', 'columns'}, ...)
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -2875,8 +2875,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         ``DataFrame.reindex`` supports two calling conventions
 
-        * ``(index=index_labels, columns=column_labels, ...)
-        * ``(labels, axis={'index', 'columns'}, ...)
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -3497,8 +3497,10 @@ class NDFrame(PandasObject, SelectionMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the %(klass)s.
-        args : positional arguments passed into ``func``.
-        kwargs : a dictionary of keyword arguments passed into ``func``.
+        args : iterable, optional
+            positional arguments passed into ``func``.
+        kwargs : mapping, optional
+            a dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
@@ -3508,7 +3510,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
 
         Use ``.pipe`` when chaining together functions that expect
-        on Series or DataFrames. Instead of writing
+        Series, DataFrames or GroupBy objects. Instead of writing
 
         >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
 
@@ -3537,15 +3539,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        if isinstance(func, tuple):
-            func, target = func
-            if target in kwargs:
-                raise ValueError('%s is both the pipe target and a keyword '
-                                 'argument' % target)
-            kwargs[target] = self
-            return func(*args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
+        return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
     Aggregate using callable, string, dict, or list of string/callables
@@ -5368,9 +5362,13 @@ class NDFrame(PandasObject, SelectionMixin):
             the offset string or object representing target conversion
         axis : int, optional, default 0
         closed : {'right', 'left'}
-            Which side of bin interval is closed
+            Which side of bin interval is closed. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {'right', 'left'}
-            Which bin edge label to label bucket with
+            Which bin edge label to label bucket with. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}
             For PeriodIndex only, controls whether to use the start or end of
             `rule`
@@ -5430,7 +5428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         value in the bucket used as the label is not included in the bucket,
         which it labels. For example, in the original series the
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
-        value in the resampled bucket with the label``2000-01-01 00:03:00``
+        value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
         To include this value close the right side of the bin interval as
         illustrated in the example below this one.
@@ -6330,23 +6328,72 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
-        """Truncates a sorted NDFrame before and/or after some particular
-        index value. If the axis contains only datetime values, before/after
-        parameters are converted to datetime values.
+        """
+        Truncates a sorted DataFrame/Series before and/or after some
+        particular index value. If the axis contains only datetime values,
+        before/after parameters are converted to datetime values.
 
         Parameters
         ----------
-        before : date
-            Truncate before index value
-        after : date
-            Truncate after index value
-        axis : the truncation axis, defaults to the stat axis
+        before : date, string, int
+            Truncate all rows before this index value
+        after : date, string, int
+            Truncate all rows after this index value
+        axis : {0 or 'index', 1 or 'columns'}
+
+            * 0 or 'index': apply truncation to rows
+            * 1 or 'columns': apply truncation to columns
+            Default is stat axis for given data type (0 for Series and
+            DataFrames, 1 for Panels)
         copy : boolean, default is True,
             return a copy of the truncated section
 
         Returns
         -------
         truncated : type of caller
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e'],
+        ...                    'B': ['f', 'g', 'h', 'i', 'j'],
+        ...                    'C': ['k', 'l', 'm', 'n', 'o']},
+        ...                    index=[1, 2, 3, 4, 5])
+        >>> df.truncate(before=2, after=4)
+           A  B  C
+        2  b  g  l
+        3  c  h  m
+        4  d  i  n
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4, 5],
+        ...                    'B': [6, 7, 8, 9, 10],
+        ...                    'C': [11, 12, 13, 14, 15]},
+        ...                    index=['a', 'b', 'c', 'd', 'e'])
+        >>> df.truncate(before='b', after='d')
+           A  B   C
+        b  2  7  12
+        c  3  8  13
+        d  4  9  14
+
+        The index values in ``truncate`` can be datetimes or string
+        dates. Note that ``truncate`` assumes a 0 value for any unspecified
+        date component in a ``DatetimeIndex`` in contrast to slicing which
+        returns any partially matching dates.
+
+        >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
+        >>> df = pd.DataFrame(index=dates, data={'A': 1})
+        >>> df.truncate('2016-01-05', '2016-01-10').tail()
+                             A
+        2016-01-09 23:59:56  1
+        2016-01-09 23:59:57  1
+        2016-01-09 23:59:58  1
+        2016-01-09 23:59:59  1
+        2016-01-10 00:00:00  1
+        >>> df.loc['2016-01-05':'2016-01-10', :].tail()
+                             A
+        2016-01-10 23:59:55  1
+        2016-01-10 23:59:56  1
+        2016-01-10 23:59:57  1
+        2016-01-10 23:59:58  1
+        2016-01-10 23:59:59  1
         """
 
         if axis is None:

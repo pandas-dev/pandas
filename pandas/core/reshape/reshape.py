@@ -292,7 +292,7 @@ class _Unstacker(object):
                           names=self.new_index_names, verify_integrity=False)
 
 
-def _unstack_multiple(data, clocs):
+def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
@@ -330,7 +330,7 @@ def _unstack_multiple(data, clocs):
     if isinstance(data, Series):
         dummy = data.copy()
         dummy.index = dummy_index
-        unstacked = dummy.unstack('__placeholder__')
+        unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         new_levels = clevels
         new_names = cnames
         new_labels = recons_labels
@@ -347,7 +347,7 @@ def _unstack_multiple(data, clocs):
         dummy = data.copy()
         dummy.index = dummy_index
 
-        unstacked = dummy.unstack('__placeholder__')
+        unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -460,7 +460,7 @@ def unstack(obj, level, fill_value=None):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            return _unstack_multiple(obj, level)
+            return _unstack_multiple(obj, level, fill_value=fill_value)
         else:
             level = level[0]
 

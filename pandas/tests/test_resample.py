@@ -3033,7 +3033,7 @@ class TestResamplerGrouper(object):
         result = pd.Series(range(3), index=index).resample('20s').nearest()
 
         expected = pd.Series(
-            np.array([0, 0, 1, 1, 1, 2, 2]),
+            [0, 0, 1, 1, 1, 2, 2],
             index=pd.DatetimeIndex(
                 ['2000-01-01 00:00:00', '2000-01-01 00:00:20',
                  '2000-01-01 00:00:40', '2000-01-01 00:01:00',

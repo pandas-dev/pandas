@@ -519,6 +519,18 @@ class TestCategorical(object):
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
+    def test_constructor_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical(
+            ['a', 'b'], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical(
+            ['a', 'b'], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -559,6 +571,22 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
+
+    def test_from_codes_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical.from_codes(
+            [0, 1], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical.from_codes(
+            [0, 1], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        # non-unique Categorical still raises
+        with pytest.raises(ValueError):
+            Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
