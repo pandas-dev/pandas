@@ -873,52 +873,153 @@ class TestSeriesAnalytics(TestData):
         expected = np.array([1, 2, 3, None], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_drop_duplicates(self):
-        # check both int and object
-        for s in [Series([1, 2, 3, 3]), Series(['1', '2', '3', '3'])]:
-            expected = Series([False, False, False, True])
-            assert_series_equal(s.duplicated(), expected)
-            assert_series_equal(s.drop_duplicates(), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(inplace=True)
-            assert_series_equal(sc, s[~expected])
+    @pytest.mark.parametrize('dtype', ['int_', 'uint', 'float_'])
+    def test_drop_duplicates_with_numeric(self, dtype):
+        # Test case 1
+        test_case_1 = Series([1, 2, 3, 3], dtype=np.dtype(dtype))
 
-            expected = Series([False, False, True, False])
-            assert_series_equal(s.duplicated(keep='last'), expected)
-            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep='last', inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, False, True])
+        assert_series_equal(test_case_1.duplicated(), expected)
+        assert_series_equal(test_case_1.drop_duplicates(), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
 
-            expected = Series([False, False, True, True])
-            assert_series_equal(s.duplicated(keep=False), expected)
-            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep=False, inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, True, False])
+        assert_series_equal(test_case_1.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep='last'), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
 
-        for s in [Series([1, 2, 3, 5, 3, 2, 4]),
-                  Series(['1', '2', '3', '5', '3', '2', '4'])]:
-            expected = Series([False, False, False, False, True, True, False])
-            assert_series_equal(s.duplicated(), expected)
-            assert_series_equal(s.drop_duplicates(), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, True, True])
+        assert_series_equal(test_case_1.duplicated(keep=False), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep=False), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
 
-            expected = Series([False, True, True, False, False, False, False])
-            assert_series_equal(s.duplicated(keep='last'), expected)
-            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep='last', inplace=True)
-            assert_series_equal(sc, s[~expected])
+        # Test case 2
+        test_case_2 = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
 
-            expected = Series([False, True, True, False, True, True, False])
-            assert_series_equal(s.duplicated(keep=False), expected)
-            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep=False, inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, False, False, True, True, False])
+        assert_series_equal(test_case_2.duplicated(), expected)
+        assert_series_equal(test_case_2.drop_duplicates(), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        assert_series_equal(test_case_2.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep='last'), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        assert_series_equal(test_case_2.duplicated(keep=False), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep=False), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+
+    def test_drop_duplicates_with_object(self):
+        # Test case 1
+        test_case_1 = Series(['1', '2', '3', '3'])
+
+        expected = Series([False, False, False, True])
+        assert_series_equal(test_case_1.duplicated(), expected)
+        assert_series_equal(test_case_1.drop_duplicates(), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        expected = Series([False, False, True, False])
+        assert_series_equal(test_case_1.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep='last'), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        expected = Series([False, False, True, True])
+        assert_series_equal(test_case_1.duplicated(keep=False), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep=False), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        # Test case 2
+        test_case_2 = Series(['1', '2', '3', '5', '3', '2', '4'])
+
+        expected = Series([False, False, False, False, True, True, False])
+        assert_series_equal(test_case_2.duplicated(), expected)
+        assert_series_equal(test_case_2.drop_duplicates(), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        assert_series_equal(test_case_2.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep='last'), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        assert_series_equal(test_case_2.duplicated(keep=False), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep=False), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+    def test_drop_duplicates_with_bool(self):
+        # Test case 1
+        test_case_1 = Series([True, False, False])
+
+        expected = Series([False, False, True])
+        assert_series_equal(test_case_1.duplicated(), expected)
+        assert_series_equal(test_case_1.drop_duplicates(), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        expected = Series([False, True, False])
+        assert_series_equal(test_case_1.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep='last'), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        expected = Series([False, True, True])
+        assert_series_equal(test_case_1.duplicated(keep=False), expected)
+        assert_series_equal(test_case_1.drop_duplicates(keep=False), test_case_1[~expected])
+        sc = test_case_1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_1[~expected])
+
+        # Test case 2
+        test_case_2 = Series([True, False, True, False])
+        expected = Series([False, False, True, True])
+        assert_series_equal(test_case_2.duplicated(), expected)
+        assert_series_equal(test_case_2.drop_duplicates(), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([True, True, False, False])
+        assert_series_equal(test_case_2.duplicated(keep='last'), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep='last'), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
+
+        expected = Series([True, True, True, True])
+        assert_series_equal(test_case_2.duplicated(keep=False), expected)
+        assert_series_equal(test_case_2.drop_duplicates(keep=False), test_case_2[~expected])
+        sc = test_case_2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, test_case_2[~expected])
 
     def test_clip(self):
         val = self.ts.median()
