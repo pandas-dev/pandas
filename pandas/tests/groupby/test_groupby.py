@@ -411,10 +411,9 @@ class TestGroupBy(MixIn):
         desc_groups = []
         for col in self.tsframe:
             group = grouped[col].describe()
-            # GH 17464 - Remove duplicate MultiIndex levels
             group_col = pd.MultiIndex(
                 levels=[[col], group.columns],
-                labels=[[0] * len(group.columns), range(len(group.columns))])
+                labels=[[0]*len(group.columns), range(len(group.columns))])
             group = pd.DataFrame(group.values,
                                  columns=group_col,
                                  index=group.index)
@@ -426,10 +425,8 @@ class TestGroupBy(MixIn):
                                          'C': 1, 'D': 1}, axis=1)
         result = groupedT.describe()
         expected = self.tsframe.describe().T
-        # GH 17464 - Remove duplicate MultiIndex levels
-        expected.index = pd.MultiIndex(
-            levels=[[0, 1], expected.index],
-            labels=[[0, 0, 1, 1], range(len(expected.index))])
+        expected.index = pd.MultiIndex(levels=[[0, 1], expected.index],
+                                       labels=[[0, 0, 1, 1], range(len(expected.index))])
         tm.assert_frame_equal(result, expected)
 
     def test_frame_describe_tupleindex(self):
