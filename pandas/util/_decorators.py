@@ -120,9 +120,6 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     return _deprecate_kwarg
 
 
-# Substitution and Appender are derived from matplotlib.docstring (1.1.0)
-# module http://matplotlib.org/users/license.html
-
 def rewrite_axis_style_signature(name, extra_params):
     def decorate(func):
         @wraps(func)
@@ -147,6 +144,9 @@ def rewrite_axis_style_signature(name, extra_params):
             func.__signature__ = sig
         return wrapper
     return decorate
+
+# Substitution and Appender are derived from matplotlib.docstring (1.1.0)
+# module http://matplotlib.org/users/license.html
 
 
 class Substitution(object):
