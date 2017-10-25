@@ -1073,8 +1073,12 @@ Indexing
 =======
 - Bug in :func:`Series.rename` when called with a `callable`, incorrectly alters the name of the `Series`, rather than the name of the `Index`. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises `index out of range` error instead of inserting NaNs when using a negative index. (:issue:`17704`)
+<<<<<<< HEAD
 - When created with duplicate labels, ``MultiIndex`` now raises a `ValueError`. (:issue:`17464`)
 >>>>>>> 4eff2d5... whatsnew entry
+=======
+- When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
+>>>>>>> 868ec45... Whatsnew backticks
 
 I/O
 ^^^
