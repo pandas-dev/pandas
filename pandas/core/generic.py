@@ -2778,24 +2778,60 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.reindex(**{axis_name: new_axis})
 
     def _validate_axis_style_args(self, args, kwargs, arg_name, method_name):
+        """Argument handler for mixed index, columns / axis functions
+
+        In an attempt to handle both `.method(index, columns)`, and
+        `.method(arg, axis=.)`, we have to do some bad things to argument
+        parsing. This translates all arguments to `{index=., columns=.}` style.
+
+        Parameters
+        ----------
+        arg : tuple
+            All positional arguments from the user
+        kwargs : dict
+            All keyword arguments from the user
+        arg_name, method_name : str
+            Used for better error messages
+
+        Returns
+        -------
+        kwargs : dict
+            A dictionary of keyword arguments. Doesn't modify ``kwargs``
+            inplace, so update them with the return value here.
+
+        Examples
+        --------
+        >>> df._validate_axis_style_args((str.upper,), {'columns': id},
+        ...                              'mapper', 'rename')
+        {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+
+        This emits a warning
+        >>> df._validate_axis_style_args((str.upper, id), {},
+        ...                              'mapper', 'rename')
+        {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+        """
+        # TODO(PY3): Change to keyword-only args and remove all this
+
         out = {}
-        # Goal: fill out with index/columns-style arguments
+        # Goal: fill 'out' with index/columns-style arguments
         # like out = {'index': foo, 'columns': bar}
-        # Start by validaing for consistency
+
+        # Start by validating for consistency
         if 'axis' in kwargs and any(x in kwargs for x in self._AXIS_NUMBERS):
             msg = "Cannot specify both 'axis' and any of 'columns' or 'index'."
             raise TypeError(msg)
 
-        # Start with explicit values provided by the user...
+        # First fill with explicit values provided by the user...
         if arg_name in kwargs:
             if args:
-                msg = "{} got multiple values for argument '{}'".format(
-                    method_name, arg_name)
+                msg = ("{} got multiple values for argument "
+                       "'{}'".format(method_name, arg_name))
                 raise TypeError(msg)
+
             axis = self._get_axis_name(kwargs.get('axis', 0))
             out[axis] = kwargs[arg_name]
 
-        # fill in axes
+        # More user-provided arguments, now from kwargs
         for k, v in kwargs.items():
             try:
                 ax = self._get_axis_name(k)
@@ -2805,22 +2841,27 @@ class NDFrame(PandasObject, SelectionMixin):
                 out[ax] = v
 
         # All user-provided kwargs have been handled now.
-        # Now we supplement with positional arguments, raising when there's
-        # ambiguity
+        # Now we supplement with positional arguments, emmitting warnings
+        # when there's ambiguity and raising when there's conflicts
 
         if len(args) == 0:
-            pass  # validate later
+            pass  # It's up to the function to decide if this is valid
         elif len(args) == 1:
             axis = self._get_axis_name(kwargs.get('axis', 0))
             out[axis] = args[0]
         elif len(args) == 2:
             if 'axis' in kwargs:
+                # Unambiguously wrong
                 msg = "Cannot specify both {} and any of 'index' or 'columns'"
                 raise TypeError(msg.format(arg_name))
+
             msg = ("Intepreting call\n\t'.{method_name}(a, b)' as "
                    "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-                   "arguments to remove any ambiguity.")
-            warnings.warn(msg.format(method_name=method_name,), stacklevel=3)
+                   "arguments to remove any ambiguity. In the future, using "
+                   "positional arguments for 'index' or 'columns' will raise "
+                   " a 'TypeError'.")
+            warnings.warn(msg.format(method_name=method_name,), FutureWarning,
+                          stacklevel=4)
             out[self._AXIS_NAMES[0]] = args[0]
             out[self._AXIS_NAMES[1]] = args[1]
         else:

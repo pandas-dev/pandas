@@ -959,7 +959,7 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_rename_positional(self):
         df = pd.DataFrame(columns=['A', 'B'])
-        with tm.assert_produces_warning(UserWarning) as rec:
+        with tm.assert_produces_warning(FutureWarning) as rec:
             result = df.rename(None, str.lower)
         expected = pd.DataFrame(columns=['a', 'b'])
         assert_frame_equal(result, expected)
@@ -993,10 +993,10 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_ambiguous_warns(self):
         df = pd.DataFrame({"A": [1, 2]})
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             df.rename(id, id)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             df.rename({0: 10}, {"A": "B"})
 
     @pytest.mark.skipif(PY2, reason="inspect.signature")
