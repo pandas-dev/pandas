@@ -622,6 +622,9 @@ class _TimeOp(_Op):
         """ check if obj or all elements of list-like is DateOffset """
         if isinstance(arr_or_obj, ABCDateOffset):
             return True
+        elif is_datetime64_dtype(arr_or_obj):
+            # Don't want to check elementwise for Series / array of datetime
+            return False
         elif is_list_like(arr_or_obj) and len(arr_or_obj):
             return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
         return False
