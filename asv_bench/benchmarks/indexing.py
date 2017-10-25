@@ -297,3 +297,9 @@ class IndexerLookup(object):
 
     def time_lookup_iloc(self):
         self.s.iloc
+
+    def time_lookup_ix(self):
+        self.s.ix
+
+    def time_lookup_loc(self):
+        self.s.loc
