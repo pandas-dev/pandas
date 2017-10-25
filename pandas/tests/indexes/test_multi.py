@@ -2456,6 +2456,7 @@ class TestMultiIndex(Base):
             ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
         ])
         assert ind.is_monotonic
+
         # GH 17464 - Remove duplicate MultiIndex levels
         ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
         # if this fails, probably didn't reset the cache correctly.
