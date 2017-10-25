@@ -933,6 +933,10 @@ class TestDataFrameAlterAxes(TestData):
         with tm.assert_raises_regex(TypeError, None):
             df.rename(str.lower, str.lower, str.lower)
 
+        # Duplicates
+        with tm.assert_raises_regex(TypeError, "multiple values"):
+            df.rename(id, mapper=id)
+
     def test_reindex_api_equivalence(self):
         # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],

@@ -504,6 +504,10 @@ class TestDataFrameSelectReindex(TestData):
         with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
+        # Duplicates
+        with tm.assert_raises_regex(TypeError, "multiple values"):
+            df.reindex([0, 1], labels=[0, 1])
+
     def test_reindex_single_named_indexer(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]})
