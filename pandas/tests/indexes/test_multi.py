@@ -1618,6 +1618,7 @@ class TestMultiIndex(Base):
         # shouldn't change
         assert mi2.is_(mi)
         mi4 = mi3.view()
+
         # GH 17464 - Remove duplicate MultiIndex levels
         mi4.set_levels([lrange(10), lrange(10)], inplace=True)
         assert not mi4.is_(mi3)
