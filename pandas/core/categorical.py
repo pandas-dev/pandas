@@ -293,28 +293,12 @@ class Categorical(PandasObject):
 
         # sanitize input
         if is_categorical_dtype(values):
+            if dtype.categories is None:
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
 
-            # we are either a Series or a CategoricalIndex
-            if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
-                values = values._values
-
-            if ordered is None:
-                ordered = values.ordered
-            if categories is None:
-                categories = values.categories
-            values = values.get_values()
-
-        elif isinstance(values, (ABCIndexClass, ABCSeries)):
-            # we'll do inference later
-            pass
-
-        else:
-
-            # on numpy < 1.6 datetimelike get inferred to all i8 by
-            # _sanitize_array which is fine, but since factorize does this
-            # correctly no need here this is an issue because _sanitize_array
-            # also coerces np.nan to a string under certain versions of numpy
-            # as well
+        elif not isinstance(values, (ABCIndexClass, ABCSeries)):
+            # _sanitize_array coerces np.nan to a string under certain versions
+            # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
@@ -334,7 +318,7 @@ class Categorical(PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError("'values' is not ordered, please "
@@ -346,9 +330,14 @@ class Categorical(PandasObject):
                 raise NotImplementedError("> 1 ndim Categorical are not "
                                           "supported at this time")
 
-            if dtype.categories is None:
-                # we're inferring from values
-                dtype = CategoricalDtype(categories, ordered)
+            # we're inferring from values
+            dtype = CategoricalDtype(categories, dtype.ordered)
+
+        elif is_categorical_dtype(values):
+            old_codes = (values.cat.codes if isinstance(values, ABCSeries)
+                         else values.codes)
+            codes = _recode_for_categories(old_codes, values.dtype.categories,
+                                           dtype.categories)
 
         else:
             codes = _get_codes_for_values(values, dtype.categories)
