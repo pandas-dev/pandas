@@ -1618,7 +1618,7 @@ class TestMultiIndex(Base):
         # shouldn't change
         assert mi2.is_(mi)
         mi4 = mi3.view()
-        mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
+        mi4.set_levels([lrange(10), lrange(10)], inplace=True)
         assert not mi4.is_(mi3)
         mi5 = mi.view()
         mi5.set_levels(mi5.levels, inplace=True)
