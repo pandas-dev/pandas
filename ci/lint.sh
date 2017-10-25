@@ -16,6 +16,13 @@ if [ "$LINT" ]; then
     fi
     echo "Linting *.py DONE"
 
+    echo "Linting setup.py"
+    flake8 setup.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting setup.py DONE"
+
     echo "Linting *.pyx"
     flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126
     if [ $? -ne "0" ]; then
