@@ -923,7 +923,6 @@ class TestSeriesAnalytics(TestData):
         sc.drop_duplicates(keep=False, inplace=True)
         assert_series_equal(sc, tc_2[~expected])
 
-
     def test_drop_duplicates_with_object(self):
         # Test case 1
         tc_1 = Series(['1', '2', '3', '3'])
