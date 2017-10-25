@@ -211,7 +211,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
         SQLite DBAPI connection mode not supported.
     schema : string, default None
         Name of SQL schema in database to query (if database flavor
-        supports this). Uses default schema if None(default).
+        supports this). Uses default schema if None (default).
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -227,7 +227,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
           Especially useful with databases without native Datetime support,
           such as SQLite.
     columns : list, default: None
-        List of column names to select from SQL table.
+        List of column names to select from SQL table
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
