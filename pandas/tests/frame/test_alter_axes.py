@@ -888,6 +888,9 @@ class TestDataFrameAlterAxes(TestData):
         result = df.rename({'X': 'x', 'Y': 'y'}, axis='index')
         assert_frame_equal(result, expected)
 
+        result = df.rename(mapper=str.lower, axis='index')
+        assert_frame_equal(result, expected)
+
     def test_rename_mapper_multi(self):
         df = pd.DataFrame({"A": ['a', 'b'], "B": ['c', 'd'],
                            'C': [1, 2]}).set_index(["A", "B"])

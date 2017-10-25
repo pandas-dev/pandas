@@ -2928,6 +2928,7 @@ class DataFrame(NDFrame):
         axes = self._validate_axis_style_args(args, kwargs, 'labels',
                                               'reindex')
         kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)
         return super(DataFrame, self).reindex(**kwargs)
@@ -3019,7 +3020,9 @@ class DataFrame(NDFrame):
         """
         axes = self._validate_axis_style_args(args, kwargs, 'mapper', 'rename')
         kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)
+        kwargs.pop('mapper', None)
         return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
