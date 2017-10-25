@@ -385,6 +385,80 @@ class TestGroupBy(MixIn):
         # make sure raises error
         pytest.raises(AttributeError, getattr, grouped, 'foo')
 
+    def test_series_describe_multikey(self):
+        ts = tm.makeTimeSeries()
+        grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
+        result = grouped.describe()
+        assert_series_equal(result['mean'], grouped.mean(), check_names=False)
+        assert_series_equal(result['std'], grouped.std(), check_names=False)
+        assert_series_equal(result['min'], grouped.min(), check_names=False)
+
+    def test_series_describe_single(self):
+        ts = tm.makeTimeSeries()
+        grouped = ts.groupby(lambda x: x.month)
+        result = grouped.apply(lambda x: x.describe())
+        expected = grouped.describe().stack()
+        assert_series_equal(result, expected)
+
+    def test_series_index_name(self):
+        grouped = self.df.loc[:, ['C']].groupby(self.df['A'])
+        result = grouped.agg(lambda x: x.mean())
+        assert result.index.name == 'A'
+
+    def test_frame_describe_multikey(self):
+        grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
+        result = grouped.describe()
+        desc_groups = []
+        for col in self.tsframe:
+            group = grouped[col].describe()
+            group_col = pd.MultiIndex(
+                levels=[[col], group.columns],
+                labels=[[0]*len(group.columns), range(len(group.columns))])
+            group = pd.DataFrame(group.values,
+                                 columns=group_col,
+                                 index=group.index)
+            desc_groups.append(group)
+        expected = pd.concat(desc_groups, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        groupedT = self.tsframe.groupby({'A': 0, 'B': 0,
+                                         'C': 1, 'D': 1}, axis=1)
+        result = groupedT.describe()
+        expected = self.tsframe.describe().T
+        expected.index = pd.MultiIndex(levels=[[0, 1], expected.index],
+                                       labels=[[0, 0, 1, 1], range(len(expected.index))])
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_describe_tupleindex(self):
+
+        # GH 14848 - regression from 0.19.0 to 0.19.1
+        df1 = DataFrame({'x': [1, 2, 3, 4, 5] * 3,
+                         'y': [10, 20, 30, 40, 50] * 3,
+                         'z': [100, 200, 300, 400, 500] * 3})
+        df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
+        df2 = df1.rename(columns={'k': 'key'})
+        pytest.raises(ValueError, lambda: df1.groupby('k').describe())
+        pytest.raises(ValueError, lambda: df2.groupby('key').describe())
+
+    def test_frame_describe_unstacked_format(self):
+        # GH 4792
+        prices = {pd.Timestamp('2011-01-06 10:59:05', tz=None): 24990,
+                  pd.Timestamp('2011-01-06 12:43:33', tz=None): 25499,
+                  pd.Timestamp('2011-01-06 12:54:09', tz=None): 25499}
+        volumes = {pd.Timestamp('2011-01-06 10:59:05', tz=None): 1500000000,
+                   pd.Timestamp('2011-01-06 12:43:33', tz=None): 5000000000,
+                   pd.Timestamp('2011-01-06 12:54:09', tz=None): 100000000}
+        df = pd.DataFrame({'PRICE': prices,
+                           'VOLUME': volumes})
+        result = df.groupby('PRICE').VOLUME.describe()
+        data = [df[df.PRICE == 24990].VOLUME.describe().values.tolist(),
+                df[df.PRICE == 25499].VOLUME.describe().values.tolist()]
+        expected = pd.DataFrame(data,
+                                index=pd.Index([24990, 25499], name='PRICE'),
+                                columns=['count', 'mean', 'std', 'min',
+                                         '25%', '50%', '75%', 'max'])
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
 
