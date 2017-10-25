@@ -6338,6 +6338,10 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
+        if (not ax.is_monotonic_increasing and
+           not ax.is_monotonic_decreasing):
+            raise ValueError("truncate requires a sorted index")
+
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax.is_all_dates:
