@@ -866,11 +866,6 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories can be either a list-like dict-like object.
-        If it is list-like, all items must be unique and the number of items
-        in the new categories must be the same as the number of items in the
-        old categories.
-
         Raises
         ------
         ValueError
@@ -879,8 +874,22 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : Index-like or dict-like (>=0.21.0)
-           The renamed categories.
+        new_categories : array-like or dict-like
+           The categories end up with
+
+           .. versionchanged:: 0.21.0
+
+              new_categories may now also be dict-like, in which case it
+              specifies a mapping from old-categories to new.
+
+            If it is list-like, all items must be unique and the number of
+            items in the new categories must match the existing number of
+            categories.
+
+            If dict-like, categories not contained in the mapping are passed
+            through. Note that ``Series`` are considered list-like in this
+            context.
+
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
@@ -896,6 +905,27 @@ class Categorical(PandasObject):
         remove_categories
         remove_unused_categories
         set_categories
+
+        Examples
+        --------
+        >>> c = Categorical(['a', 'a', 'b'])
+        >>> c.rename_categories([0, 1])
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
+
+        For dict-like ``new_categories``, extra keys are ignored and
+        categories not in the dictionary are passed through
+
+        >>> c.rename_categories({'a': 'A', 'c': 'C'})
+        [A, A, b]
+        Categories (2, object): [A, b]
+
+        Series are considered array-like here, so the *values* are used
+        instead of the *index*
+
+        >>> c.rename_categories(pd.Series([0, 1], index=['a', 'b']))
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
