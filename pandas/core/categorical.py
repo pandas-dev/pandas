@@ -874,7 +874,7 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : array-like or dict-like
+        new_categories : list-like or dict-like
            The categories end up with
 
            .. versionchanged:: 0.21.0
@@ -920,7 +920,7 @@ class Categorical(PandasObject):
         [A, A, b]
         Categories (2, object): [A, b]
 
-        Series are considered array-like here, so the *values* are used
+        Series are considered list-like here, so the *values* are used
         instead of the *index*
 
         >>> c.rename_categories(pd.Series([0, 1], index=['a', 'b']))
