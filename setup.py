@@ -9,19 +9,20 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import os
 import sys
 import shutil
-import warnings
-import re
-import platform
 from distutils.version import LooseVersion
+
 
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
+
 def is_platform_linux():
     return sys.platform == 'linux2'
 
+
 def is_platform_mac():
     return sys.platform == 'darwin'
+
 
 # versioning
 import versioneer
@@ -48,13 +49,11 @@ setuptools_kwargs = {}
 min_numpy_ver = '1.9.0'
 if sys.version_info[0] >= 3:
 
-    setuptools_kwargs = {
-                         'zip_safe': False,
+    setuptools_kwargs = {'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz >= 2011k',
                                               'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver],
-                         }
+                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
                  "\n$ pip install distribute")
@@ -86,7 +85,7 @@ try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
     try:
-        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext  # noqa:F811,E501
     except ImportError:
         # Pre 0.25
         from Cython.Distutils import build_ext as _build_ext
@@ -111,7 +110,8 @@ from os.path import join as pjoin
 
 _pxi_dep_template = {
     'algos': ['_libs/algos_common_helper.pxi.in',
-              '_libs/algos_take_helper.pxi.in', '_libs/algos_rank_helper.pxi.in'],
+              '_libs/algos_take_helper.pxi.in',
+              '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
     'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
     'reshape': ['_libs/reshape_helper.pxi.in'],
@@ -119,8 +119,7 @@ _pxi_dep_template = {
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
     'sparse': ['_libs/sparse_op_helper.pxi.in'],
-    'interval': ['_libs/intervaltree.pxi.in']
-}
+    'interval': ['_libs/intervaltree.pxi.in']}
 
 _pxifiles = []
 _pxi_dep = {}
@@ -250,8 +249,8 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Cython',
-    'Topic :: Scientific/Engineering',
-]
+    'Topic :: Scientific/Engineering']
+
 
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
@@ -325,6 +324,7 @@ class CleanCommand(Command):
 # we need to inherit from the versioneer
 # class as it encodes the version info
 sdist_class = cmdclass['sdist']
+
 
 class CheckSDist(sdist_class):
     """Custom sdist that ensures Cython has compiled all pyx files to c."""
@@ -408,6 +408,7 @@ class DummyBuildSrc(Command):
     def run(self):
         pass
 
+
 cmdclass.update({'clean': CleanCommand,
                  'build': build})
 
@@ -440,6 +441,7 @@ lib_depends = ['reduce', 'inference']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name + suffix)
 
+
 if suffix == '.pyx':
     lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src')
                    for f in lib_depends]
@@ -453,6 +455,7 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
+
 
 # args to ignore warnings
 if is_platform_windows():
@@ -570,25 +573,29 @@ if sys.byteorder == 'big':
 else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
+msgpack_include = ['pandas/_libs/src/msgpack'] + common_include
+msgpack_suffix = suffix if suffix == '.pyx' else '.cpp'
+unpacker_depends = ['pandas/_libs/src/msgpack/unpack.h',
+                    'pandas/_libs/src/msgpack/unpack_define.h',
+                    'pandas/_libs/src/msgpack/unpack_template.h']
+
 packer_ext = Extension('pandas.io.msgpack._packer',
                        depends=['pandas/_libs/src/msgpack/pack.h',
                                 'pandas/_libs/src/msgpack/pack_template.h'],
                        sources=[srcpath('_packer',
-                                suffix=suffix if suffix == '.pyx' else '.cpp',
+                                suffix=msgpack_suffix,
                                 subdir='io/msgpack')],
                        language='c++',
-                       include_dirs=['pandas/_libs/src/msgpack'] + common_include,
+                       include_dirs=msgpack_include,
                        define_macros=macros,
                        extra_compile_args=extra_compile_args)
 unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                         depends=['pandas/_libs/src/msgpack/unpack.h',
-                                  'pandas/_libs/src/msgpack/unpack_define.h',
-                                  'pandas/_libs/src/msgpack/unpack_template.h'],
+                         depends=unpacker_depends,
                          sources=[srcpath('_unpacker',
-                                  suffix=suffix if suffix == '.pyx' else '.cpp',
+                                  suffix=msgpack_suffix,
                                   subdir='io/msgpack')],
                          language='c++',
-                         include_dirs=['pandas/_libs/src/msgpack'] + common_include,
+                         include_dirs=msgpack_include,
                          define_macros=macros,
                          extra_compile_args=extra_compile_args)
 extensions.append(packer_ext)
@@ -607,17 +614,18 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
                                'pandas/_libs/src/numpy_helper.h'],
-                      sources=['pandas/_libs/src/ujson/python/ujson.c',
-                               'pandas/_libs/src/ujson/python/objToJSON.c',
-                               'pandas/_libs/src/ujson/python/JSONtoObj.c',
-                               'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/_libs/src/ujson/lib/ultrajsondec.c',
-                               'pandas/_libs/src/datetime/np_datetime.c',
-                               'pandas/_libs/src/datetime/np_datetime_strings.c'],
-                      include_dirs=['pandas/_libs/src/ujson/python',
-                                    'pandas/_libs/src/ujson/lib',
-                                    'pandas/_libs/src/datetime'] + common_include,
-                      extra_compile_args=['-D_GNU_SOURCE'] + extra_compile_args)
+                      sources=(['pandas/_libs/src/ujson/python/ujson.c',
+                                'pandas/_libs/src/ujson/python/objToJSON.c',
+                                'pandas/_libs/src/ujson/python/JSONtoObj.c',
+                                'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
+                                'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
+                               npdt_srces),
+                      include_dirs=(['pandas/_libs/src/ujson/python',
+                                     'pandas/_libs/src/ujson/lib',
+                                     'pandas/_libs/src/datetime'] +
+                                    common_include),
+                      extra_compile_args=(['-D_GNU_SOURCE'] +
+                                          extra_compile_args))
 
 
 extensions.append(ujson_ext)
