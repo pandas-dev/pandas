@@ -1,7 +1,7 @@
 .. _whatsnew_0210:
 
-v0.21.0 RC1 (October 13, 2017)
-------------------------------
+v0.21.0 (October 27, 2017)
+--------------------------
 
 This is a major release from 0.20.3 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -29,13 +29,14 @@ New features
 ~~~~~~~~~~~~
 
 - Support for `PEP 519 -- Adding a file system path protocol
-  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
-- Added ``__fspath__`` method to :class:`~pandas.HDFStore`, :class:`~pandas.ExcelFile`,
-  and :class:`~pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
-- Added ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
+  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers (e.g.
+  :func:`read_csv`) and writers (e.g. :meth:`DataFrame.to_csv`) (:issue:`13823`).
+- Added a ``__fspath__`` method to ``pd.HDFStore``, ``pd.ExcelFile``,
+  and ``pd.ExcelWriter`` to work properly with the file system path protocol (:issue:`13823`).
+- Added a ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
   support type inference in the presence of missing values (:issue:`17059`).
-- :class:`~pandas.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
-- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`)
+- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -258,16 +259,16 @@ as in :meth:`DataFrame.rename`.
 .. warning::
 
    To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
-   list-like. Typically, they are considered to be dict-like, and in a future
-   version of pandas ``rename_categories`` will change to treat them as
-   dict-like.
+   list-like. Typically, Series are considered to be dict-like (e.g. in
+   ``.rename``, ``.map``). In a future version of pandas ``rename_categories``
+   will change to treat them as dict-like. Follow the warning message's
+   recommendations for writing future-proof code.
 
   .. ipython:: python
      :okwarning:
 
      c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
 
-  Follow the warning message's recommendations.
 
 See the :ref:`documentation <groupby.pipe>` for more.
 
@@ -293,15 +294,15 @@ Other Enhancements
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from path-like objects, such as ``pathlib.Path``. (:issue:`17206`)
-- :func:`pd.read_sas()` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files. (:issue:`15871`)
+- :func:`read_sas` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files. (:issue:`15871`)
 - :func:`DataFrame.items` and :func:`Series.items` are now present in both Python 2 and 3 and is lazy in all cases. (:issue:`13918`, :issue:`17213`)
-- :func:`Styler.where` has been implemented as a convenience for :func:`Styler.applymap`. (:issue:`17474`)
+- :meth:`pandas.io.formats.style.Styler.where` has been implemented as a convenience for :meth:`pandas.io.formats.style.Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
 - Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
-- :func:`read_json` and :func:`to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
+- :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 - :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
 
 .. _whatsnew_0210.api_breaking:
@@ -953,7 +954,7 @@ Performance Improvements
 
 - Improved performance of instantiating :class:`SparseDataFrame` (:issue:`16773`)
 - :attr:`Series.dt` no longer performs frequency inference, yielding a large speedup when accessing the attribute (:issue:`17210`)
-- Improved performance of :meth:`Categorical.set_categories` by not materializing the values (:issue:`17508`)
+- Improved performance of :meth:`~Series.cat.set_categories` by not materializing the values (:issue:`17508`)
 - :attr:`Timestamp.microsecond` no longer re-computes on attribute access (:issue:`17331`)
 - Improved performance of the :class:`CategoricalIndex` for data that is already categorical dtype (:issue:`17513`)
 - Improved performance of :meth:`RangeIndex.min` and :meth:`RangeIndex.max` by using ``RangeIndex`` properties to perform the computations (:issue:`17607`)
