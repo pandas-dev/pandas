@@ -476,10 +476,10 @@ class TestDataFrameSelectReindex(TestData):
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = pd.DataFrame({"A": [1, 2, 3], 'B': [4, 5, 6]})
-        with tm.assert_raises_regex(TypeError, 'Cannot specify both labels'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis=1)
 
-        with tm.assert_raises_regex(TypeError, 'Cannot specify both labels'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis='index')
 
         with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):

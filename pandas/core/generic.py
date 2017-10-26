@@ -2818,7 +2818,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Start by validating for consistency
         if 'axis' in kwargs and any(x in kwargs for x in self._AXIS_NUMBERS):
-            msg = "Cannot specify both 'axis' and any of 'columns' or 'index'."
+            msg = "Cannot specify both 'axis' and any of 'index' or 'columns'."
             raise TypeError(msg)
 
         # First fill with explicit values provided by the user...
@@ -2852,8 +2852,9 @@ class NDFrame(PandasObject, SelectionMixin):
         elif len(args) == 2:
             if 'axis' in kwargs:
                 # Unambiguously wrong
-                msg = "Cannot specify both {} and any of 'index' or 'columns'"
-                raise TypeError(msg.format(arg_name))
+                msg = ("Cannot specify both 'axis' and any of 'index' "
+                       "or 'columns'")
+                raise TypeError(msg)
 
             msg = ("Intepreting call\n\t'.{method_name}(a, b)' as "
                    "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
