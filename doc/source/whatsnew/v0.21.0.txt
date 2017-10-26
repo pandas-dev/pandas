@@ -239,6 +239,36 @@ Now, to find prices per store/product, we can simply do:
       .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
       .unstack().round(2))
 
+
+.. _whatsnew_0210.enhancements.reanme_categories:
+
+``Categorical.rename_categories`` accepts a dict-like
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~Series.cat.rename_categories` now accepts a dict-like argument for
+``new_categories``. The previous categories are looked up in the dictionary's
+keys and replaced if found. The behavior of missing and extra keys is the same
+as in :meth:`DataFrame.rename`.
+
+.. ipython:: python
+
+   c = pd.Categorical(['a', 'a', 'b'])
+   c.rename_categories({"a": "eh", "b": "bee"})
+
+.. warning::
+
+   To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
+   list-like. Typically, they are considered to be dict-like, and in a future
+   version of pandas ``rename_categories`` will change to treat them as
+   dict-like.
+
+  .. ipython:: python
+     :okwarning:
+
+     c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+
+  Follow the warning message's recommendations.
+
 See the :ref:`documentation <groupby.pipe>` for more.
 
 .. _whatsnew_0210.enhancements.other:
@@ -267,7 +297,6 @@ Other Enhancements
 - :func:`DataFrame.items` and :func:`Series.items` are now present in both Python 2 and 3 and is lazy in all cases. (:issue:`13918`, :issue:`17213`)
 - :func:`Styler.where` has been implemented as a convenience for :func:`Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
-- :func:`Categorical.rename_categories` now accepts a dict-like argument as ``new_categories`` and only updates the categories found in that dict. (:issue:`17336`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
