@@ -245,7 +245,7 @@ Now, to find prices per store/product, we can simply do:
 ``Categorical.rename_categories`` accepts a dict-like
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`Categorical.rename_categories` now accepts a dict-like argument for
+:meth:`~Series.cat.rename_categories` now accepts a dict-like argument for
 ``new_categories``. The previous categories are lookup up in the dictionary's
 keys and replaced if found. The behavior of missing and extra keys is the same
 as in :meth:`DataFrame.rename`.
