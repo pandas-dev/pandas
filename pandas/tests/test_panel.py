@@ -1468,7 +1468,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             result = panel.reindex([0, 1], axis=2)
             assert_panel_equal(result, expected2)
 
-
     def test_reindex_multi(self):
         with catch_warnings(record=True):
 
