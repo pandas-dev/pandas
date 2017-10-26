@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
-from pandas.compat import long, zip
+from pandas.compat import zip
 from pandas import compat
 import re
 import warnings
@@ -13,19 +13,17 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64_dtype)
 
-import pandas.core.algorithms as algos
-from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
-from pandas.util._decorators import cache_readonly, deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
-from pandas._libs import lib, tslib
+from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.tslibs.frequencies import (  # noqa
     get_freq_code, _base_and_stride, _period_str_to_code,
     _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
     _period_code_map, _reverse_period_code_map)
-from pandas._libs.tslibs.resolution import (
+from pandas._libs.tslibs.resolution import (  # noqa
     DAYS,
     Resolution,
     _FrequencyInferer, _TimedeltaFrequencyInferer,
