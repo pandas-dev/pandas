@@ -1205,8 +1205,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_rename_categories_series(self):
         # https://github.com/pandas-dev/pandas/issues/17981
-        result = pd.Categorical(['a', 'b']).rename_categories(
-            pd.Series([0, 1]))
+        c = pd.Categorical(['a', 'b'])
+        xpr = "Treating Series 'new_categories' as a list-like "
+        with tm.assert_produces_warning(FutureWarning) as rec:
+            result = c.rename_categories(pd.Series([0, 1]))
+
+        assert len(rec) == 1
+        assert xpr in str(rec[0].message)
         expected = pd.Categorical([0, 1])
         tm.assert_categorical_equal(result, expected)
 

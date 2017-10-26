@@ -887,8 +887,12 @@ class Categorical(PandasObject):
             categories.
 
             If dict-like, categories not contained in the mapping are passed
-            through. Note that ``Series`` are considered list-like in this
-            context.
+            through.
+
+           .. warning::
+
+              Currently, Series are considered list like. In a future version
+              of pandas they'll be considered dict-like.
 
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
@@ -930,8 +934,16 @@ class Categorical(PandasObject):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
 
-        if (is_dict_like(new_categories) and
-                not isinstance(new_categories, ABCSeries)):
+        is_series = isinstance(new_categories, ABCSeries)
+
+        if is_series:
+            msg = ("Treating Series 'new_categories' as a list-like and using "
+                   "the values. In a future version, 'rename_categories' will "
+                   "treat Series like a dictionary.\n"
+                   "For dict-like, use 'new_categories.to_dict()'\n"
+                   "For list-like, use 'new_categories.values'.")
+            warn(msg, FutureWarning, stacklevel=2)
+        if is_dict_like(new_categories) and not is_series:
             cat.categories = [new_categories.get(item, item)
                               for item in cat.categories]
         else:
