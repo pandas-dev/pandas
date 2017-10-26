@@ -1334,6 +1334,7 @@ class TestStata(object):
         'column', ['ms', 'day', 'week', 'month', 'qtr', 'half', 'yr'])
     def test_date_parsing_ignores_format_details(self, column):
         # GH 17797
+        #
         # Test that display formats are ignored when determining if a numeric
         # column is a date value.
         #
