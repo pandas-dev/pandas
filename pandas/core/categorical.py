@@ -875,19 +875,14 @@ class Categorical(PandasObject):
         Parameters
         ----------
         new_categories : list-like or dict-like
-           The categories end up with
 
-           .. versionchanged:: 0.21.0
+           * list-like: all items must be unique and the number of items in
+             the new categories must match the existing number of categories.
 
-              new_categories may now also be dict-like, in which case it
-              specifies a mapping from old-categories to new.
-
-            If it is list-like, all items must be unique and the number of
-            items in the new categories must match the existing number of
-            categories.
-
-            If dict-like, categories not contained in the mapping are passed
-            through.
+           * ..versionadded:: 0.21.0 dict-like: specifies a mapping from
+             old categories to new. Categories not contained in the mapping
+             are passed through and extra categories in the mapping are
+             ignored.
 
            .. warning::
 
@@ -923,27 +918,20 @@ class Categorical(PandasObject):
         >>> c.rename_categories({'a': 'A', 'c': 'C'})
         [A, A, b]
         Categories (2, object): [A, b]
-
-        Series are considered list-like here, so the *values* are used
-        instead of the *index*
-
-        >>> c.rename_categories(pd.Series([0, 1], index=['a', 'b']))
-        [0, 0, 1]
-        Categories (2, int64): [0, 1]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
 
-        is_series = isinstance(new_categories, ABCSeries)
-
-        if is_series:
+        if isinstance(new_categories, ABCSeries):
             msg = ("Treating Series 'new_categories' as a list-like and using "
                    "the values. In a future version, 'rename_categories' will "
                    "treat Series like a dictionary.\n"
                    "For dict-like, use 'new_categories.to_dict()'\n"
                    "For list-like, use 'new_categories.values'.")
             warn(msg, FutureWarning, stacklevel=2)
-        if is_dict_like(new_categories) and not is_series:
+            new_categories = list(new_categories)
+
+        if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
                               for item in cat.categories]
         else:
