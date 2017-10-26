@@ -262,12 +262,12 @@ as in :meth:`DataFrame.rename`.
    version of pandas ``rename_categories`` will change to treat them as
    dict-like.
 
-   .. ipython:: python
-   :okwarning:
+  .. ipython:: python
+     :okwarning:
 
-   c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+     c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
 
-   Follow the warning message's recommendations.
+  Follow the warning message's recommendations.
 
 See the :ref:`documentation <groupby.pipe>` for more.
 
