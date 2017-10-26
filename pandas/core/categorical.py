@@ -882,7 +882,7 @@ class Categorical(PandasObject):
            * dict-like: specifies a mapping from
              old categories to new. Categories not contained in the mapping
              are passed through and extra categories in the mapping are
-             ignored. *New in verison 0.21.0*.
+             ignored. *New in version 0.21.0*.
 
            .. warning::
 
