@@ -35,20 +35,15 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, get_dst_info, maybe_get_tz)
 from tslib cimport _nat_scalar_rules
 
-from tslibs.parsing import parse_time_string, NAT_SENTINEL
+from tslibs.parsing import (parse_time_string, NAT_SENTINEL,
+                            _get_rule_month, _MONTH_NUMBERS, _nat_strings)
 from tslibs.frequencies cimport get_freq_code
+from tslibs.resolution import resolution, Resolution
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
 
 cdef int64_t NPY_NAT = util.get_nat()
-
-cdef int RESO_US = frequencies.RESO_US
-cdef int RESO_MS = frequencies.RESO_MS
-cdef int RESO_SEC = frequencies.RESO_SEC
-cdef int RESO_MIN = frequencies.RESO_MIN
-cdef int RESO_HR = frequencies.RESO_HR
-cdef int RESO_DAY = frequencies.RESO_DAY
 
 cdef extern from "period_helper.h":
     ctypedef struct date_info:
@@ -484,100 +479,6 @@ def extract_freq(ndarray[object] values):
             pass
 
     raise ValueError('freq not specified and cannot be inferred')
-
-
-cpdef resolution(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
-        int reso = RESO_DAY, curr_reso
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        return _reso_local(stamps, tz)
-    else:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-        return reso
-
-
-cdef inline int _reso_stamp(pandas_datetimestruct *dts):
-    if dts.us != 0:
-        if dts.us % 1000 == 0:
-            return RESO_MS
-        return RESO_US
-    elif dts.sec != 0:
-        return RESO_SEC
-    elif dts.min != 0:
-        return RESO_MIN
-    elif dts.hour != 0:
-        return RESO_HR
-    return RESO_DAY
-
-cdef _reso_local(ndarray[int64_t] stamps, object tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
-
-    if is_utc(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
-
-        # statictzinfo
-        if typ not in ['pytz', 'dateutil']:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
-        else:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
-
-    return reso
 
 
 # period helpers
@@ -1185,7 +1086,7 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in tslib._nat_strings:
+        elif is_null_datetimelike(value) or value in _nat_strings:
             ordinal = iNaT
 
         elif is_string_object(value) or util.is_integer_object(value):
@@ -1198,7 +1099,7 @@ class Period(_Period):
 
             if freq is None:
                 try:
-                    freq = frequencies.Resolution.get_freq(reso)
+                    freq = Resolution.get_freq(reso)
                 except KeyError:
                     raise ValueError(
                         "Invalid frequency or could not infer: %s" % reso)
@@ -1243,7 +1144,7 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        mnum = tslib._MONTH_NUMBERS[tslib._get_rule_month(freq)] + 1
+        mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
