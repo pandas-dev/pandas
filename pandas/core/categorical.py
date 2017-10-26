@@ -879,10 +879,10 @@ class Categorical(PandasObject):
            * list-like: all items must be unique and the number of items in
              the new categories must match the existing number of categories.
 
-           * ..versionadded:: 0.21.0 dict-like: specifies a mapping from
+           * dict-like: specifies a mapping from
              old categories to new. Categories not contained in the mapping
              are passed through and extra categories in the mapping are
-             ignored.
+             ignored. *New in verison 0.21.0*.
 
            .. warning::
 
@@ -895,7 +895,9 @@ class Categorical(PandasObject):
 
         Returns
         -------
-        cat : Categorical with renamed categories added or None if inplace.
+        cat : Categorical or None
+           With ``inplace=False``, the new categorical is returned.
+           With ``inplace=True``, there is no return value.
 
         See also
         --------
