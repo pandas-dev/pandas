@@ -922,7 +922,7 @@ Deprecations
 - Passing a non-existent column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 - ``raise_on_error`` parameter to :func:`Series.where`, :func:`Series.mask`, :func:`DataFrame.where`, :func:`DataFrame.mask` is deprecated, in favor of ``errors=`` (:issue:`14968`)
 - Using :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis` to alter index or column *labels* is now deprecated in favor of using ``.rename``. ``rename_axis`` may still be used to alter the name of the index or columns (:issue:`17833`).
-- :meth:`~DataFrame.reindex_axis` has been deprecated in favor of :meth:`~DataFrame.reindex`. See :ref`here` <whatsnew_0210.enhancements.rename_reindex_axis> for more (:issue:`17833`).
+- :meth:`~DataFrame.reindex_axis` has been deprecated in favor of :meth:`~DataFrame.reindex`. See :ref:`here <whatsnew_0210.enhancements.rename_reindex_axis>` for more (:issue:`17833`).
 
 .. _whatsnew_0210.deprecations.select:
 
@@ -954,8 +954,7 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- The behavior of :func:`Series.argmax` has been deprecated in favor of :func:`Series.idxmax` (:issue:`16830`)
-- The behavior of :func:`Series.argmin` has been deprecated in favor of :func:`Series.idxmin` (:issue:`16830`)
+The behavior of :func:`Series.argmax` and :func:`Series.argmin` have been deprecated in favor of :func:`Series.idxmax` and :func:`Series.idxmin`, respectively (:issue:`16830`).
 
 For compatibility with NumPy arrays, ``pd.Series`` implements ``argmax`` and
 ``argmin``. Since pandas 0.13.0, ``argmax`` has been an alias for
