@@ -19,7 +19,7 @@ from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
 from pandas._libs.tslibs.timezones import get_timezone
 
-from pandas.compat import lrange, long
+from pandas.compat import lrange, long, PY3
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, compat,
@@ -1096,6 +1096,23 @@ class TestTimestamp(object):
 
             dt = Timestamp('2100-01-01 00:00:00', tz=tz)
             assert not dt.is_leap_year
+
+    def test_timestamp(self):
+        # GH#17329
+        # tz-naive --> treat it as if it were UTC for purposes of timestamp()
+        ts = Timestamp.now()
+        uts = ts.replace(tzinfo=utc)
+        assert ts.timestamp() == uts.timestamp()
+
+        tsc = Timestamp('2014-10-11 11:00:01.12345678', tz='US/Central')
+        utsc = tsc.tz_convert('UTC')
+        # utsc is a different representation of the same time
+        assert tsc.timestamp() == utsc.timestamp()
+
+        if PY3:
+            # should agree with datetime.timestamp method
+            dt = ts.to_pydatetime()
+            assert dt.timestamp() == ts.timestamp()
 
 
 class TestTimestampNsOperations(object):
