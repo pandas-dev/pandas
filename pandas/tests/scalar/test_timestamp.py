@@ -600,7 +600,7 @@ class TestTimestamp(object):
  'foo': 1}"""
         assert result == expected
 
-    def to_datetime_depr(self):
+    def test_to_datetime_depr(self):
         # see gh-8254
         ts = Timestamp('2011-01-01')
 
@@ -610,7 +610,7 @@ class TestTimestamp(object):
             result = ts.to_datetime()
             assert result == expected
 
-    def to_pydatetime_nonzero_nano(self):
+    def test_to_pydatetime_nonzero_nano(self):
         ts = Timestamp('2011-01-01 9:00:00.123456789')
 
         # Warn the user of data loss (nanoseconds).
@@ -987,35 +987,6 @@ class TestTimestamp(object):
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 
-    def test_frequency_misc(self):
-        assert (frequencies.get_freq_group('T') ==
-                frequencies.FreqGroup.FR_MIN)
-
-        code, stride = frequencies.get_freq_code(offsets.Hour())
-        assert code == frequencies.FreqGroup.FR_HR
-
-        code, stride = frequencies.get_freq_code((5, 'T'))
-        assert code == frequencies.FreqGroup.FR_MIN
-        assert stride == 5
-
-        offset = offsets.Hour()
-        result = frequencies.to_offset(offset)
-        assert result == offset
-
-        result = frequencies.to_offset((5, 'T'))
-        expected = offsets.Minute(5)
-        assert result == expected
-
-        pytest.raises(ValueError, frequencies.get_freq_code, (5, 'baz'))
-
-        pytest.raises(ValueError, frequencies.to_offset, '100foo')
-
-        pytest.raises(ValueError, frequencies.to_offset, ('', ''))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = frequencies.get_standard_freq(offsets.Hour())
-        assert result == 'H'
-
     def test_hash_equivalent(self):
         d = {datetime(2011, 1, 1): 5}
         stamp = Timestamp(datetime(2011, 1, 1))
@@ -1303,26 +1274,19 @@ class TestTimestampToJulianDate(object):
 class TestTimeSeries(object):
 
     def test_timestamp_to_datetime(self):
-        rng = date_range('20090415', '20090519', tz='US/Eastern')
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz='US/Eastern', freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_dateutil(self):
-        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_explicit_pytz(self):
-        rng = date_range('20090415', '20090519',
-                         tz=pytz.timezone('US/Eastern'))
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
@@ -1331,9 +1295,7 @@ class TestTimeSeries(object):
         tm._skip_if_windows_python_3()
 
         from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
-        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
-
-        stamp = rng[0]
+        stamp = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
@@ -1529,3 +1491,58 @@ class TestTsUtil(object):
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
                     Timestamp.min.value / 1000)
+
+
+class TestTimestampEquivDateRange(object):
+    # Older tests in TestTimeSeries constructed their `stamp` objects
+    # using `date_range` instead of the `Timestamp` constructor.
+    # TestTimestampEquivDateRange checks that these are equivalent in the
+    # pertinent cases.
+
+    def test_date_range_timestamp_equiv(self):
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_dateutil(self):
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_pytz(self):
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+
+        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_from_datetime_instance(self):
+        datetime_instance = datetime(2014, 3, 4)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
+
+        ts = Timestamp(datetime_instance, freq='D')
+        assert ts == timestamp_instance
+
+    def test_date_range_timestamp_equiv_preserve_frequency(self):
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        ts = Timestamp('2014-03-05', freq='D')
+
+        assert timestamp_instance == ts
