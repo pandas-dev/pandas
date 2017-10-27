@@ -5182,7 +5182,15 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
 
     for placement, join_units in concat_plan:
 
-        if is_uniform_join_units(join_units):
+        if len(join_units) == 1 and not join_units[0].indexers:
+            b = join_units[0].block
+            values = b.values
+            if copy:
+                values = values.copy()
+            elif not copy:
+                values = values.view()
+            b = b.make_block_same_class(values, placement=placement)
+        elif is_uniform_join_units(join_units):
             b = join_units[0].block.concat_same_type(
                 [ju.block for ju in join_units], placement=placement)
         else:
