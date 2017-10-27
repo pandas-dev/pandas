@@ -40,7 +40,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
 -
 -
 
