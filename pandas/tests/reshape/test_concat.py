@@ -177,7 +177,9 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = "cannot concatenate a non-NDFrame object"
+            msg = ('cannot concatenate object of type \"(.+?)\";'
+                   ' only pd.Series, pd.DataFrame, and pd.Panel'
+                   ' \(deprecated\) objs are valid')
             with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append(vals2)
 

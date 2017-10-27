@@ -219,7 +219,7 @@ class TestSeriesAlterAxes(TestData):
                            labels=[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
                                    [0, 0, 0, 0, 0, 0]],
                            names=['L0', 'L0', 'L0'])
-        expected = Series(range(6), index=e_idx)
+        expected = Series(np.arange(6), index=e_idx)
         assert_series_equal(result, expected)
 
         result = s.reorder_levels(['L0', 'L0', 'L0'])

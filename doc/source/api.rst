@@ -649,6 +649,7 @@ The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.Ca
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    api.types.CategoricalDtype
 
@@ -1793,6 +1794,7 @@ Methods
     Timestamp.strftime
     Timestamp.strptime
     Timestamp.time
+    Timestamp.timestamp
     Timestamp.timetuple
     Timestamp.timetz
     Timestamp.to_datetime64
@@ -1973,6 +1975,7 @@ Function application
    GroupBy.apply
    GroupBy.aggregate
    GroupBy.transform
+   GroupBy.pipe
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
