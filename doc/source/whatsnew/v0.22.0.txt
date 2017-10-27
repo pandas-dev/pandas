@@ -1,0 +1,156 @@
+.. _whatsnew_0220:
+
+v0.22.0
+-------
+
+This is a major release from 0.21.1 and includes a number of API changes,
+deprecations, new features, enhancements, and performance improvements along
+with a large number of bug fixes. We recommend that all users upgrade to this
+version.
+
+.. _whatsnew_0220.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0220.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0220.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0220.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+-
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Other
+^^^^^
+
+-
+-
+-
