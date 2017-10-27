@@ -1,5 +1,6 @@
-from pandas.compat import callable, signature
+from pandas.compat import callable, signature, PY2
 from pandas._libs.properties import cache_readonly  # noqa
+import inspect
 import types
 import warnings
 from textwrap import dedent
@@ -118,6 +119,31 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
         return wrapper
     return _deprecate_kwarg
 
+
+def rewrite_axis_style_signature(name, extra_params):
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        if not PY2:
+            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+            params = [
+                inspect.Parameter('self', kind),
+                inspect.Parameter(name, kind, default=None),
+                inspect.Parameter('index', kind, default=None),
+                inspect.Parameter('columns', kind, default=None),
+                inspect.Parameter('axis', kind, default=None),
+            ]
+
+            for pname, default in extra_params:
+                params.append(inspect.Parameter(pname, kind, default=default))
+
+            sig = inspect.Signature(params)
+
+            func.__signature__ = sig
+        return wrapper
+    return decorate
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.org/users/license.html
