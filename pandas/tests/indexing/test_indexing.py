@@ -5,6 +5,7 @@
 
 import pytest
 
+import weakref
 from warnings import catch_warnings
 from datetime import datetime
 
@@ -880,6 +881,14 @@ class TestMisc(Base):
                                 index=list('abc'),
                                 columns=list('ABC'))
         tm.assert_frame_equal(result, expected)
+
+    def test_no_reference_cycle(self):
+        df = pd.DataFrame({'a': [0, 1], 'b': [2, 3]})
+        for name in ('loc', 'iloc', 'ix', 'at', 'iat'):
+            getattr(df, name)
+        wr = weakref.ref(df)
+        del df
+        assert wr() is None
 
 
 class TestSeriesNoneCoercion(object):

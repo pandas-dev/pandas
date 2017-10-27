@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 import collections
+import functools
 import warnings
 import operator
 import weakref
@@ -28,7 +29,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (_all_not_none, _count_not_none,
+from pandas.core.common import (_count_not_none,
                                 _maybe_box_datetimelike, _values_from_object,
                                 AbstractMethodError, SettingWithCopyError,
                                 SettingWithCopyWarning)
@@ -727,51 +728,6 @@ class NDFrame(PandasObject, SelectionMixin):
         labels = result._data.axes[axis]
         result._data.set_axis(axis, labels.swaplevel(i, j))
         return result
-
-    def _validate_axis_style_args(self, arg, arg_name, axes,
-                                  axis, method_name):
-        out = {}
-        for i, value in enumerate(axes):
-            if value is not None:
-                out[self._AXIS_NAMES[i]] = value
-
-        aliases = ', '.join(self._AXIS_NAMES.values())
-        if axis is not None:
-            # Using "axis" style, along with a positional arg
-            # Both index and columns should be None then
-            axis = self._get_axis_name(axis)
-            if any(x is not None for x in axes):
-                msg = (
-                    "Can't specify both 'axis' and {aliases}. "
-                    "Specify either\n"
-                    "\t.{method_name}({arg_name}, axis=axis), or\n"
-                    "\t.{method_name}(index=index, columns=columns)"
-                ).format(arg_name=arg_name, method_name=method_name,
-                         aliases=aliases)
-                raise TypeError(msg)
-            out[axis] = arg
-
-        elif _all_not_none(arg, *axes):
-            msg = (
-                "Cannot specify all of '{arg_name}', {aliases}. "
-                "Specify either {arg_name} and 'axis', or {aliases}."
-            ).format(arg_name=arg_name, aliases=aliases)
-            raise TypeError(msg)
-
-        elif _all_not_none(arg, axes[0]):
-            # This is the "ambiguous" case, so emit a warning
-            msg = (
-                "Interpreting call to '.{method_name}(a, b)' as "
-                "'.{method_name}(index=a, columns=b)'. "  # TODO
-                "Use keyword arguments to remove any ambiguity."
-            ).format(method_name=method_name)
-            warnings.warn(msg, stacklevel=3)
-            out[self._AXIS_ORDERS[0]] = arg
-            out[self._AXIS_ORDERS[1]] = axes[0]
-        elif axes[0] is None:
-            # This is for the default axis, like reindex([0, 1])
-            out[self._AXIS_ORDERS[0]] = arg
-        return out
 
     # ----------------------------------------------------------------------
     # Rename
@@ -1841,22 +1797,9 @@ class NDFrame(PandasObject, SelectionMixin):
     @classmethod
     def _create_indexer(cls, name, indexer):
         """Create an indexer like _name in the class."""
-
         if getattr(cls, name, None) is None:
-            iname = '_%s' % name
-            setattr(cls, iname, None)
-
-            def _indexer(self):
-                i = getattr(self, iname)
-                if i is None:
-                    i = indexer(self, name)
-                    setattr(self, iname, i)
-                return i
-
+            _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
-
-            # add to our internal names set
-            cls._internal_names_set.add(iname)
 
     def get(self, key, default=None):
         """
@@ -5362,9 +5305,13 @@ class NDFrame(PandasObject, SelectionMixin):
             the offset string or object representing target conversion
         axis : int, optional, default 0
         closed : {'right', 'left'}
-            Which side of bin interval is closed
+            Which side of bin interval is closed. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {'right', 'left'}
-            Which bin edge label to label bucket with
+            Which bin edge label to label bucket with. The default is 'left'
+            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}
             For PeriodIndex only, controls whether to use the start or end of
             `rule`
@@ -5424,7 +5371,7 @@ class NDFrame(PandasObject, SelectionMixin):
         value in the bucket used as the label is not included in the bucket,
         which it labels. For example, in the original series the
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
-        value in the resampled bucket with the label``2000-01-01 00:03:00``
+        value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
         To include this value close the right side of the bin interval as
         illustrated in the example below this one.
