@@ -35,6 +35,7 @@ from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
 from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -1212,12 +1213,8 @@ class Panel(NDFrame):
                 raise TypeError("Cannot specify both 'minor' and 'minor_axis'")
 
             kwargs['minor_axis'] = minor
-        # major_axis = (major_axis if major_axis is not None else
-        #               kwargs.pop('major', None))
-        # minor_axis = (minor_axis if minor_axis is not None else
-        #               kwargs.pop('minor', None))
-        axes = self._validate_axis_style_args(args, kwargs, 'labels',
-                                              'reindex')
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
         if self.ndim >= 4:
             # Hack for PanelND
             axes = {}

@@ -84,7 +84,8 @@ from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature)
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import (validate_bool_kwarg,
+                                     validate_axis_style_args)
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2925,8 +2926,8 @@ class DataFrame(NDFrame):
                                              ('limit', None),
                                              ('tolerance', None)])
     def reindex(self, *args, **kwargs):
-        axes = self._validate_axis_style_args(args, kwargs, 'labels',
-                                              'reindex')
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
         kwargs.update(axes)
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)
@@ -3018,7 +3019,7 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = self._validate_axis_style_args(args, kwargs, 'mapper', 'rename')
+        axes = validate_axis_style_args(self, args, kwargs, 'mapper', 'rename')
         kwargs.update(axes)
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)

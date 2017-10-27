@@ -4,6 +4,8 @@ import warnings
 from pandas.core.generic import NDFrame
 from pandas.core.panelnd import create_nd_panel_factory
 from pandas.core.panel import Panel
+from pandas.util._validators import validate_axis_style_args
+
 
 Panel4D = create_nd_panel_factory(klass_name='Panel4D',
                                   orders=['labels', 'items', 'major_axis',
@@ -88,7 +90,7 @@ def panel4d_reindex(self, labs=None, labels=None, items=None, major_axis=None,
     if axis is not None:
         kwargs_['axis'] = axis
 
-    axes = self._validate_axis_style_args(args, kwargs_, 'labs', 'reindex')
+    axes = validate_axis_style_args(self, args, kwargs_, 'labs', 'reindex')
     kwargs.update(axes)
     return NDFrame.reindex(self, **kwargs)
 
