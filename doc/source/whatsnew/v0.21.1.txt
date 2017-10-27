@@ -74,6 +74,9 @@ Indexing
 I/O
 ^^^
 
+- Bug in `StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`)
+
+
 Plotting
 ^^^^^^^^
 
