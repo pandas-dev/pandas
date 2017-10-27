@@ -395,7 +395,11 @@ class Resampler(_GroupBy):
             grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
 
         try:
-            result = grouped.aggregate(how, *args, **kwargs)
+            if isinstance(obj, ABCDataFrame) and compat.callable(how):
+                # Check if the function is reducing or not.
+                result = grouped._aggregate_item_by_item(how, *args, **kwargs)
+            else:
+                result = grouped.aggregate(how, *args, **kwargs)
         except Exception:
 
             # we have a non-reducing function
