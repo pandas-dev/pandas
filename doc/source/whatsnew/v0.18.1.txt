@@ -440,13 +440,23 @@ Previous behavior:
 
 New Behavior:
 
-.. ipython:: python
+.. code-block:: python
 
     # Output is a Series
-    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    In [55]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    Out[55]:
+    date
+    2000-10-31    10
+    2000-11-30    13
+    Freq: M, dtype: int64
 
     # Output is a DataFrame
-    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    In [56]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    Out[56]:
+                value
+    date
+    2000-10-31     10
+    2000-11-30     13
 
 .. _whatsnew_0181.read_csv_exceptions:
 
