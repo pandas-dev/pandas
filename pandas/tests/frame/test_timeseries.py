@@ -387,7 +387,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
             df.truncate(before=3, after=9)
 
         rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
-        ts = pd.Series(np.random.randn(len(rng)), index=rng)
+        ts = pd.DataFrame({'A': np.random.randn(len(rng)),
+                           'B': np.random.randn(len(rng))}, 
+                           index=rng)
         with tm.assert_raises_regex(ValueError,
                                     'truncate requires a sorted index'):
             ts.sort_values(ascending=False).truncate(before='2011-11',
