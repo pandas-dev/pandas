@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (_all_not_none, _count_not_none,
+from pandas.core.common import (_count_not_none,
                                 _maybe_box_datetimelike, _values_from_object,
                                 AbstractMethodError, SettingWithCopyError,
                                 SettingWithCopyWarning)
@@ -727,51 +727,6 @@ class NDFrame(PandasObject, SelectionMixin):
         labels = result._data.axes[axis]
         result._data.set_axis(axis, labels.swaplevel(i, j))
         return result
-
-    def _validate_axis_style_args(self, arg, arg_name, axes,
-                                  axis, method_name):
-        out = {}
-        for i, value in enumerate(axes):
-            if value is not None:
-                out[self._AXIS_NAMES[i]] = value
-
-        aliases = ', '.join(self._AXIS_NAMES.values())
-        if axis is not None:
-            # Using "axis" style, along with a positional arg
-            # Both index and columns should be None then
-            axis = self._get_axis_name(axis)
-            if any(x is not None for x in axes):
-                msg = (
-                    "Can't specify both 'axis' and {aliases}. "
-                    "Specify either\n"
-                    "\t.{method_name}({arg_name}, axis=axis), or\n"
-                    "\t.{method_name}(index=index, columns=columns)"
-                ).format(arg_name=arg_name, method_name=method_name,
-                         aliases=aliases)
-                raise TypeError(msg)
-            out[axis] = arg
-
-        elif _all_not_none(arg, *axes):
-            msg = (
-                "Cannot specify all of '{arg_name}', {aliases}. "
-                "Specify either {arg_name} and 'axis', or {aliases}."
-            ).format(arg_name=arg_name, aliases=aliases)
-            raise TypeError(msg)
-
-        elif _all_not_none(arg, axes[0]):
-            # This is the "ambiguous" case, so emit a warning
-            msg = (
-                "Interpreting call to '.{method_name}(a, b)' as "
-                "'.{method_name}(index=a, columns=b)'. "  # TODO
-                "Use keyword arguments to remove any ambiguity."
-            ).format(method_name=method_name)
-            warnings.warn(msg, stacklevel=3)
-            out[self._AXIS_ORDERS[0]] = arg
-            out[self._AXIS_ORDERS[1]] = axes[0]
-        elif axes[0] is None:
-            # This is for the default axis, like reindex([0, 1])
-            out[self._AXIS_ORDERS[0]] = arg
-        return out
 
     # ----------------------------------------------------------------------
     # Rename

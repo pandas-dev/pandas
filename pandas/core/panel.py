@@ -35,6 +35,7 @@ from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
 from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -1199,20 +1200,27 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, labels=None,
-                items=None, major_axis=None, minor_axis=None,
-                axis=None, **kwargs):
-        major_axis = (major_axis if major_axis is not None else
-                      kwargs.pop('major', None))
-        minor_axis = (minor_axis if minor_axis is not None else
-                      kwargs.pop('minor', None))
-        axes = self._validate_axis_style_args(
-            labels, 'labels', axes=[items, major_axis, minor_axis],
-            axis=axis, method_name='reindex')
+    def reindex(self, *args, **kwargs):
+        major = kwargs.pop("major", None)
+        minor = kwargs.pop('minor', None)
+
+        if major is not None:
+            if kwargs.get("major_axis"):
+                raise TypeError("Cannot specify both 'major' and 'major_axis'")
+            kwargs['major_axis'] = major
+        if minor is not None:
+            if kwargs.get("minor_axis"):
+                raise TypeError("Cannot specify both 'minor' and 'minor_axis'")
+
+            kwargs['minor_axis'] = minor
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
         if self.ndim >= 4:
             # Hack for PanelND
             axes = {}
         kwargs.update(axes)
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
         return super(Panel, self).reindex(**kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
