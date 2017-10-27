@@ -350,8 +350,11 @@ def unconvert(values, dtype, compress=None):
                 )
                 # fall through to copying `np.fromstring`
 
-    # Copy the string into a numpy array.
-    return np.fromstring(values, dtype=dtype)
+    # Copy the bytes into a numpy array.
+    buf = np.frombuffer(values, dtype=dtype)
+    buf = buf.copy()  # required to not mutate the original data
+    buf.flags.writeable = True
+    return buf
 
 
 def encode(obj):
