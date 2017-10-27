@@ -3090,7 +3090,8 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind = pd.MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
         # And that using set_levels with duplicate levels fails
-        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]])
+        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'],
+                                      [1, 2, 1, 2, 3]])
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
