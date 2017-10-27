@@ -3103,6 +3103,26 @@ class TestResamplerGrouper(object):
         result = g.apply(f)
         assert_frame_equal(result, expected)
 
+    def test_apply_with_mutated_index(self):
+        # GH 15169
+        index = pd.date_range('1-1-2015', '12-31-15', freq='D')
+        df = pd.DataFrame(data={'col1': np.random.rand(len(index))},
+                          index=index)
+
+        def f(x):
+            s = pd.Series([1, 2], index=['a', 'b'])
+            return s
+
+        expected = df.groupby(pd.Grouper(freq='M')).apply(f)
+
+        result = df.resample('M').apply(f)
+        assert_frame_equal(result, expected)
+
+        # A case for series
+        expected = df['col1'].groupby(pd.Grouper(freq='M')).apply(f)
+        result = df['col1'].resample('M').apply(f)
+        assert_series_equal(result, expected)
+
     def test_resample_groupby_with_label(self):
         # GH 13235
         index = date_range('2000-01-01', freq='2D', periods=5)
