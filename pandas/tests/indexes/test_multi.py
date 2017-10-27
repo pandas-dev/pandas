@@ -2456,11 +2456,6 @@ class TestMultiIndex(Base):
             ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
         ])
         assert ind.is_monotonic
-<<<<<<< HEAD
-
-        # GH 17464 - Remove duplicate MultiIndex levels
-=======
->>>>>>> 6ce2637... Removed comments about this issue from other tests
         ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
@@ -3088,3 +3083,14 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(AttributeError,
                                     "'Series' object has no attribute 'foo'"):
             df['a'].foo()
+
+    def test_duplicate_multiindex_labels(self):
+        # GH 17464
+        # Make sure that a MultiIndex with duplicate levels throws a ValueError
+        with pytest.raises(ValueError):
+            ind = pd.MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
+        # And that using set_levels with duplicate levels fails
+        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]])
+        with pytest.raises(ValueError):
+            ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
+                           inplace=True)
