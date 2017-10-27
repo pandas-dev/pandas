@@ -2,13 +2,14 @@
 
 from __future__ import print_function
 
+import inspect
 import pytest
 
 from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas.compat import lrange
+from pandas.compat import lrange, PY2
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     RangeIndex, date_range, IntervalIndex,
                     to_datetime)
@@ -887,6 +888,9 @@ class TestDataFrameAlterAxes(TestData):
         result = df.rename({'X': 'x', 'Y': 'y'}, axis='index')
         assert_frame_equal(result, expected)
 
+        result = df.rename(mapper=str.lower, axis='index')
+        assert_frame_equal(result, expected)
+
     def test_rename_mapper_multi(self):
         df = pd.DataFrame({"A": ['a', 'b'], "B": ['c', 'd'],
                            'C': [1, 2]}).set_index(["A", "B"])
@@ -929,6 +933,10 @@ class TestDataFrameAlterAxes(TestData):
         with tm.assert_raises_regex(TypeError, None):
             df.rename(str.lower, str.lower, str.lower)
 
+        # Duplicates
+        with tm.assert_raises_regex(TypeError, "multiple values"):
+            df.rename(id, mapper=id)
+
     def test_reindex_api_equivalence(self):
         # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
@@ -956,6 +964,17 @@ class TestDataFrameAlterAxes(TestData):
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
+    def test_rename_positional(self):
+        df = pd.DataFrame(columns=['A', 'B'])
+        with tm.assert_produces_warning(FutureWarning) as rec:
+            result = df.rename(None, str.lower)
+        expected = pd.DataFrame(columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+        assert len(rec) == 1
+        message = str(rec[0].message)
+        assert 'rename' in message
+        assert 'Use named arguments' in message
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 
@@ -981,11 +1000,26 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_ambiguous_warns(self):
         df = pd.DataFrame({"A": [1, 2]})
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             df.rename(id, id)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             df.rename({0: 10}, {"A": "B"})
+
+    @pytest.mark.skipif(PY2, reason="inspect.signature")
+    def test_rename_signature(self):
+        sig = inspect.signature(pd.DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {"self", "mapper", "index", "columns", "axis",
+                              "inplace", "copy", "level"}
+
+    @pytest.mark.skipif(PY2, reason="inspect.signature")
+    def test_reindex_signature(self):
+        sig = inspect.signature(pd.DataFrame.reindex)
+        parameters = set(sig.parameters)
+        assert parameters == {"self", "labels", "index", "columns", "axis",
+                              "limit", "copy", "level", "method",
+                              "fill_value", "tolerance"}
 
 
 class TestIntervalIndex(object):
