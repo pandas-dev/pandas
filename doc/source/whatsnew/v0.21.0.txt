@@ -9,13 +9,12 @@ users upgrade to this version.
 
 Highlights include:
 
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
 - The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
-- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series``.
-  This allows for functions that take a ``GroupBy`` to be composed in a clean, readable syntax, see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`.
+- Additions to the ``drop``, ``reindex`` and ``rename`` API (see :ref:`here <whatsnew_0210.enhancements.drop_api>`) and new methods ``infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
@@ -28,15 +27,23 @@ Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-- Support for `PEP 519 -- Adding a file system path protocol
-  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers (e.g.
-  :func:`read_csv`) and writers (e.g. :meth:`DataFrame.to_csv`) (:issue:`13823`).
-- Added a ``__fspath__`` method to ``pd.HDFStore``, ``pd.ExcelFile``,
-  and ``pd.ExcelWriter`` to work properly with the file system path protocol (:issue:`13823`).
-- Added a ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
-  support type inference in the presence of missing values (:issue:`17059`).
-- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
-- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
+.. _whatsnew_0210.enhancements.parquet:
+
+Integration with Apache Parquet file format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>` (:issue:`15838`, :issue:`17438`).
+
+`Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
+make reading and writing data frames efficient, and to make sharing data across data analysis
+languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
+while still maintaining good read performance.
+Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, supporting all of the pandas
+dtypes, including extension dtypes such as datetime with tz.
+
+This functionality depends on either the `pyarrow <http://arrow.apache.org/docs/python/>`__ or `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__ library.
+For more details, see see :ref:`the IO docs on Parquet <io.parquet>`.
+
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -75,7 +82,7 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
 Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-New users are often flummoxed by the relationship between column operations and
+New users are often puzzled by the relationship between column operations and
 attribute access on ``DataFrame`` instances (:issue:`7175`). One specific
 instance of this confusion is attempting to create a new column by setting an
 attribute on the ``DataFrame``:
@@ -96,7 +103,9 @@ This does not raise any obvious exceptions, but also does not create a new colum
    1  2.0
    2  3.0
 
-Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+Setting a list-like data structure into a new attribute now raises a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+
+.. _whatsnew_0210.enhancements.drop_api:
 
 ``drop`` now also accepts index/columns keywords
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -240,6 +249,8 @@ Now, to find prices per store/product, we can simply do:
       .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
       .unstack().round(2))
 
+See the :ref:`documentation <groupby.pipe>` for more.
+
 
 .. _whatsnew_0210.enhancements.reanme_categories:
 
@@ -264,34 +275,51 @@ as in :meth:`DataFrame.rename`.
    will change to treat them as dict-like. Follow the warning message's
    recommendations for writing future-proof code.
 
-  .. ipython:: python
-     :okwarning:
+   .. ipython:: python
+      :okwarning:
 
-     c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+      c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
 
-
-See the :ref:`documentation <groupby.pipe>` for more.
 
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- The ``validate`` argument for :func:`merge` now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
-- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ (``pyproject.toml``) to the build system (:issue:`16745`)
+New functions or methods:
+
+- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
+
+New keywords:
+
+- Added a ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
+  support type inference in the presence of missing values (:issue:`17059`).
 - :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
-- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
-- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
 - :func:`Series.set_axis` and :func:`DataFrame.set_axis` now support the ``inplace`` parameter. (:issue:`14636`)
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
-- :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
+- :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
+- :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
+
+Various enhancements:
+
+- Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
+- Support for `PEP 519 -- Adding a file system path protocol
+  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers (e.g.
+  :func:`read_csv`) and writers (e.g. :meth:`DataFrame.to_csv`) (:issue:`13823`).
+- Added a ``__fspath__`` method to ``pd.HDFStore``, ``pd.ExcelFile``,
+  and ``pd.ExcelWriter`` to work properly with the file system path protocol (:issue:`13823`).
+- The ``validate`` argument for :func:`merge` now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
+- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ (``pyproject.toml``) to the build system (:issue:`16745`)
+- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
+- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year. (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year. (:issue:`9313`)
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from path-like objects, such as ``pathlib.Path``. (:issue:`17206`)
 - :func:`read_sas` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files. (:issue:`15871`)
@@ -299,10 +327,7 @@ Other Enhancements
 - :meth:`pandas.io.formats.style.Styler.where` has been implemented as a convenience for :meth:`pandas.io.formats.style.Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
-- :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
-- Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
-- :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 - :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
 
 .. _whatsnew_0210.api_breaking:
