@@ -67,7 +67,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Indexers on Series or DataFrame no longer create a reference cycle (:issue:`17956`)
 -
 -
 

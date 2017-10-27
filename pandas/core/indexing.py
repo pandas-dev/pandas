@@ -23,6 +23,7 @@ import pandas.core.common as com
 from pandas.core.common import (is_bool_indexer, _asarray_tuplesafe,
                                 is_null_slice, is_full_slice,
                                 _values_from_object)
+from pandas._libs.indexing import _NDFrameIndexerBase
 
 
 # the supported indexers
@@ -85,19 +86,14 @@ class IndexingError(Exception):
     pass
 
 
-class _NDFrameIndexer(object):
+class _NDFrameIndexer(_NDFrameIndexerBase):
     _valid_types = None
     _exception = KeyError
     axis = None
 
-    def __init__(self, obj, name):
-        self.obj = obj
-        self.ndim = obj.ndim
-        self.name = name
-
     def __call__(self, axis=None):
         # we need to return a copy of ourselves
-        new_self = self.__class__(self.obj, self.name)
+        new_self = self.__class__(self.name, self.obj)
 
         if axis is not None:
             axis = self.obj._get_axis_number(axis)
@@ -1321,7 +1317,7 @@ class _IXIndexer(_NDFrameIndexer):
 
     """
 
-    def __init__(self, obj, name):
+    def __init__(self, name, obj):
 
         _ix_deprecation_warning = textwrap.dedent("""
             .ix is deprecated. Please use
@@ -1332,8 +1328,8 @@ class _IXIndexer(_NDFrameIndexer):
             http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
 
         warnings.warn(_ix_deprecation_warning,
-                      DeprecationWarning, stacklevel=3)
-        super(_IXIndexer, self).__init__(obj, name)
+                      DeprecationWarning, stacklevel=2)
+        super(_IXIndexer, self).__init__(name, obj)
 
     def _has_valid_type(self, key, axis):
         if isinstance(key, slice):
