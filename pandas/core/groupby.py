@@ -2769,7 +2769,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         keys = [key]
         match_axis_length = False
     else:
-        keys = key
+        if isinstance(key, tuple) and isinstance(obj._info_axis, MultiIndex):
+            keys = [key]
+        else:
+            keys = key
         match_axis_length = len(keys) == len(group_axis)
 
     # what are we after, exactly?
