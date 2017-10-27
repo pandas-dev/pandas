@@ -338,7 +338,6 @@ Various enhancements
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
 - :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
-- :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
 
 .. _whatsnew_0210.api_breaking:
 
