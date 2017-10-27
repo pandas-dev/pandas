@@ -362,81 +362,54 @@ If installed, we now require:
    | Bottleneck   | 1.0.0           |          |
    +--------------+-----------------+----------+
 
-.. _whatsnew_0210.api_breaking.period_index_resampling:
 
-``PeriodIndex`` resampling
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0210.api_breaking.bottleneck:
 
-In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
+Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previous Behavior:
+The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
+whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
 
-.. code-block:: ipython
-
-   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
-
-   In [2]: s = pd.Series(np.arange(12), index=pi)
-
-   In [3]: resampled = s.resample('2Q').mean()
-
-   In [4]: resampled
-   Out[4]:
-   2017-03-31     1.0
-   2017-09-30     5.5
-   2018-03-31    10.0
-   Freq: 2Q-DEC, dtype: float64
-
-   In [5]: resampled.index
-   Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
-
-New Behavior:
+Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
 
 .. ipython:: python
 
-   pi = pd.period_range('2017-01', periods=12, freq='M')
+   s = Series([np.nan])
 
-   s = pd.Series(np.arange(12), index=pi)
-
-   resampled = s.resample('2Q').mean()
-
-   resampled
-
-   resampled.index
-
-
-Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
-
-Previous Behavior:
+Previously NO ``bottleneck``
 
 .. code-block:: ipython
 
-   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   In [2]: s.sum()
+   Out[2]: np.nan
 
-   In [2]: s = pd.Series(np.arange(10), index=pi)
+Previously WITH ``bottleneck``
 
-   In [3]: s.resample('H').ohlc()
-   Out[3]:
-   2000-01-01 00:00    0.0
-                   ...
-   2000-01-10 23:00    NaN
-   Freq: H, Length: 240, dtype: float64
+.. code-block:: ipython
 
-   In [4]: s.resample('M').ohlc()
-   Out[4]:
-            open  high  low  close
-   2000-01     0     9    0      9
+   In [2]: s.sum()
+   Out[2]: 0.0
 
-New Behavior:
+New Behavior, without regard to the bottleneck installation.
 
 .. ipython:: python
 
-   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   s.sum()
 
-   s = pd.Series(np.arange(10), index=pi)
+Note that this also changes the sum of an empty ``Series``
 
-   s.resample('H').ohlc()
+Previously regardless of ``bottlenck``
 
-   s.resample('M').ohlc()
+.. code-block:: ipython
+
+   In [1]: pd.Series([]).sum()
+   Out[1]: 0
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+
 
 .. _whatsnew_0210.api_breaking.loc:
 
@@ -495,6 +468,68 @@ Selection with all keys found is unchanged.
 
    s.loc[[1, 2]]
 
+
+.. _whatsnew_0210.api.na_changes:
+
+NA naming Changes
+^^^^^^^^^^^^^^^^^
+
+In order to promote more consistency among the pandas API, we have added additional top-level
+functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
+The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
+in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
+named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
+``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
+
+The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
+
+
+.. _whatsnew_0210.api_breaking.iteration_scalars:
+
+Iteration of Series/Index will now return Python scalars
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Previously:
+
+.. code-block:: ipython
+
+   In [2]: type(list(s)[0])
+   Out[2]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(list(s)[0])
+
+Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
+
+.. ipython:: python
+
+   d = {'a':[1], 'b':['b']}
+   df = pd.DataFrame(d)
+
+Previously:
+
+.. code-block:: ipython
+
+   In [8]: type(df.to_dict()['a'][0])
+   Out[8]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(df.to_dict()['a'][0])
+
+
 .. _whatsnew_0210.api_breaking.loc_with_index:
 
 Indexing with a Boolean Index
@@ -550,52 +585,82 @@ Current Behavior
 
    s.loc[pd.Index([True, False, True])]
 
-.. _whatsnew_0210.api_breaking.bottleneck:
 
-Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0210.api_breaking.period_index_resampling:
 
-The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
-whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
+``PeriodIndex`` resampling
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
-.. ipython:: python
-
-   s = Series([np.nan])
-
-Previously NO ``bottleneck``
+Previous Behavior:
 
 .. code-block:: ipython
 
-   In [2]: s.sum()
-   Out[2]: np.nan
+   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
 
-Previously WITH ``bottleneck``
+   In [2]: s = pd.Series(np.arange(12), index=pi)
 
-.. code-block:: ipython
+   In [3]: resampled = s.resample('2Q').mean()
 
-   In [2]: s.sum()
-   Out[2]: 0.0
+   In [4]: resampled
+   Out[4]:
+   2017-03-31     1.0
+   2017-09-30     5.5
+   2018-03-31    10.0
+   Freq: 2Q-DEC, dtype: float64
 
-New Behavior, without regard to the bottleneck installation.
+   In [5]: resampled.index
+   Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
 
-.. ipython:: python
-
-   s.sum()
-
-Note that this also changes the sum of an empty ``Series``
-
-Previously regardless of ``bottlenck``
-
-.. code-block:: ipython
-
-   In [1]: pd.Series([]).sum()
-   Out[1]: 0
+New Behavior:
 
 .. ipython:: python
 
-   pd.Series([]).sum()
+   pi = pd.period_range('2017-01', periods=12, freq='M')
+
+   s = pd.Series(np.arange(12), index=pi)
+
+   resampled = s.resample('2Q').mean()
+
+   resampled
+
+   resampled.index
+
+Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   In [2]: s = pd.Series(np.arange(10), index=pi)
+
+   In [3]: s.resample('H').ohlc()
+   Out[3]:
+   2000-01-01 00:00    0.0
+                   ...
+   2000-01-10 23:00    NaN
+   Freq: H, Length: 240, dtype: float64
+
+   In [4]: s.resample('M').ohlc()
+   Out[4]:
+            open  high  low  close
+   2000-01     0     9    0      9
+
+New Behavior:
+
+.. ipython:: python
+
+   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   s = pd.Series(np.arange(10), index=pi)
+
+   s.resample('H').ohlc()
+
+   s.resample('M').ohlc()
+
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
@@ -643,50 +708,6 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
-.. _whatsnew_0210.api_breaking.iteration_scalars:
-
-Iteration of Series/Index will now return Python scalars
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3])
-   s
-
-Previously:
-
-.. code-block:: ipython
-
-   In [2]: type(list(s)[0])
-   Out[2]: numpy.int64
-
-New Behaviour:
-
-.. ipython:: python
-
-   type(list(s)[0])
-
-Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
-
-.. ipython:: python
-
-   d = {'a':[1], 'b':['b']}
-   df = pd.DataFrame(d)
-
-Previously:
-
-.. code-block:: ipython
-
-   In [8]: type(df.to_dict()['a'][0])
-   Out[8]: numpy.int64
-
-New Behaviour:
-
-.. ipython:: python
-
-   type(df.to_dict()['a'][0])
 
 .. _whatsnew_0210.api_breaking.dtype_conversions:
 
@@ -744,19 +765,6 @@ These now coerce to ``object`` dtype.
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
-.. _whatsnew_0210.api.na_changes:
-
-NA naming Changes
-^^^^^^^^^^^^^^^^^
-
-In order to promote more consistency among the pandas API, we have added additional top-level
-functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
-The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
-in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
-named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
-``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
-
-The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
 
 .. _whatsnew_210.api.multiindex_single:
 
