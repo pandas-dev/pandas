@@ -36,10 +36,7 @@ Integration with Apache Parquet file format
 
 Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>` (:issue:`15838`, :issue:`17438`).
 
-`Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
-make reading and writing data frames efficient, and to make sharing data across data analysis
-languages easy. Parquet can use a variety of compression techniques to shrink the file size as much as possible
-while still maintaining good read performance.
+`Apache Parquet <https://parquet.apache.org/>`__ provides a language-agnostic, binary file format for reading and writing data frames efficiently.
 Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, supporting all of the pandas
 dtypes, including extension dtypes such as datetime with tz.
 
