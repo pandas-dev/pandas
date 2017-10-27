@@ -12,7 +12,7 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
-from cpython.ref cimport PyObject, Py_XDECREF
+from cpython.ref cimport Py_XDECREF
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
 
@@ -43,12 +43,10 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype, CategoricalDtype,
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
-    is_string_dtype, is_datetime64_dtype,
+    is_datetime64_dtype,
     pandas_dtype)
-from pandas.core.categorical import Categorical, _recode_for_categories
-from pandas.core.algorithms import take_1d
+from pandas.core.categorical import Categorical
 from pandas.core.dtypes.concat import union_categoricals
-from pandas import Index
 
 import pandas.io.common as com
 
@@ -165,7 +163,7 @@ cdef extern from "parser/tokenizer.h":
         int quoting                # style of quoting to write */
 
         # hmm =/
-#        int numeric_field
+        # int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -253,11 +251,7 @@ cdef extern from "parser/tokenizer.h":
     double round_trip(const char *p, char **q, char decimal, char sci,
                       char tsep, int skip_trailing) nogil
 
-#    inline int to_complex(char *item, double *p_real,
-#                          double *p_imag, char sci, char decimal)
     int to_longlong(char *item, long long *p_value) nogil
-#    inline int to_longlong_thousands(char *item, long long *p_value,
-#                                     char tsep)
     int to_boolean(const char *item, uint8_t *val) nogil
 
 

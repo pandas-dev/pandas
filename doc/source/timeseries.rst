@@ -657,18 +657,25 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A ``truncate`` convenience function is provided that is equivalent to slicing:
+A ``truncate`` convenience function is provided that is similar to slicing.
+Note that ``truncate`` assumes a 0 value for any unspecified date component
+in a ``DatetimeIndex`` in contrast to slicing which returns any partially
+matching dates:
 
 .. ipython:: python
 
-   ts.truncate(before='10/31/2011', after='12/31/2011')
+   rng2 = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+   ts2 = pd.Series(np.random.randn(len(rng2)), index=rng2)
+
+   ts2.truncate(before='2011-11', after='2011-12')
+   ts2['2011-11':'2011-12']
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
 regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts[[0, 2, 6]].index
+   ts2[[0, 2, 6]].index
 
 .. _timeseries.components:
 
@@ -1485,11 +1492,30 @@ labels.
 
 .. ipython:: python
 
-   ts.resample('5Min').mean() # by default label='right'
+   ts.resample('5Min').mean() # by default label='left'
 
    ts.resample('5Min', label='left').mean()
 
    ts.resample('5Min', label='left', loffset='1s').mean()
+
+.. note::
+
+    The default values for ``label`` and ``closed`` is 'left' for all 
+    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' 
+    which all have a default of 'right'.
+
+    .. ipython:: python
+
+       rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
+       ts2 = pd.Series(range(len(rng2)), index=rng2)
+
+       # default: label='right', closed='right'
+       ts2.resample('M').max()
+
+       # default: label='left', closed='left'
+       ts2.resample('SM').max()
+
+       ts2.resample('SM', label='right', closed='right').max()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
