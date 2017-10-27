@@ -37,10 +37,10 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.21.0RC1
-----------------
+pandas 0.21.0
+-------------
 
-**Release date:** October 13, 2017
+**Release date:** October 27, 2017
 
 This is a major release from 0.20.3 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -61,13 +61,17 @@ of all enhancements and bugs that have been fixed in 0.21.0
 Thanks
 ~~~~~~
 
-A total of 196 people contributed to this release.  People with a "+" by their
+A total of 206 people contributed to this release.  People with a "+" by their
 names contributed a patch for the first time.
+
+Contributors
+============
 
 * 3553x +
 * Aaron Barber
 * Adam Gleave +
 * Adam Smith +
+* AdamShamlian +
 * Adrian Liaw +
 * Alan Velasco +
 * Alan Yee +
@@ -84,6 +88,7 @@ names contributed a patch for the first time.
 * Berkay +
 * Bob Haffner +
 * Bran Yang
+* Brian Tu +
 * Brock Mendel +
 * Carol Willing +
 * Carter Green +
@@ -125,6 +130,7 @@ names contributed a patch for the first time.
 * Hussain Tamboli +
 * Iva Miholic +
 * Jan Novotný +
+* Jan Rudolph
 * Jean Helie +
 * Jean-Baptiste Schiratti +
 * Jean-Mathieu Deschenes
@@ -136,6 +142,8 @@ names contributed a patch for the first time.
 * Joel Nothman
 * John W. O'Brien
 * Jon Crall +
+* Jon Mease
+* Jonathan J. Helmus +
 * Joris Van den Bossche
 * JosephWagner
 * Juarez Bochi
@@ -172,6 +180,7 @@ names contributed a patch for the first time.
 * Pankaj Pandey
 * Patrick Luo
 * Patrick O'Melveny
+* Paul Reidy +
 * Paula +
 * Peter Quackenbush
 * Peter Yanovich +
@@ -205,6 +214,7 @@ names contributed a patch for the first time.
 * XF +
 * Yi Liu +
 * Yosuke Nakabayashi +
+* aaron315 +
 * abarber4gh +
 * aernlund +
 * agustín méndez +
@@ -241,6 +251,7 @@ names contributed a patch for the first time.
 * louispotok +
 * majiang +
 * manikbhandari +
+* matthiashuschle +
 * mattip
 * maxwasserman +
 * mjlove12 +
@@ -254,12 +265,15 @@ names contributed a patch for the first time.
 * ruiann +
 * rvernica +
 * s-weigand +
+* scotthavard92 +
 * skwbc +
 * step4me +
+* tobycheese +
 * topper-123 +
 * tsdlovell
 * ysau +
 * zzgao +
+
 
 pandas 0.20.0 / 0.20.1
 ----------------------

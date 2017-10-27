@@ -1,0 +1,124 @@
+.. _whatsnew_0211:
+
+v0.21.1
+-------
+
+This is a minor release from 0.21.1 and includes a number of deprecations, new
+features, enhancements, and performance improvements along with a large number
+of bug fixes. We recommend that all users upgrade to this version.
+
+.. _whatsnew_0211.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0211.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Other
+^^^^^
+
+-
+-
+-
