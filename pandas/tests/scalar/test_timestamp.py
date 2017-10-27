@@ -175,6 +175,24 @@ class TestTimestamp(object):
         with tm.assert_raises_regex(ValueError, 'Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
+    def test_constructor_invalid_tz(self):
+        # GH#17690, GH#5168
+        with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
+            Timestamp('2017-10-22', tzinfo='US/Eastern')
+
+        with tm.assert_raises_regex(ValueError, 'at most one of'):
+            Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
+
+    def test_constructor_tz_or_tzinfo(self):
+        # GH#17943, GH#17690, GH#5168
+        stamps = [Timestamp(year=2017, month=10, day=22, tz='UTC'),
+                  Timestamp(year=2017, month=10, day=22, tzinfo=utc),
+                  Timestamp(year=2017, month=10, day=22, tz=utc),
+                  Timestamp(datetime(2017, 10, 22), tzinfo=utc),
+                  Timestamp(datetime(2017, 10, 22), tz='UTC'),
+                  Timestamp(datetime(2017, 10, 22), tz=utc)]
+        assert all(ts == stamps[0] for ts in stamps)
+
     def test_constructor_positional(self):
         # see gh-10758
         with pytest.raises(TypeError):
