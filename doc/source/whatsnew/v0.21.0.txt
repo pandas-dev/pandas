@@ -269,16 +269,22 @@ as in :meth:`DataFrame.rename`.
 
 .. warning::
 
-   To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
-   list-like. Typically, Series are considered to be dict-like (e.g. in
-   ``.rename``, ``.map``). In a future version of pandas ``rename_categories``
-   will change to treat them as dict-like. Follow the warning message's
-   recommendations for writing future-proof code.
+    To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
+    list-like. Typically, Series are considered to be dict-like (e.g. in
+    ``.rename``, ``.map``). In a future version of pandas ``rename_categories``
+    will change to treat them as dict-like. Follow the warning message's
+    recommendations for writing future-proof code.
 
-   .. ipython:: python
-      :okwarning:
+    .. code-block:: ipython
 
-      c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+        In [33]: c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+        FutureWarning: Treating Series 'new_categories' as a list-like and using the values.
+        In a future version, 'rename_categories' will treat Series like a dictionary.
+        For dict-like, use 'new_categories.to_dict()'
+        For list-like, use 'new_categories.values'.
+        Out[33]:
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
 
 
 .. _whatsnew_0210.enhancements.other:
