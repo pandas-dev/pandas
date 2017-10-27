@@ -15,11 +15,11 @@ from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
 from pandas._libs.tslib import _delta_to_nanoseconds
-from pandas._libs.tslibs.offsets import (  # noqa
-    ApplyTypeError, CacheableOffset,
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError,
     as_datetime, _is_normalized,
     _get_firstbday, _get_calendar, _to_dt64, _validate_business_time,
-    _int_to_weekday, _weekday_to_int, WeekDay)
+    _int_to_weekday, _weekday_to_int)
 
 import functools
 import operator
