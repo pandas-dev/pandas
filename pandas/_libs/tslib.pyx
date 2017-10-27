@@ -977,8 +977,7 @@ class NaTType(_NaT):
     combine = _make_error_func('combine', None)
     utcnow = _make_error_func('utcnow', None)
 
-    if PY3:
-        timestamp = _make_error_func('timestamp', datetime)
+    timestamp = _make_error_func('timestamp', Timestamp)
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
@@ -1424,6 +1423,11 @@ cdef class _Timestamp(datetime):
     property asm8:
         def __get__(self):
             return np.datetime64(self.value, 'ns')
+
+    def timestamp(self):
+        """Return POSIX timestamp as float."""
+        # py27 compat, see GH#17329
+        return round(self.value / 1e9, 6)
 
 
 cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
@@ -3382,7 +3386,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
-    This is a single timezone versoin of tz_convert
+    This is a single timezone version of tz_convert
 
     Parameters
     ----------
