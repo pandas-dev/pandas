@@ -9,34 +9,41 @@ users upgrade to this version.
 
 Highlights include:
 
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
-- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
-- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series``.
-  This allows for functions that take a ``GroupBy`` to be composed in a clean, readable syntax, see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`.
+- Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
+- Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
+- Indexing with a list of labels, where one or more of the labels is missing, is deprecated and will raise a KeyError in a future version, see :ref:`here <whatsnew_0210.api_breaking.loc>`.
 
 Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations <whatsnew_0210.deprecations>` before updating.
 
 .. contents:: What's new in v0.21.0
     :local:
     :backlinks: none
+    :depth: 2
 
 .. _whatsnew_0210.enhancements:
 
 New features
 ~~~~~~~~~~~~
 
-- Support for `PEP 519 -- Adding a file system path protocol
-  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers (e.g.
-  :func:`read_csv`) and writers (e.g. :meth:`DataFrame.to_csv`) (:issue:`13823`).
-- Added a ``__fspath__`` method to ``pd.HDFStore``, ``pd.ExcelFile``,
-  and ``pd.ExcelWriter`` to work properly with the file system path protocol (:issue:`13823`).
-- Added a ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
-  support type inference in the presence of missing values (:issue:`17059`).
-- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
-- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
+.. _whatsnew_0210.enhancements.parquet:
+
+Integration with Apache Parquet file format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>` (:issue:`15838`, :issue:`17438`).
+
+`Apache Parquet <https://parquet.apache.org/>`__ provides a cross-language, binary file format for reading and writing data frames efficiently.
+Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, supporting all of the pandas
+dtypes, including extension dtypes such as datetime with timezones.
+
+This functionality depends on either the `pyarrow <http://arrow.apache.org/docs/python/>`__ or `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__ library.
+For more details, see see :ref:`the IO docs on Parquet <io.parquet>`.
+
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
@@ -75,7 +82,7 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
 Improved warnings when attempting to create columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-New users are often flummoxed by the relationship between column operations and
+New users are often puzzled by the relationship between column operations and
 attribute access on ``DataFrame`` instances (:issue:`7175`). One specific
 instance of this confusion is attempting to create a new column by setting an
 attribute on the ``DataFrame``:
@@ -96,7 +103,9 @@ This does not raise any obvious exceptions, but also does not create a new colum
    1  2.0
    2  3.0
 
-Setting a list-like data structure into a new attribute now raise a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+Setting a list-like data structure into a new attribute now raises a ``UserWarning`` about the potential for unexpected behavior. See :ref:`Attribute Access <indexing.attribute_access>`.
+
+.. _whatsnew_0210.enhancements.drop_api:
 
 ``drop`` now also accepts index/columns keywords
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -240,6 +249,8 @@ Now, to find prices per store/product, we can simply do:
       .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
       .unstack().round(2))
 
+See the :ref:`documentation <groupby.pipe>` for more.
+
 
 .. _whatsnew_0210.enhancements.reanme_categories:
 
@@ -258,40 +269,66 @@ as in :meth:`DataFrame.rename`.
 
 .. warning::
 
-   To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
-   list-like. Typically, Series are considered to be dict-like (e.g. in
-   ``.rename``, ``.map``). In a future version of pandas ``rename_categories``
-   will change to treat them as dict-like. Follow the warning message's
-   recommendations for writing future-proof code.
+    To assist with upgrading pandas, ``rename_categories`` treats ``Series`` as
+    list-like. Typically, Series are considered to be dict-like (e.g. in
+    ``.rename``, ``.map``). In a future version of pandas ``rename_categories``
+    will change to treat them as dict-like. Follow the warning message's
+    recommendations for writing future-proof code.
 
-  .. ipython:: python
-     :okwarning:
+    .. code-block:: ipython
 
-     c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+        In [33]: c.rename_categories(pd.Series([0, 1], index=['a', 'c']))
+        FutureWarning: Treating Series 'new_categories' as a list-like and using the values.
+        In a future version, 'rename_categories' will treat Series like a dictionary.
+        For dict-like, use 'new_categories.to_dict()'
+        For list-like, use 'new_categories.values'.
+        Out[33]:
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
 
-
-See the :ref:`documentation <groupby.pipe>` for more.
 
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- The ``validate`` argument for :func:`merge` now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
-- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ (``pyproject.toml``) to the build system (:issue:`16745`)
+New functions or methods
+""""""""""""""""""""""""
+
+- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
+
+New keywords
+""""""""""""
+
+- Added a ``skipna`` parameter to :func:`~pandas.api.types.infer_dtype` to
+  support type inference in the presence of missing values (:issue:`17059`).
 - :func:`Series.to_dict` and :func:`DataFrame.to_dict` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
-- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
-- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
 - :func:`Series.set_axis` and :func:`DataFrame.set_axis` now support the ``inplace`` parameter. (:issue:`14636`)
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
-- :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
+- :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
+- :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
+
+Various enhancements
+""""""""""""""""""""
+
+- Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
+- Support for `PEP 519 -- Adding a file system path protocol
+  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers (e.g.
+  :func:`read_csv`) and writers (e.g. :meth:`DataFrame.to_csv`) (:issue:`13823`).
+- Added a ``__fspath__`` method to ``pd.HDFStore``, ``pd.ExcelFile``,
+  and ``pd.ExcelWriter`` to work properly with the file system path protocol (:issue:`13823`).
+- The ``validate`` argument for :func:`merge` now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
+- Added support for `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`_ (``pyproject.toml``) to the build system (:issue:`16745`)
+- :func:`RangeIndex.append` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
+- :func:`Series.rename_axis` and :func:`DataFrame.rename_axis` with ``inplace=True`` now return ``None`` while renaming the axis inplace. (:issue:`15704`)
+- :func:`api.types.infer_dtype` now infers decimals. (:issue:`15690`)
 - :func:`DataFrame.select_dtypes` now accepts scalar values for include/exclude as well as list-like. (:issue:`16855`)
 - :func:`date_range` now accepts 'YS' in addition to 'AS' as an alias for start of year. (:issue:`9313`)
 - :func:`date_range` now accepts 'Y' in addition to 'A' as an alias for end of year. (:issue:`9313`)
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`. (:issue:`15838`, :issue:`17438`)
 - :func:`DataFrame.add_prefix` and :func:`DataFrame.add_suffix` now accept strings containing the '%' character. (:issue:`17151`)
 - Read/write methods that infer compression (:func:`read_csv`, :func:`read_table`, :func:`read_pickle`, and :meth:`~DataFrame.to_pickle`) can now infer from path-like objects, such as ``pathlib.Path``. (:issue:`17206`)
 - :func:`read_sas` now recognizes much more of the most frequently used date (datetime) formats in SAS7BDAT files. (:issue:`15871`)
@@ -299,10 +336,7 @@ Other Enhancements
 - :meth:`pandas.io.formats.style.Styler.where` has been implemented as a convenience for :meth:`pandas.io.formats.style.Styler.applymap`. (:issue:`17474`)
 - :func:`MultiIndex.is_monotonic_decreasing` has been implemented.  Previously returned ``False`` in all cases. (:issue:`16554`)
 - :func:`read_excel` raises ``ImportError`` with a better message if ``xlrd`` is not installed. (:issue:`17613`)
-- :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :meth:`DataFrame.assign` will preserve the original order of ``**kwargs`` for Python 3.6+ users instead of sorting the column names. (:issue:`14207`)
-- Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
-- :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
 - :func:`Series.reindex`, :func:`DataFrame.reindex`, :func:`Index.get_indexer` now support list-like argument for ``tolerance``. (:issue:`17367`)
 
 .. _whatsnew_0210.api_breaking:
@@ -330,81 +364,56 @@ If installed, we now require:
    | Bottleneck   | 1.0.0           |          |
    +--------------+-----------------+----------+
 
-.. _whatsnew_0210.api_breaking.period_index_resampling:
+Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 
-``PeriodIndex`` resampling
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
+.. _whatsnew_0210.api_breaking.bottleneck:
 
-Previous Behavior:
+Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: ipython
+The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
+whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
 
-   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
-
-   In [2]: s = pd.Series(np.arange(12), index=pi)
-
-   In [3]: resampled = s.resample('2Q').mean()
-
-   In [4]: resampled
-   Out[4]:
-   2017-03-31     1.0
-   2017-09-30     5.5
-   2018-03-31    10.0
-   Freq: 2Q-DEC, dtype: float64
-
-   In [5]: resampled.index
-   Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
-
-New Behavior:
+Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
 
 .. ipython:: python
 
-   pi = pd.period_range('2017-01', periods=12, freq='M')
+   s = Series([np.nan])
 
-   s = pd.Series(np.arange(12), index=pi)
-
-   resampled = s.resample('2Q').mean()
-
-   resampled
-
-   resampled.index
-
-
-Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
-
-Previous Behavior:
+Previously NO ``bottleneck``
 
 .. code-block:: ipython
 
-   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   In [2]: s.sum()
+   Out[2]: np.nan
 
-   In [2]: s = pd.Series(np.arange(10), index=pi)
+Previously WITH ``bottleneck``
 
-   In [3]: s.resample('H').ohlc()
-   Out[3]:
-   2000-01-01 00:00    0.0
-                   ...
-   2000-01-10 23:00    NaN
-   Freq: H, Length: 240, dtype: float64
+.. code-block:: ipython
 
-   In [4]: s.resample('M').ohlc()
-   Out[4]:
-            open  high  low  close
-   2000-01     0     9    0      9
+   In [2]: s.sum()
+   Out[2]: 0.0
 
-New Behavior:
+New Behavior, without regard to the bottleneck installation.
 
 .. ipython:: python
 
-   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+   s.sum()
 
-   s = pd.Series(np.arange(10), index=pi)
+Note that this also changes the sum of an empty ``Series``
 
-   s.resample('H').ohlc()
+Previously regardless of ``bottlenck``
 
-   s.resample('M').ohlc()
+.. code-block:: ipython
+
+   In [1]: pd.Series([]).sum()
+   Out[1]: 0
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+
 
 .. _whatsnew_0210.api_breaking.loc:
 
@@ -463,6 +472,68 @@ Selection with all keys found is unchanged.
 
    s.loc[[1, 2]]
 
+
+.. _whatsnew_0210.api.na_changes:
+
+NA naming Changes
+^^^^^^^^^^^^^^^^^
+
+In order to promote more consistency among the pandas API, we have added additional top-level
+functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
+The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
+in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
+named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
+``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
+
+The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
+
+
+.. _whatsnew_0210.api_breaking.iteration_scalars:
+
+Iteration of Series/Index will now return Python scalars
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Previously:
+
+.. code-block:: ipython
+
+   In [2]: type(list(s)[0])
+   Out[2]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(list(s)[0])
+
+Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
+
+.. ipython:: python
+
+   d = {'a':[1], 'b':['b']}
+   df = pd.DataFrame(d)
+
+Previously:
+
+.. code-block:: ipython
+
+   In [8]: type(df.to_dict()['a'][0])
+   Out[8]: numpy.int64
+
+New Behaviour:
+
+.. ipython:: python
+
+   type(df.to_dict()['a'][0])
+
+
 .. _whatsnew_0210.api_breaking.loc_with_index:
 
 Indexing with a Boolean Index
@@ -518,52 +589,82 @@ Current Behavior
 
    s.loc[pd.Index([True, False, True])]
 
-.. _whatsnew_0210.api_breaking.bottleneck:
 
-Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0210.api_breaking.period_index_resampling:
 
-The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
-whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
+``PeriodIndex`` resampling
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+In previous versions of pandas, resampling a ``Series``/``DataFrame`` indexed by a ``PeriodIndex`` returned a ``DatetimeIndex`` in some cases (:issue:`12884`). Resampling to a multiplied frequency now returns a ``PeriodIndex`` (:issue:`15944`). As a minor enhancement, resampling a ``PeriodIndex`` can now handle ``NaT`` values (:issue:`13224`)
 
-.. ipython:: python
-
-   s = Series([np.nan])
-
-Previously NO ``bottleneck``
+Previous Behavior:
 
 .. code-block:: ipython
 
-   In [2]: s.sum()
-   Out[2]: np.nan
+   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
 
-Previously WITH ``bottleneck``
+   In [2]: s = pd.Series(np.arange(12), index=pi)
 
-.. code-block:: ipython
+   In [3]: resampled = s.resample('2Q').mean()
 
-   In [2]: s.sum()
-   Out[2]: 0.0
+   In [4]: resampled
+   Out[4]:
+   2017-03-31     1.0
+   2017-09-30     5.5
+   2018-03-31    10.0
+   Freq: 2Q-DEC, dtype: float64
 
-New Behavior, without regard to the bottleneck installation.
+   In [5]: resampled.index
+   Out[5]: DatetimeIndex(['2017-03-31', '2017-09-30', '2018-03-31'], dtype='datetime64[ns]', freq='2Q-DEC')
 
-.. ipython:: python
-
-   s.sum()
-
-Note that this also changes the sum of an empty ``Series``
-
-Previously regardless of ``bottlenck``
-
-.. code-block:: ipython
-
-   In [1]: pd.Series([]).sum()
-   Out[1]: 0
+New Behavior:
 
 .. ipython:: python
 
-   pd.Series([]).sum()
+   pi = pd.period_range('2017-01', periods=12, freq='M')
+
+   s = pd.Series(np.arange(12), index=pi)
+
+   resampled = s.resample('2Q').mean()
+
+   resampled
+
+   resampled.index
+
+Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   In [2]: s = pd.Series(np.arange(10), index=pi)
+
+   In [3]: s.resample('H').ohlc()
+   Out[3]:
+   2000-01-01 00:00    0.0
+                   ...
+   2000-01-10 23:00    NaN
+   Freq: H, Length: 240, dtype: float64
+
+   In [4]: s.resample('M').ohlc()
+   Out[4]:
+            open  high  low  close
+   2000-01     0     9    0      9
+
+New Behavior:
+
+.. ipython:: python
+
+   pi = pd.PeriodIndex(start='2000-01-01', freq='D', periods=10)
+
+   s = pd.Series(np.arange(10), index=pi)
+
+   s.resample('H').ohlc()
+
+   s.resample('M').ohlc()
+
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
 
@@ -611,50 +712,6 @@ the target. Now, a ``ValueError`` will be raised when such an input is passed in
    ...
    ValueError: Cannot operate inplace if there is no assignment
 
-.. _whatsnew_0210.api_breaking.iteration_scalars:
-
-Iteration of Series/Index will now return Python scalars
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3])
-   s
-
-Previously:
-
-.. code-block:: ipython
-
-   In [2]: type(list(s)[0])
-   Out[2]: numpy.int64
-
-New Behaviour:
-
-.. ipython:: python
-
-   type(list(s)[0])
-
-Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
-
-.. ipython:: python
-
-   d = {'a':[1], 'b':['b']}
-   df = pd.DataFrame(d)
-
-Previously:
-
-.. code-block:: ipython
-
-   In [8]: type(df.to_dict()['a'][0])
-   Out[8]: numpy.int64
-
-New Behaviour:
-
-.. ipython:: python
-
-   type(df.to_dict()['a'][0])
 
 .. _whatsnew_0210.api_breaking.dtype_conversions:
 
@@ -712,19 +769,6 @@ These now coerce to ``object`` dtype.
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)
 
-.. _whatsnew_0210.api.na_changes:
-
-NA naming Changes
-^^^^^^^^^^^^^^^^^
-
-In order to promote more consistency among the pandas API, we have added additional top-level
-functions :func:`isna` and :func:`notna` that are aliases for :func:`isnull` and :func:`notnull`.
-The naming scheme is now more consistent with methods like ``.dropna()`` and ``.fillna()``. Furthermore
-in all cases where ``.isnull()`` and ``.notnull()`` methods are defined, these have additional methods
-named ``.isna()`` and ``.notna()``, these are included for classes ``Categorical``,
-``Index``, ``Series``, and ``DataFrame``. (:issue:`15001`).
-
-The configuration option ``pd.options.mode.use_inf_as_null`` is deprecated, and ``pd.options.mode.use_inf_as_na`` is added as a replacement.
 
 .. _whatsnew_210.api.multiindex_single:
 
@@ -838,13 +882,11 @@ New Behavior:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- Support has been dropped for Python 3.4 (:issue:`15251`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 - Accessing a non-existent attribute on a closed :class:`~pandas.HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 - :func:`read_csv` now issues a ``UserWarning`` if the ``names`` parameter contains duplicates (:issue:`17095`)
-- :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
-- :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
+- :func:`read_csv` now treats ``'null'`` and ``'n/a'`` strings as missing values by default (:issue:`16471`, :issue:`16078`)
 - :class:`pandas.HDFStore`'s string representation is now faster and less detailed. For the previous behavior, use ``pandas.HDFStore.info()``. (:issue:`16503`).
 - Compression defaults in HDF stores now follow pytables standards. Default is no compression and if ``complib`` is missing and ``complevel`` > 0 ``zlib`` is used (:issue:`15943`)
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
@@ -882,7 +924,7 @@ Deprecations
 - Passing a non-existent column in ``.to_excel(..., columns=)`` is deprecated and will raise a ``KeyError`` in the future (:issue:`17295`)
 - ``raise_on_error`` parameter to :func:`Series.where`, :func:`Series.mask`, :func:`DataFrame.where`, :func:`DataFrame.mask` is deprecated, in favor of ``errors=`` (:issue:`14968`)
 - Using :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis` to alter index or column *labels* is now deprecated in favor of using ``.rename``. ``rename_axis`` may still be used to alter the name of the index or columns (:issue:`17833`).
-- :meth:`~DataFrame.reindex_axis` has been deprecated in favor of :meth:`~DataFrame.reindex`. See :ref`here` <whatsnew_0210.enhancements.rename_reindex_axis> for more (:issue:`17833`).
+- :meth:`~DataFrame.reindex_axis` has been deprecated in favor of :meth:`~DataFrame.reindex`. See :ref:`here <whatsnew_0210.enhancements.rename_reindex_axis>` for more (:issue:`17833`).
 
 .. _whatsnew_0210.deprecations.select:
 
@@ -914,8 +956,7 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
 Series.argmax and Series.argmin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- The behavior of :func:`Series.argmax` has been deprecated in favor of :func:`Series.idxmax` (:issue:`16830`)
-- The behavior of :func:`Series.argmin` has been deprecated in favor of :func:`Series.idxmin` (:issue:`16830`)
+The behavior of :func:`Series.argmax` and :func:`Series.argmin` have been deprecated in favor of :func:`Series.idxmax` and :func:`Series.idxmin`, respectively (:issue:`16830`).
 
 For compatibility with NumPy arrays, ``pd.Series`` implements ``argmax`` and
 ``argmin``. Since pandas 0.13.0, ``argmax`` has been an alias for
