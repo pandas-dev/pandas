@@ -873,39 +873,56 @@ class TestSeriesAnalytics(TestData):
         expected = np.array([1, 2, 3, None], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("tc, expected", [
-        (Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_')),
+    @pytest.mark.parametrize(
+        "tc",
         [
-            Series([False, False, False, False, True, True, False]),
-            Series([False, True, True, False, False, False, False]),
-            Series([False, True, True, False, True, True, False])
-        ]),
-        (Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint')),
-        [
-            Series([False, False, False, False, True, True, False]),
-            Series([False, True, True, False, False, False, False]),
-            Series([False, True, True, False, True, True, False])
-        ]),
-        (Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_')),
-        [
-            Series([False, False, False, False, True, True, False]),
-            Series([False, True, True, False, False, False, False]),
-            Series([False, True, True, False, True, True, False])
-        ]),
-        (Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_')),
-        [
-            Series([False, False, False, False, True, True, False]),
-            Series([False, True, True, False, False, False, False]),
-            Series([False, True, True, False, True, True, False])
-        ]),
-        (Series([True, False, True, False]),
-        [
-            Series([False, False, True, True]),
-            Series([True, True, False, False]),
-            Series([True, True, True, True])
-        ])
-    ])
-    def test_drop_duplicates(self, tc, expected):
+            Series([1, 2, 3, 3], dtype=np.dtype('int_')),
+            Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_')),
+            Series([1, 2, 3, 3], dtype=np.dtype('uint')),
+            Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint')),
+            Series([1, 2, 3, 3], dtype=np.dtype('float_')),
+            Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_')),
+            Series([1, 2, 3, 3], dtype=np.dtype('unicode_')),
+            Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_')),
+            Series([True, False, False]),
+            Series([True, False, True, False])
+        ]
+    )
+    def test_drop_duplicates(self, tc):
+        expected_results = {
+            "shorter_series_non_bool": [
+                Series([False, False, False, True]),
+                Series([False, False, True, False]),
+                Series([False, False, True, True])
+            ],
+            "longer_series_non_bool": [
+                Series([False, False, False, False, True, True, False]),
+                Series([False, True, True, False, False, False, False]),
+                Series([False, True, True, False, True, True, False])
+            ],
+            "shorter_series_bool": [
+                Series([False, False, True]),
+                Series([False, True, False]),
+                Series([False, True, True])
+            ],
+            "longer_series_bool": [
+                Series([False, False, True, True]),
+                Series([True, True, False, False]),
+                Series([True, True, True, True])
+            ]
+        }
+
+        if (tc.dtype != "bool"):
+            if (tc.size == 7):
+                expected = expected_results["longer_series_non_bool"]
+            else:
+                expected = expected_results["shorter_series_non_bool"]
+        else:
+            if (tc.size == 4):
+                expected = expected_results["longer_series_bool"]
+            else:
+                expected = expected_results["shorter_series_bool"]
+
         assert_series_equal(tc.duplicated(), expected[0])
         assert_series_equal(tc.drop_duplicates(), tc[~expected[0]])
         sc = tc.copy()
