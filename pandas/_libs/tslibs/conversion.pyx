@@ -468,6 +468,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n
 
+    assert n >= 1
+
     # edge cases
     if val > data[n - 1]:
         return n
@@ -486,14 +488,7 @@ cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     return left
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef inline str _render_tstamp(int64_t val):
-    """ Helper function to equivalent to `str(Timestamp(val))` """
-    stamp = np.int64(val).astype('datetime64[ns]')
-    # Render `stamp` as e.g. '2017-08-30 07:59:23.123456'
-    # as opposed to str(stamp) which would
-    # be '2017-08-30T07:59:23.123456789'
-    stamp = str(stamp).replace('T', ' ')[:26]
-    # Note: cython complains if we try to slice [:-3]
-    return stamp
+    """ Helper function to render exception messages"""
+    from pandas._libs.tslib import Timestamp
+    return str(Timestamp(val))
