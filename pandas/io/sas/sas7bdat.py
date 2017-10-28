@@ -145,7 +145,7 @@ class SAS7BDATReader(BaseIterator):
         if buf in const.encoding_names:
             self.file_encoding = const.encoding_names[buf]
         else:
-            self.file_encoding = "unknown (code=%s)" % str(buf)
+            self.file_encoding = "unknown (code={name})".format(name=str(buf))
 
         # Get platform information
         buf = self._read_bytes(const.platform_offset, const.platform_length)
@@ -415,8 +415,8 @@ class SAS7BDATReader(BaseIterator):
         self.column_count = self._read_int(offset, int_len)
         if (self.col_count_p1 + self.col_count_p2 !=
                 self.column_count):
-            print("Warning: column count mismatch (%d + %d != %d)\n",
-                  self.col_count_p1, self.col_count_p2, self.column_count)
+            print("Warning: column count mismatch ({} + {} != {})\n".format(
+                  self.col_count_p1, self.col_count_p2, self.column_count))
 
     # Unknown purpose
     def _process_subheader_counts(self, offset, length):
@@ -681,7 +681,7 @@ class SAS7BDATReader(BaseIterator):
                 js += 1
             else:
                 self.close()
-                raise ValueError("unknown column type %s" %
-                                 self.column_types[j])
+                raise ValueError("unknown column type {type}".format(
+                    type=self.column_types[j]))
 
         return rslt
