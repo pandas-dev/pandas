@@ -1448,7 +1448,7 @@ _nat_scalar_rules[Py_GE] = False
 
 
 cdef _nat_divide_op(self, other):
-    if (isinstance(other, Timedelta) or
+    if (PyDelta_Check(other) or
         is_timedelta64_object(other) or other is NaT):
         return np.nan
     if is_integer_object(other) or is_float_object(other):
@@ -1456,7 +1456,7 @@ cdef _nat_divide_op(self, other):
     return NotImplemented
 
 cdef _nat_rdivide_op(self, other):
-    if isinstance(other, Timedelta):
+    if PyDelta_Check(other):
         return np.nan
     return NotImplemented
 
