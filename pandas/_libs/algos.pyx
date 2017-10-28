@@ -99,9 +99,7 @@ def is_lexsorted(list list_of_arrays):
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
-        if arr.dtype.name != 'int64':
-            raise ValueError(
-                'Invalid dtype for is_lexsorted [%s]' % arr.dtype.name)
+        assert arr.dtype.name == 'int64'
         vecs[i] = <int64_t*> arr.data
 
     # Assume uniqueness??
