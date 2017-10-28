@@ -17,7 +17,7 @@ from pandas.tseries.frequencies import (_offset_map, get_freq_code,
                                         get_offset, get_standard_freq)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
-from pandas._libs.tseries offsets import WeekDay, CacheableOffset
+from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
