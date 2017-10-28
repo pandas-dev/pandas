@@ -9,19 +9,20 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import os
 import sys
 import shutil
-import warnings
-import re
-import platform
 from distutils.version import LooseVersion
+
 
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
+
 def is_platform_linux():
     return sys.platform == 'linux2'
 
+
 def is_platform_mac():
     return sys.platform == 'darwin'
+
 
 # versioning
 import versioneer
@@ -48,13 +49,11 @@ setuptools_kwargs = {}
 min_numpy_ver = '1.9.0'
 if sys.version_info[0] >= 3:
 
-    setuptools_kwargs = {
-                         'zip_safe': False,
+    setuptools_kwargs = {'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz >= 2011k',
                                               'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver],
-                         }
+                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
                  "\n$ pip install distribute")
@@ -62,7 +61,7 @@ if sys.version_info[0] >= 3:
 else:
     setuptools_kwargs = {
         'install_requires': ['python-dateutil',
-                            'pytz >= 2011k',
+                             'pytz >= 2011k',
                              'numpy >= %s' % min_numpy_ver],
         'setup_requires': ['numpy >= %s' % min_numpy_ver],
         'zip_safe': False,
@@ -70,8 +69,8 @@ else:
 
     if not _have_setuptools:
         try:
-            import numpy
-            import dateutil
+            import numpy  # noqa:F401
+            import dateutil  # noqa:F401
             setuptools_kwargs = {}
         except ImportError:
             sys.exit("install requires: 'python-dateutil < 2','numpy'."
@@ -86,7 +85,7 @@ try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
     try:
-        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext  # noqa:F811,E501
     except ImportError:
         # Pre 0.25
         from Cython.Distutils import build_ext as _build_ext
@@ -111,7 +110,8 @@ from os.path import join as pjoin
 
 _pxi_dep_template = {
     'algos': ['_libs/algos_common_helper.pxi.in',
-              '_libs/algos_take_helper.pxi.in', '_libs/algos_rank_helper.pxi.in'],
+              '_libs/algos_take_helper.pxi.in',
+              '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
     'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
     'reshape': ['_libs/reshape_helper.pxi.in'],
@@ -119,8 +119,7 @@ _pxi_dep_template = {
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
     'sparse': ['_libs/sparse_op_helper.pxi.in'],
-    'interval': ['_libs/intervaltree.pxi.in']
-}
+    'interval': ['_libs/intervaltree.pxi.in']}
 
 _pxifiles = []
 _pxi_dep = {}
@@ -142,7 +141,7 @@ class build_ext(_build_ext):
                 outfile = pxifile[:-3]
 
                 if (os.path.exists(outfile) and
-                    os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                        os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
                     # if .pxi.in is not updated, no need to output .pxi
                     continue
 
@@ -156,7 +155,8 @@ class build_ext(_build_ext):
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
         for ext in self.extensions:
-            if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
+            if (hasattr(ext, 'include_dirs') and
+                    numpy_incl not in ext.include_dirs):
                 ext.include_dirs.append(numpy_incl)
         _build_ext.build_extensions(self)
 
@@ -249,8 +249,8 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Cython',
-    'Topic :: Scientific/Engineering',
-]
+    'Topic :: Scientific/Engineering']
+
 
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
@@ -262,24 +262,24 @@ class CleanCommand(Command):
         self._clean_me = []
         self._clean_trees = []
 
-        base = pjoin('pandas','_libs', 'src')
-        dt = pjoin(base,'datetime')
+        base = pjoin('pandas', '_libs', 'src')
+        dt = pjoin(base, 'datetime')
         src = base
-        util = pjoin('pandas','util')
-        parser = pjoin(base,'parser')
-        ujson_python = pjoin(base,'ujson','python')
-        ujson_lib = pjoin(base,'ujson','lib')
-        self._clean_exclude = [pjoin(dt,'np_datetime.c'),
-                               pjoin(dt,'np_datetime_strings.c'),
-                               pjoin(src,'period_helper.c'),
-                               pjoin(parser,'tokenizer.c'),
-                               pjoin(parser,'io.c'),
-                               pjoin(ujson_python,'ujson.c'),
-                               pjoin(ujson_python,'objToJSON.c'),
-                               pjoin(ujson_python,'JSONtoObj.c'),
-                               pjoin(ujson_lib,'ultrajsonenc.c'),
-                               pjoin(ujson_lib,'ultrajsondec.c'),
-                               pjoin(util,'move.c'),
+        util = pjoin('pandas', 'util')
+        parser = pjoin(base, 'parser')
+        ujson_python = pjoin(base, 'ujson', 'python')
+        ujson_lib = pjoin(base, 'ujson', 'lib')
+        self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
+                               pjoin(dt, 'np_datetime_strings.c'),
+                               pjoin(src, 'period_helper.c'),
+                               pjoin(parser, 'tokenizer.c'),
+                               pjoin(parser, 'io.c'),
+                               pjoin(ujson_python, 'ujson.c'),
+                               pjoin(ujson_python, 'objToJSON.c'),
+                               pjoin(ujson_python, 'JSONtoObj.c'),
+                               pjoin(ujson_lib, 'ultrajsonenc.c'),
+                               pjoin(ujson_lib, 'ultrajsondec.c'),
+                               pjoin(util, 'move.c'),
                                ]
 
         for root, dirs, files in os.walk('pandas'):
@@ -324,6 +324,7 @@ class CleanCommand(Command):
 # we need to inherit from the versioneer
 # class as it encodes the version info
 sdist_class = cmdclass['sdist']
+
 
 class CheckSDist(sdist_class):
     """Custom sdist that ensures Cython has compiled all pyx files to c."""
@@ -408,6 +409,7 @@ class DummyBuildSrc(Command):
     def run(self):
         pass
 
+
 cmdclass.update({'clean': CleanCommand,
                  'build': build})
 
@@ -440,8 +442,10 @@ lib_depends = ['reduce', 'inference']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name + suffix)
 
+
 if suffix == '.pyx':
-    lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src') for f in lib_depends]
+    lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src')
+                   for f in lib_depends]
     lib_depends.append('pandas/_libs/src/util.pxd')
 else:
     lib_depends = []
@@ -453,11 +457,12 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
+
 # args to ignore warnings
 if is_platform_windows():
-    extra_compile_args=[]
+    extra_compile_args = []
 else:
-    extra_compile_args=['-Wno-unused-function']
+    extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
                              'pandas/_libs/src/parse_helper.h',
@@ -467,6 +472,8 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
                    'pandas/_libs/src/datetime/np_datetime_strings.h',
                    'pandas/_libs/src/datetime.pxd']
+npdt_srces = ['pandas/_libs/src/datetime/np_datetime.c',
+              'pandas/_libs/src/datetime/np_datetime_strings.c']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -477,44 +484,40 @@ ext_data = {
     '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
-                        'depends': (['pandas/_libs/src/klib/khash_python.h']
-                                    + _pxi_dep['hashtable'])},
+                        'depends': (['pandas/_libs/src/klib/khash_python.h'] +
+                                    _pxi_dep['hashtable'])},
     '_libs.tslibs.strptime': {'pyxfile': '_libs/tslibs/strptime',
                               'depends': tseries_depends,
-                              'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                          'pandas/_libs/src/datetime/np_datetime_strings.c']},
+                              'sources': npdt_srces},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
-                    'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                'pandas/_libs/src/datetime/np_datetime_strings.c']},
+                    'sources': npdt_srces},
     '_libs.tslibs.timedeltas': {'pyxfile': '_libs/tslibs/timedeltas'},
     '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.tslibs.fields': {'pyxfile': '_libs/tslibs/fields',
                             'depends': tseries_depends,
-                            'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                        'pandas/_libs/src/datetime/np_datetime_strings.c']},
+                            'sources': npdt_srces},
     '_libs.period': {'pyxfile': '_libs/period',
                      'depends': (tseries_depends +
                                  ['pandas/_libs/src/period_helper.h']),
-                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                 'pandas/_libs/src/datetime/np_datetime_strings.c',
-                                 'pandas/_libs/src/period_helper.c']},
+                     'sources': npdt_srces + [
+                                'pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.parsing': {'pyxfile': '_libs/tslibs/parsing',
                              'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
                                  'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
-                    'sources': ['pandas/_libs/src/datetime/np_datetime.c',
-                                'pandas/_libs/src/datetime/np_datetime_strings.c'],
+                    'sources': npdt_srces,
                     'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                     'depends': _pxi_dep['index']},
     '_libs.algos': {'pyxfile': '_libs/algos',
-                    'pxdfiles': ['_libs/src/util', '_libs/algos', '_libs/hashtable'],
+                    'pxdfiles': ['_libs/src/util',
+                                 '_libs/algos', '_libs/hashtable'],
                     'depends': _pxi_dep['algos']},
     '_libs.groupby': {'pyxfile': '_libs/groupby',
-                    'pxdfiles': ['_libs/src/util', '_libs/algos'],
-                    'depends': _pxi_dep['groupby']},
+                      'pxdfiles': ['_libs/src/util', '_libs/algos'],
+                      'depends': _pxi_dep['groupby']},
     '_libs.join': {'pyxfile': '_libs/join',
                    'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                    'depends': _pxi_dep['join']},
@@ -541,8 +544,7 @@ ext_data = {
                       'depends': ['pandas/_libs/testing.pyx']},
     '_libs.hashing': {'pyxfile': '_libs/hashing',
                       'depends': ['pandas/_libs/hashing.pyx']},
-    'io.sas._sas': {'pyxfile': 'io/sas/sas'},
-    }
+    'io.sas._sas': {'pyxfile': 'io/sas/sas'}}
 
 extensions = []
 
@@ -565,7 +567,7 @@ for name, data in ext_data.items():
     extensions.append(obj)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # msgpack
 
 if sys.byteorder == 'big':
@@ -573,59 +575,64 @@ if sys.byteorder == 'big':
 else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
+msgpack_include = ['pandas/_libs/src/msgpack'] + common_include
+msgpack_suffix = suffix if suffix == '.pyx' else '.cpp'
+unpacker_depends = ['pandas/_libs/src/msgpack/unpack.h',
+                    'pandas/_libs/src/msgpack/unpack_define.h',
+                    'pandas/_libs/src/msgpack/unpack_template.h']
+
 packer_ext = Extension('pandas.io.msgpack._packer',
-                        depends=['pandas/_libs/src/msgpack/pack.h',
-                                 'pandas/_libs/src/msgpack/pack_template.h'],
-                        sources = [srcpath('_packer',
-                                   suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='io/msgpack')],
-                        language='c++',
-                        include_dirs=['pandas/_libs/src/msgpack'] + common_include,
-                        define_macros=macros,
-                        extra_compile_args=extra_compile_args)
+                       depends=['pandas/_libs/src/msgpack/pack.h',
+                                'pandas/_libs/src/msgpack/pack_template.h'],
+                       sources=[srcpath('_packer',
+                                suffix=msgpack_suffix,
+                                subdir='io/msgpack')],
+                       language='c++',
+                       include_dirs=msgpack_include,
+                       define_macros=macros,
+                       extra_compile_args=extra_compile_args)
 unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                        depends=['pandas/_libs/src/msgpack/unpack.h',
-                                 'pandas/_libs/src/msgpack/unpack_define.h',
-                                 'pandas/_libs/src/msgpack/unpack_template.h'],
-                        sources = [srcpath('_unpacker',
-                                   suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='io/msgpack')],
-                        language='c++',
-                        include_dirs=['pandas/_libs/src/msgpack'] + common_include,
-                        define_macros=macros,
-                        extra_compile_args=extra_compile_args)
+                         depends=unpacker_depends,
+                         sources=[srcpath('_unpacker',
+                                  suffix=msgpack_suffix,
+                                  subdir='io/msgpack')],
+                         language='c++',
+                         include_dirs=msgpack_include,
+                         define_macros=macros,
+                         extra_compile_args=extra_compile_args)
 extensions.append(packer_ext)
 extensions.append(unpacker_ext)
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # ujson
 
 if suffix == '.pyx' and 'setuptools' in sys.modules:
     # undo dumb setuptools bug clobbering .pyx sources back to .c
     for ext in extensions:
-        if ext.sources[0].endswith(('.c','.cpp')):
+        if ext.sources[0].endswith(('.c', '.cpp')):
             root, _ = os.path.splitext(ext.sources[0])
             ext.sources[0] = root + suffix
 
 ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
                                'pandas/_libs/src/numpy_helper.h'],
-                      sources=['pandas/_libs/src/ujson/python/ujson.c',
-                               'pandas/_libs/src/ujson/python/objToJSON.c',
-                               'pandas/_libs/src/ujson/python/JSONtoObj.c',
-                               'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/_libs/src/ujson/lib/ultrajsondec.c',
-                               'pandas/_libs/src/datetime/np_datetime.c',
-                               'pandas/_libs/src/datetime/np_datetime_strings.c'],
-                      include_dirs=['pandas/_libs/src/ujson/python',
-                                    'pandas/_libs/src/ujson/lib',
-                                    'pandas/_libs/src/datetime'] + common_include,
-                      extra_compile_args=['-D_GNU_SOURCE'] + extra_compile_args)
+                      sources=(['pandas/_libs/src/ujson/python/ujson.c',
+                                'pandas/_libs/src/ujson/python/objToJSON.c',
+                                'pandas/_libs/src/ujson/python/JSONtoObj.c',
+                                'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
+                                'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
+                               npdt_srces),
+                      include_dirs=(['pandas/_libs/src/ujson/python',
+                                     'pandas/_libs/src/ujson/lib',
+                                     'pandas/_libs/src/datetime'] +
+                                    common_include),
+                      extra_compile_args=(['-D_GNU_SOURCE'] +
+                                          extra_compile_args))
 
 
 extensions.append(ujson_ext)
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # util
 # extension for pseudo-safely moving bytes into mutable buffers
 _move_ext = Extension('pandas.util._move',
