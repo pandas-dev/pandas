@@ -1588,7 +1588,7 @@ class Categorical(PandasObject):
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank())
+                self.rename_categories(Series(self.categories).rank().values)
             )
         return values
 
