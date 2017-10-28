@@ -23,7 +23,7 @@ from util cimport (get_nat,
 
 # ----------------------------------------------------------------------
 # Constants
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 cdef int64_t NPY_NAT = get_nat()
 
@@ -343,28 +343,186 @@ class NaTType(_NaT):
     utcnow = _make_error_func('utcnow', None)
 
     # ----------------------------------------------------------------------
-    # The remaining methods are created with empty docstrings that will
-    # be patched with the `Timestamp` versions once those are imported.
+    # The remaining methods have docstrings copy/pasted from the analogous
+    # Timestamp methods.
 
-    timestamp = _make_error_func('timestamp', '')
+    timestamp = _make_error_func('timestamp',
+        """Return POSIX timestamp as float.""")
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
-    astimezone = _make_error_func('astimezone', '')
-    fromordinal = _make_error_func('fromordinal', '')
+    astimezone = _make_error_func('astimezone',
+        """
+        Convert tz-aware Timestamp to another time zone.
+
+        Parameters
+        ----------
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding UTC time.
+
+        Returns
+        -------
+        converted : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If Timestamp is tz-naive.
+        """)
+    fromordinal = _make_error_func('fromordinal',
+        """
+        passed an ordinal, translate and convert to a ts
+        note: by definition there cannot be any tz info on the ordinal itself
+
+        Parameters
+        ----------
+        ordinal : int
+            date corresponding to a proleptic Gregorian ordinal
+        freq : str, DateOffset
+            Offset which Timestamp will have
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will have.
+        offset : str, DateOffset
+            Deprecated, use freq
+        """)
 
     # _nat_methods
-    to_pydatetime = _make_nat_func('to_pydatetime', '')
+    to_pydatetime = _make_nat_func('to_pydatetime',
+        """
+        Convert a Timestamp object to a native Python datetime object.
 
-    now = _make_nat_func('now', '')
-    today = _make_nat_func('today', '')
-    round = _make_nat_func('round', '')
-    floor = _make_nat_func('floor', '')
-    ceil = _make_nat_func('ceil', '')
+        If warn=True, issue a warning if nanoseconds is nonzero.
+        """)
 
-    tz_convert = _make_nat_func('tz_convert', '')
-    tz_localize = _make_nat_func('tz_localize', '')
-    replace = _make_nat_func('replace', '')
+    now = _make_nat_func('now',
+        """
+        Return the current time in the local timezone.  Equivalent
+        to datetime.now([tz])
+
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """)
+    today = _make_nat_func('today',
+        """
+        Return the current time in the local timezone.  This differs
+        from datetime.today() in that it can be localized to a
+        passed timezone.
+
+        Parameters
+        ----------
+        tz : string / timezone object, default None
+            Timezone to localize to
+        """)
+    round = _make_nat_func('round',
+        """
+        Round the Timestamp to the specified resolution
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """)
+    floor = _make_nat_func('floor',
+        """
+        return a new Timestamp floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """)
+    ceil = _make_nat_func('ceil',
+        """
+        return a new Timestamp ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """)
+
+    tz_convert = _make_nat_func('tz_convert',
+        """
+        Convert tz-aware Timestamp to another time zone.
+
+        Parameters
+        ----------
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding UTC time.
+
+        Returns
+        -------
+        converted : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If Timestamp is tz-naive.
+        """)
+    tz_localize = _make_nat_func('tz_localize',
+        """
+        Convert naive Timestamp to local time zone, or remove
+        timezone from tz-aware Timestamp.
+
+        Parameters
+        ----------
+        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+            Time zone for time which Timestamp will be converted to.
+            None will remove timezone holding local time.
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+            that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        errors : 'raise', 'coerce', default 'raise'
+            - 'raise' will raise a NonExistentTimeError if a timestamp is not
+               valid in the specified timezone (e.g. due to a transition from
+               or to DST time)
+            - 'coerce' will return NaT if the timestamp can not be converted
+              into the specified timezone
+
+              .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        localized : Timestamp
+
+        Raises
+        ------
+        TypeError
+            If the Timestamp is tz-aware and tz is not None.
+        """)
+    replace = _make_nat_func('replace',
+        """
+        implements datetime.replace, handles nanoseconds
+
+        Parameters
+        ----------
+        year : int, optional
+        month : int, optional
+        day : int, optional
+        hour : int, optional
+        minute : int, optional
+        second : int, optional
+        microsecond : int, optional
+        nanosecond: int, optional
+        tzinfo : tz-convertible, optional
+        fold : int, optional, default is 0
+            added in 3.6, NotImplemented
+
+        Returns
+        -------
+        Timestamp with fields replaced
+        """)
 
     def to_datetime(self):
         """

@@ -9,7 +9,7 @@ from numpy cimport int64_t
 
 cimport util
 
-from nattype import _nat_strings
+from nattype import nat_strings
 
 # ----------------------------------------------------------------------
 # Constants
@@ -114,7 +114,7 @@ cdef inline parse_timedelta_string(object ts):
     # have_value : track if we have at least 1 leading unit
     # have_hhmmss : tracks if we have a regular format hh:mm:ss
 
-    if len(ts) == 0 or ts in _nat_strings:
+    if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
 
     # decode ts if necessary

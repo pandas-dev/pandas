@@ -94,6 +94,9 @@ from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
 
+from tslibs.nattype import NaT, nat_strings
+from tslibs.nattype cimport _checknull_with_nat
+
 
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
@@ -802,32 +805,6 @@ class Timestamp(_Timestamp):
         return self + other
 
 
-
-# ----------------------------------------------------------------------
-# NaT Construction
-# Here we patch the docstrings of NaT methods to match those of Timestamp
-from tslibs.nattype import (NaT, NaTType,
-                            _make_error_func, _make_nat_func,
-                            _nat_strings)
-from tslibs.nattype cimport _nat_scalar_rules, _checknull_with_nat
-
-# We patch these NaTType methods with the Timestamp docstrings.
-NaTType.astimezone = _make_error_func('astimezone', Timestamp)
-NaTType.fromordinal = _make_error_func('fromordinal', Timestamp)
-
-# _nat_methods
-NaTType.to_pydatetime = _make_nat_func('to_pydatetime', Timestamp)
-
-NaTType.now = _make_nat_func('now', Timestamp)
-NaTType.today = _make_nat_func('today', Timestamp)
-NaTType.round = _make_nat_func('round', Timestamp)
-NaTType.floor = _make_nat_func('floor', Timestamp)
-NaTType.ceil = _make_nat_func('ceil', Timestamp)
-
-NaTType.tz_convert = _make_nat_func('tz_convert', Timestamp)
-NaTType.tz_localize = _make_nat_func('tz_localize', Timestamp)
-NaTType.replace = _make_nat_func('replace', Timestamp)
-
 # ----------------------------------------------------------------------
 
 cdef inline bint _check_all_nulls(object val):
@@ -1432,7 +1409,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
 
     assert util.is_string_object(ts)
 
-    if len(ts) == 0 or ts in _nat_strings:
+    if len(ts) == 0 or ts in nat_strings:
         ts = NaT
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
@@ -1829,7 +1806,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                         iresult[i] = NPY_NAT
 
             elif util.is_string_object(val):
-                if len(val) == 0 or val in _nat_strings:
+                if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
 
                 else:
@@ -1890,7 +1867,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     oresult[i] = val
 
         elif util.is_string_object(val):
-            if len(val) == 0 or val in _nat_strings:
+            if len(val) == 0 or val in nat_strings:
                 oresult[i] = NaT
 
             else:
@@ -2008,7 +1985,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 # string
 
                 try:
-                    if len(val) == 0 or val in _nat_strings:
+                    if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
                         continue
 
@@ -2111,7 +2088,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 oresult[i] = val
             elif util.is_string_object(val):
 
-                if len(val) == 0 or val in _nat_strings:
+                if len(val) == 0 or val in nat_strings:
                     oresult[i] = 'NaT'
                     continue
 

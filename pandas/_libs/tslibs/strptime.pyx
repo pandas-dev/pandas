@@ -45,7 +45,7 @@ from util cimport is_string_object, get_nat
 cdef int64_t NPY_NAT = get_nat()
 
 from nattype cimport _checknull_with_nat
-from nattype import _nat_strings
+from nattype import nat_strings
 
 
 def array_strptime(ndarray[object] values, object fmt,
@@ -143,7 +143,7 @@ def array_strptime(ndarray[object] values, object fmt,
     for i in range(n):
         val = values[i]
         if is_string_object(val):
-            if val in _nat_strings:
+            if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
         else:
