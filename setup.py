@@ -491,7 +491,6 @@ ext_data = {
                               'depends': tseries_depends,
                               'sources': npdt_srces},
     '_libs.tslibs.offsets': {'pyxfile': '_libs/tslibs/offsets'},
-                              'sources': npdt_srces},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
