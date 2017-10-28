@@ -9,11 +9,10 @@ from numpy cimport int64_t
 
 cimport util
 
+from nattype import _nat_strings
+
 # ----------------------------------------------------------------------
 # Constants
-
-# TODO: Get this from tslibs.nattype once available
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 cdef int64_t NPY_NAT = util.get_nat()
 
