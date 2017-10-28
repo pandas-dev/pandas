@@ -280,10 +280,10 @@ class DateOffset(BaseOffset):
                     if not hasattr(self, key):
                         kwds_new[key] = self.kwds[key]
                 if len(kwds_new) > 0:
-                    attrs.append('kwds=%s' % (kwds_new))
+                    attrs.append('kwds={kwds_new}'.format(kwds_new=kwds_new))
             elif attr not in exclude:
                 value = getattr(self, attr)
-                attrs.append('%s=%s' % (attr, value))
+                attrs.append('{attr}={value}'.format(attr=attr, value=value))
 
         out = ''
         if attrs:
