@@ -44,8 +44,9 @@ class OutOfBoundsDatetime(ValueError):
     pass
 
 
-cdef inline void check_dts_bounds(pandas_datetimestruct *dts):
-    """Returns True if an error needs to be raised"""
+cdef inline check_dts_bounds(pandas_datetimestruct *dts):
+    """Raises OutOfBoundsDatetime if the given date is outside the range that
+    can be represented by nanosecond-resolution 64-bit integers."""
     cdef:
         bint error = False
 
@@ -61,7 +62,7 @@ cdef inline void check_dts_bounds(pandas_datetimestruct *dts):
                                                dts.day, dts.hour,
                                                dts.min, dts.sec)
         raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: %s' % fmt)
+            'Out of bounds nanosecond timestamp: {fmt}'.format(fmt=fmt))
 
 
 # ----------------------------------------------------------------------
