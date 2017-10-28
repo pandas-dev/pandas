@@ -1163,7 +1163,7 @@ options:
 
 .. _io.bad_lines:
 
-Handling "bad" lines
+Handling "bad" lines - excluding the data
 ''''''''''''''''''''
 
 Some files may have malformed lines with too few fields or too many. Lines with
@@ -1208,6 +1208,80 @@ data that appear in some lines but not others:
     0  1  2   3
     1  4  5   6
     2  8  9  10
+    
+Handling "bad" lines - preserving the data
+''''''''''''''''''''
+    
+To preserve all data, you can specify a sufficient number of header ``names``:
+
+.. code-block:: ipython
+
+   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   
+   Out[31]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
+    
+or you can use Python's ``open`` command to detect the length of the widest row:
+
+.. code-block:: ipython
+
+   In [32]: 
+   import csv
+   with open('data.csv', newline='') as f:
+       reader = csv.reader(f)
+       max_width = 0
+       for row in reader:
+          length = row.count(',')
+          if length > max_width:
+              max_width = length
+
+and then choose to edit the csv itself:
+
+.. code-block:: ipython
+
+    In [32] (cont'd): 
+              
+       amended_rows = []
+       for row in reader:
+           length = row.count(',')
+           if length < max_width:
+               for _ in range(max_width - length):
+                   row = row + ','
+           amended_rows.append(row)
+
+       writer = csv.writer(f)
+       writer.writerows(amended_rows)
+
+    pd.read_csv('data.csv')
+    
+    Out[32]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
+    
+or to specify ``names`` based on the length of the widest row:
+
+.. code-block:: ipython
+
+     In [32] (cont'd): 
+    
+        label = 'c'
+        col_labels = []
+        for col_num in range(max_width):
+            label = label + str(col_num)
+            col_labels.append(label)
+
+        pd.read_csv('data.csv', names=col_labels)
+    
+    Out[32]:
+       c1 c2 c3  c4
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
 
 .. _io.dialect:
 
