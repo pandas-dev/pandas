@@ -91,14 +91,9 @@ The mapping can be specified many different ways:
   - A Python function, to be called on each of the axis labels
   - A list or NumPy array of the same length as the selected axis
   - A dict or Series, providing a ``label -> group name`` mapping
-  - For DataFrame objects, a string indicating a column to be used to group. Of
-    course ``df.groupby('A')`` is just syntactic sugar for
-    ``df.groupby(df['A'])``, but it makes life simpler
-  - For DataFrame objects, a string indicating an index level to be used to group.
+  - For DataFrame objects, a string may indicate a column or an index level
+    to be used to group. See `note` below.
   - A list of any of the above things
-
-Collectively we refer to the grouping objects as the **keys**. For example,
-consider the following DataFrame:
 
 .. note::
 
@@ -108,6 +103,10 @@ consider the following DataFrame:
    If a string matches both a column name and an index level name then a warning is
    issued and the column takes precedence. This will result in an ambiguity error
    in a future version.
+
+Collectively we refer to the grouping objects as the **keys**. For example,
+consider the following DataFrame:
+
 
 .. ipython:: python
 
