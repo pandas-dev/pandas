@@ -884,8 +884,10 @@ class TestMisc(Base):
 
     def test_no_reference_cycle(self):
         df = pd.DataFrame({'a': [0, 1], 'b': [2, 3]})
-        for name in ('loc', 'iloc', 'ix', 'at', 'iat'):
+        for name in ('loc', 'iloc', 'at', 'iat'):
             getattr(df, name)
+        with catch_warnings(record=True):
+            getattr(df, 'ix')
         wr = weakref.ref(df)
         del df
         assert wr() is None
