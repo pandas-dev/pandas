@@ -197,7 +197,7 @@ $1$,$2$
                 expected_ymd_sec)
 
     def test_to_csv_multi_index(self):
-        # see gh-6618
+        # GH 6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",1\n,2\n0,1\n"
@@ -223,3 +223,11 @@ $1$,$2$
 
         exp = "foo\nbar\n1\n"
         assert df.to_csv(index=False) == exp
+
+    def test_to_csv_string_array(self):
+        # GH 10813
+        str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
+        df = pd.DataFrame(str_array)
+        expected = ",names\n0,\"['foo', 'bar']\"\n1,\"['baz', 'qux']\"\n"
+        assert df.to_csv(encoding='ascii') == expected
+        assert df.to_csv(path_or_buf='temp.csv', encoding='utf-8') == expected
