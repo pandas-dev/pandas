@@ -17,9 +17,10 @@ from pandas.tseries.frequencies import (_offset_map, get_freq_code,
                                         get_offset, get_standard_freq)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
+from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
-                                    CustomBusinessHour, WeekDay,
+                                    CustomBusinessHour,
                                     CBMonthBegin, BYearEnd, MonthEnd,
                                     MonthBegin, SemiMonthBegin, SemiMonthEnd,
                                     BYearBegin, QuarterBegin, BQuarterBegin,
@@ -27,7 +28,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Hour, Minute, Second, Day, Micro,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Milli, Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, CacheableOffset)
+                                    LastWeekOfMonth)
 from pandas.core.tools.datetimes import (
     format, ole2datetime, parse_time_string,
     to_datetime, DateParseError)
