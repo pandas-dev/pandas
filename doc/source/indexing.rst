@@ -1785,6 +1785,11 @@ faster, and allows one to index *both* axes if so desired.
 Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+
+   The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
+   assignment.
+
 The problem in the previous section is just a performance issue. What's up with
 the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
 you do something that might cost a few extra milliseconds!
@@ -1903,8 +1908,4 @@ This will **not** work at all, and so should be avoided
         A value is trying to be set on a copy of a slice from a DataFrame.
         Try using .loc[row_index,col_indexer] = value instead
 
-.. warning::
-
-   The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
-   assignment. There may be false positives; situations where a chained assignment is inadvertently
-   reported.
+`Blog entry Understanding SettingwithCopyWarning in pandas <https://www.dataquest.io/blog/settingwithcopywarning/>`__ offers additional details.
