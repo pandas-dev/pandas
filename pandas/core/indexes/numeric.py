@@ -17,6 +17,7 @@ from pandas.core import algorithms
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly
+import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
 
 
@@ -95,6 +96,9 @@ class NumericIndex(Index):
         truncation (e.g. float to int).
         """
         pass
+
+    def _concat_same_dtype(self, indexes, name):
+        return _concat._concat_index_same_dtype(indexes).rename(name)
 
     @property
     def is_all_dates(self):
