@@ -7,6 +7,8 @@ import pandas as pd
 from pandas.core.internals import (
     Block, BlockManager, SingleBlockManager, NonConsolidatableMixIn)
 
+import pytest
+
 
 class CustomBlock(NonConsolidatableMixIn, Block):
 
@@ -23,6 +25,17 @@ class CustomBlock(NonConsolidatableMixIn, Block):
         values = np.concatenate([blk.values for blk in to_concat])
         return self.make_block_same_class(
             values, placement=placement or slice(0, len(values), 1))
+
+
+@pytest.fixture
+def df():
+    df1 = pd.DataFrame({'a': [1, 2, 3]})
+    blocks = df1._data.blocks
+    values = np.arange(3, dtype='int64')
+    custom_block = CustomBlock(values, placement=slice(1, 2))
+    blocks = blocks + (custom_block,)
+    block_manager = BlockManager(blocks, [pd.Index(['a', 'b']), df1.index])
+    return pd.DataFrame(block_manager)
 
 
 def test_custom_repr():
@@ -51,14 +64,14 @@ def test_concat_series():
     assert isinstance(res._data.blocks[0], CustomBlock)
 
 
-def test_concat_dataframe():
+def test_concat_dataframe(df):
     # GH17728
-    df = pd.DataFrame({'a': [1, 2, 3]})
-    blocks = df._data.blocks
-    values = np.arange(3, dtype='int64')
-    custom_block = CustomBlock(values, placement=slice(1, 2))
-    blocks = blocks + (custom_block, )
-    block_manager = BlockManager(blocks, [pd.Index(['a', 'b']), df.index])
-    df = pd.DataFrame(block_manager)
     res = pd.concat([df, df])
+    assert isinstance(res._data.blocks[1], CustomBlock)
+
+
+def test_concat_axis1(df):
+    # GH17954
+    df2 = pd.DataFrame({'c': [.1, .2, .3]})
+    res = pd.concat([df, df2], axis=1)
     assert isinstance(res._data.blocks[1], CustomBlock)
