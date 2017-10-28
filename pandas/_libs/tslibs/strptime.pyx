@@ -336,8 +336,7 @@ def array_strptime(ndarray[object] values, object fmt,
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            else:
-                raise
+            raise
 
     return result
 

@@ -44,7 +44,7 @@ class OutOfBoundsDatetime(ValueError):
     pass
 
 
-cdef inline check_dts_bounds(pandas_datetimestruct *dts):
+cdef inline void check_dts_bounds(pandas_datetimestruct *dts):
     """Returns True if an error needs to be raised"""
     cdef:
         bint error = False
