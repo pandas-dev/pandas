@@ -10,7 +10,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.io import common
-from pandas.compat import is_platform_windows, StringIO
+from pandas.compat import is_platform_windows, StringIO, FileNotFoundError
 
 from pandas import read_csv, concat
 
@@ -126,17 +126,17 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
     @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
-        (pd.read_csv, 'os', pd.compat.FileNotFoundError, 'csv'),
-        (pd.read_table, 'os', pd.compat.FileNotFoundError, 'csv'),
-        (pd.read_fwf, 'os', pd.compat.FileNotFoundError, 'txt'),
-        (pd.read_excel, 'xlrd', pd.compat.FileNotFoundError, 'xlsx'),
+        (pd.read_csv, 'os', FileNotFoundError, 'csv'),
+        (pd.read_table, 'os', FileNotFoundError, 'csv'),
+        (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
+        (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
         (pd.read_feather, 'feather', Exception, 'feather'),
-        (pd.read_hdf, 'tables', pd.compat.FileNotFoundError, 'h5'),
-        (pd.read_stata, 'os', pd.compat.FileNotFoundError, 'dta'),
-        (pd.read_sas, 'os', pd.compat.FileNotFoundError, 'sas7bdat'),
+        (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
+        (pd.read_stata, 'os', FileNotFoundError, 'dta'),
+        (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
         (pd.read_json, 'os', ValueError, 'json'),
         (pd.read_msgpack, 'os', ValueError, 'mp'),
-        (pd.read_pickle, 'os', pd.compat.FileNotFoundError, 'pickle'),
+        (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
     ])
     def test_read_non_existant(self, reader, module, error_class, fn_ext):
         pytest.importorskip(module)
