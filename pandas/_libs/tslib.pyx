@@ -30,7 +30,7 @@ from util cimport (is_integer_object, is_float_object, is_datetime64_object,
                    is_timedelta64_object, INT64_MAX)
 cimport util
 
-from cpython.datetime cimport PyTZInfo_Check
+from cpython.datetime cimport PyDelta_Check, PyTZInfo_Check
 # this is our datetime.pxd
 from datetime cimport (
     pandas_datetimestruct,
@@ -50,7 +50,6 @@ from datetime cimport (
     check_dts_bounds,
     PANDAS_FR_ns,
     PyDateTime_Check, PyDate_Check,
-    PyDelta_Check,  # PyDelta_Check(x) --> isinstance(x, timedelta)
     PyDateTime_IMPORT,
     timedelta, datetime
     )
@@ -840,6 +839,7 @@ class NaTType(_NaT):
 
         base = _NaT.__new__(cls, 1, 1, 1)
         base.value = NPY_NAT
+        base.freq = None
 
         return base
 
@@ -861,6 +861,12 @@ class NaTType(_NaT):
 
     def __long__(self):
         return NPY_NAT
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
@@ -996,6 +1002,16 @@ class NaTType(_NaT):
     tz_convert = _make_nat_func('tz_convert', Timestamp)
     tz_localize = _make_nat_func('tz_localize', Timestamp)
     replace = _make_nat_func('replace', Timestamp)
+
+    def to_datetime(self):
+        """
+        DEPRECATED: use :meth:`to_pydatetime` instead.
+
+        Convert a Timestamp object to a native Python datetime object.
+        """
+        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
+                      FutureWarning, stacklevel=2)
+        return self.to_pydatetime(warn=False)
 
 
 def __nat_unpickle(*args):
@@ -1143,9 +1159,9 @@ cdef class _Timestamp(datetime):
             int ndim
 
         if isinstance(other, _Timestamp):
-            if other is NaT:
-                return _cmp_nat_dt(other, self, _reverse_ops[op])
             ots = other
+        elif other is NaT:
+            return _cmp_nat_dt(other, self, _reverse_ops[op])
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
                 val = self.to_pydatetime()
@@ -1448,8 +1464,7 @@ _nat_scalar_rules[Py_GE] = False
 
 
 cdef _nat_divide_op(self, other):
-    if (PyDelta_Check(other) or
-        is_timedelta64_object(other) or other is NaT):
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NaT:
         return np.nan
     if is_integer_object(other) or is_float_object(other):
         return NaT
@@ -1461,7 +1476,10 @@ cdef _nat_rdivide_op(self, other):
     return NotImplemented
 
 
-cdef class _NaT(_Timestamp):
+cdef class _NaT(datetime):
+    cdef readonly:
+        int64_t value
+        object freq
 
     def __hash__(_NaT self):
         # py3k needs this defined here
@@ -1475,34 +1493,52 @@ cdef class _NaT(_Timestamp):
 
         if ndim == 0:
             if is_datetime64_object(other):
-                other = Timestamp(other)
+                return _nat_scalar_rules[op]
             else:
                 raise TypeError('Cannot compare type %r with type %r' %
                                 (type(self).__name__, type(other).__name__))
         return PyObject_RichCompare(other, self, _reverse_ops[op])
 
     def __add__(self, other):
-        try:
-            if PyDateTime_Check(other):
-                return NaT
-            result = _Timestamp.__add__(self, other)
-            # Timestamp.__add__ doesn't return DatetimeIndex/TimedeltaIndex
-            if result is NotImplemented:
-                return result
-        except (OverflowError, OutOfBoundsDatetime):
-            pass
+        if PyDateTime_Check(other):
+            return NaT
+
+        elif hasattr(other, 'delta'):
+            # Timedelta, offsets.Tick, offsets.Week
+            return NaT
+        elif getattr(other, '_typ', None) in ['dateoffset', 'series',
+                                              'period', 'datetimeindex',
+                                              'timedeltaindex']:
+            # Duplicate logic in _Timestamp.__add__ to avoid needing
+            # to subclass; allows us to @final(_Timestamp.__add__)
+            return NotImplemented
         return NaT
 
     def __sub__(self, other):
-        if PyDateTime_Check(other) or PyDelta_Check(other):
+        # Duplicate some logic from _Timestamp.__sub__ to avoid needing
+        # to subclass; allows us to @final(_Timestamp.__sub__)
+        if PyDateTime_Check(other):
+            return  NaT
+        elif PyDelta_Check(other):
             return NaT
-        try:
-            result = _Timestamp.__sub__(self, other)
-            # Timestamp.__sub__ may return DatetimeIndex/TimedeltaIndex
-            if result is NotImplemented or hasattr(result, '_typ'):
-                return result
-        except (OverflowError, OutOfBoundsDatetime):
-            pass
+
+        elif getattr(other, '_typ', None) == 'datetimeindex':
+            # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
+            return -other.__sub__(self)
+
+        elif getattr(other, '_typ', None) == 'timedeltaindex':
+            # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
+            return (-other).__add__(self)
+
+        elif hasattr(other, 'delta'):
+            # offsets.Tick, offsets.Week
+            neg_other = -other
+            return self + neg_other
+
+        elif getattr(other, '_typ', None) in ['period',
+                                              'periodindex', 'dateoffset']:
+            return NotImplemented
+
         return NaT
 
     def __pos__(self):
@@ -1524,6 +1560,14 @@ cdef class _NaT(_Timestamp):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
+
+    @property
+    def asm8(self):
+        return np.datetime64(NPY_NAT, 'ns')
+
+    def to_datetime64(self):
+        """ Returns a numpy.datetime64 object with 'ns' precision """
+        return np.datetime64('NaT')
 
 
 # lightweight C object to hold datetime & int64 pair
