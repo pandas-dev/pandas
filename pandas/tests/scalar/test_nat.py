@@ -248,6 +248,8 @@ def test_nat_arithmetic():
         assert left + right is NaT
         assert right - left is NaT
         assert left - right is NaT
+        assert np.isnan(left / right)
+        assert np.isnan(right / left)
 
     # GH 11718
     t_utc = Timestamp('2014-01-01', tz='UTC')
