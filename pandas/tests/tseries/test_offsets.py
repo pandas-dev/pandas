@@ -41,6 +41,8 @@ import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
+data_dir = tm.get_data_path()
+
 def test_monthrange():
     import calendar
     for y in range(2000, 2013):
@@ -480,7 +482,7 @@ class TestCommon(Base):
                    'Day': Day(1),
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
+        pickle_path = os.path.join(data_dir,
                                    'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
@@ -1884,7 +1886,7 @@ class TestCustomBusinessDay(Base):
     def test_pickle_compat_0_14_1(self):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
 
-        pth = tm.get_data_path()
+        pth = data_dir
 
         cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
         cday = CDay(holidays=hdays)
