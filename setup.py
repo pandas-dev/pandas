@@ -492,7 +492,7 @@ ext_data = {
                               'sources': np_datetime_sources},
     '_libs.tslibs.offsets': {'pyxfile': '_libs/tslibs/offsets'},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
-                    'pxdfiles': ['_libs/src/util', '_libs/lib'],
+                    'pxdfiles': ['_libs/src/util'],
                     'depends': tseries_depends,
                     'sources': np_datetime_sources},
     '_libs.tslibs.np_datetime': {'pyxfile': '_libs/tslibs/np_datetime',
@@ -543,12 +543,9 @@ ext_data = {
                       'sources': ['pandas/_libs/src/parser/tokenizer.c',
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
-                     'depends': (['pandas/_libs/sparse.pyx'] +
-                                 _pxi_dep['sparse'])},
-    '_libs.testing': {'pyxfile': '_libs/testing',
-                      'depends': ['pandas/_libs/testing.pyx']},
-    '_libs.hashing': {'pyxfile': '_libs/hashing',
-                      'depends': ['pandas/_libs/hashing.pyx']},
+                     'depends': _pxi_dep['sparse']},
+    '_libs.testing': {'pyxfile': '_libs/testing'},
+    '_libs.hashing': {'pyxfile': '_libs/hashing'},
     'io.sas._sas': {'pyxfile': 'io/sas/sas'}}
 
 extensions = []
