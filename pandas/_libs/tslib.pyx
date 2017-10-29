@@ -94,7 +94,8 @@ from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
 
-from tslibs.nattype import NaT, nat_strings
+from tslibs.nattype import NaT, nat_strings, __nat_unpickle
+# Note: __nat_unpickle needs to be in the namespace for backward compat pickle
 from tslibs.nattype cimport _checknull_with_nat
 
 
