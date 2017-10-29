@@ -1791,4 +1791,5 @@ class _XlsxWriter(ExcelWriter):
                           startcol + cell.col,
                           val, style)
 
+
 register_writer(_XlsxWriter)
