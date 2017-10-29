@@ -967,3 +967,27 @@ def test_importcheck_thread_safety():
     while helper_thread1.is_alive() or helper_thread2.is_alive():
         pass
     assert None is helper_thread1.err is helper_thread2.err
+
+
+def test_parse_failure_unseekable():
+    # Issue #17975
+    _skip_if_no('lxml')
+
+    class UnseekableStringIO(StringIO):
+        def seekable(self):
+            return False
+
+    good = UnseekableStringIO('''
+        <table><tr><td>spam<br />eggs</td></tr></table>''')
+    bad = UnseekableStringIO('''
+        <table><tr><td>spam<foobr />eggs</td></tr></table>''')
+
+    assert read_html(good)
+    assert read_html(bad, flavor='bs4')
+
+    bad.seek(0)
+
+    with pytest.raises(ValueError,
+                       match='passed a non-rewindable file object'):
+        read_html(bad)
+
