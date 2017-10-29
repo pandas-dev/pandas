@@ -49,7 +49,7 @@ class TestDatetimeLikeIndexArithmetic(object):
 
     # TODO: Fill out the matrix of allowed arithmetic operations:
     #   - __rsub__, __radd__
-    #   - ops with scalars boxed in Index/Series/DataFrame
+    #   - ops with scalars boxed in Index/Series/DataFrame/np.array
     #   - ops with scalars:
     #              NaT, Timestamp.min/max, Timedelta.min/max
     #              datetime, timedelta, date(?),
@@ -58,6 +58,7 @@ class TestDatetimeLikeIndexArithmetic(object):
     #              DateOffset,
     #              Period
     #   - timezone-aware variants
+    #   - object-dtype, categorical dtype
     #   - PeriodIndex
     #   - consistency with .map(...) ?
 
