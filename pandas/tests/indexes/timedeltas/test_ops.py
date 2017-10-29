@@ -1290,7 +1290,7 @@ class TestSlicing(object):
         tsneg = Timestamp('1950-01-01')
         ts_neg_variants = [tsneg,
                            tsneg.to_datetime(),
-                           tsneg.to_datetime64().astype('datetime64[ns]')
+                           tsneg.to_datetime64().astype('datetime64[ns]'),
                            tsneg.to_datetime64().astype('datetime64[D]')]
 
         tspos = Timestamp('1980-01-01')
