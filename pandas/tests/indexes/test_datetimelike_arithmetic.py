@@ -38,18 +38,6 @@ class TestDatetimeLikeIndexArithmetic(object):
         res2 = tdinat + tspos
         assert res2[1] is NaT
 
-    def test_timedeltaindex_sub_timestamp_nat_masking(self):
-        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
-
-        # tsneg.value < 0, tspos.value > 0
-        tsneg = Timestamp('1950-01-01')
-        tspos = Timestamp('1980-01-01')
-
-        res1 = tdinat - tsneg
-        assert res1[1] is NaT
-        res2 = tdinat - tspos
-        assert res2[1] is NaT
-
     def test_timedeltaindex_add_timestamp_overflow(self):
         tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
         tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
