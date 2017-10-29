@@ -2124,6 +2124,13 @@ class TestCategoricalAsBlock(object):
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
 
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_empty_astype(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
+
     def test_construction_series(self):
 
         l = [1, 2, 3, 1]
