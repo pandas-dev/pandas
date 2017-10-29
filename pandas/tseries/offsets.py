@@ -971,7 +971,6 @@ class MonthBegin(MonthOffset):
         return dt.day == 1
 
 
-
 class SemiMonthOffset(DateOffset):
     _adjust_dst = True
     _default_day_of_month = 15

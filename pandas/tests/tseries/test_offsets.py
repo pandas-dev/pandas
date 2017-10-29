@@ -43,6 +43,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 data_dir = tm.get_data_path()
 
+
 def test_monthrange():
     import calendar
     for y in range(2000, 2013):
