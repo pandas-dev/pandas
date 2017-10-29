@@ -406,7 +406,7 @@ class SingleConstructorOffset(DateOffset):
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
-            raise ValueError("Bad freq suffix %s" % suffix)
+            raise ValueError("Bad freq suffix {suffix}".format(suffix=suffix))
         return cls()
 
 
