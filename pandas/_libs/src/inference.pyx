@@ -349,12 +349,12 @@ def infer_dtype(object value, bint skipna=False):
     if values.dtype != np.object_:
         values = values.astype('O')
 
+    # make contiguous
+    values = values.ravel()
+
     n = len(values)
     if n == 0:
         return 'empty'
-
-    # make contiguous
-    values = values.ravel()
 
     # try to use a valid value
     for i in range(n):

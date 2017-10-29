@@ -416,6 +416,12 @@ class TestTypeInference(object):
         result = lib.infer_dtype([])
         assert result == 'empty'
 
+        # GH 18004
+        arr = np.array([np.array([], dtype=object),
+                        np.array([], dtype=object)])
+        result = lib.infer_dtype(arr)
+        assert result == 'empty'
+
     def test_integers(self):
         arr = np.array([1, 2, 3, np.int64(4), np.int32(5)], dtype='O')
         result = lib.infer_dtype(arr)
