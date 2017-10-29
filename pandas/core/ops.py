@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
+    is_numpy_dtype_with_metadata,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype, is_datetimetz,
     is_list_like,
@@ -343,11 +344,36 @@ class _Op(object):
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
 
+        if is_numpy_dtype_with_metadata(left):
+            left_compatible = left.dtype.operation_typecompatible(name, right.dtype, is_left=True)
+            if left_compatible is not NotImplemented:
+                if left_compatible:
+                    op_class = left.dtype.get_operation_wrapper()
+                    if op_class is not None:
+                        return op_class(left, right, name, na_op)
+                    else:
+                        return _Op(left, right, name, na_op)
+                else:
+                    raise TypeError("Operation {} not permitted between "
+                                    "dtype {} and type {}".format(name, left.dtype,
+                                                                  right.dtype))
+        # left is either not a NumpyDtypeWithMetadata or did not implement the Operation.
+        if is_numpy_dtype_with_metadata(right):
+            if right.dtype.operation_typecompatible(name, left.dtype, is_left=False):
+                op_class = right.dtype.get_operation_wrapper()
+                if op_class is not None:
+                    return op_class(left, right, name, na_op)
+                else:
+                    return _Op(left, right, name, na_op)
+            else:
+                raise TypeError("Operation {} not permitted between "
+                                "dtype {} and type {}".format(left.dtype,
+                                                              right.dtype))
+        # No NumpyDtypeWithMetadata involved.
         if not (is_datetime_lhs or is_timedelta_lhs):
             return _Op(left, right, name, na_op)
         else:
             return _TimeOp(left, right, name, na_op)
-
 
 class _TimeOp(_Op):
     """

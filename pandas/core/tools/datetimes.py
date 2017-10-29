@@ -195,6 +195,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_timedelta : Convert argument to timedelta.
     """
+
+    print("to datetime. Box is {}".format(box))
     from pandas.core.indexes.datetimes import DatetimeIndex
 
     tz = 'utc' if utc else None

@@ -15,6 +15,7 @@ from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCIndexClass)
 from .inference import is_string_like
 from .inference import *  # noqa
+from .costum_dtypes import NumpyDtypeWithMetadata, NumpyDtypeWithMetadataType
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
@@ -506,6 +507,15 @@ def is_categorical_dtype(arr_or_dtype):
     if arr_or_dtype is None:
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
+
+
+def is_numpy_dtype_with_metadata(arr_or_dtype):
+    """
+    Check whether the array or dtype is an instance of NumpyDtypeWithMetadata
+    """
+    if arr_or_dtype is None:
+        return False
+    return NumpyDtypeWithMetadata.is_dtype(arr_or_dtype)
 
 
 def is_string_dtype(arr_or_dtype):
@@ -1649,6 +1659,8 @@ def is_extension_type(arr):
         return True
     elif is_datetimetz(arr):
         return True
+    elif is_numpy_dtype_with_metadata(arr):
+        return True
     return False
 
 
@@ -1753,6 +1765,8 @@ def _get_dtype(arr_or_dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, IntervalDtype):
         return arr_or_dtype
+    elif isinstance(arr_or_dtype, NumpyDtypeWithMetadata):
+        return arr_or_dtype
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtype.construct_from_string(arr_or_dtype)
@@ -1798,6 +1812,8 @@ def _get_dtype_type(arr_or_dtype):
         return IntervalDtypeType
     elif isinstance(arr_or_dtype, PeriodDtype):
         return PeriodDtypeType
+    elif isinstance(arr_or_dtype, NumpyDtypeWithMetadata):
+        return NumpyDtypeWithMetadataType
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
@@ -1914,6 +1930,8 @@ def pandas_dtype(dtype):
     """
 
     if isinstance(dtype, DatetimeTZDtype):
+        return dtype
+    elif isinstance(dtype, NumpyDtypeWithMetadata):
         return dtype
     elif isinstance(dtype, PeriodDtype):
         return dtype
