@@ -471,7 +471,7 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
                              'pandas/_libs/src/compat_helper.h']
 
 np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
-                       'pandas/_libs/src/datetime/np_datetime_strings.h',]
+                       'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
 tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd']
