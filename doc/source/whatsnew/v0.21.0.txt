@@ -1049,7 +1049,6 @@ Indexing
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 - Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
-- Bug in ``numpy`` ``array_wrap`` with a pandas ``Series``/``Index`` (:issue:`14042`)
 
 I/O
 ^^^
