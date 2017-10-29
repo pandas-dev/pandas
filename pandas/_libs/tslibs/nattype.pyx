@@ -138,7 +138,7 @@ cdef class _NaT(datetime):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
         if PyDateTime_Check(other):
-            return  NaT
+            return NaT
         elif PyDelta_Check(other):
             return NaT
 
@@ -337,7 +337,7 @@ class NaTType(_NaT):
     utcoffset = _make_error_func('utcoffset', datetime)
 
     # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
+    utcfromtimestamp = _make_error_func('utcfromtimestamp', None)
     fromtimestamp = _make_error_func('fromtimestamp', None)
     combine = _make_error_func('combine', None)
     utcnow = _make_error_func('utcnow', None)
@@ -346,12 +346,12 @@ class NaTType(_NaT):
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
 
-    timestamp = _make_error_func('timestamp',
+    timestamp = _make_error_func('timestamp',  # noqa:E128
         """Return POSIX timestamp as float.""")
 
     # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
     # return NaT create functions that raise, for binding to NaTType
-    astimezone = _make_error_func('astimezone',
+    astimezone = _make_error_func('astimezone',  # noqa:E128
         """
         Convert tz-aware Timestamp to another time zone.
 
@@ -370,7 +370,7 @@ class NaTType(_NaT):
         TypeError
             If Timestamp is tz-naive.
         """)
-    fromordinal = _make_error_func('fromordinal',
+    fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -388,14 +388,14 @@ class NaTType(_NaT):
         """)
 
     # _nat_methods
-    to_pydatetime = _make_nat_func('to_pydatetime',
+    to_pydatetime = _make_nat_func('to_pydatetime',  # noqa:E128
         """
         Convert a Timestamp object to a native Python datetime object.
 
         If warn=True, issue a warning if nanoseconds is nonzero.
         """)
 
-    now = _make_nat_func('now',
+    now = _make_nat_func('now',  # noqa:E128
         """
         Return the current time in the local timezone.  Equivalent
         to datetime.now([tz])
@@ -405,7 +405,7 @@ class NaTType(_NaT):
         tz : string / timezone object, default None
             Timezone to localize to
         """)
-    today = _make_nat_func('today',
+    today = _make_nat_func('today',  # noqa:E128
         """
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
@@ -416,7 +416,7 @@ class NaTType(_NaT):
         tz : string / timezone object, default None
             Timezone to localize to
         """)
-    round = _make_nat_func('round',
+    round = _make_nat_func('round',  # noqa:E128
         """
         Round the Timestamp to the specified resolution
 
@@ -432,7 +432,7 @@ class NaTType(_NaT):
         ------
         ValueError if the freq cannot be converted
         """)
-    floor = _make_nat_func('floor',
+    floor = _make_nat_func('floor',  # noqa:E128
         """
         return a new Timestamp floored to this resolution
 
@@ -440,7 +440,7 @@ class NaTType(_NaT):
         ----------
         freq : a freq string indicating the flooring resolution
         """)
-    ceil = _make_nat_func('ceil',
+    ceil = _make_nat_func('ceil',  # noqa:E128
         """
         return a new Timestamp ceiled to this resolution
 
@@ -449,7 +449,7 @@ class NaTType(_NaT):
         freq : a freq string indicating the ceiling resolution
         """)
 
-    tz_convert = _make_nat_func('tz_convert',
+    tz_convert = _make_nat_func('tz_convert',  # noqa:E128
         """
         Convert tz-aware Timestamp to another time zone.
 
@@ -468,7 +468,7 @@ class NaTType(_NaT):
         TypeError
             If Timestamp is tz-naive.
         """)
-    tz_localize = _make_nat_func('tz_localize',
+    tz_localize = _make_nat_func('tz_localize',  # noqa:E128
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -501,7 +501,7 @@ class NaTType(_NaT):
         TypeError
             If the Timestamp is tz-aware and tz is not None.
         """)
-    replace = _make_nat_func('replace',
+    replace = _make_nat_func('replace',  # noqa:E128
         """
         implements datetime.replace, handles nanoseconds
 

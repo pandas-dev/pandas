@@ -826,7 +826,6 @@ cdef inline bint _check_all_nulls(object val):
     return res
 
 
-
 cpdef object get_value_box(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
