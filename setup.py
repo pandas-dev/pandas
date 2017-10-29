@@ -344,6 +344,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
+                 'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/fields.pyx',
@@ -469,12 +470,11 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
                              'pandas/_libs/src/parse_helper.h',
                              'pandas/_libs/src/compat_helper.h']
 
-
-tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
-                   'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime.pxd']
+np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
+                       'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
+tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -495,6 +495,9 @@ ext_data = {
                     'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
                     'sources': np_datetime_sources},
+    '_libs.tslibs.np_datetime': {'pyxfile': '_libs/tslibs/np_datetime',
+                                 'depends': np_datetime_headers,
+                                 'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {'pyxfile': '_libs/tslibs/timedeltas'},
     '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.tslibs.fields': {'pyxfile': '_libs/tslibs/fields',
