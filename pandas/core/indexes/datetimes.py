@@ -29,6 +29,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_box
+from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index, Float64Index
@@ -777,7 +778,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                 "timezones or no timezones")
             else:
                 i8 = self.asi8
-                result = i8 - other.value
+                result = checked_add_with_arr(i8, -other.value,
+                                              arr_mask=self._isnan)
                 result = self._maybe_mask_results(result,
                                                   fill_value=libts.iNaT)
         else:
