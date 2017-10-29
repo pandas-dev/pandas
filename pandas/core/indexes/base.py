@@ -3430,8 +3430,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
-        For an ordered index, compute the slice indexer for input labels and
-        step
+        For an ordered or unique index, compute the slice indexer for input
+        labels and step.
 
         Parameters
         ----------
@@ -3445,6 +3445,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         indexer : slice
+
+        Raises
+        ------
+        KeyError : If key does not exist, or key is not unique and index is
+            not ordered.
 
         Notes
         -----
