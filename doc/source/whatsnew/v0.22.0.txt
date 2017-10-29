@@ -41,6 +41,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
+- All-NaN levels in ``MultiIndex`` are now assigned float rather than object dtype, coherently with flat indexes (:issue:`17929`).
 - :class:`Timestamp` will no longer silently ignore unused or invalid `tz` or `tzinfo` arguments (:issue:`17690`)
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the `tseries.offsets` module (:issue:`17830`)
 -

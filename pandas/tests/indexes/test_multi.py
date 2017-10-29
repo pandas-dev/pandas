@@ -970,12 +970,13 @@ class TestMultiIndex(Base):
 
         arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        expected = np.array([np.nan, np.nan, np.nan])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
-        values = index.get_level_values(1)
-        expected = np.array(['a', np.nan, 1], dtype=object)
-        tm.assert_numpy_array_equal(values.values, expected)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan])
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1])
+        tm.assert_index_equal(result, expected)
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)

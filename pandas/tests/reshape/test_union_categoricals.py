@@ -90,7 +90,8 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         # all NaN
-        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+        res = union_categoricals([pd.Categorical(np.array([np.nan, np.nan],
+                                                          dtype=object)),
                                   pd.Categorical(['X'])])
         exp = Categorical([np.nan, np.nan, 'X'])
         tm.assert_categorical_equal(res, exp)
@@ -250,7 +251,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])
@@ -299,7 +300,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])

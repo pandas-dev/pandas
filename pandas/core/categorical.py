@@ -288,6 +288,10 @@ class Categorical(PandasObject):
             self._dtype = dtype
             return
 
+        # null_mask indicates missing values we want to exclude from inference.
+        # This means: only missing values in list-likes (not arrays/ndframes).
+        null_mask = np.array(False)
+
         # sanitize input
         if is_categorical_dtype(values):
 
@@ -316,13 +320,14 @@ class Categorical(PandasObject):
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
-                # On list with NaNs, int values will be converted to float. Use
-                # "object" dtype to prevent this. In the end objects will be
-                # casted to int/... in the category assignment step.
-                if len(values) == 0 or isna(values).any():
+                # By convention, empty lists result in object dtype:
+                if len(values) == 0:
                     sanitize_dtype = 'object'
                 else:
                     sanitize_dtype = None
+                null_mask = isna(values)
+                if null_mask.any():
+                    values = [values[idx] for idx in np.where(~null_mask)[0]]
                 values = _sanitize_array(values, None, dtype=sanitize_dtype)
 
         if dtype.categories is None:
@@ -369,6 +374,12 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you "
                      "mean to use\n'Categorical.from_codes(codes, "
                      "categories)'?", RuntimeWarning, stacklevel=2)
+
+        if null_mask.any():
+            # Reinsert -1 placeholders for previously removed missing values
+            full_codes = - np.ones(null_mask.shape, dtype=codes.dtype)
+            full_codes[~null_mask] = codes
+            codes = full_codes
 
         self._dtype = dtype
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
