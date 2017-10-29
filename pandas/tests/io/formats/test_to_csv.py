@@ -228,6 +228,22 @@ $1$,$2$
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
         df = pd.DataFrame(str_array)
-        expected = ",names\n0,\"['foo', 'bar']\"\n1,\"['baz', 'qux']\"\n"
-        assert df.to_csv(encoding='ascii') == expected
-        assert df.to_csv(path_or_buf='temp.csv', encoding='utf-8') == expected
+        expected_ascii = '''\
+,names
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
+'''
+        with tm.ensure_clean('str_test.csv') as path:
+            df.to_csv(path, encoding='ascii')
+            with open(path, 'r') as f:
+                assert f.read() == expected_ascii
+
+        expected_utf8 = '''\
+,names
+0,"[u'foo', u'bar']"
+1,"[u'baz', u'qux']"
+'''
+        with tm.ensure_clean('unicode_test.csv') as path:
+            df.to_csv(path, encoding='utf-8')
+            with open(path, 'r') as f:
+                assert f.read() == expected_utf8
