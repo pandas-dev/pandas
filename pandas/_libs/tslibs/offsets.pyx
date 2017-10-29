@@ -230,6 +230,7 @@ _rd_kwds = set([
     'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'
     ])
 
+
 def _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
