@@ -1,11 +1,44 @@
 """ Test Matrix for arithmetic operations on DatetimeIndex, TimedeltaIndex,
 and PeriodIndex
 """
+from datetime import datetime, timedelta
 
 import pytest
+import numpy as np
 
 import pandas as pd
 from pandas import Timestamp, Timedelta, NaT
+
+tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
+tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
+
+dtinat = pd.to_datetime(['now', 'NaT'])
+dtimax = pd.to_datetime(['now', Timestamp.max])
+dtimin = pd.to_datetime(['now', Timestamp.min])
+
+
+tspos = Timestamp('1980-01-01')
+ts_pos_variants = [tspos,
+                   datetime(1980, 1, 1),
+                   np.datetime64('1980-01-01').astype('M8[ns]'),
+                   np.datetime64('1980-01-01').astype('M8[D]')]
+
+tsneg = Timestamp('1950-01-01')
+ts_neg_variants = [tsneg,
+                   datetime(1950, 1, 1),
+                   np.datetime64('1950-01-01').astype('M8[ns]'),
+                   np.datetime64('1950-01-01').astype('M8[D]')]
+
+tdpos = Timedelta('1h')
+td_pos_variants = [tdpos,
+                   tdpos.to_pytimedelta(),
+                   tdpos.to_timedelta64()]
+
+tdneg = Timedelta('-1h')
+td_neg_variants = [tdneg,
+                   tdneg.to_pytimedelta(),
+                   tdneg.to_timedelta64()]
 
 
 class TestDatetimeLikeIndexArithmetic(object):
@@ -25,159 +58,147 @@ class TestDatetimeLikeIndexArithmetic(object):
     #   - object-dtype, categorical dtype
     #   - PeriodIndex
     #   - consistency with .map(...) ?
+    #   - versions with near-min/max values
 
     def test_timedeltaindex_add_timestamp_nat_masking(self):
-        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+        for variant in ts_neg_variants:
+            res = tdinat + variant
+            assert res[1] is NaT
 
-        # tsneg.value < 0, tspos.value > 0
-        tsneg = Timestamp('1950-01-01')
-        tspos = Timestamp('1980-01-01')
-
-        res1 = tdinat + tsneg
-        assert res1[1] is NaT
-        res2 = tdinat + tspos
-        assert res2[1] is NaT
+        for variant in ts_pos_variants:
+            res = tdinat + variant
+            assert res[1] is NaT
 
     def test_timedeltaindex_add_timestamp_overflow(self):
-        tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
-        tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
+        expected = Timedelta.max.value + tsneg.value
+        for variant in ts_neg_variants:
+            res = tdimax + variant
+            assert res[1].value == expected
 
-        # tsneg.value < 0, tspos.value > 0
-        tsneg = Timestamp('1950-01-01')
-        tspos = Timestamp('1980-01-01')
+        expected = Timedelta.min.value + tspos.value
+        for variant in ts_pos_variants:
+            res = tdimin + variant
+            assert res[1].value == expected
 
-        res1 = tdimax + tsneg
-        assert res1[1].value == Timedelta.max.value + tsneg.value
-        res2 = tdimin + tspos
-        assert res2[1].value == Timedelta.min.value + tspos.value
+        for variant in ts_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimax + variant
 
-        with pytest.raises(OverflowError):
-            tdimax + tspos
-
-        with pytest.raises(OverflowError):
-            tdimin + tsneg
+        for variant in ts_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimin + variant
 
     def test_timedeltaindex_add_timedelta_overflow(self):
-        tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
-        tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimax + variant
 
-        # tdpos.value > 0, tdneg.value < 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
+        expected = Timedelta.max.value + tdneg.value
+        for variant in td_neg_variants:
+            res = tdimax + variant
+            assert res[1].value == expected
 
-        with pytest.raises(OverflowError):
-            tdimax + tdpos
+        expected = Timedelta.min.value + tdpos.value
+        for variant in td_pos_variants:
+            res = tdimin + variant
+            assert res[1].value == expected
 
-        res2 = tdimax + tdneg
-        assert res2[1].value == Timedelta.max.value + tdneg.value
-        res3 = tdimin + tdpos
-        assert res3[1].value == Timedelta.min.value + tdpos.value
-
-        with pytest.raises(OverflowError):
-            tdimin + tdneg
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimin + variant
 
     def test_timedeltaindex_sub_timedelta_overflow(self):
-        tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
-        tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
+        expected = Timedelta.max.value - tdpos.value
+        for variant in td_pos_variants:
+            res1 = tdimax - variant
+            assert res1[1].value == expected
 
-        # tdpos.value > 0, tdneg.value < 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimax - variant
 
-        res1 = tdimax - tdpos
-        assert res1[1].value == Timedelta.max.value - tdpos.value
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimin - variant
 
-        with pytest.raises(OverflowError):
-            tdimax - tdneg
-
-        with pytest.raises(OverflowError):
-            tdimin - tdpos
-
-        res4 = tdimin - tdneg
-        assert res4[1].value == Timedelta.min.value - tdneg.value
+        expected = Timedelta.min.value - tdneg.value
+        for variant in td_neg_variants:
+            res = tdimin - variant
+            assert res[1].value == expected
 
     def test_datetimeindex_add_nat_masking(self):
         # Checking for NaTs and checking that we don't get an OverflowError
-        dtinat = pd.to_datetime(['now', 'NaT'])
+        for variant in td_pos_variants:
+            res = dtinat + variant
+            assert res[1] is NaT
 
-        # tdpos.value > 0, tdneg.value < 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
-
-        res1 = dtinat + tdpos
-        assert res1[1] is NaT
-        res2 = dtinat + tdneg
-        assert res2[1] is NaT
+        for variant in td_neg_variants:
+            res = dtinat + variant
+            assert res[1] is NaT
 
     def test_datetimeindex_sub_nat_masking(self):
         # Checking for NaTs and checking that we don't get an OverflowError
-        dtinat = pd.to_datetime(['now', 'NaT'])
+        for variant in td_pos_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
 
-        # tdpos.value > 0, tdneg.value < 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
-
-        res1 = dtinat - tdpos
-        assert res1[1] is NaT
-        res2 = dtinat - tdneg
-        assert res2[1] is NaT
+        for variant in td_neg_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
 
     def test_datetimeindex_add_timedelta_overflow(self):
-        dtimax = pd.to_datetime(['now', Timestamp.max])
-        dtimin = pd.to_datetime(['now', Timestamp.min])
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimax + variant
 
-        # tdpos.value < 0, tdneg.value > 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
+        expected = Timestamp.max.value + tdneg.value
+        for variant in td_neg_variants:
+            res = dtimax + variant
+            assert res[1].value == expected
 
-        with pytest.raises(OverflowError):
-            dtimax + tdpos
+        expected = Timestamp.min.value + tdpos.value
+        for variant in td_pos_variants:
+            res = dtimin + variant
+            assert res[1].value == expected
 
-        res2 = dtimax + tdneg
-        assert res2[1].value == Timestamp.max.value + tdneg.value
-
-        res3 = dtimin + tdpos
-        assert res3[1].value == Timestamp.min.value + tdpos.value
-
-        with pytest.raises(OverflowError):
-            dtimin + tdneg
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimin + variant
 
     def test_datetimeindex_sub_timedelta_overflow(self):
-        dtimax = pd.to_datetime(['now', Timestamp.max])
-        dtimin = pd.to_datetime(['now', Timestamp.min])
+        expected = Timestamp.max.value - tdpos.value
+        for variant in td_pos_variants:
+            res = dtimax - variant
+            assert res[1].value == expected
 
-        # tdpos.value < 0, tdneg.value > 0
-        tdpos = Timedelta('1h')
-        tdneg = Timedelta('-1h')
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimax - variant
 
-        res1 = dtimax - tdpos
-        assert res1[1].value == Timestamp.max.value - tdpos.value
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimin - variant
 
-        with pytest.raises(OverflowError):
-            dtimax - tdneg
-
-        with pytest.raises(OverflowError):
-            dtimin - tdpos
-
-        res4 = dtimin - tdneg
-        assert res4[1].value == Timestamp.min.value - tdneg.value
+        expected = Timestamp.min.value - tdneg.value
+        for variant in td_neg_variants:
+            res = dtimin - variant
+            assert res[1].value == expected
 
     def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(['now', Timestamp.max])
-        dtimin = pd.to_datetime(['now', Timestamp.min])
+        for variant in ts_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimax - variant
 
-        # tsneg.value < 0, tspos.value > 0
-        tsneg = Timestamp('1950-01-01')
-        tspos = Timestamp('1980-01-01')
+        expected = Timestamp.max.value - tspos.value
+        for variant in ts_pos_variants:
+            res = dtimax - variant
+            assert res[1].value == expected
 
-        with pytest.raises(OverflowError):
-            dtimax - tsneg
+        expected = Timestamp.min.value - tsneg.value
+        for variant in ts_neg_variants:
+            res = dtimin - variant
+            assert res[1].value == expected
 
-        res2 = dtimax - tspos
-        assert res2[1].value == Timestamp.max.value - tspos.value
-
-        res3 = dtimin - tsneg
-        assert res3[1].value == Timestamp.min.value - tsneg.value
-
-        with pytest.raises(OverflowError):
-            dtimin - tspos
+        for variant in ts_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimin - variant

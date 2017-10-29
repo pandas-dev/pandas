@@ -681,7 +681,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
-            elif isinstance(other, datetime):
+            elif isinstance(other, (datetime, np.datetime64)):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
