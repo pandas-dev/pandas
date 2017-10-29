@@ -17,12 +17,9 @@ from pandas.compat import PY2
 
 cimport cython
 
-from datetime cimport (
-    is_leapyear,
-    pandas_datetimestruct,
-    pandas_datetimestruct_to_datetime,
-    pandas_datetime_to_datetimestruct,
-    PANDAS_FR_ns)
+from tslibs.np_datetime cimport (pandas_datetimestruct,
+                                 dtstruct_to_dt64, dt64_to_dtstruct)
+from datetime cimport is_leapyear
 
 
 cimport util
@@ -137,7 +134,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
                 if dtarr[i] == NPY_NAT:
                     out[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtarr[i], &dts)
                 out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                             dts.hour, dts.min, dts.sec,
                                             dts.us, dts.ps, freq)
@@ -268,7 +265,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     dts.us = int((subsecond_fraction) * 1e6)
     dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    return dtstruct_to_dt64(&dts)
 
 
 def period_format(int64_t value, int freq, object fmt=None):
@@ -499,7 +496,7 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -530,7 +527,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -538,13 +535,11 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -562,8 +557,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
@@ -571,8 +565,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
@@ -595,7 +588,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                            dts.hour, dts.min, dts.sec,
                                            dts.us, dts.ps, freq)
@@ -605,13 +598,11 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                            dts.hour, dts.min, dts.sec,
                                            dts.us, dts.ps, freq)
@@ -630,8 +621,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                                dts.hour, dts.min, dts.sec,
                                                dts.us, dts.ps, freq)
@@ -640,8 +630,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                                dts.hour, dts.min, dts.sec,
                                                dts.us, dts.ps, freq)

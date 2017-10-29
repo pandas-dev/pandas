@@ -17,10 +17,9 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
+from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
+
 from datetime cimport (
-    pandas_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    PANDAS_FR_ns,
     days_per_month_table,
     is_leapyear,
     dayofweek)
@@ -60,7 +59,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     mus = out['u']
 
     for i in range(count):
-        pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+        dt64_to_dtstruct(dtindex[i], &dts)
         years[i] = dts.year
         months[i] = dts.month
         days[i] = dts.day
@@ -99,7 +98,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
                 out[i] = np.nan
                 continue
 
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(dtindex[i], &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
             out[i] = _dayname[dow]
         return out
@@ -164,8 +163,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
@@ -178,8 +176,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
 
                 if dom == 1:
@@ -193,8 +190,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -212,8 +208,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -231,8 +226,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
@@ -246,8 +240,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
 
                 if ((dts.month - start_month) % 3 == 0) and dom == 1:
@@ -261,8 +254,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -281,8 +273,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -300,8 +291,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
@@ -315,8 +305,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dom = dts.day
 
                 if (dts.month == start_month) and dom == 1:
@@ -330,8 +319,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 dom = dts.day
                 mo_off = _month_offset[isleap, dts.month - 1]
@@ -350,8 +338,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                     out[i] = 0
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -395,8 +382,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.year
         return out
 
@@ -407,8 +393,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.month
         return out
 
@@ -419,8 +404,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.day
         return out
 
@@ -431,8 +415,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.hour
         return out
 
@@ -443,8 +426,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.min
         return out
 
@@ -455,8 +437,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.sec
         return out
 
@@ -467,8 +448,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.us
         return out
 
@@ -479,8 +459,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.ps / 1000
         return out
     elif field == 'doy':
@@ -490,8 +469,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 out[i] = _month_offset[isleap, dts.month -1] + dts.day
         return out
@@ -503,8 +481,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dayofweek(dts.year, dts.month, dts.day)
         return out
 
@@ -515,8 +492,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 isleap_prev = is_leapyear(dts.year - 1)
                 mo_off = _month_offset[isleap, dts.month - 1]
@@ -548,8 +524,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.month
                 out[i] = ((out[i] - 1) / 3) + 1
         return out
@@ -561,8 +536,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     out[i] = -1
                     continue
 
-                pandas_datetime_to_datetimestruct(
-                    dtindex[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = days_in_month(dts)
         return out
     elif field == 'is_leap_year':
