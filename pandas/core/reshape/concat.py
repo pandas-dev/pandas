@@ -66,6 +66,10 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Returns
     -------
     concatenated : object, type of objs
+        When concatenating all ``Series`` along the index (axis=0), a
+        ``Series`` is returned. When ``objs`` contains at least one
+        ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
+        the columns (axis=1), a ``DataFrame`` is returned.
 
     Notes
     -----
@@ -262,7 +266,10 @@ class _Concatenator(object):
         ndims = set()
         for obj in objs:
             if not isinstance(obj, NDFrame):
-                raise TypeError("cannot concatenate a non-NDFrame object")
+                msg = ('cannot concatenate object of type "{0}";'
+                       ' only pd.Series, pd.DataFrame, and pd.Panel'
+                       ' (deprecated) objs are valid'.format(type(obj)))
+                raise TypeError(msg)
 
             # consolidate
             obj._consolidate(inplace=True)

@@ -509,6 +509,38 @@ class TestFrequencyCode(object):
         assert (frequencies.get_freq_code(offsets.Week(-2, weekday=4)) ==
                 (frequencies.get_freq('W-FRI'), -2))
 
+    def test_frequency_misc(self):
+        assert (frequencies.get_freq_group('T') ==
+                frequencies.FreqGroup.FR_MIN)
+
+        code, stride = frequencies.get_freq_code(offsets.Hour())
+        assert code == frequencies.FreqGroup.FR_HR
+
+        code, stride = frequencies.get_freq_code((5, 'T'))
+        assert code == frequencies.FreqGroup.FR_MIN
+        assert stride == 5
+
+        offset = offsets.Hour()
+        result = frequencies.to_offset(offset)
+        assert result == offset
+
+        result = frequencies.to_offset((5, 'T'))
+        expected = offsets.Minute(5)
+        assert result == expected
+
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.get_freq_code((5, 'baz'))
+
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.to_offset('100foo')
+
+        with tm.assert_raises_regex(ValueError, 'Could not evaluate'):
+            frequencies.to_offset(('', ''))
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = frequencies.get_standard_freq(offsets.Hour())
+        assert result == 'H'
+
 
 _dti = DatetimeIndex
 
