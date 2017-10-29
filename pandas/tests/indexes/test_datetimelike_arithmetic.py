@@ -9,6 +9,22 @@ import numpy as np
 import pandas as pd
 from pandas import Timestamp, Timedelta, NaT
 
+# TODO: Fill out the matrix of allowed arithmetic operations:
+#   - __rsub__, __radd__
+#   - ops with scalars boxed in Index/Series/DataFrame/np.array
+#   - ops with scalars:
+#              NaT, Timestamp.min/max, Timedelta.min/max
+#              datetime, timedelta, date(?),
+#              relativedelta,
+#              np.datetime64, np.timedelta64,
+#              DateOffset,
+#              Period
+#   - timezone-aware variants
+#   - object-dtype, categorical dtype
+#   - PeriodIndex
+#   - consistency with .map(...) ?
+#   - versions with near-min/max values
+
 tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
 tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
 tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
@@ -21,44 +37,50 @@ dtimin = pd.to_datetime(['now', Timestamp.min])
 tspos = Timestamp('1980-01-01')
 ts_pos_variants = [tspos,
                    datetime(1980, 1, 1),
-                   np.datetime64('1980-01-01').astype('M8[ns]'),
-                   np.datetime64('1980-01-01').astype('M8[D]')]
+                   np.datetime64('1980-01-01').astype('datetime64[ns]'),
+                   np.datetime64('1980-01-01').astype('datetime64[D]')]
 
 tsneg = Timestamp('1950-01-01')
 ts_neg_variants = [tsneg,
                    datetime(1950, 1, 1),
-                   np.datetime64('1950-01-01').astype('M8[ns]'),
-                   np.datetime64('1950-01-01').astype('M8[D]')]
+                   np.datetime64('1950-01-01').astype('datetime64[ns]'),
+                   np.datetime64('1950-01-01').astype('datetime64[D]')]
 
 tdpos = Timedelta('1h')
 td_pos_variants = [tdpos,
                    tdpos.to_pytimedelta(),
-                   tdpos.to_timedelta64()]
+                   tdpos.to_timedelta64().astype('timedelta64[ns]'),
+                   tdpos.to_timedelta64().astype('timedelta64[h]')]
 
 tdneg = Timedelta('-1h')
 td_neg_variants = [tdneg,
                    tdneg.to_pytimedelta(),
-                   tdneg.to_timedelta64()]
+                   tdneg.to_timedelta64().astype('timedelta64[ns]'),
+                   tdneg.to_timedelta64().astype('timedelta64[h]')]
 
 
 class TestDatetimeLikeIndexArithmetic(object):
     # GH17991 checking for overflows and NaT masking on arithmetic ops
 
-    # TODO: Fill out the matrix of allowed arithmetic operations:
-    #   - __rsub__, __radd__
-    #   - ops with scalars boxed in Index/Series/DataFrame/np.array
-    #   - ops with scalars:
-    #              NaT, Timestamp.min/max, Timedelta.min/max
-    #              datetime, timedelta, date(?),
-    #              relativedelta,
-    #              np.datetime64, np.timedelta64,
-    #              DateOffset,
-    #              Period
-    #   - timezone-aware variants
-    #   - object-dtype, categorical dtype
-    #   - PeriodIndex
-    #   - consistency with .map(...) ?
-    #   - versions with near-min/max values
+    def test_datetimeindex_add_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants:
+            res = tdinat + variant
+            assert res[1] is NaT
+
+        for variant in td_neg_variants:
+            res = tdinat + variant
+            assert res[1] is NaT
+
+    def test_datetimeindex_sub_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants:
+            res = tdinat - variant
+            assert res[1] is NaT
+
+        for variant in td_neg_variants:
+            res = tdinat - variant
+            assert res[1] is NaT
 
     def test_timedeltaindex_add_timestamp_nat_masking(self):
         for variant in ts_neg_variants:
@@ -126,7 +148,7 @@ class TestDatetimeLikeIndexArithmetic(object):
             res = tdimin - variant
             assert res[1].value == expected
 
-    def test_datetimeindex_add_nat_masking(self):
+    def test_datetimeindex_add_timedelta_nat_masking(self):
         # Checking for NaTs and checking that we don't get an OverflowError
         for variant in td_pos_variants:
             res = dtinat + variant
@@ -136,13 +158,23 @@ class TestDatetimeLikeIndexArithmetic(object):
             res = dtinat + variant
             assert res[1] is NaT
 
-    def test_datetimeindex_sub_nat_masking(self):
+    def test_datetimeindex_sub_timedelta_nat_masking(self):
         # Checking for NaTs and checking that we don't get an OverflowError
         for variant in td_pos_variants:
             res = dtinat - variant
             assert res[1] is NaT
 
         for variant in td_neg_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
+
+    def test_datetimeindex_sub_timestamp_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in ts_pos_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
+
+        for variant in ts_neg_variants:
             res = dtinat - variant
             assert res[1] is NaT
 
