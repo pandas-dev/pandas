@@ -7,6 +7,7 @@ from .common import Base
 import pandas.util.testing as tm
 from pandas import Timestamp, Timedelta, NaT
 
+
 class DatetimeLike(Base):
 
     def test_shift_identity(self):
@@ -93,7 +94,9 @@ class TestDatetimeLikeIndexArithmetic(object):
         tspos = Timestamp('1980-01-01')
 
         res1 = tdimax + tsneg
+        assert res1[1].value == Timedelta.max.value + tsneg.value
         res2 = tdimin + tspos
+        assert res2[1].value == Timedelta.min.value + tspos.value
 
         with pytest.raises(OverflowError):
             tdimax + tspos
@@ -110,13 +113,15 @@ class TestDatetimeLikeIndexArithmetic(object):
         tdneg = Timedelta('-1h')
 
         with pytest.raises(OverflowError):
-            res1 = tdimax + tdpos
+            tdimax + tdpos
 
         res2 = tdimax + tdneg
-
+        assert res2[1].value == Timedelta.max.value + tdneg.value
         res3 = tdimin + tdpos
+        assert res3[1].value == Timedelta.min.value + tdpos.value
+
         with pytest.raises(OverflowError):
-            res4 = tdimin + tdneg
+            tdimin + tdneg
 
     def test_timedeltaindex_sub_timedelta_overflow(self):
         tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
@@ -127,11 +132,16 @@ class TestDatetimeLikeIndexArithmetic(object):
         tdneg = Timedelta('-1h')
 
         res1 = tdimax - tdpos
+        assert res1[1].value == Timedelta.max.value - tdpos.value
+
         with pytest.raises(OverflowError):
-            res2 = tdimax - tdneg
+            tdimax - tdneg
+
         with pytest.raises(OverflowError):
-            res3 = tdimin - tdpos
+            tdimin - tdpos
+
         res4 = tdimin - tdneg
+        assert res4[1].value == Timedelta.min.value - tdneg.value
 
     def test_datetimeindex_add_nat_masking(self):
         # Checking for NaTs and checking that we don't get an OverflowError
@@ -168,7 +178,7 @@ class TestDatetimeLikeIndexArithmetic(object):
         tdneg = Timedelta('-1h')
 
         with pytest.raises(OverflowError):
-            res1 = dtimax + tdpos
+            dtimax + tdpos
 
         res2 = dtimax + tdneg
         assert res2[1].value == Timestamp.max.value + tdneg.value
@@ -177,7 +187,7 @@ class TestDatetimeLikeIndexArithmetic(object):
         assert res3[1].value == Timestamp.min.value + tdpos.value
 
         with pytest.raises(OverflowError):
-            res4 = dtimin + tdneg
+            dtimin + tdneg
 
     def test_datetimeindex_sub_timedelta_overflow(self):
         dtimax = pd.to_datetime(['now', Timestamp.max])
@@ -191,10 +201,10 @@ class TestDatetimeLikeIndexArithmetic(object):
         assert res1[1].value == Timestamp.max.value - tdpos.value
 
         with pytest.raises(OverflowError):
-            res2 = dtimax - tdneg
+            dtimax - tdneg
 
         with pytest.raises(OverflowError):
-            res3 = dtimin - tdpos
+            dtimin - tdpos
 
         res4 = dtimin - tdneg
         assert res4[1].value == Timestamp.min.value - tdneg.value
@@ -208,7 +218,7 @@ class TestDatetimeLikeIndexArithmetic(object):
         tspos = Timestamp('1980-01-01')
 
         with pytest.raises(OverflowError):
-            res1 = dtimax - tsneg
+            dtimax - tsneg
 
         res2 = dtimax - tspos
         assert res2[1].value == Timestamp.max.value - tspos.value
@@ -217,4 +227,4 @@ class TestDatetimeLikeIndexArithmetic(object):
         assert res3[1].value == Timestamp.min.value - tsneg.value
 
         with pytest.raises(OverflowError):
-            res4 = dtimin - tspos
+            dtimin - tspos
