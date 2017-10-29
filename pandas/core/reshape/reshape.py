@@ -1,7 +1,8 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, zip
+from pandas.compat import range, text_type, zip
 from pandas import compat
+from functools import partial
 import itertools
 import re
 
@@ -10,7 +11,7 @@ import numpy as np
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like, is_bool_dtype,
-    needs_i8_conversion)
+    needs_i8_conversion, is_sparse)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
 import pandas.core.dtypes.concat as _concat
@@ -31,7 +32,7 @@ from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
-from pandas.core.index import MultiIndex, _get_na_value
+from pandas.core.index import Index, MultiIndex, _get_na_value
 
 
 class _Unstacker(object):
@@ -75,10 +76,15 @@ class _Unstacker(object):
                  fill_value=None):
 
         self.is_categorical = None
+        self.is_sparse = is_sparse(values)
         if values.ndim == 1:
             if isinstance(values, Categorical):
                 self.is_categorical = values
                 values = np.array(values)
+            elif self.is_sparse:
+                # XXX: Makes SparseArray *dense*, but it's supposedly
+                # a single column at a time, so it's "doable"
+                values = values.values
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
@@ -91,8 +97,8 @@ class _Unstacker(object):
 
         if isinstance(self.index, MultiIndex):
             if index._reference_duplicate_name(level):
-                msg = ("Ambiguous reference to {0}. The index "
-                       "names are not unique.".format(level))
+                msg = ("Ambiguous reference to {level}. The index "
+                       "names are not unique.".format(level=level))
                 raise ValueError(msg)
 
         self.level = self.index._get_level_number(level)
@@ -177,7 +183,8 @@ class _Unstacker(object):
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
 
-        return DataFrame(values, index=index, columns=columns)
+        klass = SparseDataFrame if self.is_sparse else DataFrame
+        return klass(values, index=index, columns=columns)
 
     def get_new_values(self):
         values = self.values
@@ -229,7 +236,7 @@ class _Unstacker(object):
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(_reshape, "unstack_{}".format(name))
+        f = getattr(_reshape, "unstack_{name}".format(name=name))
         f(sorted_values,
           mask.view('u1'),
           stride,
@@ -285,7 +292,7 @@ class _Unstacker(object):
                           names=self.new_index_names, verify_integrity=False)
 
 
-def _unstack_multiple(data, clocs):
+def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
@@ -311,15 +318,19 @@ def _unstack_multiple(data, clocs):
     recons_labels = decons_obs_group_ids(comp_ids, obs_ids, shape, clabels,
                                          xnull=False)
 
-    dummy_index = MultiIndex(levels=rlevels + [obs_ids],
-                             labels=rlabels + [comp_ids],
-                             names=rnames + ['__placeholder__'],
-                             verify_integrity=False)
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name='__placeholder__')
+    else:
+        dummy_index = MultiIndex(levels=rlevels + [obs_ids],
+                                 labels=rlabels + [comp_ids],
+                                 names=rnames + ['__placeholder__'],
+                                 verify_integrity=False)
 
     if isinstance(data, Series):
         dummy = data.copy()
         dummy.index = dummy_index
-        unstacked = dummy.unstack('__placeholder__')
+        unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         new_levels = clevels
         new_names = cnames
         new_labels = recons_labels
@@ -336,7 +347,7 @@ def _unstack_multiple(data, clocs):
         dummy = data.copy()
         dummy.index = dummy_index
 
-        unstacked = dummy.unstack('__placeholder__')
+        unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -446,7 +457,12 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
-        return _unstack_multiple(obj, level)
+        if len(level) != 1:
+            # _unstack_multiple only handles MultiIndexes,
+            # and isn't needed for a single level
+            return _unstack_multiple(obj, level, fill_value=fill_value)
+        else:
+            level = level[0]
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
@@ -460,36 +476,12 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
-    from pandas.core.internals import BlockManager, make_block
-
     if obj._is_mixed_type:
-        unstacker = _Unstacker(np.empty(obj.shape, dtype=bool),  # dummy
-                               obj.index, level=level,
-                               value_columns=obj.columns)
-        new_columns = unstacker.get_new_columns()
-        new_index = unstacker.get_new_index()
-        new_axes = [new_columns, new_index]
-
-        new_blocks = []
-        mask_blocks = []
-        for blk in obj._data.blocks:
-            blk_items = obj._data.items[blk.mgr_locs.indexer]
-            bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
-                                    value_columns=blk_items,
-                                    fill_value=fill_value)
-            new_items = bunstacker.get_new_columns()
-            new_placement = new_columns.get_indexer(new_items)
-            new_values, mask = bunstacker.get_new_values()
-
-            mblk = make_block(mask.T, placement=new_placement)
-            mask_blocks.append(mblk)
-
-            newb = make_block(new_values.T, placement=new_placement)
-            new_blocks.append(newb)
-
-        result = DataFrame(BlockManager(new_blocks, new_axes))
-        mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
-        return result.loc[:, mask_frame.sum(0) > 0]
+        unstacker = partial(_Unstacker, index=obj.index,
+                            level=level, fill_value=fill_value)
+        blocks = obj._data.unstack(unstacker)
+        klass = type(obj)
+        return klass(blocks)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns,
@@ -516,8 +508,8 @@ def stack(frame, level=-1, dropna=True):
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
         if frame.columns._reference_duplicate_name(level):
-            msg = ("Ambiguous reference to {0}. The column "
-                   "names are not unique.".format(level))
+            msg = ("Ambiguous reference to {level}. The column "
+                   "names are not unique.".format(level=level))
             raise ValueError(msg)
 
     # Will also convert negative level numbers and check if out of bounds.
@@ -550,7 +542,9 @@ def stack(frame, level=-1, dropna=True):
         mask = notna(new_values)
         new_values = new_values[mask]
         new_index = new_index[mask]
-    return Series(new_values, index=new_index)
+
+    klass = type(frame)._constructor_sliced
+    return klass(new_values, index=new_index)
 
 
 def stack_multiple(frame, level, dropna=True):
@@ -747,7 +741,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = ['variable_%s' % i
+                var_name = ['variable_{i}'.format(i=i)
                             for i in range(len(frame.columns.names))]
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
@@ -842,7 +836,7 @@ def lreshape(data, groups, dropna=True, label=None):
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
+def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -1027,7 +1021,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     in a typicaly case.
     """
     def get_var_names(df, stub, sep, suffix):
-        regex = "^{0}{1}{2}".format(re.escape(stub), re.escape(sep), suffix)
+        regex = "^{stub}{sep}{suffix}".format(
+            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix)
         return df.filter(regex=regex).columns.tolist()
 
     def melt_stub(df, stub, i, j, value_vars, sep):
@@ -1085,7 +1080,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     prefix : string, list of strings, or dict of strings, default None
         String to append DataFrame column names
         Pass a list with length equal to the number of columns
-        when calling get_dummies on a DataFrame. Alternativly, `prefix`
+        when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
     prefix_sep : string, default '_'
         If appending prefix, separator/delimiter to use. Or pass a
@@ -1100,8 +1095,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         Whether the dummy columns should be sparse or not.  Returns
         SparseDataFrame if `data` is a Series or if all columns are included.
         Otherwise returns a DataFrame with some SparseBlocks.
-
-        .. versionadded:: 0.16.1
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
@@ -1180,13 +1173,14 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
-            length_msg = ("Length of '{0}' ({1}) did not match the length of "
-                          "the columns being encoded ({2}).")
+            len_msg = ("Length of '{name}' ({len_item}) did not match the "
+                       "length of the columns being encoded ({len_enc}).")
 
             if is_list_like(item):
                 if not len(item) == len(columns_to_encode):
-                    raise ValueError(length_msg.format(name, len(item),
-                                                       len(columns_to_encode)))
+                    len_msg = len_msg.format(name=name, len_item=len(item),
+                                             len_enc=len(columns_to_encode))
+                    raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
@@ -1253,7 +1247,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     number_of_cols = len(levels)
 
     if prefix is not None:
-        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, v) for v in levels]
+        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
+                      else '{prefix}{sep}{level}' for v in levels]
+        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
+                      for dummy_str, v in zip(dummy_strs, levels)]
     else:
         dummy_cols = levels
 

@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
-import pandas.core.common as com
+from pandas.core.common import _asarray_tuplesafe, _count_not_none
 import pandas._libs.window as _window
 
 from pandas import compat
@@ -141,7 +141,7 @@ class _Window(PandasObject, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]),
                                   copy=False)
-        blocks = obj.as_blocks(copy=False).values()
+        blocks = obj._to_dict_of_blocks(copy=False).values()
 
         return blocks, obj, index
 
@@ -535,7 +535,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return _asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -1138,8 +1138,8 @@ class Rolling(_Rolling_and_Expanding):
         try:
             return to_offset(self.window)
         except (TypeError, ValueError):
-            raise ValueError("passed window {0} in not "
-                             "compat with a datetimelike "
+            raise ValueError("passed window {0} is not "
+                             "compatible with a datetimelike "
                              "index".format(self.window))
 
     _agg_doc = dedent("""
@@ -1972,8 +1972,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(com, span, halflife, alpha):
-    valid_count = len([x for x in [com, span, halflife, alpha]
-                       if x is not None])
+    valid_count = _count_not_none(com, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("com, span, halflife, and alpha "
                          "are mutually exclusive")

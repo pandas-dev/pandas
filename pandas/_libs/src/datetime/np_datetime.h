@@ -54,6 +54,9 @@ typedef struct {
     int num;
 } pandas_datetime_metadata;
 
+extern const pandas_datetimestruct _NS_MIN_DTS;
+extern const pandas_datetimestruct _NS_MAX_DTS;
+
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
@@ -95,6 +98,14 @@ convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
  */
 npy_int64
 get_datetimestruct_days(const pandas_datetimestruct *dts);
+
+
+/*
+ * Compares two pandas_datetimestruct objects chronologically
+ */
+int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
+                              const pandas_datetimestruct *b);
+
 
 /*
  * Adjusts a datetimestruct based on a minutes offset. Assumes

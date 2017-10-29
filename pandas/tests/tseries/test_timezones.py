@@ -12,12 +12,12 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
-import pandas.core.tools.datetimes as tools
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
+from pandas._libs.tslibs import timezones
 from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -645,20 +645,20 @@ class TestTimeZoneSupportPytz(object):
 
         start = self.localize(eastern, _start)
         end = self.localize(eastern, _end)
-        assert (tools._infer_tzinfo(start, end) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(start, None) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(None, end) is self.localize(eastern,
-                                                                _end).tzinfo)
+        assert (timezones.infer_tzinfo(start, end) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(start, None) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(None, end) is
+                self.localize(eastern, _end).tzinfo)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
-        assert (tools._infer_tzinfo(start, end) is utc)
+        assert (timezones.infer_tzinfo(start, end) is utc)
 
         end = self.localize(eastern, _end)
-        pytest.raises(Exception, tools._infer_tzinfo, start, end)
-        pytest.raises(Exception, tools._infer_tzinfo, end, start)
+        pytest.raises(Exception, timezones.infer_tzinfo, start, end)
+        pytest.raises(Exception, timezones.infer_tzinfo, end, start)
 
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10,
@@ -943,7 +943,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         Use tslib.maybe_get_tz so that we get the filename on the tz right
         on windows. See #7337.
         """
-        return tslib.maybe_get_tz('dateutil/' + tz)
+        return timezones.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
         """ Construct a timezone string from a string. Overridden in subclass
@@ -962,7 +962,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         # Skipped on win32 due to dateutil bug
         tm._skip_if_windows()
 
-        from pandas._libs.tslib import maybe_get_tz
+        from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
         ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
@@ -1133,7 +1133,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         assert ts.tz == dateutil.tz.tzlocal()
         assert "tz='tzlocal()')" in repr(ts)
 
-        tz = tslib.maybe_get_tz('tzlocal()')
+        tz = timezones.maybe_get_tz('tzlocal()')
         assert tz == dateutil.tz.tzlocal()
 
         # get offset using normal datetime for test
@@ -1176,12 +1176,13 @@ class TestTimeZoneCacheKey(object):
             if tz_name == 'UTC':
                 # skip utc as it's a special case in dateutil
                 continue
-            tz_p = tslib.maybe_get_tz(tz_name)
-            tz_d = tslib.maybe_get_tz('dateutil/' + tz_name)
+            tz_p = timezones.maybe_get_tz(tz_name)
+            tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
             if tz_d is None:
                 # skip timezones that dateutil doesn't know about.
                 continue
-            assert tslib._p_tz_cache_key(tz_p) != tslib._p_tz_cache_key(tz_d)
+            assert (timezones._p_tz_cache_key(tz_p) !=
+                    timezones._p_tz_cache_key(tz_d))
 
 
 class TestTimeZones(object):
@@ -1268,6 +1269,27 @@ class TestTimeZones(object):
             assert str(result_pytz) == str(result_dateutil)
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
+
+    def test_replace_tzinfo(self):
+        # GH 15683
+        dt = datetime(2016, 3, 27, 1)
+        tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
+
+        result_dt = dt.replace(tzinfo=tzinfo)
+        result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
+
+        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
+            assert result_dt.timestamp() == result_pd.timestamp()
+        assert result_dt == result_pd
+        assert result_dt == result_pd.to_pydatetime()
+
+        result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
+        result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
+
+        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
+            assert result_dt.timestamp() == result_pd.timestamp()
+        assert result_dt == result_pd
+        assert result_dt == result_pd.to_pydatetime()
 
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
@@ -1743,13 +1765,13 @@ class TestTslib(object):
 
         # Check empty array
         result = tslib.tz_convert(np.array([], dtype=np.int64),
-                                  tslib.maybe_get_tz('US/Eastern'),
-                                  tslib.maybe_get_tz('Asia/Tokyo'))
+                                  timezones.maybe_get_tz('US/Eastern'),
+                                  timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
         # Check all-NaT array
         result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
-                                  tslib.maybe_get_tz('US/Eastern'),
-                                  tslib.maybe_get_tz('Asia/Tokyo'))
+                                  timezones.maybe_get_tz('US/Eastern'),
+                                  timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))

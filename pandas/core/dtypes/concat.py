@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex)
+    ABCPeriodIndex, ABCRangeIndex)
 
 
 def get_dtype_kinds(l):
@@ -41,6 +41,8 @@ def get_dtype_kinds(l):
             typ = 'category'
         elif is_sparse(arr):
             typ = 'sparse'
+        elif isinstance(arr, ABCRangeIndex):
+            typ = 'range'
         elif is_datetimetz(arr):
             # if to_concat contains different tz,
             # the result must be object dtype
@@ -61,11 +63,12 @@ def get_dtype_kinds(l):
     return typs
 
 
-def _get_series_result_type(result):
+def _get_series_result_type(result, objs=None):
     """
     return appropriate class of Series concat
     input is either dict or array-like
     """
+    # concat Series with axis 1
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(is_sparse(c) for c in compat.itervalues(result)):
@@ -75,13 +78,12 @@ def _get_series_result_type(result):
             from pandas.core.frame import DataFrame
             return DataFrame
 
-    elif is_sparse(result):
-        # concat Series with axis 1
+    # otherwise it is a SingleBlockManager (axis = 0)
+    if result._block.is_sparse:
         from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
-        from pandas.core.series import Series
-        return Series
+        return objs[0]._constructor
 
 
 def _get_frame_result_type(result, objs):
@@ -312,6 +314,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
+    from pandas.core.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -357,14 +360,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
 
         new_codes = []
         for c in to_union:
-            if len(c.categories) > 0:
-                indexer = categories.get_indexer(c.categories)
-
-                from pandas.core.algorithms import take_1d
-                new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
-            else:
-                # must be all NaN
-                new_codes.append(c.codes)
+            new_codes.append(_recode_for_categories(c.codes, c.categories,
+                                                    categories))
         new_codes = np.concatenate(new_codes)
     else:
         # ordered - to show a proper error message
@@ -470,6 +467,11 @@ def _concat_datetimetz(to_concat, name=None):
     return to_concat[0]._simple_new(new_values, tz=tz, name=name)
 
 
+def _concat_index_same_dtype(indexes, klass=None):
+    klass = klass if klass is not None else indexes[0].__class__
+    return klass(np.concatenate([x._values for x in indexes]))
+
+
 def _concat_index_asobject(to_concat, name=None):
     """
     concat all inputs as object. DatetimeIndex, TimedeltaIndex and
@@ -559,3 +561,46 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         # coerce to object if needed
         result = result.astype('object')
     return result
+
+
+def _concat_rangeindex_same_dtype(indexes):
+    """
+    Concatenates multiple RangeIndex instances. All members of "indexes" must
+    be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+    otherwise. E.g.:
+    indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
+    indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+    """
+
+    start = step = next = None
+
+    for obj in indexes:
+        if not len(obj):
+            continue
+
+        if start is None:
+            # This is set by the first non-empty index
+            start = obj._start
+            if step is None and len(obj) > 1:
+                step = obj._step
+        elif step is None:
+            # First non-empty index had only one element
+            if obj._start == start:
+                from pandas import Int64Index
+                return _concat_index_same_dtype(indexes, klass=Int64Index)
+            step = obj._start - start
+
+        non_consecutive = ((step != obj._step and len(obj) > 1) or
+                           (next is not None and obj._start != next))
+        if non_consecutive:
+            from pandas import Int64Index
+            return _concat_index_same_dtype(indexes, klass=Int64Index)
+
+        if step is not None:
+            next = obj[-1] + step
+
+    if start is None:
+        start = obj._start
+        step = obj._step
+    stop = obj._stop if next is None else next
+    return indexes[0].__class__(start, stop, step)

@@ -12,7 +12,7 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
-from cpython.ref cimport PyObject, Py_XDECREF
+from cpython.ref cimport Py_XDECREF
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
 
@@ -32,7 +32,7 @@ cdef extern from "stdlib.h":
 cimport cython
 cimport numpy as cnp
 
-from numpy cimport ndarray, uint8_t, uint64_t
+from numpy cimport ndarray, uint8_t, uint64_t, int64_t
 
 import numpy as np
 cimport util
@@ -43,12 +43,10 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype, CategoricalDtype,
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
-    is_string_dtype, is_datetime64_dtype,
+    is_datetime64_dtype,
     pandas_dtype)
 from pandas.core.categorical import Categorical
-from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
-from pandas import Index
 
 import pandas.io.common as com
 
@@ -57,7 +55,14 @@ import os
 
 cnp.import_array()
 
-from khash cimport *
+from khash cimport (
+    khiter_t,
+    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
+    kh_get_str, kh_destroy_str,
+    kh_float64_t, kh_get_float64, kh_destroy_float64,
+    kh_put_float64, kh_init_float64,
+    kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
+    kh_destroy_strbox)
 
 import sys
 
@@ -158,7 +163,7 @@ cdef extern from "parser/tokenizer.h":
         int quoting                # style of quoting to write */
 
         # hmm =/
-#        int numeric_field
+        # int numeric_field
 
         char commentchar
         int allow_embedded_newline
@@ -246,11 +251,7 @@ cdef extern from "parser/tokenizer.h":
     double round_trip(const char *p, char **q, char decimal, char sci,
                       char tsep, int skip_trailing) nogil
 
-#    inline int to_complex(char *item, double *p_real,
-#                          double *p_imag, char sci, char decimal)
-    inline int to_longlong(char *item, long long *p_value) nogil
-#    inline int to_longlong_thousands(char *item, long long *p_value,
-#                                     char tsep)
+    int to_longlong(char *item, long long *p_value) nogil
     int to_boolean(const char *item, uint8_t *val) nogil
 
 
@@ -1260,19 +1261,14 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_categorical_dtype(dtype):
+            # TODO: I suspect that _categorical_convert could be
+            # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter,
                 na_hashset, self.c_encoding)
-            # sort categories and recode if necessary
-            cats = Index(cats)
-            if not cats.is_monotonic_increasing:
-                unsorted = cats.copy()
-                cats = cats.sort_values()
-                indexer = cats.get_indexer(unsorted)
-                codes = take_1d(indexer, codes, fill_value=-1)
+            cat = Categorical._from_inferred_categories(cats, codes, dtype)
+            return cat, na_count
 
-            return Categorical(codes, categories=cats, ordered=False,
-                               fastpath=True), na_count
         elif is_object_dtype(dtype):
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
@@ -2223,8 +2219,11 @@ def _concatenate_chunks(list chunks):
             if common_type == np.object:
                 warning_columns.append(str(name))
 
-        if is_categorical_dtype(dtypes.pop()):
-            result[name] = union_categoricals(arrs, sort_categories=True)
+        dtype = dtypes.pop()
+        if is_categorical_dtype(dtype):
+            sort_categories = isinstance(dtype, str)
+            result[name] = union_categoricals(arrs,
+                                              sort_categories=sort_categories)
         else:
             result[name] = np.concatenate(arrs)
 

@@ -4,13 +4,20 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
-
 import os
+
 import pytest
+import moto
 
 import pandas.util.testing as tm
 from pandas import DataFrame
 from pandas.io.parsers import read_csv, read_table
+from pandas.compat import BytesIO
+
+
+@pytest.fixture(scope='module')
+def tips_file():
+    return os.path.join(tm.get_data_path(), 'tips.csv')
 
 
 @pytest.fixture(scope='module')
@@ -19,12 +26,48 @@ def salaries_table():
     return read_table(path)
 
 
+@pytest.fixture(scope='module')
+def s3_resource(tips_file):
+    pytest.importorskip('s3fs')
+    moto.mock_s3().start()
+
+    test_s3_files = [
+        ('tips.csv', tips_file),
+        ('tips.csv.gz', tips_file + '.gz'),
+        ('tips.csv.bz2', tips_file + '.bz2'),
+    ]
+
+    def add_tips_files(bucket_name):
+        for s3_key, file_name in test_s3_files:
+            with open(file_name, 'rb') as f:
+                conn.Bucket(bucket_name).put_object(
+                    Key=s3_key,
+                    Body=f)
+
+    boto3 = pytest.importorskip('boto3')
+    # see gh-16135
+    bucket = 'pandas-test'
+
+    conn = boto3.resource("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket=bucket)
+    add_tips_files(bucket)
+
+    conn.create_bucket(Bucket='cant_get_it', ACL='private')
+    add_tips_files('cant_get_it')
+
+    yield conn
+
+    moto.mock_s3().stop()
+
+
 @pytest.mark.network
 @pytest.mark.parametrize(
     "compression,extension",
     [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
-     pytest.mark.skipif(not tm._check_if_lzma(),
-                        reason='need backports.lzma to run')(('xz', '.xz'))])
+     pytest.param('xz', '.xz',
+                  marks=pytest.mark.skipif(not tm._check_if_lzma(),
+                                           reason='need backports.lzma '
+                                                  'to run'))])
 @pytest.mark.parametrize('mode', ['explicit', 'infer'])
 @pytest.mark.parametrize('engine', ['python', 'c'])
 def test_compressed_urls(salaries_table, compression, extension, mode, engine):
@@ -49,15 +92,11 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
 
 
 class TestS3(object):
-
-    def setup_method(self, method):
-        try:
-            import s3fs  # noqa
-        except ImportError:
-            pytest.skip("s3fs not installed")
-
     @tm.network
     def test_parse_public_s3_bucket(self):
+        pytest.importorskip('s3fs')
+        # more of an integration test due to the not-public contents portion
+        # can probably mock this though.
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, compression=comp)
@@ -72,8 +111,8 @@ class TestS3(object):
         assert not df.empty
         tm.assert_frame_equal(read_csv(tm.get_data_path('tips.csv')), df)
 
-    @tm.network
-    def test_parse_public_s3n_bucket(self):
+    def test_parse_public_s3n_bucket(self, s3_resource):
+
         # Read from AWS s3 as "s3n" URL
         df = read_csv('s3n://pandas-test/tips.csv', nrows=10)
         assert isinstance(df, DataFrame)
@@ -81,8 +120,7 @@ class TestS3(object):
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    @tm.network
-    def test_parse_public_s3a_bucket(self):
+    def test_parse_public_s3a_bucket(self, s3_resource):
         # Read from AWS s3 as "s3a" URL
         df = read_csv('s3a://pandas-test/tips.csv', nrows=10)
         assert isinstance(df, DataFrame)
@@ -90,8 +128,7 @@ class TestS3(object):
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    @tm.network
-    def test_parse_public_s3_bucket_nrows(self):
+    def test_parse_public_s3_bucket_nrows(self, s3_resource):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, nrows=10, compression=comp)
@@ -100,8 +137,7 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    @tm.network
-    def test_parse_public_s3_bucket_chunked(self):
+    def test_parse_public_s3_bucket_chunked(self, s3_resource):
         # Read with a chunksize
         chunksize = 5
         local_tips = read_csv(tm.get_data_path('tips.csv'))
@@ -119,8 +155,7 @@ class TestS3(object):
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
 
-    @tm.network
-    def test_parse_public_s3_bucket_chunked_python(self):
+    def test_parse_public_s3_bucket_chunked_python(self, s3_resource):
         # Read with a chunksize using the Python parser
         chunksize = 5
         local_tips = read_csv(tm.get_data_path('tips.csv'))
@@ -138,8 +173,7 @@ class TestS3(object):
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
 
-    @tm.network
-    def test_parse_public_s3_bucket_python(self):
+    def test_parse_public_s3_bucket_python(self, s3_resource):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           compression=comp)
@@ -148,8 +182,7 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
-    @tm.network
-    def test_infer_s3_compression(self):
+    def test_infer_s3_compression(self, s3_resource):
         for ext in ['', '.gz', '.bz2']:
             df = read_csv('s3://pandas-test/tips.csv' + ext,
                           engine='python', compression='infer')
@@ -158,8 +191,7 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
-    @tm.network
-    def test_parse_public_s3_bucket_nrows_python(self):
+    def test_parse_public_s3_bucket_nrows_python(self, s3_resource):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           nrows=10, compression=comp)
@@ -168,8 +200,7 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    @tm.network
-    def test_s3_fails(self):
+    def test_s3_fails(self, s3_resource):
         with pytest.raises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 
@@ -178,21 +209,18 @@ class TestS3(object):
         with pytest.raises(IOError):
             read_csv('s3://cant_get_it/')
 
-    @tm.network
-    def boto3_client_s3(self):
+    def test_read_csv_handles_boto_s3_object(self,
+                                             s3_resource,
+                                             tips_file):
         # see gh-16135
 
-        # boto3 is a dependency of s3fs
-        import boto3
-        client = boto3.client("s3")
+        s3_object = s3_resource.meta.client.get_object(
+            Bucket='pandas-test',
+            Key='tips.csv')
 
-        key = "/tips.csv"
-        bucket = "pandas-test"
-        s3_object = client.get_object(Bucket=bucket, Key=key)
-
-        result = read_csv(s3_object["Body"])
+        result = read_csv(BytesIO(s3_object["Body"].read()), encoding='utf8')
         assert isinstance(result, DataFrame)
         assert not result.empty
 
-        expected = read_csv(tm.get_data_path('tips.csv'))
+        expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)

@@ -5,6 +5,7 @@ with float64 data
 from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
 
+import warnings
 from pandas.compat import lmap
 from pandas import compat
 import numpy as np
@@ -49,7 +50,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries
         (default: nan). Will not override SparseSeries passed in.
     """
-    _constructor_sliced = SparseSeries
     _subtyp = 'sparse_frame'
 
     def __init__(self, data=None, index=None, columns=None, default_kind=None,
@@ -214,11 +214,11 @@ class SparseDataFrame(DataFrame):
             columns = _default_index(K)
 
         if len(columns) != K:
-            raise ValueError('Column length mismatch: %d vs. %d' %
-                             (len(columns), K))
+            raise ValueError('Column length mismatch: {columns} vs. {K}'
+                             .format(columns=len(columns), K=K))
         if len(index) != N:
-            raise ValueError('Index length mismatch: %d vs. %d' %
-                             (len(index), N))
+            raise ValueError('Index length mismatch: {index} vs. {N}'
+                             .format(index=len(index), N=N))
         return index, columns
 
     def to_coo(self):
@@ -431,18 +431,46 @@ class SparseDataFrame(DataFrame):
         else:
             return self._get_item_cache(key)
 
-    @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col, takeable=False):
+        """
+        Quickly retrieve single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        takeable : interpret the index/col as indexers, default False
+
+        Returns
+        -------
+        value : scalar value
+        """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(index, col, takeable=takeable)
+
+    def _get_value(self, index, col, takeable=False):
         if takeable is True:
             series = self._iget_item_cache(col)
         else:
             series = self._get_item_cache(col)
 
-        return series.get_value(index, takeable=takeable)
+        return series._get_value(index, takeable=takeable)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -461,9 +489,18 @@ class SparseDataFrame(DataFrame):
         -------
         frame : DataFrame
         """
-        dense = self.to_dense().set_value(index, col, value, takeable=takeable)
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(index, col, value, takeable=takeable)
+
+    def _set_value(self, index, col, value, takeable=False):
+        dense = self.to_dense()._set_value(
+            index, col, value, takeable=takeable)
         return dense.to_sparse(kind=self._default_kind,
                                fill_value=self._default_fill_value)
+    _set_value.__doc__ = set_value.__doc__
 
     def _slice(self, slobj, axis=0, kind=None):
         if axis == 0:
@@ -601,7 +638,7 @@ class SparseDataFrame(DataFrame):
             new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
+    def _combine_const(self, other, func, errors='raise', try_cast=True):
         return self._apply_columns(lambda x: func(x, other))
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
@@ -725,17 +762,17 @@ class SparseDataFrame(DataFrame):
         to_rename = self.columns.intersection(other.columns)
         if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise ValueError('columns overlap but no suffix specified: %s'
-                                 % to_rename)
+                raise ValueError('columns overlap but no suffix specified: '
+                                 '{to_rename}'.format(to_rename=to_rename))
 
             def lrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, lsuffix)
+                    return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
                 return x
 
             def rrenamer(x):
                 if x in to_rename:
-                    return '%s%s' % (x, rsuffix)
+                    return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
                 return x
 
             this = self.rename(columns=lrenamer)

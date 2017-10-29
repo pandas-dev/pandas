@@ -10,6 +10,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
+from pandas.api.types import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
@@ -156,6 +157,26 @@ class TestSeriesConstructors(TestData):
         s = Series([1, 2, 3], dtype='category')
         assert is_categorical_dtype(s)
         assert is_categorical_dtype(s.dtype)
+
+    def test_constructor_categorical_dtype(self):
+        result = pd.Series(['a', 'b'],
+                           dtype=CategoricalDtype(['a', 'b', 'c'],
+                                                  ordered=True))
+        assert is_categorical_dtype(result) is True
+        tm.assert_index_equal(result.cat.categories, pd.Index(['a', 'b', 'c']))
+        assert result.cat.ordered
+
+        result = pd.Series(['a', 'b'], dtype=CategoricalDtype(['b', 'a']))
+        assert is_categorical_dtype(result)
+        tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
+        assert result.cat.ordered is False
+
+    def test_unordered_compare_equal(self):
+        left = pd.Series(['a', 'b', 'c'],
+                         dtype=CategoricalDtype(['a', 'b']))
+        right = pd.Series(pd.Categorical(['a', 'b', np.nan],
+                                         categories=['a', 'b']))
+        tm.assert_series_equal(left, right)
 
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3, ), dtype=float)
@@ -825,3 +846,10 @@ class TestSeriesConstructors(TestData):
         msg = "cannot convert datetimelike"
         with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')
+
+    @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
+    def test_constructor_range_dtype(self, dtype):
+        # GH 16804
+        expected = Series([0, 1, 2, 3, 4], dtype=dtype or 'int64')
+        result = Series(range(5), dtype=dtype)
+        tm.assert_series_equal(result, expected)

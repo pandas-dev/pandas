@@ -31,6 +31,7 @@ import itertools
 from distutils.version import LooseVersion
 from itertools import product
 import sys
+import platform
 import types
 from unicodedata import east_asian_width
 import struct
@@ -41,6 +42,7 @@ PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
 PY35 = (sys.version_info >= (3, 5))
 PY36 = (sys.version_info >= (3, 6))
+PYPY = (platform.python_implementation() == 'PyPy')
 
 try:
     import __builtin__ as builtins
@@ -98,6 +100,10 @@ if PY3:
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
 
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        return data.start, data.stop, data.step
+
     # have to explicitly put builtins into the namespace
     range = range
     map = map
@@ -143,6 +149,24 @@ else:
 
     def signature(f):
         return inspect.getargspec(f)
+
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        # seems we only have indexing ops to infer
+        # rather than direct accessors
+        if len(data) > 1:
+            step = data[1] - data[0]
+            stop = data[-1] + step
+            start = data[0]
+        elif len(data):
+            start = data[0]
+            stop = data[0] + 1
+            step = 1
+        else:
+            start = stop = 0
+            step = 1
+
+        return start, stop, step
 
     # import iterator versions of these functions
     range = xrange

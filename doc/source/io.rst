@@ -84,7 +84,8 @@ filepath_or_buffer : various
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
   the separator, but the Python parsing engine can, meaning the latter will be
-  used automatically. In addition, separators longer than 1 character and
+  used and automatically detect the separator by Python's builtin sniffer tool,
+  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
   different from ``'\s+'`` will be interpreted as regular expressions and
   will also force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
@@ -113,8 +114,8 @@ header : int or list of ints, default ``'infer'``
   rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed unless
-  ``mangle_dupe_cols=True``, which is the default.
+  explicitly pass ``header=None``. Duplicates in this list will cause
+    a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -343,6 +344,10 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
 tupleize_cols : boolean, default ``False``
+    .. deprecated:: 0.21.0
+
+    This argument will be removed and will always convert to MultiIndex
+
   Leave a list of tuples on columns as is (default is to convert to a MultiIndex
   on the columns).
 
@@ -364,7 +369,7 @@ warn_bad_lines : boolean, default ``True``
 Specifying column data types
 ''''''''''''''''''''''''''''
 
-Starting with v0.10, you can indicate the data type for the whole DataFrame or
+You can indicate the data type for the whole DataFrame or
 individual columns:
 
 .. ipython:: python
@@ -452,7 +457,8 @@ Specifying Categorical dtype
 
 .. versionadded:: 0.19.0
 
-``Categorical`` columns can be parsed directly by specifying ``dtype='category'``
+``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
+``dtype=CategoricalDtype(categories, ordered)``.
 
 .. ipython:: python
 
@@ -468,12 +474,40 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
 
+.. versionadded:: 0.21.0
+
+Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
+whose ``categories`` are the unique values observed in the data. For more
+control on the categories and order, create a
+:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
+that column's ``dtype``.
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   dtype = CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
+   pd.read_csv(StringIO(data), dtype={'col1': dtype}).dtypes
+
+When using ``dtype=CategoricalDtype``, "unexpected" values outside of
+``dtype.categories`` are treated as missing values.
+
+.. ipython:: python
+
+   dtype = CategoricalDtype(['a', 'b', 'd'])  # No 'c'
+   pd.read_csv(StringIO(data), dtype={'col1': dtype}).col1
+
+This matches the behavior of :meth:`Categorical.set_categories`.
+
 .. note::
 
-   The resulting categories will always be parsed as strings (object dtype).
-   If the categories are numeric they can be converted using the
-   :func:`to_numeric` function, or as appropriate, another converter
-   such as :func:`to_datetime`.
+   With ``dtype='category'``, the resulting categories will always be parsed
+   as strings (object dtype). If the categories are numeric they can be
+   converted using the :func:`to_numeric` function, or as appropriate, another
+   converter such as :func:`to_datetime`.
+
+   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categories`` (
+   all numeric, all datetimes, etc.), the conversion is done automatically.
 
    .. ipython:: python
 
@@ -592,8 +626,7 @@ Ignoring line comments and empty lines
 ++++++++++++++++++++++++++++++++++++++
 
 If the ``comment`` parameter is specified, then completely commented lines will
-be ignored. By default, completely blank lines will be ignored as well. Both of
-these are API changes introduced in version 0.15.
+be ignored. By default, completely blank lines will be ignored as well.
 
 .. ipython:: python
 
@@ -1310,8 +1343,6 @@ column widths for contiguous columns:
 The parser will take care of extra white spaces around the columns
 so it's ok to have extra separation between the columns in the file.
 
-.. versionadded:: 0.13.0
-
 By default, ``read_fwf`` will try to infer the file's ``colspecs`` by using the
 first 100 rows of the file. It can do it only in cases when the columns are
 aligned and correctly separated by the provided ``delimiter`` (default delimiter
@@ -1407,8 +1438,7 @@ Reading columns with a ``MultiIndex``
 
 By specifying list of row locations for the ``header`` argument, you
 can read in a ``MultiIndex`` for the columns. Specifying non-consecutive
-rows will skip the intervening rows. In order to have the pre-0.13 behavior
-of tupleizing columns, specify ``tupleize_cols=True``.
+rows will skip the intervening rows.
 
 .. ipython:: python
 
@@ -1418,7 +1448,7 @@ of tupleizing columns, specify ``tupleize_cols=True``.
    print(open('mi.csv').read())
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
-Starting in 0.13.0, ``read_csv`` will be able to interpret a more common format
+``read_csv`` is also able to interpret a more common format
 of multi-columns indices.
 
 .. ipython:: python
@@ -1849,6 +1879,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
   seconds, milliseconds, microseconds or nanoseconds respectively.
 - ``lines`` : reads file as one json object per line.
 - ``encoding`` : The encoding to use to decode py3 bytes.
+- ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
@@ -2012,14 +2043,19 @@ The speedup is less noticeable for smaller datasets:
 Normalization
 '''''''''''''
 
-.. versionadded:: 0.13.0
-
 pandas provides a utility function to take a dict or list of dicts and *normalize* this semi-structured data
 into a flat table.
 
 .. ipython:: python
 
    from pandas.io.json import json_normalize
+   data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
+           {'name': {'given': 'Mose', 'family': 'Regner'}},
+           {'id': 2, 'name': 'Faye Raker'}]
+   json_normalize(data)
+
+.. ipython:: python
+
    data = [{'state': 'Florida',
              'shortname': 'FL',
              'info': {
@@ -2048,6 +2084,10 @@ Line delimited json
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
+.. versionadded:: 0.21.0
+
+For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
+
 .. ipython:: python
 
   jsonl = '''
@@ -2058,6 +2098,11 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+  # reader is an iterator that returns `chunksize` lines each iteration
+  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
+  reader
+  for chunk in reader:
+      print(chunk)
 
 .. _io.table_schema:
 
@@ -2190,8 +2235,6 @@ Reading HTML Content
 
    We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas <io.html.gotchas>`
    below regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
-
-.. versionadded:: 0.12.0
 
 The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
 string/file/URL and will parse HTML tables into list of pandas DataFrames.
@@ -2646,10 +2689,6 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # equivalent using the read_excel function
     data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
 
-.. versionadded:: 0.12
-
-``ExcelFile`` has been moved to the top level namespace.
-
 .. versionadded:: 0.17
 
 ``read_excel`` can take an ``ExcelFile`` object as input
@@ -2705,13 +2744,8 @@ Using a list to get multiple sheets:
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
    read_excel('path_to_file.xls',sheet_name=['Sheet1',3])
 
-.. versionadded:: 0.16
-
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
-
-.. versionadded:: 0.13
-
 Sheets can be specified by sheet index or sheet name, using an integer or string,
 respectively.
 
@@ -2771,21 +2805,21 @@ Parsing Specific Columns
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
-a `parse_cols` keyword to allow you to specify a subset of columns to parse.
+a `usecols` keyword to allow you to specify a subset of columns to parse.
 
-If `parse_cols` is an integer, then it is assumed to indicate the last column
+If `usecols` is an integer, then it is assumed to indicate the last column
 to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_cols=2)
+   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `parse_cols` is a list of integers, then it is assumed to be the file column
+If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
+   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 
 Parsing Dates
@@ -2859,9 +2893,9 @@ Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
 ``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
 ``openpyxl``.
 
-The DataFrame will be written in a way that tries to mimic the REPL output. One
-difference from 0.12.0 is that the ``index_label`` will be placed in the second
-row instead of the first. You can get the previous behaviour by setting the
+The DataFrame will be written in a way that tries to mimic the REPL output.
+The ``index_label`` will be placed in the second
+row instead of the first. You can place it in the first row by setting the
 ``merge_cells`` option in ``to_excel()`` to ``False``:
 
 .. code-block:: python
@@ -2937,8 +2971,6 @@ Added support for Openpyxl >= 2.2
 
 Excel writer engines
 ''''''''''''''''''''
-
-.. versionadded:: 0.13
 
 ``pandas`` chooses an Excel writer via two methods:
 
@@ -3067,14 +3099,19 @@ any pickled pandas object (or any other pickled object) from file:
 
    Loading pickled data received from untrusted sources can be unsafe.
 
-   See: http://docs.python.org/2.7/library/pickle.html
+   See: https://docs.python.org/3.6/library/pickle.html
 
 .. warning::
 
-   Several internal refactorings, 0.13 (:ref:`Series Refactoring <whatsnew_0130.refactoring>`), and 0.15 (:ref:`Index Refactoring <whatsnew_0150.refactoring>`),
-   preserve compatibility with pickles created prior to these versions. However, these must
-   be read with ``pd.read_pickle``, rather than the default python ``pickle.load``.
-   See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   Several internal refactorings have been done while still preserving
+   compatibility with pickles created with older versions of pandas. However,
+   for such cases, pickled dataframes, series etc, must be read with
+   ``pd.read_pickle``, rather than ``pickle.load``.
+
+   See `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   for some examples of compatibility-breaking changes. See
+   `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
@@ -3084,7 +3121,7 @@ Compressed pickle files
 
 .. versionadded:: 0.20.0
 
-:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+:func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
 `zip`` file supports read only and must contain only one data file
 to be read in.
@@ -3143,9 +3180,7 @@ The default is to 'infer
 msgpack
 -------
 
-.. versionadded:: 0.13.0
-
-Starting in 0.13.0, pandas is supporting the ``msgpack`` format for
+pandas supports the ``msgpack`` format for
 object serialization. This is a lightweight portable binary format, similar
 to binary JSON, that is highly space efficient, and provides good performance
 both on the writing (serialization), and reading (deserialization).
@@ -3247,11 +3282,10 @@ for some advanced strategies
 
 .. warning::
 
-   As of version 0.15.0, pandas requires ``PyTables`` >= 3.0.0. Stores written with prior versions of pandas / ``PyTables`` >= 2.3 are fully compatible (this was the previous minimum ``PyTables`` required version).
-
-.. warning::
-
-   There is a ``PyTables`` indexing bug which may appear when querying stores using an index.  If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.  Stores created previously will need to be rewritten using the updated version.
+   pandas requires ``PyTables`` >= 3.0.0.
+   There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
+   If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
+   Stores created previously will need to be rewritten using the updated version.
 
 .. warning::
 
@@ -3339,7 +3373,7 @@ Read/Write API
 ''''''''''''''
 
 ``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
-similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
+similar to how ``read_csv`` and ``to_csv`` work.
 
 .. ipython:: python
 
@@ -3417,10 +3451,6 @@ This is also true for the major axis of a ``Panel``:
 Fixed Format
 ''''''''''''
 
-.. note::
-
-   This was prior to 0.13.0 the ``Storer`` format.
-
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
 the ``fixed`` format. These types of stores are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
@@ -3452,8 +3482,6 @@ with rows and columns. A ``table`` may be appended to in the same or
 other sessions.  In addition, delete & query type operations are
 supported. This format is specified by ``format='table'`` or ``format='t'``
 to ``append`` or ``put`` or ``to_hdf``
-
-.. versionadded:: 0.13
 
 This format can be set as an option as well ``pd.set_option('io.hdf.default_format','table')`` to
 enable ``put/append/to_hdf`` to by default store in the ``table`` format.
@@ -3758,9 +3786,7 @@ space. These are in terms of the total number of rows in a table.
 Using timedelta64[ns]
 +++++++++++++++++++++
 
-.. versionadded:: 0.13
-
-Beginning in 0.13.0, you can store and query using the ``timedelta64[ns]`` type. Terms can be
+You can store and query using the ``timedelta64[ns]`` type. Terms can be
 specified in the format: ``<float>(<unit>)``, where float may be signed (and fractional), and unit can be
 ``D,s,ms,us,ns`` for the timedelta. Here's an example:
 
@@ -3784,7 +3810,7 @@ indexed dimension as the ``where``.
 
 .. note::
 
-   Indexes are automagically created (starting ``0.10.1``) on the indexables
+   Indexes are automagically created on the indexables
    and any data columns you specify. This behavior can be turned off by passing
    ``index=False`` to ``append``.
 
@@ -3871,7 +3897,7 @@ create a new table!)
 Iterator
 ++++++++
 
-Starting in ``0.11.0``, you can pass, ``iterator=True`` or ``chunksize=number_in_a_chunk``
+You can pass ``iterator=True`` or ``chunksize=number_in_a_chunk``
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
@@ -3881,8 +3907,6 @@ The default is 50,000 rows returned in a chunk.
       print(df)
 
 .. note::
-
-   .. versionadded:: 0.12.0
 
    You can also use the iterator with ``read_hdf`` which will open, then
    automatically close the store when finished iterating.
@@ -3979,8 +4003,8 @@ of rows in an object.
 Multiple Table Queries
 ++++++++++++++++++++++
 
-New in 0.10.1 are the methods ``append_to_multiple`` and
-``select_as_multiple``, that can perform appending/selecting from
+The methods ``append_to_multiple`` and
+``select_as_multiple`` can perform appending/selecting from
 multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
 queries. The other table(s) are data tables with an index matching the
@@ -4226,10 +4250,8 @@ object : ``strings``                                    ``np.nan``
 Categorical Data
 ++++++++++++++++
 
-.. versionadded:: 0.15.2
-
-Writing data to a ``HDFStore`` that contains a ``category`` dtype was implemented
-in 0.15.2. Queries work the same as if it was an object array. However, the ``category`` dtyped data is
+You can write data that contains ``category`` dtypes to a ``HDFStore``.
+Queries work the same as if it was an object array. However, the ``category`` dtyped data is
 stored in a more efficient manner.
 
 .. ipython:: python
@@ -4243,21 +4265,6 @@ stored in a more efficient manner.
    result = cstore.select('dfcat', where="A in ['b','c']")
    result
    result.dtypes
-
-.. warning::
-
-   The format of the ``Categorical`` is readable by prior versions of pandas (< 0.15.2), but will retrieve
-   the data as an integer based column (e.g. the ``codes``). However, the ``categories`` *can* be retrieved
-   but require the user to select them manually using the explicit meta path.
-
-   The data is stored like so:
-
-   .. ipython:: python
-
-      cstore
-
-      # to get the categories
-      cstore.select('dfcat/meta/A/meta')
 
 .. ipython:: python
    :suppress:
@@ -4284,7 +4291,7 @@ Pass ``min_itemsize`` on the first table creation to a-priori specify the minimu
 ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
 allow all *indexables* or *data_columns* to have this min_itemsize.
 
-Starting in 0.11.0, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
+Passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
 
 .. note::
 
@@ -4412,44 +4419,6 @@ Now you can import the ``DataFrame`` into R:
    starting point if you have stored multiple ``DataFrame`` objects to a
    single HDF5 file.
 
-Backwards Compatibility
-'''''''''''''''''''''''
-
-0.10.1 of ``HDFStore`` can read tables created in a prior version of pandas,
-however query terms using the
-prior (undocumented) methodology are unsupported. ``HDFStore`` will
-issue a warning if you try to use a legacy-format file. You must
-read in the entire file and write it out using the new format, using the
-method ``copy`` to take advantage of the updates. The group attribute
-``pandas_version`` contains the version information. ``copy`` takes a
-number of options, please see the docstring.
-
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
-
-.. ipython:: python
-   :okwarning:
-
-   # a legacy store
-   legacy_store = pd.HDFStore(legacy_file_path,'r')
-   legacy_store
-
-   # copy (and return the new handle)
-   new_store = legacy_store.copy('store_new.h5')
-   new_store
-   new_store.close()
-
-.. ipython:: python
-   :suppress:
-
-   legacy_store.close()
-   import os
-   os.remove('store_new.h5')
-
 
 Performance
 '''''''''''
@@ -4567,7 +4536,7 @@ Several caveats.
 - The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
   error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
 - Duplicate column names and non-string columns names are not supported
-- Categorical dtypes are currently not-supported (for ``pyarrow``).
+- Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
 
@@ -4590,8 +4559,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
-                      'h': pd.date_range('20130101', periods=3, freq='ns')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
 
    df
    df.dtypes
@@ -4633,8 +4601,6 @@ For `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
-
-.. versionadded:: 0.14.0
 
 If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
@@ -4802,8 +4768,6 @@ You can check if a table exists using :func:`~pandas.io.sql.has_table`
 Schema support
 ''''''''''''''
 
-.. versionadded:: 0.15.0
-
 Reading from and writing to different schema's is supported through the ``schema``
 keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
 functions. Note however that this depends on the database flavor (sqlite does not
@@ -4968,8 +4932,6 @@ Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 Stata Format
 ------------
 
-.. versionadded:: 0.12.0
-
 .. _io.stata_writer:
 
 Writing to Stata format
@@ -5033,8 +4995,6 @@ be used to read the file incrementally.
 
    pd.read_stata('stata.dta')
 
-.. versionadded:: 0.16.0
-
 Specifying a ``chunksize`` yields a
 :class:`~pandas.io.stata.StataReader` instance that can be used to
 read ``chunksize`` lines from the file at a time.  The ``StataReader``
@@ -5091,8 +5051,6 @@ values will have ``object`` data type.
 
 Categorical Data
 ++++++++++++++++
-
-.. versionadded:: 0.15.2
 
 ``Categorical`` data can be exported to *Stata* data files as value labeled data.
 The exported data consists of the underlying category codes as integer data values
@@ -5201,85 +5159,112 @@ easy conversion to and from pandas.
 Performance Considerations
 --------------------------
 
-This is an informal comparison of various IO methods, using pandas 0.13.1.
+This is an informal comparison of various IO methods, using pandas
+0.20.3. Timings are machine dependent and small differences should be
+ignored.
 
 .. code-block:: ipython
 
-   In [1]: df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: sz = 1000000
+   In [2]: df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
-   In [2]: df.info()
+   In [3]: df.info()
    <class 'pandas.core.frame.DataFrame'>
-   Int64Index: 1000000 entries, 0 to 999999
+   RangeIndex: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
    A    1000000 non-null float64
-   B    1000000 non-null float64
-   dtypes: float64(2)
-   memory usage: 22.9 MB
+   B    1000000 non-null int64
+   dtypes: float64(1), int64(1)
+   memory usage: 15.3 MB
 
 Writing
 
 .. code-block:: ipython
 
    In [14]: %timeit test_sql_write(df)
-   1 loops, best of 3: 6.24 s per loop
+   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [15]: %timeit test_hdf_fixed_write(df)
-   1 loops, best of 3: 237 ms per loop
+   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [26]: %timeit test_hdf_fixed_write_compress(df)
-   1 loops, best of 3: 245 ms per loop
+   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [16]: %timeit test_hdf_table_write(df)
-   1 loops, best of 3: 901 ms per loop
+   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [27]: %timeit test_hdf_table_write_compress(df)
-   1 loops, best of 3: 952 ms per loop
+   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [17]: %timeit test_csv_write(df)
-   1 loops, best of 3: 3.44 s per loop
+   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [30]: %timeit test_feather_write(df)
+   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [31]: %timeit test_pickle_write(df)
+   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [32]: %timeit test_pickle_write_compress(df)
+   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Reading
 
 .. code-block:: ipython
 
    In [18]: %timeit test_sql_read()
-   1 loops, best of 3: 766 ms per loop
+   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [19]: %timeit test_hdf_fixed_read()
-   10 loops, best of 3: 19.1 ms per loop
+   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
    In [28]: %timeit test_hdf_fixed_read_compress()
-   10 loops, best of 3: 36.3 ms per loop
+   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [20]: %timeit test_hdf_table_read()
-   10 loops, best of 3: 39 ms per loop
+   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [29]: %timeit test_hdf_table_read_compress()
-   10 loops, best of 3: 60.6 ms per loop
+   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [22]: %timeit test_csv_read()
-   1 loops, best of 3: 620 ms per loop
+   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [33]: %timeit test_feather_read()
+   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [34]: %timeit test_pickle_read()
+   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [35]: %timeit test_pickle_read_compress()
+   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Space on disk (in bytes)
 
 .. code-block:: none
 
-    25843712 Apr  8 14:11 test.sql
-    24007368 Apr  8 14:11 test_fixed.hdf
-    15580682 Apr  8 14:11 test_fixed_compress.hdf
-    24458444 Apr  8 14:11 test_table.hdf
-    16797283 Apr  8 14:11 test_table_compress.hdf
-    46152810 Apr  8 14:11 test.csv
+    34816000 Aug 21 18:00 test.sql
+    24009240 Aug 21 18:00 test_fixed.hdf
+     7919610 Aug 21 18:00 test_fixed_compress.hdf
+    24458892 Aug 21 18:00 test_table.hdf
+     8657116 Aug 21 18:00 test_table_compress.hdf
+    28520770 Aug 21 18:00 test.csv
+    16000248 Aug 21 18:00 test.feather
+    16000848 Aug 21 18:00 test.pkl
+     7554108 Aug 21 18:00 test.pkl.compress
 
 And here's the code
 
 .. code-block:: python
 
-   import sqlite3
    import os
+   import pandas as pd
+   import sqlite3
+   from numpy.random import randn
    from pandas.io import sql
 
-   df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
+   sz = 1000000
+   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -5322,3 +5307,21 @@ And here's the code
 
    def test_csv_read():
        pd.read_csv('test.csv',index_col=0)
+
+   def test_feather_write(df):
+       df.to_feather('test.feather')
+
+   def test_feather_read():
+       pd.read_feather('test.feather')
+
+   def test_pickle_write(df):
+       df.to_pickle('test.pkl')
+
+   def test_pickle_read():
+       pd.read_pickle('test.pkl')
+
+   def test_pickle_write_compress(df):
+       df.to_pickle('test.pkl.compress', compression='xz')
+
+   def test_pickle_read_compress():
+       pd.read_pickle('test.pkl.compress', compression='xz')

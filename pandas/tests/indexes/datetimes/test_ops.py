@@ -10,7 +10,6 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
-from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)
@@ -434,31 +433,51 @@ Freq: D"""
             tm.assert_index_equal(rng, expected)
 
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = "cannot add a datelike to a DatetimeIndex"
+        msg = "cannot add DatetimeIndex and Timestamp"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
 
         with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
 
-    def test_add_dti_dti(self):
-        # previously performed setop (deprecated in 0.16.0), now raises
-        # TypeError (GH14164)
+    @pytest.mark.parametrize('addend', [
+        datetime(2011, 1, 1),
+        DatetimeIndex(['2011-01-01', '2011-01-02']),
+        DatetimeIndex(['2011-01-01', '2011-01-02'])
+                .tz_localize('US/Eastern'),
+        np.datetime64('2011-01-01'),
+        Timestamp('2011-01-01'),
+    ])
+    def test_add_datetimelike_and_dti(self, addend):
+        # issue #9631
 
-        dti = date_range('20130101', periods=3)
-        dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        msg = 'cannot add DatetimeIndex and {0}'.format(
+            type(addend).__name__)
+        with tm.assert_raises_regex(TypeError, msg):
+            dti + addend
+        with tm.assert_raises_regex(TypeError, msg):
+            addend + dti
 
-        with pytest.raises(TypeError):
-            dti + dti
+    @pytest.mark.parametrize('addend', [
+        datetime(2011, 1, 1),
+        DatetimeIndex(['2011-01-01', '2011-01-02']),
+        DatetimeIndex(['2011-01-01', '2011-01-02'])
+                .tz_localize('US/Eastern'),
+        np.datetime64('2011-01-01'),
+        Timestamp('2011-01-01'),
+    ])
+    def test_add_datetimelike_and_dti_tz(self, addend):
+        # issue #9631
 
-        with pytest.raises(TypeError):
-            dti_tz + dti_tz
-
-        with pytest.raises(TypeError):
-            dti_tz + dti
-
-        with pytest.raises(TypeError):
-            dti + dti_tz
+        dti_tz = DatetimeIndex(['2011-01-01', '2011-01-02']) \
+            .tz_localize('US/Eastern')
+        msg = 'cannot add DatetimeIndex and {0}'.format(
+            type(addend).__name__)
+        with tm.assert_raises_regex(TypeError, msg):
+            dti_tz + addend
+        with tm.assert_raises_regex(TypeError, msg):
+            addend + dti_tz
 
     def test_difference(self):
         for tz in self.tz:
@@ -1208,7 +1227,7 @@ class TestBusinessDatetimeIndex(object):
 class TestCustomDatetimeIndex(object):
 
     def setup_method(self, method):
-        self.rng = cdate_range(START, END)
+        self.rng = bdate_range(START, END, freq='C')
 
     def test_comparison(self):
         d = self.rng[10]
@@ -1277,10 +1296,11 @@ class TestCustomDatetimeIndex(object):
         self.rng[2:2].summary()
 
     def test_summary_pytz(self):
-        cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+        bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
 
     def test_summary_dateutil(self):
-        cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
+        bdate_range('1/1/2005', '1/1/2009', freq='C',
+                    tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))

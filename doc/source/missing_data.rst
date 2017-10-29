@@ -7,7 +7,7 @@
    import pandas as pd
    pd.options.display.max_rows=15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
 
 .. _missing_data:
@@ -67,9 +67,8 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
-   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-   considered to be "NA" in computations. This is no longer the case by
-   default; use the ``mode.use_inf_as_na`` option to recover it.
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
 
 .. _missing.isna:
 
@@ -182,6 +181,42 @@ account for missing data. For example:
    df.mean(1)
    df.cumsum()
 
+
+.. _missing_data.numeric_sum:
+
+Sum/Prod of Empties/Nans
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   This behavior is now standard as of v0.21.0; previously sum/prod would give different
+   results if the ``bottleneck`` package was installed. See the :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+
+With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
+
+.. ipython:: python
+
+   s = pd.Series([np.nan])
+
+   s.sum()
+
+Summing of an empty ``Series``
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+
+.. warning::
+
+   These behaviors differ from the default in ``numpy`` where an empty sum returns zero.
+
+   .. ipython:: python
+
+      np.nansum(np.array([np.nan]))
+      np.nansum(np.array([]))
+
+
+
 NA values in GroupBy
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -264,8 +299,6 @@ and ``bfill()`` is equivalent to ``fillna(method='bfill')``
 Filling with a PandasObject
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.12
-
 You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
 must match the columns of the frame you wish to fill. The
 use case of this is to fill a DataFrame with the mean of that column.
@@ -280,8 +313,6 @@ use case of this is to fill a DataFrame with the mean of that column.
 
         dff.fillna(dff.mean())
         dff.fillna(dff.mean()['B':'C'])
-
-.. versionadded:: 0.13
 
 Same result as above, but is aligning the 'fill' value which is
 a Series in this case.
@@ -321,16 +352,11 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
-
-  :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
-  revamped interpolation methods and functionality.
-
 .. versionadded:: 0.17.0
 
   The ``limit_direction`` keyword argument was added.
 
-Both Series and Dataframe objects have an ``interpolate`` method that, by default,
+Both Series and DataFrame objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
 
 .. ipython:: python
@@ -485,8 +511,8 @@ respectively:
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. New in v0.8
-is the ``replace`` method in Series/DataFrame that provides an efficient yet
+Often times we want to replace arbitrary values with other values. The
+``replace`` method in Series/DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another

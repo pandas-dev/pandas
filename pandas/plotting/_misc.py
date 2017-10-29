@@ -413,7 +413,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     axvlines_kwds: keywords, optional
         Options to be passed to axvline method for vertical lines
     sort_labels: bool, False
-        Sort class_column labels, useful when assigning colours
+        Sort class_column labels, useful when assigning colors
 
         .. versionadded:: 0.20.0
 

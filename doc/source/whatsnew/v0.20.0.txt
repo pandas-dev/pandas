@@ -43,6 +43,11 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
+.. ipython:: python
+   :suppress:
+
+   import pandas.util.testing as tm
+
 .. _whatsnew_0200.enhancements.agg:
 
 ``agg`` API for DataFrame/Series
@@ -1705,6 +1710,7 @@ Reshaping
 - Bug in ``pd.concat()`` in which concatenating with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
 - Bug in ``DataFrame.nsmallest`` and ``DataFrame.nlargest`` where identical values resulted in duplicated rows (:issue:`15297`)
+- Bug in :func:`pandas.pivot_table` incorrectly raising ``UnicodeError`` when passing unicode input for ```margins`` keyword (:issue:`13292`)
 
 Numeric
 ^^^^^^^

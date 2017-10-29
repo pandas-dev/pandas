@@ -1,3 +1,4 @@
+
 from datetime import datetime, date, timedelta
 
 import pytest
@@ -13,6 +14,7 @@ from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.tseries.util import pivot_annual, isleapyear
+from pandas.api.types import CategoricalDtype as CDT
 
 
 class TestPivotTable(object):
@@ -98,13 +100,12 @@ class TestPivotTable(object):
                         'B': [1, 2, 3, 1, 2, 3, 1, 2, 3],
                         'C': range(0, 9)})
 
-        df['A'] = df['A'].astype('category', ordered=False,
-                                 categories=categories)
+        df['A'] = df['A'].astype(CDT(categories, ordered=False))
         result_true = df.pivot_table(index='B', columns='A', values='C',
                                      dropna=True)
         expected_columns = Series(['a', 'b', 'c'], name='A')
-        expected_columns = expected_columns.astype('category', ordered=False,
-                                                   categories=categories)
+        expected_columns = expected_columns.astype(
+            CDT(categories, ordered=False))
         expected_index = Series([1, 2, 3], name='B')
         expected_true = DataFrame([[0.0, 3.0, 6.0],
                                    [1.0, 4.0, 7.0],
@@ -115,7 +116,9 @@ class TestPivotTable(object):
 
         result_false = df.pivot_table(index='B', columns='A', values='C',
                                       dropna=False)
-        expected_columns = Series(['a', 'b', 'c', 'd'], name='A')
+        expected_columns = (
+            Series(['a', 'b', 'c', 'd'], name='A').astype('category')
+        )
         expected_false = DataFrame([[0.0, 3.0, 6.0, np.NaN],
                                     [1.0, 4.0, 7.0, np.NaN],
                                     [2.0, 5.0, 8.0, np.NaN]],
@@ -1625,3 +1628,13 @@ class TestPivotAnnual(object):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert isleapyear(2004)
+
+    def test_pivot_margins_name_unicode(self):
+        # issue #13292
+        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        frame = pd.DataFrame({'foo': [1, 2, 3]})
+        table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
+                               margins_name=greek)
+        index = pd.Index([1, 2, 3, greek], dtype='object', name='foo')
+        expected = pd.DataFrame(index=index)
+        tm.assert_frame_equal(table, expected)
