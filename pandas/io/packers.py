@@ -192,7 +192,6 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
-
         try:
             exists = os.path.exists(path_or_buf)
         except (TypeError, ValueError):
@@ -202,18 +201,21 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    # treat as a binary-like
     if isinstance(path_or_buf, compat.binary_type):
+        # treat as a binary-like
         fh = None
         try:
-            fh = compat.BytesIO(path_or_buf)
-            return read(fh)
+            # We can't distinguish between a path and a buffer of bytes in
+            # Python 2 so instead assume the first byte of a valid path is
+            # less than 0x80.
+            if compat.PY3 or ord(path_or_buf[0]) >= 0x80:
+                fh = compat.BytesIO(path_or_buf)
+                return read(fh)
         finally:
             if fh is not None:
                 fh.close()
-
-    # a buffer like
-    if hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+    elif hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+        # treat as a buffer like
         return read(path_or_buf)
 
     raise ValueError('path_or_buf needs to be a string file path or file-like')

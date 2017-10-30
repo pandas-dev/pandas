@@ -87,6 +87,8 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
+
 Conversion
 ^^^^^^^^^^
 
