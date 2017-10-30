@@ -1632,8 +1632,6 @@ Missing values
 
 .. _indexing.missing:
 
-.. versionadded:: 0.17.1
-
 .. important::
 
    Even though ``Index`` can hold missing values (``NaN``), it should be avoided

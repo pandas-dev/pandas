@@ -52,13 +52,6 @@ class Styler(object):
     Helps style a DataFrame or Series according to the
     data with HTML and CSS.
 
-    .. versionadded:: 0.17.1
-
-    .. warning::
-        This is a new feature and is under active development.
-        We'll be adding features and possibly making breaking changes in future
-        releases.
-
     Parameters
     ----------
     data: Series or DataFrame
@@ -396,8 +389,6 @@ class Styler(object):
         r"""
         Render the built up styles to HTML
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         **kwargs:
@@ -541,8 +532,6 @@ class Styler(object):
         Apply a function column-wise, row-wise, or table-wase,
         updating the HTML representation with the result.
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         func : function
@@ -600,8 +589,6 @@ class Styler(object):
         """
         Apply a function elementwise, updating the HTML
         representation with the result.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -668,8 +655,6 @@ class Styler(object):
         """
         Set the precision used to render.
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         precision: int
@@ -686,8 +671,6 @@ class Styler(object):
         Set the table attributes. These are the items
         that show up in the opening ``<table>`` tag in addition
         to to automatic (by default) id.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -711,8 +694,6 @@ class Styler(object):
         Export the styles to applied to the current Styler.
         Can be applied to a second style with ``Styler.use``.
 
-        .. versionadded:: 0.17.1
-
         Returns
         -------
         styles: list
@@ -727,8 +708,6 @@ class Styler(object):
         """
         Set the styles on the current Styler, possibly using styles
         from ``Styler.export``.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -750,8 +729,6 @@ class Styler(object):
         """
         Set the uuid for a Styler.
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         uuid: str
@@ -766,8 +743,6 @@ class Styler(object):
     def set_caption(self, caption):
         """
         Se the caption on a Styler
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -784,8 +759,6 @@ class Styler(object):
         """
         Set the table styles on a Styler. These are placed in a
         ``<style>`` tag before the generated HTML table.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -824,8 +797,6 @@ class Styler(object):
         """
         Shade the background ``null_color`` for missing values.
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         null_color: str
@@ -843,8 +814,6 @@ class Styler(object):
         Color the background in a gradient according to
         the data in each column (optionally row).
         Requires matplotlib.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -891,10 +860,8 @@ class Styler(object):
 
     def set_properties(self, subset=None, **kwargs):
         """
-        Convience method for setting one or more non-data dependent
+        Convenience method for setting one or more non-data dependent
         properties or each cell.
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------
@@ -1033,8 +1000,6 @@ class Styler(object):
         Color the background ``color`` proptional to the values in each column.
         Excludes non-numeric data by default.
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         subset: IndexSlice, default None
@@ -1095,8 +1060,6 @@ class Styler(object):
         """
         Highlight the maximum by shading the background
 
-        .. versionadded:: 0.17.1
-
         Parameters
         ----------
         subset: IndexSlice, default None
@@ -1116,8 +1079,6 @@ class Styler(object):
     def highlight_min(self, subset=None, color='yellow', axis=0):
         """
         Highlight the minimum by shading the background
-
-        .. versionadded:: 0.17.1
 
         Parameters
         ----------

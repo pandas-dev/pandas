@@ -2689,11 +2689,6 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # equivalent using the read_excel function
     data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
 
-.. versionadded:: 0.17
-
-``read_excel`` can take an ``ExcelFile`` object as input
-
-
 .. _io.excel.specifying_sheets:
 
 Specifying Sheets
@@ -2753,8 +2748,6 @@ respectively.
 
 Reading a ``MultiIndex``
 ++++++++++++++++++++++++
-
-.. versionadded:: 0.17
 
 ``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
 and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
@@ -2928,14 +2921,8 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 Writing Excel Files to Memory
 +++++++++++++++++++++++++++++
 
-.. versionadded:: 0.17
-
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
-
-.. versionadded:: 0.17
-
-Added support for Openpyxl >= 2.2
+``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`. Pandas also supports Openpyxl >= 2.2.
 
 .. code-block:: python
 
@@ -3191,25 +3178,6 @@ both on the writing (serialization), and reading (deserialization).
    optimizations in the io of the ``msgpack`` data. Since this is marked
    as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
-   As a result of writing format changes and other issues:
-
-   +----------------------+------------------------+
-   | Packed with          | Can be unpacked with   |
-   +======================+========================+
-   | pre-0.17 / Python 2  | any                    |
-   +----------------------+------------------------+
-   | pre-0.17 / Python 3  | any                    |
-   +----------------------+------------------------+
-   | 0.17 / Python 2      | - 0.17 / Python 2      |
-   |                      | - >=0.18 / any Python  |
-   +----------------------+------------------------+
-   | 0.17 / Python 3      | >=0.18 / any Python    |
-   +----------------------+------------------------+
-   | 0.18                 | >= 0.18                |
-   +----------------------+------------------------+
-
-   Reading (files packed by older versions) is backward-compatibile, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
-
 .. ipython:: python
 
    df = pd.DataFrame(np.random.rand(5,2),columns=list('AB'))
@@ -3286,10 +3254,6 @@ for some advanced strategies
    There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
    If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
    Stores created previously will need to be rewritten using the updated version.
-
-.. warning::
-
-   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk.
 
 .. ipython:: python
    :suppress:
@@ -3388,7 +3352,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove('store_tl.h5')
 
 
-As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.
+HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
 
 .. ipython:: python
    :suppress:
@@ -3631,12 +3595,6 @@ Querying
 
 Querying a Table
 ++++++++++++++++
-
-.. warning::
-
-   This query capabilities have changed substantially starting in ``0.13.0``.
-   Queries from prior version are accepted (with a ``DeprecationWarning``) printed
-   if its not string-like.
 
 ``select`` and ``delete`` operations have an optional criterion that can
 be specified to select/delete only a subset of the data. This allows one
@@ -5098,10 +5056,8 @@ whether imported ``Categorical`` variables are ordered.
 SAS Formats
 -----------
 
-.. versionadded:: 0.17.0
-
 The top-level function :func:`read_sas` can read (but not write) SAS
-`xport` (.XPT) and `SAS7BDAT` (.sas7bdat) format files were added in *v0.18.0*.
+`xport` (.XPT) and (since *v0.18.0*) `SAS7BDAT` (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,

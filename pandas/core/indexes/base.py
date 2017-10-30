@@ -2490,7 +2490,6 @@ class Index(IndexOpsMixin, PandasObject):
             includes list, tuple, array, Series, and must be the same size as
             the index and its dtype must exactly match the index's type.
 
-            .. versionadded:: 0.17.0
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Returns
@@ -2640,7 +2639,6 @@ class Index(IndexOpsMixin, PandasObject):
             the same size as the index and its dtype must exactly match the
             index's type.
 
-            .. versionadded:: 0.17.0
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples

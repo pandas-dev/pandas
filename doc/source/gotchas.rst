@@ -47,8 +47,6 @@ The ``+`` symbol indicates that the true memory usage could be higher, because
 pandas does not count the memory used by values in columns with
 ``dtype=object``.
 
-.. versionadded:: 0.17.1
-
 Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
 that accounts for the full usage of the contained objects. This is optional
 as it can be expensive to do this deeper introspection.

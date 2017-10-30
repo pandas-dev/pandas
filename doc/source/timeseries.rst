@@ -229,12 +229,7 @@ You can pass only the columns that you need to assemble.
 Invalid Data
 ~~~~~~~~~~~~
 
-.. note::
-
-   In version 0.17.0, the default for ``to_datetime`` is now ``errors='raise'``, rather than ``errors='ignore'``. This means
-   that invalid parsing will raise rather that return the original input as in previous versions.
-
-The default behavior, ``errors='raise'``, is to raise when unparseable: 
+The default behavior, ``errors='raise'``, is to raise when unparseable:
 
 .. code-block:: ipython
 
@@ -2229,8 +2224,6 @@ constructor as well as ``tz_localize``.
 
 TZ Aware Dtypes
 ~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.17.0
 
 ``Series/DatetimeIndex`` with a timezone **naive** value are represented with a dtype of ``datetime64[ns]``.
 

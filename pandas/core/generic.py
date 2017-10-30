@@ -2415,7 +2415,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Maximum distance between labels of the other object and this
             object for inexact matches. Can be list-like.
 
-            .. versionadded:: 0.17.0
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Notes
@@ -2622,8 +2621,6 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['sort_values'] = """
         Sort by the values along either axis
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------%(optional_by)s
         axis : %(axes_single_arg)s, default 0
@@ -2810,7 +2807,6 @@ class NDFrame(PandasObject, SelectionMixin):
             the same size as the index and its dtype must exactly match the
             index's type.
 
-            .. versionadded:: 0.17.0
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
@@ -3077,7 +3073,6 @@ class NDFrame(PandasObject, SelectionMixin):
             the same size as the index and its dtype must exactly match the
             index's type.
 
-            .. versionadded:: 0.17.0
             .. versionadded:: 0.21.0 (list-like tolerance)
 
         Examples
@@ -4658,9 +4653,6 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.
-
-            .. versionadded:: 0.17.0
-
         inplace : bool, default False
             Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to None
@@ -5666,8 +5658,6 @@ class NDFrame(PandasObject, SelectionMixin):
         broadcast_axis : %(axes_single_arg)s, default None
             Broadcast values along this axis, if aligning two objects of
             different dimensions
-
-            .. versionadded:: 0.17.0
 
         Returns
         -------

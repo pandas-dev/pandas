@@ -632,8 +632,6 @@ To get a single value `Series` of type ``category`` pass in a list with a single
 String and datetime accessors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.17.1
-
 The accessors  ``.dt`` and ``.str`` will work if the ``s.cat.categories`` are of an appropriate
 type:
 
