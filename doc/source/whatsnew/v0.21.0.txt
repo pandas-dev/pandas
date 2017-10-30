@@ -1094,6 +1094,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.groupby`` where a single level selection from a ``MultiIndex`` unexpectedly sorts (:issue:`17537`)
 - Bug in ``DataFrame.groupby`` where spurious warning is raised when ``Grouper`` object is used to override ambiguous column name (:issue:`17383`)
 - Bug in ``TimeGrouper`` differs when passes as a list and as a scalar (:issue:`17530`)
+- Bug in ``DataFrame.groupby`` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
 
 Sparse
 ^^^^^^

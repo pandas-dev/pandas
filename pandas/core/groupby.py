@@ -2765,14 +2765,13 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 
-    if not isinstance(key, (tuple, list)):
+    # when MultiIndex, allow tuple to be a key
+    if not isinstance(key, (tuple, list)) or isinstance(key, tuple) and \
+            isinstance(obj._info_axis, MultiIndex):
         keys = [key]
         match_axis_length = False
     else:
-        if isinstance(key, tuple) and isinstance(obj._info_axis, MultiIndex):
-            keys = [key]
-        else:
-            keys = key
+        keys = key
         match_axis_length = len(keys) == len(group_axis)
 
     # what are we after, exactly?
