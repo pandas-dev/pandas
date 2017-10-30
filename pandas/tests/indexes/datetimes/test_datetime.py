@@ -448,8 +448,8 @@ class TestDatetimeIndex(object):
         pytest.raises(OverflowError, f)
 
     def test_datetimeindex_sub_timestamp_overflow(self):
-        tdimax = pd.to_timedelta(['24658 days 11:15:00', pd.Timedelta.max])
-        tdimin = pd.to_timedelta(['24658 days 11:15:00', pd.Timedelta.min])
+        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
+        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
 
         tsneg = Timestamp('1950-01-01')
         ts_neg_variants = [tsneg,
