@@ -135,5 +135,5 @@ class TestArrayToDatetime(object):
         arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
 
         result = parsing.try_parse_dates(arr, dayfirst=True)
-        expected = [parse(d, dayfirst=True) for d in arr]
+        expected = np.array([parse(d, dayfirst=True) for d in arr])
         tm.assert_numpy_array_equal(result, expected)
