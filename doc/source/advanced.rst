@@ -833,14 +833,14 @@ Of course if you need integer based selection, then use ``iloc``
 IntervalIndex
 ~~~~~~~~~~~~~
 
+.. versionadded:: 0.20.0
+
 :class:`IntervalIndex` together with its own dtype, ``interval`` as well as the
 :class:`Interval` scalar type,  allow first-class support in pandas for interval
 notation.
 
 The ``IntervalIndex`` allows some unique indexing and is also used as a
 return type for the categories in :func:`cut` and :func:`qcut`.
-
-.. versionadded:: 0.20.0
 
 .. warning::
 
@@ -862,7 +862,7 @@ selecting that particular interval.
    df.loc[2]
    df.loc[[2, 3]]
 
-If you select a lable *contained* within an interval, this will also select the interval.
+If you select a label *contained* within an interval, this will also select the interval.
 
 .. ipython:: python
 
