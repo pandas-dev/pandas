@@ -3,7 +3,7 @@
 import re
 import numpy as np
 from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass
+from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
 
 class ExtensionDtype(object):
@@ -109,7 +109,6 @@ class CategoricalDtypeType(type):
 
 
 class CategoricalDtype(ExtensionDtype):
-
     """
     Type for categorical data with the categories and orderedness
 
@@ -140,7 +139,7 @@ class CategoricalDtype(ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    pandas.Categorical
     """
     # TODO: Document public vs. private API
     name = 'category'
@@ -171,16 +170,16 @@ class CategoricalDtype(ExtensionDtype):
         return cls(categories, ordered)
 
     def _finalize(self, categories, ordered, fastpath=False):
-        from pandas.core.indexes.base import Index
 
         if ordered is None:
             ordered = False
+        else:
+            self._validate_ordered(ordered)
 
         if categories is not None:
-            categories = Index(categories, tupleize_cols=False)
-            # validation
-            self._validate_categories(categories)
-            self._validate_ordered(ordered)
+            categories = self._validate_categories(categories,
+                                                   fastpath=fastpath)
+
         self._categories = categories
         self._ordered = ordered
 
@@ -220,7 +219,7 @@ class CategoricalDtype(ExtensionDtype):
             # both unordered; this could probably be optimized / cached
             return hash(self) == hash(other)
 
-    def __unicode__(self):
+    def __repr__(self):
         tpl = u'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
             data = u"None, "
@@ -317,7 +316,7 @@ class CategoricalDtype(ExtensionDtype):
         from pandas import Index
 
         if not isinstance(categories, ABCIndexClass):
-            categories = Index(categories)
+            categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
 
@@ -326,6 +325,9 @@ class CategoricalDtype(ExtensionDtype):
 
             if not categories.is_unique:
                 raise ValueError('Categorical categories must be unique')
+
+        if isinstance(categories, ABCCategoricalIndex):
+            categories = categories.categories
 
         return categories
 

@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
+from pandas.core.common import _all_not_none
 
 import pandas.compat as compat
 from pandas.compat import (
@@ -40,8 +41,6 @@ from pandas.compat import (
     raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
     StringIO, PY3
 )
-
-from pandas.core.computation import expressions as expr
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -403,21 +402,6 @@ def _skip_if_no_localpath():
         pytest.skip("py.path not installed")
 
 
-def _incompat_bottleneck_version(method):
-    """ skip if we have bottleneck installed
-    and its >= 1.0
-    as we don't match the nansum/nanprod behavior for all-nan
-    ops, see GH9422
-    """
-    if method not in ['sum', 'prod']:
-        return False
-    try:
-        import bottleneck as bn
-        return bn.__version__ >= LooseVersion('1.0')
-    except ImportError:
-        return False
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,
@@ -596,7 +580,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if all(lc is not None for lc in normalized_locale):
+            if _all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale
@@ -2660,7 +2644,11 @@ class RNGContext(object):
 
 
 @contextmanager
-def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
+def use_numexpr(use, min_elements=None):
+    from pandas.core.computation import expressions as expr
+    if min_elements is None:
+        min_elements = expr._MIN_ELEMENTS
+
     olduse = expr._USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)

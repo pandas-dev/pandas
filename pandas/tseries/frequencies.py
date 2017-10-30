@@ -312,7 +312,7 @@ def _get_freq_str(base, mult=1):
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-
+from pandas._libs.tslibs.offsets import _offset_to_period_map
 from pandas.tseries.offsets import (Nano, Micro, Milli, Second,  # noqa
                                     Minute, Hour,
                                     Day, BDay, CDay, Week, MonthBegin,
@@ -327,51 +327,6 @@ except NotImplementedError:
 
 #: cache of previously seen offsets
 _offset_map = {}
-
-_offset_to_period_map = {
-    'WEEKDAY': 'D',
-    'EOM': 'M',
-    'BM': 'M',
-    'BQS': 'Q',
-    'QS': 'Q',
-    'BQ': 'Q',
-    'BA': 'A',
-    'AS': 'A',
-    'BAS': 'A',
-    'MS': 'M',
-    'D': 'D',
-    'C': 'C',
-    'B': 'B',
-    'T': 'T',
-    'S': 'S',
-    'L': 'L',
-    'U': 'U',
-    'N': 'N',
-    'H': 'H',
-    'Q': 'Q',
-    'A': 'A',
-    'W': 'W',
-    'M': 'M',
-    'Y': 'A',
-    'BY': 'A',
-    'YS': 'A',
-    'BYS': 'A',
-}
-
-need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
-for __prefix in need_suffix:
-    for _m in tslib._MONTHS:
-        _alias = '{prefix}-{month}'.format(prefix=__prefix, month=_m)
-        _offset_to_period_map[_alias] = _offset_to_period_map[__prefix]
-for __prefix in ['A', 'Q']:
-    for _m in tslib._MONTHS:
-        _alias = '{prefix}-{month}'.format(prefix=__prefix, month=_m)
-        _offset_to_period_map[_alias] = _alias
-
-_days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-for _d in _days:
-    _alias = 'W-{day}'.format(day=_d)
-    _offset_to_period_map[_alias] = _alias
 
 
 def get_period_alias(offset_str):

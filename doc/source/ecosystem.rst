@@ -146,7 +146,10 @@ API
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
+``pandas-datareader`` is a remote data access library for pandas (PyPI:``pandas-datareader``).
+It is based on functionality that was located in ``pandas.io.data`` and ``pandas.io.wb`` but was
+split off in v0.19.
+See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
 
 The following data feeds are available:
 

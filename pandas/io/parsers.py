@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
@@ -259,8 +260,11 @@ dialect : str or csv.Dialect instance, default None
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
 tupleize_cols : boolean, default False
+    .. deprecated:: 0.21.0
+       This argument will be removed and will always convert to MultiIndex
+
     Leave a list of tuples on columns as is (default is to convert to
-    a Multi Index on the columns)
+    a MultiIndex on the columns)
 error_bad_lines : boolean, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -312,7 +316,8 @@ _engine_doc = """engine : {'c', 'python'}, optional
 _sep_doc = r"""sep : str, default {default}
     Delimiter to use. If sep is None, the C engine cannot automatically detect
     the separator, but the Python parsing engine can, meaning the latter will
-    be used automatically. In addition, separators longer than 1 character and
+    be used and automatically detect the separator by Python's builtin sniffer
+    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
@@ -509,6 +514,7 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
+    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -523,11 +529,20 @@ _python_unsupported = {
     'buffer_lines',
     'float_precision',
 }
+
+_deprecated_defaults = {
+    'as_recarray': None,
+    'buffer_lines': None,
+    'compact_ints': None,
+    'use_unsigned': None,
+    'tupleize_cols': None
+}
 _deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
+    'tupleize_cols',
 }
 
 
@@ -587,7 +602,7 @@ def _make_parser_function(name, sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=False,
+                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -599,9 +614,9 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=False,
-                 compact_ints=False,
-                 use_unsigned=False,
+                 as_recarray=None,
+                 compact_ints=None,
+                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
                  buffer_lines=None,
                  memory_map=False,
@@ -824,12 +839,14 @@ class TextFileReader(BaseIterator):
                     if ('python' in engine and
                             argname not in _python_unsupported):
                         pass
+                    elif value == _deprecated_defaults.get(argname, default):
+                        pass
                     else:
                         raise ValueError(
                             'The %r option is not supported with the'
                             ' %r engine' % (argname, engine))
             else:
-                value = default
+                value = _deprecated_defaults.get(argname, default)
             options[argname] = value
 
         if engine == 'python-fwf':
@@ -955,15 +972,23 @@ class TextFileReader(BaseIterator):
 
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
+            depr_default = _deprecated_defaults[arg]
+
             msg = ("The '{arg}' argument has been deprecated "
                    "and will be removed in a future version."
                    .format(arg=arg))
 
             if arg == 'as_recarray':
                 msg += ' Please call pd.to_csv(...).to_records() instead.'
+            elif arg == 'tupleize_cols':
+                msg += (' Column tuples will then '
+                        'always be converted to MultiIndex.')
 
-            if result.get(arg, parser_default) != parser_default:
+            if result.get(arg, depr_default) != depr_default:
+                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
+            else:
+                result[arg] = parser_default
 
         if depr_warning != '':
             warnings.warn(depr_warning, FutureWarning, stacklevel=2)
@@ -1602,12 +1627,20 @@ class ParserBase(object):
         """
 
         if is_categorical_dtype(cast_type):
-            # XXX this is for consistency with
-            # c-parser which parses all categories
-            # as strings
-            if not is_object_dtype(values):
+            known_cats = (isinstance(cast_type, CategoricalDtype) and
+                          cast_type.categories is not None)
+
+            if not is_object_dtype(values) and not known_cats:
+                # XXX this is for consistency with
+                # c-parser which parses all categories
+                # as strings
                 values = astype_nansafe(values, str)
-            values = Categorical(values)
+
+            cats = Index(values).unique().dropna()
+            values = Categorical._from_inferred_categories(
+                cats, cats.get_indexer(values), cast_type
+            )
+
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True)

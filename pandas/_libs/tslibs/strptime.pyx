@@ -33,12 +33,8 @@ from numpy cimport ndarray, int64_t
 from datetime import date as datetime_date
 from datetime cimport datetime
 
-# This is src/datetime.pxd
-from datetime cimport (
-    PANDAS_FR_ns,
-    check_dts_bounds,
-    pandas_datetimestruct,
-    pandas_datetimestruct_to_datetime)
+from np_datetime cimport (check_dts_bounds,
+                          dtstruct_to_dt64, pandas_datetimestruct)
 
 from util cimport is_string_object, get_nat
 
@@ -82,6 +78,16 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_coerce = errors=='coerce'
 
     assert is_raise or is_ignore or is_coerce
+
+    if fmt is not None:
+        if '%W' in fmt or '%U' in fmt:
+            if '%Y' not in fmt and '%y' not in fmt:
+                raise ValueError("Cannot use '%W' or '%U' without "
+                                 "day and year")
+            if ('%A' not in fmt and '%a' not in fmt and '%w' not
+                    in fmt):
+                raise ValueError("Cannot use '%W' or '%U' without "
+                                 "day and year")
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -323,18 +329,14 @@ def array_strptime(ndarray[object] values, object fmt,
         dts.us = us
         dts.ps = ns * 1000
 
-        iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        if check_dts_bounds(&dts):
+        iresult[i] = dtstruct_to_dt64(&dts)
+        try:
+            check_dts_bounds(&dts)
+        except ValueError:
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            else:
-                from pandas._libs.tslib import OutOfBoundsDatetime
-                fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                                       dts.day, dts.hour,
-                                                       dts.min, dts.sec)
-                raise OutOfBoundsDatetime(
-                    'Out of bounds nanosecond timestamp: %s' % fmt)
+            raise
 
     return result
 

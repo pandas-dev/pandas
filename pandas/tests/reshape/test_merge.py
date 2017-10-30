@@ -16,6 +16,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
+from pandas.api.types import CategoricalDtype as CDT
 
 
 N = 50
@@ -1414,7 +1415,7 @@ def left():
     return DataFrame(
         {'X': Series(np.random.choice(
             ['foo', 'bar'],
-            size=(10,))).astype('category', categories=['foo', 'bar']),
+            size=(10,))).astype(CDT(['foo', 'bar'])),
          'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
 
 
@@ -1422,8 +1423,7 @@ def left():
 def right():
     np.random.seed(1234)
     return DataFrame(
-        {'X': Series(['foo', 'bar']).astype('category',
-                                            categories=['foo', 'bar']),
+        {'X': Series(['foo', 'bar']).astype(CDT(['foo', 'bar'])),
          'Z': [1, 2]})
 
 
@@ -1468,9 +1468,8 @@ class TestMergeCategorical(object):
 
     @pytest.mark.parametrize(
         'change', [lambda x: x,
-                   lambda x: x.astype('category',
-                                      categories=['foo', 'bar', 'bah']),
-                   lambda x: x.astype('category', ordered=True)])
+                   lambda x: x.astype(CDT(['foo', 'bar', 'bah'])),
+                   lambda x: x.astype(CDT(ordered=True))])
     @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
     def test_dtype_on_merged_different(self, change, how, left, right):
         # our merging columns, X now has 2 different dtypes
@@ -1546,6 +1545,30 @@ class TestMergeCategorical(object):
         )
         result_inner = pd.merge(df, df2, how='inner', on=['date'])
         assert_frame_equal(result_inner, expected_inner)
+
+    @pytest.mark.parametrize('ordered', [True, False])
+    @pytest.mark.parametrize('category_column,categories,expected_categories',
+                             [([False, True, True, False], [True, False],
+                               [True, False]),
+                              ([2, 1, 1, 2], [1, 2], [1, 2]),
+                              (['False', 'True', 'True', 'False'],
+                               ['True', 'False'], ['True', 'False'])])
+    def test_merging_with_bool_or_int_cateorical_column(self, category_column,
+                                                        categories,
+                                                        expected_categories,
+                                                        ordered):
+        # GH 17187
+        # merging with a boolean/int categorical column
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': category_column})
+        df1['cat'] = df1['cat'].astype(CDT(categories, ordered=ordered))
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': expected_categories,
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype(
+            CDT(categories, ordered=ordered))
+        assert_frame_equal(expected, result)
 
 
 @pytest.fixture

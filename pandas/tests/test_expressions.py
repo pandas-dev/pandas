@@ -124,6 +124,7 @@ class TestExpressions(object):
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ['gt', 'lt', 'ge', 'le', 'eq', 'ne']
+
         for arith in operations:
             if test_flex:
                 op = lambda x, y: getattr(df, arith)(y)

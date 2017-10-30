@@ -13,28 +13,18 @@ cimport util
 
 import numpy as np
 
-cimport tslib
+from tslib cimport _to_i8
 
 from hashtable cimport HashTable
 
-from tslibs.timezones cimport is_utc, get_utcoffset
-from pandas._libs import tslib, algos, hashtable as _hash
+from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta
 
-from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
-                       pandas_datetimestruct)
-
 from cpython cimport PyTuple_Check, PyList_Check
-
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
 
 cdef int64_t iNaT = util.get_nat()
 
-
-PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
@@ -539,23 +529,6 @@ cpdef convert_scalar(ndarray arr, object value):
             raise ValueError('Cannot assign nan to integer series')
 
     return value
-
-cdef inline _to_i8(object val):
-    cdef pandas_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if util.is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            tzinfo = getattr(val, 'tzinfo', None)
-            # Save the original date value so we can get the utcoffset from it.
-            ival = _pydatetime_to_dts(val, &dts)
-            if tzinfo is not None and not is_utc(tzinfo):
-                offset = get_utcoffset(tzinfo, val)
-                ival -= tslib._delta_to_nanoseconds(offset)
-            return ival
-        return val
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):

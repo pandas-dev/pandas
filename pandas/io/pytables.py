@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isna, concat,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
@@ -34,7 +34,7 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe
+from pandas.core.common import _asarray_tuplesafe, _all_none
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,
@@ -905,7 +905,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -1040,7 +1040,7 @@ class HDFStore(StringMixin):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis)
+            val = value.reindex(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 
@@ -2363,7 +2363,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -2391,8 +2391,11 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, klass):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
-                return DatetimeIndex._simple_new(values, None, freq=freq,
-                                                 tz=tz)
+                # data are already in UTC, localize and convert if tz present
+                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                if tz is not None:
+                    result = result.tz_localize('UTC').tz_convert(tz)
+                return result
             return f
         elif klass == PeriodIndex:
             def f(values, freq=None, tz=None):
@@ -3493,7 +3496,7 @@ class Table(Fixed):
             data_columns = self.validate_data_columns(
                 data_columns, min_itemsize)
             if len(data_columns):
-                mgr = block_obj.reindex_axis(
+                mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)),
                     axis=axis
                 )._data
@@ -3501,7 +3504,7 @@ class Table(Fixed):
                 blocks = list(mgr.blocks)
                 blk_items = get_blk_items(mgr, blocks)
                 for c in data_columns:
-                    mgr = block_obj.reindex_axis([c], axis=axis)._data
+                    mgr = block_obj.reindex([c], axis=axis)._data
                     blocks.extend(mgr.blocks)
                     blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
@@ -4529,7 +4532,7 @@ def _unconvert_index(data, kind, encoding=None):
 def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     kind = _ensure_decoded(kind)
     if kind == u('datetime'):
-        index = lib.time64_to_datetime(data)
+        index = to_datetime(data)
     elif kind in (u('integer')):
         index = np.asarray(data, dtype=object)
     elif kind in (u('string')):

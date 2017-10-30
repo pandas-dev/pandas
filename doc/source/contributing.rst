@@ -101,7 +101,7 @@ You will need your own fork to work on the code. Go to the `pandas project
 page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
 want to clone your fork to your machine::
 
-    git clone git@github.com:your-user-name/pandas.git pandas-yourname
+    git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream git://github.com/pandas-dev/pandas.git
 
@@ -877,12 +877,12 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 0.17.0
+  .. versionadded:: 0.21.0
 
-This will put the text *New in version 0.17.0* wherever you put the sphinx
+This will put the text *New in version 0.21.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
-or method (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/generic.py#L1959>`__)
-or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/frame.py#L1171>`__).
+or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
+or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
 
 Contributing your changes to *pandas*
 =====================================

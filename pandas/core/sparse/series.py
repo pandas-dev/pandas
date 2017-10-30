@@ -35,7 +35,8 @@ from pandas.core.sparse.scipy_sparse import (
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
-                          axes_single_arg="{0, 'index'}")
+                          axes_single_arg="{0, 'index'}",
+                          optional_labels='', optional_axis='')
 
 # -----------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -386,7 +387,7 @@ class SparseSeries(Series):
         """
         label = self.index[i]
         if isinstance(label, Index):
-            return self.take(i, axis=axis, convert=True)
+            return self.take(i, axis=axis)
         else:
             return self._get_val_at(i)
 
@@ -426,7 +427,7 @@ class SparseSeries(Series):
             return self[indexer]
 
     def _set_with_engine(self, key, value):
-        return self.set_value(key, value)
+        return self._set_value(key, value)
 
     def abs(self):
         """
@@ -466,6 +467,10 @@ class SparseSeries(Series):
         """
         Retrieve single value at passed index label
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : label
@@ -475,14 +480,27 @@ class SparseSeries(Series):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+
+        return self._get_value(label, takeable=takeable)
+
+    def _get_value(self, label, takeable=False):
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
         index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -501,11 +519,18 @@ class SparseSeries(Series):
         -------
         series : SparseSeries
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(label, value, takeable=takeable)
+
+    def _set_value(self, label, value, takeable=False):
         values = self.to_dense()
 
         # if the label doesn't exist, we will create a new object here
         # and possibily change the index
-        new_values = values.set_value(label, value, takeable=takeable)
+        new_values = values._set_value(label, value, takeable=takeable)
         if new_values is not None:
             values = new_values
         new_index = values.index
@@ -513,6 +538,7 @@ class SparseSeries(Series):
                              kind=self.kind)
         self._data = SingleBlockManager(values, new_index)
         self._index = new_index
+    _set_value.__doc__ = set_value.__doc__
 
     def _set_values(self, key, value):
 
@@ -602,16 +628,16 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    def take(self, indices, axis=0, convert=True, *args, **kwargs):
-        """
-        Sparse-compatible version of ndarray.take
+    @Appender(generic._shared_docs['take'])
+    def take(self, indices, axis=0, convert=None, *args, **kwargs):
+        if convert is not None:
+            msg = ("The 'convert' parameter is deprecated "
+                   "and will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+        else:
+            convert = True
 
-        Returns
-        -------
-        taken : ndarray
-        """
-
-        convert = nv.validate_take_with_convert(convert, args, kwargs)
+        nv.validate_take_with_convert(convert, args, kwargs)
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values,

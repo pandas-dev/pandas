@@ -7,8 +7,7 @@ from cpython cimport (
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
-from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
-                    NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
+from numpy cimport int64_t, import_array, ndarray
 import numpy as np
 import_array()
 
@@ -18,17 +17,13 @@ from pandas.compat import PY2
 
 cimport cython
 
-from datetime cimport (
-    is_leapyear,
-    pandas_datetimestruct,
-    pandas_datetimestruct_to_datetime,
-    pandas_datetime_to_datetimestruct,
-    PANDAS_FR_ns,
-    INT32_MIN)
+from tslibs.np_datetime cimport (pandas_datetimestruct,
+                                 dtstruct_to_dt64, dt64_to_dtstruct)
+from datetime cimport is_leapyear
 
 
 cimport util
-from util cimport is_period_object, is_string_object
+from util cimport is_period_object, is_string_object, INT32_MIN
 
 from lib cimport is_null_datetimelike
 from pandas._libs import tslib
@@ -90,12 +85,8 @@ cdef extern from "period_helper.h":
                                int microseconds, int picoseconds,
                                int freq) nogil except INT32_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal,
-                               int freq) except INT32_MIN
-
     int get_date_info(int64_t ordinal, int freq,
                       date_info *dinfo) nogil except INT32_MIN
-    double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
     int pqyear(int64_t ordinal, int freq) except INT32_MIN
@@ -143,7 +134,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
                 if dtarr[i] == NPY_NAT:
                     out[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtarr[i], &dts)
                 out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                             dts.hour, dts.min, dts.sec,
                                             dts.us, dts.ps, freq)
@@ -274,7 +265,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     dts.us = int((subsecond_fraction) * 1e6)
     dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    return dtstruct_to_dt64(&dts)
 
 
 def period_format(int64_t value, int freq, object fmt=None):
@@ -505,7 +496,7 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -536,7 +527,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -544,13 +535,11 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -568,8 +557,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
@@ -577,8 +565,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
@@ -601,7 +588,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                            dts.hour, dts.min, dts.sec,
                                            dts.us, dts.ps, freq)
@@ -611,13 +598,11 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                            dts.hour, dts.min, dts.sec,
                                            dts.us, dts.ps, freq)
@@ -636,8 +621,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                                dts.hour, dts.min, dts.sec,
                                                dts.us, dts.ps, freq)
@@ -646,8 +630,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                                dts.hour, dts.min, dts.sec,
                                                dts.us, dts.ps, freq)
@@ -839,9 +822,9 @@ cdef class _Period(object):
 
         Parameters
         ----------
-        freq : string or DateOffset, default is 'D' if self.freq is week or
-               longer and 'S' otherwise
-            Target frequency
+        freq : string or DateOffset
+            Target frequency. Default is 'D' if self.freq is week or
+            longer and 'S' otherwise
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
@@ -1073,46 +1056,48 @@ cdef class _Period(object):
         | ``%%``    | A literal ``'%'`` character.   |       |
         +-----------+--------------------------------+-------+
 
-        .. note::
+        Notes
+        -----
 
-            (1)
-                The ``%f`` directive is the same as ``%y`` if the frequency is
-                not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by
-                the :attr:`qyear` attribute.
+        (1)
+            The ``%f`` directive is the same as ``%y`` if the frequency is
+            not quarterly.
+            Otherwise, it corresponds to the 'fiscal' year, as defined by
+            the :attr:`qyear` attribute.
 
-            (2)
-                The ``%F`` directive is the same as ``%Y`` if the frequency is
-                not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by
-                the :attr:`qyear` attribute.
+        (2)
+            The ``%F`` directive is the same as ``%Y`` if the frequency is
+            not quarterly.
+            Otherwise, it corresponds to the 'fiscal' year, as defined by
+            the :attr:`qyear` attribute.
 
-            (3)
-                The ``%p`` directive only affects the output hour field
-                if the ``%I`` directive is used to parse the hour.
+        (3)
+            The ``%p`` directive only affects the output hour field
+            if the ``%I`` directive is used to parse the hour.
 
-            (4)
-                The range really is ``0`` to ``61``; this accounts for leap
-                seconds and the (very rare) double leap seconds.
+        (4)
+            The range really is ``0`` to ``61``; this accounts for leap
+            seconds and the (very rare) double leap seconds.
 
-            (5)
-                The ``%U`` and ``%W`` directives are only used in calculations
-                when the day of the week and the year are specified.
+        (5)
+            The ``%U`` and ``%W`` directives are only used in calculations
+            when the day of the week and the year are specified.
 
-        .. rubric::  Examples
+        Examples
+        --------
 
-            >>> a = Period(freq='Q@JUL', year=2006, quarter=1)
-            >>> a.strftime('%F-Q%q')
-            '2006-Q1'
-            >>> # Output the last month in the quarter of this date
-            >>> a.strftime('%b-%Y')
-            'Oct-2005'
-            >>>
-            >>> a = Period(freq='D', year=2001, month=1, day=1)
-            >>> a.strftime('%d-%b-%Y')
-            '01-Jan-2006'
-            >>> a.strftime('%b. %d, %Y was a %A')
-            'Jan. 01, 2001 was a Monday'
+        >>> a = Period(freq='Q@JUL', year=2006, quarter=1)
+        >>> a.strftime('%F-Q%q')
+        '2006-Q1'
+        >>> # Output the last month in the quarter of this date
+        >>> a.strftime('%b-%Y')
+        'Oct-2005'
+        >>>
+        >>> a = Period(freq='D', year=2001, month=1, day=1)
+        >>> a.strftime('%d-%b-%Y')
+        '01-Jan-2006'
+        >>> a.strftime('%b. %d, %Y was a %A')
+        'Jan. 01, 2001 was a Monday'
         """
         base, mult = get_freq_code(self.freq)
         return period_format(self.ordinal, base, fmt)

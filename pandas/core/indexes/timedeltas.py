@@ -114,6 +114,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    Timedelta : Represents a duration between two dates or times.
+    DatetimeIndex : Index of datetime64 data
+    PeriodIndex : Index of Period data
     """
 
     _typ = 'timedeltaindex'
@@ -447,8 +454,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def total_seconds(self):
         """
         Total duration of each element expressed in seconds.
-
-        .. versionadded:: 0.17.0
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
@@ -692,7 +697,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         if _is_convertible_to_td(key):
             key = Timedelta(key)
