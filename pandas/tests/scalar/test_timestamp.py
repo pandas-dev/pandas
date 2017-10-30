@@ -183,7 +183,7 @@ class TestTimestamp(object):
         with tm.assert_raises_regex(ValueError, 'at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
 
-        with tm.assert_raises_regex(ValueError: "Invalid frequency:"):
+        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
