@@ -33,7 +33,6 @@ cimport util
 from cpython.datetime cimport PyDelta_Check, PyTZInfo_Check
 # this is our datetime.pxd
 from datetime cimport (
-    pandas_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_datetimestruct_to_datetime,
     days_per_month_table,
@@ -47,16 +46,19 @@ from datetime cimport (
     npy_datetime,
     is_leapyear,
     dayofweek,
-    check_dts_bounds,
     PANDAS_FR_ns,
     PyDateTime_Check, PyDate_Check,
     PyDateTime_IMPORT,
-    timedelta, datetime
-    )
+    timedelta, datetime)
 
 # stdlib datetime imports
 from datetime import timedelta, datetime
 from datetime import time as datetime_time
+
+from tslibs.np_datetime cimport (check_dts_bounds,
+                                 pandas_datetimestruct,
+                                 dt64_to_dtstruct, dtstruct_to_dt64)
+from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (
     khiter_t,
@@ -147,8 +149,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
                 if value == NPY_NAT:
                     result[i] = NaT
                 else:
-                    pandas_datetime_to_datetimestruct(
-                        value, PANDAS_FR_ns, &dts)
+                    dt64_to_dtstruct(value, &dts)
                     result[i] = func_create(value, dts, tz, freq)
         elif is_tzlocal(tz) or is_fixed_offset(tz):
             for i in range(n):
@@ -156,8 +157,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
                 if value == NPY_NAT:
                     result[i] = NaT
                 else:
-                    pandas_datetime_to_datetimestruct(
-                        value, PANDAS_FR_ns, &dts)
+                    dt64_to_dtstruct(value, &dts)
                     dt = create_datetime_from_ts(value, dts, tz, freq)
                     dt = dt + tz.utcoffset(dt)
                     if box:
@@ -183,8 +183,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
                         # represented in single object.
                         new_tz = tz
 
-                    pandas_datetime_to_datetimestruct(
-                        value + deltas[pos], PANDAS_FR_ns, &dts)
+                    dt64_to_dtstruct(value + deltas[pos], &dts)
                     result[i] = func_create(value, dts, new_tz, freq)
     else:
         for i in range(n):
@@ -193,7 +192,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
             if value == NPY_NAT:
                 result[i] = NaT
             else:
-                pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(value, &dts)
                 result[i] = func_create(value, dts, None, freq)
 
     return result
@@ -696,7 +695,7 @@ class Timestamp(_Timestamp):
             value += value - value_tz
 
         # setup components
-        pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
+        dt64_to_dtstruct(value, &dts)
         dts.ps = self.nanosecond * 1000
 
         # replace
@@ -732,7 +731,7 @@ class Timestamp(_Timestamp):
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
-            _check_dts_bounds(&dts)
+            check_dts_bounds(&dts)
 
         return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
 
@@ -1645,7 +1644,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
                         'Timestamp'.format(ts, type(ts)))
 
     if obj.value != NPY_NAT:
-        _check_dts_bounds(&obj.dts)
+        check_dts_bounds(&obj.dts)
 
     if tz is not None:
         _localize_tso(obj, tz)
@@ -1726,7 +1725,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value += nanos
         obj.dts.ps = nanos * 1000
 
-    _check_dts_bounds(&obj.dts)
+    check_dts_bounds(&obj.dts)
     return obj
 
 
@@ -1762,12 +1761,12 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
             _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
             obj.value = pandas_datetimestruct_to_datetime(
                 PANDAS_FR_ns, &obj.dts)
-            _check_dts_bounds(&obj.dts)
+            check_dts_bounds(&obj.dts)
             if out_local == 1:
                 obj.tzinfo = pytz.FixedOffset(out_tzoffset)
                 obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
                 if tz is None:
-                    _check_dts_bounds(&obj.dts)
+                    check_dts_bounds(&obj.dts)
                     return obj
                 else:
                     # Keep the converter same as PyDateTime's
@@ -1809,8 +1808,8 @@ def _test_parse_iso8601(object ts):
     obj = _TSObject()
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-    obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
-    _check_dts_bounds(&obj.dts)
+    obj.value = dtstruct_to_dt64(&obj.dts)
+    check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
         obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
@@ -1897,18 +1896,6 @@ cpdef inline object _localize_pydatetime(object dt, object tz):
         return dt.replace(tzinfo=tz)
 
 
-class OutOfBoundsDatetime(ValueError):
-    pass
-
-cdef inline _check_dts_bounds(pandas_datetimestruct *dts):
-    if check_dts_bounds(dts):
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-        raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: %s' % fmt)
-
-
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1933,13 +1920,13 @@ def datetime_to_datetime64(ndarray[object] values):
 
                 _ts = convert_datetime_to_tsobject(val, None)
                 iresult[i] = _ts.value
-                _check_dts_bounds(&_ts.dts)
+                check_dts_bounds(&_ts.dts)
             else:
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
                 iresult[i] = _pydatetime_to_dts(val, &dts)
-                _check_dts_bounds(&dts)
+                check_dts_bounds(&dts)
         else:
             raise TypeError('Unrecognized value type: %s' % type(val))
 
@@ -1994,7 +1981,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
             result[i] = na_rep
         elif basic_format:
 
-            pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(val, &dts)
             res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
                                                    dts.month,
                                                    dts.day,
@@ -2252,7 +2239,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         _ts = convert_datetime_to_tsobject(val, None)
                         iresult[i] = _ts.value
                         try:
-                            _check_dts_bounds(&_ts.dts)
+                            check_dts_bounds(&_ts.dts)
                         except ValueError:
                             if is_coerce:
                                 iresult[i] = NPY_NAT
@@ -2267,7 +2254,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     if is_timestamp(val):
                         iresult[i] += val.nanosecond
                     try:
-                        _check_dts_bounds(&dts)
+                        check_dts_bounds(&dts)
                     except ValueError:
                         if is_coerce:
                             iresult[i] = NPY_NAT
@@ -2277,7 +2264,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
                 try:
-                    _check_dts_bounds(&dts)
+                    check_dts_bounds(&dts)
                     seen_datetime = 1
                 except ValueError:
                     if is_coerce:
@@ -2334,7 +2321,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         tz = pytz.FixedOffset(out_tzoffset)
                         value = tz_convert_single(value, tz, 'UTC')
                     iresult[i] = value
-                    _check_dts_bounds(&dts)
+                    check_dts_bounds(&dts)
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
@@ -2433,7 +2420,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                        yearfirst=yearfirst)
                     _pydatetime_to_dts(oresult[i], &dts)
-                    _check_dts_bounds(&dts)
+                    check_dts_bounds(&dts)
                 except Exception:
                     if is_raise:
                         raise
@@ -3239,7 +3226,7 @@ cdef inline _get_datetime64_nanos(object val):
 
     if unit != PANDAS_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
-        _check_dts_bounds(&dts)
+        check_dts_bounds(&dts)
         return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
     else:
         return ival
@@ -3267,7 +3254,7 @@ def cast_to_nanoseconds(ndarray arr):
         if ivalues[i] != NPY_NAT:
             pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
             iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-            _check_dts_bounds(&dts)
+            check_dts_bounds(&dts)
         else:
             iresult[i] = NPY_NAT
 
@@ -3802,7 +3789,7 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
     dts.sec = 0
     dts.us = 0
     dts.ps = 0
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+    return dtstruct_to_dt64(dts)
 
 
 def dates_normalized(ndarray[int64_t] stamps, tz=None):
@@ -3920,13 +3907,12 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                     out[i] = NPY_NAT
                     continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 dts.year = _year_add_months(dts, months)
                 dts.month = _month_add_months(dts, months)
 
                 dts.day = min(dts.day, days_in_month(dts))
-                out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+                out[i] = dtstruct_to_dt64(&dts)
     elif day == 'start':
         roll_check = False
         if months <= 0:
@@ -3938,8 +3924,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                     out[i] = NPY_NAT
                     continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
 
                 # offset semantics - if on the anchor point and going backwards
@@ -3951,7 +3936,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 dts.month = _month_add_months(dts, months_to_roll)
                 dts.day = 1
 
-                out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+                out[i] = dtstruct_to_dt64(&dts)
     elif day == 'end':
         roll_check = False
         if months > 0:
@@ -3963,8 +3948,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                     out[i] = NPY_NAT
                     continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
 
                 # similar semantics - when adding shift forward by one
@@ -3976,7 +3960,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 dts.month = _month_add_months(dts, months_to_roll)
 
                 dts.day = days_in_month(dts)
-                out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+                out[i] = dtstruct_to_dt64(&dts)
     else:
         raise ValueError("day must be None, 'start' or 'end'")
 

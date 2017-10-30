@@ -1018,11 +1018,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_perioddelta(self, freq):
         """
-        Calcuates TimedeltaIndex of difference between index
+        Calculates TimedeltaIndex of difference between index
         values and index converted to PeriodIndex at specified
         freq.  Used for vectorized offsets
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------

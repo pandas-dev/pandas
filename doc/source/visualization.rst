@@ -129,8 +129,6 @@ For example, a bar plot can be created the following way:
    @savefig bar_plot_ex.png
    df.iloc[5].plot(kind='bar');
 
-.. versionadded:: 0.17.0
-
 You can also create these other plots using the methods ``DataFrame.plot.<kind>`` instead of providing the ``kind`` keyword argument. This makes it easier to discover plot methods and the specific arguments they use:
 
 .. ipython::

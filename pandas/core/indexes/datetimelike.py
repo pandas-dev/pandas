@@ -47,8 +47,6 @@ class DatelikeOps(object):
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
 
-    .. versionadded:: 0.17.0
-
     Parameters
     ----------
     date_format : str
