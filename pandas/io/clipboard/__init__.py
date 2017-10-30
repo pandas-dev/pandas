@@ -18,7 +18,7 @@ On Mac, the module uses pbcopy and pbpaste, which should come with the os.
 On Linux, install xclip or xsel via package manager. For example, in Debian:
 sudo apt-get install xclip
 
-Otherwise on Linux, you will need the gtk or qtpy modules installed.
+Otherwise on Linux, you will need the gtk, qtpy or PyQt modules installed.
 qtpy also requires a python-qt-bindings module: PyQt4, PyQt5, PySide, PySide2
 
 gtk and PyQt4 modules are not available for Python 3,
@@ -73,7 +73,7 @@ def determine_clipboard():
             # https://pypi.python.org/pypi/QtPy
             import qtpy  # check if qtpy is installed
         except ImportError:
-            # If qtpy isn't installed, fall back on importing PyQt4.
+            # If qtpy isn't installed, fall back on importing PyQt5 and PyQt4.
             try:
                 import PyQt5  # check if PyQt5 is installed
             except ImportError:
