@@ -85,7 +85,7 @@ def determine_clipboard():
                     return init_qt_clipboard()
             else:
                 return init_qt_clipboard()
-            
+
         else:
             return init_qt_clipboard()
         if _executable_exists("xclip"):
