@@ -64,6 +64,11 @@ def init_qt_clipboard():
         cb = app.clipboard()
         cb.setText(text)
 
+    def paste_qt():
+        cb = app.clipboard()
+        return text_type(cb.text())
+
+    return copy_qt, paste_qt
 
 
 def init_xclip_clipboard():

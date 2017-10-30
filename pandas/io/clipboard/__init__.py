@@ -73,21 +73,21 @@ def determine_clipboard():
             # https://pypi.python.org/pypi/QtPy
             import qtpy  # check if qtpy is installed
         except ImportError:
-            # If qtpy isn't installed, fall back on importing PyQt5 and PyQt4.
+            # If qtpy isn't installed, fall back on importing PyQt4.
             try:
                 import PyQt5  # check if PyQt5 is installed
             except ImportError:
                 try:
                     import PyQt4  # check if PyQt4 is installed
                 except ImportError:
-                    pass # We want to fail fast for all non-ImportError exceptions.
+                    pass    # We want to fail fast for all non-ImportError exceptions.
                 else:
                     return init_qt_clipboard()
             else:
                 return init_qt_clipboard()
-
         else:
             return init_qt_clipboard()
+
         if _executable_exists("xclip"):
             return init_xclip_clipboard()
         if _executable_exists("xsel"):
