@@ -5,6 +5,8 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 
 import numpy as np
+import pytest
+from dateutil.parser import parse
 
 from pandas import compat
 from pandas.util import testing as tm
@@ -24,7 +26,7 @@ class TestDatetimeParsingWrappers(object):
                              'Mon Sep 16, 2013',
                              '01012012',
                              '0101',
-                             '1-1', )
+                             '1-1')
 
         for good_date_string in good_date_strings:
             assert parsing._does_string_look_like_datetime(good_date_string)
@@ -127,8 +129,8 @@ class TestGuessDatetimeFormat(object):
         for dt_string, dt_format in dt_string_to_format:
             assert parsing._guess_datetime_format(dt_string) == dt_format
 
-class TestArrayToDatetime(object):
 
+class TestArrayToDatetime(object):
     def test_try_parse_dates(self):
         arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
 
