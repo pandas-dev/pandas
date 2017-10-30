@@ -11,7 +11,7 @@ Remote Data Access
 DataReader
 ----------
 
-The sub-package ``pandas.io.data`` was deprecated in v.0.17 and removed in
+The sub-package ``pandas.io.data`` was removed in
 `v.0.19 <http://pandas-docs.github.io/pandas-docs-travis/whatsnew.html#v0-19-0-october-2-2016>`__.
 Instead there has been created a separately installable
 `pandas-datareader package <https://github.com/pydata/pandas-datareader>`__.
