@@ -18,11 +18,8 @@ from khash cimport (
 
 from cpython.datetime cimport datetime
 
-from datetime cimport (
-    pandas_datetimestruct,
-    pandas_datetime_to_datetimestruct,
-    PANDAS_FR_ns)
-
+from np_datetime cimport (pandas_datetimestruct,
+                          dtstruct_to_dt64, dt64_to_dtstruct)
 from frequencies cimport get_freq_code
 from timezones cimport (
     is_utc, is_tzlocal,
@@ -76,7 +73,7 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -94,7 +91,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -102,13 +99,11 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
-                                              &dts)
+            dt64_to_dtstruct(stamps[i], &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            pandas_datetime_to_datetimestruct(stamps[i] + delta,
-                                              PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -126,8 +121,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
@@ -135,8 +129,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
-                                                  PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso

@@ -206,8 +206,6 @@ Window Functions
    functions and are now deprecated. These are replaced by using the :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`. objects and a corresponding method call.
 
    The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
-   You can view the previous documentation
-   `here <http://pandas.pydata.org/pandas-docs/version/0.17.1/computation.html#moving-rolling-statistics-moments>`__
 
 For working with data, a number of windows functions are provided for
 computing common *window* or *rolling* statistics. Among these are count, sum,
