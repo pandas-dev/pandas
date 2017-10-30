@@ -69,22 +69,24 @@ def determine_clipboard():
             return init_gtk_clipboard()
 
         try:
-            # qtpy is a small abstraction layer that lets you write applications using a single api call to either PyQt or PySide.
+            # qtpy is a small abstraction layer that lets you write
+            # applications using a single api call to either PyQt or PySide
             # https://pypi.python.org/pypi/QtPy
-            import qtpy  # check if qtpy is installed
+            import qtpy  # noqa
         except ImportError:
-            # If qtpy isn't installed, fall back on importing PyQt4.
+            # If qtpy isn't installed, fall back on importing PyQt5, or PyQt5
             try:
-                import PyQt5  # check if PyQt5 is installed
+                import PyQt5  # noqa
             except ImportError:
                 try:
-                    import PyQt4  # check if PyQt4 is installed
+                    import PyQt4  # noqa
                 except ImportError:
-                    pass    # We want to fail fast for all non-ImportError exceptions.
+                    pass  # fail fast for all non-ImportError exceptions.
                 else:
                     return init_qt_clipboard()
             else:
                 return init_qt_clipboard()
+            pass
         else:
             return init_qt_clipboard()
 
