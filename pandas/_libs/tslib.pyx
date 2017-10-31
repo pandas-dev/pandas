@@ -422,7 +422,7 @@ class Timestamp(_Timestamp):
     def _round(self, freq, rounder):
 
         cdef:
-            int64_t unit, r, value,  buff = 1000000
+            int64_t unit, r, value, buff = 1000000
             object result
 
         from pandas.tseries.frequencies import to_offset
@@ -621,7 +621,7 @@ class Timestamp(_Timestamp):
             # tz naive, localize
             tz = maybe_get_tz(tz)
             if not util.is_string_object(ambiguous):
-                ambiguous =   [ambiguous]
+                ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous, errors=errors)[0]
             return Timestamp(value, tz=tz)
@@ -764,9 +764,9 @@ class Timestamp(_Timestamp):
         Returns if the Timestamp has a time component
         in addition to the date part
         """
-        return (self.time() != _zero_time
-                or self.tzinfo is not None
-                or self.nanosecond != 0)
+        return (self.time() != _zero_time or
+                self.tzinfo is not None or
+                self.nanosecond != 0)
 
     def to_julian_date(self):
         """
@@ -984,7 +984,7 @@ class NaTType(_NaT):
     utcoffset = _make_error_func('utcoffset', datetime)
 
     # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
+    utcfromtimestamp = _make_error_func('utcfromtimestamp', None)
     fromtimestamp = _make_error_func('fromtimestamp', None)
     combine = _make_error_func('combine', None)
     utcnow = _make_error_func('utcnow', None)
@@ -1024,12 +1024,15 @@ def __nat_unpickle(*args):
     # return constant defined in the module
     return NaT
 
+
 NaT = NaTType()
+
 
 cdef inline bint _checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
         PyFloat_Check(val) and val != val) or val is NaT
+
 
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
@@ -1047,6 +1050,7 @@ cdef inline bint _check_all_nulls(object val):
     else:
         res = 0
     return res
+
 
 cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
     return _nat_scalar_rules[op]
@@ -3206,6 +3210,7 @@ cdef inline _to_i8(object val):
             return Timestamp(val).value
         return val
 
+
 cpdef pydt_to_i8(object pydt):
     """
     Convert to int64 representation compatible with numpy datetime64; converts
@@ -3396,6 +3401,7 @@ def monthrange(int64_t year, int64_t month):
 cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month -1]
 
+
 cpdef normalize_date(object dt):
     """
     Normalize datetime.datetime value to midnight. Returns datetime.date as a
@@ -3416,13 +3422,12 @@ cpdef normalize_date(object dt):
         raise TypeError('Unrecognized type: %s' % type(dt))
 
 
-cdef inline int _year_add_months(pandas_datetimestruct dts,
-                                 int months) nogil:
+cdef inline int _year_add_months(pandas_datetimestruct dts, int months) nogil:
     """new year number after shifting pandas_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
-cdef inline int _month_add_months(pandas_datetimestruct dts,
-                                  int months) nogil:
+
+cdef inline int _month_add_months(pandas_datetimestruct dts, int months) nogil:
     """
     New month number after shifting pandas_datetimestruct
     number of months.

@@ -86,6 +86,7 @@ def values_from_object(object o):
 
     return o
 
+
 cpdef map_indices_list(list index):
     """
     Produce a dict mapping the values of the input array to their respective
@@ -120,7 +121,7 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
         s += arr[i].__sizeof__()
     return s
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # isnull / notnull related
 
 cdef double INF = <double> np.inf
@@ -188,18 +189,18 @@ cpdef bint isscalar(object val):
 
     """
 
-    return (np.PyArray_IsAnyScalar(val)
+    return (np.PyArray_IsAnyScalar(val) or
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or PyBytes_Check(val)
+            PyBytes_Check(val) or
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
-            or val is None
-            or PyDate_Check(val)
-            or PyDelta_Check(val)
-            or PyTime_Check(val)
-            or util.is_period_object(val)
-            or is_decimal(val)
-            or is_interval(val))
+            val is None or
+            PyDate_Check(val) or
+            PyDelta_Check(val) or
+            PyTime_Check(val) or
+            util.is_period_object(val) or
+            is_decimal(val) or
+            is_interval(val))
 
 
 def item_from_zerodim(object val):
@@ -994,7 +995,7 @@ def convert_json_to_lines(object arr):
             in_quotes = ~in_quotes
         if v == backslash or is_escaping:
             is_escaping = ~is_escaping
-        if v == comma: # commas that should be \n
+        if v == comma:  # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
                 narr[i] = newline
         elif v == left_bracket:
@@ -1019,7 +1020,7 @@ def write_csv_rows(list data, ndarray data_index,
     # In crude testing, N>100 yields little marginal improvement
     N=100
 
-    # pre-allocate  rows
+    # pre-allocate rows
     ncols = len(cols)
     rows = [[None] * (nlevels + ncols) for x in range(N)]
 
@@ -1051,12 +1052,13 @@ def write_csv_rows(list data, ndarray data_index,
             if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
 
-    if  j >= 0 and (j < N - 1 or (j % N) != N - 1):
+    if j >= 0 and (j < N - 1 or (j % N) != N - 1):
         writer.writerows(rows[:((j + 1) % N)])
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Groupby-related functions
+
 @cython.boundscheck(False)
 def arrmap(ndarray[object] index, object func):
     cdef int length = index.shape[0]
@@ -1140,7 +1142,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     bins = np.empty(lenbin - 1, dtype=np.int64)
 
     j = 0  # index into values
-    bc = 0 # bin count
+    bc = 0  # bin count
 
     # linear scan
     if right_closed:
@@ -1289,9 +1291,9 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 cdef class _PandasNull:
 
     def __richcmp__(_PandasNull self, object other, int op):
-        if op == 2: # ==
+        if op == 2:    # ==
             return isinstance(other, _PandasNull)
-        elif op == 3: # !=
+        elif op == 3:  # !=
             return not isinstance(other, _PandasNull)
         else:
             return False
@@ -1797,7 +1799,7 @@ cdef class BlockPlacement:
             stop += other_int
 
             if ((step > 0 and start < 0) or
-                (step < 0 and stop < step)):
+                    (step < 0 and stop < step)):
                 raise ValueError("iadd causes length change")
 
             if stop < 0:

@@ -165,8 +165,8 @@ cdef class Seen(object):
                      two conflict cases was also detected. However, we are
                      trying to force conversion to a numeric dtype.
         """
-        return (self.uint_ and (self.null_ or self.sint_)
-                and not self.coerce_numeric)
+        return (self.uint_ and (self.null_ or self.sint_) and
+                not self.coerce_numeric)
 
     cdef inline saw_null(self):
         """
@@ -447,8 +447,8 @@ def infer_dtype(object value, bint skipna=False):
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
-            not util.is_timedelta64_object(val) and
-            not util.is_datetime64_object(val)):
+                not util.is_timedelta64_object(val) and
+                not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'
