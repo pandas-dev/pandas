@@ -50,10 +50,10 @@ def init_qt_clipboard():
     # Try to import from qtpy, but if that fails try PyQt5 then PyQt4
     try:
         from qtpy.QtWidgets import QApplication
-    except ModuleNotFoundError:
+    except ImportError:
         try:
             from PyQt5.QtWidgets import QApplication
-        except ModuleNotFoundError:
+        except ImportError:
             from PyQt4.QtGui import QApplication
 
     app = QApplication.instance()
