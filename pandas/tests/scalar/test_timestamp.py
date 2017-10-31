@@ -176,12 +176,18 @@ class TestTimestamp(object):
             Timestamp(Period('1000-01-01'))
 
     def test_constructor_invalid_tz(self):
-        # GH#17690, GH#5168
+        # GH#17690
         with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
             Timestamp('2017-10-22', tzinfo='US/Eastern')
 
         with tm.assert_raises_regex(ValueError, 'at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
+
+        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
+            # GH#5168
+            # case where user tries to pass tz as an arg, not kwarg, gets
+            # interpreted as a `freq`
+            Timestamp('2012-01-01', 'US/Pacific')
 
     def test_constructor_tz_or_tzinfo(self):
         # GH#17943, GH#17690, GH#5168
