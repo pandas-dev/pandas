@@ -1272,30 +1272,33 @@ class DataFrame(NDFrame):
                 columns = _ensure_index(keys)
                 arrays = values
 
+            # GH 17312
+            # Provide more informative error msg when scalar values passed
             try:
                 return cls._from_arrays(arrays, columns, None)
 
             except ValueError:
                 if not is_nested_list_like(values):
                     raise TypeError('The value in each (key, value) pair must '
-                                    'be an array or a Series')
+                                    'be an array, Series, or dict')
 
         elif orient == 'index':
             if columns is None:
                 raise TypeError("Must pass columns with orient='index'")
 
-            try:
-                keys = _ensure_index(keys)
+            keys = _ensure_index(keys)
 
+            # GH 17312
+            # Provide more informative error msg when scalar values passed
+            try:
                 arr = np.array(values, dtype=object).T
                 data = [lib.maybe_convert_objects(v) for v in arr]
-
                 return cls._from_arrays(data, columns, keys)
 
             except TypeError:
                 if not is_nested_list_like(values):
                     raise TypeError('The value in each (key, value) pair must '
-                                    'be an array or a Series')
+                                    'be an array, Series, or dict')
 
         else:  # pragma: no cover
             raise ValueError("'orient' must be either 'columns' or 'index'")
