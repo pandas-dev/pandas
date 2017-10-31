@@ -196,7 +196,7 @@ With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a 
 
 .. ipython:: python
 
-   s = Series([np.nan])
+   s = pd.Series([np.nan])
 
    s.sum()
 
@@ -351,10 +351,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 
 Interpolation
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.17.0
-
-  The ``limit_direction`` keyword argument was added.
 
 Both Series and DataFrame objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.

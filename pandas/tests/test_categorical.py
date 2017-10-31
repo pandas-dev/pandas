@@ -519,6 +519,18 @@ class TestCategorical(object):
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
+    def test_constructor_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical(
+            ['a', 'b'], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical(
+            ['a', 'b'], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -559,6 +571,22 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
+
+    def test_from_codes_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical.from_codes(
+            [0, 1], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical.from_codes(
+            [0, 1], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        # non-unique Categorical still raises
+        with pytest.raises(ValueError):
+            Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
@@ -1174,6 +1202,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Shorten
         with pytest.raises(ValueError):
             cat.rename_categories([1, 2])
+
+    def test_rename_categories_series(self):
+        # https://github.com/pandas-dev/pandas/issues/17981
+        c = pd.Categorical(['a', 'b'])
+        xpr = "Treating Series 'new_categories' as a list-like "
+        with tm.assert_produces_warning(FutureWarning) as rec:
+            result = c.rename_categories(pd.Series([0, 1]))
+
+        assert len(rec) == 1
+        assert xpr in str(rec[0].message)
+        expected = pd.Categorical([0, 1])
+        tm.assert_categorical_equal(result, expected)
 
     def test_rename_categories_dict(self):
         # GH 17336
@@ -2083,6 +2123,13 @@ class TestCategoricalAsBlock(object):
             l, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_empty_astype(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
 
     def test_construction_series(self):
 

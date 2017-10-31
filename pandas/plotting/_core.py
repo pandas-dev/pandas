@@ -1847,8 +1847,6 @@ _shared_docs['plot'] = """
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
     table : boolean, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
@@ -2505,8 +2503,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Line plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2521,8 +2517,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def bar(self, **kwds):
         """
         Vertical bar plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2539,8 +2533,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Horizontal bar plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2556,8 +2548,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Boxplot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2572,8 +2562,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def hist(self, bins=10, **kwds):
         """
         Histogram
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2592,8 +2580,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Kernel Density Estimate plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2611,8 +2597,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Area plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2627,8 +2611,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def pie(self, **kwds):
         """
         Pie chart
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2679,8 +2661,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Line plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         x, y : label or position, optional
@@ -2697,8 +2677,6 @@ class FramePlotMethods(BasePlotMethods):
     def bar(self, x=None, y=None, **kwds):
         """
         Vertical bar plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2717,8 +2695,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Horizontal bar plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         x, y : label or position, optional
@@ -2736,8 +2712,6 @@ class FramePlotMethods(BasePlotMethods):
         r"""
         Boxplot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         by : string or sequence
@@ -2754,8 +2728,6 @@ class FramePlotMethods(BasePlotMethods):
     def hist(self, by=None, bins=10, **kwds):
         """
         Histogram
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2776,8 +2748,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Kernel Density Estimate plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2794,8 +2764,6 @@ class FramePlotMethods(BasePlotMethods):
     def area(self, x=None, y=None, **kwds):
         """
         Area plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2814,8 +2782,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Pie chart
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         y : label or position, optional
@@ -2832,8 +2798,6 @@ class FramePlotMethods(BasePlotMethods):
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
         Scatter plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2856,8 +2820,6 @@ class FramePlotMethods(BasePlotMethods):
                **kwds):
         """
         Hexbin plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
