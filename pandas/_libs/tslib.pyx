@@ -1760,8 +1760,8 @@ cdef convert_str_to_tsobject(object ts, object tz, object unit,
                     obj = convert_to_tsobject(obj.value, obj.tzinfo,
                                               None, 0, 0)
                     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                     obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                     obj.dts.us, obj.tzinfo)
+                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                  obj.dts.us, obj.tzinfo)
                     obj = convert_datetime_to_tsobject(dt, tz,
                                                        nanos=obj.dts.ps / 1000)
                     return obj
@@ -3196,6 +3196,7 @@ cdef inline _to_i8(object val):
         elif PyDateTime_Check(val):
             return Timestamp(val).value
         return val
+
 
 cpdef pydt_to_i8(object pydt):
     """
