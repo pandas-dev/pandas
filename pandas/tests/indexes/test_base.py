@@ -842,6 +842,9 @@ class TestIndex(Base):
             if name == 'catIndex':
                 # Tested in test_categorical
                 continue
+            elif name == 'repeats':
+                # Cannot map duplicated index
+                continue
 
             cur_index = self.indices[name]
             expected = Index(np.arange(len(cur_index), 0, -1))

@@ -2892,7 +2892,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        applied : {Index, MultiIndex}, inferred
+        applied : Union[Index, MultiIndex], inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -2914,7 +2914,7 @@ class Index(IndexOpsMixin, PandasObject):
                                           names=names)
 
         attributes['copy'] = False
-        return Index(new_values, **attributes)
+        return self._constructor(new_values, **attributes)
 
     def isin(self, values, level=None):
         """

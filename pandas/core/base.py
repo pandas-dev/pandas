@@ -12,7 +12,8 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike)
+    is_datetimelike,
+    is_extension_type)
 
 from pandas.util._validators import validate_bool_kwarg
 
@@ -854,7 +855,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        applied : {Index, MultiIndex}, inferred
+        applied : Union[Index, MultiIndex], inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -868,7 +869,7 @@ class IndexOpsMixin(object):
             if na_action == 'ignore':
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f,
-                                              isnull(values).view(np.uint8))
+                                              isna(values).view(np.uint8))
             else:
                 map_f = lib.map_infer
 
