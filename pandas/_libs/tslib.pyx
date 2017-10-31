@@ -31,7 +31,12 @@ from util cimport (is_integer_object, is_float_object, is_string_object,
                    INT64_MAX)
 cimport util
 
-from cpython.datetime cimport PyDelta_Check, PyTZInfo_Check
+from cpython.datetime cimport (PyDelta_Check, PyTZInfo_Check,
+                               PyDateTime_Check, PyDate_Check,
+                               PyDateTime_IMPORT,
+                               timedelta, datetime)
+# import datetime C API
+PyDateTime_IMPORT
 # this is our datetime.pxd
 from datetime cimport (
     pandas_datetime_to_datetimestruct,
@@ -46,13 +51,9 @@ from datetime cimport (
     npy_datetime,
     is_leapyear,
     dayofweek,
-    PANDAS_FR_ns,
-    PyDateTime_Check, PyDate_Check,
-    PyDateTime_IMPORT,
-    timedelta, datetime)
+    PANDAS_FR_ns)
 
 # stdlib datetime imports
-from datetime import timedelta, datetime
 from datetime import time as datetime_time
 
 from tslibs.np_datetime cimport (check_dts_bounds,
@@ -80,10 +81,7 @@ UTC = pytz.utc
 
 # initialize numpy
 import_array()
-#import_ufunc()
-
-# import datetime C API
-PyDateTime_IMPORT
+# import_ufunc()
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
@@ -93,8 +91,7 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
-    get_dst_info
-    )
+    get_dst_info)
 from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
@@ -1591,8 +1588,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     """
     cdef:
         _TSObject obj
-        bint utc_convert = 1
-        int out_local = 0, out_tzoffset = 0
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -1722,8 +1717,8 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
-cpdef convert_str_to_tsobject(object ts, object tz, object unit,
-                              dayfirst=False, yearfirst=False):
+cdef convert_str_to_tsobject(object ts, object tz, object unit,
+                             bint dayfirst=False, bint yearfirst=False):
     """ ts must be a string """
 
     cdef:
