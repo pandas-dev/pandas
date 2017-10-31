@@ -103,8 +103,7 @@ from tslibs.conversion import (
     tz_localize_to_utc, tz_convert,
     tz_convert_single)
 
-from tslibs.nattype import NaT, nat_strings, __nat_unpickle
-# Note: __nat_unpickle needs to be in the namespace for backward compat pickle
+from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat
 
 
