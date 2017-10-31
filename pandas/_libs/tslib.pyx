@@ -2532,9 +2532,9 @@ class Timedelta(_Timedelta):
 
         if value is _no_input:
             if not len(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta without a value/unit or "
-                    "descriptive keywords (days,seconds....)")
+                raise ValueError("cannot construct a Timedelta without a "
+                                 "value/unit or descriptive keywords "
+                                 "(days,seconds....)")
 
             def _to_py_int_float(v):
                 if is_integer_object(v):
@@ -2545,7 +2545,7 @@ class Timedelta(_Timedelta):
                                 "float.".format(type(v)))
 
             kwargs = dict([(k, _to_py_int_float(v))
-                            for k, v in iteritems(kwargs)])
+                           for k, v in iteritems(kwargs)])
 
             try:
                 nano = kwargs.pop('nanoseconds', 0)
@@ -2575,9 +2575,8 @@ class Timedelta(_Timedelta):
         elif _checknull_with_nat(value):
             return NaT
         else:
-            raise ValueError(
-                "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+            raise ValueError("Value must be Timedelta, string, integer, "
+                             "float, timedelta or convertible")
 
         if is_timedelta64_object(value):
             value = value.view('i8')

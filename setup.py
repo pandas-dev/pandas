@@ -30,7 +30,6 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-
 min_cython_ver = '0.23'
 try:
     import Cython
@@ -106,8 +105,6 @@ if cython:
     except ImportError:
         raise ImportError('Building pandas requires Tempita: '
                           'pip install Tempita')
-
-
 
 
 _pxi_dep_template = {
