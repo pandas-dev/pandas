@@ -352,6 +352,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/offsets.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/dtypes/generic.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -483,6 +484,7 @@ libraries = ['m'] if not is_platform_windows() else []
 ext_data = {
     '_libs.lib': {'pyxfile': '_libs/lib',
                   'depends': lib_depends + tseries_depends},
+    '_libs.dtypes.generic': {'pyxfile': '_libs/dtypes/generic', 'include': []},
     '_libs.properties': {'pyxfile': '_libs/properties', 'include': []},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
@@ -680,6 +682,7 @@ setup(name=DISTNAME,
                 'pandas.io.clipboard',
                 'pandas._libs',
                 'pandas._libs.tslibs',
+                'pandas._libs.dtypes',
                 'pandas.plotting',
                 'pandas.stats',
                 'pandas.types',
