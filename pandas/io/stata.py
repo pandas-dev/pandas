@@ -306,11 +306,11 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         data_col[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
-    if fmt in ["%tc", "tc"]:  # Delta ms relative to base
+    if fmt.startswith(("%tc", "tc")):  # Delta ms relative to base
         base = stata_epoch
         ms = dates
         conv_dates = convert_delta_safe(base, ms, 'ms')
-    elif fmt in ["%tC", "tC"]:
+    elif fmt.startswith(("%tC", "tC")):
         from warnings import warn
 
         warn("Encountered %tC format. Leaving in Stata Internal Format.")
@@ -318,27 +318,30 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         if has_bad_values:
             conv_dates[bad_locs] = pd.NaT
         return conv_dates
-    elif fmt in ["%td", "td", "%d", "d"]:  # Delta days relative to base
+    # Delta days relative to base
+    elif fmt.startswith(("%td", "td", "%d", "d")):
         base = stata_epoch
         days = dates
         conv_dates = convert_delta_safe(base, days, 'd')
-    elif fmt in ["%tw", "tw"]:  # does not count leap days - 7 days is a week
+    # does not count leap days - 7 days is a week.
+    # 52nd week may have more than 7 days
+    elif fmt.startswith(("%tw", "tw")):
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
         conv_dates = convert_year_days_safe(year, days)
-    elif fmt in ["%tm", "tm"]:  # Delta months relative to base
+    elif fmt.startswith(("%tm", "tm")):  # Delta months relative to base
         year = stata_epoch.year + dates // 12
         month = (dates % 12) + 1
         conv_dates = convert_year_month_safe(year, month)
-    elif fmt in ["%tq", "tq"]:  # Delta quarters relative to base
+    elif fmt.startswith(("%tq", "tq")):  # Delta quarters relative to base
         year = stata_epoch.year + dates // 4
         month = (dates % 4) * 3 + 1
         conv_dates = convert_year_month_safe(year, month)
-    elif fmt in ["%th", "th"]:  # Delta half-years relative to base
+    elif fmt.startswith(("%th", "th")):  # Delta half-years relative to base
         year = stata_epoch.year + dates // 2
         month = (dates % 2) * 6 + 1
         conv_dates = convert_year_month_safe(year, month)
-    elif fmt in ["%ty", "ty"]:  # Years -- not delta
+    elif fmt.startswith(("%ty", "ty")):  # Years -- not delta
         year = dates
         month = np.ones_like(dates)
         conv_dates = convert_year_month_safe(year, month)
@@ -1029,10 +1032,6 @@ class StataReader(StataParser, BaseIterator):
         # calculate size of a data record
         self.col_sizes = lmap(lambda x: self._calcsize(x), self.typlist)
 
-        # remove format details from %td
-        self.fmtlist = ["%td" if x.startswith("%td") else x
-                        for x in self.fmtlist]
-
     def _read_new_header(self, first_char):
         # The first part of the header is common to 117 and 118.
         self.path_or_buf.read(27)  # stata_dta><header><release>
@@ -1578,7 +1577,8 @@ class StataReader(StataParser, BaseIterator):
         self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
-            cols = np.where(lmap(lambda x: x in _date_formats,
+            cols = np.where(lmap(lambda x: any(x.startswith(fmt)
+                                               for fmt in _date_formats),
                                  self.fmtlist))[0]
             for i in cols:
                 col = data.columns[i]
