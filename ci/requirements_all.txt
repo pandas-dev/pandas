@@ -1,8 +1,0 @@
-Cython
-NumPy
-moto
-pytest
-python-dateutil
-pytz
-setuptools
-sphinx
