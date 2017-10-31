@@ -3701,6 +3701,128 @@ class TestGroupBy(MixIn):
         expected = pd.Series([1, 2, 1], name='b')
         tm.assert_series_equal(result, expected)
 
+    def test_is_increasing_is_decreasing(self):
+        # GH 17015
+
+        # Basics: strictly increasing (T), strictly decreasing (F),
+        # abs val increasing (F), non-strictly increasing (T)
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [1, 2, 5, 3, 2, 0, 4, 5, -6, 1, 1]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_increasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[True, False, False, True],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_increasing)
+        tm.assert_series_equal(result, expected)
+
+        # Test with inf vals
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [1, 2.1, np.inf, 3, 2, np.inf, -np.inf, 5, 11, 1, -np.inf]}
+        expected.index.name = 'B'
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_increasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[True, False, True, False],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_increasing)
+        tm.assert_series_equal(result, expected)
+
+        # Test with nan vals; should always be False
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_increasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[False, False, False, False],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_increasing)
+        tm.assert_series_equal(result, expected)
+
+        # Test with single member groups; should be True except for np.nan
+        source_dict = {
+            'A': ['1', '2', '3', '4'],
+            'B': ['a', 'b', 'c', 'd'],
+            'C': [1, 2, np.nan, np.inf]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_increasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[True, True, False, True],
+                             name='C')
+        expected.index.name = 'B'
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_increasing)
+        tm.assert_series_equal(result, expected)
+
+        # As above, for .is_monotonic_decreasing()
+        # Basics: strictly decreasing (T), strictly increasing (F),
+        # abs val decreasing (F), non-strictly increasing (T)
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [10, 9, 7, 3, 4, 5, -3, 2, 0, 1, 1]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_decreasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[True, False, False, True],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_decreasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_decreasing)
+        tm.assert_series_equal(result, expected)
+
+        # Test with inf vals
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [np.inf, 1, -np.inf, np.inf, 2, -3, -np.inf, 5, -3, -np.inf,
+                  -np.inf]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_decreasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[True, True, False, True],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_decreasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_decreasing)
+        tm.assert_series_equal(result, expected)
+
+        # Test with nan vals; should always be False
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': [1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan]}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby(['B']).C.is_monotonic_decreasing()
+        expected = pd.Series(index=['a', 'b', 'c', 'd'],
+                             data=[False, False, False, False],
+                             name='C')
+        expected.index.name = 'B'
+        tm.assert_series_equal(result, expected)
+        # Also check result equal to manually taking x.is_monotonic_decreasing.
+        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_decreasing)
+        tm.assert_series_equal(result, expected)
+
+
     def test_apply_numeric_coercion_when_datetime(self):
         # In the past, group-by/apply operations have been over-eager
         # in converting dtypes to numeric, in the presence of datetime
