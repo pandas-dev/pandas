@@ -41,9 +41,9 @@ cdef class IntervalMixin:
 
 
 cdef _interval_like(other):
-    return (hasattr(other, 'left') and
-            hasattr(other, 'right') and
-            hasattr(other, 'closed'))
+    return (hasattr(other, 'left')
+            and hasattr(other, 'right')
+            and hasattr(other, 'closed'))
 
 
 cdef class Interval(IntervalMixin):

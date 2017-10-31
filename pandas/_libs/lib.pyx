@@ -186,18 +186,18 @@ cpdef bint isscalar(object val):
 
     """
 
-    return (np.PyArray_IsAnyScalar(val) or
+    return (np.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            PyBytes_Check(val) or
+            or PyBytes_Check(val)
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
-            val is None or
-            PyDate_Check(val) or
-            PyDelta_Check(val) or
-            PyTime_Check(val) or
-            util.is_period_object(val) or
-            is_decimal(val) or
-            is_interval(val))
+            or val is None
+            or PyDate_Check(val)
+            or PyDelta_Check(val)
+            or PyTime_Check(val)
+            or util.is_period_object(val)
+            or is_decimal(val)
+            or is_interval(val))
 
 
 def item_from_zerodim(object val):

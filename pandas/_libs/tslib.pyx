@@ -761,9 +761,9 @@ class Timestamp(_Timestamp):
         Returns if the Timestamp has a time component
         in addition to the date part
         """
-        return (self.time() != _zero_time or
-                self.tzinfo is not None or
-                self.nanosecond != 0)
+        return (self.time() != _zero_time
+                or self.tzinfo is not None
+                or self.nanosecond != 0)
 
     def to_julian_date(self):
         """

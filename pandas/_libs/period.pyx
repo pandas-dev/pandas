@@ -290,8 +290,8 @@ def period_format(int64_t value, int freq, object fmt=None):
             right = period_asfreq(value, freq, 6000, 1)
             return '%s/%s' % (period_format(left, 6000),
                               period_format(right, 6000))
-        elif (freq_group == 5000 or  # BUS
-              freq_group == 6000):   # DAY
+        elif (freq_group == 5000      # BUS
+              or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
         elif freq_group == 7000:   # HR
             fmt = b'%Y-%m-%d %H:00'

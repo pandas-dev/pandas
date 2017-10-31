@@ -235,27 +235,27 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
             i = date_string.index('Q', 1, 6)
             if i == 1:
                 quarter = int(date_string[0])
-                if date_len == 4 or (date_len == 5 and
-                                     date_string[i + 1] == '-'):
+                if date_len == 4 or (date_len == 5
+                                     and date_string[i + 1] == '-'):
                     # r'(\d)Q-?(\d\d)')
                     year = 2000 + int(date_string[-2:])
-                elif date_len == 6 or (date_len == 7 and
-                                       date_string[i + 1] == '-'):
+                elif date_len == 6 or (date_len == 7
+                                       and date_string[i + 1] == '-'):
                     # r'(\d)Q-?(\d\d\d\d)')
                     year = int(date_string[-4:])
                 else:
                     raise ValueError
             elif i == 2 or i == 3:
                 # r'(\d\d)-?Q(\d)'
-                if date_len == 4 or (date_len == 5 and
-                                     date_string[i - 1] == '-'):
+                if date_len == 4 or (date_len == 5
+                                     and date_string[i - 1] == '-'):
                     quarter = int(date_string[-1])
                     year = 2000 + int(date_string[:2])
                 else:
                     raise ValueError
             elif i == 4 or i == 5:
-                if date_len == 6 or (date_len == 7 and
-                                     date_string[i - 1] == '-'):
+                if date_len == 6 or (date_len == 7
+                                     and date_string[i - 1] == '-'):
                     # r'(\d\d\d\d)-?Q(\d)'
                     quarter = int(date_string[-1])
                     year = int(date_string[:4])
