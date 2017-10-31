@@ -43,17 +43,16 @@ cimport cpython
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
-cdef double NAN = nan
 
+from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
+                               PyTime_Check, PyDelta_Check,
+                               PyDateTime_IMPORT)
+PyDateTime_IMPORT
 # this is our tseries.pxd
-from datetime cimport (
-    get_timedelta64_value, get_datetime64_value,
-    PyDateTime_Check, PyDate_Check, PyTime_Check, PyDelta_Check,
-    PyDateTime_IMPORT)
+from datetime cimport get_timedelta64_value, get_datetime64_value
 
 
-from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
-                    _check_all_nulls)
+from tslib cimport _check_all_nulls
 import tslib
 from tslib import NaT, Timestamp, Timedelta
 import interval
@@ -67,9 +66,6 @@ from util cimport is_array, _checknull, _checknan
 cdef extern from "math.h":
     double sqrt(double x)
     double fabs(double)
-
-# import datetime C API
-PyDateTime_IMPORT
 
 # initialize numpy
 import_array()
