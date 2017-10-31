@@ -897,69 +897,6 @@ class TestToDatetimeMisc(object):
 
 
 class TestGuessDatetimeFormat(object):
-
-    def test_guess_datetime_format_with_parseable_formats(self):
-        tm._skip_if_not_us_locale()
-        dt_string_to_format = (('20111230', '%Y%m%d'),
-                               ('2011-12-30', '%Y-%m-%d'),
-                               ('30-12-2011', '%d-%m-%Y'),
-                               ('2011-12-30 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-12-30T00:00:00', '%Y-%m-%dT%H:%M:%S'),
-                               ('2011-12-30 00:00:00.000000',
-                                '%Y-%m-%d %H:%M:%S.%f'), )
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
-    def test_guess_datetime_format_with_dayfirst(self):
-        ambiguous_string = '01/01/2011'
-        assert tools._guess_datetime_format(
-            ambiguous_string, dayfirst=True) == '%d/%m/%Y'
-        assert tools._guess_datetime_format(
-            ambiguous_string, dayfirst=False) == '%m/%d/%Y'
-
-    def test_guess_datetime_format_with_locale_specific_formats(self):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
-        dt_string_to_format = (('30/Dec/2011', '%d/%b/%Y'),
-                               ('30/December/2011', '%d/%B/%Y'),
-                               ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S'), )
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
-    def test_guess_datetime_format_invalid_inputs(self):
-        # A datetime string must include a year, month and a day for it
-        # to be guessable, in addition to being a string that looks like
-        # a datetime
-        invalid_dts = [
-            '2013',
-            '01/2013',
-            '12:00:00',
-            '1/1/1/1',
-            'this_is_not_a_datetime',
-            '51a',
-            9,
-            datetime(2011, 1, 1),
-        ]
-
-        for invalid_dt in invalid_dts:
-            assert tools._guess_datetime_format(invalid_dt) is None
-
-    def test_guess_datetime_format_nopadding(self):
-        # GH 11142
-        dt_string_to_format = (('2011-1-1', '%Y-%m-%d'),
-                               ('30-1-2011', '%d-%m-%Y'),
-                               ('1/1/2011', '%m/%d/%Y'),
-                               ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S'))
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
     def test_guess_datetime_format_for_array(self):
         tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
@@ -1074,21 +1011,6 @@ class TestDaysInMonth(object):
 
 
 class TestDatetimeParsingWrappers(object):
-    def test_does_not_convert_mixed_integer(self):
-        bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
-
-        for bad_date_string in bad_date_strings:
-            assert not parsing._does_string_look_like_datetime(bad_date_string)
-
-        good_date_strings = ('2012-01-01',
-                             '01/01/2012',
-                             'Mon Sep 16, 2013',
-                             '01012012',
-                             '0101',
-                             '1-1', )
-
-        for good_date_string in good_date_strings:
-            assert parsing._does_string_look_like_datetime(good_date_string)
 
     def test_parsers(self):
 
@@ -1148,8 +1070,8 @@ class TestDatetimeParsingWrappers(object):
                  }
 
         for date_str, expected in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str,
-                                                    yearfirst=yearfirst)
+            result1, _, _ = parsing.parse_time_string(date_str,
+                                                      yearfirst=yearfirst)
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
             # result5 is used below
@@ -1175,7 +1097,7 @@ class TestDatetimeParsingWrappers(object):
                 assert result7 == expected
 
         # NaT
-        result1, _, _ = tools.parse_time_string('NaT')
+        result1, _, _ = parsing.parse_time_string('NaT')
         result2 = to_datetime('NaT')
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
@@ -1183,12 +1105,6 @@ class TestDatetimeParsingWrappers(object):
         assert result2 is tslib.NaT
         assert result3 is tslib.NaT
         assert result4 is tslib.NaT
-
-    def test_parsers_quarter_invalid(self):
-
-        cases = ['2Q 2005', '2Q-200A', '2Q-200', '22Q2005', '6Q-20', '2Q200.']
-        for case in cases:
-            pytest.raises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
         # OK
@@ -1264,9 +1180,9 @@ class TestDatetimeParsingWrappers(object):
                                         yearfirst=yearfirst)
                 assert dateutil_result == expected
 
-                result1, _, _ = tools.parse_time_string(date_str,
-                                                        dayfirst=dayfirst,
-                                                        yearfirst=yearfirst)
+                result1, _, _ = parsing.parse_time_string(date_str,
+                                                          dayfirst=dayfirst,
+                                                          yearfirst=yearfirst)
 
                 # we don't support dayfirst/yearfirst here:
                 if not dayfirst and not yearfirst:
@@ -1289,7 +1205,7 @@ class TestDatetimeParsingWrappers(object):
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
 
         for date_str, (exp_now, exp_def) in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str)
+            result1, _, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
             result4 = Timestamp(date_str)
@@ -1337,34 +1253,6 @@ class TestDatetimeParsingWrappers(object):
         res = tools.to_time(np.array(arg))
         assert isinstance(res, list)
         assert res == expected_arr
-
-    def test_parsers_monthfreq(self):
-        cases = {'201101': datetime(2011, 1, 1, 0, 0),
-                 '200005': datetime(2000, 5, 1, 0, 0)}
-
-        for date_str, expected in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            assert result1 == expected
-
-    def test_parsers_quarterly_with_freq(self):
-        msg = ('Incorrect quarterly string is given, quarter '
-               'must be between 1 and 4: 2013Q5')
-        with tm.assert_raises_regex(parsing.DateParseError, msg):
-            tools.parse_time_string('2013Q5')
-
-        # GH 5418
-        msg = ('Unable to retrieve month information from given freq: '
-               'INVLD-L-DEC-SAT')
-        with tm.assert_raises_regex(parsing.DateParseError, msg):
-            tools.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
-
-        cases = {('2013Q2', None): datetime(2013, 4, 1),
-                 ('2013Q2', 'A-APR'): datetime(2012, 8, 1),
-                 ('2013-Q2', 'A-DEC'): datetime(2013, 4, 1)}
-
-        for (date_str, freq), exp in compat.iteritems(cases):
-            result, _, _ = tools.parse_time_string(date_str, freq=freq)
-            assert result == exp
 
     def test_parsers_timezone_minute_offsets_roundtrip(self):
         # GH11708
@@ -1423,14 +1311,6 @@ class TestDatetimeParsingWrappers(object):
 
 
 class TestArrayToDatetime(object):
-
-    def test_try_parse_dates(self):
-        arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
-
-        result = parsing.try_parse_dates(arr, dayfirst=True)
-        expected = [parse(d, dayfirst=True) for d in arr]
-        assert np.array_equal(result, expected)
-
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         tm.assert_numpy_array_equal(
