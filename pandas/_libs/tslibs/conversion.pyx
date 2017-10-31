@@ -13,17 +13,16 @@ import pytz
 
 from cpython.datetime cimport datetime
 
-from datetime cimport (
-    PANDAS_FR_ns,
-    pandas_datetimestruct,
-    pandas_datetime_to_datetimestruct)
+from np_datetime cimport (check_dts_bounds,
+                          pandas_datetimestruct,
+                          dt64_to_dtstruct, dtstruct_to_dt64)
 
 cimport util
 
 from timezones cimport (
-	is_utc, is_tzlocal, is_fixed_offset,
-	treat_tz_as_dateutil, treat_tz_as_pytz,
-	get_utcoffset, get_dst_info, get_timezone)
+    is_utc, is_tzlocal, is_fixed_offset,
+    treat_tz_as_dateutil, treat_tz_as_pytz,
+    get_utcoffset, get_dst_info, get_timezone)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -39,7 +38,7 @@ UTC = pytz.UTC
 
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
-    #cdef:
+    # cdef:
     #    pandas_datetimestruct dts      # pandas_datetimestruct
     #    int64_t value               # numpy dt64
     #    object tzinfo
@@ -60,16 +59,14 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     if is_utc(tz):
         obj.tzinfo = tz
     elif is_tzlocal(tz):
-        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
+        dt64_to_dtstruct(obj.value, &obj.dts)
         dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
                       obj.dts.min, obj.dts.sec, obj.dts.us, tz)
         delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
         if obj.value != NPY_NAT:
-            pandas_datetime_to_datetimestruct(obj.value + delta,
-                                              PANDAS_FR_ns, &obj.dts)
+            dt64_to_dtstruct(obj.value + delta, &obj.dts)
         else:
-            pandas_datetime_to_datetimestruct(obj.value,
-                                              PANDAS_FR_ns, &obj.dts)
+            dt64_to_dtstruct(obj.value, &obj.dts)
         obj.tzinfo = tz
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -81,28 +78,22 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         if is_fixed_offset(tz):
             # statictzinfo
             if len(deltas) > 0 and obj.value != NPY_NAT:
-                pandas_datetime_to_datetimestruct(obj.value + deltas[0],
-                                                  PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
             else:
-                pandas_datetime_to_datetimestruct(
-                    obj.value, PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value, &obj.dts)
             obj.tzinfo = tz
         elif treat_tz_as_pytz(tz):
             inf = tz._transition_info[pos]
             if obj.value != NPY_NAT:
-                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                                  PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             else:
-                pandas_datetime_to_datetimestruct(obj.value,
-                                                  PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value, &obj.dts)
             obj.tzinfo = tz._tzinfos[inf]
         elif treat_tz_as_dateutil(tz):
             if obj.value != NPY_NAT:
-                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                                  PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             else:
-                pandas_datetime_to_datetimestruct(obj.value,
-                                                  PANDAS_FR_ns, &obj.dts)
+                dt64_to_dtstruct(obj.value, &obj.dts)
             obj.tzinfo = tz
         else:
             obj.tzinfo = tz
@@ -141,7 +132,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     # Convert to UTC
     if is_tzlocal(tz1):
-        pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
+        dt64_to_dtstruct(val, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz1)
         delta = int(get_utcoffset(tz1, dt).total_seconds()) * 1000000000
@@ -159,7 +150,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if get_timezone(tz2) == 'UTC':
         return utc_date
     if is_tzlocal(tz2):
-        pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
+        dt64_to_dtstruct(val, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
         delta = int(get_utcoffset(tz2, dt).total_seconds()) * 1000000000
@@ -212,7 +203,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 if v == NPY_NAT:
                     utc_dates[i] = NPY_NAT
                 else:
-                    pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
+                    dt64_to_dtstruct(v, &dts)
                     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                                   dts.min, dts.sec, dts.us, tz1)
                     delta = (int(get_utcoffset(tz1, dt).total_seconds())
@@ -222,7 +213,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             trans, deltas, typ = get_dst_info(tz1)
 
             # all-NaT
-            tt = vals[vals!=NPY_NAT]
+            tt = vals[vals != NPY_NAT]
             if not len(tt):
                 return vals
 
@@ -252,7 +243,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
+                dt64_to_dtstruct(v, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz2)
                 delta = (int(get_utcoffset(tz2, dt).total_seconds())
@@ -265,7 +256,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # use first non-NaT element
     # if all-NaT, return all-NaT
-    if (result==NPY_NAT).all():
+    if (result == NPY_NAT).all():
         return result
 
     # if all NaT, return all NaT
@@ -325,7 +316,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     if is_tzlocal(tz):
         for i in range(n):
             v = vals[i]
-            pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
+            dt64_to_dtstruct(v, &dts)
             dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                           dts.min, dts.sec, dts.us, tz)
             delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
@@ -346,8 +337,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     elif hasattr(ambiguous, '__iter__'):
         is_dst = True
         if len(ambiguous) != len(vals):
-            raise ValueError(
-                "Length of ambiguous bool-array must be the same size as vals")
+            raise ValueError("Length of ambiguous bool-array must be "
+                             "the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
     trans, deltas, typ = get_dst_info(tz)
