@@ -39,7 +39,7 @@ UTC = pytz.UTC
 
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
-    #cdef:
+    # cdef:
     #    pandas_datetimestruct dts      # pandas_datetimestruct
     #    int64_t value               # numpy dt64
     #    object tzinfo
@@ -255,7 +255,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz2)
-                delta = (int(get_utcoffset(tz2, dt).total_seconds()) * 
+                delta = (int(get_utcoffset(tz2, dt).total_seconds()) *
                          1000000000)
                 result[i] = v + delta
         return result

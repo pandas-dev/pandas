@@ -328,7 +328,7 @@ cdef class BlockIndex(SparseIndex):
         ndarray blocs, blengths
 
     cdef:
-        object __weakref__ # need to be picklable
+        object __weakref__  # need to be picklable
         int32_t *locbuf
         int32_t *lenbuf
 

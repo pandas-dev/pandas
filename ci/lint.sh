@@ -17,7 +17,7 @@ if [ "$LINT" ]; then
     echo "Linting *.py DONE"
 
     echo "Linting setup.py"
-    flake8 setup.py
+    flake8 setup.py --ignore=W503
     if [ $? -ne "0" ]; then
         RET=1
     fi

@@ -47,6 +47,7 @@ from dateutil.parser import parse as du_parse
 # ----------------------------------------------------------------------
 # Constants
 
+
 class DateParseError(ValueError):
     pass
 
@@ -68,6 +69,7 @@ NAT_SENTINEL = object()
 # This allows us to reference NaT without having to import it
 
 # ----------------------------------------------------------------------
+
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
                           yearfirst=False, **kwargs):

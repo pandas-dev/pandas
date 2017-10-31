@@ -306,7 +306,8 @@ def array_strptime(ndarray[object] values, object fmt,
                 # 0.
                 ordinal = datetime_date(year, month, day).toordinal()
                 julian = ordinal - datetime_date(year, 1, 1).toordinal() + 1
-            else: # Assume that if they bothered to include Julian day it will
+            else:
+                # Assume that if they bothered to include Julian day it will
                 # be accurate.
                 datetime_result = datetime_date.fromordinal(
                     (julian - 1) + datetime_date(year, 1, 1).toordinal())

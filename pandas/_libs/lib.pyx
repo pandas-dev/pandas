@@ -121,6 +121,7 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
         s += arr[i].__sizeof__()
     return s
 
+
 # ----------------------------------------------------------------------
 # isnull / notnull related
 
@@ -130,7 +131,7 @@ cdef double NEGINF = -INF
 
 cpdef bint checknull(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val # and val != INF and val != NEGINF
+        return val != val  # and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
     elif val is NaT:

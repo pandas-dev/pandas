@@ -80,7 +80,6 @@ UTC = pytz.utc
 
 # initialize numpy
 import_array()
-#import_ufunc()
 
 # import datetime C API
 PyDateTime_IMPORT
@@ -93,8 +92,7 @@ from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
-    get_dst_info
-    )
+    get_dst_info)
 from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
@@ -1094,7 +1092,7 @@ Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Frequency inference
 
 def unique_deltas(ndarray[int64_t] arr):
@@ -1269,7 +1267,7 @@ cdef class _Timestamp(datetime):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
-                                 'timestamps')
+                                'timestamps')
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
@@ -1439,10 +1437,10 @@ cdef class _Timestamp(datetime):
             # format a Timestamp with only _date_repr if possible
             # otherwise _repr_base
             if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
+                    self.minute == 0 and
+                    self.second == 0 and
+                    self.microsecond == 0 and
+                    self.nanosecond == 0):
                 return self._date_repr
             return self._repr_base
 
@@ -1460,7 +1458,7 @@ cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
 
 
 cdef inline bint is_timestamp(object o):
-    return Py_TYPE(o) == ts_type # isinstance(o, Timestamp)
+    return Py_TYPE(o) == ts_type  # isinstance(o, Timestamp)
 
 
 cdef bint _nat_scalar_rules[6]
@@ -1528,7 +1526,7 @@ cdef class _NaT(datetime):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
         if PyDateTime_Check(other):
-            return  NaT
+            return NaT
         elif PyDelta_Check(other):
             return NaT
 
@@ -1681,8 +1679,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
         # sort of a temporary hack
         if ts.tzinfo is not None:
-            if (hasattr(tz, 'normalize') and
-                hasattr(ts.tzinfo, '_utcoffset')):
+            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
                 ts = tz.normalize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
@@ -1772,8 +1769,8 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                     obj = convert_to_tsobject(obj.value, obj.tzinfo,
                                               None, 0, 0)
                     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                     obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                     obj.dts.us, obj.tzinfo)
+                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                  obj.dts.us, obj.tzinfo)
                     obj = convert_datetime_to_tsobject(dt, tz,
                                                        nanos=obj.dts.ps / 1000)
                     return obj
@@ -2033,7 +2030,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         if not need_to_iterate:
 
             if ((fvalues < _NS_LOWER_BOUND).any()
-                or (fvalues > _NS_UPPER_BOUND).any()):
+                    or (fvalues > _NS_UPPER_BOUND).any()):
                 raise OutOfBoundsDatetime(
                     "cannot convert input with unit '{0}'".format(unit))
             result = (iresult *m).astype('M8[ns]')
@@ -2302,7 +2299,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     raise TypeError("{0} is not convertible to datetime"
                                     .format(type(val)))
 
-        if  seen_datetime and seen_integer:
+        if seen_datetime and seen_integer:
             # we have mixed datetimes & integers
 
             if is_coerce:
@@ -3133,7 +3130,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Conversion routines
 
 cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
@@ -3231,8 +3228,8 @@ def i8_to_pydt(int64_t i8, object tzinfo=None):
     return Timestamp(i8)
 
 
+# ----------------------------------------------------------------------
 # Accessors
-#----------------------------------------------------------------------
 
 def get_time_micros(ndarray[int64_t] dtindex):
     """
@@ -3382,8 +3379,8 @@ def dates_normalized(ndarray[int64_t] stamps, tz=None):
 
     return True
 
+# ----------------------------------------------------------------------
 # Some general helper functions
-#----------------------------------------------------------------------
 
 
 def monthrange(int64_t year, int64_t month):

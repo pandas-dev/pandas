@@ -1,4 +1,5 @@
-#cython=False
+# -*- coding: utf-8 -*-
+# cython: profile=False
 import numpy as np
 
 from distutils.version import LooseVersion

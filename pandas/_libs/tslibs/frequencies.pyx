@@ -85,21 +85,20 @@ _period_code_map.update({'Y' + key[1:]: _period_code_map[key]
                          if key.startswith('A-')})
 
 _period_code_map.update({
-    "Q": 2000,  # Quarterly - December year end (default quarterly)
-    "A": 1000,  # Annual
-    "W": 4000,  # Weekly
-    "C": 5000,  # Custom Business Day
-    })
+    "Q": 2000,   # Quarterly - December year end (default quarterly)
+    "A": 1000,   # Annual
+    "W": 4000,   # Weekly
+    "C": 5000})  # Custom Business Day
 
 _lite_rule_alias = {
     'W': 'W-SUN',
     'Q': 'Q-DEC',
 
-    'A': 'A-DEC',  # YearEnd(month=12),
+    'A': 'A-DEC',      # YearEnd(month=12),
     'Y': 'A-DEC',
-    'AS': 'AS-JAN',  # YearBegin(month=1),
+    'AS': 'AS-JAN',    # YearBegin(month=1),
     'YS': 'AS-JAN',
-    'BA': 'BA-DEC',  # BYearEnd(month=12),
+    'BA': 'BA-DEC',    # BYearEnd(month=12),
     'BY': 'BA-DEC',
     'BAS': 'BAS-JAN',  # BYearBegin(month=1),
     'BYS': 'BAS-JAN',
