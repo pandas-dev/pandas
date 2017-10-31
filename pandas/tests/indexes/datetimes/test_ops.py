@@ -3,7 +3,7 @@ import pytest
 import dateutil
 import warnings
 import numpy as np
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from itertools import product
 import pandas as pd
@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
-                    datetime, Float64Index, offsets, bdate_range)
+                    bdate_range)
 from pandas.tseries.offsets import BMonthEnd, CDay, BDay
 from pandas.tests.test_base import Ops
 
@@ -1077,7 +1077,7 @@ def test_shift_months(years, months):
                        Timestamp('2000-12-31')])
     actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 +
                                               months))
-    expected = DatetimeIndex([x + offsets.DateOffset(
+    expected = DatetimeIndex([x + pd.offsets.DateOffset(
         years=years, months=months) for x in s])
     tm.assert_index_equal(actual, expected)
 
