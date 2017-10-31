@@ -22,7 +22,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
--
+- :func: groupby.is_monotonic_increasing and .is_monotonic_decreasing extend Series.is_monotonic_increasing to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
 -
 
 .. _whatsnew_0211.deprecations:

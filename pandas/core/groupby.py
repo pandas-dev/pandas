@@ -1743,6 +1743,55 @@ class GroupBy(_GroupBy):
         """
         return _pipe(self, func, *args, **kwargs)
 
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def is_monotonic_increasing(self):
+        """
+        Returns whether each group is monotonically increasing.
+
+        Equivalent to ``.apply(lambda x: x.is_monotonic_increasing)``.
+
+        Examples
+        --------
+        >>> source_dict = {
+        ...    'A': ['this', 'col', 'is', 'entirely', 'irrelevant', '.'],
+        ...    'B': ['cat_a', 'cat_a', 'cat_a', 'cat_b', 'cat_b', 'cat_b'],
+        ...    'C': [1, 2, 3, 2, 2, 0]}
+
+        >>> df = pd.DataFrame(source_dict)
+        ...    df.groupby(['B']).C.is_monotonic_increasing()
+        B
+        cat_a    True
+        cat_b    False
+        Name: C, dtype: bool
+
+        """
+        return self.apply(lambda x: x.is_monotonic_increasing)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def is_monotonic_decreasing(self):
+        """
+        Returns whether each group is monotonically decreasing.
+
+        Equivalent to ``.apply(lambda x: x.is_monotonic_decreasing)``.
+
+        Examples
+        --------
+        >>> source_dict = {
+        ...    'A': ['this', 'col', 'is', 'entirely', 'irrelevant', '.'],
+        ...    'B': ['cat_a', 'cat_a', 'cat_a', 'cat_b', 'cat_b', 'cat_b'],
+        ...    'C': [1, 2, 3, 2, 2, 0]}
+
+        >>> df = pd.DataFrame(source_dict)
+        ...    df.groupby(['B']).C.is_monotonic_decreasing()
+        B
+        cat_a    False
+        cat_b    True
+        Name: C, dtype: bool
+        """
+        return self.apply(lambda x: x.is_monotonic_decreasing)
+
 
 GroupBy._add_numeric_operations()
 
