@@ -689,7 +689,7 @@ cdef class BoolValidator(Validator):
         return issubclass(self.dtype.type, np.bool_)
 
 
-cpdef bint is_bool_array(ndarray values, bint skipna=False):
+cpdef bint is_bool_array(ndarray values, bint skipna=False) except -1:
     cdef:
         BoolValidator validator = BoolValidator(
             len(values),
