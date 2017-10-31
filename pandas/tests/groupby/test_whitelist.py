@@ -239,6 +239,7 @@ def test_groupby_blacklist(df_letters):
 def test_tab_completion(mframe):
     grp = mframe.groupby(level='second')
     results = set([v for v in dir(grp) if not v.startswith('_')])
+<<<<<<< HEAD
     expected = set(
         ['A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
          'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
@@ -255,6 +256,20 @@ def test_tab_completion(mframe):
          'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding',
 >>>>>>> e99897c... ENH: gb.is_monotonic_increasing, is_monotonic_decreasing  #17015
          'is_monotonic_increasing', 'is_monotonic_decreasing'])
+=======
+    expected = {
+        'A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
+        'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
+        'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
+        'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
+        'nunique', 'head', 'describe', 'cummax', 'quantile',
+        'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
+        'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
+        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+        'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe',
+        'is_monotonic_increasing', 'is_monotonic_decreasing'}
+>>>>>>> ceceae1... ENH: gb.is_monotonic_increasing #17015 fix rebase conflicts
     assert results == expected
 
 
