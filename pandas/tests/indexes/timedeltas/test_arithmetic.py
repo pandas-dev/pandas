@@ -735,10 +735,8 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(result, exp)
         assert result.freq is None
 
-
-# FIXME: This came from `test_timedelta`, does not appear to have
-# anything to do with slicing.  See if something was lost or misplaced.
-class TestSlicing(object):
+    # TODO: Needs more informative name, probably split up into
+    # more targeted tests
     @pytest.mark.parametrize('freq', ['B', 'D'])
     def test_timedelta(self, freq):
         index = date_range('1/1/2000', periods=50, freq=freq)
@@ -770,33 +768,3 @@ class TestSlicing(object):
         result4 = DatetimeIndex(s - pd.offsets.Hour(1))
         tm.assert_index_equal(result1, result4)
         tm.assert_index_equal(result2, result3)
-
-
-# FIXME: This was moved from `test_tools`.  It belongs in scalar tests
-class TestTimedeltas(object):
-    _multiprocess_can_split_ = True
-
-    def test_to_timedelta_on_nanoseconds(self):
-        # GH 9273
-        result = Timedelta(nanoseconds=100)
-        expected = Timedelta('100ns')
-        assert result == expected
-
-        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
-                           milliseconds=1, microseconds=1, nanoseconds=1)
-        expected = Timedelta(694861001001001)
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
-        expected = Timedelta('1us1ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
-        expected = Timedelta('999ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
-        expected = Timedelta('990ns')
-        assert result == expected
-
-        pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))
