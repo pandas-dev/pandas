@@ -125,7 +125,10 @@ class TestDatetimeIndex(object):
 
     def test_access_datetimeindex_with_timezoned_label(self):
 
-        idx = pd.DataFrame(index=pd.date_range('2016-01-01T00:00', '2016-03-31T23:59', freq='T'))
+        # 6785, timezone was ignored when simple string was provided as a label
+
+        idx = pd.DataFrame(index=pd.date_range('2016-01-01T00:00',
+                                               '2016-03-31T23:59', freq='T'))
 
         former_naive_endpoint_idx = idx[
             "2016-01-01T00:00-02:00"
@@ -139,13 +142,20 @@ class TestDatetimeIndex(object):
             pd.Timestamp("2016-01-01T02:03")
         ]
 
-        assert len(former_naive_endpoint_idx) == len(former_non_naive_endpoint_idx)
+        assert (len(former_naive_endpoint_idx)
+                == len(former_non_naive_endpoint_idx))
 
-        assert former_naive_endpoint_idx.iloc[0].name == former_non_naive_endpoint_idx.iloc[0].name
-        assert former_naive_endpoint_idx.iloc[1].name == former_non_naive_endpoint_idx.iloc[1].name
-        assert former_naive_endpoint_idx.iloc[2].name == former_non_naive_endpoint_idx.iloc[2].name
-        assert former_naive_endpoint_idx.iloc[3].name == former_non_naive_endpoint_idx.iloc[3].name
+        assert (former_naive_endpoint_idx.iloc[0].name
+                == former_non_naive_endpoint_idx.iloc[0].name)
 
+        assert (former_naive_endpoint_idx.iloc[1].name
+                == former_non_naive_endpoint_idx.iloc[1].name)
+
+        assert (former_naive_endpoint_idx.iloc[2].name
+                == former_non_naive_endpoint_idx.iloc[2].name)
+
+        assert (former_naive_endpoint_idx.iloc[3].name
+                == former_non_naive_endpoint_idx.iloc[3].name)
 
     def test_indexing_with_datetimeindex_tz(self):
 
