@@ -108,34 +108,6 @@ want to clone your fork to your machine::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-Creating a branch
------------------
-
-You want your master branch to reflect only production-ready code, so create a
-feature branch for making your changes. For example::
-
-    git branch shiny-new-feature
-    git checkout shiny-new-feature
-
-The above can be simplified to::
-
-    git checkout -b shiny-new-feature
-
-This changes your working directory to the shiny-new-feature branch.  Keep any
-changes in this branch specific to one bug or feature so it is clear
-what the branch brings to *pandas*. You can have many shiny-new-features
-and switch in between them using the git checkout command.
-
-To update this branch, you need to retrieve the changes from the master branch::
-
-    git fetch upstream
-    git rebase upstream/master
-
-This will replay your commits on top of the latest pandas git master.  If this
-leads to merge conflicts, you must resolve these before submitting your pull
-request.  If you have uncommitted changes, you will need to ``stash`` them prior
-to updating.  This will effectively store your changes and they can be reapplied
-after updating.
 
 .. _contributing.dev_env:
 
@@ -239,6 +211,36 @@ You'll need to have python3.5 installed on your system.
 
    # Install additional dependencies
    python -m pip install -r ci/requirements-optional-pip.txt
+
+Creating a branch
+-----------------
+
+You want your master branch to reflect only production-ready code, so create a
+feature branch for making your changes. For example::
+
+    git branch shiny-new-feature
+    git checkout shiny-new-feature
+
+The above can be simplified to::
+
+    git checkout -b shiny-new-feature
+
+This changes your working directory to the shiny-new-feature branch.  Keep any
+changes in this branch specific to one bug or feature so it is clear
+what the branch brings to *pandas*. You can have many shiny-new-features
+and switch in between them using the git checkout command.
+
+To update this branch, you need to retrieve the changes from the master branch::
+
+    git fetch upstream
+    git rebase upstream/master
+
+This will replay your commits on top of the latest pandas git master.  If this
+leads to merge conflicts, you must resolve these before submitting your pull
+request.  If you have uncommitted changes, you will need to ``stash`` them prior
+to updating.  This will effectively store your changes and they can be reapplied
+after updating.
+
 
 .. _contributing.documentation:
 
