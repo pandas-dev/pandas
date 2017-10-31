@@ -46,8 +46,6 @@ from datetime cimport (
     get_datetime64_unit,
     PANDAS_DATETIMEUNIT,
     _string_to_dts,
-    _pydatetime_to_dts,
-    _date_to_datetime64,
     npy_datetime,
     is_leapyear,
     dayofweek,
@@ -58,7 +56,8 @@ from datetime import time as datetime_time
 
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  pandas_datetimestruct,
-                                 dt64_to_dtstruct, dtstruct_to_dt64)
+                                 dt64_to_dtstruct, dtstruct_to_dt64,
+                                 pydatetime_to_dt64, pydate_to_dt64)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (
@@ -1674,7 +1673,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             if (hasattr(tz, 'normalize') and
                 hasattr(ts.tzinfo, '_utcoffset')):
                 ts = tz.normalize(ts)
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
             else:
                 # tzoffset
@@ -1682,7 +1681,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                     tz = ts.astimezone(tz).tzinfo
                 except:
                     pass
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 ts_offset = get_utcoffset(ts.tzinfo, ts)
                 obj.value -= int(ts_offset.total_seconds() * 1e9)
                 tz_offset = get_utcoffset(tz, ts)
@@ -1691,14 +1690,14 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                 obj.tzinfo = tz
         elif not is_utc(tz):
             ts = _localize_pydatetime(ts, tz)
-            obj.value = _pydatetime_to_dts(ts, &obj.dts)
+            obj.value = pydatetime_to_dt64(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
         else:
             # UTC
-            obj.value = _pydatetime_to_dts(ts, &obj.dts)
+            obj.value = pydatetime_to_dt64(ts, &obj.dts)
             obj.tzinfo = pytz.utc
     else:
-        obj.value = _pydatetime_to_dts(ts, &obj.dts)
+        obj.value = pydatetime_to_dt64(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
@@ -1851,7 +1850,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
-                iresult[i] = _pydatetime_to_dts(val, &dts)
+                iresult[i] = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
         else:
             raise TypeError('Unrecognized value type: %s' % type(val))
@@ -2176,7 +2175,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                          'be converted to datetime64 unless '
                                          'utc=True')
                 else:
-                    iresult[i] = _pydatetime_to_dts(val, &dts)
+                    iresult[i] = pydatetime_to_dt64(val, &dts)
                     if is_timestamp(val):
                         iresult[i] += val.nanosecond
                     try:
@@ -2188,7 +2187,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise
 
             elif PyDate_Check(val):
-                iresult[i] = _date_to_datetime64(val, &dts)
+                iresult[i] = pydate_to_dt64(val, &dts)
                 try:
                     check_dts_bounds(&dts)
                     seen_datetime = 1
@@ -2344,7 +2343,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 try:
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                        yearfirst=yearfirst)
-                    _pydatetime_to_dts(oresult[i], &dts)
+                    pydatetime_to_dt64(oresult[i], &dts)
                     check_dts_bounds(&dts)
                 except Exception:
                     if is_raise:
