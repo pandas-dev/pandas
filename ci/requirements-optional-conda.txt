@@ -5,6 +5,7 @@ fastparquet
 feather-format
 html5lib
 ipython
+ipykernel
 jinja2
 lxml
 matplotlib
