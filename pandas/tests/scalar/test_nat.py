@@ -125,12 +125,13 @@ def test_round_nat(klass):
 
 def test_NaT_methods():
     # GH 9513
+    # GH 17329 for `timestamp`
     raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
                      'fromordinal', 'fromtimestamp', 'isocalendar',
                      'strftime', 'strptime', 'time', 'timestamp',
                      'timetuple', 'timetz', 'toordinal', 'tzname',
                      'utcfromtimestamp', 'utcnow', 'utcoffset',
-                     'utctimetuple']
+                     'utctimetuple', 'timestamp']
     nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today',
                    'tz_convert', 'tz_localize']
     nan_methods = ['weekday', 'isoweekday']
@@ -247,6 +248,8 @@ def test_nat_arithmetic():
         assert left + right is NaT
         assert right - left is NaT
         assert left - right is NaT
+        assert np.isnan(left / right)
+        assert np.isnan(right / left)
 
     # GH 11718
     t_utc = Timestamp('2014-01-01', tz='UTC')

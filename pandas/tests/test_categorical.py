@@ -1203,6 +1203,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with pytest.raises(ValueError):
             cat.rename_categories([1, 2])
 
+    def test_rename_categories_series(self):
+        # https://github.com/pandas-dev/pandas/issues/17981
+        c = pd.Categorical(['a', 'b'])
+        xpr = "Treating Series 'new_categories' as a list-like "
+        with tm.assert_produces_warning(FutureWarning) as rec:
+            result = c.rename_categories(pd.Series([0, 1]))
+
+        assert len(rec) == 1
+        assert xpr in str(rec[0].message)
+        expected = pd.Categorical([0, 1])
+        tm.assert_categorical_equal(result, expected)
+
     def test_rename_categories_dict(self):
         # GH 17336
         cat = pd.Categorical(['a', 'b', 'c', 'd'])
@@ -2111,6 +2123,13 @@ class TestCategoricalAsBlock(object):
             l, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_empty_astype(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
 
     def test_construction_series(self):
 
