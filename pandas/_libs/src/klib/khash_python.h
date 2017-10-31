@@ -1,3 +1,4 @@
+#include <string.h>
 #include <Python.h>
 
 #include "khash.h"
@@ -14,7 +15,9 @@
 // hash for 64 bit integers.
 // GH 13436
 khint64_t PANDAS_INLINE asint64(double key) {
-  return *(khint64_t *)(&key);
+  khint64_t val;
+  memcpy(&val, &key, sizeof(double));
+  return val;
 }
 #define kh_float64_hash_func(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
 #define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
