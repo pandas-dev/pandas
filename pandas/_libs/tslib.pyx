@@ -2369,9 +2369,9 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 cdef class _Timedelta(timedelta):
 
     cdef readonly:
-        int64_t value     # nanoseconds
-        object freq       # frequency reference
-        bint is_populated # are my components populated
+        int64_t value      # nanoseconds
+        object freq        # frequency reference
+        bint is_populated  # are my components populated
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
 
     def __hash__(_Timedelta self):
@@ -2541,8 +2541,8 @@ class Timedelta(_Timedelta):
                     return int(v)
                 elif is_float_object(v):
                     return float(v)
-                raise TypeError(
-                    "Invalid type {0}. Must be int or float.".format(type(v)))
+                raise TypeError("Invalid type {0}. Must be int or "
+                                "float.".format(type(v)))
 
             kwargs = dict([(k, _to_py_int_float(v))
                             for k, v in iteritems(kwargs)])
@@ -2731,6 +2731,7 @@ class Timedelta(_Timedelta):
 
     def __repr__(self):
         return "Timedelta('{0}')".format(self._repr_base(format='long'))
+
     def __str__(self):
         return self._repr_base(format='long')
 
@@ -3015,6 +3016,7 @@ class Timedelta(_Timedelta):
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')
+
 
 # resolution in ns
 Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)
@@ -3386,7 +3388,6 @@ def monthrange(int64_t year, int64_t month):
 
 cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month - 1]
-
 
 
 cpdef normalize_date(object dt):
