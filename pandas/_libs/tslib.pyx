@@ -41,8 +41,6 @@ from datetime cimport (
     get_datetime64_unit,
     PANDAS_DATETIMEUNIT,
     _string_to_dts,
-    _pydatetime_to_dt64,
-    _pydate_to_dt64,
     npy_datetime,
     is_leapyear,
     dayofweek,
@@ -57,7 +55,8 @@ from datetime import time as datetime_time
 
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  pandas_datetimestruct,
-                                 dt64_to_dtstruct, dtstruct_to_dt64)
+                                 dt64_to_dtstruct, dtstruct_to_dt64,
+                                 _pydatetime_to_dt64, _pydate_to_dt64)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (
