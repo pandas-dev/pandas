@@ -148,40 +148,31 @@ An easy way to create a *pandas* development environment is as follows.
 - Make sure that you have :ref:`cloned the repository <contributing.forking>`
 - ``cd`` to the *pandas* source directory
 
-Tell conda to create a new environment, named ``pandas_dev``, or any other name you would like
-for this environment, by running::
+We'll now kick off a three-step process:
 
-      conda create -n pandas_dev --file ci/requirements_dev.txt
+1. Install the build dependencies
+2. Build and install pandas
+3. Install the optional dependencies
 
+.. code-block:: none
 
-For a python 3 environment::
+   # Create and activate the build environment
+   conda env create -f ci/environment-dev.yaml
+   conda activate pandas-dev
 
-      conda create -n pandas_dev python=3 --file ci/requirements_dev.txt
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e .
 
+   # Install the rest of the optional dependencies
+   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
+   
 .. warning::
 
    If you are on Windows, see :ref:`here for a fully compliant Windows environment <contributing.windows>`.
 
 This will create the new environment, and not touch any of your existing environments,
-nor any existing python installation. It will install all of the basic dependencies of
-*pandas*, as well as the development and testing tools. If you would like to install
-other dependencies, you can install them as follows::
-
-      conda install -n pandas_dev -c pandas pytables scipy
-
-To install *all* pandas dependencies you can do the following::
-
-      conda install -n pandas_dev -c conda-forge --file ci/requirements_all.txt
-
-To work in this environment, Windows users should ``activate`` it as follows::
-
-      activate pandas_dev
-
-Mac OSX / Linux users should use::
-
-      source activate pandas_dev
-
-You will then see a confirmation message to indicate you are in the new development environment.
+nor any existing python installation.
 
 To view your environments::
 
@@ -196,8 +187,6 @@ To return to your home root environment in OSX / Linux::
       source deactivate
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
-
-At this point you can easily do an *in-place* install, as detailed in the next section.
 
 .. _contributing.windows:
 

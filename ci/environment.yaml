@@ -1,0 +1,43 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  # Required dependencies
+  - NumPy
+  - pytz
+  - python-dateutil
+  - python=3
+  - setuptools
+  # Optinoal dependencies
+  - beautifulsoup4
+  - blosc
+  - bottleneck
+  - fastparquet
+  - feather-format
+  - html5lib
+  - ipython
+  - jinja2
+  - lxml
+  - matplotlib
+  - numexpr
+  - openpyxl
+  - pyarrow
+  - pymysql
+  - pytables
+  - s3fs
+  - scipy
+  - seaborn
+  - sqlalchemy
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # Dev Dependencies
+  - Cython
+  - moto
+  - nbsphinx
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - sphinx
