@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from cpython.datetime cimport (datetime, date,
+                               PyDateTime_IMPORT,
+                               PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
+                               PyDateTime_GET_DAY, PyDateTime_DATE_GET_HOUR,
+                               PyDateTime_DATE_GET_MINUTE,
+                               PyDateTime_DATE_GET_SECOND,
+                               PyDateTime_DATE_GET_MICROSECOND)
+PyDateTime_IMPORT
+
 from numpy cimport int64_t
 
 cdef extern from "numpy/ndarrayobject.h":
@@ -80,3 +89,26 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     with the by-far-most-common frequency PANDAS_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
     return
+
+
+cdef inline int64_t pydatetime_to_dt64(datetime val,
+                                       pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = PyDateTime_DATE_GET_HOUR(val)
+    dts.min = PyDateTime_DATE_GET_MINUTE(val)
+    dts.sec = PyDateTime_DATE_GET_SECOND(val)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
+    dts.ps = dts.as = 0
+    return dtstruct_to_dt64(dts)
+
+
+cdef inline int64_t pydate_to_dt64(date val,
+                                   pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = dts.min = dts.sec = dts.us = 0
+    dts.ps = dts.as = 0
+    return dtstruct_to_dt64(dts)

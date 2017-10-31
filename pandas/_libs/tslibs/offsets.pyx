@@ -13,8 +13,8 @@ np.import_array()
 
 from util cimport is_string_object
 
-
-from pandas._libs.tslib import pydt_to_i8, tz_convert_single
+from conversion cimport tz_convert_single
+from pandas._libs.tslib import pydt_to_i8
 
 # ---------------------------------------------------------------------
 # Constants
