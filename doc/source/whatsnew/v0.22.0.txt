@@ -22,7 +22,7 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- Better support for ``Dataframe.style.to_excel()`` output with the ``xlsxwriter`` engine. (:issue:`16149`)
 -
 -
 
