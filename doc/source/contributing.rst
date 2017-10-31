@@ -103,7 +103,7 @@ want to clone your fork to your machine::
 
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
-    git remote add upstream git://github.com/pandas-dev/pandas.git
+    git remote add upstream https://github.com/pandas-dev/pandas.git
 
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
@@ -145,6 +145,7 @@ Creating a development environment
 An easy way to create a *pandas* development environment is as follows.
 
 - Install either :ref:`Anaconda <install.anaconda>` or :ref:`miniconda <install.miniconda>`
+- Make sure your conda is up to date (`conda update conda`)
 - Make sure that you have :ref:`cloned the repository <contributing.forking>`
 - ``cd`` to the *pandas* source directory
 
@@ -166,7 +167,14 @@ We'll now kick off a three-step process:
 
    # Install the rest of the optional dependencies
    conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
-   
+
+At this point you should be able to import pandas from your locally built version::
+
+   $ python  # start an interpreter
+   >>> import pandas
+   >>> print(pandas.__version__)
+   0.22.0.dev0+29.g4ad6d4d74
+
 .. warning::
 
    If you are on Windows, see :ref:`here for a fully compliant Windows environment <contributing.windows>`.
@@ -178,13 +186,9 @@ To view your environments::
 
       conda info -e
 
-To return to your home root environment in Windows::
+To return to your root environment::
 
-      deactivate
-
-To return to your home root environment in OSX / Linux::
-
-      source deactivate
+      conda deactivate
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
@@ -213,30 +217,28 @@ Here are some references and blogs:
 - https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
 - https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
 
-.. _contributing.getting_source:
+.. _contributing.pip:
 
-Making changes
---------------
+If you aren't using conda for you development environment, follow these instructions.
+You'll need to have python3.5 installed on your system.
 
-Before making your code changes, it is often necessary to build the code that was
-just checked out.  There are two primary methods of doing this.
+.. code-block:: none
 
-#. The best way to develop *pandas* is to build the C extensions in-place by
-   running::
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
+   # Any parent directories should already exist
+   python3 -m venv ~/virtualenvs/pandas-dev
+   # Activate the virtulaenv
+   . ~/virtualenvs/pandas-dev/bin/activate
 
-      python setup.py build_ext --inplace
+   # Install the build dependencies
+   python -m pip install -r ci/requirements_dev.txt
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e .
 
-   If you startup the Python interpreter in the *pandas* source directory you
-   will call the built C extensions
-
-#. Another very common option is to do a ``develop`` install of *pandas*::
-
-      python setup.py develop
-
-   This makes a symbolic link that tells the Python interpreter to import *pandas*
-   from your development directory. Thus, you can always be using the development
-   version on your system without being inside the clone directory.
-
+   # Install additional dependencies
+   python -m pip install -r ci/requirements-optional-pip.txt
 
 .. _contributing.documentation:
 
@@ -331,30 +333,6 @@ Requirements
 
 First, you need to have a development environment to be able to build pandas
 (see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
-Further, to build the docs, there are some extra requirements: you will need to
-have ``sphinx`` and ``ipython`` installed. `numpydoc
-<https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
-follow the Numpy Docstring Standard (see above), but you don't need to install
-this because a local copy of numpydoc is included in the *pandas* source
-code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is required to build
-the Jupyter notebooks included in the documentation.
-
-If you have a conda environment named ``pandas_dev``, you can install the extra
-requirements with::
-
-      conda install -n pandas_dev sphinx ipython nbconvert nbformat
-      conda install -n pandas_dev -c conda-forge nbsphinx
-
-Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
-installed. This is not strictly necessary, but be aware that you will see some error
-messages when building the docs. This happens because all the code in the documentation
-is executed during the doc build, and so code examples using optional dependencies
-will generate errors. Run ``pd.show_versions()`` to get an overview of the installed
-version of all dependencies.
-
-.. warning::
-
-   You need to have ``sphinx`` version >= 1.3.2.
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -375,10 +353,10 @@ If you want to do a full clean build, do::
     python make.py clean
     python make.py html
 
-Starting with *pandas* 0.13.1 you can tell ``make.py`` to compile only a single section
-of the docs, greatly reducing the turn-around time for checking your changes.
-You will be prompted to delete ``.rst`` files that aren't required. This is okay because
-the prior versions of these files can be checked out from git. However, you must make sure
+You can tell ``make.py`` to compile only a single section of the docs, greatly
+reducing the turn-around time for checking your changes. You will be prompted to
+delete ``.rst`` files that aren't required. This is okay because the prior
+versions of these files can be checked out from git. However, you must make sure
 not to commit the file deletions to your Git repository!
 
 ::
