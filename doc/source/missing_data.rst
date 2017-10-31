@@ -352,10 +352,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-  The ``limit_direction`` keyword argument was added.
-
 Both Series and DataFrame objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
 

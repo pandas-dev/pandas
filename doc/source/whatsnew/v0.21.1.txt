@@ -75,6 +75,9 @@ Indexing
 I/O
 ^^^
 
+- Bug in class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
+
+
 Plotting
 ^^^^^^^^
 
