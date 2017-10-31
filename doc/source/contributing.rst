@@ -23,8 +23,7 @@ where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
 Feel free to ask questions on the `mailing list
-<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter
-<https://gitter.im/pydata/pandas>`_.
+<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
 .. _contributing.bug_reports:
 
@@ -144,8 +143,8 @@ For Windows developers, the following links may be helpful.
 - https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
 - https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
 
-Let us know if you have any difficulties by `opening an issue
-<https://github.com/pandas-dev/pandas/issues/new>`_.
+Let us know if you have any difficulties by opening an issue or reaching out on
+`Gitter`_.
 
 .. _contributiong.dev_python:
 
@@ -157,7 +156,7 @@ environment:
 
 - Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
   <https://conda.io/miniconda.html>`_
-- Make sure your conda is up to date (`conda update conda`)
+- Make sure your conda is up to date (``conda update conda``)
 - Make sure that you have :ref:`cloned the repository <contributing.forking>`
 - ``cd`` to the *pandas* source directory
 
@@ -203,7 +202,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 .. _contributing.pip:
 
 Creating a Python Environment (pip)
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for you development environment, follow these instructions.
 You'll need to have at least python3.5 installed on your system.
@@ -1023,3 +1022,6 @@ branch has not actually been merged.
 The branch will still exist on GitHub, so to delete it there do::
 
     git push origin --delete shiny-new-feature
+
+
+.. _Gitter: https://gitter.im/pydata/pandas
