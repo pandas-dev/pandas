@@ -325,6 +325,7 @@ Various enhancements
 - :func:`DataFrame.items` and :func:`Series.items` is now present in both Python 2 and 3 and is lazy in all cases (:issue:`13918`, :issue:`17213`)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 - Improved the import time of pandas by about 2.25x.  (:issue:`16764`)
 - Support for `PEP 519 -- Adding a file system path protocol
@@ -354,6 +355,8 @@ Various enhancements
 =======
 - is_monotonic_increasing/decreasing is added to .groupby(). (:issue:`17015`)
 >>>>>>> 740c7c2... added tests for gb.is_monotonically_increasing()/decreasing
+=======
+>>>>>>> 8ed37cd... removed edits to whatsnew 0.21.0
 
 >>>>>>> e99897c... ENH: gb.is_monotonic_increasing, is_monotonic_decreasing  #17015
 
