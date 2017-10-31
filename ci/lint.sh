@@ -10,7 +10,7 @@ if [ "$LINT" ]; then
 
     # pandas/_libs/src is C code, so no need to search there.
     echo "Linting  *.py"
-    flake8 pandas --filename=*.py --exclude pandas/_libs/src
+    flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -24,7 +24,7 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting *.pyx"
-    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,W503,E301,E127,E261,E271,E129,W291,E222,E241,E123
+    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123
     if [ $? -ne "0" ]; then
         RET=1
     fi
