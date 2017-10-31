@@ -1,0 +1,128 @@
+.. _whatsnew_0211:
+
+v0.21.1
+-------
+
+This is a minor release from 0.21.1 and includes a number of deprecations, new
+features, enhancements, and performance improvements along with a large number
+of bug fixes. We recommend that all users upgrade to this version.
+
+.. _whatsnew_0211.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+- :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
+-
+-
+
+.. _whatsnew_0211.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0211.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+- Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+- Bug in class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
+
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`DataFrame.astype` where casting to 'category' on an empty ``DataFrame`` causes a segmentation fault (:issue:`18004`)
+-
+-
+
+Other
+^^^^^
+
+-
+-
+-

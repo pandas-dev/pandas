@@ -288,6 +288,10 @@ class Categorical(PandasObject):
             self._dtype = dtype
             return
 
+        # null_mask indicates missing values we want to exclude from inference.
+        # This means: only missing values in list-likes (not arrays/ndframes).
+        null_mask = np.array(False)
+
         # sanitize input
         if is_categorical_dtype(values):
 
@@ -316,13 +320,14 @@ class Categorical(PandasObject):
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
-                # On list with NaNs, int values will be converted to float. Use
-                # "object" dtype to prevent this. In the end objects will be
-                # casted to int/... in the category assignment step.
-                if len(values) == 0 or isna(values).any():
+                # By convention, empty lists result in object dtype:
+                if len(values) == 0:
                     sanitize_dtype = 'object'
                 else:
                     sanitize_dtype = None
+                null_mask = isna(values)
+                if null_mask.any():
+                    values = [values[idx] for idx in np.where(~null_mask)[0]]
                 values = _sanitize_array(values, None, dtype=sanitize_dtype)
 
         if dtype.categories is None:
@@ -369,6 +374,12 @@ class Categorical(PandasObject):
                 warn("None of the categories were found in values. Did you "
                      "mean to use\n'Categorical.from_codes(codes, "
                      "categories)'?", RuntimeWarning, stacklevel=2)
+
+        if null_mask.any():
+            # Reinsert -1 placeholders for previously removed missing values
+            full_codes = - np.ones(null_mask.shape, dtype=codes.dtype)
+            full_codes[~null_mask] = codes
+            codes = full_codes
 
         self._dtype = dtype
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
@@ -866,11 +877,6 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories can be either a list-like dict-like object.
-        If it is list-like, all items must be unique and the number of items
-        in the new categories must be the same as the number of items in the
-        old categories.
-
         Raises
         ------
         ValueError
@@ -879,15 +885,30 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : Index-like or dict-like (>=0.21.0)
-           The renamed categories.
+        new_categories : list-like or dict-like
+
+           * list-like: all items must be unique and the number of items in
+             the new categories must match the existing number of categories.
+
+           * dict-like: specifies a mapping from
+             old categories to new. Categories not contained in the mapping
+             are passed through and extra categories in the mapping are
+             ignored. *New in version 0.21.0*.
+
+           .. warning::
+
+              Currently, Series are considered list like. In a future version
+              of pandas they'll be considered dict-like.
+
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
 
         Returns
         -------
-        cat : Categorical with renamed categories added or None if inplace.
+        cat : Categorical or None
+           With ``inplace=False``, the new categorical is returned.
+           With ``inplace=True``, there is no return value.
 
         See also
         --------
@@ -896,9 +917,32 @@ class Categorical(PandasObject):
         remove_categories
         remove_unused_categories
         set_categories
+
+        Examples
+        --------
+        >>> c = Categorical(['a', 'a', 'b'])
+        >>> c.rename_categories([0, 1])
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
+
+        For dict-like ``new_categories``, extra keys are ignored and
+        categories not in the dictionary are passed through
+
+        >>> c.rename_categories({'a': 'A', 'c': 'C'})
+        [A, A, b]
+        Categories (2, object): [A, b]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
+
+        if isinstance(new_categories, ABCSeries):
+            msg = ("Treating Series 'new_categories' as a list-like and using "
+                   "the values. In a future version, 'rename_categories' will "
+                   "treat Series like a dictionary.\n"
+                   "For dict-like, use 'new_categories.to_dict()'\n"
+                   "For list-like, use 'new_categories.values'.")
+            warn(msg, FutureWarning, stacklevel=2)
+            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
@@ -1555,7 +1599,7 @@ class Categorical(PandasObject):
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank())
+                self.rename_categories(Series(self.categories).rank().values)
             )
         return values
 
