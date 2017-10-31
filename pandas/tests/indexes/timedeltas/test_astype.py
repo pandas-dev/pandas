@@ -14,6 +14,11 @@ class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 
+    def test_numeric_compat(self):
+        # Dummy method to override super's version; this test is now done
+        # in test_arithmetic.py
+        pass
+
     def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
         self.setup_indices()

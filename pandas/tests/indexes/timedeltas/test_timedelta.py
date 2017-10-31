@@ -27,6 +27,11 @@ class TestTimedeltaIndex(DatetimeLike):
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
 
+    def test_numeric_compat(self):
+        # Dummy method to override super's version; this test is now done
+        # in test_arithmetic.py
+        pass
+
     def test_shift(self):
         # test shift for TimedeltaIndex
         # err8083
