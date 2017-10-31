@@ -11,32 +11,33 @@ Where to start?
 ===============
 
 All contributions, bug reports, bug fixes, documentation improvements,
-enhancements and ideas are welcome.
+enhancements, and ideas are welcome.
 
-If you are simply looking to start working with the *pandas* codebase, navigate to the
-`GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_ and start looking through
-interesting issues.  There are a number of issues listed under `Docs
+If you are brand new to pandas or open-source development, we recommend going
+through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
+to find issues that interest you. There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
 and `Difficulty Novice
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
-where you could start out.
-
-Or maybe through using *pandas* you have an idea of your own or are looking for something
-in the documentation and thinking 'this can be improved'...you can do something
-about it!
+where you could start out. Once you've found an interesting issue, you can
+return here to get your development environment setup.
 
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter
 <https://gitter.im/pydata/pandas>`_.
 
+.. _contributing.bug_reports:
+
 Bug reports and enhancement requests
 ====================================
 
-Bug reports are an important part of making *pandas* more stable.  Having a complete bug report
-will allow others to reproduce the bug and provide insight into fixing.  Because many versions of
-*pandas* are supported, knowing version information will also identify improvements made since
-previous versions. Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
-to confirm the bug still exists.  It is also worth searching existing bug reports and pull requests
+Bug reports are an important part of making *pandas* more stable. Having a complete bug report
+will allow others to reproduce the bug and provide insight into fixing. See
+`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ for tips on
+writing a good bug report.
+
+Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
+to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
 to see if the issue has already been reported and/or fixed.
 
 Bug reports must:
@@ -60,11 +61,15 @@ Bug reports must:
 
 The issue will then show up to the *pandas* community and be open to comments/ideas from others.
 
+.. _contributing.github
+
 Working with the code
 =====================
 
 Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
 you need to learn how to work with GitHub and the *pandas* code base.
+
+.. _contributing.version_control:
 
 Version control, Git, and GitHub
 --------------------------------
@@ -108,15 +113,50 @@ want to clone your fork to your machine::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-
 .. _contributing.dev_env:
 
 Creating a development environment
 ----------------------------------
 
-An easy way to create a *pandas* development environment is as follows.
+To test out code changes, you'll need to build pandas from source, which
+requires a C compiler and python environment. If you're making documentation
+changes, you can skip to :ref:`contributing.documentation` but you won't be able
+to build the documentation locally before pushing your changes.
 
-- Install either :ref:`Anaconda <install.anaconda>` or :ref:`miniconda <install.miniconda>`
+.. _contributiong.dev_c:
+
+Installing a C Complier
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas uses C extensions (mostly written using Cython) to speed up certain
+operations. To install pandas from source, you need to compile these C
+extensions, which means you need a C complier. This process depends on which
+platform you're using. Follow the `CPython contributing guidelines
+<https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
+complier installed. You don't need to do any of the ``./configure`` or ``make``
+steps; you only need to install the complier.
+
+For Windows developers, the following links may be helpful.
+
+- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
+- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+- https://cowboyprogrammer.org/building-python-wheels-for-windows/
+- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+
+Let us know if you have any difficulties by `opening an issue
+<https://github.com/pandas-dev/pandas/issues/new>`_.
+
+.. _contributiong.dev_python:
+
+Creating a Python Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now that you have a C complier, create an isolated pandas development
+environment:
+
+- Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
+  <https://conda.io/miniconda.html>`_
 - Make sure your conda is up to date (`conda update conda`)
 - Make sure that you have :ref:`cloned the repository <contributing.forking>`
 - ``cd`` to the *pandas* source directory
@@ -147,10 +187,6 @@ At this point you should be able to import pandas from your locally built versio
    >>> print(pandas.__version__)
    0.22.0.dev0+29.g4ad6d4d74
 
-.. warning::
-
-   If you are on Windows, see :ref:`here for a fully compliant Windows environment <contributing.windows>`.
-
 This will create the new environment, and not touch any of your existing environments,
 nor any existing python installation.
 
@@ -164,35 +200,13 @@ To return to your root environment::
 
 See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
-.. _contributing.windows:
-
-Creating a Windows development environment
-------------------------------------------
-
-To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5 and 3.6.
-
-For Python 2.7, you can install the ``mingw`` compiler which will work equivalently to VS 2008::
-
-      conda install -n pandas_dev libpython
-
-or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`__. Note that you have to check the ``x64`` box to install the ``x64`` extension building capability as this is not installed by default.
-
-For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__. Read the references below as there may be various gotchas during the installation.
-
-For Python 3.5 and 3.6, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
-
-Here are some references and blogs:
-
-- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-- https://cowboyprogrammer.org/building-python-wheels-for-windows/
-- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
-
 .. _contributing.pip:
 
+Creating a Python Environment (pip)
+-----------------------------------
+
 If you aren't using conda for you development environment, follow these instructions.
-You'll need to have python3.5 installed on your system.
+You'll need to have at least python3.5 installed on your system.
 
 .. code-block:: none
 
@@ -241,22 +255,17 @@ request.  If you have uncommitted changes, you will need to ``stash`` them prior
 to updating.  This will effectively store your changes and they can be reapplied
 after updating.
 
-
 .. _contributing.documentation:
 
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still
-of huge value. You don't even have to be an expert on
-*pandas* to do so! Something as simple as rewriting small passages for clarity
-as you reference the docs is a simple but effective way to contribute. The
-next person to read that passage will be in your debt!
-
-In fact, there are sections of the docs that are worse off after being written
-by experts. If something in the docs doesn't make sense to you, updating the
-relevant section after you figure it out is a simple way to ensure it will
-help the next person.
+If you're not the developer type, contributing to the documentation is still of
+huge value. You don't even have to be an expert on *pandas* to do so! In fact,
+there are sections of the docs that are worse off after being written by
+experts. If something in the docs doesn't make sense to you, updating the
+relevant section after you figure it out is a great way to ensure it will help
+the next person.
 
 .. contents:: Documentation:
    :local:
@@ -391,6 +400,8 @@ the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
+.. _contributing.code:
+
 Contributing to the code base
 =============================
 
@@ -449,7 +460,7 @@ Once configured, you can run the tool as follows::
     clang-format modified-c-file
 
 This will output what your file will look like if the changes are made, and to apply
-them, just run the following command::
+them, run the following command::
 
     clang-format -i modified-c-file
 
@@ -1002,7 +1013,7 @@ delete your branch::
     git checkout master
     git merge upstream/master
 
-Then you can just do::
+Then you can do::
 
     git branch -d shiny-new-feature
 
