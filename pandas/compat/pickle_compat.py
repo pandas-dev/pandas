@@ -78,6 +78,8 @@ _class_locations_map = {
 
     # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
     ('pandas.tslib', '__nat_unpickle'):
+        ('pandas._libs.tslib', '__nat_unpickle'),
+    ('pandas._libs.tslib', '__nat_unpickle'):
         ('pandas._libs.tslibs.nattype', '__nat_unpickle'),
 
     # 15998 top-level dirs moving
