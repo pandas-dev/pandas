@@ -22,7 +22,10 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
-    assert (np.array_equal(list(rng), expected))
+    result = np.asarray(list(rng))
+    expected = np.asarray(expected)
+
+    tm.assert_numpy_array_equal(result, expected)
 
 
 class TestDateRanges(TestData):
