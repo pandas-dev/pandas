@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
-from pandas import (Series, Timedelta, to_timedelta, isna,
-                    TimedeltaIndex)
+from pandas import Series, to_timedelta, isna, TimedeltaIndex
 from pandas._libs.tslib import iNaT
 
 

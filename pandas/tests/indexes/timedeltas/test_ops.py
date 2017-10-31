@@ -2,15 +2,13 @@ import pytest
 
 import numpy as np
 from datetime import timedelta
-from distutils.version import LooseVersion
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import to_timedelta
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-from pandas import (Series, Timedelta, DataFrame, Timestamp, TimedeltaIndex,
-                    timedelta_range, date_range, DatetimeIndex, Int64Index,
-                    _np_version_under1p10, Float64Index, Index)
+from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
+                    timedelta_range,
+                    _np_version_under1p10, Index)
 from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
 

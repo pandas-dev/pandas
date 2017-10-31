@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
-                    Index, Timedelta, Series)
+                    Index, Timedelta)
 
 from ..datetimelike import DatetimeLike
 
