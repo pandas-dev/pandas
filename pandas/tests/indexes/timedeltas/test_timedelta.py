@@ -6,7 +6,7 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    DatetimeIndex, TimedeltaIndex, Index, DataFrame,
+                    TimedeltaIndex, Index, DataFrame,
                     Int64Index)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_index_equal)
