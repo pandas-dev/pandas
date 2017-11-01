@@ -20,11 +20,10 @@ PyDateTime_IMPORT
 cimport util
 from util cimport is_timedelta64_object
 
+from nattype import nat_strings
+
 # ----------------------------------------------------------------------
 # Constants
-
-# TODO: Get this from tslibs.nattype once available
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -133,7 +132,7 @@ cdef inline parse_timedelta_string(object ts):
     # have_value : track if we have at least 1 leading unit
     # have_hhmmss : tracks if we have a regular format hh:mm:ss
 
-    if len(ts) == 0 or ts in _nat_strings:
+    if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
 
     # decode ts if necessary
@@ -241,7 +240,7 @@ cdef inline parse_timedelta_string(object ts):
     elif have_dot:
 
         if ((len(number) or len(frac)) and not len(unit)
-            and current_unit is None):
+                and current_unit is None):
             raise ValueError("no units specified")
 
         if len(frac) > 0 and len(frac) <= 3:
