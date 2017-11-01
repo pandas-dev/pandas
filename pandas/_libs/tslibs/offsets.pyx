@@ -83,7 +83,6 @@ _offset_to_period_map = {
 
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
-
 for __prefix in need_suffix:
     for _m in _MONTHS:
         key = '%s-%s' % (__prefix, _m)
