@@ -687,7 +687,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                     raise pytz.AmbiguousTimeError(
                         "There are %i dst switches when "
                         "there should only be 1." % switch_idx.size)
-                switch_idx = switch_idx[0] + 1 # Pull the only index and adjust
+                switch_idx = switch_idx[0] + 1
+                # Pull the only index and adjust
                 a_idx = grp[:switch_idx]
                 b_idx = grp[switch_idx:]
                 dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
