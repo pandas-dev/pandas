@@ -16,8 +16,15 @@ if [ "$LINT" ]; then
     fi
     echo "Linting *.py DONE"
 
+    echo "Linting setup.py"
+    flake8 setup.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting setup.py DONE"
+
     echo "Linting *.pyx"
-    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126
+    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -27,7 +34,7 @@ if [ "$LINT" ]; then
     for path in 'src'
     do
         echo "linting -> pandas/$path"
-        flake8 pandas/$path --filename=*.pxi.in --select=E501,E302,E203,E111,E114,E221,E303,E231,E126
+        flake8 pandas/$path --filename=*.pxi.in --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
         if [ $? -ne "0" ]; then
             RET=1
         fi

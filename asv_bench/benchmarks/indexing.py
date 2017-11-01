@@ -287,3 +287,19 @@ class PanelIndexing(object):
 
     def time_subset(self):
         self.p.ix[(self.inds, self.inds, self.inds)]
+
+
+class IndexerLookup(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(range(10))
+
+    def time_lookup_iloc(self):
+        self.s.iloc
+
+    def time_lookup_ix(self):
+        self.s.ix
+
+    def time_lookup_loc(self):
+        self.s.loc

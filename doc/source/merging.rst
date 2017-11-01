@@ -552,8 +552,6 @@ standard database join operations between DataFrame objects:
   merge key only appears in ``'right'`` DataFrame, and ``both`` if the
   observation's merge key is found in both.
 
-  .. versionadded:: 0.17.0
-
 - ``validate`` : string, default None.
   If specified, checks if merge is of specified type.
 
@@ -768,9 +766,7 @@ If the user is aware of the duplicates in the right `DataFrame` but wants to ens
 The merge indicator
 ~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-``merge`` now accepts the argument ``indicator``. If ``True``, a Categorical-type column called ``_merge`` will be added to the output object that takes on values:
+``merge`` accepts the argument ``indicator``. If ``True``, a Categorical-type column called ``_merge`` will be added to the output object that takes on values:
 
   ===================================   ================
   Observation Origin                    ``_merge`` value

@@ -1738,11 +1738,6 @@ description.
 Sorting
 -------
 
-.. warning::
-
-   The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
-   In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
-
 There are two obvious kinds of sorting that you may be interested in: sorting
 by label and sorting by actual values.
 
@@ -1829,8 +1824,6 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    s.nsmallest(3)
    s.nlargest(3)
 
-.. versionadded:: 0.17.0
-
 ``DataFrame`` also has the ``nlargest`` and ``nsmallest`` methods.
 
 .. ipython:: python
@@ -1881,7 +1874,7 @@ dtypes
 ------
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``,
+``datetime64[ns]`` and ``datetime64[ns, tz]``, ``timedelta[ns]``,
 ``category`` and ``object``. In addition these dtypes have item sizes, e.g.
 ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
 for more detail on ``datetime64[ns, tz]`` dtypes.

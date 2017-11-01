@@ -179,38 +179,6 @@ class TestDatetimeIndex(object):
     def test_nat(self):
         assert DatetimeIndex([np.nan])[0] is pd.NaT
 
-    def test_ufunc_coercions(self):
-        idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
-
-        delta = np.timedelta64(1, 'D')
-        for result in [idx + delta, np.add(idx, delta)]:
-            assert isinstance(result, DatetimeIndex)
-            exp = date_range('2011-01-02', periods=3, freq='2D', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == '2D'
-
-        for result in [idx - delta, np.subtract(idx, delta)]:
-            assert isinstance(result, DatetimeIndex)
-            exp = date_range('2010-12-31', periods=3, freq='2D', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == '2D'
-
-        delta = np.array([np.timedelta64(1, 'D'), np.timedelta64(2, 'D'),
-                          np.timedelta64(3, 'D')])
-        for result in [idx + delta, np.add(idx, delta)]:
-            assert isinstance(result, DatetimeIndex)
-            exp = DatetimeIndex(['2011-01-02', '2011-01-05', '2011-01-08'],
-                                freq='3D', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == '3D'
-
-        for result in [idx - delta, np.subtract(idx, delta)]:
-            assert isinstance(result, DatetimeIndex)
-            exp = DatetimeIndex(['2010-12-31', '2011-01-01', '2011-01-02'],
-                                freq='D', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == 'D'
-
     def test_week_of_month_frequency(self):
         # GH 5348: "ValueError: Could not evaluate WOM-1SUN" shouldn't raise
         d1 = date(2002, 9, 1)
@@ -427,25 +395,6 @@ class TestDatetimeIndex(object):
 
         result = df.T['1/3/2000']
         assert result.name == df.index[2]
-
-    def test_overflow_offset(self):
-        # xref https://github.com/statsmodels/statsmodels/issues/3374
-        # ends up multiplying really large numbers which overflow
-
-        t = Timestamp('2017-01-13 00:00:00', freq='D')
-        offset = 20169940 * pd.offsets.Day(1)
-
-        def f():
-            t + offset
-        pytest.raises(OverflowError, f)
-
-        def f():
-            offset + t
-        pytest.raises(OverflowError, f)
-
-        def f():
-            t - offset
-        pytest.raises(OverflowError, f)
 
     def test_get_duplicates(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',

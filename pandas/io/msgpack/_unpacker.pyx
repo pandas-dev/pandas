@@ -1,5 +1,5 @@
 # coding: utf-8
-#cython: embedsignature=True
+# cython: embedsignature=True
 
 from cpython cimport *
 cdef extern from "Python.h":
@@ -20,7 +20,7 @@ cdef extern from "../../src/msgpack/unpack.h":
     ctypedef struct msgpack_user:
         bint use_list
         PyObject* object_hook
-        bint has_pairs_hook # call object_hook with k-v pairs
+        bint has_pairs_hook  # call object_hook with k-v pairs
         PyObject* list_hook
         PyObject* ext_hook
         char *encoding
@@ -100,7 +100,7 @@ def default_read_extended_type(typecode, data):
 def unpackb(object packed, object object_hook=None, object list_hook=None,
             bint use_list=1, encoding=None, unicode_errors="strict",
             object_pairs_hook=None, ext_hook=ExtType,
-            Py_ssize_t max_str_len=2147483647, # 2**32-1
+            Py_ssize_t max_str_len=2147483647,  # 2**32-1
             Py_ssize_t max_bin_len=2147483647,
             Py_ssize_t max_array_len=2147483647,
             Py_ssize_t max_map_len=2147483647,
@@ -257,7 +257,7 @@ cdef class Unpacker(object):
                  object object_hook=None, object object_pairs_hook=None,
                  object list_hook=None, encoding=None, unicode_errors='strict',
                  int max_buffer_size=0, object ext_hook=ExtType,
-                 Py_ssize_t max_str_len=2147483647, # 2**32-1
+                 Py_ssize_t max_str_len=2147483647,  # 2**32-1
                  Py_ssize_t max_bin_len=2147483647,
                  Py_ssize_t max_array_len=2147483647,
                  Py_ssize_t max_map_len=2147483647,
@@ -467,8 +467,8 @@ cdef class Unpacker(object):
         return self._unpack(unpack_construct, None, 1)
 
     # for debug.
-    #def _buf(self):
+    # def _buf(self):
     #    return PyString_FromStringAndSize(self.buf, self.buf_tail)
 
-    #def _off(self):
+    # def _off(self):
     #    return self.buf_head

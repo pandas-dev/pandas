@@ -742,6 +742,18 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
         try:
             tables = p.parse_tables()
         except Exception as caught:
+            # if `io` is an io-like object, check if it's seekable
+            # and try to rewind it before trying the next parser
+            if hasattr(io, 'seekable') and io.seekable():
+                io.seek(0)
+            elif hasattr(io, 'seekable') and not io.seekable():
+                # if we couldn't rewind it, let the user know
+                raise ValueError('The flavor {} failed to parse your input. '
+                                 'Since you passed a non-rewindable file '
+                                 'object, we can\'t rewind it to try '
+                                 'another parser. Try read_html() with a '
+                                 'different flavor.'.format(flav))
+
             retained = caught
         else:
             break

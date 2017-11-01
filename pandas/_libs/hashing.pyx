@@ -93,8 +93,10 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     free(lens)
     return result
 
+
 cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
     return (x << b) | (x >> (64 - b))
+
 
 cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[0] = <uint8_t>(v)
@@ -102,19 +104,22 @@ cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[2] = <uint8_t>(v >> 16)
     p[3] = <uint8_t>(v >> 24)
 
+
 cdef inline void u64to8_le(uint8_t* p, uint64_t v) nogil:
     u32to8_le(p, <uint32_t>v)
     u32to8_le(p + 4, <uint32_t>(v >> 32))
 
+
 cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
     return (<uint64_t>p[0] |
-            <uint64_t>p[1] <<  8 |
+            <uint64_t>p[1] << 8 |
             <uint64_t>p[2] << 16 |
             <uint64_t>p[3] << 24 |
             <uint64_t>p[4] << 32 |
             <uint64_t>p[5] << 40 |
             <uint64_t>p[6] << 48 |
             <uint64_t>p[7] << 56)
+
 
 cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
                            uint64_t* v2, uint64_t* v3) nogil:
@@ -132,6 +137,7 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
     v1[0] = _rotl(v1[0], 17)
     v1[0] ^= v2[0]
     v2[0] = _rotl(v2[0], 32)
+
 
 cpdef uint64_t siphash(bytes data, bytes key) except? 0:
     if len(key) != 16:

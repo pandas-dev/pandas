@@ -82,8 +82,10 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature)
+from pandas.util._validators import (validate_bool_kwarg,
+                                     validate_axis_style_args)
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -180,8 +182,6 @@ indicator : boolean or string, default False
     for observations whose merge key only appears in 'left' DataFrame,
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
-
-    .. versionadded:: 0.17.0
 
 validate : string, default None
     If specified, checks if merge is of specified type.
@@ -914,8 +914,6 @@ class DataFrame(NDFrame):
             - records : list like
               [{column -> value}, ... , {column -> value}]
             - index : dict like {index -> {column -> value}}
-
-              .. versionadded:: 0.17.0
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
@@ -3071,12 +3069,19 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, labels=None, index=None, columns=None, axis=None,
-                **kwargs):
-        axes = self._validate_axis_style_args(labels, 'labels',
-                                              axes=[index, columns],
-                                              axis=axis, method_name='reindex')
+    @rewrite_axis_style_signature('labels', [('method', None),
+                                             ('copy', True),
+                                             ('level', None),
+                                             ('fill_value', np.nan),
+                                             ('limit', None),
+                                             ('tolerance', None)])
+    def reindex(self, *args, **kwargs):
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
         kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
         return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
@@ -3087,8 +3092,10 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
-    def rename(self, mapper=None, index=None, columns=None, axis=None,
-               **kwargs):
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False),
+                                             ('level', None)])
+    def rename(self, *args, **kwargs):
         """Alter axes labels.
 
         Function / dict values must be unique (1-to-1). Labels not contained in
@@ -3162,10 +3169,11 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = self._validate_axis_style_args(mapper, 'mapper',
-                                              axes=[index, columns],
-                                              axis=axis, method_name='rename')
+        axes = validate_axis_style_args(self, args, kwargs, 'mapper', 'rename')
         kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
+        kwargs.pop('axis', None)
+        kwargs.pop('mapper', None)
         return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
@@ -3885,8 +3893,6 @@ class DataFrame(NDFrame):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         n : int
@@ -3921,8 +3927,6 @@ class DataFrame(NDFrame):
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
         values of `columns`.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -5491,8 +5495,6 @@ class DataFrame(NDFrame):
     def round(self, decimals=0, *args, **kwargs):
         """
         Round a DataFrame to a variable number of decimal places.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
