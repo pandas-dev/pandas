@@ -228,8 +228,7 @@ _rd_kwds = set([
     'year', 'month', 'week', 'day', 'weekday',
     'hour', 'minute', 'second', 'microsecond',
     'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'
-    ])
+    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
 
 
 def _determine_offset(kwds):
@@ -242,11 +241,9 @@ def _determine_offset(kwds):
     )
     # TODO: Are nanosecond and nanoseconds allowed somewhere?
 
-    _kwds_use_relativedelta = (
-        'years', 'months', 'weeks', 'days',
-        'year', 'month', 'week', 'day', 'weekday',
-        'hour', 'minute', 'second', 'microsecond'
-        )
+    _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
+                               'year', 'month', 'week', 'day', 'weekday',
+                               'hour', 'minute', 'second', 'microsecond')
 
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
