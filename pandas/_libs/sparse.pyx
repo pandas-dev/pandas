@@ -328,7 +328,7 @@ cdef class BlockIndex(SparseIndex):
         ndarray blocs, blengths
 
     cdef:
-        object __weakref__ # need to be picklable
+        object __weakref__  # need to be picklable
         int32_t *locbuf
         int32_t *lenbuf
 
@@ -486,7 +486,7 @@ cdef class BlockIndex(SparseIndex):
                     cur_length = xlen[xi]
                     xi += 1
 
-            else: # xloc[xi] < yloc[yi]
+            else:  # xloc[xi] < yloc[yi]
                 cur_loc = yloc[yi]
                 diff = yloc[yi] - xloc[xi]
 
@@ -629,7 +629,7 @@ cdef class BlockMerge(object):
     cdef:
         BlockIndex x, y, result
         ndarray xstart, xlen, xend, ystart, ylen, yend
-        int32_t xi, yi # block indices
+        int32_t xi, yi  # block indices
 
     def __init__(self, BlockIndex x, BlockIndex y):
         self.x = x

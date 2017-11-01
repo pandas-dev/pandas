@@ -3,39 +3,38 @@ import os
 import tempfile
 from contextlib import contextmanager
 from warnings import catch_warnings
+from distutils.version import LooseVersion
 
 import datetime
 from datetime import timedelta
+
 import numpy as np
 
-import pandas
 import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     RangeIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex,
-                    isna)
+                    isna, compat, concat, Timestamp)
 
-from pandas.compat import (is_platform_windows, is_platform_little_endian,
-                           PY3, PY35, PY36, BytesIO, text_type)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.dtypes.common import is_categorical_dtype
-
-tables = pytest.importorskip('tables')
-from pandas.io.pytables import TableIterator
-from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
-                                PossibleDataLossError, ClosedFileError)
-
-from pandas.io import pytables as pytables
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_panel4d_equal,
                                  assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  set_timezone)
-from pandas import concat, Timestamp
-from pandas import compat
-from pandas.compat import range, lrange, u
-from distutils.version import LooseVersion
+
+from pandas.compat import (is_platform_windows, is_platform_little_endian,
+                           PY3, PY35, PY36, BytesIO, text_type,
+                           range, lrange, u)
+from pandas.io.formats.printing import pprint_thing
+from pandas.core.dtypes.common import is_categorical_dtype
+
+tables = pytest.importorskip('tables')
+from pandas.io import pytables as pytables  # noqa:E402
+from pandas.io.pytables import (TableIterator,  # noqa:E402
+                                HDFStore, get_store, Term, read_hdf,
+                                PossibleDataLossError, ClosedFileError)
+
 
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
                        else 'zlib')
@@ -328,13 +327,13 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
             df = tm.makeDataFrame()
 
-            pandas.set_option('io.hdf.default_format', 'fixed')
+            pd.set_option('io.hdf.default_format', 'fixed')
             _maybe_remove(store, 'df')
             store.put('df', df)
             assert not store.get_storer('df').is_table
             pytest.raises(ValueError, store.append, 'df2', df)
 
-            pandas.set_option('io.hdf.default_format', 'table')
+            pd.set_option('io.hdf.default_format', 'table')
             _maybe_remove(store, 'df')
             store.put('df', df)
             assert store.get_storer('df').is_table
@@ -342,19 +341,19 @@ class TestHDFStore(Base):
             store.append('df2', df)
             assert store.get_storer('df').is_table
 
-            pandas.set_option('io.hdf.default_format', None)
+            pd.set_option('io.hdf.default_format', None)
 
         with ensure_clean_path(self.path) as path:
 
             df = tm.makeDataFrame()
 
-            pandas.set_option('io.hdf.default_format', 'fixed')
+            pd.set_option('io.hdf.default_format', 'fixed')
             df.to_hdf(path, 'df')
             with HDFStore(path) as store:
                 assert not store.get_storer('df').is_table
             pytest.raises(ValueError, df.to_hdf, path, 'df2', append=True)
 
-            pandas.set_option('io.hdf.default_format', 'table')
+            pd.set_option('io.hdf.default_format', 'table')
             df.to_hdf(path, 'df3')
             with HDFStore(path) as store:
                 assert store.get_storer('df3').is_table
@@ -362,7 +361,7 @@ class TestHDFStore(Base):
             with HDFStore(path) as store:
                 assert store.get_storer('df4').is_table
 
-            pandas.set_option('io.hdf.default_format', None)
+            pd.set_option('io.hdf.default_format', None)
 
     def test_keys(self):
 
@@ -1086,7 +1085,7 @@ class TestHDFStore(Base):
         examples = []
         for dtype in ['category', object]:
             for val in values:
-                examples.append(pandas.Series(val, dtype=dtype))
+                examples.append(pd.Series(val, dtype=dtype))
 
         def roundtrip(s, key='data', encoding='latin-1', nan_rep=''):
             with ensure_clean_path(self.path) as store:
@@ -1171,13 +1170,13 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(store['df2'], df)
 
             # tests the option io.hdf.dropna_table
-            pandas.set_option('io.hdf.dropna_table', False)
+            pd.set_option('io.hdf.dropna_table', False)
             _maybe_remove(store, 'df3')
             store.append('df3', df[:10])
             store.append('df3', df[10:])
             tm.assert_frame_equal(store['df3'], df)
 
-            pandas.set_option('io.hdf.dropna_table', True)
+            pd.set_option('io.hdf.dropna_table', True)
             _maybe_remove(store, 'df4')
             store.append('df4', df[:10])
             store.append('df4', df[10:])
@@ -2253,7 +2252,7 @@ class TestHDFStore(Base):
         weekmask_egypt = 'Sun Mon Tue Wed Thu'
         holidays = ['2012-05-01',
                     datetime.datetime(2013, 5, 1), np.datetime64('2014-05-01')]
-        bday_egypt = pandas.offsets.CustomBusinessDay(
+        bday_egypt = pd.offsets.CustomBusinessDay(
             holidays=holidays, weekmask=weekmask_egypt)
         dt = datetime.datetime(2013, 4, 30)
         dts = date_range(dt, periods=5, freq=bday_egypt)
