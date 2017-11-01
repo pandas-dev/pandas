@@ -25,9 +25,10 @@ from timezones cimport (
     is_utc, is_tzlocal,
     maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
+from conversion import tz_convert
 
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslib import tz_convert, Timestamp
+from pandas._libs.tslib import Timestamp
 
 from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
@@ -36,13 +37,13 @@ from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
 cdef int64_t NPY_NAT = get_nat()
 
-RESO_NS = 0
-RESO_US = 1
-RESO_MS = 2
-RESO_SEC = 3
-RESO_MIN = 4
-RESO_HR = 5
-RESO_DAY = 6
+cdef int RESO_NS = 0
+cdef int RESO_US = 1
+cdef int RESO_MS = 2
+cdef int RESO_SEC = 3
+cdef int RESO_MIN = 4
+cdef int RESO_HR = 5
+cdef int RESO_DAY = 6
 
 _ONE_MICRO = 1000L
 _ONE_MILLI = _ONE_MICRO * 1000
@@ -178,12 +179,15 @@ def get_freq_group(freq):
 
 class Resolution(object):
 
-    RESO_US = RESO_US
-    RESO_MS = RESO_MS
-    RESO_SEC = RESO_SEC
-    RESO_MIN = RESO_MIN
-    RESO_HR = RESO_HR
-    RESO_DAY = RESO_DAY
+    # Note: cython won't allow us to reference the cdef versions at the
+    # module level
+    RESO_NS = 0
+    RESO_US = 1
+    RESO_MS = 2
+    RESO_SEC = 3
+    RESO_MIN = 4
+    RESO_HR = 5
+    RESO_DAY = 6
 
     _reso_str_map = {
         RESO_NS: 'nanosecond',
