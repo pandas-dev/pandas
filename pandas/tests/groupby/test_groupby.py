@@ -3701,8 +3701,6 @@ class TestGroupBy(MixIn):
         expected = pd.Series([1, 2, 1], name='b')
         tm.assert_series_equal(result, expected)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     @pytest.mark.parametrize('in_vals, out_vals', [
         # Basics: strictly increasing (T), strictly decreasing (F),
         # abs val increasing (F), non-strictly increasing (T)
@@ -3761,85 +3759,6 @@ class TestGroupBy(MixIn):
         expected.index.name = 'B'
         tm.assert_series_equal(result, expected)
 
-=======
-    def test_is_increasing_is_decreasing(self):
-        # GH 17015
-
-=======
-    @pytest.mark.parametrize('in_vals, out_vals', [
->>>>>>> f8554ee... parametrized tests for gb.is_monotonic_increasing/decreasing
-        # Basics: strictly increasing (T), strictly decreasing (F),
-        # abs val increasing (F), non-strictly increasing (T)
-        ([1, 2, 5, 3, 2, 0, 4, 5, -6, 1, 1],
-         [True, False, False, True]),
-        # Test with inf vals
-        ([1, 2.1, np.inf, 3, 2, np.inf, -np.inf, 5, 11, 1, -np.inf],
-         [True, False, True, False]),
-        # Test with nan vals; should always be False
-        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
-         [False, False, False, False]),
-    ])
-    def test_is_monotonic_increasing(self, in_vals, out_vals):
-        # GH 17015
-        source_dict = {
-            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
-            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
-            'C': in_vals}
-        df = pd.DataFrame(source_dict)
-        result = df.groupby(['B']).C.is_monotonic_increasing()
-        expected = pd.Series(index=['a', 'b', 'c', 'd'],
-                             data=out_vals,
-                             name='C')
-        expected.index.name = 'B'
-        tm.assert_series_equal(result, expected)
-
-        # Also check result equal to manually taking x.is_monotonic_increasing.
-        expected = (
-            df.groupby(['B']).C.apply(lambda x: x.is_monotonic_increasing))
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('in_vals, out_vals', [
-        # Basics: strictly decreasing (T), strictly increasing (F),
-        # abs val decreasing (F), non-strictly increasing (T)
-        ([10, 9, 7, 3, 4, 5, -3, 2, 0, 1, 1],
-         [True, False, False, True]),
-        # Test with inf vals
-        ([np.inf, 1, -np.inf, np.inf, 2, -3, -np.inf, 5, -3, -np.inf, -np.inf],
-         [True, True, False, True]),
-        # Test with nan vals; should always be False
-        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
-         [False, False, False, False]),
-    ])
-    def test_is_monotonic_decreasing(self, in_vals, out_vals):
-        # GH 17015
-        source_dict = {
-            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
-            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
-            'C': in_vals}
-
-        df = pd.DataFrame(source_dict)
-        result = df.groupby('B').C.is_monotonic_decreasing()
-        expected = pd.Series(index=['a', 'b', 'c', 'd'],
-                             data=out_vals,
-                             name='C')
-        expected.index.name = 'B'
-        tm.assert_series_equal(result, expected)
-<<<<<<< HEAD
->>>>>>> 740c7c2... added tests for gb.is_monotonically_increasing()/decreasing
-=======
-
->>>>>>> f8554ee... parametrized tests for gb.is_monotonic_increasing/decreasing
-        # Also check result equal to manually taking x.is_monotonic_decreasing.
-        expected = df.groupby('B').C.apply(lambda x: x.is_monotonic_decreasing)
-        tm.assert_series_equal(result, expected)
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
->>>>>>> 740c7c2... added tests for gb.is_monotonically_increasing()/decreasing
-=======
->>>>>>> f8554ee... parametrized tests for gb.is_monotonic_increasing/decreasing
     def test_apply_numeric_coercion_when_datetime(self):
         # In the past, group-by/apply operations have been over-eager
         # in converting dtypes to numeric, in the presence of datetime

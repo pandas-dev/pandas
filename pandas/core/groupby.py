@@ -1695,7 +1695,6 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
-<<<<<<< HEAD
     def pipe(self, func, *args, **kwargs):
         """ Apply a function with arguments to this GroupBy object,
 
@@ -1744,8 +1743,6 @@ class GroupBy(_GroupBy):
         """
         return _pipe(self, func, *args, **kwargs)
 
-=======
->>>>>>> e99897c... ENH: gb.is_monotonic_increasing, is_monotonic_decreasing  #17015
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def is_monotonic_increasing(self):
