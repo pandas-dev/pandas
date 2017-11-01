@@ -30,10 +30,11 @@ from pandas._libs import tslib
 from pandas._libs.tslib import Timestamp, iNaT, NaT
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, get_dst_info, maybe_get_tz)
-from tslib cimport _nat_scalar_rules
 
 from tslibs.parsing import parse_time_string, NAT_SENTINEL
 from tslibs.frequencies cimport get_freq_code
+from tslibs.nattype import nat_strings
+from tslibs.nattype cimport _nat_scalar_rules
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
@@ -1174,7 +1175,7 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in tslib._nat_strings:
+        elif is_null_datetimelike(value) or value in nat_strings:
             ordinal = iNaT
 
         elif is_string_object(value) or util.is_integer_object(value):

@@ -162,7 +162,7 @@ void initObjToJSON(void)
 #endif
 {
     PyObject *mod_pandas;
-    PyObject *mod_tslib;
+    PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_INCREF(type_decimal);
@@ -180,10 +180,11 @@ void initObjToJSON(void)
         Py_DECREF(mod_pandas);
     }
 
-    mod_tslib = PyImport_ImportModule("pandas._libs.tslib");
-    if (mod_tslib) {
-        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_tslib, "NaTType");
-        Py_DECREF(mod_tslib);
+    mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
+    if (mod_nattype) {
+        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_nattype,
+                                                         "NaTType");
+        Py_DECREF(mod_nattype);
     }
 
     /* Initialise numpy API and use 2/3 compatible return */

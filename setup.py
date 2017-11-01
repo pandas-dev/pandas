@@ -516,6 +516,8 @@ ext_data = {
                              'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
                                  'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.nattype': {'pyxfile': '_libs/tslibs/nattype',
+                             'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
                     'sources': np_datetime_sources,
                     'pxdfiles': ['_libs/src/util', '_libs/hashtable'],

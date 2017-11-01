@@ -40,15 +40,8 @@ from util cimport is_string_object, get_nat
 
 cdef int64_t NPY_NAT = get_nat()
 
-cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
-
-
-# TODO: Consolidate with other implementations
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return (val is None or
-            (PyFloat_Check(val) and val != val) or
-            (isinstance(val, datetime) and not val == val))
+from nattype cimport _checknull_with_nat
+from nattype import nat_strings
 
 
 def array_strptime(ndarray[object] values, object fmt,
@@ -146,7 +139,7 @@ def array_strptime(ndarray[object] values, object fmt,
     for i in range(n):
         val = values[i]
         if is_string_object(val):
-            if val in _nat_strings:
+            if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
         else:
