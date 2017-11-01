@@ -2705,6 +2705,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     """
     group_axis = obj._get_axis(axis)
+    is_axis_multiindex = isinstance(obj._info_axis, MultiIndex)
 
     # validate that the passed single level is compatible with the passed
     # axis of the object
@@ -2765,7 +2766,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 
-    if not isinstance(key, (tuple, list)):
+    # when MultiIndex, allow tuple to be a key
+    if not isinstance(key, (tuple, list)) or \
+            (isinstance(key, tuple) and is_axis_multiindex):
         keys = [key]
         match_axis_length = False
     else:
@@ -2869,7 +2872,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     # create the internals grouper
     grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
-
     return grouper, exclusions, obj
 
 

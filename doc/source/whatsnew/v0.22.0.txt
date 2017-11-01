@@ -88,6 +88,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
+- Bug in ``DataFrame.groupby`` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
 
 Conversion
 ^^^^^^^^^^
