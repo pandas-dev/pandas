@@ -1128,7 +1128,7 @@ This is not Implemented via ``join`` at-the-moment, however it can be done using
 Merging on a combination of columns and index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.21
+.. versionadded:: 0.22
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
 may refer to either column names or index level names.  This enables merging
