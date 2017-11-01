@@ -3599,9 +3599,9 @@ class NDFrameGroupBy(GroupBy):
 
         offset = 0
         for b in new_blocks:
-            l = len(b.mgr_locs)
-            b.mgr_locs = indexer[offset:(offset + l)]
-            offset += l
+            loc = len(b.mgr_locs)
+            b.mgr_locs = indexer[offset:(offset + loc)]
+            offset += loc
 
         return new_items, new_blocks
 
@@ -3640,7 +3640,7 @@ class NDFrameGroupBy(GroupBy):
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
-                except:
+                except Exception:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
         if not self.as_index:
@@ -4029,7 +4029,7 @@ class NDFrameGroupBy(GroupBy):
             if (res_r[mask] == res_fast_r[mask]).all():
                 path = fast_path
 
-        except:
+        except Exception:
             pass
         return path, res
 
@@ -4603,7 +4603,7 @@ class FrameSplitter(DataSplitter):
         # must return keys::list, values::list, mutated::bool
         try:
             starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        except:
+        except Exception:
             # fails when all -1
             return [], True
 
