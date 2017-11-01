@@ -2914,7 +2914,7 @@ class Index(IndexOpsMixin, PandasObject):
                                           names=names)
 
         attributes['copy'] = False
-        return self._constructor(new_values, **attributes)
+        return Index(new_values, **attributes)
 
     def isin(self, values, level=None):
         """
