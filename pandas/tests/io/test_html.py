@@ -955,6 +955,7 @@ def test_importcheck_thread_safety():
     # see gh-16928
 
     # force import check by reinitalising global vars in html.py
+    pytest.importorskip('lxml')
     reload(pandas.io.html)
 
     filename = os.path.join(DATA_PATH, 'valid_markup.html')
