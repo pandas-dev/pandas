@@ -311,6 +311,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t delta, posn
+        datetime dt
 
     if is_utc(tz):
         obj.tzinfo = tz
@@ -398,6 +399,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
+        datetime dt
 
     if val == NPY_NAT:
         return val
@@ -462,6 +464,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         ndarray[Py_ssize_t] posn
         int64_t v, offset, delta
         pandas_datetimestruct dts
+        datetime dt
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -576,6 +579,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         pandas_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
+        datetime dt
 
     # Vectorized version of DstTzInfo.localize
 
