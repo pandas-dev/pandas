@@ -788,7 +788,7 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
         A = x / dnobs
         B = xx / dnobs - A * A
         C = xxx / dnobs - A * A * A - 3 * A * B
-        if B <= 0 or nobs < 3:
+        if B <= 1e-14 or nobs < 3:
             result = NaN
         else:
             R = sqrt(B)
@@ -915,7 +915,7 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
         R = R * A
         D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
 
-        if B == 0 or nobs < 4:
+        if B <= 1e-14 or nobs < 4:
             result = NaN
         else:
             K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
