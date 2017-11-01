@@ -111,7 +111,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     obj = _TSObject()
 
     if is_string_object(ts):
-        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -233,7 +233,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
-cdef _TSObject convert_str_to_tsobject(object ts, object tz,
+cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
@@ -319,7 +319,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz,
             except Exception:
                 raise ValueError("could not convert string to Timestamp")
 
-    return convert_to_tsobject(ts, tz, PANDAS_FR_ns, dayfirst, yearfirst)
+    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
 
 # ----------------------------------------------------------------------
