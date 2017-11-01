@@ -111,7 +111,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     obj = _TSObject()
 
     if is_string_object(ts):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
