@@ -107,7 +107,7 @@ Indexing
 I/O
 ^^^
 
--
+- :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
 -
 -
 
