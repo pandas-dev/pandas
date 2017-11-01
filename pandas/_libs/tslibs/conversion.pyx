@@ -243,7 +243,6 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz,
     The optional arguments `dayfirst` and `yearfirst` are passed to the
     dateutil parser.
 
-
     Parameters
     ----------
     ts : bytes or unicode
