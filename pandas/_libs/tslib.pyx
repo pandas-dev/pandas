@@ -97,7 +97,7 @@ from tslibs.fields import (
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
-                                _get_datetime64_nanos)
+                                get_datetime64_nanos)
 from tslibs.conversion import (
     tz_localize_to_utc, tz_convert,
     tz_convert_single)
@@ -1658,7 +1658,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     iresult[i] = NPY_NAT
                 else:
                     try:
-                        iresult[i] = _get_datetime64_nanos(val)
+                        iresult[i] = get_datetime64_nanos(val)
                         seen_datetime = 1
                     except ValueError:
                         if is_coerce:

@@ -53,14 +53,13 @@ UTC = pytz.UTC
 # ----------------------------------------------------------------------
 # Misc Helpers
 
-cdef inline bint _is_timestamp(datetime obj):
-    # datetime instance but not datetime type --> Timestamp
-    return not PyDateTime_CheckExact(obj)
 
-
-# TODO: We can type the input as a np.datetime64 right?
-# and the output as an int64_t?
-cdef inline _get_datetime64_nanos(object val):
+# TODO: How to declare np.datetime64 as the input type?
+cdef inline int64_t get_datetime64_nanos(object val):
+    """
+    Extract the value and unit from a np.datetime64 object, then convert the
+    value to nanoseconds if necessary.
+    """
     cdef:
         pandas_datetimestruct dts
         PANDAS_DATETIMEUNIT unit
@@ -72,9 +71,9 @@ cdef inline _get_datetime64_nanos(object val):
     if unit != PANDAS_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
         check_dts_bounds(&dts)
-        return dtstruct_to_dt64(&dts)
-    else:
-        return ival
+        ival = dtstruct_to_dt64(&dts)
+
+    return ival
 
 # ----------------------------------------------------------------------
 # _TSObject Conversion
@@ -91,7 +90,6 @@ cdef class _TSObject:
             return self.value
 
 
-# helper to extract datetime and int64 from several different possibilities
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst):
     """
@@ -121,7 +119,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         if ts.view('i8') == NPY_NAT:
             obj.value = NPY_NAT
         else:
-            obj.value = _get_datetime64_nanos(ts)
+            obj.value = get_datetime64_nanos(ts)
             dt64_to_dtstruct(obj.value, &obj.dts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -222,7 +220,8 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         offset = get_utcoffset(obj.tzinfo, ts)
         obj.value -= int(offset.total_seconds() * 1e9)
 
-    if _is_timestamp(ts):
+    if not PyDateTime_CheckExact(ts):
+        # datetime instance but not datetime type --> Timestamp
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
@@ -234,11 +233,34 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
-cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
+cdef _TSObject convert_str_to_tsobject(object ts, object tz,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
-    """ ts must be a string """
+    """
+    Convert a string-like (bytes or unicode) input `ts`, along with optional
+    timezone object `tz` to a _TSObject.
 
+    The optional arguments `dayfirst` and `yearfirst` are passed to the
+    dateutil parser.
+
+
+    Parameters
+    ----------
+    ts : bytes or unicode
+        Value to be converted to _TSObject
+    tz : tzinfo or None
+        timezone for the timezone-aware output
+    dayfirst : bool, default False
+        When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
+        April 3, as opposed to the standard US interpretation March 4.
+    yearfirst : bool, default False
+        When parsing an ambiguous date string, interpret e.g. "01/05/09"
+        as "May 9, 2001", as opposed to the default "Jan 5, 2009"
+
+    Returns
+    -------
+    obj : _TSObject
+    """
     cdef:
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
@@ -298,7 +320,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             except Exception:
                 raise ValueError("could not convert string to Timestamp")
 
-    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+    return convert_to_tsobject(ts, tz, PANDAS_FR_ns, dayfirst, yearfirst)
 
 
 # ----------------------------------------------------------------------
