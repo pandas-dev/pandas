@@ -6,7 +6,7 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    DatetimeIndex, TimedeltaIndex, Index, DataFrame,
+                    TimedeltaIndex, Index, DataFrame,
                     Int64Index)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_index_equal)
@@ -26,6 +26,11 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+
+    def test_numeric_compat(self):
+        # Dummy method to override super's version; this test is now done
+        # in test_arithmetic.py
+        pass
 
     def test_shift(self):
         # test shift for TimedeltaIndex
@@ -105,80 +110,8 @@ class TestTimedeltaIndex(DatetimeLike):
                               tolerance=pd.Timedelta('1 hour'))
         tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
 
-    def test_numeric_compat(self):
-
-        idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-        result = idx / 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
-
-        result = idx * np.arange(5, dtype='int64')
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
-
-        # invalid
-        pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
-
     def test_pickle_compat_construction(self):
         pass
-
-    def test_ufunc_coercions(self):
-        # normal ops are also tested in tseries/test_timedeltas.py
-        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
-                             freq='2H', name='x')
-
-        for result in [idx * 2, np.multiply(idx, 2)]:
-            assert isinstance(result, TimedeltaIndex)
-            exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
-                                 freq='4H', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == '4H'
-
-        for result in [idx / 2, np.divide(idx, 2)]:
-            assert isinstance(result, TimedeltaIndex)
-            exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
-                                 freq='H', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == 'H'
-
-        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
-                             freq='2H', name='x')
-        for result in [-idx, np.negative(idx)]:
-            assert isinstance(result, TimedeltaIndex)
-            exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
-                                 freq='-2H', name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq == '-2H'
-
-        idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
-                             freq='H', name='x')
-        for result in [abs(idx), np.absolute(idx)]:
-            assert isinstance(result, TimedeltaIndex)
-            exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
-                                 freq=None, name='x')
-            tm.assert_index_equal(result, exp)
-            assert result.freq is None
 
     def test_fillna_timedelta(self):
         # GH 11343
@@ -571,40 +504,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td.astype('timedelta64[s]')
         assert_index_equal(result, expected)
-
-
-class TestSlicing(object):
-    @pytest.mark.parametrize('freq', ['B', 'D'])
-    def test_timedelta(self, freq):
-        index = date_range('1/1/2000', periods=50, freq=freq)
-
-        shifted = index + timedelta(1)
-        back = shifted + timedelta(-1)
-        tm.assert_index_equal(index, back)
-
-        if freq == 'D':
-            expected = pd.tseries.offsets.Day(1)
-            assert index.freq == expected
-            assert shifted.freq == expected
-            assert back.freq == expected
-        else:  # freq == 'B'
-            assert index.freq == pd.tseries.offsets.BusinessDay(1)
-            assert shifted.freq is None
-            assert back.freq == pd.tseries.offsets.BusinessDay(1)
-
-        result = index - timedelta(1)
-        expected = index + timedelta(-1)
-        tm.assert_index_equal(result, expected)
-
-        # GH4134, buggy with timedeltas
-        rng = date_range('2013', '2014')
-        s = Series(rng)
-        result1 = rng - pd.offsets.Hour(1)
-        result2 = DatetimeIndex(s - np.timedelta64(100000000))
-        result3 = rng - np.timedelta64(100000000)
-        result4 = DatetimeIndex(s - pd.offsets.Hour(1))
-        tm.assert_index_equal(result1, result4)
-        tm.assert_index_equal(result2, result3)
 
 
 class TestTimeSeries(object):
