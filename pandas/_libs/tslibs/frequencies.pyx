@@ -11,30 +11,12 @@ np.import_array()
 
 from util cimport is_integer_object, is_string_object
 
-
-# ----------------------------------------------------------------------
-cpdef object _get_rule_month(object source, object default='DEC'):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
-
 # ----------------------------------------------------------------------
 # Constants
+
+_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
+           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 
 # hack to handle WOM-1MON
 opattern = re.compile(
@@ -436,11 +418,6 @@ def _maybe_coerce_freq(code):
     return code.upper()
 
 
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
-
-
 def _quarter_months_conform(source, target):
     snum = _MONTH_NUMBERS[source]
     tnum = _MONTH_NUMBERS[target]
@@ -465,3 +442,26 @@ def _is_monthly(rule):
 def _is_weekly(rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
+
+
+# ----------------------------------------------------------------------
+
+cpdef object _get_rule_month(object source, object default='DEC'):
+    """
+    Return starting month of given freq, default is December.
+
+    Example
+    -------
+    >>> _get_rule_month('D')
+    'DEC'
+
+    >>> _get_rule_month('A-JAN')
+    'JAN'
+    """
+    if hasattr(source, 'freqstr'):
+        source = source.freqstr
+    source = source.upper()
+    if '-' not in source:
+        return default
+    else:
+        return source.split('-')[1]
