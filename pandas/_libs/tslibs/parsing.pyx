@@ -44,9 +44,13 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
+# ----------------------------------------------------------------------
+# Constants
+
 
 class DateParseError(ValueError):
     pass
+
 
 _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
@@ -63,6 +67,8 @@ cdef set _not_datelike_strings = set(['a', 'A', 'm', 'M', 'p', 'P', 't', 'T'])
 
 NAT_SENTINEL = object()
 # This allows us to reference NaT without having to import it
+
+# ----------------------------------------------------------------------
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -199,7 +205,7 @@ cpdef bint _does_string_look_like_datetime(object date_string):
 
 
 cdef inline object _parse_dateabbr_string(object date_string, object default,
-                                           object freq):
+                                          object freq):
     cdef:
         object ret
         int year, quarter = -1, month, mnum, date_len
@@ -317,7 +323,7 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
     res = DEFAULTPARSER._parse(fobj, **kwargs)
 
     # dateutil 2.2 compat
-    if isinstance(res, tuple): # PyTuple_Check
+    if isinstance(res, tuple):  # PyTuple_Check
         res, _ = res
 
     if res is None:
@@ -390,7 +396,7 @@ cpdef object _get_rule_month(object source, object default='DEC'):
         return source.split('-')[1]
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Parsing for type-inference
 
 
@@ -404,7 +410,7 @@ def try_parse_dates(ndarray[object] values, parser=None,
     result = np.empty(n, dtype='O')
 
     if parser is None:
-        if default is None: # GH2618
+        if default is None:  # GH2618
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
@@ -449,7 +455,7 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     result = np.empty(n, dtype='O')
 
     if date_parser is None:
-        if default is None: # GH2618
+        if default is None:  # GH2618
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
@@ -506,7 +512,7 @@ def try_parse_datetime_components(ndarray[object] years,
 
     n = len(years)
     if (len(months) != n or len(days) != n or len(hours) != n or
-        len(minutes) != n or len(seconds) != n):
+            len(minutes) != n or len(seconds) != n):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
@@ -525,7 +531,7 @@ def try_parse_datetime_components(ndarray[object] years,
     return result
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Miscellaneous
 
 _DATEUTIL_LEXER_SPLIT = None

@@ -122,7 +122,7 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            loc = _bin_search(values, val) # .searchsorted(val, side='left')
+            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
             if util.get_value_at(values, loc) != val:
@@ -475,15 +475,14 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other,
-                                limit=limit)
+        return algos.pad_int64(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.backfill_int64(self._get_index_values(), other,
-                                     limit=limit)
+                                    limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):

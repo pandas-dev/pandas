@@ -138,7 +138,7 @@ cdef extern from "parser/tokenizer.h":
 
         # Store words in (potentially ragged) matrix for now, hmm
         char **words
-        int64_t *word_starts # where we are in the stream
+        int64_t *word_starts  # where we are in the stream
         int64_t words_len
         int64_t words_cap
 
@@ -400,7 +400,7 @@ cdef class TextReader:
                 raise ValueError('only length-1 separators excluded right now')
             self.parser.delimiter = ord(delimiter)
 
-        #----------------------------------------
+        # ----------------------------------------
         # parser options
 
         self.parser.doublequote = doublequote
@@ -519,7 +519,7 @@ cdef class TextReader:
 
         self.index_col = index_col
 
-        #----------------------------------------
+        # ----------------------------------------
         # header stuff
 
         self.allow_leading_cols = allow_leading_cols
@@ -810,7 +810,7 @@ cdef class TextReader:
                     if hr == self.header[-1]:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
-                                                     is not None else 0)
+                              is not None else 0)
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -848,7 +848,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header[0])
-        else: # not self.has_usecols:
+        else:  # not self.has_usecols:
 
             field_count = self.parser.line_fields[data_line]
 
@@ -1374,6 +1374,7 @@ def _ensure_encoded(list lst):
         result.append(x)
     return result
 
+
 cdef asbytes(object o):
     if PY3:
         return str(o).encode('utf-8')
@@ -1417,10 +1418,12 @@ def _maybe_upcast(arr):
 
     return arr
 
+
 cdef enum StringPath:
     CSTRING
     UTF8
     ENCODED
+
 
 # factored out logic to pick string converter
 cdef inline StringPath _string_path(char *encoding):
@@ -1430,8 +1433,11 @@ cdef inline StringPath _string_path(char *encoding):
         return UTF8
     else:
         return CSTRING
+
+
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
+
 
 cdef _string_box_factorize(parser_t *parser, int64_t col,
                            int64_t line_start, int64_t line_end,
@@ -1782,7 +1788,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                            parser.sci, parser.thousands, 1)
                 if errno != 0 or p_end[0] or p_end == word:
                     if (strcasecmp(word, cinf) == 0 or
-                                strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0):
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
@@ -1803,7 +1809,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                        parser.sci, parser.thousands, 1)
             if errno != 0 or p_end[0] or p_end == word:
                 if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0):
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
@@ -2263,6 +2269,7 @@ def _compute_na_values():
     }
     return na_values
 
+
 na_values = _compute_na_values()
 
 for k in list(na_values):
@@ -2361,6 +2368,7 @@ def _to_structured_array(dict columns, object names, object usecols):
                                 field_type[0] == np.object_)
 
     return recs
+
 
 cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
                              int64_t stride, int64_t length, bint incref):

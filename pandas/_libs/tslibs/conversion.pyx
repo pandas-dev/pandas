@@ -206,8 +206,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                     dt64_to_dtstruct(v, &dts)
                     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                                   dts.min, dts.sec, dts.us, tz1)
-                    delta = (int(get_utcoffset(tz1, dt).total_seconds())
-                             * 1000000000)
+                    delta = (int(get_utcoffset(tz1, dt).total_seconds()) *
+                             1000000000)
                     utc_dates[i] = v - delta
         else:
             trans, deltas, typ = get_dst_info(tz1)
@@ -246,8 +246,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 dt64_to_dtstruct(v, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz2)
-                delta = (int(get_utcoffset(tz2, dt).total_seconds())
-                             * 1000000000)
+                delta = (int(get_utcoffset(tz2, dt).total_seconds()) *
+                         1000000000)
                 result[i] = v + delta
         return result
 
@@ -414,7 +414,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                     raise pytz.AmbiguousTimeError(
                         "There are %i dst switches when "
                         "there should only be 1." % switch_idx.size)
-                switch_idx = switch_idx[0] + 1 # Pull the only index and adjust
+                switch_idx = switch_idx[0] + 1
+                # Pull the only index and adjust
                 a_idx = grp[:switch_idx]
                 b_idx = grp[switch_idx:]
                 dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))

@@ -258,7 +258,7 @@ def min_subseq(ndarray[double_t] arr):
 
     return (s, e, -m)
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Pairwise correlation/covariance
 
 
@@ -322,7 +322,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
 
     return result
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Pairwise Spearman correlation
 
 
@@ -385,6 +385,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
                     result[xi, yi] = result[yi, xi] = NaN
 
     return result
+
 
 # generated from template
 include "algos_common_helper.pxi"

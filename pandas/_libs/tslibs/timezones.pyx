@@ -156,8 +156,9 @@ cdef inline object tz_cache_key(object tz):
         return None
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # UTC Offsets
+
 
 cpdef get_utcoffset(tzinfo, obj):
     try:
@@ -174,7 +175,7 @@ cdef inline bint is_fixed_offset(object tz):
             return 0
     elif treat_tz_as_pytz(tz):
         if (len(tz._transition_info) == 0
-            and len(tz._utc_transition_times) == 0):
+                and len(tz._utc_transition_times) == 0):
             return 1
         else:
             return 0
@@ -246,7 +247,7 @@ cdef object get_dst_info(object tz):
                 # get utc trans times
                 trans_list = get_utc_trans_times_from_dateutil_tz(tz)
                 trans = np.hstack([
-                    np.array([0], dtype='M8[s]'), # place holder for first item
+                    np.array([0], dtype='M8[s]'),  # place holder for 1st item
                     np.array(trans_list, dtype='M8[s]')]).astype(
                     'M8[ns]')  # all trans listed
                 trans = trans.view('i8')

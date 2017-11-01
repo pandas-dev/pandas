@@ -222,7 +222,7 @@ cdef inline parse_timedelta_string(object ts):
     elif have_dot:
 
         if ((len(number) or len(frac)) and not len(unit)
-            and current_unit is None):
+                and current_unit is None):
             raise ValueError("no units specified")
 
         if len(frac) > 0 and len(frac) <= 3:

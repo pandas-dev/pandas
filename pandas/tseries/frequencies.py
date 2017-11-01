@@ -312,7 +312,7 @@ def _get_freq_str(base, mult=1):
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-from pandas._libs.tslibs.offsets import _offset_to_period_map
+from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
 from pandas.tseries.offsets import (Nano, Micro, Milli, Second,  # noqa
                                     Minute, Hour,
                                     Day, BDay, CDay, Week, MonthBegin,

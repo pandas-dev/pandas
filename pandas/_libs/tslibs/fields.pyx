@@ -40,13 +40,13 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
     count = len(dtindex)
 
-    sa_dtype = [('Y', 'i4'), # year
-                ('M', 'i4'), # month
-                ('D', 'i4'), # day
-                ('h', 'i4'), # hour
-                ('m', 'i4'), # min
-                ('s', 'i4'), # second
-                ('u', 'i4')] # microsecond
+    sa_dtype = [('Y', 'i4'),  # year
+                ('M', 'i4'),  # month
+                ('D', 'i4'),  # day
+                ('h', 'i4'),  # hour
+                ('m', 'i4'),  # min
+                ('s', 'i4'),  # second
+                ('u', 'i4')]  # microsecond
 
     out = np.empty(count, dtype=sa_dtype)
 

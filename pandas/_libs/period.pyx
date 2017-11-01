@@ -109,8 +109,8 @@ cdef extern from "period_helper.h":
 
 initialize_daytime_conversion_factor_matrix()
 
+# ----------------------------------------------------------------------
 # Period logic
-#----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
@@ -168,8 +168,10 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
 
     return out
 
+
 cdef char START = 'S'
 cdef char END = 'E'
+
 
 cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
                             bint end):
@@ -278,31 +280,31 @@ def period_format(int64_t value, int freq, object fmt=None):
 
     if fmt is None:
         freq_group = (freq // 1000) * 1000
-        if freq_group == 1000: # FR_ANN
+        if freq_group == 1000:    # FR_ANN
             fmt = b'%Y'
-        elif freq_group == 2000: # FR_QTR
+        elif freq_group == 2000:  # FR_QTR
             fmt = b'%FQ%q'
-        elif freq_group == 3000: # FR_MTH
+        elif freq_group == 3000:  # FR_MTH
             fmt = b'%Y-%m'
-        elif freq_group == 4000: # WK
+        elif freq_group == 4000:  # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
             return '%s/%s' % (period_format(left, 6000),
                               period_format(right, 6000))
-        elif (freq_group == 5000 # BUS
-              or freq_group == 6000): # DAY
+        elif (freq_group == 5000      # BUS
+              or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
-        elif freq_group == 7000: # HR
+        elif freq_group == 7000:   # HR
             fmt = b'%Y-%m-%d %H:00'
-        elif freq_group == 8000: # MIN
+        elif freq_group == 8000:   # MIN
             fmt = b'%Y-%m-%d %H:%M'
-        elif freq_group == 9000: # SEC
+        elif freq_group == 9000:   # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
-        elif freq_group == 10000: # MILLISEC
+        elif freq_group == 10000:  # MILLISEC
             fmt = b'%Y-%m-%d %H:%M:%S.%l'
-        elif freq_group == 11000: # MICROSEC
+        elif freq_group == 11000:  # MICROSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%u'
-        elif freq_group == 12000: # NANOSEC
+        elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
             raise ValueError('Unknown freq: %d' % freq)
@@ -730,7 +732,7 @@ cdef class _Period(object):
                 return Period(ordinal=ordinal, freq=self.freq)
             msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        else: # pragma no cover
+        else:  # pragma no cover
             return NotImplemented
 
     def __add__(self, other):
@@ -1148,8 +1150,8 @@ class Period(_Period):
 
         elif value is None:
             if (year is None and month is None and
-                        quarter is None and day is None and
-                        hour is None and minute is None and second is None):
+                    quarter is None and day is None and
+                    hour is None and minute is None and second is None):
                 ordinal = iNaT
             else:
                 if freq is None:

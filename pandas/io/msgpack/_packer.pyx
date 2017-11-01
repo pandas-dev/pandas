@@ -1,5 +1,5 @@
 # coding: utf-8
-#cython: embedsignature=True
+# cython: embedsignature=True
 
 from cpython cimport *
 from libc.stdlib cimport *

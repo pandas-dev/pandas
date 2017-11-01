@@ -147,7 +147,7 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 
 def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
-                          Py_ssize_t max_groups):
+                    Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
