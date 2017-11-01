@@ -3,7 +3,7 @@
 
 from numpy cimport int64_t
 
-from datetime cimport pandas_datetimestruct
+from np_datetime cimport pandas_datetimestruct
 
 
 cdef class _TSObject:
