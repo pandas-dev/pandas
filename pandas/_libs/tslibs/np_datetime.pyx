@@ -56,6 +56,7 @@ cdef inline PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
 
 # ----------------------------------------------------------------------
 
+
 class OutOfBoundsDatetime(ValueError):
     pass
 
