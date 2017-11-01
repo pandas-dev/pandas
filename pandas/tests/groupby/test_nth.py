@@ -238,6 +238,84 @@ class TestNth(MixIn):
                                          names=['A', 'B']))
         assert_frame_equal(result, expected)
 
+    def test_groupby_head_tail(self):
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        g_as = df.groupby('A', as_index=True)
+        g_not_as = df.groupby('A', as_index=False)
+
+        # as_index= False, much easier
+        assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
+        assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
+
+        empty_not_as = DataFrame(columns=df.columns,
+                                 index=pd.Index([], dtype=df.index.dtype))
+        empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
+        assert_frame_equal(empty_not_as, g_not_as.head(0))
+        assert_frame_equal(empty_not_as, g_not_as.tail(0))
+        assert_frame_equal(empty_not_as, g_not_as.head(-1))
+        assert_frame_equal(empty_not_as, g_not_as.tail(-1))
+
+        assert_frame_equal(df, g_not_as.head(7))  # contains all
+        assert_frame_equal(df, g_not_as.tail(7))
+
+        # as_index=True, (used to be different)
+        df_as = df
+
+        assert_frame_equal(df_as.loc[[0, 2]], g_as.head(1))
+        assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
+
+        empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
+        empty_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_as['B'] = empty_not_as['B'].astype(df.B.dtype)
+        assert_frame_equal(empty_as, g_as.head(0))
+        assert_frame_equal(empty_as, g_as.tail(0))
+        assert_frame_equal(empty_as, g_as.head(-1))
+        assert_frame_equal(empty_as, g_as.tail(-1))
+
+        assert_frame_equal(df_as, g_as.head(7))  # contains all
+        assert_frame_equal(df_as, g_as.tail(7))
+
+        # test with selection
+        assert_frame_equal(g_as[[]].head(1), df_as.loc[[0, 2], []])
+        assert_frame_equal(g_as[['A']].head(1), df_as.loc[[0, 2], ['A']])
+        assert_frame_equal(g_as[['B']].head(1), df_as.loc[[0, 2], ['B']])
+        assert_frame_equal(g_as[['A', 'B']].head(1), df_as.loc[[0, 2]])
+
+        assert_frame_equal(g_not_as[[]].head(1), df_as.loc[[0, 2], []])
+        assert_frame_equal(g_not_as[['A']].head(1), df_as.loc[[0, 2], ['A']])
+        assert_frame_equal(g_not_as[['B']].head(1), df_as.loc[[0, 2], ['B']])
+        assert_frame_equal(g_not_as[['A', 'B']].head(1), df_as.loc[[0, 2]])
+
+    def test_group_selection_cache(self):
+        # GH 12839 nth, head, and tail should return same result consistently
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        expected = df.iloc[[0, 2]].set_index('A')
+
+        g = df.groupby('A')
+        result1 = g.head(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.tail(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.head(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.tail(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
 
 def test_nth_empty():
     # GH 16064
