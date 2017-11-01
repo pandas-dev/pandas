@@ -27,7 +27,7 @@ from pandas._libs.tslibs.resolution import (  # noqa
     DAYS,
     Resolution,
     _FrequencyInferer, _TimedeltaFrequencyInferer,
-    _maybe_add_count, _weekday_rule_aliases, get_freq_group)
+    get_freq_group)
 from pandas._libs.tslibs.parsing import _get_rule_month
 
 from pytz import AmbiguousTimeError

@@ -357,7 +357,7 @@ class Resolution(object):
 # Frequency Inference
 
 
-def unique_deltas(ndarray[int64_t] arr):
+cdef unique_deltas(ndarray[int64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t val
