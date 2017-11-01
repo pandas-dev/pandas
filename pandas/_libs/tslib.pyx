@@ -80,7 +80,7 @@ UTC = pytz.utc
 
 # initialize numpy
 import_array()
-# import_ufunc()
+
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
@@ -421,7 +421,7 @@ class Timestamp(_Timestamp):
     def _round(self, freq, rounder):
 
         cdef:
-            int64_t unit, r, value,  buff = 1000000
+            int64_t unit, r, value, buff = 1000000
             object result
 
         from pandas.tseries.frequencies import to_offset
@@ -620,7 +620,7 @@ class Timestamp(_Timestamp):
             # tz naive, localize
             tz = maybe_get_tz(tz)
             if not is_string_object(ambiguous):
-                ambiguous =   [ambiguous]
+                ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous, errors=errors)[0]
             return Timestamp(value, tz=tz)
@@ -808,6 +808,7 @@ class Timestamp(_Timestamp):
 
 
 # ----------------------------------------------------------------------
+
 
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
@@ -1040,7 +1041,7 @@ cdef class _Timestamp(datetime):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
-                                 'timestamps')
+                                'timestamps')
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
@@ -1210,10 +1211,10 @@ cdef class _Timestamp(datetime):
             # format a Timestamp with only _date_repr if possible
             # otherwise _repr_base
             if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
+                    self.minute == 0 and
+                    self.second == 0 and
+                    self.microsecond == 0 and
+                    self.nanosecond == 0):
                 return self._date_repr
             return self._repr_base
 
@@ -1332,8 +1333,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
         # sort of a temporary hack
         if ts.tzinfo is not None:
-            if (hasattr(tz, 'normalize') and
-                hasattr(ts.tzinfo, '_utcoffset')):
+            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
                 ts = tz.normalize(ts)
                 obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
@@ -1682,7 +1682,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         if not need_to_iterate:
 
             if ((fvalues < _NS_LOWER_BOUND).any()
-                or (fvalues > _NS_UPPER_BOUND).any()):
+                    or (fvalues > _NS_UPPER_BOUND).any()):
                 raise OutOfBoundsDatetime(
                     "cannot convert input with unit '{0}'".format(unit))
             result = (iresult *m).astype('M8[ns]')
@@ -1950,7 +1950,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     raise TypeError("{0} is not convertible to datetime"
                                     .format(type(val)))
 
-        if  seen_datetime and seen_integer:
+        if seen_datetime and seen_integer:
             # we have mixed datetimes & integers
 
             if is_coerce:
@@ -2027,9 +2027,9 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 cdef class _Timedelta(timedelta):
 
     cdef readonly:
-        int64_t value     # nanoseconds
-        object freq       # frequency reference
-        bint is_populated # are my components populated
+        int64_t value      # nanoseconds
+        object freq        # frequency reference
+        bint is_populated  # are my components populated
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
 
     def __hash__(_Timedelta self):
@@ -2190,20 +2190,20 @@ class Timedelta(_Timedelta):
 
         if value is _no_input:
             if not len(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta without a value/unit or "
-                    "descriptive keywords (days,seconds....)")
+                raise ValueError("cannot construct a Timedelta without a "
+                                 "value/unit or descriptive keywords "
+                                 "(days,seconds....)")
 
             def _to_py_int_float(v):
                 if is_integer_object(v):
                     return int(v)
                 elif is_float_object(v):
                     return float(v)
-                raise TypeError(
-                    "Invalid type {0}. Must be int or float.".format(type(v)))
+                raise TypeError("Invalid type {0}. Must be int or "
+                                "float.".format(type(v)))
 
             kwargs = dict([(k, _to_py_int_float(v))
-                            for k, v in iteritems(kwargs)])
+                           for k, v in iteritems(kwargs)])
 
             try:
                 nano = kwargs.pop('nanoseconds', 0)
@@ -2233,9 +2233,8 @@ class Timedelta(_Timedelta):
         elif _checknull_with_nat(value):
             return NaT
         else:
-            raise ValueError(
-                "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+            raise ValueError("Value must be Timedelta, string, integer, "
+                             "float, timedelta or convertible")
 
         if is_timedelta64_object(value):
             value = value.view('i8')
@@ -2389,6 +2388,7 @@ class Timedelta(_Timedelta):
 
     def __repr__(self):
         return "Timedelta('{0}')".format(self._repr_base(format='long'))
+
     def __str__(self):
         return self._repr_base(format='long')
 
@@ -2673,6 +2673,7 @@ class Timedelta(_Timedelta):
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')
+
 
 # resolution in ns
 Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)

@@ -13,6 +13,7 @@ from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
 import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
+
 cdef class IntervalMixin:
     property closed_left:
         def __get__(self):
