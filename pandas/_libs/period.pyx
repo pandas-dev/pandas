@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# cython: profile=False
 from datetime import datetime, date, timedelta
 import operator
 
