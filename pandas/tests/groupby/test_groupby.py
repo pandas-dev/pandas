@@ -2143,6 +2143,25 @@ class TestGroupBy(MixIn):
                 t = getattr(grpd, method)(*data['args'])
                 assert_frame_equal(t, df_out)
 
+    def test_groupby_multiindex_tuple(self):
+        # GH 17979
+        df = pd.DataFrame([[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+                          columns=pd.MultiIndex.from_arrays(
+                              [['a', 'b', 'b', 'c'],
+                               [1, 1, 2, 2]]))
+        expected = df.groupby([('b', 1)]).groups
+        result = df.groupby(('b', 1)).groups
+        tm.assert_dict_equal(expected, result)
+
+        df2 = pd.DataFrame([[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+                           columns=pd.MultiIndex.from_arrays(
+                               [['a', 'b', 'b', 'c'],
+                                ['d', 'd', 'e', 'e']]))
+        df2.groupby([('b', 'd')]).groups
+        expected = df.groupby([('b', 'd')]).groups
+        result = df.groupby(('b', 'd')).groups
+        tm.assert_dict_equal(expected, result)
+
     def test_groupby_non_arithmetic_agg_intlike_precision(self):
         # GH9311, GH6620
         c = 24650000000000000
