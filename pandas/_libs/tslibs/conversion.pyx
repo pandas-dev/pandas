@@ -481,8 +481,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                     dt64_to_dtstruct(v, &dts)
                     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                                   dts.min, dts.sec, dts.us, tz1)
-                    delta = (int(get_utcoffset(tz1, dt).total_seconds())
-                             * 1000000000)
+                    delta = (int(get_utcoffset(tz1, dt).total_seconds()) *
+                             1000000000)
                     utc_dates[i] = v - delta
         else:
             trans, deltas, typ = get_dst_info(tz1)
@@ -521,8 +521,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 dt64_to_dtstruct(v, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz2)
-                delta = (int(get_utcoffset(tz2, dt).total_seconds())
-                             * 1000000000)
+                delta = (int(get_utcoffset(tz2, dt).total_seconds()) *
+                         1000000000)
                 result[i] = v + delta
         return result
 
