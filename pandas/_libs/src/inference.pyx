@@ -2,7 +2,8 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT
+from tslibs.nattype import NaT
+from tslib cimport convert_to_tsobject, convert_to_timedelta64
 from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
@@ -447,8 +448,8 @@ def infer_dtype(object value, bint skipna=False):
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
-            not util.is_timedelta64_object(val) and
-            not util.is_datetime64_object(val)):
+                not util.is_timedelta64_object(val) and
+                not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'

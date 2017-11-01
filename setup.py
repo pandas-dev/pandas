@@ -7,9 +7,15 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import os
+from os.path import join as pjoin
+
 import sys
 import shutil
 from distutils.version import LooseVersion
+
+# versioning
+import versioneer
+cmdclass = versioneer.get_cmdclass()
 
 
 def is_platform_windows():
@@ -23,10 +29,6 @@ def is_platform_linux():
 def is_platform_mac():
     return sys.platform == 'darwin'
 
-
-# versioning
-import versioneer
-cmdclass = versioneer.get_cmdclass()
 
 min_cython_ver = '0.23'
 try:
@@ -77,9 +79,9 @@ else:
                      "  use pip or easy_install."
                      "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
-from distutils.extension import Extension
-from distutils.command.build import build
-from distutils.command.build_ext import build_ext as _build_ext
+from distutils.extension import Extension  # noqa:E402
+from distutils.command.build import build  # noqa:E402
+from distutils.command.build_ext import build_ext as _build_ext  # noqa:E402
 
 try:
     if not _CYTHON_INSTALLED:
@@ -103,9 +105,6 @@ if cython:
     except ImportError:
         raise ImportError('Building pandas requires Tempita: '
                           'pip install Tempita')
-
-
-from os.path import join as pjoin
 
 
 _pxi_dep_template = {
@@ -344,8 +343,10 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
+                 'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
+                 'pandas/_libs/tslibs/conversion.pyx',
                  'pandas/_libs/tslibs/fields.pyx',
                  'pandas/_libs/tslibs/offsets.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
@@ -469,12 +470,11 @@ lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
                              'pandas/_libs/src/parse_helper.h',
                              'pandas/_libs/src/compat_helper.h']
 
-
-tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
-                   'pandas/_libs/src/datetime/np_datetime_strings.h',
-                   'pandas/_libs/src/datetime.pxd']
-npdt_srces = ['pandas/_libs/src/datetime/np_datetime.c',
-              'pandas/_libs/src/datetime/np_datetime_strings.c']
+np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
+                       'pandas/_libs/src/datetime/np_datetime_strings.h']
+np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
+                       'pandas/_libs/src/datetime/np_datetime_strings.c']
+tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -489,28 +489,36 @@ ext_data = {
                                     _pxi_dep['hashtable'])},
     '_libs.tslibs.strptime': {'pyxfile': '_libs/tslibs/strptime',
                               'depends': tseries_depends,
-                              'sources': npdt_srces},
+                              'sources': np_datetime_sources},
     '_libs.tslibs.offsets': {'pyxfile': '_libs/tslibs/offsets'},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
-                    'pxdfiles': ['_libs/src/util', '_libs/lib'],
+                    'pxdfiles': ['_libs/src/util'],
                     'depends': tseries_depends,
-                    'sources': npdt_srces},
+                    'sources': np_datetime_sources},
+    '_libs.tslibs.conversion': {'pyxfile': '_libs/tslibs/conversion',
+                                'depends': tseries_depends,
+                                'sources': np_datetime_sources},
+    '_libs.tslibs.np_datetime': {'pyxfile': '_libs/tslibs/np_datetime',
+                                 'depends': np_datetime_headers,
+                                 'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {'pyxfile': '_libs/tslibs/timedeltas'},
     '_libs.tslibs.timezones': {'pyxfile': '_libs/tslibs/timezones'},
     '_libs.tslibs.fields': {'pyxfile': '_libs/tslibs/fields',
                             'depends': tseries_depends,
-                            'sources': npdt_srces},
+                            'sources': np_datetime_sources},
     '_libs.period': {'pyxfile': '_libs/period',
                      'depends': (tseries_depends +
                                  ['pandas/_libs/src/period_helper.h']),
-                     'sources': npdt_srces + [
+                     'sources': np_datetime_sources + [
                                 'pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.parsing': {'pyxfile': '_libs/tslibs/parsing',
                              'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.frequencies': {'pyxfile': '_libs/tslibs/frequencies',
                                  'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.nattype': {'pyxfile': '_libs/tslibs/nattype',
+                             'pxdfiles': ['_libs/src/util']},
     '_libs.index': {'pyxfile': '_libs/index',
-                    'sources': npdt_srces,
+                    'sources': np_datetime_sources,
                     'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                     'depends': _pxi_dep['index']},
     '_libs.algos': {'pyxfile': '_libs/algos',
@@ -540,12 +548,9 @@ ext_data = {
                       'sources': ['pandas/_libs/src/parser/tokenizer.c',
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
-                     'depends': (['pandas/_libs/sparse.pyx'] +
-                                 _pxi_dep['sparse'])},
-    '_libs.testing': {'pyxfile': '_libs/testing',
-                      'depends': ['pandas/_libs/testing.pyx']},
-    '_libs.hashing': {'pyxfile': '_libs/hashing',
-                      'depends': ['pandas/_libs/hashing.pyx']},
+                     'depends': _pxi_dep['sparse']},
+    '_libs.testing': {'pyxfile': '_libs/testing'},
+    '_libs.hashing': {'pyxfile': '_libs/hashing'},
     'io.sas._sas': {'pyxfile': 'io/sas/sas'}}
 
 extensions = []
@@ -623,7 +628,7 @@ ujson_ext = Extension('pandas._libs.json',
                                 'pandas/_libs/src/ujson/python/JSONtoObj.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
-                               npdt_srces),
+                               np_datetime_sources),
                       include_dirs=(['pandas/_libs/src/ujson/python',
                                      'pandas/_libs/src/ujson/lib',
                                      'pandas/_libs/src/datetime'] +

@@ -202,8 +202,6 @@ class DateOffset(BaseOffset):
         raises NotImplentedError for offsets without a
         vectorized implementation
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         i : DatetimeIndex

@@ -182,8 +182,6 @@ indicator : boolean or string, default False
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
 
-    .. versionadded:: 0.17.0
-
 validate : string, default None
     If specified, checks if merge is of specified type.
 
@@ -915,8 +913,6 @@ class DataFrame(NDFrame):
             - records : list like
               [{column -> value}, ... , {column -> value}]
             - index : dict like {index -> {column -> value}}
-
-              .. versionadded:: 0.17.0
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
@@ -3743,8 +3739,6 @@ class DataFrame(NDFrame):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         n : int
@@ -3779,8 +3773,6 @@ class DataFrame(NDFrame):
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
         values of `columns`.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -5349,8 +5341,6 @@ class DataFrame(NDFrame):
     def round(self, decimals=0, *args, **kwargs):
         """
         Round a DataFrame to a variable number of decimal places.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
