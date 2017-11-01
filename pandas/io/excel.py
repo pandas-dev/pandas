@@ -1578,6 +1578,149 @@ class _XlwtWriter(ExcelWriter):
 register_writer(_XlwtWriter)
 
 
+class _XlsxStyler(object):
+    # Map from openpyxl-oriented styles to flatter xlsxwriter representation
+    # Ordering necessary for both determinism and because some are keyed by
+    # prefixes of others.
+    STYLE_MAPPING = {
+        'font': [
+            (('name',), 'font_name'),
+            (('sz',), 'font_size'),
+            (('size',), 'font_size'),
+            (('color', 'rgb',), 'font_color'),
+            (('color',), 'font_color'),
+            (('b',), 'bold'),
+            (('bold',), 'bold'),
+            (('i',), 'italic'),
+            (('italic',), 'italic'),
+            (('u',), 'underline'),
+            (('underline',), 'underline'),
+            (('strike',), 'font_strikeout'),
+            (('vertAlign',), 'font_script'),
+            (('vertalign',), 'font_script'),
+        ],
+        'number_format': [
+            (('format_code',), 'num_format'),
+            ((), 'num_format',),
+        ],
+        'protection': [
+            (('locked',), 'locked'),
+            (('hidden',), 'hidden'),
+        ],
+        'alignment': [
+            (('horizontal',), 'align'),
+            (('vertical',), 'valign'),
+            (('text_rotation',), 'rotation'),
+            (('wrap_text',), 'text_wrap'),
+            (('indent',), 'indent'),
+            (('shrink_to_fit',), 'shrink'),
+        ],
+        'fill': [
+            (('patternType',), 'pattern'),
+            (('patterntype',), 'pattern'),
+            (('fill_type',), 'pattern'),
+            (('start_color', 'rgb',), 'fg_color'),
+            (('fgColor', 'rgb',), 'fg_color'),
+            (('fgcolor', 'rgb',), 'fg_color'),
+            (('start_color',), 'fg_color'),
+            (('fgColor',), 'fg_color'),
+            (('fgcolor',), 'fg_color'),
+            (('end_color', 'rgb',), 'bg_color'),
+            (('bgColor', 'rgb',), 'bg_color'),
+            (('bgcolor', 'rgb',), 'bg_color'),
+            (('end_color',), 'bg_color'),
+            (('bgColor',), 'bg_color'),
+            (('bgcolor',), 'bg_color'),
+        ],
+        'border': [
+            (('color', 'rgb',), 'border_color'),
+            (('color',), 'border_color'),
+            (('style',), 'border'),
+            (('top', 'color', 'rgb',), 'top_color'),
+            (('top', 'color',), 'top_color'),
+            (('top', 'style',), 'top'),
+            (('top',), 'top'),
+            (('right', 'color', 'rgb',), 'right_color'),
+            (('right', 'color',), 'right_color'),
+            (('right', 'style',), 'right'),
+            (('right',), 'right'),
+            (('bottom', 'color', 'rgb',), 'bottom_color'),
+            (('bottom', 'color',), 'bottom_color'),
+            (('bottom', 'style',), 'bottom'),
+            (('bottom',), 'bottom'),
+            (('left', 'color', 'rgb',), 'left_color'),
+            (('left', 'color',), 'left_color'),
+            (('left', 'style',), 'left'),
+            (('left',), 'left'),
+        ],
+    }
+
+    @classmethod
+    def convert(cls, style_dict, num_format_str=None):
+        """
+        converts a style_dict to an xlsxwriter format dict
+
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        num_format_str: optional number format string
+        """
+
+        # Create a XlsxWriter format object.
+        props = {}
+
+        if num_format_str is not None:
+            props['num_format'] = num_format_str
+
+        if style_dict is None:
+            return props
+
+        if 'borders' in style_dict:
+            style_dict = style_dict.copy()
+            style_dict['border'] = style_dict.pop('borders')
+
+        for style_group_key, style_group in style_dict.items():
+            for src, dst in cls.STYLE_MAPPING.get(style_group_key, []):
+                # src is a sequence of keys into a nested dict
+                # dst is a flat key
+                if dst in props:
+                    continue
+                v = style_group
+                for k in src:
+                    try:
+                        v = v[k]
+                    except (KeyError, TypeError):
+                        break
+                else:
+                    props[dst] = v
+
+        if isinstance(props.get('pattern'), string_types):
+            # TODO: support other fill patterns
+            props['pattern'] = 0 if props['pattern'] == 'none' else 1
+
+        for k in ['border', 'top', 'right', 'bottom', 'left']:
+            if isinstance(props.get(k), string_types):
+                try:
+                    props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
+                                'thick', 'double', 'hair', 'mediumDashed',
+                                'dashDot', 'mediumDashDot', 'dashDotDot',
+                                'mediumDashDotDot', 'slantDashDot'].\
+                        index(props[k])
+                except ValueError:
+                    props[k] = 2
+
+        if isinstance(props.get('font_script'), string_types):
+            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
+                index(props['font_script'])
+
+        if isinstance(props.get('underline'), string_types):
+            props['underline'] = {'none': 0, 'single': 1, 'double': 2,
+                                  'singleAccounting': 33,
+                                  'doubleAccounting': 34}[props['underline']]
+
+        return props
+
+
 class _XlsxWriter(ExcelWriter):
     engine = 'xlsxwriter'
     supported_extensions = ('.xlsx',)
@@ -1612,7 +1755,7 @@ class _XlsxWriter(ExcelWriter):
             wks = self.book.add_worksheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        style_dict = {}
+        style_dict = {'null': None}
 
         if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
@@ -1633,7 +1776,8 @@ class _XlsxWriter(ExcelWriter):
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = self._convert_to_style(cell.style, num_format_str)
+                style = self.book.add_format(
+                    _XlsxStyler.convert(cell.style, num_format_str))
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
@@ -1646,50 +1790,6 @@ class _XlsxWriter(ExcelWriter):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
-
-    def _convert_to_style(self, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlsxwriter format object
-        Parameters
-        ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
-        """
-
-        # If there is no formatting we don't create a format object.
-        if num_format_str is None and style_dict is None:
-            return None
-
-        # Create a XlsxWriter format object.
-        xl_format = self.book.add_format()
-
-        if num_format_str is not None:
-            xl_format.set_num_format(num_format_str)
-
-        if style_dict is None:
-            return xl_format
-
-        # Map the cell font to XlsxWriter font properties.
-        if style_dict.get('font'):
-            font = style_dict['font']
-            if font.get('bold'):
-                xl_format.set_bold()
-
-        # Map the alignment to XlsxWriter alignment properties.
-        alignment = style_dict.get('alignment')
-        if alignment:
-            if (alignment.get('horizontal') and
-                    alignment['horizontal'] == 'center'):
-                xl_format.set_align('center')
-            if (alignment.get('vertical') and
-                    alignment['vertical'] == 'top'):
-                xl_format.set_align('top')
-
-        # Map the cell borders to XlsxWriter border properties.
-        if style_dict.get('borders'):
-            xl_format.set_border()
-
-        return xl_format
 
 
 register_writer(_XlsxWriter)

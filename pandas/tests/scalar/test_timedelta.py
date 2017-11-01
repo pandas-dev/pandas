@@ -12,6 +12,35 @@ from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
 from pandas._libs.tslib import iNaT, NaT
 
 
+class TestTimedeltaArithmetic(object):
+    _multiprocess_can_split_ = True
+
+    def test_to_timedelta_on_nanoseconds(self):
+        # GH 9273
+        result = Timedelta(nanoseconds=100)
+        expected = Timedelta('100ns')
+        assert result == expected
+
+        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
+                           milliseconds=1, microseconds=1, nanoseconds=1)
+        expected = Timedelta(694861001001001)
+        assert result == expected
+
+        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
+        expected = Timedelta('1us1ns')
+        assert result == expected
+
+        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
+        expected = Timedelta('999ns')
+        assert result == expected
+
+        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
+        expected = Timedelta('990ns')
+        assert result == expected
+
+        pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))
+
+
 class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
