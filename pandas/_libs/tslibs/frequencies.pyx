@@ -12,7 +12,7 @@ np.import_array()
 from util cimport is_integer_object, is_string_object
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 cpdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
@@ -304,7 +304,7 @@ cpdef get_freq(freq):
     return freq
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Frequency comparison
 
 def is_subperiod(source, target):
