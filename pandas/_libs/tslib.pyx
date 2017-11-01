@@ -79,7 +79,7 @@ UTC = pytz.utc
 
 # initialize numpy
 import_array()
-# import_ufunc()
+
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
@@ -97,6 +97,9 @@ from tslibs.conversion cimport tz_convert_single, _TSObject, _localize_tso
 from tslibs.conversion import (
     tz_localize_to_utc, tz_convert,
     tz_convert_single)
+
+from tslibs.nattype import NaT, nat_strings
+from tslibs.nattype cimport _checknull_with_nat
 
 
 cdef inline object create_timestamp_from_ts(
@@ -417,7 +420,7 @@ class Timestamp(_Timestamp):
     def _round(self, freq, rounder):
 
         cdef:
-            int64_t unit, r, value,  buff = 1000000
+            int64_t unit, r, value, buff = 1000000
             object result
 
         from pandas.tseries.frequencies import to_offset
@@ -616,7 +619,7 @@ class Timestamp(_Timestamp):
             # tz naive, localize
             tz = maybe_get_tz(tz)
             if not is_string_object(ambiguous):
-                ambiguous =   [ambiguous]
+                ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous, errors=errors)[0]
             return Timestamp(value, tz=tz)
@@ -803,228 +806,8 @@ class Timestamp(_Timestamp):
         return self + other
 
 
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+# ----------------------------------------------------------------------
 
-
-def _make_nat_func(func_name, cls):
-    def f(*args, **kwargs):
-        return NaT
-    f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
-def _make_nan_func(func_name, cls):
-    def f(*args, **kwargs):
-        return np.nan
-    f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
-def _make_error_func(func_name, cls):
-    def f(*args, **kwargs):
-        raise ValueError("NaTType does not support " + func_name)
-
-    f.__name__ = func_name
-    if cls is not None:
-        f.__doc__ = getattr(cls, func_name).__doc__
-    return f
-
-
-class NaTType(_NaT):
-    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
-
-    def __new__(cls):
-        cdef _NaT base
-
-        base = _NaT.__new__(cls, 1, 1, 1)
-        base.value = NPY_NAT
-        base.freq = None
-
-        return base
-
-    def __repr__(self):
-        return 'NaT'
-
-    def __str__(self):
-        return 'NaT'
-
-    def isoformat(self, sep='T'):
-        # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
-        return 'NaT'
-
-    def __hash__(self):
-        return NPY_NAT
-
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
-        return NPY_NAT
-
-    def __reduce_ex__(self, protocol):
-        # python 3.6 compat
-        # http://bugs.python.org/issue28730
-        # now __reduce_ex__ is defined and higher priority than __reduce__
-        return self.__reduce__()
-
-    def __reduce__(self):
-        return (__nat_unpickle, (None, ))
-
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to ns precision)
-        """
-        # GH 10939
-        return np.nan
-
-    @property
-    def is_leap_year(self):
-        return False
-
-    @property
-    def is_month_start(self):
-        return False
-
-    @property
-    def is_quarter_start(self):
-        return False
-
-    @property
-    def is_year_start(self):
-        return False
-
-    @property
-    def is_month_end(self):
-        return False
-
-    @property
-    def is_quarter_end(self):
-        return False
-
-    @property
-    def is_year_end(self):
-        return False
-
-    def __rdiv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rtruediv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rfloordiv__(self, other):
-        return _nat_rdivide_op(self, other)
-
-    def __rmul__(self, other):
-        if is_integer_object(other) or is_float_object(other):
-            return NaT
-        return NotImplemented
-
-    # ----------------------------------------------------------------------
-    # inject the Timestamp field properties
-    # these by definition return np.nan
-
-    year = property(fget=lambda self: np.nan)
-    quarter = property(fget=lambda self: np.nan)
-    month = property(fget=lambda self: np.nan)
-    day = property(fget=lambda self: np.nan)
-    hour = property(fget=lambda self: np.nan)
-    minute = property(fget=lambda self: np.nan)
-    second = property(fget=lambda self: np.nan)
-    millisecond = property(fget=lambda self: np.nan)
-    microsecond = property(fget=lambda self: np.nan)
-    nanosecond = property(fget=lambda self: np.nan)
-
-    week = property(fget=lambda self: np.nan)
-    dayofyear = property(fget=lambda self: np.nan)
-    weekofyear = property(fget=lambda self: np.nan)
-    days_in_month = property(fget=lambda self: np.nan)
-    daysinmonth = property(fget=lambda self: np.nan)
-    dayofweek = property(fget=lambda self: np.nan)
-    weekday_name = property(fget=lambda self: np.nan)
-
-    # inject Timedelta properties
-    days = property(fget=lambda self: np.nan)
-    seconds = property(fget=lambda self: np.nan)
-    microseconds = property(fget=lambda self: np.nan)
-    nanoseconds = property(fget=lambda self: np.nan)
-
-    # inject pd.Period properties
-    qyear = property(fget=lambda self: np.nan)
-
-    # ----------------------------------------------------------------------
-    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-    # return NaT create functions that raise, for binding to NaTType
-    # These are the ones that can get their docstrings from datetime.
-
-    # nan methods
-    weekday = _make_nan_func('weekday', datetime)
-    isoweekday = _make_nan_func('isoweekday', datetime)
-
-    # _nat_methods
-    date = _make_nat_func('date', datetime)
-
-    utctimetuple = _make_error_func('utctimetuple', datetime)
-    timetz = _make_error_func('timetz', datetime)
-    timetuple = _make_error_func('timetuple', datetime)
-    strptime = _make_error_func('strptime', datetime)
-    strftime = _make_error_func('strftime', datetime)
-    isocalendar = _make_error_func('isocalendar', datetime)
-    dst = _make_error_func('dst', datetime)
-    ctime = _make_error_func('ctime', datetime)
-    time = _make_error_func('time', datetime)
-    toordinal = _make_error_func('toordinal', datetime)
-    tzname = _make_error_func('tzname', datetime)
-    utcoffset = _make_error_func('utcoffset', datetime)
-
-    # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None) 
-    fromtimestamp = _make_error_func('fromtimestamp', None)
-    combine = _make_error_func('combine', None)
-    utcnow = _make_error_func('utcnow', None)
-
-    timestamp = _make_error_func('timestamp', Timestamp)
-
-    # GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-    # return NaT create functions that raise, for binding to NaTType
-    astimezone = _make_error_func('astimezone', Timestamp)
-    fromordinal = _make_error_func('fromordinal', Timestamp)
-
-    # _nat_methods
-    to_pydatetime = _make_nat_func('to_pydatetime', Timestamp)
-
-    now = _make_nat_func('now', Timestamp)
-    today = _make_nat_func('today', Timestamp)
-    round = _make_nat_func('round', Timestamp)
-    floor = _make_nat_func('floor', Timestamp)
-    ceil = _make_nat_func('ceil', Timestamp)
-
-    tz_convert = _make_nat_func('tz_convert', Timestamp)
-    tz_localize = _make_nat_func('tz_localize', Timestamp)
-    replace = _make_nat_func('replace', Timestamp)
-
-    def to_datetime(self):
-        """
-        DEPRECATED: use :meth:`to_pydatetime` instead.
-
-        Convert a Timestamp object to a native Python datetime object.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
-                      FutureWarning, stacklevel=2)
-        return self.to_pydatetime(warn=False)
-
-
-def __nat_unpickle(*args):
-    # return constant defined in the module
-    return NaT
-
-NaT = NaTType()
-
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT
 
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
@@ -1042,9 +825,6 @@ cdef inline bint _check_all_nulls(object val):
     else:
         res = 0
     return res
-
-cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
-    return _nat_scalar_rules[op]
 
 
 cpdef object get_value_box(ndarray arr, object loc):
@@ -1162,7 +942,7 @@ cdef class _Timestamp(datetime):
         if isinstance(other, _Timestamp):
             ots = other
         elif other is NaT:
-            return _cmp_nat_dt(other, self, _reverse_ops[op])
+            return op == Py_NE
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
                 val = self.to_pydatetime()
@@ -1260,7 +1040,7 @@ cdef class _Timestamp(datetime):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
-                                 'timestamps')
+                                'timestamps')
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
@@ -1430,10 +1210,10 @@ cdef class _Timestamp(datetime):
             # format a Timestamp with only _date_repr if possible
             # otherwise _repr_base
             if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
+                    self.minute == 0 and
+                    self.second == 0 and
+                    self.microsecond == 0 and
+                    self.nanosecond == 0):
                 return self._date_repr
             return self._repr_base
 
@@ -1452,123 +1232,6 @@ cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
 
 cdef inline bint is_timestamp(object o):
     return Py_TYPE(o) == ts_type  # isinstance(o, Timestamp)
-
-
-cdef bint _nat_scalar_rules[6]
-
-_nat_scalar_rules[Py_EQ] = False
-_nat_scalar_rules[Py_NE] = True
-_nat_scalar_rules[Py_LT] = False
-_nat_scalar_rules[Py_LE] = False
-_nat_scalar_rules[Py_GT] = False
-_nat_scalar_rules[Py_GE] = False
-
-
-cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NaT:
-        return np.nan
-    if is_integer_object(other) or is_float_object(other):
-        return NaT
-    return NotImplemented
-
-cdef _nat_rdivide_op(self, other):
-    if PyDelta_Check(other):
-        return np.nan
-    return NotImplemented
-
-
-cdef class _NaT(datetime):
-    cdef readonly:
-        int64_t value
-        object freq
-
-    def __hash__(_NaT self):
-        # py3k needs this defined here
-        return hash(self.value)
-
-    def __richcmp__(_NaT self, object other, int op):
-        cdef int ndim = getattr(other, 'ndim', -1)
-
-        if ndim == -1:
-            return _nat_scalar_rules[op]
-
-        if ndim == 0:
-            if is_datetime64_object(other):
-                return _nat_scalar_rules[op]
-            else:
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
-        return PyObject_RichCompare(other, self, _reverse_ops[op])
-
-    def __add__(self, other):
-        if PyDateTime_Check(other):
-            return NaT
-
-        elif hasattr(other, 'delta'):
-            # Timedelta, offsets.Tick, offsets.Week
-            return NaT
-        elif getattr(other, '_typ', None) in ['dateoffset', 'series',
-                                              'period', 'datetimeindex',
-                                              'timedeltaindex']:
-            # Duplicate logic in _Timestamp.__add__ to avoid needing
-            # to subclass; allows us to @final(_Timestamp.__add__)
-            return NotImplemented
-        return NaT
-
-    def __sub__(self, other):
-        # Duplicate some logic from _Timestamp.__sub__ to avoid needing
-        # to subclass; allows us to @final(_Timestamp.__sub__)
-        if PyDateTime_Check(other):
-            return  NaT
-        elif PyDelta_Check(other):
-            return NaT
-
-        elif getattr(other, '_typ', None) == 'datetimeindex':
-            # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-            return -other.__sub__(self)
-
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
-            # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-            return (-other).__add__(self)
-
-        elif hasattr(other, 'delta'):
-            # offsets.Tick, offsets.Week
-            neg_other = -other
-            return self + neg_other
-
-        elif getattr(other, '_typ', None) in ['period',
-                                              'periodindex', 'dateoffset']:
-            return NotImplemented
-
-        return NaT
-
-    def __pos__(self):
-        return NaT
-
-    def __neg__(self):
-        return NaT
-
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
-
-    def __truediv__(self, other):
-        return _nat_divide_op(self, other)
-
-    def __floordiv__(self, other):
-        return _nat_divide_op(self, other)
-
-    def __mul__(self, other):
-        if is_integer_object(other) or is_float_object(other):
-            return NaT
-        return NotImplemented
-
-    @property
-    def asm8(self):
-        return np.datetime64(NPY_NAT, 'ns')
-
-    def to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
-        return np.datetime64('NaT')
 
 
 # helper to extract datetime and int64 from several different possibilities
@@ -1669,8 +1332,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
         # sort of a temporary hack
         if ts.tzinfo is not None:
-            if (hasattr(tz, 'normalize') and
-                hasattr(ts.tzinfo, '_utcoffset')):
+            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
                 ts = tz.normalize(ts)
                 obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
@@ -1731,7 +1393,7 @@ cdef convert_str_to_tsobject(object ts, object tz, object unit,
 
     assert is_string_object(ts)
 
-    if len(ts) == 0 or ts in _nat_strings:
+    if len(ts) == 0 or ts in nat_strings:
         ts = NaT
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
@@ -2019,7 +1681,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         if not need_to_iterate:
 
             if ((fvalues < _NS_LOWER_BOUND).any()
-                or (fvalues > _NS_UPPER_BOUND).any()):
+                    or (fvalues > _NS_UPPER_BOUND).any()):
                 raise OutOfBoundsDatetime(
                     "cannot convert input with unit '{0}'".format(unit))
             result = (iresult *m).astype('M8[ns]')
@@ -2054,7 +1716,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                         iresult[i] = NPY_NAT
 
             elif is_string_object(val):
-                if len(val) == 0 or val in _nat_strings:
+                if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
 
                 else:
@@ -2115,7 +1777,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     oresult[i] = val
 
         elif is_string_object(val):
-            if len(val) == 0 or val in _nat_strings:
+            if len(val) == 0 or val in nat_strings:
                 oresult[i] = NaT
 
             else:
@@ -2233,7 +1895,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 # string
 
                 try:
-                    if len(val) == 0 or val in _nat_strings:
+                    if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
                         continue
 
@@ -2287,7 +1949,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     raise TypeError("{0} is not convertible to datetime"
                                     .format(type(val)))
 
-        if  seen_datetime and seen_integer:
+        if seen_datetime and seen_integer:
             # we have mixed datetimes & integers
 
             if is_coerce:
@@ -2335,7 +1997,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 oresult[i] = val
             elif is_string_object(val):
 
-                if len(val) == 0 or val in _nat_strings:
+                if len(val) == 0 or val in nat_strings:
                     oresult[i] = 'NaT'
                     continue
 
@@ -2364,9 +2026,9 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 cdef class _Timedelta(timedelta):
 
     cdef readonly:
-        int64_t value     # nanoseconds
-        object freq       # frequency reference
-        bint is_populated # are my components populated
+        int64_t value      # nanoseconds
+        object freq        # frequency reference
+        bint is_populated  # are my components populated
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
 
     def __hash__(_Timedelta self):
@@ -2527,20 +2189,20 @@ class Timedelta(_Timedelta):
 
         if value is _no_input:
             if not len(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta without a value/unit or "
-                    "descriptive keywords (days,seconds....)")
+                raise ValueError("cannot construct a Timedelta without a "
+                                 "value/unit or descriptive keywords "
+                                 "(days,seconds....)")
 
             def _to_py_int_float(v):
                 if is_integer_object(v):
                     return int(v)
                 elif is_float_object(v):
                     return float(v)
-                raise TypeError(
-                    "Invalid type {0}. Must be int or float.".format(type(v)))
+                raise TypeError("Invalid type {0}. Must be int or "
+                                "float.".format(type(v)))
 
             kwargs = dict([(k, _to_py_int_float(v))
-                            for k, v in iteritems(kwargs)])
+                           for k, v in iteritems(kwargs)])
 
             try:
                 nano = kwargs.pop('nanoseconds', 0)
@@ -2570,9 +2232,8 @@ class Timedelta(_Timedelta):
         elif _checknull_with_nat(value):
             return NaT
         else:
-            raise ValueError(
-                "Value must be Timedelta, string, integer, "
-                "float, timedelta or convertible")
+            raise ValueError("Value must be Timedelta, string, integer, "
+                             "float, timedelta or convertible")
 
         if is_timedelta64_object(value):
             value = value.view('i8')
@@ -2726,6 +2387,7 @@ class Timedelta(_Timedelta):
 
     def __repr__(self):
         return "Timedelta('{0}')".format(self._repr_base(format='long'))
+
     def __str__(self):
         return self._repr_base(format='long')
 
@@ -3010,6 +2672,7 @@ class Timedelta(_Timedelta):
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')
+
 
 # resolution in ns
 Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)
