@@ -70,7 +70,7 @@ class TestTimeZoneSupportPytz(object):
         rng_eastern = rng.tz_convert(self.tzstr('US/Eastern'))
 
         # Values are unmodified
-        assert np.array_equal(rng.asi8, rng_eastern.asi8)
+        tm.assert_numpy_array_equal(rng.asi8, rng_eastern.asi8)
 
         assert self.cmptz(rng_eastern.tz, self.tz('US/Eastern'))
 
@@ -108,7 +108,7 @@ class TestTimeZoneSupportPytz(object):
         rng = date_range('3/10/2012', '3/11/2012', freq='30T')
         converted = rng.tz_localize(self.tz('US/Eastern'))
         expected_naive = rng + offsets.Hour(5)
-        assert np.array_equal(converted.asi8, expected_naive.asi8)
+        tm.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')

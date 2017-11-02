@@ -20,11 +20,6 @@ from pandas.tests.series.common import TestData
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-def eq_gen_range(kwargs, expected):
-    rng = generate_range(**kwargs)
-    assert (np.array_equal(list(rng), expected))
-
-
 class TestDateRanges(TestData):
 
     def test_date_range_gen_error(self):
@@ -201,20 +196,23 @@ class TestGenRangeGeneration(object):
         assert rng1 == rng2
 
     def test_1(self):
-        eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
-                     [datetime(2009, 3, 25), datetime(2009, 3, 26)])
+        rng = list(generate_range(start=datetime(2009, 3, 25), periods=2))
+        expected = [datetime(2009, 3, 25), datetime(2009, 3, 26)]
+        assert rng == expected
 
     def test_2(self):
-        eq_gen_range(dict(start=datetime(2008, 1, 1),
-                          end=datetime(2008, 1, 3)),
-                     [datetime(2008, 1, 1),
-                      datetime(2008, 1, 2),
-                      datetime(2008, 1, 3)])
+        rng = list(generate_range(start=datetime(2008, 1, 1),
+                                  end=datetime(2008, 1, 3)))
+        expected = [datetime(2008, 1, 1),
+                    datetime(2008, 1, 2),
+                    datetime(2008, 1, 3)]
+        assert rng == expected
 
     def test_3(self):
-        eq_gen_range(dict(start=datetime(2008, 1, 5),
-                          end=datetime(2008, 1, 6)),
-                     [])
+        rng = list(generate_range(start=datetime(2008, 1, 5),
+                                  end=datetime(2008, 1, 6)))
+        expected = []
+        assert rng == expected
 
     def test_precision_finer_than_offset(self):
         # GH 9907

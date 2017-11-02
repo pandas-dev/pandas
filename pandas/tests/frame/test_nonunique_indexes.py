@@ -448,7 +448,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
         expected = np.array([[1, 2, 'a', 'b'], [1, 2, 'a', 'b']],
                             dtype=object)
 
-        assert np.array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_set_value_by_index(self):
         # See gh-12344

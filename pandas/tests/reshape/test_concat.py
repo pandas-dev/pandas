@@ -1594,7 +1594,9 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(len(dates)), index=dates, name='value')
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        assert np.array_equal(result.columns, [0, 1])
+        expected = Index([0, 1])
+
+        tm.assert_index_equal(result.columns, expected)
 
     def test_concat_iterables(self):
         from collections import deque, Iterable

@@ -823,7 +823,7 @@ A,B,C
                                           17007000002000192,
                                           17007000002000194]})
 
-        assert np.array_equal(result['Numbers'], expected['Numbers'])
+        tm.assert_series_equal(result['Numbers'], expected['Numbers'])
 
     def test_chunks_have_consistent_numerical_type(self):
         integers = [str(i) for i in range(499999)]

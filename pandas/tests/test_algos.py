@@ -1132,19 +1132,19 @@ def test_pad_backfill_object_segfault():
 
     result = libalgos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.pad_object(new, old)
     expected = np.array([], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill_object(old, new)
     expected = np.array([-1], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill_object(new, old)
     expected = np.array([], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_arrmap():
@@ -1235,15 +1235,6 @@ def test_is_lexsorted():
 
     assert (not libalgos.is_lexsorted(failure))
 
-# def test_get_group_index():
-#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype=np.int64)
-#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype=np.int64)
-#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype=np.int64)
-
-#     result = lib.get_group_index([a, b], (3, 4))
-
-#     assert(np.array_equal(result, expected))
-
 
 def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype(np.int64)
@@ -1253,13 +1244,13 @@ def test_groupsort_indexer():
 
     # need to use a stable sort
     expected = np.argsort(a, kind='mergesort')
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     # compare with lexsort
     key = a * 1000 + b
     result = libalgos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_infinity_sort():

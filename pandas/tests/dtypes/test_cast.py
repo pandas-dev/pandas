@@ -38,17 +38,17 @@ class TestMaybeDowncast(object):
 
         arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        assert (np.array_equal(result, arr))
+        tm.assert_numpy_array_equal(result, arr)
 
         arr = np.array([8., 8., 8., 8., 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
         arr = np.array([8., 8., 8., 8., 9.0000000000005])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
         # GH16875 coercing of bools
         ser = Series([True, True, False])

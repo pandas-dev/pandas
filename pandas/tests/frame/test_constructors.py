@@ -1913,10 +1913,11 @@ class TestDataFrameConstructors(TestData):
         # #2633
         result = DataFrame.from_records([], index='foo',
                                         columns=['foo', 'bar'])
+        expected = Index(['bar'])
 
-        assert np.array_equal(result.columns, ['bar'])
         assert len(result) == 0
         assert result.index.name == 'foo'
+        tm.assert_index_equal(result.columns, expected)
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114
