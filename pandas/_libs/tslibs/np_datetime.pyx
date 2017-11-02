@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
+
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
                                PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
@@ -47,6 +49,35 @@ cdef extern from "../src/datetime/np_datetime.h":
     pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 # ----------------------------------------------------------------------
+# Comparison
+
+cdef int reverse_ops[6]
+
+reverse_ops[Py_LT] = Py_GT
+reverse_ops[Py_LE] = Py_GE
+reverse_ops[Py_EQ] = Py_EQ
+reverse_ops[Py_NE] = Py_NE
+reverse_ops[Py_GT] = Py_LT
+reverse_ops[Py_GE] = Py_LE
+
+
+cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+    """
+    cmp_scalar is a more performant version of PyObject_RichCompare
+    typed for int64_t arguments.
+    """
+    if op == Py_EQ:
+        return lhs == rhs
+    elif op == Py_NE:
+        return lhs != rhs
+    elif op == Py_LT:
+        return lhs < rhs
+    elif op == Py_LE:
+        return lhs <= rhs
+    elif op == Py_GT:
+        return lhs > rhs
+    elif op == Py_GE:
+        return lhs >= rhs
 
 
 class OutOfBoundsDatetime(ValueError):

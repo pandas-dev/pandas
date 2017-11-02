@@ -55,6 +55,8 @@ from datetime cimport (
 from datetime import time as datetime_time
 
 from tslibs.np_datetime cimport (check_dts_bounds,
+                                 reverse_ops,
+                                 cmp_scalar,
                                  pandas_datetimestruct,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64)
@@ -893,31 +895,6 @@ def unique_deltas(ndarray[int64_t] arr):
     return result
 
 
-cdef inline bint _cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
-    if op == Py_EQ:
-        return lhs == rhs
-    elif op == Py_NE:
-        return lhs != rhs
-    elif op == Py_LT:
-        return lhs < rhs
-    elif op == Py_LE:
-        return lhs <= rhs
-    elif op == Py_GT:
-        return lhs > rhs
-    elif op == Py_GE:
-        return lhs >= rhs
-
-
-cdef int _reverse_ops[6]
-
-_reverse_ops[Py_LT] = Py_GT
-_reverse_ops[Py_LE] = Py_GE
-_reverse_ops[Py_EQ] = Py_EQ
-_reverse_ops[Py_NE] = Py_NE
-_reverse_ops[Py_GT] = Py_LT
-_reverse_ops[Py_GE] = Py_LE
-
-
 cdef str _NDIM_STRING = "ndim"
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -970,7 +947,7 @@ cdef class _Timestamp(datetime):
                         raise TypeError('Cannot compare type %r with type %r' %
                                         (type(self).__name__,
                                          type(other).__name__))
-                return PyObject_RichCompare(other, self, _reverse_ops[op])
+                return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
                 if op == Py_EQ:
                     return False
@@ -980,7 +957,7 @@ cdef class _Timestamp(datetime):
                                 (type(self).__name__, type(other).__name__))
 
         self._assert_tzawareness_compat(other)
-        return _cmp_scalar(self.value, ots.value, op)
+        return cmp_scalar(self.value, ots.value, op)
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
@@ -2066,7 +2043,7 @@ cdef class _Timedelta(timedelta):
                                          type(other).__name__))
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
-                return PyObject_RichCompare(other, self, _reverse_ops[op])
+                return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
                 if op == Py_EQ:
                     return False
@@ -2075,7 +2052,7 @@ cdef class _Timedelta(timedelta):
                 raise TypeError('Cannot compare type %r with type %r' %
                                 (type(self).__name__, type(other).__name__))
 
-        return _cmp_scalar(self.value, ots.value, op)
+        return cmp_scalar(self.value, ots.value, op)
 
     def _ensure_components(_Timedelta self):
         """
