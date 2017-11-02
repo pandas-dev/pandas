@@ -798,69 +798,69 @@ class TestCategorical(object):
         tm.assert_index_equal(cat.categories, pd.Index(['a', 'b', 'c', 'd']))
 
     @pytest.mark.parametrize(
-            "input1, input2, cat_array",
-            [
-                (
-                    np.array([1, 2, 3, 3], dtype=np.dtype('int_')),
-                    np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_')),
-                    np.array([1, 2, 3, 4, 5], dtype=np.dtype('int_'))
+        "input1, input2, cat_array",
+        [
+            (
+                np.array([1, 2, 3, 3], dtype=np.dtype('int_')),
+                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_')),
+                np.array([1, 2, 3, 4, 5], dtype=np.dtype('int_'))
+            ),
+            (
+                np.array([1, 2, 3, 3], dtype=np.dtype('uint')),
+                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint')),
+                np.array([1, 2, 3, 4, 5], dtype=np.dtype('uint'))
+            ),
+            (
+                np.array([1, 2, 3, 3], dtype=np.dtype('float_')),
+                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_')),
+                np.array([1, 2, 3, 4, 5], dtype=np.dtype('float_'))
+            ),
+            (
+                np.array(
+                    [1, 2, 3, 3], dtype=np.dtype('unicode_')
                 ),
-                (
-                    np.array([1, 2, 3, 3], dtype=np.dtype('uint')),
-                    np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint')),
-                    np.array([1, 2, 3, 4, 5], dtype=np.dtype('uint'))
+                np.array(
+                    [1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_')
                 ),
-                (
-                    np.array([1, 2, 3, 3], dtype=np.dtype('float_')),
-                    np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_')),
-                    np.array([1, 2, 3, 4, 5], dtype=np.dtype('float_'))
-                ),
-                (
-                    np.array(
-                        [1, 2, 3, 3], dtype=np.dtype('unicode_')
-                    ),
-                    np.array(
-                        [1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_')
-                    ),
-                    np.array(
-                        [1, 2, 3, 4, 5], dtype=np.dtype('unicode_')
-                    )
-                ),
-                (
-                    np.array(
-                        [
-                            '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                            '2017-03-01 10:00:00', '2017-03-01 10:00:00'
-                        ],
-                        dtype='datetime64'
-                    ),
-                    np.array(
-                        [
-                            '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                            '2017-03-01 10:00:00', '2017-05-01 10:00:00',
-                            '2017-03-01 10:00:00', '2017-02-01 10:00:00',
-                            '2017-04-01 10:00:00'
-                        ],
-                        dtype='datetime64'
-                    ),
-                    np.array(
-                        [
-                            '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                            '2017-03-01 10:00:00', '2017-04-01 10:00:00',
-                            '2017-05-01 10:00:00'
-                        ],
-                        dtype='datetime64'
-                    )
-                ),
-                (
-                    pd.to_timedelta(['1 days', '2 days', '3 days', '3 days'],
-                                    unit="D"),
-                    pd.to_timedelta(['1 days', '2 days', '3 days', '5 days',
-                                     '3 days', '2 days', '4 days'], unit="D"),
-                    pd.timedelta_range("1 days", periods=5, freq="D")
+                np.array(
+                    [1, 2, 3, 4, 5], dtype=np.dtype('unicode_')
                 )
-            ]
-        )
+            ),
+            (
+                np.array(
+                    [
+                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
+                        '2017-03-01 10:00:00', '2017-03-01 10:00:00'
+                    ],
+                    dtype='datetime64'
+                ),
+                np.array(
+                    [
+                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
+                        '2017-03-01 10:00:00', '2017-05-01 10:00:00',
+                        '2017-03-01 10:00:00', '2017-02-01 10:00:00',
+                        '2017-04-01 10:00:00'
+                    ],
+                    dtype='datetime64'
+                ),
+                np.array(
+                    [
+                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
+                        '2017-03-01 10:00:00', '2017-04-01 10:00:00',
+                        '2017-05-01 10:00:00'
+                    ],
+                    dtype='datetime64'
+                )
+            ),
+            (
+                pd.to_timedelta(['1 days', '2 days', '3 days', '3 days'],
+                                unit="D"),
+                pd.to_timedelta(['1 days', '2 days', '3 days', '5 days',
+                                 '3 days', '2 days', '4 days'], unit="D"),
+                pd.timedelta_range("1 days", periods=5, freq="D")
+            )
+        ]
+    )
     @pytest.mark.parametrize("is_ordered", [True, False])
     def test_drop_duplicates_non_bool(self, input1, input2,
                                       cat_array, is_ordered):
