@@ -558,6 +558,11 @@ If the header is in a row other than the first, pass the row number to
     data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
     pd.read_csv(StringIO(data), header=1)
 
+.. note::
+
+   The default behavior of ``read_csv`` is to use ``header='infer'``,
+   which will use the first nonblank row of the file as a header row.
+
 .. _io.dupe_names:
 
 Duplicate names parsing
