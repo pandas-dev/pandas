@@ -1539,7 +1539,10 @@ class IndexCol(StringMixin):
                      self.axis,
                      self.pos,
                      self.kind)))
-        return "name->{},cname->{},axis->{},pos->{},kind->{}".format(temp)
+        return ("name->{name},cname->{cname},axis->{axis},pos->{pos},"
+                "kind->{kind}".format(name=temp.name, cname=temp.cname,
+                                      axis=temp.axis, pos=temp.pos,
+                                      kind=temp.kind))
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -1825,7 +1828,10 @@ class DataCol(IndexCol):
                      self.dtype,
                      self.kind,
                      self.shape)))
-        return "name->{},cname->{},dtype->{},kind->{},shape->{}".format(temp)
+        return ("name->{name},cname->{cname},dtype->{dtype},kind->{kind},"
+                "shape->{shape}".format(name=temp.name, cname=temp.cname,
+                                        dtype=temp.dtype, kind=temp.kind,
+                                        shape=temp.shape))
 
     def __eq__(self, other):
         """ compare 2 col items """

@@ -443,7 +443,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         conv_dates = d.year
     else:
         raise ValueError(
-            "Format {fmt} is not a known Stata date format".format(fmt))
+            "Format {fmt} is not a known Stata date format".format(fmt=fmt))
 
     conv_dates = Series(conv_dates, dtype=np.float64)
     missing_value = struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0]
@@ -1778,7 +1778,8 @@ def _convert_datetime_to_stata_type(fmt):
                "%tq", "th", "%th", "ty", "%ty"]:
         return np.float64  # Stata expects doubles for SIFs
     else:
-        raise NotImplementedError("Format {fmt} not implemented".format(fmt))
+        raise NotImplementedError(
+            "Format {fmt} not implemented".format(fmt=fmt))
 
 
 def _maybe_convert_to_int_keys(convert_dates, varlist):
@@ -1870,7 +1871,7 @@ def _dtype_to_default_stata_fmt(dtype, column):
         return "%8.0g"
     else:  # pragma : no cover
         raise NotImplementedError(
-            "Data type {dtype} not supported.".format(dtype))
+            "Data type {dtype} not supported.".format(dtype=dtype))
 
 
 class StataWriter(StataParser):

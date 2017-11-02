@@ -1439,7 +1439,7 @@ class ParserBase(object):
 
                     if is_potential_mi:
                         col = col[:-1] + ('{col}.{cnt}'.format(
-                            col=col[-1], count=cur_count),)
+                            col=col[-1], cnt=cur_count),)
                     else:
                         col = '{col}.{cnt}'.format(col=col, cnt=cur_count)
                     cur_count = counts[col]
@@ -1511,8 +1511,8 @@ class ParserBase(object):
                 return icol
 
             if col_names is None:
-                raise ValueError(('Must supply column order to use {icol} as '
-                                  'index').format(icol=str(icol)))
+                raise ValueError(('Must supply column order to use {icol!s} '
+                                  'as index').format(icol=icol))
 
             for i, c in enumerate(col_names):
                 if i == icol:
@@ -3148,7 +3148,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
         for new_name, colspec in compat.iteritems(parse_spec):
             if new_name in data_dict:
                 raise ValueError(
-                    'Date column {name} already in dict'.format(new_name))
+                    'Date column {name} already in dict'.format(name=new_name))
 
             _, col, old_names = _try_convert_dates(converter, colspec,
                                                    data_dict, orig_names)

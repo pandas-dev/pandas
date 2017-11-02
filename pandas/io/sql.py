@@ -572,7 +572,8 @@ class SQLTable(PandasObject):
             self.table = self.pd_sql.get_table(self.name, self.schema)
 
         if self.table is None:
-            raise ValueError("Could not init table '{name}'".format(name))
+            raise ValueError(
+                "Could not init table '{name}'".format(name=name))
 
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
@@ -1293,7 +1294,7 @@ class SQLiteTable(SQLTable):
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
         insert_statement = \
-            'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
                 table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 
