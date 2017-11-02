@@ -742,8 +742,8 @@ class _GroupBy(PandasObject, SelectionMixin):
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
 
-        Note
-        ----
+        Notes
+        -----
         this is currently implementing sort=False
         (though the default is sort=True) for groupby in general
         """
