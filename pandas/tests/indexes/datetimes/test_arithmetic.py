@@ -199,25 +199,6 @@ class TestDatetimeIndexArithmetic(object):
             tm.assert_index_equal(result, exp)
             assert result.freq == 'D'
 
-    def test_overflow_offset(self):
-        # xref https://github.com/statsmodels/statsmodels/issues/3374
-        # ends up multiplying really large numbers which overflow
-
-        t = Timestamp('2017-01-13 00:00:00', freq='D')
-        offset = 20169940 * pd.offsets.Day(1)
-
-        def f():
-            t + offset
-        pytest.raises(OverflowError, f)
-
-        def f():
-            offset + t
-        pytest.raises(OverflowError, f)
-
-        def f():
-            t - offset
-        pytest.raises(OverflowError, f)
-
 
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
