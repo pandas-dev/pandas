@@ -853,7 +853,7 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq):
     if isinstance(freq, compat.string_types):
-        freq = resolution.get_freq(freq)
+        freq = frequencies.get_freq(freq)
     fgroup = resolution.get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
