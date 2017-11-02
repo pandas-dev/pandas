@@ -40,6 +40,91 @@ class TestTimedeltaArithmetic(object):
 
         pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))
 
+    def test_ops_notimplemented(self):
+        class Other:
+            pass
+
+        other = Other()
+
+        td = Timedelta('1 day')
+        assert td.__add__(other) is NotImplemented
+        assert td.__sub__(other) is NotImplemented
+        assert td.__truediv__(other) is NotImplemented
+        assert td.__mul__(other) is NotImplemented
+        assert td.__floordiv__(other) is NotImplemented
+
+    def test_timedelta_ops_scalar(self):
+        # GH 6808
+        base = pd.to_datetime('20130101 09:01:12.123456')
+        expected_add = pd.to_datetime('20130101 09:01:22.123456')
+        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
+
+        for offset in [pd.to_timedelta(10, unit='s'), timedelta(seconds=10),
+                       np.timedelta64(10, 's'),
+                       np.timedelta64(10000000000, 'ns'),
+                       pd.offsets.Second(10)]:
+            result = base + offset
+            assert result == expected_add
+
+            result = base - offset
+            assert result == expected_sub
+
+        base = pd.to_datetime('20130102 09:01:12.123456')
+        expected_add = pd.to_datetime('20130103 09:01:22.123456')
+        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
+
+        for offset in [pd.to_timedelta('1 day, 00:00:10'),
+                       pd.to_timedelta('1 days, 00:00:10'),
+                       timedelta(days=1, seconds=10),
+                       np.timedelta64(1, 'D') + np.timedelta64(10, 's'),
+                       pd.offsets.Day() + pd.offsets.Second(10)]:
+            result = base + offset
+            assert result == expected_add
+
+            result = base - offset
+            assert result == expected_sub
+
+    def test_ops_offsets(self):
+        td = Timedelta(10, unit='d')
+        assert Timedelta(241, unit='h') == td + pd.offsets.Hour(1)
+        assert Timedelta(241, unit='h') == pd.offsets.Hour(1) + td
+        assert 240 == td / pd.offsets.Hour(1)
+        assert 1 / 240.0 == pd.offsets.Hour(1) / td
+        assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
+        assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
+
+    # TODO: Split by op, better name
+    def test_ops(self):
+        td = Timedelta(10, unit='d')
+        assert -td == Timedelta(-10, unit='d')
+        assert +td == Timedelta(10, unit='d')
+        assert td - td == Timedelta(0, unit='ns')
+        assert (td - pd.NaT) is pd.NaT
+        assert td + td == Timedelta(20, unit='d')
+        assert (td + pd.NaT) is pd.NaT
+        assert td * 2 == Timedelta(20, unit='d')
+        assert (td * pd.NaT) is pd.NaT
+        assert td / 2 == Timedelta(5, unit='d')
+        assert td // 2 == Timedelta(5, unit='d')
+        assert abs(td) == td
+        assert abs(-td) == td
+        assert td / td == 1
+        assert (td / pd.NaT) is np.nan
+        assert (td // pd.NaT) is np.nan
+
+        # invert
+        assert -td == Timedelta('-10d')
+        assert td * -1 == Timedelta('-10d')
+        assert -1 * td == Timedelta('-10d')
+        assert abs(-td) == Timedelta('10d')
+
+        # invalid multiply with another timedelta
+        pytest.raises(TypeError, lambda: td * td)
+
+        # can't operate with integers
+        pytest.raises(TypeError, lambda: td + 2)
+        pytest.raises(TypeError, lambda: td - 2)
+
 
 class TestTimedeltas(object):
     _multiprocess_can_split_ = True
