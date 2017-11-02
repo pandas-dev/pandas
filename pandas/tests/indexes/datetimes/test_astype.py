@@ -118,7 +118,6 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, expected)
 
     def test_astype_object(self):
-        # NumPy 1.6.1 weak ns support
         rng = date_range('1/1/2000', periods=20)
 
         casted = rng.astype('O')
