@@ -117,7 +117,8 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.astype` where casting to 'category' on an empty ``DataFrame`` causes a segmentation fault (:issue:`18004`)
--
+- Error messages in the testing module have been improved when items have
+  different ``CategoricalDtype`` (:issue:`18069`)
 -
 
 Other
