@@ -1255,8 +1255,9 @@ class _AsOfMerge(_OrderedMerge):
         # validate index types are the same
         for lk, rk in zip(left_join_keys, right_join_keys):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys, "
-                                 "must be the same type")
+                raise MergeError("incompatible merge keys {lkdtype} and "
+                                 "{rkdtype}, must be the same type"
+                                 .format(lkdtype=lk.dtype, rkdtype=rk.dtype))
 
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
