@@ -233,12 +233,6 @@ class TestTimedeltaIndex(DatetimeLike):
             joined = index.join(index, how=kind)
             tm.assert_index_equal(index, joined)
 
-    def test_slice_keeps_name(self):
-
-        # GH4226
-        dr = pd.timedelta_range('1d', '5d', freq='H', name='timebucket')
-        assert dr[1:].name == dr.name
-
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
                                     data_gen_f=lambda *args, **kwargs: randn(),

@@ -117,6 +117,15 @@ class TestDatetimeIndex(object):
                                  dtype='datetime64[ns]')
         tm.assert_index_equal(result, expected)
 
+    def test_astype_object(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        casted = rng.astype('O')
+        exp_values = list(rng)
+
+        tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
+        assert casted.tolist() == exp_values
+
     def test_astype_raises(self):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
@@ -287,12 +296,18 @@ class TestToPeriod(object):
         assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
-    def test_astype_object(self):
-        # NumPy 1.6.1 weak ns support
-        rng = date_range('1/1/2000', periods=20)
+    def test_to_period_nofreq(self):
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
+        pytest.raises(ValueError, idx.to_period)
 
-        casted = rng.astype('O')
-        exp_values = list(rng)
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
+                            freq='infer')
+        assert idx.freqstr == 'D'
+        expected = pd.PeriodIndex(['2000-01-01', '2000-01-02',
+                                   '2000-01-03'], freq='D')
+        tm.assert_index_equal(idx.to_period(), expected)
 
-        tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
-        assert casted.tolist() == exp_values
+        # GH 7606
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
+        assert idx.freqstr is None
+        tm.assert_index_equal(idx.to_period(), expected)

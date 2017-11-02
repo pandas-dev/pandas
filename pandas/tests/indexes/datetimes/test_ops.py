@@ -383,49 +383,6 @@ class TestDatetimeIndexOps(Ops):
                                     tz=tz)
                 assert idx.resolution == expected
 
-    def test_union(self):
-        for tz in self.tz:
-            # union
-            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
-            expected1 = pd.date_range('1/1/2000', freq='D', periods=10, tz=tz)
-
-            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
-            expected2 = pd.date_range('1/1/2000', freq='D', periods=8, tz=tz)
-
-            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other3 = pd.DatetimeIndex([], tz=tz)
-            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-
-            for rng, other, expected in [(rng1, other1, expected1),
-                                         (rng2, other2, expected2),
-                                         (rng3, other3, expected3)]:
-
-                result_union = rng.union(other)
-                tm.assert_index_equal(result_union, expected)
-
-    def test_difference(self):
-        for tz in self.tz:
-            # diff
-            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
-            expected1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-
-            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
-            expected2 = pd.date_range('1/1/2000', freq='D', periods=3, tz=tz)
-
-            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-            other3 = pd.DatetimeIndex([], tz=tz)
-            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
-
-            for rng, other, expected in [(rng1, other1, expected1),
-                                         (rng2, other2, expected2),
-                                         (rng3, other3, expected3)]:
-                result_diff = rng.difference(other)
-                tm.assert_index_equal(result_diff, expected)
-
     def test_comp_nat(self):
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
                                  pd.Timestamp('2011-01-03')])
