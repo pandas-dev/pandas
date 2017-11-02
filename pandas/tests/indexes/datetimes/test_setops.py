@@ -11,14 +11,31 @@ from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndexSetOps(object):
+    tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
+          'dateutil/US/Pacific']
 
     def test_union(self):
-        i1 = Int64Index(np.arange(0, 20, 2))
-        i2 = Int64Index(np.arange(10, 30, 2))
-        result = i1.union(i2)
-        expected = Int64Index(np.arange(0, 30, 2))
-        tm.assert_index_equal(result, expected)
+        for tz in self.tz:
+            # union
+            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
+            expected1 = pd.date_range('1/1/2000', freq='D', periods=10, tz=tz)
+
+            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
+            expected2 = pd.date_range('1/1/2000', freq='D', periods=8, tz=tz)
+
+            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other3 = pd.DatetimeIndex([], tz=tz)
+            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            for rng, other, expected in [(rng1, other1, expected1),
+                                         (rng2, other2, expected2),
+                                         (rng3, other3, expected3)]:
+
+                result_union = rng.union(other)
+                tm.assert_index_equal(result_union, expected)
 
     def test_union_coverage(self):
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
@@ -154,6 +171,27 @@ class TestDatetimeIndex(object):
 
         result = index_1 & index_2
         assert len(result) == 0
+
+    def test_difference(self):
+        for tz in self.tz:
+            # diff
+            rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
+            expected1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
+            expected2 = pd.date_range('1/1/2000', freq='D', periods=3, tz=tz)
+
+            rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+            other3 = pd.DatetimeIndex([], tz=tz)
+            expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+
+            for rng, other, expected in [(rng1, other1, expected1),
+                                         (rng2, other2, expected2),
+                                         (rng3, other3, expected3)]:
+                result_diff = rng.difference(other)
+                tm.assert_index_equal(result_diff, expected)
 
     def test_difference_freq(self):
         # GH14323: difference of DatetimeIndex should not preserve frequency
