@@ -68,7 +68,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in ``numpy`` ``array_wrap`` with a pandas ``Series``/``Index`` (:issue:`14042`)
 -
 -
 
