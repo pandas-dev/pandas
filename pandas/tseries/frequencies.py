@@ -23,11 +23,9 @@ from pandas._libs.tslibs.frequencies import (  # noqa
     get_freq_code, _base_and_stride, _period_str_to_code,
     _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
     _period_code_map, _reverse_period_code_map)
-from pandas._libs.tslibs.resolution import (  # noqa
-    DAYS,
-    Resolution,
-    _FrequencyInferer, _TimedeltaFrequencyInferer,
-    get_freq_group)
+from pandas._libs.tslibs.resolution import (Resolution,
+                                            _FrequencyInferer,
+                                            _TimedeltaFrequencyInferer)
 from pandas._libs.tslibs.parsing import _get_rule_month
 
 from pytz import AmbiguousTimeError
