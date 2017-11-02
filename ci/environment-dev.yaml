@@ -1,0 +1,14 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - Cython
+  - NumPy
+  - moto
+  - pytest
+  - python-dateutil
+  - python=3
+  - pytz
+  - setuptools
+  - sphinx
