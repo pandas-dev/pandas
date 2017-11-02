@@ -96,7 +96,10 @@ from tslibs.timezones cimport (
 from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
-from tslibs.conversion cimport tz_convert_single, _TSObject, _localize_tso
+from tslibs.conversion cimport (tz_convert_single, _TSObject,
+                                convert_to_tsobject,
+                                convert_datetime_to_tsobject,
+                                get_datetime64_nanos)
 from tslibs.conversion import (
     tz_localize_to_utc, tz_convert,
     tz_convert_single)
@@ -1212,215 +1215,6 @@ cdef inline bint is_timestamp(object o):
     return Py_TYPE(o) == ts_type  # isinstance(o, Timestamp)
 
 
-# helper to extract datetime and int64 from several different possibilities
-cdef convert_to_tsobject(object ts, object tz, object unit,
-                         bint dayfirst, bint yearfirst):
-    """
-    Extract datetime and int64 from any of:
-        - np.int64 (with unit providing a possible modifier)
-        - np.datetime64
-        - a float (with unit providing a possible modifier)
-        - python int or long object (with unit providing a possible modifier)
-        - iso8601 string object
-        - python datetime object
-        - another timestamp object
-    """
-    cdef:
-        _TSObject obj
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-
-    obj = _TSObject()
-
-    if is_string_object(ts):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
-
-    if ts is None or ts is NaT:
-        obj.value = NPY_NAT
-    elif is_datetime64_object(ts):
-        if ts.view('i8') == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            obj.value = _get_datetime64_nanos(ts)
-            dt64_to_dtstruct(obj.value, &obj.dts)
-    elif is_integer_object(ts):
-        if ts == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            ts = ts * cast_from_unit(None, unit)
-            obj.value = ts
-            dt64_to_dtstruct(ts, &obj.dts)
-    elif is_float_object(ts):
-        if ts != ts or ts == NPY_NAT:
-            obj.value = NPY_NAT
-        else:
-            ts = cast_from_unit(ts, unit)
-            obj.value = ts
-            dt64_to_dtstruct(ts, &obj.dts)
-    elif PyDateTime_Check(ts):
-        return convert_datetime_to_tsobject(ts, tz)
-    elif PyDate_Check(ts):
-        # Keep the converter same as PyDateTime's
-        ts = datetime.combine(ts, datetime_time())
-        return convert_datetime_to_tsobject(ts, tz)
-    elif getattr(ts, '_typ', None) == 'period':
-        raise ValueError("Cannot convert Period to Timestamp "
-                         "unambiguously. Use to_timestamp")
-    else:
-        raise TypeError('Cannot convert input [{}] of type {} to '
-                        'Timestamp'.format(ts, type(ts)))
-
-    if obj.value != NPY_NAT:
-        check_dts_bounds(&obj.dts)
-
-    if tz is not None:
-        _localize_tso(obj, tz)
-
-    return obj
-
-
-cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
-                                            int32_t nanos=0):
-    """
-    Convert a datetime (or Timestamp) input `ts`, along with optional timezone
-    object `tz` to a _TSObject.
-
-    The optional argument `nanos` allows for cases where datetime input
-    needs to be supplemented with higher-precision information.
-
-    Parameters
-    ----------
-    ts : datetime or Timestamp
-        Value to be converted to _TSObject
-    tz : tzinfo or None
-        timezone for the timezone-aware output
-    nanos : int32_t, default is 0
-        nanoseconds supplement the precision of the datetime input ts
-
-    Returns
-    -------
-    obj : _TSObject
-    """
-    cdef:
-        _TSObject obj = _TSObject()
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-
-        # sort of a temporary hack
-        if ts.tzinfo is not None:
-            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
-                ts = tz.normalize(ts)
-                obj.value = pydatetime_to_dt64(ts, &obj.dts)
-                obj.tzinfo = ts.tzinfo
-            else:
-                # tzoffset
-                try:
-                    tz = ts.astimezone(tz).tzinfo
-                except:
-                    pass
-                obj.value = pydatetime_to_dt64(ts, &obj.dts)
-                ts_offset = get_utcoffset(ts.tzinfo, ts)
-                obj.value -= int(ts_offset.total_seconds() * 1e9)
-                tz_offset = get_utcoffset(tz, ts)
-                obj.value += int(tz_offset.total_seconds() * 1e9)
-                dt64_to_dtstruct(obj.value, &obj.dts)
-                obj.tzinfo = tz
-        elif not is_utc(tz):
-            ts = _localize_pydatetime(ts, tz)
-            obj.value = pydatetime_to_dt64(ts, &obj.dts)
-            obj.tzinfo = ts.tzinfo
-        else:
-            # UTC
-            obj.value = pydatetime_to_dt64(ts, &obj.dts)
-            obj.tzinfo = pytz.utc
-    else:
-        obj.value = pydatetime_to_dt64(ts, &obj.dts)
-        obj.tzinfo = ts.tzinfo
-
-    if obj.tzinfo is not None and not is_utc(obj.tzinfo):
-        offset = get_utcoffset(obj.tzinfo, ts)
-        obj.value -= int(offset.total_seconds() * 1e9)
-
-    if is_timestamp(ts):
-        obj.value += ts.nanosecond
-        obj.dts.ps = ts.nanosecond * 1000
-
-    if nanos:
-        obj.value += nanos
-        obj.dts.ps = nanos * 1000
-
-    check_dts_bounds(&obj.dts)
-    return obj
-
-
-cdef convert_str_to_tsobject(object ts, object tz, object unit,
-                             bint dayfirst=False, bint yearfirst=False):
-    """ ts must be a string """
-
-    cdef:
-        _TSObject obj
-        int out_local = 0, out_tzoffset = 0
-        datetime dt
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-
-    obj = _TSObject()
-
-    assert is_string_object(ts)
-
-    if len(ts) == 0 or ts in nat_strings:
-        ts = NaT
-    elif ts == 'now':
-        # Issue 9000, we short-circuit rather than going
-        # into np_datetime_strings which returns utc
-        ts = datetime.now(tz)
-    elif ts == 'today':
-        # Issue 9000, we short-circuit rather than going
-        # into np_datetime_strings which returns a normalized datetime
-        ts = datetime.now(tz)
-        # equiv: datetime.today().replace(tzinfo=tz)
-    else:
-        try:
-            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-            obj.value = dtstruct_to_dt64(&obj.dts)
-            check_dts_bounds(&obj.dts)
-            if out_local == 1:
-                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
-                if tz is None:
-                    check_dts_bounds(&obj.dts)
-                    return obj
-                else:
-                    # Keep the converter same as PyDateTime's
-                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                              None, 0, 0)
-                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                  obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(dt, tz,
-                                                       nanos=obj.dts.ps / 1000)
-                    return obj
-
-            else:
-                ts = obj.value
-                if tz is not None:
-                    # shift for _localize_tso
-                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise',
-                                            errors='raise')[0]
-        except ValueError:
-            try:
-                ts = parse_datetime_string(ts, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-            except Exception:
-                raise ValueError("could not convert string to Timestamp")
-
-    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
-
-
 def _test_parse_iso8601(object ts):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
@@ -1841,7 +1635,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     iresult[i] = NPY_NAT
                 else:
                     try:
-                        iresult[i] = _get_datetime64_nanos(val)
+                        iresult[i] = get_datetime64_nanos(val)
                         seen_datetime = 1
                     except ValueError:
                         if is_coerce:
@@ -2777,23 +2571,6 @@ cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
     return (delta.days * 24 * 60 * 60 * 1000000 +
             delta.seconds * 1000000 +
             delta.microseconds) * 1000
-
-
-cdef inline _get_datetime64_nanos(object val):
-    cdef:
-        pandas_datetimestruct dts
-        PANDAS_DATETIMEUNIT unit
-        npy_datetime ival
-
-    unit = get_datetime64_unit(val)
-    ival = get_datetime64_value(val)
-
-    if unit != PANDAS_FR_ns:
-        pandas_datetime_to_datetimestruct(ival, unit, &dts)
-        check_dts_bounds(&dts)
-        return dtstruct_to_dt64(&dts)
-    else:
-        return ival
 
 
 def cast_to_nanoseconds(ndarray arr):
