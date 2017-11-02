@@ -565,6 +565,8 @@ If the header is in a row other than the first, pass the row number to
   are inferred from the first line of the file, if column names are
   passed explicitly then the behavior is identical to
   ``header=None``.
+   The default behavior of ``read_csv`` is to use ``header='infer'``,
+   which will use the first nonblank row of the file as a header row.
 
 .. _io.dupe_names:
 
