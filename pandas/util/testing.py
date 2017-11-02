@@ -1074,8 +1074,12 @@ def assert_categorical_equal(left, right, check_dtype=True,
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
+    elif is_categorical_dtype(left):
+        left = repr(left)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
+    elif is_categorical_dtype(right):
+        right = repr(right)
 
     msg = """{obj} are different
 
