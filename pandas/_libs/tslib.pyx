@@ -74,7 +74,6 @@ cimport cython
 
 from pandas.compat import iteritems
 
-import collections
 import warnings
 
 import pytz
@@ -1791,17 +1790,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return oresult
 
 
+from tslibs.timedeltas cimport _Timedelta as __Timedelta
+
 # Similar to Timestamp/datetime, this is a construction requirement for
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(timedelta):
-
-    cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
-        int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
+cdef class _Timedelta(__Timedelta):
 
     def __hash__(_Timedelta self):
         if self._has_ns():
@@ -1848,86 +1843,65 @@ cdef class _Timedelta(timedelta):
 
         return cmp_scalar(self.value, ots.value, op)
 
-    def _ensure_components(_Timedelta self):
-        """
-        compute the components
-        """
-        cdef int64_t sfrac, ifrac, frac, ivalue = self.value
 
-        if self.is_populated:
-            return
+def _binary_op_method_timedeltalike(op, name):
+    # define a binary operation that only works if the other argument is
+    # timedelta like or an array of timedeltalike
+    def f(self, other):
+        # an offset
+        if hasattr(other, 'delta') and not isinstance(other, Timedelta):
+            return op(self, other.delta)
 
-        # put frac in seconds
-        frac = ivalue /(1000 *1000 *1000)
-        if frac < 0:
-            self._sign = -1
+        # a datetimelike
+        if (isinstance(other, (datetime, np.datetime64))
+                and not (isinstance(other, Timestamp) or other is NaT)):
+            return op(self, Timestamp(other))
 
-            # even fraction
-            if (-frac % 86400) != 0:
-                self._d = -frac /86400 + 1
-                frac += 86400 *self._d
-            else:
-                frac = -frac
-        else:
-            self._sign = 1
-            self._d = 0
+        # nd-array like
+        if hasattr(other, 'dtype'):
+            if other.dtype.kind not in ['m', 'M']:
+                # raise rathering than letting numpy return wrong answer
+                return NotImplemented
+            return op(self.to_timedelta64(), other)
 
-        if frac >= 86400:
-            self._d += frac / 86400
-            frac -= self._d * 86400
+        if not _validate_ops_compat(other):
+            return NotImplemented
 
-        if frac >= 3600:
-            self._h = frac / 3600
-            frac -= self._h * 3600
-        else:
-            self._h = 0
+        if other is NaT:
+            return NaT
 
-        if frac >= 60:
-            self._m = frac / 60
-            frac -= self._m * 60
-        else:
-            self._m = 0
+        try:
+            other = Timedelta(other)
+        except ValueError:
+            # failed to parse as timedelta
+            return NotImplemented
 
-        if frac >= 0:
-            self._s = frac
-            frac -= self._s
-        else:
-            self._s = 0
+        return Timedelta(op(self.value, other.value), unit='ns')
 
-        sfrac = (self._h * 3600 + self._m * 60
-                 + self._s) * (1000 * 1000 * 1000)
-        if self._sign < 0:
-            ifrac = ivalue + self._d *DAY_NS - sfrac
-        else:
-            ifrac = ivalue - (self._d *DAY_NS + sfrac)
+    f.__name__ = name
+    return f
 
-        if ifrac != 0:
-            self._ms = ifrac /(1000 *1000)
-            ifrac -= self._ms *1000 *1000
-            self._us = ifrac /1000
-            ifrac -= self._us *1000
-            self._ns = ifrac
-        else:
-            self._ms = 0
-            self._us = 0
-            self._ns = 0
 
-        self.is_populated = 1
+def _op_unary_method(func, name):
 
-    cpdef timedelta to_pytimedelta(_Timedelta self):
-        """
-        return an actual datetime.timedelta object
-        note: we lose nanosecond resolution if any
-        """
-        return timedelta(microseconds=int(self.value) /1000)
+    def f(self):
+        return Timedelta(func(self.value), unit='ns')
+    f.__name__ = name
+    return f
 
-    cpdef bint _has_ns(self):
-        return self.value % 1000 != 0
 
-# components named tuple
-Components = collections.namedtuple('Components', [
-    'days', 'hours', 'minutes', 'seconds',
-    'milliseconds', 'microseconds', 'nanoseconds'])
+cdef bint _validate_ops_compat(other):
+    # return True if we are compat with operating
+    if _checknull_with_nat(other):
+        return True
+    elif PyDelta_Check(other) or is_timedelta64_object(other):
+        return True
+    elif util.is_string_object(other):
+        return True
+    elif hasattr(other, 'delta'):
+        return True
+    return False
+
 
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
@@ -2015,40 +1989,10 @@ class Timedelta(_Timedelta):
             return NaT
 
         # make timedelta happy
-        td_base = _Timedelta.__new__(cls, microseconds=int(value) /1000)
+        td_base = _Timedelta.__new__(cls, microseconds=int(value) / 1000)
         td_base.value = value
         td_base.is_populated = 0
         return td_base
-
-    @property
-    def delta(self):
-        """ return out delta in ns (for internal compat) """
-        return self.value
-
-    @property
-    def asm8(self):
-        """ return a numpy timedelta64 array view of myself """
-        return np.int64(self.value).view('m8[ns]')
-
-    @property
-    def resolution(self):
-        """ return a string representing the lowest resolution that we have """
-
-        self._ensure_components()
-        if self._ns:
-            return "N"
-        elif self._us:
-            return "U"
-        elif self._ms:
-            return "L"
-        elif self._s:
-            return "S"
-        elif self._m:
-            return "T"
-        elif self._h:
-            return "H"
-        else:
-            return "D"
 
     def _round(self, freq, rounder):
 
@@ -2056,7 +2000,7 @@ class Timedelta(_Timedelta):
 
         from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
-        result = unit *rounder(self.value /float(unit))
+        result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
 
     def round(self, freq):
@@ -2097,182 +2041,6 @@ class Timedelta(_Timedelta):
         """
         return self._round(freq, np.ceil)
 
-    def _repr_base(self, format=None):
-        """
-
-        Parameters
-        ----------
-        format : None|all|even_day|sub_day|long
-
-        Returns
-        -------
-        converted : string of a Timedelta
-
-        """
-        cdef object sign_pretty, sign2_pretty, seconds_pretty, subs
-
-        self._ensure_components()
-
-        if self._sign < 0:
-            sign_pretty = "-"
-            sign2_pretty = " +"
-        else:
-            sign_pretty = ""
-            sign2_pretty = " "
-
-        # show everything
-        if format == 'all':
-            seconds_pretty = "%02d.%03d%03d%03d" % (
-                self._s, self._ms, self._us, self._ns)
-            return "%s%d days%s%02d:%02d:%s" % (sign_pretty, self._d,
-                                                sign2_pretty, self._h,
-                                                self._m, seconds_pretty)
-
-        # by default not showing nano
-        if self._ms or self._us or self._ns:
-            seconds_pretty = "%02d.%03d%03d" % (self._s, self._ms, self._us)
-        else:
-            seconds_pretty = "%02d" % self._s
-
-        # if we have a partial day
-        subs = (self._h or self._m or self._s or
-                self._ms or self._us or self._ns)
-
-        if format == 'even_day':
-            if not subs:
-                return "%s%d days" % (sign_pretty, self._d)
-
-        elif format == 'sub_day':
-            if not self._d:
-
-                # degenerate, don't need the extra space
-                if self._sign > 0:
-                    sign2_pretty = ""
-                return "%s%s%02d:%02d:%s" % (sign_pretty, sign2_pretty,
-                                             self._h, self._m, seconds_pretty)
-
-        if subs or format=='long':
-            return "%s%d days%s%02d:%02d:%s" % (sign_pretty, self._d,
-                                                sign2_pretty, self._h,
-                                                self._m, seconds_pretty)
-        return "%s%d days" % (sign_pretty, self._d)
-
-    def __repr__(self):
-        return "Timedelta('{0}')".format(self._repr_base(format='long'))
-
-    def __str__(self):
-        return self._repr_base(format='long')
-
-    @property
-    def components(self):
-        """ Return a Components NamedTuple-like """
-        self._ensure_components()
-        if self._sign < 0:
-            return Components(-self._d, self._h, self._m, self._s,
-                              self._ms, self._us, self._ns)
-
-        # return the named tuple
-        return Components(self._d, self._h, self._m, self._s,
-                          self._ms, self._us, self._ns)
-
-    @property
-    def days(self):
-        """
-        Number of Days
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        if self._sign < 0:
-            return -1 *self._d
-        return self._d
-
-    @property
-    def seconds(self):
-        """
-        Number of seconds (>= 0 and less than 1 day).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._h *3600 + self._m *60 + self._s
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._ms *1000 + self._us
-
-    @property
-    def nanoseconds(self):
-        """
-        Number of nanoseconds (>= 0 and less than 1 microsecond).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._ns
-
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to ns precision)
-        """
-        return 1e-9 *self.value
-
-    def isoformat(self):
-        """
-        Format Timedelta as ISO 8601 Duration like
-        `P[n]Y[n]M[n]DT[n]H[n]M[n]S`, where the `[n]`s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        formatted : str
-
-        Notes
-        -----
-        The longest component is days, whose value may be larger than
-        365.
-        Every component is always included, even if its value is 0.
-        Pandas uses nanosecond precision, so up to 9 decimal places may
-        be included in the seconds component.
-        Trailing 0's are removed from the seconds component after the decimal.
-        We do not 0 pad components, so it's `...T5H...`, not `...T05H...`
-
-        Examples
-        --------
-        >>> td = pd.Timedelta(days=6, minutes=50, seconds=3,
-        ...                   milliseconds=10, microseconds=10, nanoseconds=12)
-        >>> td.isoformat()
-        'P6DT0H50M3.010010012S'
-        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
-        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
-        >>> pd.Timedelta(days=500.5).isoformat()
-        'P500DT12H0MS'
-
-        See Also
-        --------
-        Timestamp.isoformat
-        """
-        components = self.components
-        seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
-                                                 components.milliseconds,
-                                                 components.microseconds,
-                                                 components.nanoseconds)
-        # Trim unnecessary 0s, 1.000000000 -> 1
-        seconds = seconds.rstrip('0').rstrip('.')
-        tpl = 'P{td.days}DT{td.hours}H{td.minutes}M{seconds}S'.format(
-            td=components, seconds=seconds)
-        return tpl
-
     def __setstate__(self, state):
         (value) = state
         self.value = value
@@ -2280,67 +2048,6 @@ class Timedelta(_Timedelta):
     def __reduce__(self):
         object_state = self.value,
         return (Timedelta, object_state)
-
-    def view(self, dtype):
-        """ array view compat """
-        return np.timedelta64(self.value).view(dtype)
-
-    def to_timedelta64(self):
-        """ Returns a numpy.timedelta64 object with 'ns' precision """
-        return np.timedelta64(self.value, 'ns')
-
-    def _validate_ops_compat(self, other):
-
-        # return True if we are compat with operating
-        if _checknull_with_nat(other):
-            return True
-        elif PyDelta_Check(other) or is_timedelta64_object(other):
-            return True
-        elif is_string_object(other):
-            return True
-        elif hasattr(other, 'delta'):
-            return True
-        return False
-
-    # higher than np.ndarray and np.matrix
-    __array_priority__ = 100
-
-    def _binary_op_method_timedeltalike(op, name):
-        # define a binary operation that only works if the other argument is
-        # timedelta like or an array of timedeltalike
-        def f(self, other):
-            # an offset
-            if hasattr(other, 'delta') and not isinstance(other, Timedelta):
-                return op(self, other.delta)
-
-            # a datetimelike
-            if (isinstance(other, (datetime, np.datetime64))
-                    and not (isinstance(other, Timestamp) or other is NaT)):
-                return op(self, Timestamp(other))
-
-            # nd-array like
-            if hasattr(other, 'dtype'):
-                if other.dtype.kind not in ['m', 'M']:
-                    # raise rathering than letting numpy return wrong answer
-                    return NotImplemented
-                return op(self.to_timedelta64(), other)
-
-            if not self._validate_ops_compat(other):
-                return NotImplemented
-
-            if other is NaT:
-                return NaT
-
-            try:
-                other = Timedelta(other)
-            except ValueError:
-                # failed to parse as timedelta
-                return NotImplemented
-
-            return Timedelta(op(self.value, other.value), unit='ns')
-
-        f.__name__ = name
-        return f
 
     __add__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__add__')
     __radd__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__radd__')
@@ -2373,7 +2080,7 @@ class Timedelta(_Timedelta):
         if is_integer_object(other) or is_float_object(other):
             return Timedelta(self.value /other, unit='ns')
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2385,7 +2092,7 @@ class Timedelta(_Timedelta):
         if hasattr(other, 'dtype'):
             return other / self.to_timedelta64()
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2410,7 +2117,7 @@ class Timedelta(_Timedelta):
         if is_integer_object(other):
             return Timedelta(self.value // other, unit='ns')
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
@@ -2425,20 +2132,13 @@ class Timedelta(_Timedelta):
             other = other.astype('m8[ns]').astype('i8')
             return other // self.value
 
-        if not self._validate_ops_compat(other):
+        if not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
         if other is NaT:
             return NaT
         return other.value // self.value
-
-    def _op_unary_method(func, name):
-
-        def f(self):
-            return Timedelta(func(self.value), unit='ns')
-        f.__name__ = name
-        return f
 
     __inv__ = _op_unary_method(lambda x: -x, '__inv__')
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
