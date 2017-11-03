@@ -237,14 +237,12 @@ _no_input = object()
 
 
 class Timestamp(_Timestamp):
-    """TimeStamp is the pandas equivalent of python's Datetime
+    """Pandas replacement for datetime.datetime
+
+    TimeStamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
-
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
 
     Parameters
     ----------
@@ -259,19 +257,32 @@ class Timestamp(_Timestamp):
     offset : str, DateOffset
         Deprecated, use freq
 
+    year, month, day : int
+        .. versionadded:: 0.19.0
+    hour, minute, second, microsecond : int, optional, default 0
+        .. versionadded:: 0.19.0
+    tzinfo : datetime.tzinfo, optional, default None
+        .. versionadded:: 0.19.0
+
+    Notes
+    -----
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
+
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
 
-    Parameters
-    ----------
+    Examples
+    --------
+    >>> pd.Timestamp('2017-01-01T12')
+    Timestamp('2017-01-01 12:00:00')
 
-    .. versionadded:: 0.19.0
+    >>> pd.Timestamp(2017, 1, 1, 12)
+    Timestamp('2017-01-01 12:00:00')
 
-    year : int
-    month : int
-    day : int
-    hour, minute, second, microsecond : int, optional, default 0
-    tzinfo : datetime.tzinfo, optional, default None
+    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
+    Timestamp('2017-01-01 12:00:00')
     """
 
     @classmethod
