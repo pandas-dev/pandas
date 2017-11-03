@@ -765,7 +765,6 @@ def _maybe_add_count(base, count):
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 MONTHS = tslib._MONTHS
-_month_numbers = tslib._MONTH_NUMBERS
 _month_aliases = tslib._MONTH_ALIASES
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
 
