@@ -6,7 +6,7 @@ openpyxl
 xlsxwriter
 xlrd
 xlwt
-scipy
+# scipy
 feather-format
 numexpr
 pytables

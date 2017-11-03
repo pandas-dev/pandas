@@ -332,16 +332,17 @@ def test_decons():
         label_list2 = decons_group_index(group_index, shape)
 
         for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
+            tm.assert_numpy_array_equal(a, b)
 
     shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
+    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100).astype(np.int64),
+                  np.tile([0, 2, 4, 3, 0, 1, 2, 3], 100).astype(np.int64),
+                  np.tile([5, 1, 0, 2, 3, 0, 5, 4], 100).astype(np.int64)]
     testit(label_list, shape)
 
     shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
+    label_list = [np.tile(np.arange(10000, dtype=np.int64), 5),
+                  np.tile(np.arange(10000, dtype=np.int64), 5)]
     testit(label_list, shape)
 
 
