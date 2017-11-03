@@ -17,7 +17,7 @@ from pandas._libs.tslibs.nattype import NaT
 cdef inline bint check_all_nulls(object val):
     """ utility to check if a value is any type of null """
     cdef:
-    	bint res
+        bint res
     if PyFloat_Check(val) or PyComplex_Check(val):
         res = val != val
     elif val is NaT:
