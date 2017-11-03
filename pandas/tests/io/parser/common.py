@@ -750,6 +750,16 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             assert len(result) == 50
 
+    def test_compressed_utf16_example(self):
+        # GH18071
+        path = tm.get_data_path('utf16_ex.zip')
+        expected_path = tm.get_data_path('utf16_ex.txt')
+
+        result = self.read_table(path, encoding='utf-16', compression='zip')
+        expected = self.read_table(expected_path, encoding='utf-16')
+
+        tm.assert_frame_equal(result, expected)
+
     def test_unicode_encoding(self):
         pth = tm.get_data_path('unicode_series.csv')
 
