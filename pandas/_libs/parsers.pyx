@@ -686,6 +686,8 @@ cdef class TextReader:
                                  self.compression)
 
             if b'utf-16' in (self.encoding or b''):
+                # we need to read utf-16 through UTF8Recoder.
+                # if source is utf-16, convert source to utf-8 by UTF8Recoder.
                 source = com.UTF8Recoder(source, self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
                 self.c_encoding = <char*> self.encoding
