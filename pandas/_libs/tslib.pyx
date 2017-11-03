@@ -1870,7 +1870,7 @@ def _op_unary_method(func, name):
 
 cdef bint _validate_ops_compat(other):
     # return True if we are compat with operating
-    if _checknull_with_nat(other):
+    if checknull_with_nat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
