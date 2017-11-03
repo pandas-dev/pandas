@@ -874,3 +874,38 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
     dts.us = 0
     dts.ps = 0
     return dtstruct_to_dt64(dts)
+
+
+def dates_normalized(ndarray[int64_t] stamps, tz=None):
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        ndarray[int64_t] trans, deltas
+        pandas_datetimestruct dts
+        datetime dt
+
+    if tz is None or is_utc(tz):
+        for i in range(n):
+            dt64_to_dtstruct(stamps[i], &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
+    elif is_tzlocal(tz):
+        for i in range(n):
+            dt64_to_dtstruct(stamps[i], &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
+                          dts.sec, dts.us, tz)
+            dt = dt + tz.utcoffset(dt)
+            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
+                return False
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+
+        for i in range(n):
+            # Adjust datetime64 timestamp, recompute datetimestruct
+            pos = trans.searchsorted(stamps[i]) - 1
+            inf = tz._transition_info[pos]
+
+            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
+
+    return True
