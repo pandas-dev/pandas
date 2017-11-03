@@ -14,6 +14,12 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.nattype import NaT
 
 
+cdef inline bint checknull_with_nat(object val):
+    """ utility to check if a value is a nat or not """
+    return val is None or (
+        PyFloat_Check(val) and val != val) or val is NaT
+
+
 cdef inline bint check_all_nulls(object val):
     """ utility to check if a value is any type of null """
     cdef:

@@ -100,7 +100,8 @@ from tslibs.conversion import (
     tz_convert_single)
 
 from tslibs.nattype import NaT, nat_strings, iNaT
-from tslibs.nattype cimport checknull_with_nat, NPY_NAT
+from tslibs.nattype cimport NPY_NAT
+from dtypes.inference cimport checknull_with_nat
 
 
 cdef inline object create_timestamp_from_ts(

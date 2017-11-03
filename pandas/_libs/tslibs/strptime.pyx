@@ -38,7 +38,8 @@ from np_datetime cimport (check_dts_bounds,
 
 from util cimport is_string_object
 
-from nattype cimport checknull_with_nat, NPY_NAT
+from pandas._libs.dtypes.inference cimport checknull_with_nat
+from nattype cimport NPY_NAT
 from nattype import nat_strings
 
 
