@@ -475,18 +475,14 @@ def _binary_op_method_timedeltalike(op, name):
         elif other is NaT:
             return NaT
 
-        elif is_datetime64_object(other):
+        elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
+            # the PyDateTime_CheckExact case is for a datetime object that
+            # is specifically *not* a Timestamp, as the Timestamp case will be
+            # handled after `_validate_ops_compat` returns False below
             from ..tslib import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
-
-        elif PyDateTime_CheckExact(other):
-            # a datetimelike, but specifically not a Timestamp
-            # (Timestamp case will be deferred to after
-            # `_validate_ops_compat` returns False below)
-            from ..tslib import Timestamp
-            return op(self, Timestamp(other))
 
         elif hasattr(other, 'dtype'):
             # nd-array like
@@ -516,7 +512,7 @@ def _binary_op_method_timedeltalike(op, name):
 cdef _to_py_int_float(v):
     # Note: This used to be defined inside _timedelta_value_kwargs
     # (and Timedelta.__new__ before that), but cython
-    # will not allow dynamically-defined functions nested that way.
+    # will not allow `cdef` functions to be defined dynamically.
     if is_integer_object(v):
         return int(v)
     elif is_float_object(v):
