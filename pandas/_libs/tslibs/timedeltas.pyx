@@ -529,7 +529,8 @@ cdef _timedelta_value_kwargs(dict kwargs):
     # Helper for Timedelta.__new__
     if not len(kwargs):
         raise ValueError("cannot construct a Timedelta without a "
-            "value/unit or descriptive keywords (days,seconds....)")
+                         "value/unit or descriptive keywords "
+                         "(days,seconds....)")
 
     kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
