@@ -17,15 +17,15 @@ cimport numpy as np
 from numpy cimport int64_t
 np.import_array()
 
-from util cimport (get_nat,
-                   is_integer_object, is_float_object,
+from util cimport (is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants
 nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
-cdef int64_t NPY_NAT = get_nat()
+cdef int64_t NPY_NAT = np.datetime64('NaT').astype(np.int64)
+iNaT = NPY_NAT
 
 cdef bint _nat_scalar_rules[6]
 _nat_scalar_rules[Py_EQ] = False
@@ -536,11 +536,3 @@ class NaTType(_NaT):
 
 
 NaT = NaTType()
-
-
-# ----------------------------------------------------------------------
-
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT

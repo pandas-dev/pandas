@@ -82,10 +82,6 @@ UTC = pytz.utc
 # initialize numpy
 import_array()
 
-
-cdef int64_t NPY_NAT = util.get_nat()
-iNaT = NPY_NAT
-
 from tslibs.timedeltas cimport parse_timedelta_string, cast_from_unit
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
@@ -103,8 +99,9 @@ from tslibs.conversion import (
     tz_localize_to_utc, tz_convert,
     tz_convert_single)
 
-from tslibs.nattype import NaT, nat_strings
-from tslibs.nattype cimport _checknull_with_nat
+from tslibs.nattype import NaT, nat_strings, iNaT
+from tslibs.nattype cimport NPY_NAT
+from dtypes.inference cimport checknull_with_nat
 
 
 cdef inline object create_timestamp_from_ts(
@@ -814,24 +811,6 @@ class Timestamp(_Timestamp):
 # ----------------------------------------------------------------------
 
 
-cdef inline bint _check_all_nulls(object val):
-    """ utility to check if a value is any type of null """
-    cdef bint res
-    if PyFloat_Check(val) or PyComplex_Check(val):
-        res = val != val
-    elif val is NaT:
-        res = 1
-    elif val is None:
-        res = 1
-    elif is_datetime64_object(val):
-        res = get_datetime64_value(val) == NPY_NAT
-    elif is_timedelta64_object(val):
-        res = get_timedelta64_value(val) == NPY_NAT
-    else:
-        res = 0
-    return res
-
-
 cpdef object get_value_box(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
@@ -1265,7 +1244,7 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
@@ -1467,7 +1446,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         for i in range(n):
             val = values[i]
 
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
 
             elif is_integer_object(val) or is_float_object(val):
@@ -1535,7 +1514,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     for i in range(n):
         val = values[i]
 
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             oresult[i] = NaT
         elif is_integer_object(val) or is_float_object(val):
 
@@ -1586,7 +1565,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         for i in range(n):
             val = values[i]
 
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
 
             elif PyDateTime_Check(val):
@@ -1746,7 +1725,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             val = values[i]
 
             # set as nan except if its a NaT
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 if PyFloat_Check(val):
                     oresult[i] = np.nan
                 else:
@@ -1764,7 +1743,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         for i in range(n):
             val = values[i]
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 oresult[i] = val
             elif is_string_object(val):
 
@@ -1892,7 +1871,7 @@ def _op_unary_method(func, name):
 
 cdef bint _validate_ops_compat(other):
     # return True if we are compat with operating
-    if _checknull_with_nat(other):
+    if checknull_with_nat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
@@ -1975,7 +1954,7 @@ class Timedelta(_Timedelta):
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)
-        elif _checknull_with_nat(value):
+        elif checknull_with_nat(value):
             return NaT
         else:
             raise ValueError("Value must be Timedelta, string, integer, "
@@ -2210,7 +2189,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
     """
-    if _checknull_with_nat(ts):
+    if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
         # already in the proper format

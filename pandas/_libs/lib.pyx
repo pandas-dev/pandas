@@ -52,7 +52,7 @@ PyDateTime_IMPORT
 from datetime cimport get_timedelta64_value, get_datetime64_value
 
 
-from tslib cimport _check_all_nulls
+from dtypes.inference cimport check_all_nulls
 import tslib
 from tslib import NaT, Timestamp, Timedelta
 import interval
@@ -232,7 +232,7 @@ def isnaobj(ndarray arr):
     result = np.empty(n, dtype=np.uint8)
     for i from 0 <= i < n:
         val = arr[i]
-        result[i] = _check_all_nulls(val)
+        result[i] = check_all_nulls(val)
     return result.view(np.bool_)
 
 
