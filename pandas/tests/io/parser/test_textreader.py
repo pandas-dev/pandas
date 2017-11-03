@@ -161,9 +161,9 @@ class TestTextReader(object):
                             error_bad_lines=False,
                             warn_bad_lines=False)
         result = reader.read()
-        expected = {0: ['a', 'd', 'g', 'l'],
-                    1: ['b', 'e', 'h', 'm'],
-                    2: ['c', 'f', 'i', 'n']}
+        expected = {0: np.array(['a', 'd', 'g', 'l'], dtype=object),
+                    1: np.array(['b', 'e', 'h', 'm'], dtype=object),
+                    2: np.array(['c', 'f', 'i', 'n'], dtype=object)}
         assert_array_dicts_equal(result, expected)
 
         reader = TextReader(StringIO(data), delimiter=':',
@@ -189,8 +189,10 @@ class TestTextReader(object):
         assert header == expected
 
         recs = reader.read()
-        expected = {0: [1, 4], 1: [2, 5], 2: [3, 6]}
-        assert_array_dicts_equal(expected, recs)
+        expected = {0: np.array([1, 4], dtype=np.int64),
+                    1: np.array([2, 5], dtype=np.int64),
+                    2: np.array([3, 6], dtype=np.int64)}
+        assert_array_dicts_equal(recs, expected)
 
         # not enough rows
         pytest.raises(parser.ParserError, TextReader, StringIO(data),
@@ -203,14 +205,16 @@ class TestTextReader(object):
                 '1,2,3\n'
                 '4,5,6')
 
-        reader = TextReader(StringIO(data), delimiter=',', header=2,
-                            as_recarray=True)
+        reader = TextReader(StringIO(data), delimiter=',',
+                            header=2, as_recarray=True)
         header = reader.header
         expected = [['a', 'b', 'c']]
         assert header == expected
 
         recs = reader.read()
-        expected = {'a': [1, 4], 'b': [2, 5], 'c': [3, 6]}
+        expected = {'a': np.array([1, 4], dtype=np.int64),
+                    'b': np.array([2, 5], dtype=np.int64),
+                    'c': np.array([3, 6], dtype=np.int64)}
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
@@ -225,7 +229,7 @@ class TestTextReader(object):
         reader = TextReader(StringIO(data), delimiter=',', header=None,
                             escapechar='\\')
         result = reader.read()
-        expected = {0: ['"hello world"'] * 3}
+        expected = {0: np.array(['"hello world"'] * 3, dtype=object)}
         assert_array_dicts_equal(result, expected)
 
     def test_eof_has_eol(self):
@@ -360,7 +364,7 @@ a,b,c
 
         result = TextReader(StringIO(data), delimiter=',').read()
 
-        expected = {0: np.array([1, 4]),
+        expected = {0: np.array([1, 4], dtype=np.int64),
                     1: np.array(['2', ''], dtype=object),
                     2: np.array(['3', ''], dtype=object)}
         assert_array_dicts_equal(result, expected)
@@ -397,4 +401,5 @@ a,b,c
 
 def assert_array_dicts_equal(left, right):
     for k, v in compat.iteritems(left):
-        assert(np.array_equal(v, right[k]))
+        assert tm.assert_numpy_array_equal(np.asarray(v),
+                                           np.asarray(right[k]))
