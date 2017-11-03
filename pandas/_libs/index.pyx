@@ -505,38 +505,6 @@ cdef class PeriodEngine(Int64Engine):
     def _call_monotonic(self, values):
         return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
 
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t, cast=True] indexer
-            ndarray[int64_t] values
-            int count = 0
-            Py_ssize_t i, n
-            int last_true
-
-        if not util.is_integer_object(val):
-            raise KeyError(val)
-
-        values = self._get_index_values().view('i8')
-        n = len(values)
-
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
-        if count == 1:
-            return last_true
-
-        return result
-
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
 
@@ -567,6 +535,9 @@ cdef class PeriodEngine(Int64Engine):
         ordinal_array = np.asarray(ordinal)
 
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+
+    cdef _get_index_values_for_bool_indexer(self):
+        return self._get_index_values().view('i8')
 
 
 cpdef convert_scalar(ndarray arr, object value):
