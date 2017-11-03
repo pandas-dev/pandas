@@ -798,75 +798,19 @@ class TestCategorical(object):
         tm.assert_index_equal(cat.categories, pd.Index(['a', 'b', 'c', 'd']))
 
     @pytest.mark.parametrize(
-        "input1, input2, cat_array",
-        [
-            (
-                np.array([1, 2, 3, 3], dtype=np.dtype('int_')),
-                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_')),
-                np.array([1, 2, 3, 4, 5], dtype=np.dtype('int_'))
-            ),
-            (
-                np.array([1, 2, 3, 3], dtype=np.dtype('uint')),
-                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint')),
-                np.array([1, 2, 3, 4, 5], dtype=np.dtype('uint'))
-            ),
-            (
-                np.array([1, 2, 3, 3], dtype=np.dtype('float_')),
-                np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_')),
-                np.array([1, 2, 3, 4, 5], dtype=np.dtype('float_'))
-            ),
-            (
-                np.array(
-                    [1, 2, 3, 3], dtype=np.dtype('unicode_')
-                ),
-                np.array(
-                    [1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_')
-                ),
-                np.array(
-                    [1, 2, 3, 4, 5], dtype=np.dtype('unicode_')
-                )
-            ),
-            (
-                np.array(
-                    [
-                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                        '2017-03-01 10:00:00', '2017-03-01 10:00:00'
-                    ],
-                    dtype='datetime64'
-                ),
-                np.array(
-                    [
-                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                        '2017-03-01 10:00:00', '2017-05-01 10:00:00',
-                        '2017-03-01 10:00:00', '2017-02-01 10:00:00',
-                        '2017-04-01 10:00:00'
-                    ],
-                    dtype='datetime64'
-                ),
-                np.array(
-                    [
-                        '2017-01-01 10:00:00', '2017-02-01 10:00:00',
-                        '2017-03-01 10:00:00', '2017-04-01 10:00:00',
-                        '2017-05-01 10:00:00'
-                    ],
-                    dtype='datetime64'
-                )
-            ),
-            (
-                pd.to_timedelta(['1 days', '2 days', '3 days', '3 days'],
-                                unit="D"),
-                pd.to_timedelta(['1 days', '2 days', '3 days', '5 days',
-                                 '3 days', '2 days', '4 days'], unit="D"),
-                pd.timedelta_range("1 days", periods=5, freq="D")
-            )
-        ]
+        "dtype",
+        ["int_", "uint", "float_",
+         "unicode_", "datetime64[h]", "timedelta64[h]"]
     )
     @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_non_bool(self, input1, input2,
-                                      cat_array, is_ordered):
+    def test_drop_duplicates_non_bool(self, dtype, is_ordered):
+        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
+
         # Test case 1
+        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
         tc1 = Series(Categorical(input1, categories=cat_array,
                                  ordered=is_ordered))
+
         expected = Series([False, False, False, True])
         tm.assert_series_equal(tc1.duplicated(), expected)
         tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
@@ -890,8 +834,10 @@ class TestCategorical(object):
         tm.assert_series_equal(sc, tc1[~expected])
 
         # Test case 2
+        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(input2, categories=cat_array,
                                  ordered=is_ordered))
+        
         expected = Series([False, False, False, False, True, True, False])
         tm.assert_series_equal(tc2.duplicated(), expected)
         tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
