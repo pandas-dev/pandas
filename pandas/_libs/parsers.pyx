@@ -374,7 +374,7 @@ cdef class TextReader:
                   float_precision=None,
                   skip_blank_lines=True):
 
-        # encoding
+        # set encoding for native Python and C library
         if encoding is not None:
             if not isinstance(encoding, bytes):
                 encoding = encoding.encode('utf-8')
