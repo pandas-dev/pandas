@@ -1255,8 +1255,8 @@ class _AsOfMerge(_OrderedMerge):
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys [{i} {lkdtype} and "
-                                 "{rkdtype}], must be the same type"
+                raise MergeError("incompatible merge keys [{i}] {lkdtype} and "
+                                 "{rkdtype}, must be the same type"
                                  .format(i=i, lkdtype=lk.dtype,
                                          rkdtype=rk.dtype))
 
