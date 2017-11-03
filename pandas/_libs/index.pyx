@@ -497,7 +497,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
 cdef class PeriodEngine(Int64Engine):
 
     cdef _get_index_values(self):
-        return self.vgetter()
+        return super(PeriodEngine, self).vgetter()
 
     cpdef _call_map_locations(self, values):
         super(PeriodEngine, self)._call_map_locations(values.view('i8'))
@@ -540,24 +540,30 @@ cdef class PeriodEngine(Int64Engine):
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
 
-        self._ensure_mapping_populated()
-        ordinals = periodlib.extract_ordinals(values, self.vgetter().freq)
+        super(PeriodEngine, self)._ensure_mapping_populated()
+
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinals = periodlib.extract_ordinals(values, freq)
+
         return self.mapping.lookup(ordinals)
 
     def get_pad_indexer(self, other, limit=None):
-        ordinal = periodlib.extract_ordinals(other, self.vgetter().freq)
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.pad_int64(self._get_index_values(),
                                np.asarray(ordinal), limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        ordinal = periodlib.extract_ordinals(other, self.vgetter().freq)
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.backfill_int64(self._get_index_values(),
                                     np.asarray(ordinal), limit=limit)
 
     def get_indexer_non_unique(self, targets):
-        ordinal = periodlib.extract_ordinals(targets, self.vgetter().freq)
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(targets, freq)
         ordinal_array = np.asarray(ordinal)
 
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
