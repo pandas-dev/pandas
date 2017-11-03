@@ -105,7 +105,6 @@ from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat
 
 
-
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
