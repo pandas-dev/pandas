@@ -84,9 +84,9 @@ import_array()
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
-from tslibs.timedeltas cimport cast_from_unit, _delta_to_nanoseconds
+from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
 from tslibs.timedeltas import (Timedelta, convert_to_timedelta64,
-                               _delta_to_nanoseconds, array_to_timedelta64)
+                               array_to_timedelta64)
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
@@ -1070,7 +1070,7 @@ cdef class _Timestamp(datetime):
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
-            nanos = _delta_to_nanoseconds(other)
+            nanos = delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)
             if getattr(other, 'normalize', False):

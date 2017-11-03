@@ -81,7 +81,7 @@ _no_input = object()
 
 # ----------------------------------------------------------------------
 
-cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
+cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if util.is_array(delta):
         return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
@@ -147,10 +147,10 @@ cpdef convert_to_timedelta64(object ts, object unit):
     elif is_string_object(ts):
         ts = np.timedelta64(parse_timedelta_string(ts))
     elif hasattr(ts, 'delta'):
-        ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
+        ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
 
     if PyDelta_Check(ts):
-        ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
+        ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
     elif not is_timedelta64_object(ts):
         raise ValueError("Invalid type for timedelta "
                          "scalar: %s" % type(ts))
@@ -933,7 +933,7 @@ class Timedelta(_Timedelta):
                 value = value.astype('timedelta64[{0}]'.format(unit))
             value = value.astype('timedelta64[ns]')
         elif hasattr(value, 'delta'):
-            value = np.timedelta64(_delta_to_nanoseconds(value.delta), 'ns')
+            value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
         elif is_integer_object(value) or util.is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)

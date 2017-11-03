@@ -24,8 +24,9 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
-from pandas._libs import (tslib as libts, lib, iNaT, NaT)
+from pandas._libs import lib, iNaT, NaT
 from pandas._libs.period import Period
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -701,7 +702,7 @@ class DatetimeIndexOpsMixin(object):
         # add a delta of a timedeltalike
         # return the i8 result view
 
-        inc = libts._delta_to_nanoseconds(other)
+        inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
         if self.hasnans:
