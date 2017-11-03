@@ -102,7 +102,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
--
+- Error message in ``pd.merge_asof()`` for key datatype mismatch now includes datatype of left and right key (:issue:`18068`)
 -
 -
 
