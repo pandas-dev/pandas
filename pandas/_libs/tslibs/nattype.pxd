@@ -7,4 +7,3 @@ cdef int64_t NPY_NAT
 cdef bint _nat_scalar_rules[6]
 
 cdef bint checknull_with_nat(object val)
-cdef bint check_all_nulls(object val)

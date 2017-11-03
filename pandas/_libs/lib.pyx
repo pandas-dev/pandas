@@ -52,7 +52,7 @@ PyDateTime_IMPORT
 from datetime cimport get_timedelta64_value, get_datetime64_value
 
 
-from tslibs.nattype cimport check_all_nulls
+from dtypes.inference cimport check_all_nulls
 import tslib
 from tslib import NaT, Timestamp, Timedelta
 import interval

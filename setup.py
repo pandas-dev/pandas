@@ -351,6 +351,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/offsets.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/dtypes/inference.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -549,6 +550,7 @@ ext_data = {
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
                      'depends': _pxi_dep['sparse']},
+    '_libs.dtypes.inference': {'pyxfile': '_libs/dtypes/inference'},
     '_libs.testing': {'pyxfile': '_libs/testing'},
     '_libs.hashing': {'pyxfile': '_libs/hashing'},
     'io.sas._sas': {'pyxfile': 'io/sas/sas'}}
