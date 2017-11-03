@@ -12,6 +12,68 @@ from pandas.util import testing as tm
 
 
 class TestSlicing(object):
+    def test_slice_keeps_name(self):
+        # GH4226
+        st = pd.Timestamp('2013-07-01 00:00:00', tz='America/Los_Angeles')
+        et = pd.Timestamp('2013-07-02 00:00:00', tz='America/Los_Angeles')
+        dr = pd.date_range(st, et, freq='H', name='timebucket')
+        assert dr[1:].name == dr.name
+
+    def test_slice_with_negative_step(self):
+        ts = Series(np.arange(20),
+                    date_range('2014-01-01', periods=20, freq='MS'))
+        SLC = pd.IndexSlice
+
+        def assert_slices_equivalent(l_slc, i_slc):
+            tm.assert_series_equal(ts[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+            tm.assert_series_equal(ts.loc[l_slc], ts.iloc[i_slc])
+
+        assert_slices_equivalent(SLC[Timestamp('2014-10-01')::-1], SLC[9::-1])
+        assert_slices_equivalent(SLC['2014-10-01'::-1], SLC[9::-1])
+
+        assert_slices_equivalent(SLC[:Timestamp('2014-10-01'):-1], SLC[:8:-1])
+        assert_slices_equivalent(SLC[:'2014-10-01':-1], SLC[:8:-1])
+
+        assert_slices_equivalent(SLC['2015-02-01':'2014-10-01':-1],
+                                 SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Timestamp('2015-02-01'):Timestamp(
+            '2014-10-01'):-1], SLC[13:8:-1])
+        assert_slices_equivalent(SLC['2015-02-01':Timestamp('2014-10-01'):-1],
+                                 SLC[13:8:-1])
+        assert_slices_equivalent(SLC[Timestamp('2015-02-01'):'2014-10-01':-1],
+                                 SLC[13:8:-1])
+
+        assert_slices_equivalent(SLC['2014-10-01':'2015-02-01':-1], SLC[:0])
+
+    def test_slice_with_zero_step_raises(self):
+        ts = Series(np.arange(20),
+                    date_range('2014-01-01', periods=20, freq='MS'))
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
+
+    def test_slice_bounds_empty(self):
+        # GH 14354
+        empty_idx = DatetimeIndex(freq='1H', periods=0, end='2015')
+
+        right = empty_idx._maybe_cast_slice_bound('2015-01-02', 'right', 'loc')
+        exp = Timestamp('2015-01-02 23:59:59.999999999')
+        assert right == exp
+
+        left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
+        exp = Timestamp('2015-01-02 00:00:00')
+        assert left == exp
+
+    def test_slice_duplicate_monotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/16515
+        idx = pd.DatetimeIndex(['2017', '2017'])
+        result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
+        expected = Timestamp('2017-01-01')
+        assert result == expected
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)
