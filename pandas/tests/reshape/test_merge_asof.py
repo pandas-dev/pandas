@@ -973,3 +973,15 @@ class TestAsOfMerge(object):
             columns=['symbol', 'exch', 'price', 'mpv'])
 
         assert_frame_equal(result, expected)
+
+    def test_merge_datatype_error(self):
+        """ Tests merge datatype mismatch error """
+        msg = 'merge keys \[0\] object and int64, must be the same type'
+
+        left = pd.DataFrame({'left_val': [1, 5, 10],
+                             'a': ['a', 'b', 'c']})
+        right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
+                              'a': [1, 2, 3, 6, 7]})
+
+        with tm.assert_raises_regex(MergeError, msg):
+            merge_asof(left, right, on='a')
