@@ -374,6 +374,17 @@ cdef class TextReader:
                   float_precision=None,
                   skip_blank_lines=True):
 
+        # encoding
+        if encoding is not None:
+            if not isinstance(encoding, bytes):
+                encoding = encoding.encode('utf-8')
+            encoding = encoding.lower()
+            self.c_encoding = <char*> encoding
+        else:
+            self.c_encoding = NULL
+
+        self.encoding = encoding
+
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
@@ -494,17 +505,6 @@ cdef class TextReader:
         elif float_precision == 'round_trip':  # avoid gh-15140
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
-
-        # encoding
-        if encoding is not None:
-            if not isinstance(encoding, bytes):
-                encoding = encoding.encode('utf-8')
-            encoding = encoding.lower()
-            self.c_encoding = <char*> encoding
-        else:
-            self.c_encoding = NULL
-
-        self.encoding = encoding
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -684,6 +684,12 @@ cdef class TextReader:
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
+
+            if b'utf-16' in (self.encoding or b''):
+                source = com.UTF8Recoder(source, self.encoding.decode('utf-8'))
+                self.encoding = b'utf-8'
+                self.c_encoding = <char*> self.encoding
+
             self.handle = source
 
         if isinstance(source, basestring):
