@@ -7,9 +7,15 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import os
+from os.path import join as pjoin
+
 import sys
 import shutil
 from distutils.version import LooseVersion
+
+# versioning
+import versioneer
+cmdclass = versioneer.get_cmdclass()
 
 
 def is_platform_windows():
@@ -23,10 +29,6 @@ def is_platform_linux():
 def is_platform_mac():
     return sys.platform == 'darwin'
 
-
-# versioning
-import versioneer
-cmdclass = versioneer.get_cmdclass()
 
 min_cython_ver = '0.23'
 try:
@@ -77,9 +79,9 @@ else:
                      "  use pip or easy_install."
                      "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
-from distutils.extension import Extension
-from distutils.command.build import build
-from distutils.command.build_ext import build_ext as _build_ext
+from distutils.extension import Extension  # noqa:E402
+from distutils.command.build import build  # noqa:E402
+from distutils.command.build_ext import build_ext as _build_ext  # noqa:E402
 
 try:
     if not _CYTHON_INSTALLED:
@@ -103,9 +105,6 @@ if cython:
     except ImportError:
         raise ImportError('Building pandas requires Tempita: '
                           'pip install Tempita')
-
-
-from os.path import join as pjoin
 
 
 _pxi_dep_template = {

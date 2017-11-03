@@ -28,6 +28,24 @@ from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
 
 
+class TestTimestampArithmetic(object):
+    def test_overflow_offset(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        # ends up multiplying really large numbers which overflow
+
+        stamp = Timestamp('2017-01-13 00:00:00', freq='D')
+        offset = 20169940 * offsets.Day(1)
+
+        with pytest.raises(OverflowError):
+            stamp + offset
+
+        with pytest.raises(OverflowError):
+            offset + stamp
+
+        with pytest.raises(OverflowError):
+            stamp - offset
+
+
 class TestTimestamp(object):
 
     def test_constructor(self):

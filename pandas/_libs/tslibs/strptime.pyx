@@ -69,6 +69,7 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
+        int ordinal
 
     assert is_raise or is_ignore or is_coerce
 
@@ -102,7 +103,7 @@ def array_strptime(ndarray[object] values, object fmt,
                     bad_directive = "%"
                 del err
                 raise ValueError("'%s' is a bad directive in format '%s'" %
-                                    (bad_directive, fmt))
+                                 (bad_directive, fmt))
             # IndexError only occurs when the format string is "%"
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % fmt)
@@ -163,7 +164,7 @@ def array_strptime(ndarray[object] values, object fmt,
                     iresult[i] = NPY_NAT
                     continue
                 raise ValueError("unconverted data remains: %s" %
-                                  values[i][found.end():])
+                                 values[i][found.end():])
 
         # search
         else:
@@ -198,8 +199,8 @@ def array_strptime(ndarray[object] values, object fmt,
             if parse_code == 0:
                 year = int(found_dict['y'])
                 # Open Group specification for strptime() states that a %y
-                #value in the range of [00, 68] is in the century 2000, while
-                #[69,99] is in the century 1900
+                # value in the range of [00, 68] is in the century 2000, while
+                # [69,99] is in the century 1900
                 if year <= 68:
                     year += 2000
                 else:
@@ -296,9 +297,10 @@ def array_strptime(ndarray[object] values, object fmt,
             if julian == -1:
                 # Need to add 1 to result since first day of the year is 1, not
                 # 0.
-                julian = datetime_date(year, month, day).toordinal() - \
-                    datetime_date(year, 1, 1).toordinal() + 1
-            else: # Assume that if they bothered to include Julian day it will
+                ordinal = datetime_date(year, month, day).toordinal()
+                julian = ordinal - datetime_date(year, 1, 1).toordinal() + 1
+            else:
+                # Assume that if they bothered to include Julian day it will
                 # be accurate.
                 datetime_result = datetime_date.fromordinal(
                     (julian - 1) + datetime_date(year, 1, 1).toordinal())
@@ -454,8 +456,8 @@ class LocaleTime(object):
         date_time[1] = time.strftime("%x", time_tuple).lower()
         date_time[2] = time.strftime("%X", time_tuple).lower()
         replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'),
-                             (self.f_month[3],
-                              '%B'), (self.a_weekday[2], '%a'),
+                             (self.f_month[3], '%B'),
+                             (self.a_weekday[2], '%a'),
                              (self.a_month[3], '%b'), (self.am_pm[1], '%p'),
                              ('1999', '%Y'), ('99', '%y'), ('22', '%H'),
                              ('44', '%M'), ('55', '%S'), ('76', '%j'),
@@ -463,7 +465,7 @@ class LocaleTime(object):
                              # '3' needed for when no leading zero.
                              ('2', '%w'), ('10', '%I')]
         replacement_pairs.extend([(tz, "%Z") for tz_values in self.timezone
-                                                for tz in tz_values])
+                                  for tz in tz_values])
         for offset, directive in ((0, '%c'), (1, '%x'), (2, '%X')):
             current_format = date_time[offset]
             for old, new in replacement_pairs:
@@ -536,7 +538,7 @@ class TimeRE(dict):
             'w': r"(?P<w>[0-6])",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
-            #XXX: Does 'Y' need to worry about having less or more than
+            # XXX: Does 'Y' need to worry about having less or more than
             #     4 digits?
             'Y': r"(?P<Y>\d\d\d\d)",
             'A': self.__seqToRE(self.locale_time.f_weekday, 'A'),
@@ -604,7 +606,7 @@ _cache_lock = _thread_allocate_lock()
 # DO NOT modify _TimeRE_cache or _regex_cache without acquiring the cache lock
 # first!
 _TimeRE_cache = TimeRE()
-_CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
+_CACHE_MAX_SIZE = 5  # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
 
@@ -615,7 +617,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     assumes the week starts on Sunday or Monday (6 or 0)."""
 
     cdef:
-        int first_weekday,  week_0_length, days_to_week
+        int first_weekday, week_0_length, days_to_week
 
     first_weekday = datetime_date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's

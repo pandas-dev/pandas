@@ -1,4 +1,5 @@
-#cython=False
+# -*- coding: utf-8 -*-
+# cython: profile=False
 import numpy as np
 
 from distutils.version import LooseVersion
@@ -512,7 +513,7 @@ def apply_frame_axis0(object frame, object f, object names,
         for i in range(n):
             slider.move(starts[i], ends[i])
 
-            item_cache.clear() # ugh
+            item_cache.clear()  # ugh
 
             object.__setattr__(slider.dummy, 'name', names[i])
             piece = f(slider.dummy)
@@ -531,6 +532,7 @@ def apply_frame_axis0(object frame, object f, object names,
         slider.reset()
 
     return results, mutated
+
 
 cdef class BlockSlider:
     """
