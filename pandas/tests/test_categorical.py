@@ -835,9 +835,10 @@ class TestCategorical(object):
 
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
-        tc2 = Series(Categorical(input2, categories=cat_array,
-                                 ordered=is_ordered))
-                                  
+        tc2 = Series(Categorical(
+            input2, categories=cat_array, ordered=is_ordered)
+        )
+
         expected = Series([False, False, False, False, True, True, False])
         tm.assert_series_equal(tc2.duplicated(), expected)
         tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
