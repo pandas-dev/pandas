@@ -547,9 +547,9 @@ cdef _timedelta_value_kwargs(dict kwargs):
 # heavy lifting.
 cdef class _Timedelta(timedelta):
     cdef readonly:
-        int64_t value     # nanoseconds
-        object freq       # frequency reference
-        bint is_populated # are my components populated
+        int64_t value      # nanoseconds
+        object freq        # frequency reference
+        bint is_populated  # are my components populated
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
