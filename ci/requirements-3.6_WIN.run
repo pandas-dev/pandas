@@ -14,3 +14,4 @@ matplotlib
 blosc
 fastparquet
 pyarrow
+moto
