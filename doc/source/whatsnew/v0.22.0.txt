@@ -100,7 +100,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in :func:`PeriodIndex.truncate` which raises ``TypeError`` when ``PeriodIndex`` is monotonic (:issue:`17717`)
 -
 -
 
