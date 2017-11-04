@@ -474,7 +474,8 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd']
+tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd',
+                                         'pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -535,15 +536,24 @@ ext_data = {
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
-        'pxdfiles': ['_libs/src/util'],
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/conversion',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/np_datetime',
+                     '_libs/tslibs/timedeltas'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
+        'pxdfiles': ['_libs/src/util'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
@@ -557,18 +567,26 @@ ext_data = {
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.offsets': {
-        'pyxfile': '_libs/tslibs/offsets'},
+        'pyxfile': '_libs/tslibs/offsets',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/conversion']},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
-        'pyxfile': '_libs/tslibs/timedeltas'},
+        'pyxfile': '_libs/tslibs/timedeltas',
+        'pxdfiles': ['_libs/src/util'],
+        'depends': np_datetime_headers,
+        'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
-        'pyxfile': '_libs/tslibs/timezones'},
+        'pyxfile': '_libs/tslibs/timezones',
+        'pxdfiles': ['_libs/src/util']},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
