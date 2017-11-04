@@ -5,6 +5,10 @@ from cpython.datetime cimport date, datetime
 
 from numpy cimport int64_t, int32_t
 
+cdef extern from "numpy/ndarraytypes.h":
+    cdef enum NPY_TYPES:
+        NPY_DATETIME
+        NPY_TIMEDELTA
 
 cdef extern from "../src/datetime/np_datetime.h":
     ctypedef struct pandas_datetimestruct:

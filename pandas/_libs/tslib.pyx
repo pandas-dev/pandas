@@ -6,7 +6,7 @@
 
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
-                    float64_t, NPY_DATETIME, NPY_TIMEDELTA)
+                    float64_t)
 import numpy as np
 
 import sys
@@ -59,7 +59,8 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  cmp_scalar,
                                  pandas_datetimestruct,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
-                                 pydatetime_to_dt64, pydate_to_dt64)
+                                 pydatetime_to_dt64, pydate_to_dt64,
+                                 NPY_TIMEDELTA, NPY_DATETIME)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (
