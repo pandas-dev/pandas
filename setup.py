@@ -595,7 +595,6 @@ ext_data = {
     '_libs.hashing': {'pyxfile': '_libs/hashing'},
     'io.sas._sas': {'pyxfile': 'io/sas/sas'}}
 
-
 extensions = []
 
 for name, data in ext_data.items():
