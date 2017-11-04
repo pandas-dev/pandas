@@ -2732,6 +2732,16 @@ class TestGroupBy(MixIn):
 
         assert_series_equal(result, expected)
 
+    def test_empty_dataframe_groupby(self):
+        # GH8093
+        df = DataFrame(columns=['A', 'B', 'C'])
+
+        result = df.groupby('A').sum()
+        expected = DataFrame(columns=['B', 'C'], dtype=np.float64)
+        expected.index.name = 'A'
+
+        assert_frame_equal(result, expected)
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
