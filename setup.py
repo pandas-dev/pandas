@@ -463,7 +463,7 @@ def pxd(name):
 if _have_setuptools:
     # Note: this is a list, whereas `numpy_incl` in build_ext.build_extensions
     # is a string 
-    numpy_incls = pkg_resources.resource_filename('numpy', 'core/include')
+    numpy_incls = [pkg_resources.resource_filename('numpy', 'core/include')]
 else:
     numpy_incls = []
 
