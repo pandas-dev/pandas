@@ -3,7 +3,6 @@ from datetime import datetime
 import pytest
 
 import numpy as np
-from numpy import testing as ntm
 import pandas as pd
 from pandas.util import testing as tm
 from pandas.compat import lrange
@@ -356,8 +355,8 @@ class TestIndexing(object):
 
         assert idx2.get_loc(p1) == expected_idx2_p1
         assert idx2.get_loc(str(p1)) == expected_idx2_p1
-        ntm.assert_array_equal(idx2.get_loc(p2), expected_idx2_p2)
-        ntm.assert_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
+        tm.assert_numpy_array_equal(idx2.get_loc(p2), expected_idx2_p2)
+        tm.assert_numpy_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
 
     def test_is_monotonic_increasing(self):
         # GH 17717
