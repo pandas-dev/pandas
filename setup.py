@@ -501,7 +501,11 @@ ext_data = {
         'depends': _pxi_dep['index'],
         'sources': np_datetime_sources},
     '_libs.indexing': {
-        'pyxfile': '_libs/indexing'},
+        'pyxfile': '_libs/indexing',
+        'pxdfiles': [],
+        'depends': [],
+        'sources': [],
+        'include': []},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
@@ -526,6 +530,9 @@ ext_data = {
         'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
+        'pxdfiles': [],
+        'depends': [],
+        'sources': [],
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
@@ -570,14 +577,21 @@ ext_data = {
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones'},
     '_libs.testing': {
-        'pyxfile': '_libs/testing'},
+        'pyxfile': '_libs/testing',
+        'pxdfiles': [],
+        'depends': [],
+        'sources': [],
+        'include': []},
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
         'depends': ['pandas/_libs/src/skiplist.pyx',
                     'pandas/_libs/src/skiplist.h']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas'}}
+        'pyxfile': 'io/sas/sas',
+        'pxdfiles': [],
+        'depends': [],
+        'sources': []}}
 
 extensions = []
 
