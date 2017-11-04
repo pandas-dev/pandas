@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas.compat import lrange
-from pandas._libs import tslib
+from pandas._libs import tslib, tslibs
 from pandas import (PeriodIndex, Series, DatetimeIndex,
                     period_range, Period)
 
@@ -310,3 +310,197 @@ class TestIndexing(object):
 
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
+
+    def test_get_loc(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+
+        # get the location of p1/p2 from
+        # monotonic increasing PeriodIndex with non-duplicate
+        idx0 = pd.PeriodIndex([p0, p1, p2])
+        expected_idx1_p1 = 1
+        expected_idx1_p2 = 2
+
+        assert idx0.get_loc(p1) == expected_idx1_p1
+        assert idx0.get_loc(str(p1)) == expected_idx1_p1
+        assert idx0.get_loc(p2) == expected_idx1_p2
+        assert idx0.get_loc(str(p2)) == expected_idx1_p2
+
+        pytest.raises(tslibs.parsing.DateParseError, idx0.get_loc, 'foo')
+        pytest.raises(KeyError, idx0.get_loc, 1.1)
+        pytest.raises(TypeError, idx0.get_loc, idx0)
+
+        # get the location of p1/p2 from
+        # monotonic increasing PeriodIndex with duplicate
+        idx1 = pd.PeriodIndex([p1, p1, p2])
+        expected_idx1_p1 = slice(0, 2)
+        expected_idx1_p2 = 2
+
+        assert idx1.get_loc(p1) == expected_idx1_p1
+        assert idx1.get_loc(str(p1)) == expected_idx1_p1
+        assert idx1.get_loc(p2) == expected_idx1_p2
+        assert idx1.get_loc(str(p2)) == expected_idx1_p2
+
+        pytest.raises(tslibs.parsing.DateParseError, idx1.get_loc, 'foo')
+        pytest.raises(KeyError, idx1.get_loc, 1.1)
+        pytest.raises(TypeError, idx1.get_loc, idx1)
+
+        # get the location of p1/p2 from
+        # non-monotonic increasing/decreasing PeriodIndex with duplicate
+        idx2 = pd.PeriodIndex([p2, p1, p2])
+        expected_idx2_p1 = 1
+        expected_idx2_p2 = np.array([True, False, True])
+
+        assert idx2.get_loc(p1) == expected_idx2_p1
+        assert idx2.get_loc(str(p1)) == expected_idx2_p1
+        tm.assert_numpy_array_equal(idx2.get_loc(p2), expected_idx2_p2)
+        tm.assert_numpy_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
+
+    def test_is_monotonic_increasing(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+
+        idx_inc0 = pd.PeriodIndex([p0, p1, p2])
+        idx_inc1 = pd.PeriodIndex([p0, p1, p1])
+        idx_dec0 = pd.PeriodIndex([p2, p1, p0])
+        idx_dec1 = pd.PeriodIndex([p2, p1, p1])
+        idx = pd.PeriodIndex([p1, p2, p0])
+
+        assert idx_inc0.is_monotonic_increasing
+        assert idx_inc1.is_monotonic_increasing
+        assert not idx_dec0.is_monotonic_increasing
+        assert not idx_dec1.is_monotonic_increasing
+        assert not idx.is_monotonic_increasing
+
+    def test_is_monotonic_decreasing(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+
+        idx_inc0 = pd.PeriodIndex([p0, p1, p2])
+        idx_inc1 = pd.PeriodIndex([p0, p1, p1])
+        idx_dec0 = pd.PeriodIndex([p2, p1, p0])
+        idx_dec1 = pd.PeriodIndex([p2, p1, p1])
+        idx = pd.PeriodIndex([p1, p2, p0])
+
+        assert not idx_inc0.is_monotonic_decreasing
+        assert not idx_inc1.is_monotonic_decreasing
+        assert idx_dec0.is_monotonic_decreasing
+        assert idx_dec1.is_monotonic_decreasing
+        assert not idx.is_monotonic_decreasing
+
+    def test_is_unique(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+
+        idx0 = pd.PeriodIndex([p0, p1, p2])
+        assert idx0.is_unique
+
+        idx1 = pd.PeriodIndex([p1, p1, p2])
+        assert not idx1.is_unique
+
+    def test_contains(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+        p3 = pd.Period('2017-09-04')
+
+        ps0 = [p0, p1, p2]
+        idx0 = pd.PeriodIndex(ps0)
+
+        for p in ps0:
+            assert idx0.contains(p)
+            assert p in idx0
+
+            assert idx0.contains(str(p))
+            assert str(p) in idx0
+
+        assert idx0.contains('2017-09-01 00:00:01')
+        assert '2017-09-01 00:00:01' in idx0
+
+        assert idx0.contains('2017-09')
+        assert '2017-09' in idx0
+
+        assert not idx0.contains(p3)
+        assert p3 not in idx0
+
+    def test_get_value(self):
+        # GH 17717
+        p0 = pd.Period('2017-09-01')
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+
+        idx0 = pd.PeriodIndex([p0, p1, p2])
+        input0 = np.array([1, 2, 3])
+        expected0 = 2
+
+        result0 = idx0.get_value(input0, p1)
+        assert result0 == expected0
+
+        idx1 = pd.PeriodIndex([p1, p1, p2])
+        input1 = np.array([1, 2, 3])
+        expected1 = np.array([1, 2])
+
+        result1 = idx1.get_value(input1, p1)
+        tm.assert_numpy_array_equal(result1, expected1)
+
+        idx2 = pd.PeriodIndex([p1, p2, p1])
+        input2 = np.array([1, 2, 3])
+        expected2 = np.array([1, 3])
+
+        result2 = idx2.get_value(input2, p1)
+        tm.assert_numpy_array_equal(result2, expected2)
+
+    def test_get_indexer(self):
+        # GH 17717
+        p1 = pd.Period('2017-09-01')
+        p2 = pd.Period('2017-09-04')
+        p3 = pd.Period('2017-09-07')
+
+        tp0 = pd.Period('2017-08-31')
+        tp1 = pd.Period('2017-09-02')
+        tp2 = pd.Period('2017-09-05')
+        tp3 = pd.Period('2017-09-09')
+
+        idx = pd.PeriodIndex([p1, p2, p3])
+
+        tm.assert_numpy_array_equal(idx.get_indexer(idx),
+                                    np.array([0, 1, 2], dtype=np.intp))
+
+        target = pd.PeriodIndex([tp0, tp1, tp2, tp3])
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
+                                    np.array([-1, 0, 1, 2], dtype=np.intp))
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
+                                    np.array([0, 1, 2, -1], dtype=np.intp))
+        tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
+                                    np.array([0, 0, 1, 2], dtype=np.intp))
+
+        res = idx.get_indexer(target, 'nearest',
+                              tolerance=pd.Timedelta('1 day'))
+        tm.assert_numpy_array_equal(res,
+                                    np.array([0, 0, 1, -1], dtype=np.intp))
+
+    def test_get_indexer_non_unique(self):
+        # GH 17717
+        p1 = pd.Period('2017-09-02')
+        p2 = pd.Period('2017-09-03')
+        p3 = pd.Period('2017-09-04')
+        p4 = pd.Period('2017-09-05')
+
+        idx1 = pd.PeriodIndex([p1, p2, p1])
+        idx2 = pd.PeriodIndex([p2, p1, p3, p4])
+
+        result = idx1.get_indexer_non_unique(idx2)
+        expected_indexer = np.array([1, 0, 2, -1, -1], dtype=np.int64)
+        expected_missing = np.array([2, 3], dtype=np.int64)
+
+        tm.assert_numpy_array_equal(result[0], expected_indexer)
+        tm.assert_numpy_array_equal(result[1], expected_missing)
