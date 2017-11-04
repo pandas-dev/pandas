@@ -523,6 +523,10 @@ ext_data = {
                     'pandas/_libs/src/parser/io.c']},
     '_libs.period': {
         'pyxfile': '_libs/period',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/lib',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
         'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
@@ -537,6 +541,7 @@ ext_data = {
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
@@ -547,7 +552,6 @@ ext_data = {
         'pyxfile': '_libs/tslibs/conversion',
         'pxdfiles': ['_libs/src/util',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/np_datetime',
                      '_libs/tslibs/timedeltas'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
@@ -572,7 +576,8 @@ ext_data = {
                      '_libs/tslibs/conversion']},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': ['_libs/src/util']},
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash']},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
