@@ -339,7 +339,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if not (is_datetime64_dtype(data) or is_datetimetz(data) or
                 is_integer_dtype(data)):
             data = tools.to_datetime(data, dayfirst=dayfirst,
-                                     yearfirst=yearfirst, cache=False)
+                                     yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
 

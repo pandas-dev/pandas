@@ -1224,7 +1224,8 @@ class TestDatetimeParsingWrappers(object):
         assert result3 is tslib.NaT
         assert result4 is tslib.NaT
 
-    def test_parsers_dayfirst_yearfirst(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers_dayfirst_yearfirst(self, cache):
         # OK
         # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
         # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
@@ -1373,7 +1374,8 @@ class TestDatetimeParsingWrappers(object):
         assert isinstance(res, list)
         assert res == expected_arr
 
-    def test_parsers_timezone_minute_offsets_roundtrip(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers_timezone_minute_offsets_roundtrip(self, cache):
         # GH11708
         base = to_datetime("2013-01-01 00:00:00", cache=cache)
         dt_strings = [

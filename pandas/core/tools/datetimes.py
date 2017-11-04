@@ -35,11 +35,35 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
+def _maybe_cache(arg, format, cache, tz, _convert_listlike):
+    """Create a cache of unique dates from an array of dates"""
+    from pandas import Series
+    cache_array = Series()
+    if cache:
+        # Perform a quicker unique check
+        from pandas import Index
+        if not Index(arg).is_unique:
+            unique_dates = algorithms.unique(arg)
+            cache_dates = _convert_listlike(unique_dates, True, format,
+                                            tz=tz)
+            cache_array = Series(cache_dates, index=unique_dates)
+    return cache_array
+
+def _convert_and_box_cache(arg, cache_array, box, name=None):
+    """Convert array of dates with a cache and box the result"""
+    from pandas import Series
+    from pandas.core.indexes.datetimes import DatetimeIndex
+    result = Series(arg).map(cache_array)
+    if box:
+        result = DatetimeIndex(result, name=name)
+    else:
+        result = result.values
+    return result
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=True):
+                cache=False):
     """
     Convert argument to datetime.
 
@@ -310,51 +334,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    def _maybe_convert_cache(arg, cache, box, format, name=None, tz=tz):
-        """
-        Try to convert the datetimelike arg using
-        a cache of converted dates.
-
-        Parameters
-        ----------
-        arg : integer, float, string, datetime, list, tuple, 1-d array, Series
-            Datetime argument to convert     
-        cache : boolean
-            If True, try to convert the dates with a cache
-            If False, short circuit and return None
-            Flag whether to cache the converted dates
-        box : boolean
-            If True, return a DatetimeIndex  
-            if False, return an ndarray of values     
-        tz : String or None
-            'utc' if UTC=True was passed else None
-        name : String, default None
-            DatetimeIndex name
-        Returns
-        -------
-        Series if original argument was a Series
-        DatetimeIndex if box=True and original argument was not a Series
-        ndarray if box=False and original argument was not a Series
-        None if the conversion failed
-        """
-        if cache and is_list_like(arg) and len(arg) >= 1000:
-            # Perform a quicker unique check
-            from pandas import Index
-            if not Index(arg).is_unique:
-                unique_dates = algorithms.unique(arg)
-                from pandas import Series
-                cache_dates = _convert_listlike(unique_dates, True, format,
-                                                tz=tz)
-                convert_cache = Series(cache_dates, index=unique_dates)
-                result = Series(arg, name=name).map(convert_cache)
-                if isinstance(arg, Series):
-                    return result
-                elif box:
-                    return DatetimeIndex(result, name=name)
-                else:
-                    return result.values
-        return None
-
     if arg is None:
         return None
 
@@ -419,20 +398,27 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        result = _maybe_convert_cache(arg, cache, box, format, name=arg.name)
-        if result is None:
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = arg.map(cache_array)
+        else:
             from pandas import Series
             values = _convert_listlike(arg._values, True, format)
             result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _maybe_convert_cache(arg, cache, box, format, name=arg.name)
-        if result is None:
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box,
+                                            name=arg.name)
+        else:
             result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
-        result = _maybe_convert_cache(arg, cache, box, format)
-        if result is None:
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box)
+        else:
             result = _convert_listlike(arg, box, format)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
