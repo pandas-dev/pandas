@@ -1299,8 +1299,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             d = libts.monthrange(parsed.year, parsed.month)[1]
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
-                    Timestamp(datetime(parsed.year, parsed.month, d,
-                              23, 59, 59, 999999), self.tz))
+                    Timestamp(datetime(parsed.year, parsed.month, d, 23,
+                                       59, 59, 999999), self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = libts.monthrange(parsed.year, qe)[1]   # at end of month
@@ -1317,8 +1317,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
             return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Hour(), tz=self.tz
-                                        ).value - 1))
+                    Timestamp(Timestamp(st + offsets.Hour(),
+                                        tz=self.tz).value - 1))
         elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
@@ -1336,10 +1336,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
                           parsed.microsecond)
-            return (
-                Timestamp(st, tz=self.tz),
-                Timestamp(st, tz=self.tz)
-            )
+            return Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz)
         else:
             raise KeyError
 
