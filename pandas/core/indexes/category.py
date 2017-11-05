@@ -79,7 +79,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
 
         if copy:
             data = data.copy()

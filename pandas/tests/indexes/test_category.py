@@ -4,6 +4,7 @@ import pytest
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, CategoricalIndex
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from .common import Base
 
 from pandas.compat import range, PY3
@@ -95,6 +96,11 @@ class TestCategoricalIndex(Base):
                                               1, -1, 0], dtype='int8'))
         assert result.ordered
 
+        result = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True)
+        expected = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True,
+                                       dtype='category')
+        tm.assert_index_equal(result, expected, exact=True)
+
         # turn me to an Index
         result = Index(np.array(ci))
         assert isinstance(result, Index)
@@ -124,6 +130,25 @@ class TestCategoricalIndex(Base):
         idx = Index(range(3))
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_construction_with_categorical_dtype(self):
+        # construction with CategoricalDtype
+        # GH18109
+        data, cats, ordered = 'a a b b'.split(), 'c b a'.split(), True
+        dtype = CategoricalDtype(categories=cats, ordered=ordered)
+
+        result = pd.CategoricalIndex(data, dtype=dtype)
+        expected = pd.CategoricalIndex(data, categories=cats,
+                                       ordered=ordered)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # error to combine categories or ordered and dtype keywords args
+        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
+                                             "`categories` or `ordered`."):
+            pd.CategoricalIndex(data, categories=cats, dtype=dtype)
+        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
+                                             "`categories` or `ordered`."):
+            pd.CategoricalIndex(data, ordered=ordered, dtype=dtype)
 
     def test_create_categorical(self):
         # https://github.com/pandas-dev/pandas/pull/17513
