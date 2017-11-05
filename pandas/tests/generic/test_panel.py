@@ -67,14 +67,13 @@ class TestPanel4D(Generic):
 # run all the tests, but wrap each in a warning catcher
 for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
           'test_get_default', 'test_nonzero',
-          'test_numpy_1_7_compat_numeric_methods',
           'test_downcast', 'test_constructor_compound_dtypes',
           'test_head_tail',
           'test_size_compat', 'test_split_compat',
           'test_unexpected_keyword',
           'test_stat_unexpected_keyword', 'test_api_compat',
           'test_stat_non_defaults_args',
-          'test_clip', 'test_truncate_out_of_bounds', 'test_numpy_clip',
+          'test_truncate_out_of_bounds',
           'test_metadata_propagation', 'test_copy_and_deepcopy',
           'test_sample']:
 
