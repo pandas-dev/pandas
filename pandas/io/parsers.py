@@ -1431,7 +1431,6 @@ class ParserBase(object):
             if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
-        index = None
 
         to_remove = []
         index = []
@@ -1462,8 +1461,6 @@ class ParserBase(object):
                 if i == icol:
                     return c
 
-        index = None
-
         to_remove = []
         index = []
         for idx in self.index_col:
@@ -1484,7 +1481,7 @@ class ParserBase(object):
 
         for i, arr in enumerate(index):
 
-            if (try_parse_dates and self._should_parse_dates(i)):
+            if try_parse_dates and self._should_parse_dates(i):
                 arr = self._date_conv(arr)
 
             col_na_values = self.na_values
