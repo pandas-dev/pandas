@@ -2913,7 +2913,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
-_block_types_klasses =  {
+_block_types_klasses = {
     'sparse': SparseBlock,
     'float': FloatBlock,
     'complex': ComplexBlock,
@@ -2964,7 +2964,7 @@ def _get_block_klass(dtype):
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=False):
     if klass is None:
-        klass  = _get_block_klass(dtype)
+        klass = _get_block_klass(dtype)
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim, fastpath=fastpath,
@@ -4670,7 +4670,7 @@ def get_block_type(values, dtype=None):
         block_type = 'float'
     elif issubclass(vtype, np.complexfloating):
         block_type = 'complex'
-    
+
     elif issubclass(vtype, np.datetime64):
         if dtype != _NS_DTYPE:
             values = tslib.cast_to_nanoseconds(values)
@@ -4679,13 +4679,13 @@ def get_block_type(values, dtype=None):
             block_type = 'datetime_tz'
         else:
             block_type = 'datetime'
-        
+
     elif is_datetimetz(values):
         block_type = 'datetime_tz'
-    
+
     elif issubclass(vtype, np.integer):
         block_type = 'int'
-    
+
     elif dtype == np.bool_:
         block_type = 'bool'
     elif is_categorical(values):
