@@ -35,6 +35,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
+
 def _maybe_cache(arg, format, cache, tz, _convert_listlike):
     """Create a cache of unique dates from an array of dates"""
     from pandas import Series
@@ -49,6 +50,7 @@ def _maybe_cache(arg, format, cache, tz, _convert_listlike):
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
+
 def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
     """Convert array of dates with a cache and box the result"""
     from pandas import Series
@@ -61,6 +63,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
         else:
             result = DatetimeIndex(result, tz=tz, name=name)
     return result
+
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
@@ -138,11 +141,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded: 0.20.0
-    cache : boolean, default True
-        If True, use a cache of unique, converted dates to apply the datetime
+    cache : boolean, default False
+        If False, use a cache of unique, converted dates to apply the datetime
         conversion. Produces signficant speed-ups when parsing duplicate dates.
 
-        .. versionadded: 0.21.0
+        .. versionadded: 0.21.1
     Returns
     -------
     ret : datetime if parsing succeeded.
