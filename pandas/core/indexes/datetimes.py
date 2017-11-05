@@ -1265,7 +1265,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         reso : Resolution
             Resolution provided by parsed string.
-        parsed : datetime
+        parsed : datetime | bool
             Datetime from parsed string.
 
         Returns
@@ -1273,61 +1273,63 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         lower, upper: pd.Timestamp
 
         """
-        if parsed.tzinfo is None:
+        if not hasattr(parsed, "tzinfo"):
+            target_tz = None
+        elif parsed.tzinfo is None:
             target_tz = self.tz
         else:
             target_tz = parsed.tzinfo
 
         def translate(timestamp_lower, timestamp_upper):
-            if target_tz == self.tz:
-                return timestamp_lower, timestamp_upper
-            else:
+            if self.tz is not None and parsed.tzinfo is not None:
                 return (
                     timestamp_lower.tz_convert(self.tz),
                     timestamp_upper.tz_convert(self.tz)
                 )
+            else:
+                return timestamp_lower, timestamp_upper
 
         if reso == 'year':
             return translate(Timestamp(datetime(parsed.year, 1, 1), tz=target_tz),
-                    Timestamp(datetime(parsed.year, 12, 31, 23,
+                             Timestamp(datetime(parsed.year, 12, 31, 23,
                                        59, 59, 999999), tz=target_tz))
         elif reso == 'month':
             d = libts.monthrange(parsed.year, parsed.month)[1]
             return translate(Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=target_tz),
-                    Timestamp(datetime(parsed.year, parsed.month, d, 23,
+                             tz=target_tz),
+                             Timestamp(datetime(parsed.year, parsed.month, d, 23,
                                        59, 59, 999999), target_tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = libts.monthrange(parsed.year, qe)[1]   # at end of month
             return translate(Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=target_tz),
-                    Timestamp(datetime(parsed.year, qe, d, 23, 59,
+                                       tz=target_tz),
+                             Timestamp(datetime(parsed.year, qe, d, 23, 59,
                                        59, 999999), tz=target_tz))
         elif reso == 'day':
             st = datetime(parsed.year, parsed.month, parsed.day)
             return translate(Timestamp(st, tz=target_tz),
-                    Timestamp(Timestamp(st + offsets.Day(),
-                                        tz=target_tz).value - 1))
+                             Timestamp(Timestamp(st + offsets.Day(),
+                                                 tz=target_tz).value - 1))
         elif reso == 'hour':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
             return translate(Timestamp(st, tz=target_tz),
-                    Timestamp(Timestamp(st + offsets.Hour(),
-                                        tz=target_tz).value - 1))
+                             Timestamp(Timestamp(st + offsets.Hour(),
+                                                 tz=target_tz).value - 1))
         elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
             return translate(Timestamp(st, tz=target_tz),
-                    Timestamp(Timestamp(st + offsets.Minute(),
-                                        tz=target_tz).value - 1))
+                             Timestamp(Timestamp(st + offsets.Minute(),
+                                                 tz=target_tz).value - 1))
         elif reso == 'second':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute,
                           second=parsed.second)
             return translate(Timestamp(st, tz=target_tz),
-                    Timestamp(Timestamp(st + offsets.Second(),
-                                        tz=target_tz).value - 1))
+                             Timestamp(Timestamp(st + offsets.Second(),
+                                                 tz=target_tz).value - 1))
         elif reso == 'microsecond':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
