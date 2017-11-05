@@ -2913,37 +2913,58 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
+_block_types_klasses =  {
+    'sparse': SparseBlock,
+    'float': FloatBlock,
+    'complex': ComplexBlock,
+    'int': IntBlock,
+    'bool': BoolBlock,
+    'cat': CategoricalBlock,
+    'object': ObjectBlock,
+    'timedelta': TimeDeltaBlock,
+    'datetime': DatetimeBlock,
+    'datetime_tz': DatetimeTZBlock}
+
+
+def _get_block_klass(dtype):
+    dtype = dtype or values.dtype
+    vtype = dtype.type
+
+    if isinstance(values, SparseArray):
+        block_type = 'sparse'
+    elif issubclass(vtype, np.floating):
+        klass = FloatBlock
+        block_type = 'float'
+    elif (issubclass(vtype, np.integer) and
+          issubclass(vtype, np.timedelta64)):
+        block_type = 'timedelta'
+    elif (issubclass(vtype, np.integer) and
+          not issubclass(vtype, np.datetime64)):
+        block_type = 'int'
+    elif dtype == np.bool_:
+        block_type = 'bool'
+    elif issubclass(vtype, np.datetime64):
+        if hasattr(values, 'tz'):
+            block_type = 'datetime_tz'
+        else:
+            block_type = 'datetime'
+    elif is_datetimetz(values):
+        block_type = 'datetime_tz'
+    elif issubclass(vtype, np.complexfloating):
+        block_type = 'complex'
+    elif is_categorical(values):
+        block_type = 'cat'
+    else:
+        block_type = 'object'
+
+    klass = _block_types_klasses[block_type]
+    return klass
+
+
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=False):
     if klass is None:
-        dtype = dtype or values.dtype
-        vtype = dtype.type
-
-        if isinstance(values, SparseArray):
-            klass = SparseBlock
-        elif issubclass(vtype, np.floating):
-            klass = FloatBlock
-        elif (issubclass(vtype, np.integer) and
-              issubclass(vtype, np.timedelta64)):
-            klass = TimeDeltaBlock
-        elif (issubclass(vtype, np.integer) and
-              not issubclass(vtype, np.datetime64)):
-            klass = IntBlock
-        elif dtype == np.bool_:
-            klass = BoolBlock
-        elif issubclass(vtype, np.datetime64):
-            if hasattr(values, 'tz'):
-                klass = DatetimeTZBlock
-            else:
-                klass = DatetimeBlock
-        elif is_datetimetz(values):
-            klass = DatetimeTZBlock
-        elif issubclass(vtype, np.complexfloating):
-            klass = ComplexBlock
-        elif is_categorical(values):
-            klass = CategoricalBlock
-        else:
-            klass = ObjectBlock
+        klass  = _get_block_klass(dtype)
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim, fastpath=fastpath,
@@ -4637,18 +4658,58 @@ def create_block_manager_from_arrays(arrays, names, axes):
         construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
+# TODO: no Timedelta?
+def get_block_type(values, dtype=None):
+    # dtype=None for compat with `make_block`
+    dtype = dtype or values.dtype
+    vtype = dtype.type
+
+    if is_sparse(values):
+        block_type = 'sparse'
+    elif issubclass(vtype, np.floating):
+        block_type = 'float'
+    elif issubclass(vtype, np.complexfloating):
+        block_type = 'complex'
+    
+    elif issubclass(vtype, np.datetime64):
+        if dtype != _NS_DTYPE:
+            values = tslib.cast_to_nanoseconds(values)
+
+        if is_datetimetz(values):
+            block_type = 'datetime_tz'
+        else:
+            block_type = 'datetime'
+        
+    elif is_datetimetz(values):
+        block_type = 'datetime_tz'
+    
+    elif issubclass(vtype, np.integer):
+        block_type = 'int'
+    
+    elif dtype == np.bool_:
+        block_type = 'bool'
+    elif is_categorical(values):
+        block_type = 'cat'
+    else:
+        block_type = 'object'
+
+    return (block_type, values)
+
+
 def form_blocks(arrays, names, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
-    float_items = []
-    complex_items = []
-    int_items = []
-    bool_items = []
-    object_items = []
-    sparse_items = []
-    datetime_items = []
-    datetime_tz_items = []
-    cat_items = []
+    items_dict = {
+        'float': [],
+        'complex': [],
+        'int': [],
+        'bool': [],
+        'object': [],
+        'sparse': [],
+        'datetime': [],
+        'datetime_tz': [],
+        'timedelta': [],
+        'cat': []}
     extra_locs = []
 
     names_idx = Index(names)
@@ -4665,74 +4726,42 @@ def form_blocks(arrays, names, axes):
 
         k = names[name_idx]
         v = arrays[name_idx]
-
-        if is_sparse(v):
-            sparse_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.floating):
-            float_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.complexfloating):
-            complex_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.datetime64):
-            if v.dtype != _NS_DTYPE:
-                v = tslib.cast_to_nanoseconds(v)
-
-            if is_datetimetz(v):
-                datetime_tz_items.append((i, k, v))
-            else:
-                datetime_items.append((i, k, v))
-        elif is_datetimetz(v):
-            datetime_tz_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.integer):
-            int_items.append((i, k, v))
-        elif v.dtype == np.bool_:
-            bool_items.append((i, k, v))
-        elif is_categorical(v):
-            cat_items.append((i, k, v))
-        else:
-            object_items.append((i, k, v))
+        (block_type, v) = get_block_type(v)
+        items_dict[block_type].append((i, k, v))
 
     blocks = []
-    if len(float_items):
-        float_blocks = _multi_blockify(float_items)
-        blocks.extend(float_blocks)
+    float_blocks = _multi_blockify(items_dict['float'])
+    blocks.extend(float_blocks)
 
-    if len(complex_items):
-        complex_blocks = _multi_blockify(complex_items)
-        blocks.extend(complex_blocks)
+    complex_blocks = _multi_blockify(items_dict['complex'])
+    blocks.extend(complex_blocks)
 
-    if len(int_items):
-        int_blocks = _multi_blockify(int_items)
-        blocks.extend(int_blocks)
+    int_blocks = _multi_blockify(items_dict['int'])
+    blocks.extend(int_blocks)
 
-    if len(datetime_items):
-        datetime_blocks = _simple_blockify(datetime_items, _NS_DTYPE)
-        blocks.extend(datetime_blocks)
+    datetime_blocks = _simple_blockify(items_dict['datetime'], _NS_DTYPE)
+    blocks.extend(datetime_blocks)
 
-    if len(datetime_tz_items):
-        dttz_blocks = [make_block(array,
-                                  klass=DatetimeTZBlock,
-                                  fastpath=True,
-                                  placement=[i], )
-                       for i, _, array in datetime_tz_items]
-        blocks.extend(dttz_blocks)
+    dttz_blocks = [make_block(array,
+                              klass=DatetimeTZBlock,
+                              fastpath=True,
+                              placement=[i], )
+                   for i, _, array in items_dict['datetime_tz']]
+    blocks.extend(dttz_blocks)
 
-    if len(bool_items):
-        bool_blocks = _simple_blockify(bool_items, np.bool_)
-        blocks.extend(bool_blocks)
+    bool_blocks = _simple_blockify(items_dict['bool'], np.bool_)
+    blocks.extend(bool_blocks)
 
-    if len(object_items) > 0:
-        object_blocks = _simple_blockify(object_items, np.object_)
-        blocks.extend(object_blocks)
+    object_blocks = _simple_blockify(items_dict['object'], np.object_)
+    blocks.extend(object_blocks)
 
-    if len(sparse_items) > 0:
-        sparse_blocks = _sparse_blockify(sparse_items)
-        blocks.extend(sparse_blocks)
+    sparse_blocks = _sparse_blockify(items_dict['sparse'])
+    blocks.extend(sparse_blocks)
 
-    if len(cat_items) > 0:
-        cat_blocks = [make_block(array, klass=CategoricalBlock, fastpath=True,
-                                 placement=[i])
-                      for i, _, array in cat_items]
-        blocks.extend(cat_blocks)
+    cat_blocks = [make_block(array, klass=CategoricalBlock, fastpath=True,
+                             placement=[i])
+                  for i, _, array in items_dict['cat']]
+    blocks.extend(cat_blocks)
 
     if len(extra_locs):
         shape = (len(extra_locs),) + tuple(len(x) for x in axes[1:])
@@ -4751,6 +4780,8 @@ def _simple_blockify(tuples, dtype):
     """ return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
     """
+    if not tuples:
+        return []
     values, placement = _stack_arrays(tuples, dtype)
 
     # CHECK DTYPE?
