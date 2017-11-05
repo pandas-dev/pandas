@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from pandas import DataFrame
 import numpy as np
 import pandas as pd
+import pytest
+from pandas import DataFrame
 from pandas.util import testing as tm
 
 
@@ -224,7 +225,7 @@ $1$,$2$
         exp = "foo\nbar\n1\n"
         assert df.to_csv(index=False) == exp
 
-    def test_to_csv_string_array(self):
+    def test_to_csv_string_array_ascii(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
         df = pd.DataFrame(str_array)
@@ -238,6 +239,11 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
+    @pytest.mark.xfail
+    def test_to_csv_string_array_utf8(self):
+        # GH 10813
+        str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
+        df = pd.DataFrame(str_array)
         expected_utf8 = '''\
 ,names
 0,"[u'foo', u'bar']"
