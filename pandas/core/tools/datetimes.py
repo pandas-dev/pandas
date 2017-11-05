@@ -49,15 +49,17 @@ def _maybe_cache(arg, format, cache, tz, _convert_listlike):
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
-def _convert_and_box_cache(arg, cache_array, box, name=None):
+def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
     """Convert array of dates with a cache and box the result"""
     from pandas import Series
     from pandas.core.indexes.datetimes import DatetimeIndex
     result = Series(arg).map(cache_array)
     if box:
-        result = DatetimeIndex(result, name=name)
-    else:
-        result = result.values
+        if errors == 'ignore':
+            from pandas import Index
+            result = Index(result)
+        else:
+            result = DatetimeIndex(result, tz=tz, name=name)
     return result
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
@@ -410,14 +412,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box,
+            result = _convert_and_box_cache(arg, cache_array, box, errors, tz,
                                             name=arg.name)
         else:
             result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box)
+            result = _convert_and_box_cache(arg, cache_array, box, errors, tz)
         else:
             result = _convert_listlike(arg, box, format)
     else:
