@@ -6,9 +6,8 @@ from distutils.version import LooseVersion
 
 is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
 
-cdef _get_result_array(object obj,
-                       Py_ssize_t size,
-                       Py_ssize_t cnt):
+
+cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
 
     if isinstance(obj, np.ndarray) \
             or isinstance(obj, list) and len(obj) == cnt \

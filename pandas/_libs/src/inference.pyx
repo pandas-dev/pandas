@@ -521,7 +521,7 @@ cpdef object infer_datetimelike_array(object arr):
     # convert *every* string array
     if len(objs):
         try:
-            tslib.array_to_datetime(objs, errors='raise')
+            array_to_datetime(objs, errors='raise')
             return 'datetime'
         except:
             pass

@@ -8,7 +8,9 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from numpy cimport *
 
+# initialize numpy
 np.import_array()
+np.import_ufunc()
 
 from libc.stdlib cimport malloc, free
 
@@ -53,9 +55,7 @@ from datetime cimport get_timedelta64_value, get_datetime64_value
 
 
 from tslib cimport _check_all_nulls
-import tslib
-from tslib import NaT, Timestamp, Timedelta
-import interval
+from tslib import NaT, Timestamp, Timedelta, array_to_datetime
 from interval import Interval
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -63,13 +63,8 @@ cdef int64_t NPY_NAT = util.get_nat()
 cimport util
 from util cimport is_array, _checknull, _checknan
 
-cdef extern from "math.h":
-    double sqrt(double x)
-    double fabs(double)
+from libc.math cimport sqrt, fabs
 
-# initialize numpy
-import_array()
-import_ufunc()
 
 
 def values_from_object(object o):
@@ -152,7 +147,7 @@ cpdef bint checknull_old(object val):
     elif is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return _checknull(val)
 
 
 cpdef bint isposinf_scalar(object val):
@@ -788,13 +783,13 @@ def scalar_binop(ndarray[object] values, object val, object op):
         object x
 
     result = np.empty(n, dtype=object)
-    if util._checknull(val):
+    if _checknull(val):
         result.fill(val)
         return result
 
     for i in range(n):
         x = values[i]
-        if util._checknull(x):
+        if _checknull(x):
             result[i] = x
         else:
             result[i] = op(x, val)
@@ -821,9 +816,9 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = op(x, y)
         except TypeError:
-            if util._checknull(x):
+            if _checknull(x):
                 result[i] = x
-            elif util._checknull(y):
+            elif _checknull(y):
                 result[i] = y
             else:
                 raise
