@@ -1695,7 +1695,7 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
-        if not has_mi_columns:
+        if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
             writer.writerow(encoded_labels)
         else:
