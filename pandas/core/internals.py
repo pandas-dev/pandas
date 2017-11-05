@@ -4699,17 +4699,7 @@ def get_block_type(values, dtype=None):
 def form_blocks(arrays, names, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = {
-        'float': [],
-        'complex': [],
-        'int': [],
-        'bool': [],
-        'object': [],
-        'sparse': [],
-        'datetime': [],
-        'datetime_tz': [],
-        'timedelta': [],
-        'cat': []}
+    items_dict = {key: [] for key in _block_type_klasses}
     extra_locs = []
 
     names_idx = Index(names)
