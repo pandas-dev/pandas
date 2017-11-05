@@ -789,7 +789,7 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
         B = xx / dnobs - A * A
         C = xxx / dnobs - A * A * A - 3 * A * B
 
-        # #18044: with uniform distribution, floating issue will 
+        # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
         #         if B is less than 1e-14,
@@ -921,7 +921,7 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
         R = R * A
         D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
 
-        # #18044: with uniform distribution, floating issue will 
+        # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
         #         if B is less than 1e-14,
