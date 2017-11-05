@@ -525,7 +525,7 @@ ext_data = {
         'pyxfile': '_libs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
-                     '_libs/tslibs/timedeltas'
+                     '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
