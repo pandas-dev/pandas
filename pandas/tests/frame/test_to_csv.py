@@ -1203,3 +1203,16 @@ class TestDataFrameToCSV(TestData):
 
         expected = ',0\n1990-01-01,4\n,5\n3005-01-01,6\n'
         assert result == expected
+
+    def test_multi_index_header(self):
+        # see gh-5539
+        columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2),
+                                             ("b", 1), ("b", 2)])
+        df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        df.columns = columns
+
+        header = ["a", "b", "c", "d"]
+        result = df.to_csv(header=header)
+
+        expected = ",a,b,c,d\n0,1,2,3,4\n1,5,6,7,8\n"
+        assert result == expected
