@@ -1265,7 +1265,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         reso : Resolution
             Resolution provided by parsed string.
-        parsed : datetime | bool
+        parsed : datetime | object
             Datetime from parsed string.
 
         Returns
@@ -1274,69 +1274,71 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         """
         if not hasattr(parsed, "tzinfo"):
-            target_tz = None
-        elif parsed.tzinfo is None:
-            target_tz = self.tz
+            # see the following:
+            # - TestSlicing.test_partial_slicing_with_multiindex
+            # - test_partial_setting_with_datetimelike_dtype
+            pass
+        elif self.tz is None:
+            if parsed.tzinfo is None:  # both are naive, nothing to do
+                pass
+            else:  # naive datetime index but label provides timezone
+                warnings.warn("Access naive datetime index with a label "
+                              "containing a timezone, assume UTC")
+                parsed = parsed.astimezone(_utc())
         else:
-            target_tz = parsed.tzinfo
-
-        def translate(timestamp_lower, timestamp_upper):
-            if self.tz is not None and parsed.tzinfo is not None:
-                return (
-                    timestamp_lower.tz_convert(self.tz),
-                    timestamp_upper.tz_convert(self.tz)
-                )
-            else:
-                return timestamp_lower, timestamp_upper
+            if parsed.tzinfo is None:  # treat like in same timezone
+                parsed = parsed.replace(tzinfo=self.tz)
+            else:  # actual timezone of the label should be considered
+                parsed = parsed.astimezone(tz=self.tz)
 
         if reso == 'year':
-            return translate(Timestamp(datetime(parsed.year, 1, 1), tz=target_tz),
-                             Timestamp(datetime(parsed.year, 12, 31, 23,
-                                       59, 59, 999999), tz=target_tz))
+            return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
+                    Timestamp(datetime(parsed.year, 12, 31, 23,
+                                       59, 59, 999999), tz=self.tz))
         elif reso == 'month':
             d = libts.monthrange(parsed.year, parsed.month)[1]
-            return translate(Timestamp(datetime(parsed.year, parsed.month, 1),
-                             tz=target_tz),
-                             Timestamp(datetime(parsed.year, parsed.month, d, 23,
-                                       59, 59, 999999), target_tz))
+            return (Timestamp(datetime(parsed.year, parsed.month, 1),
+                              tz=self.tz),
+                    Timestamp(datetime(parsed.year, parsed.month, d,
+                              23, 59, 59, 999999), self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = libts.monthrange(parsed.year, qe)[1]   # at end of month
-            return translate(Timestamp(datetime(parsed.year, parsed.month, 1),
-                                       tz=target_tz),
-                             Timestamp(datetime(parsed.year, qe, d, 23, 59,
-                                       59, 999999), tz=target_tz))
+            return (Timestamp(datetime(parsed.year, parsed.month, 1),
+                              tz=self.tz),
+                    Timestamp(datetime(parsed.year, qe, d, 23, 59,
+                                       59, 999999), tz=self.tz))
         elif reso == 'day':
             st = datetime(parsed.year, parsed.month, parsed.day)
-            return translate(Timestamp(st, tz=target_tz),
-                             Timestamp(Timestamp(st + offsets.Day(),
-                                                 tz=target_tz).value - 1))
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Day(),
+                                        tz=self.tz).value - 1))
         elif reso == 'hour':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
-            return translate(Timestamp(st, tz=target_tz),
-                             Timestamp(Timestamp(st + offsets.Hour(),
-                                                 tz=target_tz).value - 1))
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Hour(), tz=self.tz
+                                        ).value - 1))
         elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
-            return translate(Timestamp(st, tz=target_tz),
-                             Timestamp(Timestamp(st + offsets.Minute(),
-                                                 tz=target_tz).value - 1))
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Minute(),
+                                        tz=self.tz).value - 1))
         elif reso == 'second':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute,
                           second=parsed.second)
-            return translate(Timestamp(st, tz=target_tz),
-                             Timestamp(Timestamp(st + offsets.Second(),
-                                                 tz=target_tz).value - 1))
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Second(),
+                                        tz=self.tz).value - 1))
         elif reso == 'microsecond':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
                           parsed.microsecond)
-            return translate(
-                Timestamp(st, tz=target_tz),
-                Timestamp(st, tz=target_tz)
+            return (
+                Timestamp(st, tz=self.tz),
+                Timestamp(st, tz=self.tz)
             )
         else:
             raise KeyError

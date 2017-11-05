@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
@@ -123,39 +125,73 @@ class TestDatetimeIndex(object):
         result = df[0].at[0]
         assert result == expected
 
-    def test_access_datetimeindex_with_timezoned_label(self):
+    def test_access_timezoned_datetimeindex_with_timezoned_label(self):
 
-        # 6785, timezone was ignored when simple string was provided as a label
+        # GH 6785
+        # timezone was ignored when string was provided as a label
 
-        idx = pd.DataFrame(index=pd.date_range('2016-01-01T00:00',
-                                               '2016-03-31T23:59', freq='T'))
+        first_january = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                      freq='T', tz="UTC")
+        df = pd.DataFrame(index=first_january, data=np.arange(len(
+                          first_january)))
 
-        former_naive_endpoint_idx = idx[
-            "2016-01-01T00:00-02:00"
-            :
-            "2016-01-01T02:03"
+        former_naive_endpoint_df = df[
+            "2016-01-01T00:00-02:00":"2016-01-01T02:03"
         ]
 
-        former_non_naive_endpoint_idx = idx[
-            pd.Timestamp("2016-01-01T00:00-02:00")
-            :
+        former_non_naive_endpoint_df = df[
+            pd.Timestamp("2016-01-01T00:00-02:00"):
             pd.Timestamp("2016-01-01T02:03")
         ]
 
-        assert (len(former_naive_endpoint_idx)
-                == len(former_non_naive_endpoint_idx))
+        assert (len(former_naive_endpoint_df.index) == 4)
 
-        assert (former_naive_endpoint_idx.iloc[0].name
-                == former_non_naive_endpoint_idx.iloc[0].name)
+        assert (former_naive_endpoint_df.iloc[0].name
+                == former_non_naive_endpoint_df.iloc[0].name)
 
-        assert (former_naive_endpoint_idx.iloc[1].name
-                == former_non_naive_endpoint_idx.iloc[1].name)
+        assert (former_naive_endpoint_df.iloc[1].name
+                == former_non_naive_endpoint_df.iloc[1].name)
 
-        assert (former_naive_endpoint_idx.iloc[2].name
-                == former_non_naive_endpoint_idx.iloc[2].name)
+        assert (former_naive_endpoint_df.iloc[2].name
+                == former_non_naive_endpoint_df.iloc[2].name)
 
-        assert (former_naive_endpoint_idx.iloc[3].name
-                == former_non_naive_endpoint_idx.iloc[3].name)
+        assert (former_naive_endpoint_df.iloc[3].name
+                == former_non_naive_endpoint_df.iloc[3].name)
+
+    def test_access_naive_datetimeindex_with_timezoned_label(self):
+
+        # GH 6785
+        # timezone was ignored when string was provided as a label
+        # this test is for completeness
+
+        first_january = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                      freq='T')
+        df = pd.DataFrame(index=first_january, data=np.arange(len(
+                          first_january)))
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            former_naive_endpoint_df = df["2016-01-01T00:00-02:00":
+                                          "2016-01-01T02:03"]
+            assert len(w) == 1
+            assert issubclass(w[-1].category, UserWarning)
+
+        former_non_naive_endpoint_df = df[pd.Timestamp(
+            "2016-01-01T00:00-02:00"):pd.Timestamp("2016-01-01T02:03")]
+
+        assert (len(former_naive_endpoint_df.index) == 4)
+
+        assert (former_naive_endpoint_df.iloc[0].name
+                == former_non_naive_endpoint_df.iloc[0].name)
+
+        assert (former_naive_endpoint_df.iloc[1].name
+                == former_non_naive_endpoint_df.iloc[1].name)
+
+        assert (former_naive_endpoint_df.iloc[2].name
+                == former_non_naive_endpoint_df.iloc[2].name)
+
+        assert (former_naive_endpoint_df.iloc[3].name
+                == former_non_naive_endpoint_df.iloc[3].name)
 
     def test_indexing_with_datetimeindex_tz(self):
 
