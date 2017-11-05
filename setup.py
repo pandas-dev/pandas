@@ -580,12 +580,12 @@ ext_data = {
         'pxdfiles': ['_libs/src/util',
                      '_libs/src/khash']},
     '_libs.tslibs.resolution': {
-      'pyxfile': '_libs/tslibs/resolution',
-      'pxdfiles': ['_libs/src/util',
-                   '_libs/src/khash',
-                   '_libs/tslibs/frequencies',
-                   '_libs/tslibs/np_datetime',
-                   '_libs/tslibs/timezones']},
+        'pyxfile': '_libs/tslibs/resolution',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash',
+                     '_libs/tslibs/frequencies',
+                     '_libs/tslibs/np_datetime',
+                     '_libs/tslibs/timezones']},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
