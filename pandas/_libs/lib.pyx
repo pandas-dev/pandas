@@ -66,7 +66,6 @@ from util cimport is_array, _checknull, _checknan
 from libc.math cimport sqrt, fabs
 
 
-
 def values_from_object(object o):
     """ return my values or the object if we are say an ndarray """
     cdef f
