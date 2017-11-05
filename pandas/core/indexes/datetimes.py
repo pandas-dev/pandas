@@ -1300,7 +1300,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, parsed.month, d, 23,
-                                       59, 59, 999999), self.tz))
+                                       59, 59, 999999), tz=self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = libts.monthrange(parsed.year, qe)[1]   # at end of month
