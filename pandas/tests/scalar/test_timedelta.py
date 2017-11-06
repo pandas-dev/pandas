@@ -125,6 +125,49 @@ class TestTimedeltaArithmetic(object):
         pytest.raises(TypeError, lambda: td + 2)
         pytest.raises(TypeError, lambda: td - 2)
 
+    def test_timedelta_arithmetic(self):
+        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
+        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
+        for delta in deltas:
+            result_method = data.add(delta)
+            result_operator = data + delta
+            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
+            result_method = data.sub(delta)
+            result_operator = data - delta
+            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+            # GH 9396
+            result_method = data.div(delta)
+            result_operator = data / delta
+            expected = pd.Series([np.nan, 32.], dtype='float64')
+            tm.assert_series_equal(result_operator, expected)
+            tm.assert_series_equal(result_method, expected)
+
+    def test_arithmetic_overflow(self):
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + Timedelta(13 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for left, right in [(td, 'a'), ('a', td)]:
+            with pytest.raises(TypeError):
+                left + right
+
+            with pytest.raises(TypeError):
+                left > right
+
+            assert not left == right
+            assert left != right
+
 
 class TestTimedeltas(object):
     _multiprocess_can_split_ = True
@@ -415,42 +458,6 @@ class TestTimedeltas(object):
         assert tup.microseconds == 999
         assert tup.nanoseconds == 0
 
-    def test_nat_converters(self):
-        assert to_timedelta('nat', box=False).astype('int64') == iNaT
-        assert to_timedelta('nan', box=False).astype('int64') == iNaT
-
-        def testit(unit, transform):
-
-            # array
-            result = to_timedelta(np.arange(5), unit=unit)
-            expected = TimedeltaIndex([np.timedelta64(i, transform(unit))
-                                       for i in np.arange(5).tolist()])
-            tm.assert_index_equal(result, expected)
-
-            # scalar
-            result = to_timedelta(2, unit=unit)
-            expected = Timedelta(np.timedelta64(2, transform(unit)).astype(
-                'timedelta64[ns]'))
-            assert result == expected
-
-        # validate all units
-        # GH 6855
-        for unit in ['Y', 'M', 'W', 'D', 'y', 'w', 'd']:
-            testit(unit, lambda x: x.upper())
-        for unit in ['days', 'day', 'Day', 'Days']:
-            testit(unit, lambda x: 'D')
-        for unit in ['h', 'm', 's', 'ms', 'us', 'ns', 'H', 'S', 'MS', 'US',
-                     'NS']:
-            testit(unit, lambda x: x.lower())
-
-        # offsets
-
-        # m
-        testit('T', lambda x: 'm')
-
-        # ms
-        testit('L', lambda x: 'ms')
-
     def test_numeric_conversions(self):
         assert ct(0) == np.timedelta64(0, 'ns')
         assert ct(10) == np.timedelta64(10, 'ns')
@@ -497,55 +504,6 @@ class TestTimedeltas(object):
             assert r1 == s1
             r2 = t2.round(freq)
             assert r2 == s2
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
-
-        t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
-        t2 = -1 * t1
-        t1a = timedelta_range('1 days', periods=3, freq='1 min 2 s')
-        t1c = pd.TimedeltaIndex([1, 1, 1], unit='D')
-
-        # note that negative times round DOWN! so don't give whole numbers
-        for (freq, s1, s2) in [('N', t1, t2),
-                               ('U', t1, t2),
-                               ('L', t1a,
-                                TimedeltaIndex(['-1 days +00:00:00',
-                                                '-2 days +23:58:58',
-                                                '-2 days +23:57:56'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('S', t1a,
-                                TimedeltaIndex(['-1 days +00:00:00',
-                                                '-2 days +23:58:58',
-                                                '-2 days +23:57:56'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('12T', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('H', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('d', t1c,
-                                pd.TimedeltaIndex([-1, -1, -1], unit='D')
-                                )]:
-
-            r1 = t1.round(freq)
-            tm.assert_index_equal(r1, s1)
-            r2 = t2.round(freq)
-        tm.assert_index_equal(r2, s2)
 
         # invalid
         for freq in ['Y', 'M', 'foobar']:
@@ -676,13 +634,6 @@ class TestTimedeltas(object):
         d = {td: 2}
         assert d[v] == 2
 
-        tds = timedelta_range('1 second', periods=20)
-        assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
-
-        # python timedeltas drop ns resolution
-        ns_td = Timedelta(1, 'ns')
-        assert hash(ns_td) != hash(ns_td.to_pytimedelta())
-
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
         max_td = Timedelta(Timedelta.max)
@@ -711,36 +662,6 @@ class TestTimedeltas(object):
         with pytest.raises(OverflowError):
             Timedelta(max_td.value + 1, 'ns')
 
-    def test_timedelta_arithmetic(self):
-        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
-        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
-        for delta in deltas:
-            result_method = data.add(delta)
-            result_operator = data + delta
-            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-
-            result_method = data.sub(delta)
-            result_operator = data - delta
-            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-            # GH 9396
-            result_method = data.div(delta)
-            result_operator = data / delta
-            expected = pd.Series([np.nan, 32.], dtype='float64')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-
-    def test_arithmetic_overflow(self):
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
-
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')
 
@@ -757,18 +678,6 @@ class TestTimedeltas(object):
         b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
-
-    def test_components(self):
-        rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')
-        rng.components
-
-        # with nat
-        s = Series(rng)
-        s[1] = np.nan
-
-        result = s.dt.components
-        assert not result.iloc[0].isna().all()
-        assert result.iloc[1].isna().all()
 
     def test_isoformat(self):
         td = Timedelta(days=6, minutes=50, seconds=3,
@@ -804,17 +713,113 @@ class TestTimedeltas(object):
         expected = 'P0DT0H1M0S'
         assert result == expected
 
-    def test_ops_error_str(self):
-        # GH 13624
-        td = Timedelta('1 day')
 
-        for l, r in [(td, 'a'), ('a', td)]:
+class TestTimedeltaIndex(object):
+    _multiprocess_can_split_ = True
 
-            with pytest.raises(TypeError):
-                l + r
+    def test_nat_converters(self):
+        assert to_timedelta('nat', box=False).astype('int64') == iNaT
+        assert to_timedelta('nan', box=False).astype('int64') == iNaT
 
-            with pytest.raises(TypeError):
-                l > r
+        def testit(unit, transform):
 
-            assert not l == r
-            assert l != r
+            # array
+            result = to_timedelta(np.arange(5), unit=unit)
+            expected = TimedeltaIndex([np.timedelta64(i, transform(unit))
+                                       for i in np.arange(5).tolist()])
+            tm.assert_index_equal(result, expected)
+
+            # scalar
+            result = to_timedelta(2, unit=unit)
+            expected = Timedelta(np.timedelta64(2, transform(unit)).astype(
+                'timedelta64[ns]'))
+            assert result == expected
+
+        # validate all units
+        # GH 6855
+        for unit in ['Y', 'M', 'W', 'D', 'y', 'w', 'd']:
+            testit(unit, lambda x: x.upper())
+        for unit in ['days', 'day', 'Day', 'Days']:
+            testit(unit, lambda x: 'D')
+        for unit in ['h', 'm', 's', 'ms', 'us', 'ns', 'H', 'S', 'MS', 'US',
+                     'NS']:
+            testit(unit, lambda x: x.lower())
+
+        # offsets
+
+        # m
+        testit('T', lambda x: 'm')
+
+        # ms
+        testit('L', lambda x: 'ms')
+
+    def test_timedelta_hash_equality(self):
+        # GH 11129
+        tds = timedelta_range('1 second', periods=20)
+        assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
+
+        # python timedeltas drop ns resolution
+        ns_td = Timedelta(1, 'ns')
+        assert hash(ns_td) != hash(ns_td.to_pytimedelta())
+
+    def test_components(self):
+        rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')
+        rng.components
+
+        # with nat
+        s = Series(rng)
+        s[1] = np.nan
+
+        result = s.dt.components
+        assert not result.iloc[0].isna().all()
+        assert result.iloc[1].isna().all()
+
+    def test_round(self):
+        t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
+        t2 = -1 * t1
+        t1a = timedelta_range('1 days', periods=3, freq='1 min 2 s')
+        t1c = pd.TimedeltaIndex([1, 1, 1], unit='D')
+
+        # note that negative times round DOWN! so don't give whole numbers
+        for (freq, s1, s2) in [('N', t1, t2),
+                               ('U', t1, t2),
+                               ('L', t1a,
+                                TimedeltaIndex(['-1 days +00:00:00',
+                                                '-2 days +23:58:58',
+                                                '-2 days +23:57:56'],
+                                               dtype='timedelta64[ns]',
+                                               freq=None)
+                                ),
+                               ('S', t1a,
+                                TimedeltaIndex(['-1 days +00:00:00',
+                                                '-2 days +23:58:58',
+                                                '-2 days +23:57:56'],
+                                               dtype='timedelta64[ns]',
+                                               freq=None)
+                                ),
+                               ('12T', t1c,
+                                TimedeltaIndex(['-1 days',
+                                                '-1 days',
+                                                '-1 days'],
+                                               dtype='timedelta64[ns]',
+                                               freq=None)
+                                ),
+                               ('H', t1c,
+                                TimedeltaIndex(['-1 days',
+                                                '-1 days',
+                                                '-1 days'],
+                                               dtype='timedelta64[ns]',
+                                               freq=None)
+                                ),
+                               ('d', t1c,
+                                pd.TimedeltaIndex([-1, -1, -1], unit='D')
+                                )]:
+
+            r1 = t1.round(freq)
+            tm.assert_index_equal(r1, s1)
+            r2 = t2.round(freq)
+        tm.assert_index_equal(r2, s2)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: t1.round(freq))
