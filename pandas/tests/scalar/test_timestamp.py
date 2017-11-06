@@ -410,17 +410,6 @@ class TestTimestamp(object):
         assert conv.hour == 19
 
     def test_tz_localize_ambiguous(self):
-
-        ts = Timestamp('2014-11-02 01:00')
-        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
-        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
-
-        rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
-        assert rng[1] == ts_dst
-        assert rng[2] == ts_no_dst
-        pytest.raises(ValueError, ts.tz_localize, 'US/Eastern',
-                      ambiguous='infer')
-
         # GH 8025
         with tm.assert_raises_regex(TypeError,
                                     'Cannot localize tz-aware Timestamp, '
@@ -672,11 +661,6 @@ class TestTimestamp(object):
         expected = Timestamp('20130104 12:30:00')
         assert result == expected
 
-        dti = date_range('20130101 09:10:11', periods=5)
-        result = dti.round('D')
-        expected = date_range('20130101', periods=5)
-        tm.assert_index_equal(result, expected)
-
         # floor
         dt = Timestamp('20130101 09:10:11')
         result = dt.floor('D')
@@ -698,19 +682,6 @@ class TestTimestamp(object):
         dt = Timestamp('20130101 09:10:11', tz='US/Eastern')
         result = dt.round('s')
         assert result == dt
-
-        dti = date_range('20130101 09:10:11',
-                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
-        result = dti.round('D')
-        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
-        tm.assert_index_equal(result, expected)
-
-        result = dti.round('s')
-        tm.assert_index_equal(result, dti)
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: dti.round(freq))
 
         # GH 14440 & 15578
         result = Timestamp('2016-10-17 12:00:00.0015').round('ms')
@@ -936,13 +907,6 @@ class TestTimestamp(object):
         assert val != np.float64(1)
         assert val != np.int64(1)
 
-        # ops testing
-        df = DataFrame(np.random.randn(5, 2))
-        a = df[0]
-        b = Series(np.random.randn(5))
-        b.name = Timestamp('2000-01-01')
-        tm.assert_series_equal(a / b, 1 / (b / a))
-
     def test_cant_compare_tz_naive_w_aware(self):
         # see gh-1404
         a = Timestamp('3/12/2012')
@@ -1040,41 +1004,6 @@ class TestTimestamp(object):
             expected = left_f(rhs, nat)
             result = right_f(nat, rhs)
             assert result == expected
-
-    def test_timestamp_compare_series(self):
-        # make sure we can compare Timestamps on the right AND left hand side
-        # GH4982
-        s = Series(date_range('20010101', periods=10), name='dates')
-        s_nat = s.copy(deep=True)
-
-        s[0] = Timestamp('nat')
-        s[3] = Timestamp('nat')
-
-        ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
-
-        for left, right in ops.items():
-            left_f = getattr(operator, left)
-            right_f = getattr(operator, right)
-
-            # no nats
-            expected = left_f(s, Timestamp('20010109'))
-            result = right_f(Timestamp('20010109'), s)
-            tm.assert_series_equal(result, expected)
-
-            # nats
-            expected = left_f(s, Timestamp('nat'))
-            result = right_f(Timestamp('nat'), s)
-            tm.assert_series_equal(result, expected)
-
-            # compare to timestamp with series containing nats
-            expected = left_f(s_nat, Timestamp('20010109'))
-            result = right_f(Timestamp('20010109'), s_nat)
-            tm.assert_series_equal(result, expected)
-
-            # compare to nat with series containing nats
-            expected = left_f(s_nat, Timestamp('nat'))
-            result = right_f(Timestamp('nat'), s_nat)
-            tm.assert_series_equal(result, expected)
 
     def test_is_leap_year(self):
         # GH 13727
@@ -1205,15 +1134,6 @@ class TestTimestampOps(object):
         assert ((datetime(2013, 10, 12) -
                  Timestamp(datetime(2013, 10, 13))).days == -1)
 
-    def test_timestamp_and_series(self):
-        timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D',
-                                             tz='US/Eastern'))
-        first_timestamp = timestamp_series[0]
-
-        delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
-        assert_series_equal(timestamp_series - first_timestamp, delta_series)
-        assert_series_equal(first_timestamp - timestamp_series, -delta_series)
-
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time
         # objects
@@ -1221,8 +1141,7 @@ class TestTimestampOps(object):
         timedelta_instance = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        timestamp_instance = date_range(datetime_instance, periods=1,
-                                        freq='D')[0]
+        timestamp_instance = Timestamp(datetime_instance, freq='D')
 
         assert type(timestamp_instance + 1) == Timestamp
         assert type(timestamp_instance - 1) == Timestamp
@@ -1240,7 +1159,7 @@ class TestTimestampOps(object):
         assert type(timestamp_instance - timedelta64_instance) == Timestamp
 
     def test_addition_subtraction_preserve_frequency(self):
-        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        timestamp_instance = Timestamp('2014-03-05', freq='D')
         timedelta_instance = timedelta(days=1)
         original_freq = timestamp_instance.freq
 
@@ -1254,22 +1173,6 @@ class TestTimestampOps(object):
                 timedelta64_instance).freq == original_freq
         assert (timestamp_instance -
                 timedelta64_instance).freq == original_freq
-
-    def test_resolution(self):
-
-        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
-                                   'S', 'L', 'U'],
-                                  [RESO_DAY, RESO_DAY,
-                                   RESO_DAY, RESO_DAY,
-                                   RESO_HR, RESO_MIN,
-                                   RESO_SEC, RESO_MS,
-                                   RESO_US]):
-            for tz in [None, 'Asia/Tokyo', 'US/Eastern',
-                       'dateutil/US/Eastern']:
-                idx = date_range(start='2013-04-01', periods=30, freq=freq,
-                                 tz=tz)
-                result = period.resolution(idx.asi8, idx.tz)
-                assert result == expected
 
 
 class TestTimestampToJulianDate(object):
@@ -1324,29 +1227,9 @@ class TestTimeSeries(object):
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
-    def test_timestamp_fields(self):
-        # extra fields from DatetimeIndex like quarter and week
-        idx = tm.makeDateIndex(100)
-
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
-                  'days_in_month', 'is_month_start', 'is_month_end',
-                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                  'is_year_end', 'weekday_name']
-        for f in fields:
-            expected = getattr(idx, f)[-1]
-            result = getattr(Timestamp(idx[-1]), f)
-            assert result == expected
-
-        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
-        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
-
     def test_timestamp_date_out_of_range(self):
         pytest.raises(ValueError, Timestamp, '1676-01-01')
         pytest.raises(ValueError, Timestamp, '2263-01-01')
-
-        # see gh-1475
-        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
-        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
 
     def test_timestamp_repr(self):
         # pre-1900
@@ -1385,80 +1268,6 @@ class TestTimeSeries(object):
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
-
-    def test_timestamp_equality(self):
-
-        # GH 11034
-        s = Series([Timestamp('2000-01-29 01:59:00'), 'NaT'])
-        result = s != s
-        assert_series_equal(result, Series([False, True]))
-        result = s != s[0]
-        assert_series_equal(result, Series([False, True]))
-        result = s != s[1]
-        assert_series_equal(result, Series([True, True]))
-
-        result = s == s
-        assert_series_equal(result, Series([True, False]))
-        result = s == s[0]
-        assert_series_equal(result, Series([True, False]))
-        result = s == s[1]
-        assert_series_equal(result, Series([False, False]))
-
-    def test_series_box_timestamp(self):
-        rng = date_range('20090415', '20090519', freq='B')
-        s = Series(rng)
-
-        assert isinstance(s[5], Timestamp)
-
-        rng = date_range('20090415', '20090519', freq='B')
-        s = Series(rng, index=rng)
-        assert isinstance(s[5], Timestamp)
-
-        assert isinstance(s.iat[5], Timestamp)
-
-    def test_frame_setitem_timestamp(self):
-        # 2155
-        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
-                                freq=offsets.BDay())
-        index = lrange(10)
-        data = DataFrame(columns=columns, index=index)
-        t = datetime(2012, 11, 1)
-        ts = Timestamp(t)
-        data[ts] = np.nan  # works
-
-    def test_to_html_timestamp(self):
-        rng = date_range('2000-01-01', periods=10)
-        df = DataFrame(np.random.randn(10, 4), index=rng)
-
-        result = df.to_html()
-        assert '2000-01-01' in result
-
-    def test_series_map_box_timestamps(self):
-        # #2689, #2627
-        s = Series(date_range('1/1/2000', periods=10))
-
-        def f(x):
-            return (x.hour, x.day, x.month)
-
-        # it works!
-        s.map(f)
-        s.apply(f)
-        DataFrame(s).applymap(f)
-
-    def test_dti_slicing(self):
-        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
-        dti2 = dti[[1, 3, 5]]
-
-        v1 = dti2[0]
-        v2 = dti2[1]
-        v3 = dti2[2]
-
-        assert v1 == Timestamp('2/28/2005')
-        assert v2 == Timestamp('4/30/2005')
-        assert v3 == Timestamp('6/30/2005')
-
-        # don't carry freq through irregular slicing
-        assert dti2.freq is None
 
     def test_woy_boundary(self):
         # make sure weeks at year boundaries are correct
@@ -1570,3 +1379,200 @@ class TestTimestampEquivDateRange(object):
         ts = Timestamp('2014-03-05', freq='D')
 
         assert timestamp_instance == ts
+
+
+class TestDatetimeIndex(object):
+    def test_dti_slicing(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        assert v1 == Timestamp('2/28/2005')
+        assert v2 == Timestamp('4/30/2005')
+        assert v3 == Timestamp('6/30/2005')
+
+        # don't carry freq through irregular slicing
+        assert dti2.freq is None
+
+    def test_timestamp_date_out_of_range(self):
+        # see gh-1475
+        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
+        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+                  'days_in_month', 'is_month_start', 'is_month_end',
+                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                  'is_year_end', 'weekday_name']
+        for f in fields:
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
+            assert result == expected
+
+        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
+        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
+
+    def test_round(self):
+        dti = date_range('20130101 09:10:11', periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5)
+        tm.assert_index_equal(result, expected)
+
+        dti = date_range('20130101 09:10:11',
+                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
+
+    def test_tz_localize_ambiguous(self):
+        ts = Timestamp('2014-11-02 01:00')
+        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
+        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
+
+        rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
+        assert rng[1] == ts_dst
+        assert rng[2] == ts_no_dst
+        pytest.raises(ValueError, ts.tz_localize, 'US/Eastern',
+                      ambiguous='infer')
+
+    def test_resolution(self):
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
+                                   'S', 'L', 'U'],
+                                  [RESO_DAY, RESO_DAY,
+                                   RESO_DAY, RESO_DAY,
+                                   RESO_HR, RESO_MIN,
+                                   RESO_SEC, RESO_MS,
+                                   RESO_US]):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern',
+                       'dateutil/US/Eastern']:
+                idx = date_range(start='2013-04-01', periods=30, freq=freq,
+                                 tz=tz)
+                result = period.resolution(idx.asi8, idx.tz)
+                assert result == expected
+
+
+class TestSeriesTimestamps(object):
+    def test_series_box_timestamp(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng)
+
+        assert isinstance(s[5], Timestamp)
+
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng, index=rng)
+        assert isinstance(s[5], Timestamp)
+
+        assert isinstance(s.iat[5], Timestamp)
+
+    def test_timestamp_equality(self):
+        # GH 11034
+        s = Series([Timestamp('2000-01-29 01:59:00'), 'NaT'])
+        result = s != s
+        assert_series_equal(result, Series([False, True]))
+        result = s != s[0]
+        assert_series_equal(result, Series([False, True]))
+        result = s != s[1]
+        assert_series_equal(result, Series([True, True]))
+
+        result = s == s
+        assert_series_equal(result, Series([True, False]))
+        result = s == s[0]
+        assert_series_equal(result, Series([True, False]))
+        result = s == s[1]
+        assert_series_equal(result, Series([False, False]))
+
+    def test_timestamp_and_series(self):
+        timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D',
+                                             tz='US/Eastern'))
+        first_timestamp = timestamp_series[0]
+
+        delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
+        assert_series_equal(timestamp_series - first_timestamp, delta_series)
+        assert_series_equal(first_timestamp - timestamp_series, -delta_series)
+
+    def test_timestamp_compare_series(self):
+        # make sure we can compare Timestamps on the right AND left hand side
+        # GH4982
+        s = Series(date_range('20010101', periods=10), name='dates')
+        s_nat = s.copy(deep=True)
+
+        s[0] = Timestamp('nat')
+        s[3] = Timestamp('nat')
+
+        ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
+
+        for left, right in ops.items():
+            left_f = getattr(operator, left)
+            right_f = getattr(operator, right)
+
+            # no nats
+            expected = left_f(s, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), s)
+            tm.assert_series_equal(result, expected)
+
+            # nats
+            expected = left_f(s, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), s)
+            tm.assert_series_equal(result, expected)
+
+            # compare to timestamp with series containing nats
+            expected = left_f(s_nat, Timestamp('20010109'))
+            result = right_f(Timestamp('20010109'), s_nat)
+            tm.assert_series_equal(result, expected)
+
+            # compare to nat with series containing nats
+            expected = left_f(s_nat, Timestamp('nat'))
+            result = right_f(Timestamp('nat'), s_nat)
+            tm.assert_series_equal(result, expected)
+
+
+class TestDataFrameTimestamps(object):
+    def test_series_map_box_timestamps(self):
+        # GH#2689, GH#2627
+        s = Series(date_range('1/1/2000', periods=10))
+
+        def f(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        s.map(f)
+        s.apply(f)
+        DataFrame(s).applymap(f)
+
+    def test_frame_setitem_timestamp(self):
+        # GH#2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
+                                freq=offsets.BDay())
+        index = lrange(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan  # works
+
+    def test_to_html_timestamp(self):
+        rng = date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        assert '2000-01-01' in result
+
+    def test_compare_invalid(self):
+        # GH 8058
+        df = DataFrame(np.random.randn(5, 2))
+        a = df[0]
+        b = Series(np.random.randn(5))
+        b.name = Timestamp('2000-01-01')
+        tm.assert_series_equal(a / b, 1 / (b / a))
