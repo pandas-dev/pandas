@@ -621,13 +621,14 @@ def bland_altman_plot(m1, m2,
 
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from pandas import Series
 
     if len(m1) != len(m2):
         raise ValueError('m1 does not have the same length as m2.')
     if sd_limit < 0:
         raise ValueError('sd_limit ({}) is less than 0.'.format(sd_limit))
-    m1 = pd.Series(m1)
-    m2 = pd.Series(m2)
+    m1 = Series(m1)
+    m2 = Series(m2)
     n_obs = len(m1)
     means = np.mean([m1, m2], axis=0)
     diffs = m1 - m2
