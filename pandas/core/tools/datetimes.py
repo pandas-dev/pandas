@@ -143,7 +143,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         .. versionadded: 0.20.0
     cache : boolean, default False
         If False, use a cache of unique, converted dates to apply the datetime
-        conversion. Produces signficant speed-ups when parsing duplicate dates.
+        conversion. May produce sigificant speed-up when parsing duplicate date
+        strings, especially ones with timezone offsets.
 
         .. versionadded: 0.21.1
     Returns
