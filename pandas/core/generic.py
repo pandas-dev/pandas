@@ -1295,7 +1295,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # Validate keys
         keys = com._maybe_make_list(keys)
         invalid_keys = [k for k in keys if not
-        self._is_label_or_level_reference(k, axis=axis)]
+                        self._is_label_or_level_reference(k, axis=axis)]
 
         if invalid_keys:
             raise ValueError(("The following keys are not valid labels or "
