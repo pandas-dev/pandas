@@ -5105,7 +5105,7 @@ class DataFrame(NDFrame):
 
         >>> df = pd.DataFrame(columns=['A'])
         >>> for i in range(5):
-        ...     df = df.append({'A'}: i}, ignore_index=True)
+        ...     df = df.append({'A': i}, ignore_index=True)
         >>> df
            A
         0  0
