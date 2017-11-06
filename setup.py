@@ -526,9 +526,10 @@ ext_data = {
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/np_datetime'],
+        'depends': ['pandas/_libs/src/period_helper.h'],
+        'sources': ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -557,9 +558,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
-        'pxdfiles': ['_libs/src/util'],
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/np_datetime']},
     '_libs.tslibs.frequencies': {
         'pyxfile': '_libs/tslibs/frequencies',
         'pxdfiles': ['_libs/src/util']},
