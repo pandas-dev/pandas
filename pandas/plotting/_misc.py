@@ -571,3 +571,113 @@ def autocorrelation_plot(series, ax=None, **kwds):
         ax.legend()
     ax.grid()
     return ax
+  
+def bland_altman_plot(m1, m2, 
+                      sd_limit=1.96,
+                      ax=None, 
+                      scatter_kwds=None, 
+                      mean_line_kwds=None,
+                      limit_lines_kwds=None):
+    """
+    Bland-Altman Plot.
+    
+    A Bland-Altman plot is a graphical method to analyze the differences between
+    two methods of measurement. The mean of the measures is plotted against their
+    difference. 
+    
+    Parameters
+    ----------
+    m1, m2: pandas Series or array-like
+    
+    sd_limit : float, default 1.96
+        The limit of agreements expressed in terms of the standard deviation of
+        the differences. If `md` is the mean of the differences, and `sd` is the
+        standard deviation of those differences, then the limits of agreement 
+        that will be plotted will be
+                            md ± sd_limit * sd
+        The default of 1.96 will produce 95% confidence intervals for the means
+        of the differences.
+        
+    ax: matplotlib.axis, optional
+        matplotlib axis object to plot on.
+        
+    scatter_kwargs: keywords
+        Options to to style the scatter plot. Accepts any keywords for the 
+        matplotlib Axes.scatter plotting method
+        
+    mean_line_kwds: keywords
+        Options to to style the scatter plot. Accepts any keywords for the 
+        matplotlib Axes.axhline plotting method
+        
+    limit_lines_kwds: keywords
+        Options to to style the scatter plot. Accepts any keywords for the 
+        matplotlib Axes.axhline plotting method
+   
+   Returns
+    -------
+    ax: matplotlib Axis object
+    """
+    
+    import numpy as np
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    
+    if len(m1) != len(m2):
+        raise ValueError('m1 does not have the same length as m2.')
+    if sd_limit < 0:
+        raise ValueError('sd_limit ({}) cannot be less than 0.'.format(sd_limit))
+    m1 = pd.Series(m1)
+    m2 = pd.Series(m2)
+    n_obs = len(m1)
+    means = np.mean([m1, m2], axis=0)
+    diffs = m1 - m2 
+    mean_diff = np.mean(diffs) 
+    std_diff = np.std(diffs, axis=0)
+    
+    if ax == None:
+        ax = plt.gca()
+    
+    scatter_kwds = scatter_kwds or {}
+    if 's' not in scatter_kwds:
+        scatter_kwds['s'] = 20
+    mean_line_kwds = mean_line_kwds or {}
+    limit_lines_kwds = limit_lines_kwds or {}
+    for kwds in [mean_line_kwds, limit_lines_kwds]:
+        if 'color' not in kwds:
+            kwds['color'] = 'gray'
+        if 'linewidth' not in kwds:
+            kwds['linewidth'] = 1
+    if 'linestyle' not in mean_line_kwds:
+        kwds['linestyle'] = '--'
+    if 'linestyle' not in limit_lines_kwds:
+        kwds['linestyle'] = ':'
+        
+    ax.scatter(means, diffs, **scatter_kwds)
+    half_ylim = np.max( [np.min(diffs), np.max(diffs)] ) * 1.5
+    ax.set_ylim (-half_ylim, half_ylim)
+    ax.axhline(mean_diff, **mean_line_kwds) # mean line
+    if sd_limit > 0: 
+        limit_of_agreement = sd_limit * std_diff
+        lower = mean_diff - limit_of_agreement
+        upper = mean_diff + limit_of_agreement
+        for j, lim in enumerate( [lower, upper] ):
+            ax.axhline(lim, **limit_lines_kwds)
+        ax.annotate('{} (-{}SD)'.format(np.round(lower,2), sd_limit),
+                     xy=(0.99, 0.05),
+                     horizontalalignment='right',
+                     verticalalignment='bottom',
+                     fontsize = 14,
+                     xycoords='axes fraction')
+        ax.annotate('{} (+{}SD)'.format(np.round(upper,2), sd_limit), 
+                    xy=(0.99, 0.925), 
+                    horizontalalignment='right',
+                    fontsize = 14,
+                    xycoords='axes fraction')
+    elif sd_limit == 0: 
+        pass
+    
+    ax.set_ylabel('Difference', fontsize = 15)
+    ax.set_xlabel('Means', fontsize = 15)
+    ax.tick_params(labelsize=13)
+    plt.tight_layout()
+    return ax
