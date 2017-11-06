@@ -48,9 +48,8 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
-# this is our tseries.pxd
-from datetime cimport get_timedelta64_value, get_datetime64_value
 
+from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 
 from tslib cimport _check_all_nulls
 import tslib

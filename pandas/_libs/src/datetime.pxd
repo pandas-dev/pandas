@@ -1,40 +1,8 @@
 # cython: profile=False
-from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
-from cpython cimport PyObject
+from numpy cimport int64_t, npy_int64, npy_int32
 
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
 
-
-cdef extern from "datetime.h":
-
-    ctypedef class datetime.date [object PyDateTime_Date]:
-        pass
-
-    ctypedef class datetime.datetime [object PyDateTime_DateTime]:
-        pass
-
-    ctypedef class datetime.timedelta [object PyDateTime_Delta]:
-        pass
-
-    void PyDateTime_IMPORT()
-
-    int PyDateTime_GET_YEAR(date)
-    int PyDateTime_GET_MONTH(date)
-    int PyDateTime_GET_DAY(date)
-    int PyDateTime_DATE_GET_HOUR(object o)
-    int PyDateTime_DATE_GET_MINUTE(object o)
-    int PyDateTime_DATE_GET_SECOND(object o)
-    int PyDateTime_DATE_GET_MICROSECOND(object o)
-    int PyDateTime_TIME_GET_HOUR(object o)
-    int PyDateTime_TIME_GET_MINUTE(object o)
-    int PyDateTime_TIME_GET_SECOND(object o)
-    int PyDateTime_TIME_GET_MICROSECOND(object o)
-    bint PyDateTime_Check(object o)
-    bint PyDate_Check(object o)
-    bint PyTime_Check(object o)
-    bint PyDelta_Check(object o)
-    object PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
-                                      int minute, int second, int us)
 
 cdef extern from "numpy/ndarrayobject.h":
 
@@ -42,11 +10,11 @@ cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_datetime
 
     ctypedef enum NPY_CASTING:
-            NPY_NO_CASTING
-            NPY_EQUIV_CASTING
-            NPY_SAFE_CASTING
-            NPY_SAME_KIND_CASTING
-            NPY_UNSAFE_CASTING
+        NPY_NO_CASTING
+        NPY_EQUIV_CASTING
+        NPY_SAFE_CASTING
+        NPY_SAME_KIND_CASTING
+        NPY_UNSAFE_CASTING
 
 
 cdef extern from "numpy_helper.h":
@@ -79,9 +47,6 @@ cdef extern from "datetime/np_datetime.h":
         npy_int64 year
         npy_int32 month, day, hour, min, sec, us, ps, as
 
-    int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
-                                  pandas_datetimestruct *b)
-
     npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
                                                    pandas_datetimestruct *d) nogil
     void pandas_datetime_to_datetimestruct(npy_datetime val,
@@ -101,8 +66,6 @@ cdef extern from "datetime/np_datetime_strings.h":
                                 int *out_local, int *out_tzoffset,
                                 PANDAS_DATETIMEUNIT *out_bestunit,
                                 npy_bool *out_special)
-
-    # int parse_python_string(object obj, pandas_datetimestruct *out) except -1
 
 
 
@@ -134,17 +97,3 @@ cdef inline int _cstring_to_dts(char *val, int length,
                                      NPY_UNSAFE_CASTING,
                                      dts, out_local, out_tzoffset, &out_bestunit, &special)
     return result
-
-
-cdef inline bint check_dts_bounds(pandas_datetimestruct *dts):
-    """Returns True if an error needs to be raised"""
-    cdef:
-        bint error = False
-
-    if (dts.year <= 1677 and
-            cmp_pandas_datetimestruct(dts, &_NS_MIN_DTS) == -1):
-        error = True
-    elif (dts.year >= 2262 and
-          cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
-        error = True
-    return error
