@@ -595,7 +595,7 @@ def bland_altman_plot(m1, m2,
         the differences. If `md` is the mean of the differences, and `sd` is
         the standard deviation of those differences, then the limits of
         agreement that will be plotted will be
-                            md ± sd_limit * sd
+                      md - (sd_limit * sd), md + (sd_limit * sd)
         The default of 1.96 will produce 95% confidence intervals for the means
         of the differences.
 
