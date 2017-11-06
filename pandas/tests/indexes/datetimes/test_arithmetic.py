@@ -14,6 +14,35 @@ from pandas import (Timestamp, Timedelta, Series,
                     date_range)
 
 
+dtinat = pd.to_datetime(['now', 'NaT'])
+dtimax = pd.to_datetime(['now', Timestamp.max])
+dtimin = pd.to_datetime(['now', Timestamp.min])
+
+tspos = Timestamp('1980-01-01')
+ts_pos_variants = [tspos,
+                   tspos.to_pydatetime(),
+                   tspos.to_datetime64().astype('datetime64[ns]'),
+                   tspos.to_datetime64().astype('datetime64[D]')]
+
+tsneg = Timestamp('1950-01-01')
+ts_neg_variants = [tsneg,
+                   tsneg.to_pydatetime(),
+                   tsneg.to_datetime64().astype('datetime64[ns]'),
+                   tsneg.to_datetime64().astype('datetime64[D]')]
+
+tdpos = Timedelta('1h')
+td_pos_variants = [tdpos,
+                   tdpos.to_pytimedelta(),
+                   tdpos.to_timedelta64().astype('timedelta64[ns]'),
+                   tdpos.to_timedelta64().astype('timedelta64[h]')]
+
+tdneg = Timedelta('-1h')
+td_neg_variants = [tdneg,
+                   tdneg.to_pytimedelta(),
+                   tdneg.to_timedelta64().astype('timedelta64[ns]'),
+                   tdneg.to_timedelta64().astype('timedelta64[h]')]
+
+
 class TestDatetimeIndexArithmetic(object):
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
@@ -199,35 +228,49 @@ class TestDatetimeIndexArithmetic(object):
             tm.assert_index_equal(result, exp)
             assert result.freq == 'D'
 
-    def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
-        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
+    # ------------------------------------------------------------------
+    # GH17991 checking for overflows and NaT masking on arithmetic ops
 
-        tsneg = Timestamp('1950-01-01')
-        ts_neg_variants = [tsneg,
-                           tsneg.to_pydatetime(),
-                           tsneg.to_datetime64().astype('datetime64[ns]'),
-                           tsneg.to_datetime64().astype('datetime64[D]')]
+    def test_dti_add_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants + td_neg_variants:
+            res = dtinat + variant
+            assert res[1] is NaT
 
-        tspos = Timestamp('1980-01-01')
-        ts_pos_variants = [tspos,
-                           tspos.to_pydatetime(),
-                           tspos.to_datetime64().astype('datetime64[ns]'),
-                           tspos.to_datetime64().astype('datetime64[D]')]
+    def test_dti_sub_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants + td_neg_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
 
-        for variant in ts_neg_variants:
+    def test_dti_sub_timestamp_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in ts_pos_variants + ts_neg_variants:
+            res = dtinat - variant
+            assert res[1] is NaT
+
+    def test_dti_add_timedelta_overflow(self):
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimax + variant
+
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimin + variant
+
+    def test_dti_sub_timedelta_overflow(self):
+        for variant in td_neg_variants:
             with pytest.raises(OverflowError):
                 dtimax - variant
 
-        expected = pd.Timestamp.max.value - tspos.value
-        for variant in ts_pos_variants:
-            res = dtimax - variant
-            assert res[1].value == expected
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimin - variant
 
-        expected = pd.Timestamp.min.value - tsneg.value
+    def test_dti_sub_timestamp_overflow(self):
         for variant in ts_neg_variants:
-            res = dtimin - variant
-            assert res[1].value == expected
+            with pytest.raises(OverflowError):
+                dtimax - variant
 
         for variant in ts_pos_variants:
             with pytest.raises(OverflowError):

@@ -12,18 +12,47 @@ import pandas.core.indexes.period as period
 
 
 class TestPeriodIndexArithmetic(object):
-    def test_add_iadd(self):
+
+    # ------------------------------------------------------------------
+    # PeriodIndex __add__ PeriodIndex operations
+
+    # Note: This test also covers __radd__
+    def test_pi_add_pi_raises(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
-
         # previously performed setop union, now raises TypeError (GH14164)
         with pytest.raises(TypeError):
             rng + other
 
+    def test_pi_add_pi_raises(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+        # previously performed setop union, now raises TypeError (GH14164)
         with pytest.raises(TypeError):
             rng += other
+        # TODO: Follow-up assertion that rng was not altered in-place?
 
-        # offset
+    # Note: This test also covers __rsub__
+    def test_pi_sub_pi_raises(self):
+        # previously performed setop, now raises TypeError (GH14164)
+        # TODO needs to wait on #13077 for decision on result type
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+        with pytest.raises(TypeError):
+            rng - other
+
+    def test_pi_isub_pi_raises(self):
+        # previously performed setop, now raises TypeError (GH14164)
+        # TODO needs to wait on #13077 for decision on result type
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+        with pytest.raises(TypeError):
+            rng -= other
+        # TODO: Follow-up assertion that rng was not altered in-place?
+
+    # ------------------------------------------------------------------
+
+    def test_add_iadd(self):
         # DateOffset
         rng = pd.period_range('2014', '2024', freq='A')
         result = rng + pd.offsets.YearEnd(5)
@@ -121,19 +150,6 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(result, exp)
 
     def test_sub_isub(self):
-
-        # previously performed setop, now raises TypeError (GH14164)
-        # TODO needs to wait on #13077 for decision on result type
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        with pytest.raises(TypeError):
-            rng - other
-
-        with pytest.raises(TypeError):
-            rng -= other
-
-        # offset
         # DateOffset
         rng = pd.period_range('2014', '2024', freq='A')
         result = rng - pd.offsets.YearEnd(5)
