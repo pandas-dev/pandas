@@ -38,14 +38,7 @@ from cpython.datetime cimport (PyDelta_Check, PyTZInfo_Check,
 # import datetime C API
 PyDateTime_IMPORT
 # this is our datetime.pxd
-from datetime cimport (
-    pandas_datetime_to_datetimestruct,
-    days_per_month_table,
-    PANDAS_DATETIMEUNIT,
-    _string_to_dts,
-    is_leapyear,
-    dayofweek,
-    PANDAS_FR_ns)
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
 # stdlib datetime imports
 from datetime import time as datetime_time
@@ -54,11 +47,13 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
                                  pandas_datetimestruct,
+                                 PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  npy_datetime,
                                  get_datetime64_unit, get_datetime64_value,
-                                 get_timedelta64_value)
+                                 get_timedelta64_value,
+                                 days_per_month_table, is_leapyear, dayofweek)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from khash cimport (

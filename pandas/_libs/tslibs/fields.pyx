@@ -17,12 +17,8 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
-
-from datetime cimport (
-    days_per_month_table,
-    is_leapyear,
-    dayofweek)
+from np_datetime cimport (pandas_datetimestruct, dt64_to_dtstruct,
+                          days_per_month_table, is_leapyear, dayofweek)
 
 cimport util
 

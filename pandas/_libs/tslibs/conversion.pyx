@@ -20,13 +20,13 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
+                          PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                           dt64_to_dtstruct, dtstruct_to_dt64,
-                          pydatetime_to_dt64)
+                          pydatetime_to_dt64,
+                          npy_datetime,
+                          get_datetime64_unit, get_datetime64_value)
 
-from datetime cimport (pandas_datetime_to_datetimestruct,
-                       PANDAS_DATETIMEUNIT, PANDAS_FR_ns, npy_datetime,
-                       _string_to_dts,
-                       get_datetime64_unit, get_datetime64_value)
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
 cimport util
 from util cimport (is_string_object,
