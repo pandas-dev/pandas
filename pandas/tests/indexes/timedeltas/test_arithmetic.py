@@ -12,6 +12,35 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     Timestamp, Timedelta)
 
 
+tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+tdimax = pd.to_timedelta(['24658 days 11:15:00', Timedelta.max])
+tdimin = pd.to_timedelta(['24658 days 11:15:00', Timedelta.min])
+
+tspos = Timestamp('1980-01-01')
+ts_pos_variants = [tspos,
+                   tspos.to_pydatetime(),
+                   tspos.to_datetime64().astype('datetime64[ns]'),
+                   tspos.to_datetime64().astype('datetime64[D]')]
+
+tsneg = Timestamp('1950-01-01')
+ts_neg_variants = [tsneg,
+                   tsneg.to_pydatetime(),
+                   tsneg.to_datetime64().astype('datetime64[ns]'),
+                   tsneg.to_datetime64().astype('datetime64[D]')]
+
+tdpos = Timedelta('1h')
+td_pos_variants = [tdpos,
+                   tdpos.to_pytimedelta(),
+                   tdpos.to_timedelta64().astype('timedelta64[ns]'),
+                   tdpos.to_timedelta64().astype('timedelta64[h]')]
+
+tdneg = Timedelta('-1h')
+td_neg_variants = [tdneg,
+                   tdneg.to_pytimedelta(),
+                   tdneg.to_timedelta64().astype('timedelta64[ns]'),
+                   tdneg.to_timedelta64().astype('timedelta64[h]')]
+
+
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
@@ -576,25 +605,54 @@ class TestTimedeltaIndexArithmetic(object):
                   to_timedelta(['7 seconds', pd.NaT, '4 hours']))
         tm.assert_index_equal(result, exp)
 
-    def test_timedeltaindex_add_timestamp_nat_masking(self):
-        # GH17991 checking for overflow-masking with NaT
-        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+    # -------------------------------------------------------------
+    # GH17991 checking for overflows and NaT masking on arithmetic ops
 
-        tsneg = Timestamp('1950-01-01')
-        ts_neg_variants = [tsneg,
-                           tsneg.to_pydatetime(),
-                           tsneg.to_datetime64().astype('datetime64[ns]'),
-                           tsneg.to_datetime64().astype('datetime64[D]')]
+    def test_tdi_add_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants + td_neg_variants:
+            res = tdinat + variant
+            assert res[1] is NaT
 
-        tspos = Timestamp('1980-01-01')
-        ts_pos_variants = [tspos,
-                           tspos.to_pydatetime(),
-                           tspos.to_datetime64().astype('datetime64[ns]'),
-                           tspos.to_datetime64().astype('datetime64[D]')]
+    def test_tdi_sub_timedelta_nat_masking(self):
+        # Checking for NaTs and checking that we don't get an OverflowError
+        for variant in td_pos_variants + td_neg_variants:
+            res = tdinat - variant
+            assert res[1] is NaT
 
+    def test_tdi_add_timestamp_nat_masking(self):
         for variant in ts_neg_variants + ts_pos_variants:
             res = tdinat + variant
-            assert res[1] is pd.NaT
+            assert res[1] is NaT
+
+    def test_tdi_add_timestamp_overflow(self):
+        for variant in ts_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimax + variant
+
+        for variant in ts_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimin + variant
+
+    def test_tdi_add_timedelta_overflow(self):
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimax + variant
+
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimin + variant
+
+    def test_tdi_sub_timedelta_overflow(self):
+        for variant in td_neg_variants:
+            with pytest.raises(OverflowError):
+                tdimax - variant
+
+        for variant in td_pos_variants:
+            with pytest.raises(OverflowError):
+                tdimin - variant
+
+    # -------------------------------------------------------------
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')
