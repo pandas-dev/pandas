@@ -14,7 +14,6 @@ from pandas import (Timestamp, Timedelta, Series,
                     date_range)
 
 
-
 class TestDatetimeIndexArithmetic(object):
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
