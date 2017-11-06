@@ -714,6 +714,7 @@ class TestTimedeltas(object):
         assert result == expected
 
 
+# TODO: Move these to non-scalar tests
 class TestTimedeltaIndex(object):
     _multiprocess_can_split_ = True
 
