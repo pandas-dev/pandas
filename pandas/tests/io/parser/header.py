@@ -290,3 +290,30 @@ q,r,s,t,u,v
         df = self.read_csv(StringIO(data), header=[0])
         expected = DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
         tm.assert_frame_equal(df, expected)
+
+    def test_mangles_multi_index(self):
+        # See GH 18062
+        data = """A,A,A,B\none,one,one,two\n0,40,34,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.2'), ('B', 'two')]))
+        tm.assert_frame_equal(df, expected)
+
+        data = """A,A,A,B\none,one,one.1,two\n0,40,34,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.1.1'), ('B', 'two')]))
+        tm.assert_frame_equal(df, expected)
+
+        data = """A,A,A,B,B\none,one,one.1,two,two\n0,40,34,0.1,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.1.1'), ('B', 'two'),
+                                  ('B', 'two.1')]))
+        tm.assert_frame_equal(df, expected)
