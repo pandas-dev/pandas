@@ -36,7 +36,7 @@ from pandas.core.common import (_count_not_none,
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               InvalidIndexError)
+                               InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1046,7 +1046,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # operations should utilize/extend these methods when possible so that we
     # have consistent precedence and validation logic throughout the library.
 
-    _shared_docs['_is_level_reference'] = """
+    def _is_level_reference(self, key, axis=0):
+        """
         Test whether a key is a level reference for a given axis.
 
         To be considered a level reference, `key` must be a string that:
@@ -1064,13 +1065,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        is_level: bool"""
+        is_level: bool
+        """
+        axis = self._get_axis_number(axis)
 
-    @Appender(_shared_docs['_is_level_reference'])
-    def _is_level_reference(self, key, axis=0):
-        raise NotImplementedError()
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_level_reference is not implemented for {type}"
+                .format(type=type(self)))
 
-    _shared_docs['_is_label_reference'] = """
+        return (isinstance(key, compat.string_types) and
+                key in self.axes[axis].names and
+                not self._is_label_reference(key, axis=axis))
+
+    def _is_label_reference(self, key, axis=0):
+        """
         Test whether a key is a label reference for a given axis.
 
         To be considered a label reference, `key` must be a string that:
@@ -1087,13 +1096,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        is_label: bool"""
+        is_label: bool
+        """
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
-    @Appender(_shared_docs['_is_label_reference'])
-    def _is_label_reference(self, key, axis=0):
-        raise NotImplementedError()
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_label_reference is not implemented for {type}"
+                .format(type=type(self)))
 
-    _shared_docs['_is_label_or_level_reference'] = """
+        return (isinstance(key, compat.string_types) and
+                any([key in self.axes[ax] for ax in other_axes]))
+
+    def _is_label_or_level_reference(self, key, axis=0):
+        """
         Test whether a key is a label or level reference for a given axis.
 
         To be considered either a label or a level reference, `key` must be a
@@ -1110,14 +1127,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        is_label_or_level: bool"""
+        is_label_or_level: bool
+        """
 
-    @Appender(_shared_docs['_is_label_or_level_reference'])
-    def _is_label_or_level_reference(self, key, axis=0):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    _shared_docs['_check_label_or_level_ambiguity'] = """
+    def _check_label_or_level_ambiguity(self, key, axis=0):
+        """
         Check whether `key` matches both a level of the input `axis` and a
         label of the other axis and raise a ``FutureWarning`` if this is the
         case.
@@ -1144,12 +1161,47 @@ class NDFrame(PandasObject, SelectionMixin):
             future version
         """
 
-    @Appender(_shared_docs['_check_label_or_level_ambiguity'])
-    def _check_label_or_level_ambiguity(self, key, axis=0):
-        return False
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
-    _shared_docs['_get_label_or_level_values'] = """
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_check_label_or_level_ambiguity is not implemented for {type}"
+                .format(type=type(self)))
 
+        def raise_warning():
+
+            # Build an informative and grammatical warning
+            level_article, level_type = (('an', 'index')
+                                         if axis == 0 else
+                                         ('a', 'column'))
+
+            label_article, label_type = (('a', 'column')
+                                         if axis == 0 else
+                                         ('an', 'index'))
+
+            warnings.warn(
+                ("'{key}' is both {level_article} {level_type} level and "
+                 "{label_article} {label_type} label.\n"
+                 "Defaulting to {label_type}, but this will raise an "
+                 "ambiguity error in a future version"
+                 ).format(key=key,
+                          level_article=level_article,
+                          level_type=level_type,
+                          label_article=label_article,
+                          label_type=label_type), FutureWarning)
+
+        if (isinstance(key, compat.string_types) and
+                key in self.axes[axis].names and
+                any([key in self.axes[ax] for ax in other_axes])):
+
+            raise_warning()
+            return True
+        else:
+            return False
+
+    def _get_label_or_level_values(self, key, axis=0):
+        """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
 
@@ -1177,14 +1229,37 @@ class NDFrame(PandasObject, SelectionMixin):
         KeyError
             if `key` matches neither a label nor a level
         ValueError
-            if `key` matches multiple labels"""
+            if `key` matches multiple labels
+        """
 
-    @Appender(_shared_docs['_get_label_or_level_values'])
-    def _get_label_or_level_values(self, key, axis=0):
-        raise NotImplementedError()
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
-    _shared_docs['_drop_labels_or_levels'] = """
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_get_label_or_level_values is not implemented for {type}"
+                .format(type=type(self)))
 
+        if self._is_label_reference(key, axis=axis):
+            self._check_label_or_level_ambiguity(key, axis=axis)
+            values = self.xs(key, axis=other_axes[0])._values
+        elif self._is_level_reference(key, axis=axis):
+            values = self.axes[axis].get_level_values(key)._values
+        else:
+            raise KeyError(key)
+
+        # Check for duplicates
+        if values.ndim > 1:
+            label_axis_name = 'column' if axis == 0 else 'index'
+            raise ValueError(("The {label_axis_name} label '{key}' "
+                              "is not unique")
+                             .format(key=key,
+                                     label_axis_name=label_axis_name))
+
+        return values
+
+    def _drop_labels_or_levels(self, keys, axis=0):
+        """
         Drop labels and/or levels for the given `axis`.
 
         For each key in `keys`:
@@ -1207,11 +1282,63 @@ class NDFrame(PandasObject, SelectionMixin):
         Raises
         ------
         ValueError
-            if any `keys` match neither a label nor a level"""
+            if any `keys` match neither a label nor a level
+        """
 
-    @Appender(_shared_docs['_drop_labels_or_levels'])
-    def _drop_labels_or_levels(self, key, axis=0):
-        raise NotImplementedError()
+        axis = self._get_axis_number(axis)
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_drop_labels_or_levels is not implemented for {type}"
+                .format(type=type(self)))
+
+        # Validate keys
+        keys = com._maybe_make_list(keys)
+        invalid_keys = [k for k in keys if not
+        self._is_label_or_level_reference(k, axis=axis)]
+
+        if invalid_keys:
+            raise ValueError(("The following keys are not valid labels or "
+                              "levels for axis {axis}: {invalid_keys}")
+                             .format(axis=axis,
+                                     invalid_keys=invalid_keys))
+
+        # Compute levels and labels to drop
+        levels_to_drop = [k for k in keys
+                          if self._is_level_reference(k, axis=axis)]
+
+        labels_to_drop = [k for k in keys
+                          if not self._is_level_reference(k, axis=axis)]
+
+        # Perform copy upfront and then use inplace operations below.
+        # This ensures that we always perform exactly one copy.
+        # ``copy`` and/or ``inplace`` options could be added in the future.
+        dropped = self.copy()
+
+        if axis == 0:
+            # Handle dropping index levels
+            if levels_to_drop:
+                dropped.reset_index(levels_to_drop, drop=True, inplace=True)
+
+            # Handle dropping columns labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=1, inplace=True)
+        else:
+            # Handle dropping column levels
+            if levels_to_drop:
+                if isinstance(dropped.columns, MultiIndex):
+                    # Drop the specified levels from the MultiIndex
+                    dropped.columns = dropped.columns.droplevel(levels_to_drop)
+                else:
+                    # Drop the last level of Index by replacing with
+                    # a RangeIndex
+                    dropped.columns = RangeIndex(dropped.columns.size)
+
+            # Handle dropping index labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=0, inplace=True)
+
+        return dropped
 
     # ----------------------------------------------------------------------
     # Iteration

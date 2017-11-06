@@ -412,60 +412,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ same as values (but handles sparseness conversions); is a view """
         return self._data.get_values()
 
-    # -------------------------------------------------------------------------
-    # Label or Level Combination Helpers
-
-    @Appender(generic._shared_docs['_is_level_reference'])
-    def _is_level_reference(self, key, axis=0):
-        axis = self._get_axis_number(axis)
-        return (isinstance(key, compat.string_types) and
-                key in self.index.names)
-
-    @Appender(generic._shared_docs['_is_label_reference'])
-    def _is_label_reference(self, key, axis=0):
-        axis = self._get_axis_number(axis)
-        return False
-
-    @Appender(generic._shared_docs['_get_label_or_level_values'])
-    def _get_label_or_level_values(self, key, axis=0):
-        axis = self._get_axis_number(axis)
-        if self._is_level_reference(key, axis=axis):
-            values = self.index.get_level_values(key)._values
-        else:
-            raise KeyError(key)
-
-        return values
-
-    @Appender(generic._shared_docs['_drop_labels_or_levels'])
-    def _drop_labels_or_levels(self, keys, axis=0):
-        axis = self._get_axis_number(axis)
-        keys = com._maybe_make_list(keys)
-
-        # Validate keys
-        invalid_keys = [k for k in keys
-                        if not self._is_level_reference(k, axis=axis)]
-
-        if invalid_keys:
-            raise ValueError(("The following keys are not valid index levels: "
-                              "{invalid_keys}")
-                             .format(axis=axis,
-                                     invalid_keys=invalid_keys))
-
-        # Compute levels and labels to drop
-        levels_to_drop = [k for k in keys
-                          if self._is_level_reference(k, axis=axis)]
-
-        # Perform copy upfront and then use inplace operations below.
-        # This ensures that we always perform exactly one copy.
-        # ``copy`` and/or ``inplace`` options could be added in the future.
-        dropped = self.copy()
-
-        # Handle dropping index levels
-        if levels_to_drop:
-            dropped.reset_index(levels_to_drop, drop=True, inplace=True)
-
-        return dropped
-
     @property
     def asobject(self):
         """
