@@ -799,8 +799,9 @@ class TestCategorical(object):
 
     @pytest.mark.parametrize(
         "dtype",
-        ["int_", "uint", "float_",
-         "unicode_", "datetime64[h]", "timedelta64[h]"]
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
+         pytest.param("datetime64[D]",
+                      marks=pytest.mark.xfail(reason="issue7996"))]
     )
     @pytest.mark.parametrize("is_ordered", [True, False])
     def test_drop_duplicates_non_bool(self, dtype, is_ordered):
