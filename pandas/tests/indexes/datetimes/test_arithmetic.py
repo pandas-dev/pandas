@@ -57,7 +57,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     @pytest.mark.parametrize('tz', tz)
-    def test_dti_sub_int(self):
+    def test_dti_sub_int(self, tz):
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         result = rng - 1
@@ -88,7 +88,7 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('delta', two_hour_variants)
     @pytest.mark.parametrize('tz', tz)
-    def test_dti_iadd_timedeltalike(self, tz):
+    def test_dti_iadd_timedeltalike(self, tz, delta):
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
@@ -97,7 +97,7 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('delta', two_hour_variants)
     @pytest.mark.parametrize('tz', tz)
-    def test_dti_sub_timedeltalike(self, tz):
+    def test_dti_sub_timedeltalike(self, tz, delta):
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
@@ -106,7 +106,7 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('delta', two_hour_variants)
     @pytest.mark.parametrize('tz', tz)
-    def test_dti_isub_timedeltalike(self, tz):
+    def test_dti_isub_timedeltalike(self, tz, delta):
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
