@@ -656,3 +656,21 @@ date,time,prn,rxstatus
                          [621, ' ']]
         expected = DataFrame(expected_data, columns=['case', 'opdate'])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data,expected", [
+        ("a\n135217135789158401\n1352171357E+5",
+         DataFrame({"a": [135217135789158401,
+                          135217135700000]}, dtype="float64")),
+        ("a\n99999999999\n123456789012345\n1234E+0",
+         DataFrame({"a": [99999999999,
+                          123456789012345,
+                          1234]}, dtype="float64"))
+    ])
+    @pytest.mark.parametrize("parse_dates", [True, False])
+    def test_parse_date_float(self, data, expected, parse_dates):
+        # see gh-2697
+        #
+        # Date parsing should fail, so we leave the data untouched
+        # (i.e. float precision should remain unchanged).
+        result = self.read_csv(StringIO(data), parse_dates=parse_dates)
+        tm.assert_frame_equal(result, expected)
