@@ -1,15 +1,19 @@
 import pytest
 
+import pytz
 import numpy as np
 from datetime import date, timedelta, time
 
 import dateutil
 import pandas as pd
 import pandas.util.testing as tm
+from pandas._libs import period as libperiod
 from pandas.compat import lrange
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (DatetimeIndex, Index, date_range, DataFrame,
                     Timestamp, datetime, offsets)
+from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
+                                        RESO_MS, RESO_SEC)
 
 from pandas.util.testing import assert_almost_equal
 
@@ -664,3 +668,126 @@ class TestDatetimeIndex(object):
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
+
+
+class TestDatetimeIndexVectorizedTimestamp(object):
+    def test_timestamp_date_out_of_range(self):
+        # see gh-1475
+        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
+        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+                  'days_in_month', 'is_month_start', 'is_month_end',
+                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                  'is_year_end', 'weekday_name']
+        for f in fields:
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
+            assert result == expected
+
+        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
+        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
+
+    def test_round(self):
+        dti = date_range('20130101 09:10:11', periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5)
+        tm.assert_index_equal(result, expected)
+
+        dti = date_range('20130101 09:10:11',
+                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
+
+    def test_tz_localize_ambiguous(self):
+        ts = Timestamp('2014-11-02 01:00')
+        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
+        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
+
+        rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
+        assert rng[1] == ts_dst
+        assert rng[2] == ts_no_dst
+        pytest.raises(ValueError, ts.tz_localize, 'US/Eastern',
+                      ambiguous='infer')
+
+    def test_resolution(self):
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
+                                   'S', 'L', 'U'],
+                                  [RESO_DAY, RESO_DAY,
+                                   RESO_DAY, RESO_DAY,
+                                   RESO_HR, RESO_MIN,
+                                   RESO_SEC, RESO_MS,
+                                   RESO_US]):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern',
+                       'dateutil/US/Eastern']:
+                idx = date_range(start='2013-04-01', periods=30, freq=freq,
+                                 tz=tz)
+                result = libperiod.resolution(idx.asi8, idx.tz)
+                assert result == expected
+
+
+class TestTimestampEquivDateRange(object):
+    # Older tests in TestTimeSeries constructed their `stamp` objects
+    # using `date_range` instead of the `Timestamp` constructor.
+    # TestTimestampEquivDateRange checks that these are equivalent in the
+    # pertinent cases.
+
+    def test_date_range_timestamp_equiv(self):
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_dateutil(self):
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_pytz(self):
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+
+        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_from_datetime_instance(self):
+        datetime_instance = datetime(2014, 3, 4)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
+
+        ts = Timestamp(datetime_instance, freq='D')
+        assert ts == timestamp_instance
+
+    def test_date_range_timestamp_equiv_preserve_frequency(self):
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        ts = Timestamp('2014-03-05', freq='D')
+
+        assert timestamp_instance == ts

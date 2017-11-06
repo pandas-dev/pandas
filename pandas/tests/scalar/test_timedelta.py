@@ -7,8 +7,7 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
-from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, compat)
+from pandas import Timedelta, to_timedelta, compat
 from pandas._libs.tslib import iNaT, NaT
 
 
@@ -419,38 +418,6 @@ class TestTimedeltas(object):
         assert to_timedelta('nat', box=False).astype('int64') == iNaT
         assert to_timedelta('nan', box=False).astype('int64') == iNaT
 
-        def testit(unit, transform):
-
-            # array
-            result = to_timedelta(np.arange(5), unit=unit)
-            expected = TimedeltaIndex([np.timedelta64(i, transform(unit))
-                                       for i in np.arange(5).tolist()])
-            tm.assert_index_equal(result, expected)
-
-            # scalar
-            result = to_timedelta(2, unit=unit)
-            expected = Timedelta(np.timedelta64(2, transform(unit)).astype(
-                'timedelta64[ns]'))
-            assert result == expected
-
-        # validate all units
-        # GH 6855
-        for unit in ['Y', 'M', 'W', 'D', 'y', 'w', 'd']:
-            testit(unit, lambda x: x.upper())
-        for unit in ['days', 'day', 'Day', 'Days']:
-            testit(unit, lambda x: 'D')
-        for unit in ['h', 'm', 's', 'ms', 'us', 'ns', 'H', 'S', 'MS', 'US',
-                     'NS']:
-            testit(unit, lambda x: x.lower())
-
-        # offsets
-
-        # m
-        testit('T', lambda x: 'm')
-
-        # ms
-        testit('L', lambda x: 'ms')
-
     def test_numeric_conversions(self):
         assert ct(0) == np.timedelta64(0, 'ns')
         assert ct(10) == np.timedelta64(10, 'ns')
@@ -501,66 +468,6 @@ class TestTimedeltas(object):
         # invalid
         for freq in ['Y', 'M', 'foobar']:
             pytest.raises(ValueError, lambda: t1.round(freq))
-
-        t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
-        t2 = -1 * t1
-        t1a = timedelta_range('1 days', periods=3, freq='1 min 2 s')
-        t1c = pd.TimedeltaIndex([1, 1, 1], unit='D')
-
-        # note that negative times round DOWN! so don't give whole numbers
-        for (freq, s1, s2) in [('N', t1, t2),
-                               ('U', t1, t2),
-                               ('L', t1a,
-                                TimedeltaIndex(['-1 days +00:00:00',
-                                                '-2 days +23:58:58',
-                                                '-2 days +23:57:56'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('S', t1a,
-                                TimedeltaIndex(['-1 days +00:00:00',
-                                                '-2 days +23:58:58',
-                                                '-2 days +23:57:56'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('12T', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('H', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
-                                ),
-                               ('d', t1c,
-                                pd.TimedeltaIndex([-1, -1, -1], unit='D')
-                                )]:
-
-            r1 = t1.round(freq)
-            tm.assert_index_equal(r1, s1)
-            r2 = t2.round(freq)
-        tm.assert_index_equal(r2, s2)
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
-
-    def test_contains(self):
-        # Checking for any NaT-like objects
-        # GH 13603
-        td = to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert not (v in td)
-
-        td = to_timedelta([pd.NaT])
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert (v in td)
 
     def test_identity(self):
 
@@ -655,9 +562,6 @@ class TestTimedeltas(object):
         d = {td: 2}
         assert d[v] == 2
 
-        tds = timedelta_range('1 second', periods=20)
-        assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
-
         # python timedeltas drop ns resolution
         ns_td = Timedelta(1, 'ns')
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
@@ -746,77 +650,3 @@ class TestTimedeltas(object):
 
             assert not l == r
             assert l != r
-
-
-class TestSeriesTimedeltas(object):
-    def test_apply_to_timedelta(self):
-        timedelta_NaT = pd.to_timedelta('NaT')
-
-        list_of_valid_strings = ['00:00:01', '00:00:02']
-        a = pd.to_timedelta(list_of_valid_strings)
-        b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-        list_of_strings = ['00:00:01', np.nan, pd.NaT, timedelta_NaT]
-
-        # TODO: unused?
-        a = pd.to_timedelta(list_of_strings)  # noqa
-        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-    def test_components(self):
-        rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')
-        rng.components
-
-        # with nat
-        s = Series(rng)
-        s[1] = np.nan
-
-        result = s.dt.components
-        assert not result.iloc[0].isna().all()
-        assert result.iloc[1].isna().all()
-
-    def test_timedelta_arithmetic(self):
-        data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
-        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
-        for delta in deltas:
-            result_method = data.add(delta)
-            result_operator = data + delta
-            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-
-            result_method = data.sub(delta)
-            result_operator = data - delta
-            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-            # GH 9396
-            result_method = data.div(delta)
-            result_operator = data / delta
-            expected = pd.Series([np.nan, 32.], dtype='float64')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-
-    def test_overflow(self):
-        # GH 9442
-        s = Series(pd.date_range('20130101', periods=100000, freq='H'))
-        s[0] += pd.Timedelta('1s 1ms')
-
-        # mean
-        result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
-                                 ).sum())
-
-        # the computation is converted to float so
-        # might be some loss of precision
-        assert np.allclose(result.value / 1000, expected.value / 1000)
-
-        # sum
-        pytest.raises(ValueError, lambda: (s - s.min()).sum())
-        s1 = s[0:10000]
-        pytest.raises(ValueError, lambda: (s1 - s1.min()).sum())
-        s2 = s[0:1000]
-        result = (s2 - s2.min()).sum()
