@@ -92,7 +92,6 @@ class TestTimedeltaIndexArithmetic(object):
             tm.assert_index_equal(result, exp)
             assert result.freq is None
 
-
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and integer
 
