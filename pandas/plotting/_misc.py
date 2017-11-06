@@ -571,7 +571,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
         ax.legend()
     ax.grid()
     return ax
-  
+
 
 def bland_altman_plot(m1, m2,
                       sd_limit=1.96,
