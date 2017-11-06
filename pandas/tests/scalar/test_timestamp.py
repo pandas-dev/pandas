@@ -1106,8 +1106,8 @@ class TestTimestamp(object):
 
         if PY3:
             # should agree with datetime.timestamp method
-            dt = ts.to_pydatetime()
-            assert dt.timestamp() == ts.timestamp()
+            dt = uts.to_pydatetime()
+            assert dt.timestamp() == uts.timestamp()
 
 
 class TestTimestampNsOperations(object):
