@@ -565,6 +565,10 @@ standard database join operations between DataFrame objects:
 
   .. versionadded:: 0.21.0
 
+.. note::
+
+   Support for specifying index levels as the ``on``, ``left_on``, and
+   ``right_on`` parameters was added in version 0.22.0.
 
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
 and ``right`` is a subclass of DataFrame, the return type will still be
