@@ -31,7 +31,7 @@ from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, period
+from pandas._libs import tslib, period, index as libindex
 from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
@@ -192,6 +192,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     freq = None
 
+    _engine_type = libindex.PeriodEngine
+
     __eq__ = _period_index_cmp('__eq__')
     __ne__ = _period_index_cmp('__ne__', nat_result=True)
     __lt__ = _period_index_cmp('__lt__')
@@ -274,6 +276,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
         return cls._from_ordinals(data, name=name, freq=freq)
+
+    @cache_readonly
+    def _engine(self):
+        return self._engine_type(lambda: self, len(self))
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):

@@ -1106,6 +1106,24 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
+def _is_potential_multi_index(columns):
+    """
+    Check whether or not the `columns` parameter
+    could be converted into a MultiIndex.
+
+    Parameters
+    ----------
+    columns : array-like
+        Object which may or may not be convertible into a MultiIndex
+
+    Returns
+    -------
+    boolean : Whether or not columns could become a MultiIndex
+    """
+    return (len(columns) and not isinstance(columns, MultiIndex) and
+            all([isinstance(c, tuple) for c in columns]))
+
+
 def _evaluate_usecols(usecols, names):
     """
     Check whether or not the 'usecols' parameter
@@ -1374,6 +1392,7 @@ class ParserBase(object):
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts = defaultdict(int)
+            is_potential_mi = _is_potential_multi_index(names)
 
             for i, col in enumerate(names):
                 cur_count = counts[col]
@@ -1381,7 +1400,10 @@ class ParserBase(object):
                 while cur_count > 0:
                     counts[col] = cur_count + 1
 
-                    col = '%s.%d' % (col, cur_count)
+                    if is_potential_mi:
+                        col = col[:-1] + ('%s.%d' % (col[-1], cur_count),)
+                    else:
+                        col = '%s.%d' % (col, cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1391,9 +1413,7 @@ class ParserBase(object):
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if (not self.tupleize_cols and len(columns) and
-                not isinstance(columns, MultiIndex) and
-                all([isinstance(c, tuple) for c in columns])):
+        if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
@@ -1431,7 +1451,6 @@ class ParserBase(object):
             if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
-        index = None
 
         to_remove = []
         index = []
@@ -1462,8 +1481,6 @@ class ParserBase(object):
                 if i == icol:
                     return c
 
-        index = None
-
         to_remove = []
         index = []
         for idx in self.index_col:
@@ -1484,7 +1501,7 @@ class ParserBase(object):
 
         for i, arr in enumerate(index):
 
-            if (try_parse_dates and self._should_parse_dates(i)):
+            if try_parse_dates and self._should_parse_dates(i):
                 arr = self._date_conv(arr)
 
             col_na_values = self.na_values
@@ -1671,7 +1688,9 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if 'utf-16' in (kwds.get('encoding') or ''):
+        if (kwds.get('compression') is None
+           and 'utf-16' in (kwds.get('encoding') or '')):
+            # if source is utf-16 plain text, convert source to utf-8
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
                 self.handles.append(src)
