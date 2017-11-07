@@ -108,7 +108,7 @@ time pip install pytest-xdist moto
 
 if [ "$LINT" ]; then
    conda install flake8
-   pip install cpplint
+   pip install cpplint flake8-import-order
 fi
 
 if [ "$COVERAGE" ]; then
