@@ -792,8 +792,12 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
         # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
-        #         if B is less than 1e-14,
-        #         we treat it as uniform distribution.
+        #
+        #         in core/nanops.py nanskew/nankurt call the function
+        #         _zero_out_fperr(m2) to fix floating error.
+        #         if the variance is less than 1e-14, it could be
+        #         treat as zero, here we follow the original
+        #         skew/kurt behaviour to check B <= 1e-14
         if B <= 1e-14 or nobs < 3:
             result = NaN
         else:
@@ -924,8 +928,12 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
         # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
-        #         if B is less than 1e-14,
-        #         we treat it as uniform distribution.
+        #
+        #         in core/nanops.py nanskew/nankurt call the function
+        #         _zero_out_fperr(m2) to fix floating error.
+        #         if the variance is less than 1e-14, it could be
+        #         treat as zero, here we follow the original
+        #         skew/kurt behaviour to check B <= 1e-14
         if B <= 1e-14 or nobs < 4:
             result = NaN
         else:
