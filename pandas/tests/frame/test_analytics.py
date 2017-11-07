@@ -1822,6 +1822,24 @@ class TestDataFrameAnalytics(TestData):
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
         tm.assert_frame_equal(round(df), expected_rounded)
 
+    def test_pct_change(self):
+        # GH 11150
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(
+            0, 40, 10)]).astype(np.float64)
+        pnl.iat[1, 0] = np.nan
+        pnl.iat[1, 1] = np.nan
+        pnl.iat[2, 3] = 60
+
+        mask = pnl.isnull()
+
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
+                axis=axis) - 1
+            expected[mask] = np.nan
+            result = pnl.pct_change(axis=axis, fill_method='pad')
+
+            tm.assert_frame_equal(result, expected)
+
     # Clip
 
     def test_clip(self):

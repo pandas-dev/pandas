@@ -11,12 +11,15 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex,
-                    to_datetime, date_range)
+                    Timestamp, DatetimeIndex, MultiIndex,
+                    to_datetime, date_range, period_range)
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import (assert_series_equal,
+                                 assert_frame_equal,
+                                 assert_index_equal,
+                                 assert_raises_regex)
 
 import pandas.util.testing as tm
 from pandas.compat import product
@@ -601,3 +604,76 @@ class TestDataFrameTimeSeriesMethods(TestData):
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
         pytest.raises(ValueError, df.to_period, axis=2)
+
+    @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
+    def test_tz_convert_and_localize(self, fn):
+        l0 = date_range('20140701', periods=5, freq='D')
+
+        # TODO: l1 should be a PeriodIndex for testing
+        #       after GH2106 is addressed
+        with pytest.raises(NotImplementedError):
+            period_range('20140701', periods=1).tz_convert('UTC')
+        with pytest.raises(NotImplementedError):
+            period_range('20140701', periods=1).tz_localize('UTC')
+        # l1 = period_range('20140701', periods=5, freq='D')
+        l1 = date_range('20140701', periods=5, freq='D')
+
+        int_idx = Index(range(5))
+
+        if fn == 'tz_convert':
+            l0 = l0.tz_localize('UTC')
+            l1 = l1.tz_localize('UTC')
+
+        for idx in [l0, l1]:
+
+            l0_expected = getattr(idx, fn)('US/Pacific')
+            l1_expected = getattr(idx, fn)('US/Pacific')
+
+            df1 = DataFrame(np.ones(5), index=l0)
+            df1 = getattr(df1, fn)('US/Pacific')
+            assert_index_equal(df1.index, l0_expected)
+
+            # MultiIndex
+            # GH7846
+            df2 = DataFrame(np.ones(5), MultiIndex.from_arrays([l0, l1]))
+
+            df3 = getattr(df2, fn)('US/Pacific', level=0)
+            assert not df3.index.levels[0].equals(l0)
+            assert_index_equal(df3.index.levels[0], l0_expected)
+            assert_index_equal(df3.index.levels[1], l1)
+            assert not df3.index.levels[1].equals(l1_expected)
+
+            df3 = getattr(df2, fn)('US/Pacific', level=1)
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+            df4 = DataFrame(np.ones(5),
+                            MultiIndex.from_arrays([int_idx, l0]))
+
+            # TODO: untested
+            df5 = getattr(df4, fn)('US/Pacific', level=1)  # noqa
+
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+        # Bad Inputs
+
+        # Not DatetimeIndex / PeriodIndex
+        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+            df = DataFrame(index=int_idx)
+            df = getattr(df, fn)('US/Pacific')
+
+        # Not DatetimeIndex / PeriodIndex
+        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+            df = DataFrame(np.ones(5),
+                           MultiIndex.from_arrays([int_idx, l0]))
+            df = getattr(df, fn)('US/Pacific', level=0)
+
+        # Invalid level
+        with assert_raises_regex(ValueError, 'not valid'):
+            df = DataFrame(index=l0)
+            df = getattr(df, fn)('US/Pacific', level=1)
