@@ -30,8 +30,6 @@ from pandas.core.sorting import (get_group_index, get_compressed_ids,
 import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
-from pandas.core.frame import _shared_docs
-from pandas.util._decorators import Appender
 from pandas.core.index import Index, MultiIndex, _get_na_value
 from pandas.core.reshape.melt import melt
 

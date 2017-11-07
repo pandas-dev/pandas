@@ -1,38 +1,16 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip
-from pandas import compat
-from functools import partial
-import itertools
-import re
-
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    _ensure_platform_int,
-    is_list_like, is_bool_dtype,
-    needs_i8_conversion, is_sparse)
-from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.missing import notna
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.common import is_list_like
+from pandas import compat
 
-from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-
-from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.core.sparse.array import SparseArray
-from pandas._libs.sparse import IntIndex
-
-from pandas.core.categorical import Categorical, _factorize_from_iterable
-from pandas.core.sorting import (get_group_index, get_compressed_ids,
-                                 compress_group_index, decons_obs_group_ids)
-
-import pandas.core.algorithms as algos
-from pandas._libs import algos as _algos, reshape as _reshape
+from pandas.core.index import MultiIndex
 
 from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
-from pandas.core.index import Index, MultiIndex, _get_na_value
+
 
 @Appender(_shared_docs['melt'] %
           dict(caller='pd.melt(df, ',
