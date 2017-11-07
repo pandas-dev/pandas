@@ -346,6 +346,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         Py_ssize_t delta, posn
         datetime dt
 
+    assert obj.tzinfo is None
+
     if is_utc(tz):
         pass
     elif obj.value == NPY_NAT:
