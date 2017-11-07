@@ -1439,9 +1439,8 @@ def assert_panelnd_equal(left, right,
         assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     if by_blocks:
-        with warnings.catch_warnings(record=True):
-            rblocks = right.blocks
-            lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
