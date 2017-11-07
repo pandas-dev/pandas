@@ -23,10 +23,11 @@ Merging on a combination of columns and index levels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
-parameters may now refer to either column names or index level names (:issue:`14355`).
+parameters may now refer to either column names or index level names.
 This enables merging ``DataFrame`` instances on a combination of index levels
 and columns without resetting indexes. See the :ref:`Merge on columns and
 levels <merging.merge_on_columns_and_levels>` documentation section.
+(:issue:`14355`)
 
 .. ipython:: python
 

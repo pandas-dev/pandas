@@ -1130,6 +1130,11 @@ class NDFrame(PandasObject, SelectionMixin):
         is_label_or_level: bool
         """
 
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_label_or_level_reference is not implemented for {type}"
+                .format(type=type(self)))
+
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
