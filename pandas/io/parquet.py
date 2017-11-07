@@ -190,6 +190,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
         File path
     columns: list, default=None
         If not None, only these columns will be read from the file.
+        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet reader library to use. If 'auto', then the option
         'io.parquet.engine' is used. If 'auto', then the first
