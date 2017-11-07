@@ -178,7 +178,7 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     return impl.write(df, path, compression=compression)
 
 
-def read_parquet(path, engine='auto', columns=None,  **kwargs):
+def read_parquet(path, engine='auto', columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
