@@ -42,6 +42,18 @@ if [ "$LINT" ]; then
     done
     echo "Linting *.pxi.in DONE"
 
+    echo "Linting *.pxd"
+    for path in 'src'
+    do
+        echo "linting -> pandas/$path"
+        flake8 pandas/$path --filename=*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+        if [ $? -ne "0" ]; then
+            RET=1
+        fi
+
+    done
+    echo "Linting *.pxd DONE"
+
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
