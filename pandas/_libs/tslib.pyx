@@ -99,7 +99,6 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 get_datetime64_nanos)
 from tslibs.conversion import (tz_localize_to_utc,
                                tz_convert_single, date_normalize)
-from tslibs.conversion import pydt_to_i8, tz_convert  # noqa
 
 from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat

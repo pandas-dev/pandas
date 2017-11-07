@@ -15,6 +15,8 @@ cdef class _TSObject:
         object tzinfo
 
 
+cpdef pydt_to_i8(object pydt)
+
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst)
 
