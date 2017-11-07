@@ -65,7 +65,7 @@ class TestPanel4D(Generic):
 
 
 # run all the tests, but wrap each in a warning catcher
-for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
+for t in ['test_rename', 'test_get_numeric_data',
           'test_get_default', 'test_nonzero',
           'test_downcast', 'test_constructor_compound_dtypes',
           'test_head_tail',
@@ -79,16 +79,18 @@ for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
 
     def f():
         def tester(self):
+            f = getattr(super(TestPanel, self), t)
             with catch_warnings(record=True):
-                return getattr(super(TestPanel, self), t)()
+                f()
         return tester
 
     setattr(TestPanel, t, f())
 
     def f():
         def tester(self):
+            f = getattr(super(TestPanel4D, self), t)
             with catch_warnings(record=True):
-                return getattr(super(TestPanel4D, self), t)()
+                f()
         return tester
 
     setattr(TestPanel4D, t, f())
