@@ -283,7 +283,7 @@ class TestBasic(Base):
         self.check_round_trip(df, engine, compression=compression)
 
     def test_read_columns(self, engine, fp):
-        #GH18154
+        # GH18154
         df = pd.DataFrame({'string': list('abc'),
                            'int': list(range(1, 4))})
 
