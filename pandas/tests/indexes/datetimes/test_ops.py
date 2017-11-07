@@ -44,27 +44,6 @@ class TestDatetimeIndexVectorizedTimestamp(object):
         assert idx.freq == Timestamp(idx[-1], idx.freq).freq
         assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
 
-    def test_round(self):
-        # tz-naive
-        dti = date_range('20130101 09:10:11', periods=5)
-        result = dti.round('D')
-        expected = date_range('20130101', periods=5)
-        tm.assert_index_equal(result, expected)
-
-        # tz-aware
-        dti = date_range('20130101 09:10:11',
-                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
-        result = dti.round('D')
-        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
-        tm.assert_index_equal(result, expected)
-
-        result = dti.round('s')
-        tm.assert_index_equal(result, dti)
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: dti.round(freq))
-
     def test_tz_localize_ambiguous(self):
         ts = Timestamp('2014-11-02 01:00')
         ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
@@ -214,6 +193,28 @@ class TestDatetimeIndexOps(Ops):
                 ValueError, errmsg, np.argmin, dr, out=0)
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
+
+    # TODO: De-dup with version below
+    def test_round2(self):
+        # tz-naive
+        dti = date_range('20130101 09:10:11', periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5)
+        tm.assert_index_equal(result, expected)
+
+        # tz-aware
+        dti = date_range('20130101 09:10:11',
+                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
 
     def test_round(self):
         for tz in self.tz:
