@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from cython cimport Py_ssize_t
 

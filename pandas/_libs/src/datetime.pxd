@@ -5,7 +5,6 @@ from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
 
 
 cdef extern from "numpy/ndarrayobject.h":
-
     ctypedef int64_t npy_timedelta
     ctypedef int64_t npy_datetime
 
@@ -16,13 +15,11 @@ cdef extern from "numpy/ndarrayobject.h":
         NPY_SAME_KIND_CASTING
         NPY_UNSAFE_CASTING
 
-
 cdef extern from "numpy_helper.h":
     npy_datetime get_datetime64_value(object o)
     npy_timedelta get_timedelta64_value(object o)
 
 cdef extern from "numpy/npy_common.h":
-
     ctypedef unsigned char npy_bool
 
 cdef extern from "datetime/np_datetime.h":
@@ -53,7 +50,6 @@ cdef extern from "datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
     int days_per_month_table[2][12]
-    pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
     int dayofweek(int y, int m, int d) nogil
     int is_leapyear(int64_t year) nogil
@@ -66,8 +62,6 @@ cdef extern from "datetime/np_datetime_strings.h":
                                 int *out_local, int *out_tzoffset,
                                 PANDAS_DATETIMEUNIT *out_bestunit,
                                 npy_bool *out_special)
-
-
 
 
 cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts,
