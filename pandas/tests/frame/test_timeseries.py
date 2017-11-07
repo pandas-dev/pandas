@@ -604,18 +604,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
 
 class TestDataFrameTimestamps(object):
-    def test_map_box_timestamps(self):
-        # GH#2689, GH#2627
-        s = Series(date_range('1/1/2000', periods=10))
-
-        def f(x):
-            return (x.hour, x.day, x.month)
-
-        # it works!
-        s.map(f)
-        s.apply(f)
-        DataFrame(s).applymap(f)
-
     def test_frame_setitem_timestamp(self):
         # GH#2155
         columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
@@ -625,11 +613,3 @@ class TestDataFrameTimestamps(object):
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
         data[ts] = np.nan  # works
-
-    def test_compare_invalid(self):
-        # GH 8058
-        df = DataFrame(np.random.randn(5, 2))
-        a = df[0]
-        b = Series(np.random.randn(5))
-        b.name = Timestamp('2000-01-01')
-        tm.assert_series_equal(a / b, 1 / (b / a))

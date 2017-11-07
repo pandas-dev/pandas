@@ -1,13 +1,26 @@
 import pytest
+import numpy as np
 
 from datetime import timedelta
 
+import pandas as pd
 import pandas.util.testing as tm
 from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
 
 
 class TestTimedeltaIndex(object):
     _multiprocess_can_split_ = True
+
+    def test_contains(self):
+        # Checking for any NaT-like objects
+        # GH 13603
+        td = pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            assert not (v in td)
+
+        td = pd.to_timedelta([pd.NaT])
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            assert (v in td)
 
     def test_insert(self):
 

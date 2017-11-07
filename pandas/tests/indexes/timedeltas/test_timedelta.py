@@ -511,16 +511,6 @@ class TestTimeSeries(object):
 
 
 class TestTimedeltaIndexVectorizedTimedelta(object):
-    def test_contains(self):
-        # Checking for any NaT-like objects
-        # GH 13603
-        td = pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert not (v in td)
-
-        td = pd.to_timedelta([pd.NaT])
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert (v in td)
 
     def test_nat_converters(self):
 

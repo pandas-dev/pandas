@@ -34,6 +34,12 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries(TestData):
+    def test_compare_invalid(self):
+        # GH 8058
+        a = Series(np.random.randn(5))
+        b = Series(np.random.randn(5))
+        b.name = Timestamp('2000-01-01')
+        tm.assert_series_equal(a / b, 1 / (b / a))
 
     def test_shift(self):
         shifted = self.ts.shift(1)

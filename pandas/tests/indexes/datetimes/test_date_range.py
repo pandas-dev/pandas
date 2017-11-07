@@ -15,6 +15,7 @@ from pandas import compat
 from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
                                     MonthEnd, prefix_mapping)
+from pandas._libs.tslibs.timezones import maybe_get_tz, dateutil_gettz
 
 from pandas.tests.series.common import TestData
 
@@ -391,7 +392,7 @@ class TestBusinessDateRange(object):
         # see gh-2906
 
         # Use maybe_get_tz to fix filename in tz under dateutil.
-        from pandas._libs.tslibs.timezones import maybe_get_tz
+        
         tz = lambda x: maybe_get_tz('dateutil/' + x)
 
         start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
@@ -664,12 +665,13 @@ class TestTimestampEquivDateRange(object):
 
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
-        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+        
 
-        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+        rng = date_range('20090415', '20090519',
+                         tz=dateutil_gettz('US/Eastern'))
         stamp = rng[0]
 
-        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
+        ts = Timestamp('20090415', tz=dateutil_gettz('US/Eastern'), freq='D')
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_from_datetime_instance(self):

@@ -20,6 +20,15 @@ from pandas.tests.frame.common import TestData
 
 
 class TestDataFrameApply(TestData):
+    def test_map_box_timestamps(self):
+        # GH#2689, GH#2627
+        s = Series(date_range('1/1/2000', periods=10))
+
+        def f(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        DataFrame(s).applymap(f)
 
     def test_apply(self):
         with np.errstate(all='ignore'):
