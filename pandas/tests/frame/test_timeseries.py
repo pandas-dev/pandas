@@ -604,7 +604,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
 
 class TestDataFrameTimestamps(object):
-    def test_series_map_box_timestamps(self):
+    def test_map_box_timestamps(self):
         # GH#2689, GH#2627
         s = Series(date_range('1/1/2000', periods=10))
 
@@ -625,13 +625,6 @@ class TestDataFrameTimestamps(object):
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
         data[ts] = np.nan  # works
-
-    def test_to_html_timestamp(self):
-        rng = date_range('2000-01-01', periods=10)
-        df = DataFrame(np.random.randn(10, 4), index=rng)
-
-        result = df.to_html()
-        assert '2000-01-01' in result
 
     def test_compare_invalid(self):
         # GH 8058
