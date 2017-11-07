@@ -282,6 +282,17 @@ class TestBasic(Base):
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine, compression=compression)
 
+    def test_read_columns(self, engine, fp):
+        df = pd.DataFrame({'string': list('abc'),
+                           'int': list(range(1, 4))})
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, engine, compression=None)
+            result = read_parquet(path, engine, columns=["string"])
+
+            expected = pd.DataFrame({'string': list('abc')})
+            tm.assert_frame_equal(result, expected)
+
 
 class TestParquetPyArrow(Base):
 
