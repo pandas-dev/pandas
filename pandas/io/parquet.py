@@ -188,7 +188,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     ----------
     path : string
         File path
-    columns: list
+    columns: list, default=None
         If not None, only these columns will be read from the file.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet reader library to use. If 'auto', then the option
