@@ -365,6 +365,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         # static/pytz/dateutil specific code
         if is_fixed_offset(tz):
             # statictzinfo
+            assert len(deltas) == 1, len(deltas)
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
         elif treat_tz_as_pytz(tz):
             tz = tz._tzinfos[tz._transition_info[pos]]
@@ -876,7 +877,7 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def dates_normalized(ndarray[int64_t] stamps, tz=None):
+def are_dates_normalized(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans, deltas

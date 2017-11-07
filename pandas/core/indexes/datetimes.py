@@ -56,7 +56,7 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
 from pandas._libs.tslibs import timezones
-
+from pandas._libs.tslibs.conversion import are_dates_normalized
 
 # -------- some conversion wrapper functions
 
@@ -1683,7 +1683,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return libts.dates_normalized(self.asi8, self.tz)
+        return are_dates_normalized(self.asi8, self.tz)
 
     @cache_readonly
     def _resolution(self):
