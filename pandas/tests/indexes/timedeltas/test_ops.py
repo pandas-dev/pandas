@@ -358,38 +358,6 @@ dtype: timedelta64[ns]"""
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq is None
 
-    def test_getitem(self):
-        idx1 = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
-
-        for idx in [idx1]:
-            result = idx[0]
-            assert result == pd.Timedelta('1 day')
-
-            result = idx[0:5]
-            expected = pd.timedelta_range('1 day', '5 day', freq='D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx[0:10:2]
-            expected = pd.timedelta_range('1 day', '9 day', freq='2D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx[-20:-5:3]
-            expected = pd.timedelta_range('12 day', '24 day', freq='3D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx[4::-1]
-            expected = TimedeltaIndex(['5 day', '4 day', '3 day',
-                                       '2 day', '1 day'],
-                                      freq='-1D', name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
     def test_drop_duplicates_metadata(self):
         # GH 10115
         idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -423,61 +391,6 @@ dtype: timedelta64[ns]"""
         tm.assert_index_equal(res, base[5:])
         res = Series(idx).drop_duplicates(keep=False)
         tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
-
-    def test_take(self):
-        # GH 10295
-        idx1 = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
-
-        for idx in [idx1]:
-            result = idx.take([0])
-            assert result == pd.Timedelta('1 day')
-
-            result = idx.take([-1])
-            assert result == pd.Timedelta('31 day')
-
-            result = idx.take([0, 1, 2])
-            expected = pd.timedelta_range('1 day', '3 day', freq='D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx.take([0, 2, 4])
-            expected = pd.timedelta_range('1 day', '5 day', freq='2D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx.take([7, 4, 1])
-            expected = pd.timedelta_range('8 day', '2 day', freq='-3D',
-                                          name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx.take([3, 2, 5])
-            expected = TimedeltaIndex(['4 day', '3 day', '6 day'], name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
-
-            result = idx.take([-3, 2, 5])
-            expected = TimedeltaIndex(['29 day', '3 day', '6 day'], name='idx')
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
-
-    def test_take_invalid_kwargs(self):
-        idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
-        indices = [1, 6, 5, 9, 10, 13, 15, 3]
-
-        msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
-
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
-
-        msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
 
     def test_infer_freq(self):
         # GH 11018
