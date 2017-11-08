@@ -30,6 +30,7 @@ from pandas._libs import tslib
 from pandas._libs.tslib import Timestamp, iNaT, NaT
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, get_dst_info, maybe_get_tz)
+from tslibs.timedeltas cimport delta_to_nanoseconds
 
 from tslibs.parsing import parse_time_string, NAT_SENTINEL
 from tslibs.frequencies cimport get_freq_code
@@ -716,8 +717,8 @@ cdef class _Period(object):
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
-                nanos = tslib._delta_to_nanoseconds(other)
-                offset_nanos = tslib._delta_to_nanoseconds(offset)
+                nanos = delta_to_nanoseconds(other)
+                offset_nanos = delta_to_nanoseconds(offset)
 
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
