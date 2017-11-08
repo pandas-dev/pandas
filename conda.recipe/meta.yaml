@@ -22,7 +22,7 @@ requirements:
   run:
     - python
     - numpy x.x
-    - python-dateutil
+    - python-dateutil >=2.5.0
     - pytz
 
 test:

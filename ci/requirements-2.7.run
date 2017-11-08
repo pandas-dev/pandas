@@ -1,4 +1,4 @@
-python-dateutil=2.4.1
+python-dateutil=2.5.0
 pytz=2013b
 numpy
 xlwt=0.7.5
