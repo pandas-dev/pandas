@@ -23,7 +23,7 @@ from pandas._libs.tslibs.offsets import (
     _determine_offset,
     apply_index_wraps,
     BeginMixin, EndMixin,
-    BaseOffset)
+    BaseOffset, _Tick)
 
 import functools
 import operator
@@ -231,8 +231,8 @@ class DateOffset(BaseOffset):
 
             weeks = (self.kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                i = ((i.to_period('W') + weeks).to_timestamp() +
+                     i.to_perioddelta('W'))
 
             timedelta_kwds = dict((k, v) for k, v in self.kwds.items()
                                   if k in ['days', 'hours', 'minutes',
@@ -418,8 +418,8 @@ class BusinessMixin(object):
         return self._offset
 
     def _repr_attrs(self):
-        if self.offset:
-            attrs = ['offset={offset!r}'.format(offset=self.offset)]
+        if self._offset:
+            attrs = ['offset={offset!r}'.format(offset=self._offset)]
         else:
             attrs = None
         out = ''
@@ -494,15 +494,15 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
                 off_str += str(td.microseconds) + 'us'
             return off_str
 
-        if isinstance(self.offset, timedelta):
+        if isinstance(self._offset, timedelta):
             zero = timedelta(0, 0, 0)
-            if self.offset >= zero:
-                off_str = '+' + get_str(self.offset)
+            if self._offset >= zero:
+                off_str = '+' + get_str(self._offset)
             else:
-                off_str = '-' + get_str(-self.offset)
+                off_str = '-' + get_str(-self._offset)
             return off_str
         else:
-            return '+' + repr(self.offset)
+            return '+' + repr(self._offset)
 
     @apply_wraps
     def apply(self, other):
@@ -530,12 +530,12 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
                 if result.weekday() < 5:
                     n -= k
 
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif isinstance(other, (timedelta, Tick)):
-            return BDay(self.n, offset=self.offset + other,
+            return BDay(self.n, offset=self._offset + other,
                         normalize=self.normalize)
         else:
             raise ApplyTypeError('Only know how to combine business day with '
@@ -847,12 +847,12 @@ class CustomBusinessDay(BusinessDay):
             dt_date = np_incr_dt.astype(datetime)
             result = datetime.combine(dt_date, date_in.time())
 
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif isinstance(other, (timedelta, Tick)):
-            return BDay(self.n, offset=self.offset + other,
+            return BDay(self.n, offset=self._offset + other,
                         normalize=self.normalize)
         else:
             raise ApplyTypeError('Only know how to combine trading day with '
@@ -1227,12 +1227,7 @@ class BusinessMonthBegin(MonthOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        if first_weekday == 5:
-            return dt.day == 3
-        elif first_weekday == 6:
-            return dt.day == 2
-        else:
-            return dt.day == 1
+        return dt.day == _get_firstbday(first_weekday)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
@@ -1965,8 +1960,8 @@ class YearEnd(EndMixin, YearOffset):
                             date.microsecond)
 
         def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
+            if (date.month != self.month or
+                    date.day < tslib.monthrange(date.year, date.month)[1]):
                 date = _increment(date)
             return date
 
@@ -2133,9 +2128,9 @@ class FY5253(DateOffset):
             return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
-        return self.n == 1 \
-            and self.startingMonth is not None \
-            and self.weekday is not None
+        return (self.n == 1
+                and self.startingMonth is not None
+                and self.weekday is not None)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2145,8 +2140,8 @@ class FY5253(DateOffset):
 
         if self.variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
-            return year_end == dt or \
-                self.get_year_end(dt - relativedelta(months=1)) == dt
+            return (year_end == dt or
+                    self.get_year_end(dt - relativedelta(months=1)) == dt)
         else:
             return year_end == dt
 
@@ -2209,8 +2204,8 @@ class FY5253(DateOffset):
             else:
                 assert False
 
-            result = self.get_year_end(
-                datetime(year - n, self.startingMonth, 1))
+            result = self.get_year_end(datetime(year - n,
+                                                self.startingMonth, 1))
 
             result = datetime(result.year, result.month, result.day,
                               other.hour, other.minute, other.second,
@@ -2472,8 +2467,8 @@ class Easter(DateOffset):
     @apply_wraps
     def apply(self, other):
         currentEaster = easter(other.year)
-        currentEaster = datetime(
-            currentEaster.year, currentEaster.month, currentEaster.day)
+        currentEaster = datetime(currentEaster.year,
+                                 currentEaster.month, currentEaster.day)
         currentEaster = tslib._localize_pydatetime(currentEaster, other.tzinfo)
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
@@ -2509,10 +2504,7 @@ def _tick_comp(op):
     return f
 
 
-class Tick(SingleConstructorOffset):
-    _inc = Timedelta(microseconds=1000)
-    _prefix = 'undefined'
-
+class Tick(_Tick, SingleConstructorOffset):
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
     __lt__ = _tick_comp(operator.lt)
@@ -2563,14 +2555,6 @@ class Tick(SingleConstructorOffset):
         else:
             return DateOffset.__ne__(self, other)
 
-    @property
-    def delta(self):
-        return self.n * self._inc
-
-    @property
-    def nanos(self):
-        return delta_to_nanoseconds(self.delta)
-
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, Timestamp):
@@ -2594,9 +2578,6 @@ class Tick(SingleConstructorOffset):
 
         raise ApplyTypeError('Unhandled type: {type_str}'
                              .format(type_str=type(other).__name__))
-
-    def isAnchored(self):
-        return False
 
 
 def _delta_to_tick(delta):
