@@ -2128,9 +2128,9 @@ class FY5253(DateOffset):
             return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
-        return (self.n == 1
-                and self.startingMonth is not None
-                and self.weekday is not None)
+        return (self.n == 1 and
+                self.startingMonth is not None and
+                self.weekday is not None)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2542,8 +2542,7 @@ class Tick(_Tick, SingleConstructorOffset):
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self):
-        tup = (str(self.__class__), ('n', self.n),)
-        return hash(tup)
+        return hash(self._params())
 
     def __ne__(self, other):
         if isinstance(other, compat.string_types):

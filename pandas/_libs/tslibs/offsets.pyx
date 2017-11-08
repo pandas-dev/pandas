@@ -382,7 +382,7 @@ class BaseOffset(_BaseOffset):
 
 class _Tick(object):
     _inc = Timedelta(microseconds=1000)
-    _prefix = 'undefined'
+    _prefix = None
 
     @property
     def delta(self):
