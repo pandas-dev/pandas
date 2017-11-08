@@ -39,7 +39,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added a keyword argument, `cache`, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue: `11665`)
+- 
 -
 -
 

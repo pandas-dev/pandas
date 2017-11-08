@@ -53,12 +53,10 @@ def _maybe_cache(arg, format, cache, tz, _convert_listlike):
 
 def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
     """Convert array of dates with a cache and box the result"""
-    from pandas import Series
-    from pandas.core.indexes.datetimes import DatetimeIndex
+    from pandas import Series, DatetimeIndex, Index
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            from pandas import Index
             result = Index(result)
         else:
             result = DatetimeIndex(result, tz=tz, name=name)
@@ -142,11 +140,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         .. versionadded: 0.20.0
     cache : boolean, default False
-        If False, use a cache of unique, converted dates to apply the datetime
+        If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce sigificant speed-up when parsing duplicate date
         strings, especially ones with timezone offsets.
 
-        .. versionadded: 0.21.1
+        .. versionadded: 0.22.0
     Returns
     -------
     ret : datetime if parsing succeeded.
