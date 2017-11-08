@@ -1732,14 +1732,14 @@ class TestTslib(object):
 
     def test_tslib_tz_convert(self):
         def compare_utc_to_local(tz_didx, utc_didx):
-            f = lambda x: conversion_single(x, 'UTC', tz_didx.tz)
-            result = conversion(tz_didx.asi8, 'UTC', tz_didx.tz)
+            f = lambda x: conversion.tz_convert_single(x, 'UTC', tz_didx.tz)
+            result = conversion.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
             result_single = np.vectorize(f)(tz_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
         def compare_local_to_utc(tz_didx, utc_didx):
-            f = lambda x: conversion_single(x, tz_didx.tz, 'UTC')
-            result = conversion(utc_didx.asi8, tz_didx.tz, 'UTC')
+            f = lambda x: conversion.tz_convert_single(x, tz_didx.tz, 'UTC')
+            result = conversion.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
             result_single = np.vectorize(f)(utc_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
