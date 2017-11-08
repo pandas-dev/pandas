@@ -585,8 +585,8 @@ ext_data = {
         'pxdfiles': ['_libs/src/util',
                      '_libs/src/khash',
                      '_libs/tslibs/frequencies',
-                     '_libs/tslibs/np_datetime',
-                     '_libs/tslibs/timezones']},
+                     '_libs/tslibs/timezones'],
+        'depends': tseries_depends},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
