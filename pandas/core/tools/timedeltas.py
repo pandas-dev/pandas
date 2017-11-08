@@ -5,6 +5,8 @@ timedelta support tools
 import numpy as np
 import pandas as pd
 import pandas._libs.tslib as tslib
+from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
+                                            array_to_timedelta64)
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -140,7 +142,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
 
     try:
-        result = tslib.convert_to_timedelta64(r, unit)
+        result = convert_to_timedelta64(r, unit)
     except ValueError:
         if errors == 'raise':
             raise
@@ -169,8 +171,8 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
             'timedelta64[ns]', copy=False)
     else:
         try:
-            value = tslib.array_to_timedelta64(_ensure_object(arg),
-                                               unit=unit, errors=errors)
+            value = array_to_timedelta64(_ensure_object(arg),
+                                         unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
         except ValueError:
             if errors == 'ignore':

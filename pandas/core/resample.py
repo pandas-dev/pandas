@@ -13,7 +13,7 @@ from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
+from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
 import pandas.core.common as com
 import pandas.core.algorithms as algos
@@ -1186,7 +1186,7 @@ class TimeGrouper(Grouper):
         bin_edges = binner.asi8
 
         if self.freq != 'D' and is_superperiod(self.freq, 'D'):
-            day_nanos = _delta_to_nanoseconds(timedelta(1))
+            day_nanos = delta_to_nanoseconds(timedelta(1))
             if self.closed == 'right':
                 bin_edges = bin_edges + day_nanos - 1
 
@@ -1312,7 +1312,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
-        day_nanos = _delta_to_nanoseconds(timedelta(1))
+        day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:

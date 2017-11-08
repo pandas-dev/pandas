@@ -14,7 +14,7 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslib import _delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
@@ -2569,7 +2569,7 @@ class Tick(SingleConstructorOffset):
 
     @property
     def nanos(self):
-        return _delta_to_nanoseconds(self.delta)
+        return delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
@@ -2612,7 +2612,7 @@ def _delta_to_tick(delta):
             else:
                 return Second(seconds)
     else:
-        nanos = _delta_to_nanoseconds(delta)
+        nanos = delta_to_nanoseconds(delta)
         if nanos % 1000000 == 0:
             return Milli(nanos // 1000000)
         elif nanos % 1000 == 0:
