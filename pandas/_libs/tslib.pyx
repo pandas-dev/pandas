@@ -84,8 +84,7 @@ cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
 from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
-from tslibs.timedeltas import (Timedelta, convert_to_timedelta64,
-                               array_to_timedelta64)
+from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
