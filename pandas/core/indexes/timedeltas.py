@@ -34,6 +34,7 @@ from pandas.core.tools.timedeltas import (
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timedelta, NaT, iNaT)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -306,7 +307,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
         if values.dtype == np.object_:
-            values = libts.array_to_timedelta64(values)
+            values = array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
             values = _ensure_int64(values).view(_TD_DTYPE)
 
