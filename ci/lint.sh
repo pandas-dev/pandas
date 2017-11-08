@@ -9,7 +9,7 @@ RET=0
 if [ "$LINT" ]; then
 
     # pandas/_libs/src is C code, so no need to search there.
-    echo "Linting  *.py"
+    echo "Linting *.py"
     flake8 pandas --filename=*.py --exclude pandas/_libs/src
     if [ $? -ne "0" ]; then
         RET=1
