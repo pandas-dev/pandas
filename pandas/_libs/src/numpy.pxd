@@ -605,8 +605,8 @@ cdef extern from "numpy/arrayobject.h":
     void PyArray_UpdateFlags (ndarray, int)
     object PyArray_New (type, int, npy_intp *, int, npy_intp *,
                         void *, int, int, object)
-    #object PyArray_NewFromDescr (
-        type, dtype, int, npy_intp *, npy_intp *, void *, int, object)
+    #object PyArray_NewFromDescr \
+        (type, dtype, int, npy_intp *, npy_intp *, void *, int, object)
     #dtype PyArray_DescrNew (dtype)
     dtype PyArray_DescrNewFromType (int)
     double PyArray_GetPriority (object, double)
