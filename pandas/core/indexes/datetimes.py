@@ -2,9 +2,11 @@
 from __future__ import division
 import operator
 import warnings
-from datetime import time, datetime
-from datetime import timedelta
+from datetime import time, datetime, timedelta
+
 import numpy as np
+from pytz import utc
+
 from pandas.core.base import _shared_docs
 
 from pandas.core.dtypes.common import (
@@ -56,10 +58,6 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
 from pandas._libs.tslibs import timezones
 
 
-def _utc():
-    import pytz
-    return pytz.utc
-
 # -------- some conversion wrapper functions
 
 
@@ -67,7 +65,6 @@ def _field_accessor(name, field, docstring=None):
     def f(self):
         values = self.asi8
         if self.tz is not None:
-            utc = _utc()
             if self.tz is not utc:
                 values = self._local_timestamps()
 
@@ -563,8 +560,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         raise ValueError('Passed item and index have different timezone')
 
     def _local_timestamps(self):
-        utc = _utc()
-
         if self.is_monotonic:
             return libts.tz_convert(self.asi8, utc, self.tz)
         else:
@@ -825,7 +820,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         tz = 'UTC' if self.tz is not None else None
         result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
-        utc = _utc()
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
@@ -879,7 +873,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
     def _get_time_micros(self):
-        utc = _utc()
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
