@@ -503,6 +503,7 @@ class Window(_Window):
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
 
+    If ``win_type=None`` a boxcar window is used.
     """
 
     def validate(self):
