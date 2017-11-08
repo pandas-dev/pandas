@@ -244,8 +244,8 @@ Optional Dependencies
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
-    or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
+  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    for writing .xlsx files (xlrd >= 0.9.0)
   * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
