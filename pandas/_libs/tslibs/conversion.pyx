@@ -89,7 +89,7 @@ cdef class _TSObject:
             return self.value
 
 
-cpdef pydt_to_i8(object pydt):
+cpdef int64_t pydt_to_i8(object pydt) except? -1:
     """
     Convert to int64 representation compatible with numpy datetime64; converts
     to UTC
@@ -100,6 +100,14 @@ cpdef pydt_to_i8(object pydt):
     ts = convert_to_tsobject(pydt, None, None, 0, 0)
 
     return ts.value
+
+
+def i8_to_pydt(int64_t i8, object tzinfo=None):
+    """
+    Inverse of pydt_to_i8
+    """
+    from pandas import Timestamp
+    return Timestamp(i8)
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
@@ -793,6 +801,15 @@ cdef inline str _render_tstamp(int64_t val):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def date_normalize(ndarray[int64_t] stamps, tz=None):
+    """
+    Normalize each of the (nanosecond) timestamps in the given array by
+    rounding down to the beginning of the day (i.e. midnight).  If `tz`
+    is not None, then this is midnight for this timezone.
+
+    Returns
+    -------
+    result : int64 ndarray of converted of normalized nanosecond timestamps
+    """
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
@@ -815,7 +832,16 @@ def date_normalize(ndarray[int64_t] stamps, tz=None):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef _normalize_local(ndarray[int64_t] stamps, object tz):
+cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
+    """
+    Normalize each of the (nanosecond) timestamps in the given array by
+    rounding down to the beginning of the day (i.e. midnight) for the
+    given timezone `tz`.
+
+    Returns
+    -------
+    result : int64 ndarray of converted of normalized nanosecond timestamps
+    """
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
@@ -879,7 +905,16 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def are_dates_normalized(ndarray[int64_t] stamps, tz=None):
+def bint is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
+    """
+    Check if all of the given (nanosecond) timestamps are normalized to
+    midnight, i.e. hour == minute == second == 0.  If the optional timezone
+    `tz` is not None, then this is midnight for this timezone.
+
+    Returns
+    -------
+    is_normalizaed : bool True if all stamps are normalized
+    """
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans, deltas

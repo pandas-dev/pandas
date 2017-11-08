@@ -1848,13 +1848,6 @@ cdef inline _to_i8(object val):
         return val
 
 
-def i8_to_pydt(int64_t i8, object tzinfo=None):
-    """
-    Inverse of pydt_to_i8
-    """
-    return Timestamp(i8)
-
-
 # ----------------------------------------------------------------------
 # Accessors
 
