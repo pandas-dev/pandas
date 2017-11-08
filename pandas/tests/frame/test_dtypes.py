@@ -538,7 +538,7 @@ class TestDataFrameDataTypes(TestData):
                 expected = DataFrame(['1.12345678901'])
             else:
                 # >= 1.14 preserves the full repr
-                expected = DataFrame(['1.12345678901234567'])
+                expected = DataFrame(['1.1234567890123457'])
             assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
