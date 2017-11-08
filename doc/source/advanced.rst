@@ -196,7 +196,7 @@ highly performant. If you want to see the actual used levels.
    # for a specific level
    df[['foo','qux']].columns.get_level_values(0)
 
-To reconstruct the multiindex with only the used levels
+To reconstruct the ``MultiIndex`` with only the used levels
 
 .. versionadded:: 0.20.0
 
