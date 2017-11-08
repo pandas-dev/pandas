@@ -905,7 +905,7 @@ cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def bint is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
+def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
