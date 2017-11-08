@@ -2979,6 +2979,16 @@ class TestMomentsConsistency(Base):
         x = d.rolling(window=4).kurt()
         tm.assert_series_equal(expected, x)
 
+    def test_rolling_skew_eq_value_fperr(self):
+        # #18804 all rolling skew for all equal values should return Nan
+        a = pd.Series([1.1] * 15).rolling(window=10).skew()
+        assert np.isnan(a).all()
+
+    def test_rolling_kurt_eq_value_fperr(self):
+        # #18804 all rolling kurt for all equal values should return Nan
+        a = pd.Series([1.1] * 15).rolling(window=10).kurt()
+        assert np.isnan(a).all()
+
     def _check_expanding_ndarray(self, func, static_comp, has_min_periods=True,
                                  has_time_rule=True, preserve_nan=True):
         result = func(self.arr)
