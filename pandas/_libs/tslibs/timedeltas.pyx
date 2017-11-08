@@ -881,7 +881,7 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, string, or integer
-    unit : string, [D,h,m,s,ms,us,ns]
+    unit : string, {'ns', 'us', 'ms', 's', 'm', 'h', 'D'}, optional
         Denote the unit of the input, if input is an integer. Default 'ns'.
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
