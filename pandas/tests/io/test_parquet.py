@@ -288,8 +288,8 @@ class TestBasic(Base):
                            'int': list(range(1, 4))})
 
         expected = pd.DataFrame({'string': list('abc')})
-        self.check_round_trip(df, engine, expected=expected, compression=None, columns=["string"])
-        
+        self.check_round_trip(
+            df, engine, expected=expected, compression=None, columns=["string"])
 
 
 class TestParquetPyArrow(Base):
