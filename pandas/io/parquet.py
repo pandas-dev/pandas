@@ -78,7 +78,7 @@ class PyArrowImpl(object):
 
     def read(self, path, columns=None):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.parquet.read_table(path, columns).to_pandas()
+        return self.api.parquet.read_table(path, columns=columns).to_pandas()
 
 
 class FastParquetImpl(object):
@@ -117,7 +117,7 @@ class FastParquetImpl(object):
 
     def read(self, path, columns=None):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.ParquetFile(path).to_pandas(columns)
+        return self.api.ParquetFile(path).to_pandas(columns=columns)
 
 
 def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
@@ -204,4 +204,4 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     """
 
     impl = get_engine(engine)
-    return impl.read(path, columns)
+    return impl.read(path, columns=columns)
