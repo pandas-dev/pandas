@@ -39,7 +39,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- 
+-
 -
 -
 
