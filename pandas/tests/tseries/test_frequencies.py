@@ -169,6 +169,15 @@ class TestToOffset(object):
         result = frequencies.to_offset(freqstr)
         assert (result.n == -194)
 
+    def test_to_offset_leading_plus(self):
+        freqstr = '+1d'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == 1)
+
+        freqstr = '+2h30min'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == 150)
+
     def test_to_offset_pd_timedelta(self):
         # Tests for #9064
         td = Timedelta(days=1, seconds=1)
