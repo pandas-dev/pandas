@@ -976,6 +976,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         return self.values.copy()
 
+    def to_pydate(self):
+        """
+        Return DateTimeIndex as object ndarray of datetime.date objects
+
+        Returns
+        -------
+        dates : ndarray
+        """
+        return libts.ints_to_pydatetime(self.asi8, kind="date")
+
     def to_pydatetime(self):
         """
         Return DatetimeIndex as object ndarray of datetime.datetime objects
@@ -1687,8 +1697,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        return self._maybe_mask_results(libalgos.arrmap_object(
-            self.asobject.values, lambda x: x.date()))
+        return self.normalize().to_pydate()
 
     def normalize(self):
         """
