@@ -392,7 +392,7 @@ class TestBusinessDateRange(object):
         # see gh-2906
 
         # Use maybe_get_tz to fix filename in tz under dateutil.
-        
+
         tz = lambda x: maybe_get_tz('dateutil/' + x)
 
         start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
@@ -665,7 +665,6 @@ class TestTimestampEquivDateRange(object):
 
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
-        
 
         rng = date_range('20090415', '20090519',
                          tz=dateutil_gettz('US/Eastern'))
