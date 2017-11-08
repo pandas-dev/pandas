@@ -38,8 +38,6 @@ cdef int64_t NPY_NAT = util.get_nat()
 
 cdef int64_t DAY_NS = 86400000000000LL
 
-cdef str _NDIM_STRING = "ndim"
-
 # components named tuple
 Components = collections.namedtuple('Components', [
     'days', 'hours', 'minutes', 'seconds',
@@ -510,35 +508,14 @@ def _binary_op_method_timedeltalike(op, name):
 # Timedelta Construction
 
 cdef _to_py_int_float(v):
-    # Note: This used to be defined inside _timedelta_value_kwargs
-    # (and Timedelta.__new__ before that), but cython
-    # will not allow `cdef` functions to be defined dynamically.
+    # Note: This used to be defined inside Timedelta.__new__
+    # but cython will not allow `cdef` functions to be defined dynamically.
     if is_integer_object(v):
         return int(v)
     elif is_float_object(v):
         return float(v)
     raise TypeError("Invalid type {0}. Must be int or "
                     "float.".format(type(v)))
-
-
-cdef _timedelta_value_kwargs(dict kwargs):
-    # Helper for Timedelta.__new__
-    if not len(kwargs):
-        raise ValueError("cannot construct a Timedelta without a "
-                         "value/unit or descriptive keywords "
-                         "(days,seconds....)")
-
-    kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-    nano = kwargs.pop('nanoseconds', 0)
-    try:
-        value = convert_to_timedelta64(timedelta(**kwargs), 'ns') + nano
-    except TypeError as e:
-        raise ValueError("cannot construct a Timedelta from the "
-                         "passed arguments, allowed keywords are "
-                         "[weeks, days, hours, minutes, seconds, "
-                         "milliseconds, microseconds, nanoseconds]")
-    return value
 
 
 # Similar to Timestamp/datetime, this is a construction requirement for
@@ -571,7 +548,7 @@ cdef class _Timedelta(timedelta):
         elif PyDelta_Check(other):
             ots = Timedelta(other)
         else:
-            ndim = getattr(other, _NDIM_STRING, -1)
+            ndim = getattr(other, "ndim", -1)
 
             if ndim != -1:
                 if ndim == 0:
@@ -920,7 +897,22 @@ class Timedelta(_Timedelta):
         cdef _Timedelta td_base
 
         if value is _no_input:
-            value = _timedelta_value_kwargs(kwargs)
+            if not len(kwargs):
+                raise ValueError("cannot construct a Timedelta without a "
+                                 "value/unit or descriptive keywords "
+                                 "(days,seconds....)")
+
+            kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
+
+            nano = kwargs.pop('nanoseconds', 0)
+            try:
+                value = nano + convert_to_timedelta64(timedelta(**kwargs),
+                                                      'ns')
+            except TypeError as e:
+                raise ValueError("cannot construct a Timedelta from the "
+                                 "passed arguments, allowed keywords are "
+                                 "[weeks, days, hours, minutes, seconds, "
+                                 "milliseconds, microseconds, nanoseconds]")
 
         if isinstance(value, Timedelta):
             value = value.value
