@@ -1065,7 +1065,7 @@ def _evaluate_usecols(usecols, names):
     return usecols
 
 
-def _validate_usecols(usecols, names):
+def _validate_usecols_names(usecols, names):
     """
     Validates that all usecols are present in a given
     list of names. If not, raise a ValueError that
@@ -1694,14 +1694,14 @@ class CParserWrapper(ParserBase):
             # GH 14671
             if (self.usecols_dtype == 'string' and
                     not set(usecols).issubset(self.orig_names)):
-                _validate_usecols(usecols, self.orig_names)
+                _validate_usecols_names(usecols, self.orig_names)
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                _validate_usecols(usecols, self.names)
+                _validate_usecols_names(usecols, self.names)
 
         self._set_noconvert_columns()
 
@@ -2480,7 +2480,7 @@ class PythonParser(ParserBase):
                         try:
                             col_indices.append(usecols_key.index(col))
                         except ValueError:
-                            _validate_usecols(self.usecols, usecols_key)
+                            _validate_usecols_names(self.usecols, usecols_key)
                     else:
                         col_indices.append(col)
             else:
