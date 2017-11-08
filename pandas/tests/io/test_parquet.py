@@ -192,7 +192,7 @@ class Base(object):
 
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine, **kwargs)
-            result = read_parquet(path, engine)
+            result = read_parquet(path, engine, **kwargs)
 
             if expected is None:
                 expected = df
@@ -200,7 +200,7 @@ class Base(object):
 
             # repeat
             to_parquet(df, path, engine, **kwargs)
-            result = pd.read_parquet(path, engine)
+            result = pd.read_parquet(path, engine, **kwargs)
 
             if expected is None:
                 expected = df
@@ -281,6 +281,15 @@ class TestBasic(Base):
 
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine, compression=compression)
+
+    def test_read_columns(self, engine):
+        # GH18154
+        df = pd.DataFrame({'string': list('abc'),
+                           'int': list(range(1, 4))})
+
+        expected = pd.DataFrame({'string': list('abc')})
+        self.check_round_trip(df, engine, expected=expected,
+                              compression=None, columns=["string"])
 
 
 class TestParquetPyArrow(Base):
