@@ -10,6 +10,8 @@ import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, concat, option_context)
 from pandas.compat import u
+from pandas import _np_version_under1p14
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
@@ -531,7 +533,12 @@ class TestDataFrameDataTypes(TestData):
             assert_frame_equal(result, expected)
 
             result = DataFrame([1.12345678901234567890]).astype(tt)
-            expected = DataFrame(['1.12345678901'])
+            if _np_version_under1p14:
+                # < 1.14 truncates
+                expected = DataFrame(['1.12345678901'])
+            else:
+                # >= 1.14 preserves the full repr
+                expected = DataFrame(['1.1234567890123457'])
             assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
