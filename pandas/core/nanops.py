@@ -548,6 +548,9 @@ def nanskew(values, axis=None, skipna=True):
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
     # floating point error
+    #
+    # #18044 in _libs/windows.pyx calc_skew follow this behavior
+    # to fix the fperr to treat m2 <1e-14 as zero
     m2 = _zero_out_fperr(m2)
     m3 = _zero_out_fperr(m3)
 
@@ -609,6 +612,9 @@ def nankurt(values, axis=None, skipna=True):
         result = numer / denom - adj
 
     # floating point error
+    #
+    # #18044 in _libs/windows.pyx calc_kurt follow this behavior
+    # to fix the fperr to treat denom <1e-14 as zero
     numer = _zero_out_fperr(numer)
     denom = _zero_out_fperr(denom)
 
@@ -699,6 +705,7 @@ def _maybe_null_out(result, axis, mask):
 
 
 def _zero_out_fperr(arg):
+    # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
         with np.errstate(invalid='ignore'):
             return np.where(np.abs(arg) < 1e-14, 0, arg)
