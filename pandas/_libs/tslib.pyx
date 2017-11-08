@@ -86,6 +86,7 @@ cdef inline object create_date_from_ts(
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
 
+
 def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False,
                        kind="datetime"):
     # convert an i8 repr to an ndarray of datetimes, Timestamp (if box ==
