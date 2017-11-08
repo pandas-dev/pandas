@@ -2204,8 +2204,8 @@ class FY5253(DateOffset):
             else:
                 assert False
 
-            result = self.get_year_end(datetime(year - n,
-                                                self.startingMonth, 1))
+            result = self.get_year_end(
+                datetime(year - n, self.startingMonth, 1))
 
             result = datetime(result.year, result.month, result.day,
                               other.hour, other.minute, other.second,
@@ -2219,8 +2219,8 @@ class FY5253(DateOffset):
             return self._get_year_end_last(dt)
 
     def get_target_month_end(self, dt):
-        target_month = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
+        target_month = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
         next_month_first_of = target_month + relativedelta(months=+1)
         return next_month_first_of + relativedelta(days=-1)
 
@@ -2238,8 +2238,8 @@ class FY5253(DateOffset):
                 return backward
 
     def _get_year_end_last(self, dt):
-        current_year = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
+        current_year = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
         return current_year + self._offset_lwom
 
     @property
@@ -2542,7 +2542,8 @@ class Tick(_Tick, SingleConstructorOffset):
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self):
-        return hash(self._params())
+        tup = (str(self.__class__), ('n', self.n),)
+        return hash(tup)
 
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
