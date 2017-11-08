@@ -19,6 +19,7 @@ from pandas._libs.tslib import pydt_to_i8
 
 from frequencies cimport get_freq_code
 from conversion cimport tz_convert_single
+from timedeltas import Timedelta, delta_to_nanoseconds
 
 # ---------------------------------------------------------------------
 # Constants
@@ -375,3 +376,21 @@ class BaseOffset(_BaseOffset):
             # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
             return other - self
         return -self + other
+
+# ---------------------------------------------------------------------
+# Ticks
+
+class _Tick(object):
+    _inc = Timedelta(microseconds=1000)
+    _prefix = None
+
+    @property
+    def delta(self):
+        return self.n * self._inc
+
+    @property
+    def nanos(self):
+        return delta_to_nanoseconds(self.delta)
+
+    def isAnchored(self):
+        return False
