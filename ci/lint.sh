@@ -38,19 +38,17 @@ if [ "$LINT" ]; then
         if [ $? -ne "0" ]; then
             RET=1
         fi
-
     done
     echo "Linting *.pxi.in DONE"
 
     echo "Linting *.pxd"
-    for path in 'src'
+    for path in '_libs'
     do
         echo "linting -> pandas/$path"
         flake8 pandas/$path --filename=*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
         if [ $? -ne "0" ]; then
             RET=1
         fi
-
     done
     echo "Linting *.pxd DONE"
 
