@@ -4,7 +4,9 @@
 cimport cython
 
 import time
-from cpython.datetime cimport time as dt_time
+from cpython.datetime cimport timedelta, time as dt_time
+
+from dateutil.relativedelta import relativedelta
 
 import numpy as np
 cimport numpy as np
@@ -13,8 +15,10 @@ np.import_array()
 
 from util cimport is_string_object
 
-from conversion cimport tz_convert_single
 from pandas._libs.tslib import pydt_to_i8
+
+from frequencies cimport get_freq_code
+from conversion cimport tz_convert_single
 
 # ---------------------------------------------------------------------
 # Constants
@@ -79,7 +83,6 @@ _offset_to_period_map = {
 
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
-
 for __prefix in need_suffix:
     for _m in _MONTHS:
         key = '%s-%s' % (__prefix, _m)
@@ -105,17 +108,38 @@ def as_datetime(obj):
     return obj
 
 
-def _is_normalized(dt):
+cpdef bint _is_normalized(dt):
     if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
             dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
         return False
     return True
 
 
+def apply_index_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely wtih cython class methods
+    def wrapper(self, other):
+        result = func(self, other)
+        if self.normalize:
+            result = result.to_period('D').to_timestamp()
+        return result
+
+    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    try:
+        wrapper.__module__ = func.__module__
+    except AttributeError:
+        # AttributeError: 'method_descriptor' object has no
+        # attribute '__module__'
+        pass
+    return wrapper
+
+
 # ---------------------------------------------------------------------
 # Business Helpers
 
-def _get_firstbday(wkday):
+cpdef int _get_firstbday(int wkday):
     """
     wkday is the result of monthrange(year, month)
 
@@ -194,6 +218,45 @@ def _validate_business_time(t_input):
     else:
         raise ValueError("time data must be string or datetime.time")
 
+
+# ---------------------------------------------------------------------
+# Constructor Helpers
+
+_rd_kwds = set([
+    'years', 'months', 'weeks', 'days',
+    'year', 'month', 'week', 'day', 'weekday',
+    'hour', 'minute', 'second', 'microsecond',
+    'nanosecond', 'nanoseconds',
+    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
+
+
+def _determine_offset(kwds):
+    # timedelta is used for sub-daily plural offsets and all singular
+    # offsets relativedelta is used for plural offsets of daily length or
+    # more nanosecond(s) are handled by apply_wraps
+    kwds_no_nanos = dict(
+        (k, v) for k, v in kwds.items()
+        if k not in ('nanosecond', 'nanoseconds')
+    )
+    # TODO: Are nanosecond and nanoseconds allowed somewhere?
+
+    _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
+                               'year', 'month', 'week', 'day', 'weekday',
+                               'hour', 'minute', 'second', 'microsecond')
+
+    use_relativedelta = False
+    if len(kwds_no_nanos) > 0:
+        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+            offset = relativedelta(**kwds_no_nanos)
+            use_relativedelta = True
+        else:
+            # sub-daily offset - use timedelta (tz-aware)
+            offset = timedelta(**kwds_no_nanos)
+    else:
+        offset = timedelta(1)
+    return offset, use_relativedelta
+
+
 # ---------------------------------------------------------------------
 # Mixins & Singletons
 
@@ -206,3 +269,109 @@ class ApplyTypeError(TypeError):
 # TODO: unused.  remove?
 class CacheableOffset(object):
     _cacheable = True
+
+
+class BeginMixin(object):
+    # helper for vectorized offsets
+
+    def _beg_apply_index(self, i, freq):
+        """Offsets index to beginning of Period frequency"""
+
+        off = i.to_perioddelta('D')
+
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
+        if self.n <= 0:
+            # when subtracting, dates on start roll to prior
+            roll = np.where(base_period.to_timestamp() == i - off,
+                            self.n, self.n + 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp()
+        return base + off
+
+
+class EndMixin(object):
+    # helper for vectorized offsets
+
+    def _end_apply_index(self, i, freq):
+        """Offsets index to end of Period frequency"""
+
+        off = i.to_perioddelta('D')
+
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
+        if self.n > 0:
+            # when adding, dates on end roll to next
+            roll = np.where(base_period.to_timestamp(how='end') == i - off,
+                            self.n, self.n - 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp(how='end')
+        return base + off
+
+
+# ---------------------------------------------------------------------
+# Base Classes
+
+class _BaseOffset(object):
+    """
+    Base class for DateOffset methods that are not overriden by subclasses
+    and will (after pickle errors are resolved) go into a cdef class.
+    """
+    _typ = "dateoffset"
+    _normalize_cache = True
+    _cacheable = False
+
+    def __call__(self, other):
+        return self.apply(other)
+
+    def __mul__(self, someInt):
+        return self.__class__(n=someInt * self.n, normalize=self.normalize,
+                              **self.kwds)
+
+    def __neg__(self):
+        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # that allows us to use methods that can go in a `cdef class`
+        return self * -1
+
+    def copy(self):
+        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # that allows us to use methods that can go in a `cdef class`
+        return self * 1
+
+    # TODO: this is never true.  fix it or get rid of it
+    def _should_cache(self):
+        return self.isAnchored() and self._cacheable
+
+    def __repr__(self):
+        className = getattr(self, '_outputName', type(self).__name__)
+
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
+
+        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        return out
+
+
+class BaseOffset(_BaseOffset):
+    # Here we add __rfoo__ methods that don't play well with cdef classes
+    def __rmul__(self, someInt):
+        return self.__mul__(someInt)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __rsub__(self, other):
+        if getattr(other, '_typ', None) in ['datetimeindex', 'series']:
+            # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
+            return other - self
+        return -self + other
