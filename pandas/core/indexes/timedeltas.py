@@ -34,6 +34,27 @@ from pandas.core.tools.timedeltas import (
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timedelta, NaT, iNaT)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+
+
+def _field_accessor(name, alias, docstring=None):
+    def f(self):
+        if self.hasnans:
+            result = np.empty(len(self), dtype='float64')
+            mask = self._isnan
+            imask = ~mask
+            result.flat[imask] = np.array([getattr(Timedelta(val), alias)
+                                           for val in self.asi8[imask]])
+            result[mask] = np.nan
+        else:
+            result = np.array([getattr(Timedelta(val), alias)
+                               for val in self.asi8], dtype='int64')
+
+        return Index(result, name=self.name)
+
+    f.__name__ = name
+    f.__doc__ = docstring
+    return property(f)
 
 
 def _td_index_cmp(opname, nat_result=False):
@@ -286,7 +307,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
         if values.dtype == np.object_:
-            values = libts.array_to_timedelta64(values)
+            values = array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
             values = _ensure_int64(values).view(_TD_DTYPE)
 
@@ -381,46 +402,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    def _get_field(self, m):
-
-        values = self.asi8
-        hasnans = self.hasnans
-        if hasnans:
-            result = np.empty(len(self), dtype='float64')
-            mask = self._isnan
-            imask = ~mask
-            result.flat[imask] = np.array(
-                [getattr(Timedelta(val), m) for val in values[imask]])
-            result[mask] = np.nan
-        else:
-            result = np.array([getattr(Timedelta(val), m)
-                               for val in values], dtype='int64')
-        return Index(result, name=self.name)
-
-    @property
-    def days(self):
-        """ Number of days for each element. """
-        return self._get_field('days')
-
-    @property
-    def seconds(self):
-        """ Number of seconds (>= 0 and less than 1 day) for each element. """
-        return self._get_field('seconds')
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second) for each
-        element. """
-        return self._get_field('microseconds')
-
-    @property
-    def nanoseconds(self):
-        """
-        Number of nanoseconds (>= 0 and less than 1 microsecond) for each
-        element.
-        """
-        return self._get_field('nanoseconds')
+    days = _field_accessor("days", "days",
+                           " Number of days for each element. ")
+    seconds = _field_accessor("seconds", "seconds",
+                              " Number of seconds (>= 0 and less than 1 day) "
+                              "for each element. ")
+    microseconds = _field_accessor("microseconds", "microseconds",
+                                   "\nNumber of microseconds (>= 0 and less "
+                                   "than 1 second) for each\nelement. ")
+    nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
+                                  "\nNumber of nanoseconds (>= 0 and less "
+                                  "than 1 microsecond) for each\nelement.\n")
 
     @property
     def components(self):

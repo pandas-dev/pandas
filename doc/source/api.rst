@@ -1822,7 +1822,7 @@ Interval
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Interval.closed
     Interval.closed_left
@@ -1843,7 +1843,7 @@ Timedelta
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.asm8
     Timedelta.components
@@ -1860,7 +1860,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.ceil
     Timedelta.floor

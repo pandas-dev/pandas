@@ -1692,7 +1692,7 @@ class DataFrame(NDFrame):
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
-            Convert the characters <, >, and & to HTML-safe sequences.=
+            Convert the characters <, >, and & to HTML-safe sequences.
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
@@ -1703,6 +1703,7 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator, e.g. ',' in Europe
 
             .. versionadded:: 0.18.0
+
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -5105,7 +5106,7 @@ class DataFrame(NDFrame):
 
         >>> df = pd.DataFrame(columns=['A'])
         >>> for i in range(5):
-        ...     df = df.append({'A'}: i}, ignore_index=True)
+        ...     df = df.append({'A': i}, ignore_index=True)
         >>> df
            A
         0  0
