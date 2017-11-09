@@ -1,4 +1,5 @@
 from datetime import timedelta
+import collections
 import numpy as np
 import warnings
 import copy
@@ -1026,13 +1027,18 @@ class TimeGrouper(Grouper):
     directly from the associated object
     """
 
+    _attributes = ['key', 'level', 'freq', 'axis', 'sort', 'closed', 'label',
+                   'how', 'nperiods', 'fill_method', 'limit',
+                   'loffset', 'kind', 'convention', 'base']
+    _end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
+
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0, **kwargs):
         freq = to_offset(freq)
 
-        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        end_types = self._end_types
         rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
@@ -1047,6 +1053,7 @@ class TimeGrouper(Grouper):
                 label = 'left'
 
         self.closed = closed
+        self.freq = freq
         self.label = label
         self.nperiods = nperiods
         self.kind = kind

@@ -3177,6 +3177,14 @@ class TestTimeGrouper(object):
         self.ts = Series(np.random.randn(1000),
                          index=date_range('1/1/2000', periods=1000))
 
+    def test_timegrouper_repr(self):
+        # Added in GH17727
+        result = repr(TimeGrouper(key='key', freq='50Min', label='right'))
+        expected = ("TimeGrouper(key='key', freq=<50 * Minutes>, axis=0,"
+                    " sort=True, closed='left', label='right', how='mean', "
+                    "loffset=None)")
+        assert result == expected
+
     def test_apply(self):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
