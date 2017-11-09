@@ -237,14 +237,12 @@ _no_input = object()
 
 
 class Timestamp(_Timestamp):
-    """TimeStamp is the pandas equivalent of python's Datetime
+    """Pandas replacement for datetime.datetime
+
+    TimeStamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
-
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
 
     Parameters
     ----------
@@ -259,22 +257,32 @@ class Timestamp(_Timestamp):
     offset : str, DateOffset
         Deprecated, use freq
 
+    year, month, day : int
+        .. versionadded:: 0.19.0
+    hour, minute, second, microsecond : int, optional, default 0
+        .. versionadded:: 0.19.0
+    tzinfo : datetime.tzinfo, optional, default None
+        .. versionadded:: 0.19.0
+
+    Notes
+    -----
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
+
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
 
-    :func:`datetime.datetime` Parameters
-    ------------------------------------
+    Examples
+    --------
+    >>> pd.Timestamp('2017-01-01T12')
+    Timestamp('2017-01-01 12:00:00')
 
-    .. versionadded:: 0.19.0
+    >>> pd.Timestamp(2017, 1, 1, 12)
+    Timestamp('2017-01-01 12:00:00')
 
-    year : int
-    month : int
-    day : int
-    hour : int, optional, default is 0
-    minute : int, optional, default is 0
-    second : int, optional, default is 0
-    microsecond : int, optional, default is 0
-    tzinfo : datetime.tzinfo, optional, default is None
+    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
+    Timestamp('2017-01-01 12:00:00')
     """
 
     @classmethod
@@ -592,11 +600,13 @@ class Timestamp(_Timestamp):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
+
         ambiguous : bool, 'NaT', default 'raise'
             - bool contains flags to determine if time is dst or not (note
-            that this flag is only applicable for ambiguous fall dst dates)
+              that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
         errors : 'raise', 'coerce', default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
