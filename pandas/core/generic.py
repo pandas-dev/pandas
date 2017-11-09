@@ -6278,6 +6278,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * 0 or 'index': apply truncation to rows
             * 1 or 'columns': apply truncation to columns
+
             Default is stat axis for given data type (0 for Series and
             DataFrames, 1 for Panels)
         copy : boolean, default is True,

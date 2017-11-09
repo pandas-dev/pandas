@@ -60,7 +60,7 @@ Bug reports must:
 
 The issue will then show up to the *pandas* community and be open to comments/ideas from others.
 
-.. _contributing.github
+.. _contributing.github:
 
 Working with the code
 =====================

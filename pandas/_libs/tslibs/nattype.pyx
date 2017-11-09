@@ -478,11 +478,13 @@ class NaTType(_NaT):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
+
         ambiguous : bool, 'NaT', default 'raise'
             - bool contains flags to determine if time is dst or not (note
-            that this flag is only applicable for ambiguous fall dst dates)
+              that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
         errors : 'raise', 'coerce', default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from

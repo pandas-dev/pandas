@@ -358,13 +358,12 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-# Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'python': ('http://docs.python.org/3', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+    'python': ('https://docs.python.org/3/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'py': ('https://pylib.readthedocs.io/en/latest/', None)
 }
 import glob
@@ -572,6 +571,15 @@ def linkcode_resolve(domain, info):
 def remove_flags_docstring(app, what, name, obj, options, lines):
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
+
+
+suppress_warnings = [
+    # We "overwrite" autosummary with our PandasAutosummary, but
+    # still want the regular autosummary setup to run. So we just
+    # suppress this warning.
+    'app.add_directive'
+]
+
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)

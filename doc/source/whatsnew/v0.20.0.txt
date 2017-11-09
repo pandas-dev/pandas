@@ -1375,6 +1375,7 @@ Convert to a MultiIndex DataFrame
 Convert to an xarray DataArray
 
 .. ipython:: python
+   :okwarning:
 
    p.to_xarray()
 

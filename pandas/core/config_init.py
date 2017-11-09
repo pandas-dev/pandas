@@ -392,8 +392,9 @@ with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
 use_inf_as_null_doc = """
-use_inf_as_null had been deprecated and will be removed in a future version.
-Use `use_inf_as_na` instead.
+: boolean
+    use_inf_as_null had been deprecated and will be removed in a future
+    version. Use `use_inf_as_na` instead.
 """
 
 use_inf_as_na_doc = """

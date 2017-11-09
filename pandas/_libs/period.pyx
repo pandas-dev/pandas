@@ -967,7 +967,7 @@ cdef class _Period(object):
     def strftime(self, fmt):
         """
         Returns the string representation of the :class:`Period`, depending
-        on the selected :keyword:`format`. :keyword:`format` must be a string
+        on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,

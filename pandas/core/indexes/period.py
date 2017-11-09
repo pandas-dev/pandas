@@ -624,9 +624,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D' for week or longer, 'S'
-               otherwise
-            Target frequency
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
         how : {'s', 'e', 'start', 'end'}
 
         Returns
@@ -1039,8 +1039,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         normalized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
@@ -1063,8 +1063,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         localized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")

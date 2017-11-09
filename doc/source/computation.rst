@@ -670,6 +670,7 @@ columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    r.agg({'A' : np.sum,
           'B' : lambda x: np.std(x, ddof=1)})

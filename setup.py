@@ -225,8 +225,8 @@ munging and cleaning data, analyzing / modeling it, then organizing the results
 of the analysis into a form suitable for plotting or tabular display. pandas is
 the ideal tool for all of these tasks.
 
-Note
-----
+Notes
+-----
 Windows binaries built against NumPy 1.8.1
 """
 
