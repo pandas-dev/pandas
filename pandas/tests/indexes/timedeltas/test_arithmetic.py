@@ -12,13 +12,21 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     Timestamp, Timedelta)
 
 
+@pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
+                        np.timedelta64(2, 'h'), Timedelta(hours=2)],
+                ids=str)
+def delta(request):
+    # Several ways of representing two hours
+    return request.param
+
+
+@pytest.fixture(params=['B', 'D'])
+def freq(request):
+    return request.param
+
+
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
-    _multiprocess_can_split_ = True
-
-    # Several ways of representing two hours
-    two_hour_variants = [pd.offsets.Hour(2), timedelta(hours=2),
-                         np.timedelta64(2, 'h'), Timedelta(hours=2)]
 
     # TODO: Split by ops, better name
     def test_numeric_compat(self):
@@ -122,7 +130,6 @@ class TestTimedeltaIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
 
-    @pytest.mark.parametrize('delta', two_hour_variants)
     def test_tdi_add_timedeltalike(self, delta):
         # only test adding/sub offsets as + is now numeric
         rng = timedelta_range('1 days', '10 days')
@@ -131,7 +138,6 @@ class TestTimedeltaIndexArithmetic(object):
                                    freq='D')
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('delta', two_hour_variants)
     def test_tdi_iadd_timedeltalike(self, delta):
         # only test adding/sub offsets as + is now numeric
         rng = timedelta_range('1 days', '10 days')
@@ -140,7 +146,6 @@ class TestTimedeltaIndexArithmetic(object):
         rng += delta
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('delta', two_hour_variants)
     def test_tdi_sub_timedeltalike(self, delta):
         # only test adding/sub offsets as - is now numeric
         rng = timedelta_range('1 days', '10 days')
@@ -148,7 +153,6 @@ class TestTimedeltaIndexArithmetic(object):
         expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('delta', two_hour_variants)
     def test_tdi_isub_timedeltalike(self, delta):
         # only test adding/sub offsets as - is now numeric
         rng = timedelta_range('1 days', '10 days')
@@ -671,7 +675,6 @@ class TestTimedeltaIndexArithmetic(object):
 
     # TODO: Needs more informative name, probably split up into
     # more targeted tests
-    @pytest.mark.parametrize('freq', ['B', 'D'])
     def test_timedelta(self, freq):
         index = date_range('1/1/2000', periods=50, freq=freq)
 
