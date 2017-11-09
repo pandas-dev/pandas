@@ -178,6 +178,10 @@ class TestToOffset(object):
         result = frequencies.to_offset(freqstr)
         assert (result.n == 150)
 
+        for bad_freq in ['+-1d', '-+1h', '+1', '-7', '+d', '-m']:
+            with tm.assert_raises_regex(ValueError, 'Invalid frequency:'):
+                frequencies.to_offset(bad_freq)
+
     def test_to_offset_pd_timedelta(self):
         # Tests for #9064
         td = Timedelta(days=1, seconds=1)
