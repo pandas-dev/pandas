@@ -1,8 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 datetimelike delegation
 """
 
 import numpy as np
+
+from pandas._libs.period import IncompatibleFrequency  # noqa
+
+from pandas.core.accessor import PandasDelegate
+from pandas.core.algorithms import take_1d
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 
 from pandas.core.dtypes.common import (
     is_period_arraylike,
@@ -11,13 +18,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.accessor import PandasDelegate
-from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas._libs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.algorithms import take_1d
 
 
 def is_datetimelike(data):

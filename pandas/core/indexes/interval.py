@@ -1,6 +1,22 @@
+# -*- coding: utf-8 -*-
 """ define the IntervalIndex """
 
 import numpy as np
+
+from pandas._libs import Timestamp, Timedelta
+from pandas._libs.interval import (
+    Interval, IntervalMixin, IntervalTree,
+    intervals_to_interval_bounds)
+
+from pandas.compat.numpy import function as nv
+
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import DateOffset
+
+from pandas.util._decorators import cache_readonly, Appender
+
+from pandas.core import common as com
+from pandas.core.config import get_option
 
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.generic import ABCPeriodIndex
@@ -18,26 +34,14 @@ from pandas.core.dtypes.common import (
     is_float,
     is_number,
     is_integer)
-from pandas.core.indexes.base import (
-    Index, _ensure_index,
-    default_pprint, _index_shared_docs)
 
-from pandas._libs import Timestamp, Timedelta
-from pandas._libs.interval import (
-    Interval, IntervalMixin, IntervalTree,
-    intervals_to_interval_bounds)
-
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import (Index, _ensure_index,
+                                      default_pprint, _index_shared_docs)
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
-from pandas.compat.numpy import function as nv
-from pandas.core import common as com
-from pandas.util._decorators import cache_readonly, Appender
-from pandas.core.config import get_option
-from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import DateOffset
 
-import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',

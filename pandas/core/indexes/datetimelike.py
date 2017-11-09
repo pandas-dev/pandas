@@ -1,37 +1,42 @@
+# -*- coding: utf-8 -*-
 """
 Base and utility classes for tseries type pandas objects.
 """
-import warnings
 
 from datetime import datetime, timedelta
+import warnings
+
+import numpy as np
+
+from pandas._libs import lib, iNaT, NaT
+from pandas._libs.period import Period
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.core.tools.timedeltas import to_timedelta
 
-import numpy as np
+import pandas.io.formats.printing as printing
+
+from pandas.tseries import frequencies
+
+from pandas.util._decorators import Appender, cache_readonly
+
 from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool_dtype, _ensure_int64,
     is_scalar, is_dtype_equal,
     is_list_like)
-from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries,
-    ABCPeriodIndex, ABCIndexClass)
+from pandas.core.dtypes.generic import (ABCIndex, ABCSeries,
+                                        ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
+import pandas.core.dtypes.concat as _concat
+
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
-
-import pandas.io.formats.printing as printing
-from pandas._libs import lib, iNaT, NaT
-from pandas._libs.period import Period
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-import pandas.tseries.frequencies as frequencies
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)

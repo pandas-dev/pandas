@@ -1,18 +1,32 @@
+# -*- coding: utf-8 -*-
 import datetime
-import warnings
 import operator
+import warnings
 
 import numpy as np
+
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, Timedelta, )
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import parsing
 
+from pandas import compat
 from pandas.compat import range, u
 from pandas.compat.numpy import function as nv
-from pandas import compat
 
+from pandas.io.formats.printing import pprint_thing
+
+from pandas.util._decorators import (Appender, Substitution,
+                                     cache_readonly, deprecate_kwarg)
+
+import pandas.core.algorithms as algos
+from pandas.core import accessor, base, missing, sorting, strings
+from pandas.core.base import PandasObject, IndexOpsMixin
+from pandas.core.common import (is_bool_indexer, _values_from_object,
+                                _asarray_tuplesafe, _not_none,
+                                _index_labels_to_array)
+from pandas.core.config import get_option
 
 from pandas.core.dtypes.generic import (
     ABCSeries,
@@ -42,23 +56,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
-from pandas.core.common import (is_bool_indexer, _values_from_object,
-                                _asarray_tuplesafe, _not_none,
-                                _index_labels_to_array)
-
-from pandas.core.base import PandasObject, IndexOpsMixin
-import pandas.core.base as base
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
-from pandas.core.indexes.frozen import FrozenList
 import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
-import pandas.core.algorithms as algos
-import pandas.core.sorting as sorting
-from pandas.io.formats.printing import pprint_thing
+
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core import strings, accessor
-from pandas.core.config import get_option
+
+from pandas.core.indexes.frozen import FrozenList
 
 
 # simplify

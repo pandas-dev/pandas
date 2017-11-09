@@ -1,28 +1,28 @@
+# -*- coding: utf-8 -*-
 from sys import getsizeof
 import operator
 
 import numpy as np
-from pandas._libs import index as libindex
 
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_scalar,
-    is_int64_dtype)
+from pandas._libs import index as libindex
 
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _all_none
-from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-import pandas.core.indexes.base as ibase
 
+from pandas.util._decorators import Appender, cache_readonly
+
+from pandas.core.common import _all_none
+
+from pandas.core.dtypes.common import is_integer, is_scalar, is_int64_dtype
+import pandas.core.dtypes.concat as _concat
+
+from pandas.core.indexes.base import Index, _index_shared_docs
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.numeric import Int64Index
 
 
 class RangeIndex(Int64Index):
-
     """
     Immutable Index implementing a monotonic integer range.
 

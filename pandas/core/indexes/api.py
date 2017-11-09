@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pandas.core.indexes.base import (Index,
                                       _new_Index,
                                       _ensure_index,

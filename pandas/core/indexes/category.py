@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
 import numpy as np
+
 from pandas._libs import index as libindex
+
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
+
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -10,19 +15,15 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_interval_dtype,
     is_scalar)
-from pandas.core.common import (_asarray_tuplesafe,
-                                _values_from_object)
 from pandas.core.dtypes.missing import array_equivalent
+
+from pandas.core import base, accessor, missing
 from pandas.core.algorithms import take_1d
-
-
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.core.common import _asarray_tuplesafe, _values_from_object
 from pandas.core.config import get_option
-from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core import accessor
-import pandas.core.base as base
-import pandas.core.missing as missing
+
 import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import Index, _index_shared_docs
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
