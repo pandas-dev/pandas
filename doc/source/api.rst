@@ -701,6 +701,7 @@ adding ordering information or special categories is need at creation time of th
    Categorical.categories
    Categorical.ordered
    Categorical.codes
+   Categorical.dtype
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
@@ -801,11 +802,14 @@ Attributes and underlying data
    DataFrame.get_ftype_counts
    DataFrame.select_dtypes
    DataFrame.values
+   DataFrame.get_values
    DataFrame.axes
    DataFrame.ndim
    DataFrame.size
    DataFrame.shape
    DataFrame.memory_usage
+   DataFrame.empty
+   DataFrame.is_copy
 
 Conversion
 ~~~~~~~~~~
@@ -818,6 +822,7 @@ Conversion
    DataFrame.copy
    DataFrame.isna
    DataFrame.notna
+   DataFrame.bool
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -830,7 +835,10 @@ Indexing, iteration
    DataFrame.loc
    DataFrame.iloc
    DataFrame.insert
+   DataFrame.insert
    DataFrame.__iter__
+   DataFrame.items
+   DataFrame.keys
    DataFrame.iteritems
    DataFrame.iterrows
    DataFrame.itertuples
@@ -838,6 +846,7 @@ Indexing, iteration
    DataFrame.pop
    DataFrame.tail
    DataFrame.xs
+   DataFrame.get
    DataFrame.isin
    DataFrame.where
    DataFrame.mask
@@ -854,12 +863,16 @@ Binary operator functions
 
    DataFrame.add
    DataFrame.sub
+   DataFrame.subtract
    DataFrame.mul
+   DataFrame.multiply
    DataFrame.div
+   DataFrame.divide
    DataFrame.truediv
    DataFrame.floordiv
    DataFrame.mod
    DataFrame.pow
+   DataFrame.dot
    DataFrame.radd
    DataFrame.rsub
    DataFrame.rmul
@@ -884,6 +897,8 @@ Function application, GroupBy & Window
 
    DataFrame.apply
    DataFrame.applymap
+   DataFrame.pipe
+   DataFrame.agg
    DataFrame.aggregate
    DataFrame.transform
    DataFrame.groupby
@@ -904,6 +919,7 @@ Computations / Descriptive Stats
    DataFrame.clip
    DataFrame.clip_lower
    DataFrame.clip_upper
+   DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
    DataFrame.count
@@ -916,6 +932,7 @@ Computations / Descriptive Stats
    DataFrame.diff
    DataFrame.eval
    DataFrame.kurt
+   DataFrame.kurtosis
    DataFrame.mad
    DataFrame.max
    DataFrame.mean
@@ -924,6 +941,7 @@ Computations / Descriptive Stats
    DataFrame.mode
    DataFrame.pct_change
    DataFrame.prod
+   DataFrame.product
    DataFrame.quantile
    DataFrame.rank
    DataFrame.round
@@ -932,6 +950,7 @@ Computations / Descriptive Stats
    DataFrame.sum
    DataFrame.std
    DataFrame.var
+   DataFrame.nunique
 
 Reindexing / Selection / Label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -941,6 +960,8 @@ Reindexing / Selection / Label manipulation
    DataFrame.add_prefix
    DataFrame.add_suffix
    DataFrame.align
+   DataFrame.at_time
+   DataFrame.between_time
    DataFrame.drop
    DataFrame.drop_duplicates
    DataFrame.duplicated
@@ -959,6 +980,7 @@ Reindexing / Selection / Label manipulation
    DataFrame.reset_index
    DataFrame.sample
    DataFrame.select
+   DataFrame.set_axis
    DataFrame.set_index
    DataFrame.tail
    DataFrame.take
@@ -974,6 +996,9 @@ Missing data handling
    DataFrame.dropna
    DataFrame.fillna
    DataFrame.replace
+   DataFrame.interpolate
+   DataFrame.isnull
+   DataFrame.notnull
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -981,6 +1006,7 @@ Reshaping, sorting, transposing
    :toctree: generated/
 
    DataFrame.pivot
+   DataFrame.pivot_table
    DataFrame.reorder_levels
    DataFrame.sort_values
    DataFrame.sort_index
@@ -989,10 +1015,12 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
+   DataFrame.swapaxes
    DataFrame.melt
-   DataFrame.T
+   DataFrame.squeeze
    DataFrame.to_panel
    DataFrame.to_xarray
+   DataFrame.T
    DataFrame.transpose
 
 Combining / joining / merging
@@ -1014,6 +1042,8 @@ Time series-related
    DataFrame.asfreq
    DataFrame.asof
    DataFrame.shift
+   DataFrame.slice_shift
+   DataFrame.tshift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
    DataFrame.resample
@@ -1068,6 +1098,7 @@ Serialization / IO / Conversion
    DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
+   DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
    DataFrame.to_hdf
@@ -1086,6 +1117,7 @@ Serialization / IO / Conversion
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
+   DataFrame.style
 
 Sparse
 ~~~~~~
@@ -2313,3 +2345,26 @@ Scalar introspection
     api.types.is_re
     api.types.is_re_compilable
     api.types.is_scalar
+
+
+.. This is to prevent warnings in the doc build. We don't want to encourage
+.. these methods.
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.DataFrame.as_blocks
+   generated/pandas.DataFrame.ffill
+   generated/pandas.DataFrame.bfill
+   generated/pandas.DataFrame.blocks
+   generated/pandas.DataFrame.sortlevel
+   generated/pandas.DataFrame.consolidate
+   generated/pandas.DataFrame.set_value
+   generated/pandas.DataFrame.get_value
+
+   generated/pandas.Series.as_blocks
+   generated/pandas.Series.ffill
+   generated/pandas.Series.bfill
+   generated/pandas.Series.set_value
+   generated/pandas.Series.get_value
+   generated/pandas.Series.blocks
