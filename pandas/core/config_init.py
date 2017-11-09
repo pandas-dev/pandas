@@ -314,7 +314,16 @@ with cf.config_prefix('display'):
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 0, pc_max_cols_doc,
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        max_cols = 0  # automatically determine optimal number of columns
+    else:  # IPython
+        if hasattr(ip, 'kernel'):  # as a Jupyter kernel
+            max_cols = 20  # 0 doesn't produce nice results in a kernel
+        else:  # in a terminal
+            max_cols = 0  # automatically determine optimal number of columns
+    cf.register_option('max_columns', max_cols, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))
