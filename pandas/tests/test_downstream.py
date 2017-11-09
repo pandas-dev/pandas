@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Testing that we work in the downstream packages
 """
