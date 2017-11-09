@@ -93,6 +93,14 @@ cpdef int64_t pydt_to_i8(object pydt) except? -1:
     """
     Convert to int64 representation compatible with numpy datetime64; converts
     to UTC
+
+    Parameters
+    ----------
+    pydt : object
+
+    Returns
+    -------
+    i8value : np.int64
     """
     cdef:
         _TSObject ts
@@ -806,6 +814,11 @@ def date_normalize(ndarray[int64_t] stamps, tz=None):
     rounding down to the beginning of the day (i.e. midnight).  If `tz`
     is not None, then this is midnight for this timezone.
 
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
+
     Returns
     -------
     result : int64 ndarray of converted of normalized nanosecond timestamps
@@ -837,6 +850,11 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight) for the
     given timezone `tz`.
+
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
 
     Returns
     -------
@@ -897,6 +915,17 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
 
 
 cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
+    """
+    Normalize the given datetimestruct to midnight, then convert to int64_t.
+
+    Parameters
+    ----------
+    *dts : pointer to pandas_datetimestruct
+
+    Returns
+    -------
+    stamp : int64
+    """
     dts.hour = 0
     dts.min = 0
     dts.sec = 0
@@ -911,9 +940,14 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
     `tz` is not None, then this is midnight for this timezone.
 
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
+
     Returns
     -------
-    is_normalizaed : bool True if all stamps are normalized
+    is_normalized : bool True if all stamps are normalized
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
