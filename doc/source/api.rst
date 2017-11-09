@@ -653,6 +653,12 @@ The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.Ca
 
    api.types.CategoricalDtype
 
+.. autosummary::
+   :toctree: generated/
+
+   api.types.CategoricalDtype.categories
+   api.types.CategoricalDtype.ordered
+
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
@@ -692,6 +698,9 @@ adding ordering information or special categories is need at creation time of th
 .. autosummary::
    :toctree: generated/
 
+   Categorical.categories
+   Categorical.ordered
+   Categorical.codes
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
@@ -1438,6 +1447,15 @@ Numeric Index
    UInt64Index
    Float64Index
 
+.. We need this autosummary so that the methods are generated.
+.. Separate block, since they aren't classes.
+
+.. autosummary::
+   :toctree: generated/
+
+   RangeIndex.from_range
+
+
 .. _api.categoricalindex:
 
 CategoricalIndex
@@ -1466,6 +1484,8 @@ Categorical Components
    CategoricalIndex.set_categories
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
+   CategoricalIndex.get_loc
+   CategoricalIndex.map
 
 .. _api.intervalindex:
 
@@ -1488,6 +1508,15 @@ IntervalIndex Components
    IntervalIndex.from_tuples
    IntervalIndex.from_breaks
    IntervalIndex.from_intervals
+   IntervalIndex.contains
+   IntervalIndex.get_loc
+   IntervalIndex.left
+   IntervalIndex.right
+   IntervalIndex.mid
+   IntervalIndex.closed
+   IntervalIndex.values
+   IntervalIndex.is_non_overlapping_monotonic
+
 
 .. _api.multiindex:
 

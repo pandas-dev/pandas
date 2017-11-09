@@ -49,6 +49,25 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     See Also
     --------
     Categorical, Index
+
+    Methods
+    -------
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    set_categories
+    as_ordered
+    as_unordered
+    get_loc
+    map
+
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
     """
 
     _typ = 'categoricalindex'

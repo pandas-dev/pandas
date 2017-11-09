@@ -154,6 +154,24 @@ class IntervalIndex(IntervalMixin, Index):
     IntervalIndex.from_intervals, IntervalIndex.from_tuples
     cut, qcut : convert arrays of continuous data into categoricals/series of
                 ``Interval``.
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_breaks
+    from_intervals
+    contains
+    get_loc
+
+    Attributes
+    ----------
+    left
+    right
+    mid
+    closed
+    values
+    is_non_overlapping_monotonic
     """
     _typ = 'intervalindex'
     _comparables = ['name']

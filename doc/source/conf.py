@@ -68,6 +68,7 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
+numpydoc_show_class_members = False
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
