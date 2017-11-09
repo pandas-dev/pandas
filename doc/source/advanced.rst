@@ -174,14 +174,14 @@ on a deeper level.
 Defined Levels
 ~~~~~~~~~~~~~~
 
-The repr of a ``MultiIndex`` shows ALL the defined levels of an index, even
+The repr of a ``MultiIndex`` shows all the defined levels of an index, even
 if the they are not actually used. When slicing an index, you may notice this.
 For example:
 
 .. ipython:: python
 
-   # original multi-index
-   df.columns
+   # original MultiIndex
+   df.columns
 
    # sliced
    df[['foo','qux']].columns
@@ -264,7 +264,7 @@ Passing a list of labels or tuples works similar to reindexing:
 Using slicers
 ~~~~~~~~~~~~~
 
-You can slice a multi-index by providing multiple indexers.
+You can slice a ``MultiIndex`` by providing multiple indexers.
 
 You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
 including slices, lists of labels, labels, and boolean indexers.
@@ -278,7 +278,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
    for the **columns**. There are some ambiguous cases where the passed indexer could be mis-interpreted
-   as indexing *both* axes, rather than into say the MuliIndex for the rows.
+   as indexing *both* axes, rather than into say the ``MultiIndex`` for the rows.
 
    You should do this:
 
@@ -286,8 +286,8 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
       df.loc[(slice('A1','A3'),.....), :]
 
-   rather than this:
-
+   rather than this:
+ 
    .. code-block:: python
 
       df.loc[(slice('A1','A3'),.....)]
@@ -494,7 +494,7 @@ are named.
    s.sort_index(level='L2')
 
 On higher dimensional objects, you can sort any of the other axes by level if
-they have a MultiIndex:
+they have a ``MultiIndex``:
 
 .. ipython:: python
 
