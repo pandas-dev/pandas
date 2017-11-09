@@ -504,7 +504,7 @@ class Window(_Window):
     * ``slepian`` (needs width).
 
     If ``win_type=None`` a boxcar window is used. To learn more about different
-    window types see `scipy.signal window funcitons
+    window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
     """
 
