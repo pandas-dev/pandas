@@ -808,8 +808,8 @@ cdef inline char* _util_dtypestring(dtype descr, char* f,
         child, new_offset = fields
 
         if (end - f) - (new_offset - offset[0]) < 15:
-            raise RuntimeError(u"Format string allocated too short, "
-                                "see comment in numpy.pxd")
+            raise RuntimeError(
+                u"Format string allocated too short, see comment in numpy.pxd")
 
         if ((child.byteorder == '>' and little_endian) or
             (child.byteorder == '<' and not little_endian)):
@@ -980,10 +980,10 @@ cdef extern from "numpy/ufuncobject.h":
 cdef inline void set_array_base(ndarray arr, object base):
     cdef PyObject* baseptr
     if base is None:
-     baseptr = NULL
+        baseptr = NULL
     else:
-     Py_INCREF(base) # important to do this before decref below!
-     baseptr = <PyObject*>base
+        Py_INCREF(base) # important to do this before decref below!
+        baseptr = <PyObject*>base
     Py_XDECREF(arr.base)
     arr.base = baseptr
 
