@@ -1,6 +1,15 @@
+# -*- coding: utf-8 -*-
 import numpy as np
+
 from pandas._libs import (index as libindex,
                           algos as libalgos, join as libjoin)
+
+from pandas import compat
+from pandas.util._decorators import Appender, cache_readonly
+
+from pandas.core import algorithms
+from pandas.core.common import _asarray_tuplesafe, _values_from_object
+
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
@@ -10,14 +19,10 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_scalar)
-from pandas.core.common import _asarray_tuplesafe, _values_from_object
-
-from pandas import compat
-from pandas.core import algorithms
-from pandas.core.indexes.base import (
-    Index, InvalidIndexError, _index_shared_docs)
-from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
+
+from pandas.core.indexes.base import (Index, InvalidIndexError,
+                                      _index_shared_docs)
 import pandas.core.indexes.base as ibase
 
 

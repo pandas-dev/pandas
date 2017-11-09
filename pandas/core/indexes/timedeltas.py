@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ implement the TimedeltaIndex """
 
 from datetime import timedelta

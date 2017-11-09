@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 frozen (immutable) data structures to support MultiIndexing
 
@@ -9,9 +10,11 @@ These are used for:
 """
 
 import numpy as np
+
+from pandas.io.formats.printing import pprint_thing
+
 from pandas.core.base import PandasObject
 from pandas.core.dtypes.cast import coerce_indexer_dtype
-from pandas.io.formats.printing import pprint_thing
 
 
 class FrozenList(PandasObject, list):
