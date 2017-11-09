@@ -306,6 +306,11 @@ class SharedWithSparse(object):
         result = f.sum(axis='columns')
         assert_series_equal(result, expected)
 
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        DataFrame.index  # no exception!
+        DataFrame.columns  # no exception!
+
     def test_more_asMatrix(self):
         values = self.mixed_frame.as_matrix()
         assert values.shape[1] == len(self.mixed_frame.columns)
