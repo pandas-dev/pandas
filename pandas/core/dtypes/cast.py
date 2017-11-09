@@ -610,7 +610,7 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
+    from pandas._libs.tslibs.timedeltas import _coerce_scalar_to_timedelta_type
 
     def conv(r, dtype):
         try:

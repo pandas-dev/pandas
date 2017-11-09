@@ -14,7 +14,8 @@ from pandas.core.computation import expr, ops
 from pandas.core.computation.ops import is_term, UndefinedVariableError
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.common import _ensure_decoded
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
+
+from pandas._libs.tslibs.timedeltas import _coerce_scalar_to_timedelta_type
 
 
 class Scope(expr.Scope):
