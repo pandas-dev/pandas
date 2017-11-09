@@ -37,7 +37,21 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 
 def _maybe_cache(arg, format, cache, tz, _convert_listlike):
-    """Create a cache of unique dates from an array of dates"""
+    """
+    Create a cache of unique dates from an array of dates
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array of dates
+    format : string, strftime to parse time
+    cache: boolean, whether to convert with cache
+    tz: string, timezone of the dates
+    _convert_listlike: function, conversion function to apply on dates
+
+    Returns
+    -------
+    cache_array: Series, cache of converted, unique dates, can be empty
+    """
     from pandas import Series
     cache_array = Series()
     if cache:
@@ -52,7 +66,22 @@ def _maybe_cache(arg, format, cache, tz, _convert_listlike):
 
 
 def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
-    """Convert array of dates with a cache and box the result"""
+    """
+    Convert array of dates with a cache and box the result
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array of dates
+    cache_array: Series, cache of converted, unique dates
+    box: boolean, True boxes result as an Index-like
+    errors: string, 'ignore' plus box=True will convert result to Index
+    tz: string, timezone of the dates
+    name: string, default None. name for a DatetimeIndex
+
+    Returns
+    -------
+    result: Index-like if box=True else array-like of converted dates
+    """
     from pandas import Series, DatetimeIndex, Index
     result = Series(arg).map(cache_array)
     if box:

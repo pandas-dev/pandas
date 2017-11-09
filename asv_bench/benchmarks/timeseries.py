@@ -386,20 +386,35 @@ class ToDatetime(object):
     def time_format_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
 
-    def time_cache_with_unique_seconds_and_unit(self):
-        to_datetime(self.unique_numeric_seconds, unit='s')
+    def time_cache_true_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=True)
 
-    def time_cache_with_dup_seconds_and_unit(self):
-        to_datetime(self.dup_numeric_seconds, unit='s')
+    def time_cache_false_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=False)
 
-    def time_cache_with_dup_string_dates(self):
-        to_datetime(self.dup_string_dates)
+    def time_cache_true_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=True)
 
-    def time_cache_with_dup_string_dates_and_format(self):
-        to_datetime(self.dup_string_dates, format='%Y-%m-%d')
+    def time_cache_false_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=False)
 
-    def time_cache_with_dup_string_tzoffset_dates(self):
-        to_datetime(self.dup_string_with_tz)
+    def time_cache_true_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=True)
+
+    def time_cache_false_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=False)
+
+    def time_cache_true_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=True)
+
+    def time_cache_false_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=False)
+
+    def time_cache_true_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=True)
+
+    def time_cache_false_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=False)
 
 
 class Offsets(object):
