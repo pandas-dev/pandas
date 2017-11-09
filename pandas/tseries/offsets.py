@@ -5,15 +5,19 @@ from pandas import compat
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
-from pandas.core.tools.datetimes import to_datetime, normalize_date
+from pandas.core.tools.datetimes import to_datetime
 from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
-from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+
 from pandas.util._decorators import cache_readonly
 
+from pandas._libs import tslib
+from pandas._libs.tslib import (Timestamp, Timedelta, NaT,
+                                OutOfBoundsDatetime,
+                                normalize_date)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
@@ -49,7 +53,7 @@ def as_timestamp(obj):
         return obj
     try:
         return Timestamp(obj)
-    except (OutOfBoundsDatetime):
+    except OutOfBoundsDatetime:
         pass
     return obj
 
@@ -57,8 +61,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslib.NaT:
-            return tslib.NaT
+        if other is NaT:
+            return NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -86,8 +90,8 @@ def apply_wraps(func):
                 if not isinstance(self, Nano) and result.nanosecond != nano:
                     if result.tz is not None:
                         # convert to UTC
-                        value = tslib.tz_convert_single(
-                            result.value, 'UTC', result.tz)
+                        value = tslib.tz_convert_single(result.value,
+                                                        'UTC', result.tz)
                     else:
                         value = result.value
                     result = Timestamp(value + nano)
@@ -173,6 +177,7 @@ class DateOffset(BaseOffset):
     def apply(self, other):
         if self._use_relativedelta:
             other = as_datetime(other)
+            # TODO: Do we risk losing nanoseconds here?
 
         if len(self.kwds) > 0:
             tzinfo = getattr(other, 'tzinfo', None)
@@ -231,8 +236,8 @@ class DateOffset(BaseOffset):
 
             weeks = (self.kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                i = ((i.to_period('W') + weeks).to_timestamp() +
+                      i.to_perioddelta('W'))
 
             timedelta_kwds = dict((k, v) for k, v in self.kwds.items()
                                   if k in ['days', 'hours', 'minutes',
@@ -1002,12 +1007,12 @@ class SemiMonthOffset(DateOffset):
         if not self.onOffset(other):
             _, days_in_month = tslib.monthrange(other.year, other.month)
             if 1 < other.day < self.day_of_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n > 0:
                     # rollforward so subtract 1
                     n -= 1
             elif self.day_of_month < other.day < days_in_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n < 0:
                     # rollforward in the negative direction so add 1
                     n += 1
@@ -1084,11 +1089,11 @@ class SemiMonthEnd(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n > 0:
                 n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = 1
             else:
@@ -1141,13 +1146,13 @@ class SemiMonthBegin(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = -1
             else:
                 n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = 1
             elif n < 0:
@@ -1227,12 +1232,7 @@ class BusinessMonthBegin(MonthOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        if first_weekday == 5:
-            return dt.day == 3
-        elif first_weekday == 6:
-            return dt.day == 2
-        else:
-            return dt.day == 1
+        return dt.day == _get_firstbday(first_weekday)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
@@ -1965,8 +1965,8 @@ class YearEnd(EndMixin, YearOffset):
                             date.microsecond)
 
         def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
+            if (date.month != self.month or
+                    date.day < tslib.monthrange(date.year, date.month)[1]):
                 date = _increment(date)
             return date
 
@@ -2133,9 +2133,9 @@ class FY5253(DateOffset):
             return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
-        return self.n == 1 \
-            and self.startingMonth is not None \
-            and self.weekday is not None
+        return (self.n == 1 and
+                self.startingMonth is not None and
+                self.weekday is not None)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2145,8 +2145,8 @@ class FY5253(DateOffset):
 
         if self.variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
-            return year_end == dt or \
-                self.get_year_end(dt - relativedelta(months=1)) == dt
+            return (year_end == dt or
+                    self.get_year_end(dt - relativedelta(months=1)) == dt)
         else:
             return year_end == dt
 
@@ -2224,10 +2224,10 @@ class FY5253(DateOffset):
             return self._get_year_end_last(dt)
 
     def get_target_month_end(self, dt):
-        target_month = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
+        target_month = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
         next_month_first_of = target_month + relativedelta(months=+1)
-        return next_month_first_of + relativedelta(days=-1)
+        return next_month_first_of + timedelta(days=-1)
 
     def _get_year_end_nearest(self, dt):
         target_date = self.get_target_month_end(dt)
@@ -2243,8 +2243,8 @@ class FY5253(DateOffset):
                 return backward
 
     def _get_year_end_last(self, dt):
-        current_year = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
+        current_year = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
         return current_year + self._offset_lwom
 
     @property
@@ -2276,17 +2276,15 @@ class FY5253(DateOffset):
         elif varion_code == "L":
             variation = "last"
         else:
-            raise ValueError(
-                "Unable to parse varion_code: {code}".format(code=varion_code))
+            raise ValueError("Unable to parse varion_code: "
+                             "{code}".format(code=varion_code))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
 
-        return {
-            "weekday": weekday,
-            "startingMonth": startingMonth,
-            "variation": variation,
-        }
+        return {"weekday": weekday,
+                "startingMonth": startingMonth,
+                "variation": variation}
 
     @classmethod
     def _from_name(cls, *args):
@@ -2359,10 +2357,9 @@ class FY5253Quarter(DateOffset):
 
     @cache_readonly
     def _offset(self):
-        return FY5253(
-            startingMonth=self.startingMonth,
-            weekday=self.weekday,
-            variation=self.variation)
+        return FY5253(startingMonth=self.startingMonth,
+                      weekday=self.weekday,
+                      variation=self.variation)
 
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
@@ -2382,7 +2379,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other + self._offset)
 
                 for weeks in qtr_lens:
-                    start += relativedelta(weeks=weeks)
+                    start += timedelta(weeks=weeks)
                     if start > other:
                         other = start
                         n -= 1
@@ -2399,7 +2396,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other)
 
                 for weeks in reversed(qtr_lens):
-                    end -= relativedelta(weeks=weeks)
+                    end -= timedelta(weeks=weeks)
                     if end < other:
                         other = end
                         n -= 1
@@ -2442,7 +2439,7 @@ class FY5253Quarter(DateOffset):
 
         current = next_year_end
         for qtr_len in qtr_lens[0:4]:
-            current += relativedelta(weeks=qtr_len)
+            current += timedelta(weeks=qtr_len)
             if dt == current:
                 return True
         return False
@@ -2472,8 +2469,8 @@ class Easter(DateOffset):
     @apply_wraps
     def apply(self, other):
         currentEaster = easter(other.year)
-        currentEaster = datetime(
-            currentEaster.year, currentEaster.month, currentEaster.day)
+        currentEaster = datetime(currentEaster.year,
+                                 currentEaster.month, currentEaster.day)
         currentEaster = tslib._localize_pydatetime(currentEaster, other.tzinfo)
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
