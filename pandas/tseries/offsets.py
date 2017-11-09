@@ -237,7 +237,7 @@ class DateOffset(BaseOffset):
             weeks = (self.kwds.get('weeks', 0)) * self.n
             if weeks:
                 i = ((i.to_period('W') + weeks).to_timestamp() +
-                      i.to_perioddelta('W'))
+                     i.to_perioddelta('W'))
 
             timedelta_kwds = dict((k, v) for k, v in self.kwds.items()
                                   if k in ['days', 'hours', 'minutes',
