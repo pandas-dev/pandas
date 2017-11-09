@@ -29,12 +29,13 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core.indexes.datetimelike import TimelikeOps, DatetimeIndexOpsMixin
-from pandas.core.tools.timedeltas import (
-    to_timedelta, _coerce_scalar_to_timedelta_type)
+
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
-                          join as libjoin, Timedelta, NaT, iNaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+                          join as libjoin, NaT, iNaT)
+from pandas._libs.tslibs.timedeltas import (array_to_timedelta64, to_timedelta,
+                                            _coerce_scalar_to_timedelta_type,
+                                            Timedelta)
 
 
 def _field_accessor(name, alias, docstring=None):

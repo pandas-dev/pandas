@@ -43,39 +43,226 @@ Components = collections.namedtuple('Components', [
     'days', 'hours', 'minutes', 'seconds',
     'milliseconds', 'microseconds', 'nanoseconds'])
 
-cdef dict timedelta_abbrevs = { 'D': 'd',
-                                'd': 'd',
-                                'days': 'd',
-                                'day': 'd',
-                                'hours': 'h',
-                                'hour': 'h',
-                                'hr': 'h',
-                                'h': 'h',
-                                'm': 'm',
-                                'minute': 'm',
-                                'min': 'm',
-                                'minutes': 'm',
-                                's': 's',
-                                'seconds': 's',
-                                'sec': 's',
-                                'second': 's',
-                                'ms': 'ms',
-                                'milliseconds': 'ms',
-                                'millisecond': 'ms',
-                                'milli': 'ms',
-                                'millis': 'ms',
-                                'us': 'us',
-                                'microseconds': 'us',
-                                'microsecond': 'us',
-                                'micro': 'us',
-                                'micros': 'us',
-                                'ns': 'ns',
-                                'nanoseconds': 'ns',
-                                'nano': 'ns',
-                                'nanos': 'ns',
-                                'nanosecond': 'ns'}
+cdef dict timedelta_abbrevs = {'D': 'd',
+                               'd': 'd',
+                               'days': 'd',
+                               'day': 'd',
+                               'hours': 'h',
+                               'hour': 'h',
+                               'hr': 'h',
+                               'h': 'h',
+                               'm': 'm',
+                               'minute': 'm',
+                               'min': 'm',
+                               'minutes': 'm',
+                               's': 's',
+                               'seconds': 's',
+                               'sec': 's',
+                               'second': 's',
+                               'ms': 'ms',
+                               'milliseconds': 'ms',
+                               'millisecond': 'ms',
+                               'milli': 'ms',
+                               'millis': 'ms',
+                               'us': 'us',
+                               'microseconds': 'us',
+                               'microsecond': 'us',
+                               'micro': 'us',
+                               'micros': 'us',
+                               'ns': 'ns',
+                               'nanoseconds': 'ns',
+                               'nano': 'ns',
+                               'nanos': 'ns',
+                               'nanosecond': 'ns'}
 
 _no_input = object()
+
+_unit_map = {'Y': 'Y',
+             'y': 'Y',
+             'W': 'W',
+             'w': 'W',
+             'D': 'D',
+             'd': 'D',
+             'days': 'D',
+             'Days': 'D',
+             'day': 'D',
+             'Day': 'D',
+             'M': 'M',
+             'H': 'h',
+             'h': 'h',
+             'm': 'm',
+             'T': 'm',
+             'S': 's',
+             's': 's',
+             'L': 'ms',
+             'MS': 'ms',
+             'ms': 'ms',
+             'US': 'us',
+             'us': 'us',
+             'NS': 'ns',
+             'ns': 'ns'}
+
+# ----------------------------------------------------------------------
+# Top-Level API
+
+
+def to_timedelta(arg, unit='ns', box=True, errors='raise'):
+    """
+    Convert argument to timedelta
+
+    Parameters
+    ----------
+    arg : string, timedelta, list, tuple, 1-d array, or Series
+    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an
+        integer/float number
+    box : boolean, default True
+        - If True returns a Timedelta/TimedeltaIndex of the results
+        - if False returns a np.timedelta64 or ndarray of values of dtype
+          timedelta64[ns]
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
+
+    Returns
+    -------
+    ret : timedelta64/arrays of timedelta64 if parsing succeeded
+
+    Examples
+    --------
+
+    Parsing a single string to a Timedelta:
+
+    >>> pd.to_timedelta('1 days 06:05:01.00003')
+    Timedelta('1 days 06:05:01.000030')
+    >>> pd.to_timedelta('15.5us')
+    Timedelta('0 days 00:00:00.000015')
+
+    Parsing a list or array of strings:
+
+    >>> pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015', NaT],
+                   dtype='timedelta64[ns]', freq=None)
+
+    Converting numbers by specifying the `unit` keyword argument:
+
+    >>> pd.to_timedelta(np.arange(5), unit='s')
+    TimedeltaIndex(['00:00:00', '00:00:01', '00:00:02',
+                    '00:00:03', '00:00:04'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> pd.to_timedelta(np.arange(5), unit='d')
+    TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq=None)
+
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_datetime : Convert argument to datetime.
+    """
+    unit = _validate_timedelta_unit(unit)
+
+    if errors not in ('ignore', 'raise', 'coerce'):
+        raise ValueError("errors must be one of 'ignore', "
+                         "'raise', or 'coerce'}")
+
+    if arg is None:
+        return arg
+
+    typ = getattr(arg, '_typ', None)
+    ndim = getattr(arg, 'ndim', 1)
+
+    if typ == 'series':
+        values = _convert_listlike(arg._values, unit=unit,
+                                   box=False, errors=errors)
+        from pandas import Series
+        return Series(values, index=arg.index, name=arg.name)
+    elif typ and 'index' in typ:
+        return _convert_listlike(arg, unit=unit, box=box,
+                                 errors=errors, name=arg.name)
+    elif is_string_object(arg):
+        pass
+    elif hasattr(arg, '__iter__') and ndim == 0:
+        # extract array scalar and process below
+        arg = arg.item()
+    elif hasattr(arg, '__iter__') and ndim == 1:
+        return _convert_listlike(arg, unit=unit, box=box, errors=errors)
+    elif ndim > 1:
+        raise TypeError('arg must be a string, timedelta, list, tuple, '
+                        '1-d array, or Series')
+
+    # ...so it must be a scalar value. Return scalar.
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit,
+                                            box=box, errors=errors)
+
+
+def _validate_timedelta_unit(arg):
+    """ provide validation / translation for timedelta short units """
+    try:
+        return _unit_map[arg]
+    except:
+        if arg is None:
+            return 'ns'
+        raise ValueError("invalid timedelta unit {arg} "
+                         "provided".format(arg=arg))
+
+
+def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
+    """Convert string 'r' to a timedelta object."""
+
+    try:
+        result = convert_to_timedelta64(r, unit)
+    except ValueError:
+        if errors == 'raise':
+            raise
+        elif errors == 'ignore':
+            return r
+
+        # coerce
+        result = NaT
+
+    if box:
+        result = Timedelta(result)
+    return result
+
+
+def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
+    """Convert a list of objects to a timedelta index object."""
+
+    if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
+        arg = np.array(list(arg), dtype='O')
+
+    # these are shortcut-able
+    if arg.dtype.kind == 'm':
+        # Any variant of timedelta64 dtype
+        value = arg.astype('timedelta64[ns]')
+    elif arg.dtype.kind in ['i', 'u']:
+        # Any integer dtype, specifically excluding datetime64
+        in_dtype = 'timedelta64[{unit}]'.format(unit=unit)
+        value = arg.astype(in_dtype).astype('timedelta64[ns]', copy=False)
+    else:
+        from pandas._libs.algos import ensure_object
+        try:
+            value = array_to_timedelta64(ensure_object(arg),
+                                         unit=unit, errors=errors)
+            value = value.astype('timedelta64[ns]', copy=False)
+        except ValueError:
+            if errors == 'ignore':
+                return arg
+            else:
+                # This else-block accounts for the cases when errors='raise'
+                # and errors='coerce'. If errors == 'raise', these errors
+                # should be raised. If errors == 'coerce', we shouldn't
+                # expect any errors to be raised, since all parsing errors
+                # cause coercion to pd.NaT. However, if an error / bug is
+                # introduced that causes an Exception to be raised, we would
+                # like to surface it.
+                raise
+
+    if box:
+        from pandas import TimedeltaIndex
+        value = TimedeltaIndex(value, unit='ns', name=name)
+    return value
+
 
 # ----------------------------------------------------------------------
 
@@ -916,7 +1103,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif util.is_string_object(value):
+        elif is_string_object(value):
             value = np.timedelta64(parse_timedelta_string(value))
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
@@ -926,7 +1113,7 @@ class Timedelta(_Timedelta):
             value = value.astype('timedelta64[ns]')
         elif hasattr(value, 'delta'):
             value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
-        elif is_integer_object(value) or util.is_float_object(value):
+        elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)
         elif _checknull_with_nat(value):
