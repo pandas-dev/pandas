@@ -50,7 +50,7 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
     'pandas_version': $VERSION}
 
 Here, ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
-for each column. This has JSON form:
+for each column, *including the index columns*. This has JSON form:
 
 .. code-block:: text
 
@@ -58,6 +58,26 @@ for each column. This has JSON form:
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
     'metadata': metadata}
+
+.. note::
+
+   The last ``N`` values of ``metadata['columns']``, where ``N =
+   len(metadata['index_columns'])``, contain information about the row indexes,
+   including the name of the index level and type information.
+
+   Every index column is stored with a name matching the pattern
+   ``__index_level_\d+__`` and its corresponding column information is can be
+   found with the following code snippet.
+
+    .. code-block:: python
+
+       # assuming there's at least 3 levels in the index
+       index_columns = metadata['index_columns']
+       columns = metadata['columns']
+       ith_index = 2
+       assert index_columns[ith_index] == '__index_level_2__'
+       ith_index_info = columns[-len(index_columns):][ith_index]
+       ith_index_level_name = ith_index_info['name']
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
