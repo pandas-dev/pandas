@@ -3,7 +3,8 @@ from decimal import Decimal
 cimport util
 cimport cython
 from tslibs.nattype import NaT
-from tslib cimport convert_to_tsobject, convert_to_timedelta64
+from tslib cimport convert_to_tsobject
+from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
@@ -521,7 +522,7 @@ cpdef object infer_datetimelike_array(object arr):
     # convert *every* string array
     if len(objs):
         try:
-            tslib.array_to_datetime(objs, errors='raise')
+            array_to_datetime(objs, errors='raise')
             return 'datetime'
         except:
             pass

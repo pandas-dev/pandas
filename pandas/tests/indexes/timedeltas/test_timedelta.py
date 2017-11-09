@@ -50,66 +50,6 @@ class TestTimedeltaIndex(DatetimeLike):
                                    '10 days 01:00:03'], freq='D')
         tm.assert_index_equal(result, expected)
 
-    def test_get_loc(self):
-        idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
-
-        for method in [None, 'pad', 'backfill', 'nearest']:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].to_pytimedelta(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
-
-        assert idx.get_loc(idx[1], 'pad',
-                           tolerance=pd.Timedelta(0)) == 1
-        assert idx.get_loc(idx[1], 'pad',
-                           tolerance=np.timedelta64(0, 's')) == 1
-        assert idx.get_loc(idx[1], 'pad',
-                           tolerance=timedelta(0)) == 1
-
-        with tm.assert_raises_regex(ValueError,
-                                    'unit abbreviation w/o a number'):
-            idx.get_loc(idx[1], method='nearest', tolerance='foo')
-
-        with pytest.raises(
-                ValueError,
-                match='tolerance size must match'):
-            idx.get_loc(idx[1], method='nearest',
-                        tolerance=[Timedelta(0).to_timedelta64(),
-                                   Timedelta(0).to_timedelta64()])
-
-        for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
-            assert idx.get_loc('1 day 1 hour', method) == loc
-
-        # GH 16909
-        assert idx.get_loc(idx[1].to_timedelta64()) == 1
-
-        # GH 16896
-        assert idx.get_loc('0 days') == 0
-
-    def test_get_loc_nat(self):
-        tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
-
-        assert tidx.get_loc(pd.NaT) == 1
-        assert tidx.get_loc(None) == 1
-        assert tidx.get_loc(float('nan')) == 1
-        assert tidx.get_loc(np.nan) == 1
-
-    def test_get_indexer(self):
-        idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
-        tm.assert_numpy_array_equal(idx.get_indexer(idx),
-                                    np.array([0, 1, 2], dtype=np.intp))
-
-        target = pd.to_timedelta(['-1 hour', '12 hours', '1 day 1 hour'])
-        tm.assert_numpy_array_equal(idx.get_indexer(target, 'pad'),
-                                    np.array([-1, 0, 1], dtype=np.intp))
-        tm.assert_numpy_array_equal(idx.get_indexer(target, 'backfill'),
-                                    np.array([0, 1, 2], dtype=np.intp))
-        tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest'),
-                                    np.array([0, 1, 1], dtype=np.intp))
-
-        res = idx.get_indexer(target, 'nearest',
-                              tolerance=pd.Timedelta('1 hour'))
-        tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
-
     def test_pickle_compat_construction(self):
         pass
 
@@ -143,53 +83,6 @@ class TestTimedeltaIndex(DatetimeLike):
         expected = TimedeltaIndex(["0 days", "1 days"], freq=None)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
-
-    def test_take(self):
-
-        tds = ['1day 02:00:00', '1 day 04:00:00', '1 day 10:00:00']
-        idx = TimedeltaIndex(start='1d', end='2d', freq='H', name='idx')
-        expected = TimedeltaIndex(tds, freq=None, name='idx')
-
-        taken1 = idx.take([2, 4, 10])
-        taken2 = idx[[2, 4, 10]]
-
-        for taken in [taken1, taken2]:
-            tm.assert_index_equal(taken, expected)
-            assert isinstance(taken, TimedeltaIndex)
-            assert taken.freq is None
-            assert taken.name == expected.name
-
-    def test_take_fill_value(self):
-        # GH 12631
-        idx = pd.TimedeltaIndex(['1 days', '2 days', '3 days'],
-                                name='xxx')
-        result = idx.take(np.array([1, 0, -1]))
-        expected = pd.TimedeltaIndex(['2 days', '1 days', '3 days'],
-                                     name='xxx')
-        tm.assert_index_equal(result, expected)
-
-        # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
-        expected = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'],
-                                     name='xxx')
-        tm.assert_index_equal(result, expected)
-
-        # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
-                          fill_value=True)
-        expected = pd.TimedeltaIndex(['2 days', '1 days', '3 days'],
-                                     name='xxx')
-        tm.assert_index_equal(result, expected)
-
-        msg = ('When allow_fill=True and fill_value is not None, '
-               'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
-
-        with pytest.raises(IndexError):
-            idx.take(np.array([1, -5]))
 
     def test_isin(self):
 
