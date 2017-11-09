@@ -503,7 +503,9 @@ class Window(_Window):
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
 
-    If ``win_type=None`` a boxcar window is used.
+    If ``win_type=None`` a boxcar window is used. To learn more about different
+    window types see `scipy.signal window funcitons
+    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
     """
 
     def validate(self):
