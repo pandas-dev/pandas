@@ -225,8 +225,8 @@ munging and cleaning data, analyzing / modeling it, then organizing the results
 of the analysis into a form suitable for plotting or tabular display. pandas is
 the ideal tool for all of these tasks.
 
-Note
-----
+Notes
+-----
 Windows binaries built against NumPy 1.8.1
 """
 
@@ -532,6 +532,7 @@ ext_data = {
         'pyxfile': '_libs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
+                     '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
@@ -582,7 +583,8 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/conversion']},
+                     '_libs/tslibs/conversion',
+                     '_libs/tslibs/frequencies']},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'include': numpy_incls},
@@ -593,7 +595,10 @@ ext_data = {
                      '_libs/tslibs/np_datetime']},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
-        'pxdfiles': ['_libs/src/util']},
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/nattype'],
+        'depends': np_datetime_headers,
+        'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
@@ -747,6 +752,7 @@ setup(name=DISTNAME,
                 'pandas.tests.computation',
                 'pandas.tests.sparse',
                 'pandas.tests.frame',
+                'pandas.tests.generic',
                 'pandas.tests.indexing',
                 'pandas.tests.indexes',
                 'pandas.tests.indexes.datetimes',

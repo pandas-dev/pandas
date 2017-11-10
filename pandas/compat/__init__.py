@@ -381,17 +381,20 @@ If traceback is not passed, uses sys.exc_info() to get traceback."""
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
-from dateutil import parser as _date_parser
 import dateutil
+
+if PY2 and LooseVersion(dateutil.__version__) == '2.0':
+    # dateutil brokenness
+    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
+    'install version 1.5 or 2.1+!')
+
+from dateutil import parser as _date_parser
 if LooseVersion(dateutil.__version__) < '2.0':
+
     @functools.wraps(_date_parser.parse)
     def parse_date(timestr, *args, **kwargs):
         timestr = bytes(timestr)
         return _date_parser.parse(timestr, *args, **kwargs)
-elif PY2 and LooseVersion(dateutil.__version__) == '2.0':
-    # dateutil brokenness
-    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                    'install version 1.5 or 2.1+!')
 else:
     parse_date = _date_parser.parse
 
