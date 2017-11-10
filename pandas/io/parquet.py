@@ -78,7 +78,8 @@ class PyArrowImpl(object):
 
     def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.parquet.read_table(path, columns=columns, **kwargs).to_pandas()
+        return self.api.parquet.read_table(path, columns=columns,
+                                           **kwargs).to_pandas()
 
 
 class FastParquetImpl(object):
