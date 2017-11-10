@@ -1891,7 +1891,7 @@ class BYearEnd(YearOffset):
                     (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = shift_month(other, 12*years, None)
+        other = shift_month(other, 12 * years, None)
 
         _, days_in_month = tslib.monthrange(other.year, self.month)
         result = datetime(other.year, self.month, days_in_month,
@@ -1929,7 +1929,7 @@ class BYearBegin(YearOffset):
                 years += 1
 
         # set first bday for result
-        other = shift_month(other, years*12, None)
+        other = shift_month(other, years * 12, None)
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
         first = _get_firstbday(wkday)
         return datetime(other.year, self.month, first, other.hour,
