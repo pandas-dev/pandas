@@ -366,13 +366,18 @@ class TestGrouping(MixIn):
         result = df.groupby(('b', 1)).groups
         tm.assert_dict_equal(expected, result)
 
-        df2 = pd.DataFrame([[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+        df2 = pd.DataFrame(df.values,
                            columns=pd.MultiIndex.from_arrays(
                                [['a', 'b', 'b', 'c'],
                                 ['d', 'd', 'e', 'e']]))
-        df2.groupby([('b', 'd')]).groups
-        expected = df.groupby([('b', 'd')]).groups
-        result = df.groupby(('b', 'd')).groups
+        expected = df2.groupby([('b', 'd')]).groups
+        result = df.groupby(('b', 1)).groups
+        tm.assert_dict_equal(expected, result)
+
+        df3 = pd.DataFrame(df.values,
+                           columns=[('a', 'd'), ('b', 'd'), ('b', 'e'), 'c'])
+        expected = df3.groupby([('b', 'd')]).groups
+        result = df.groupby(('b', 1)).groups
         tm.assert_dict_equal(expected, result)
 
     @pytest.mark.parametrize('sort', [True, False])
