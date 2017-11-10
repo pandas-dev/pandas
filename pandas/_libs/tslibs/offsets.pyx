@@ -317,26 +317,11 @@ class EndMixin(object):
 def __unpickle():
     return
 
+
 class PickleMixin(object):
     """Handle issues with backwards compat related to making DateOffset
     immutable.
     """
-    '''
-    def __reduce__(self):
-        # We need to define this explicitly or else pickle tests fail
-        wlist_attrs = tuple(getattr(self, name) for name in sorted(self.kwds))
-        tup = (self.n, self.normalize,) + wlist_attrs
-        return (self.__class__, tup)
-        # FIXME: Isn't this going to screw up on DateOffset?
-
-
-    def __reduce_ex__(self, protocol):
-        # python 3.6 compat
-        # http://bugs.python.org/issue28730
-        # now __reduce_ex__ is defined and higher priority than __reduce__
-        return self.__reduce__()
-
-    '''
 
     def __getstate__(self):
         """Return a pickleable state"""
