@@ -314,10 +314,6 @@ class EndMixin(object):
         return base + off
 
 
-def __unpickle():
-    return
-
-
 class PickleMixin(object):
     """Handle issues with backwards compat related to making DateOffset
     immutable.
