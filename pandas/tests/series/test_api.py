@@ -334,6 +334,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert s._get_axis_number('rows') == 0
         assert s._get_axis_name('rows') == 'index'
 
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        Series.index  # no exception!
+
     def test_numpy_unique(self):
         # it works!
         np.unique(self.ts)
