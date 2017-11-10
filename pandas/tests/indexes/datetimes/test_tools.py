@@ -414,7 +414,8 @@ class TestToDatetime(object):
         date = '20130101 00:00:00'
         test_dates = [date] * 10**5
         data = constructor(test_dates)
-        result = pd.to_datetime(data, utc=utc, format=format, box=box)
+        result = pd.to_datetime(data, utc=utc, format=format, box=box,
+                                cache=True)
         expected = pd.to_datetime(data, utc=utc, format=format, box=box,
                                   cache=False)
         if box:

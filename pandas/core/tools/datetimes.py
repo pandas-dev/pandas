@@ -36,21 +36,26 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-def _maybe_cache(arg, format, cache, tz, _convert_listlike):
+def _maybe_cache(arg, format, cache, tz, convert_listlike):
     """
     Create a cache of unique dates from an array of dates
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array of dates
-    format : string, strftime to parse time
-    cache: boolean, whether to convert with cache
-    tz: string, timezone of the dates
-    _convert_listlike: function, conversion function to apply on dates
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    format : string
+        Strftime format to parse time
+    cache : boolean
+        True attempts to create a cache of converted values
+    tz : string
+        Timezone of the dates
+    convert_listlike : function
+        Conversion function to apply on dates
 
     Returns
     -------
-    cache_array: Series, cache of converted, unique dates, can be empty
+    cache_array : Series
+        Cache of converted, unique dates. Can be empty
     """
     from pandas import Series
     cache_array = Series()
@@ -59,37 +64,43 @@ def _maybe_cache(arg, format, cache, tz, _convert_listlike):
         from pandas import Index
         if not Index(arg).is_unique:
             unique_dates = algorithms.unique(arg)
-            cache_dates = _convert_listlike(unique_dates, True, format,
-                                            tz=tz)
+            cache_dates = convert_listlike(unique_dates, True, format, tz=tz)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
 
-def _convert_and_box_cache(arg, cache_array, box, errors, tz, name=None):
+def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     """
     Convert array of dates with a cache and box the result
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array of dates
-    cache_array: Series, cache of converted, unique dates
-    box: boolean, True boxes result as an Index-like
-    errors: string, 'ignore' plus box=True will convert result to Index
-    tz: string, timezone of the dates
-    name: string, default None. name for a DatetimeIndex
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    cache_array : Series
+        Cache of converted, unique dates
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+    errors : string
+        'ignore' plus box=True will convert result to Index
+    name : string, default None
+        Name for a DatetimeIndex
 
     Returns
     -------
-    result: Index-like if box=True else array-like of converted dates
+    result : datetime of converted dates 
+        Returns:
+
+        - Index-like if box=True 
+        - ndarray if box=False
     """
     from pandas import Series, DatetimeIndex, Index
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            result = Index(result)
+            return Index(result)
         else:
-            result = DatetimeIndex(result, tz=tz, name=name)
-    return result
+            return DatetimeIndex(result, name=name)
+    return result.values
 
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
@@ -443,14 +454,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors, tz,
+            result = _convert_and_box_cache(arg, cache_array, box, errors,
                                             name=arg.name)
         else:
             result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors, tz)
+            result = _convert_and_box_cache(arg, cache_array, box, errors)
         else:
             result = _convert_listlike(arg, box, format)
     else:
