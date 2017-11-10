@@ -78,7 +78,7 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
-- Add requirement for 1-dimensional ndarrays in ``pd.qcut`` docstring (:issue:`18173`)
+-
 -
 -
 
