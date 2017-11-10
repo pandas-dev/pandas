@@ -379,7 +379,7 @@ cdef class _BaseOffset(object):
         int64_t n
         bint normalize
 
-    def __init__(self, n, normalize):
+    def __init__(self, n=1, normalize=False):
         self.n = n
         self.normalize = normalize
 
@@ -430,17 +430,19 @@ cdef class _BaseOffset(object):
             state['normalize'] = False
 
         if 'offset' in state:
-            # Older versions have offset attribute instead of _offset
+            # Older versions Business offsets have offset attribute
+            # instead of _offset
             if '_offset' in state:  # pragma: no cover
                 raise ValueError('Unexpected key `_offset`')
             state['_offset'] = state.pop('offset')
             state['kwds']['offset'] = state['_offset']
         
-        self.n = state.pop('n')
-        self.normalize = state.pop('normalize')
+        self.n = state.pop('n', 1)
+        self.normalize = state.pop('normalize', False)
         self.__dict__ = state
 
         if 'weekmask' in state and 'holidays' in state:
+            # Business subclasses
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
                                                holidays=self.holidays,
                                                calendar=None)
