@@ -4,7 +4,7 @@
 cimport cython
 
 import time
-from cpython.datetime cimport timedelta, time as dt_time
+from cpython.datetime cimport datetime, timedelta, time as dt_time
 
 from dateutil.relativedelta import relativedelta
 
@@ -15,7 +15,7 @@ np.import_array()
 
 from util cimport is_string_object
 
-from pandas._libs.tslib import pydt_to_i8
+from pandas._libs.tslib import pydt_to_i8, monthrange
 
 from frequencies cimport get_freq_code
 from conversion cimport tz_convert_single
@@ -375,3 +375,31 @@ class BaseOffset(_BaseOffset):
             # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
             return other - self
         return -self + other
+
+
+# ----------------------------------------------------------------------
+# RelativeDelta Arithmetic
+
+
+cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+    cdef:
+        int year, month, day
+        int dim, dy
+
+    (dy, month) = divmod(stamp.month + months, 12)
+    if month == 0:
+        month = 12
+        dy -= 1
+    year = stamp.year + dy
+
+    dim = monthrange(year, month)[1]
+    if day_opt is None:
+        day = min(stamp.day, dim)
+    elif day_opt == 'start':
+        day = 1
+    elif day_opt == 'end':
+        day = dim
+    else:
+        # assume this is an integer (and a valid day)
+        day = min(day_opt, dim)
+    return stamp.replace(year=year, month=month, day=day)
