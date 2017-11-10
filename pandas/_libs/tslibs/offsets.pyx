@@ -236,6 +236,7 @@ def _validate_weekday(weekday, allow_none=False):
         raise ValueError("weekday must be 0<=weekday<=6, got "
                          "{day}".format(day=weekday))
 
+
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
