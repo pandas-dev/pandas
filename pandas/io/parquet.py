@@ -25,6 +25,10 @@ def get_engine(engine):
         except ImportError:
             pass
 
+        raise ImportError("unable to find a usable engine\n"
+                          "tried using: pyarrow, fastparquet\n\n"
+                          + PyArrowImpl.PYARROW_INSTALL_INSTRUCTIONS)
+
     if engine not in ['pyarrow', 'fastparquet']:
         raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
@@ -35,6 +39,10 @@ def get_engine(engine):
 
 
 class PyArrowImpl(object):
+    PYARROW_INSTALL_INSTRUCTIONS = ("you can install pyarrow via conda\n"
+                                    "conda install pyarrow -c conda-forge\n"
+                                    "\nor via pip\n"
+                                    "pip install -U pyarrow\n")
 
     def __init__(self):
         # since pandas is a dependency of pyarrow
@@ -45,18 +53,11 @@ class PyArrowImpl(object):
             import pyarrow.parquet
         except ImportError:
             raise ImportError("pyarrow is required for parquet support\n\n"
-                              "you can install via conda\n"
-                              "conda install pyarrow -c conda-forge\n"
-                              "\nor via pip\n"
-                              "pip install -U pyarrow\n")
+                              + PYARROW_INSTALL_INSTRUCTIONS)
 
         if LooseVersion(pyarrow.__version__) < LooseVersion('0.4.1'):
             raise ImportError("pyarrow >= 0.4.1 is required for parquet"
-                              "support\n\n"
-                              "you can install via conda\n"
-                              "conda install pyarrow -c conda-forge\n"
-                              "\nor via pip\n"
-                              "pip install -U pyarrow\n")
+                              "support\n\n" + PYARROW_INSTALL_INSTRUCTIONS)
 
         self._pyarrow_lt_050 = (LooseVersion(pyarrow.__version__) <
                                 LooseVersion('0.5.0'))
