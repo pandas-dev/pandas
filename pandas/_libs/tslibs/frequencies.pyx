@@ -20,7 +20,7 @@ _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 
 # hack to handle WOM-1MON
 opattern = re.compile(
-    r'([\-]?\d*|[\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
+    r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
 
 _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
