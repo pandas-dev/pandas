@@ -260,6 +260,7 @@ class Categorical(PandasObject):
         #    c.) infer from values
 
         if dtype is not None:
+            # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, compat.string_types):
                 if dtype == 'category':
                     dtype = CategoricalDtype(categories, ordered)
@@ -274,9 +275,12 @@ class Categorical(PandasObject):
             ordered = dtype.ordered
 
         elif is_categorical(values):
+            # If no "dtype" was passed, use the one from "values", but honor
+            # the "ordered" and "categories" arguments
             dtype = values.dtype._from_categorical_dtype(values.dtype,
                                                          categories, ordered)
         else:
+            # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
 
         # At this point, dtype is always a CategoricalDtype
