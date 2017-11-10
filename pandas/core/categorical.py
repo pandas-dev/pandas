@@ -309,8 +309,8 @@ class Categorical(PandasObject):
             # we'll do inference later
             pass
         elif getattr(values, 'ndim', 0) > 1:
-            raise TypeError("> 1 ndim Categorical are not "
-                            "supported at this time")
+            raise NotImplementedError("> 1 ndim Categorical are not "
+                                      "supported at this time")
 
         else:
 
@@ -2335,7 +2335,7 @@ def _factorize_from_iterable(values):
                                       ordered=values.ordered)
         codes = values.codes
     elif getattr(values, 'ndim', 0) > 1:
-        raise TypeError('Factorizing DataFrame is not supported.')
+        raise NotImplementedError('Factorizing DataFrame is not supported.')
     else:
         cat = Categorical(values, ordered=True)
         categories = cat.categories

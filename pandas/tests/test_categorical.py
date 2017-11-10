@@ -176,7 +176,7 @@ class TestCategorical(object):
     def test_constructor_dataframe_error(self):
         # GH#17112
         df = pd.DataFrame(np.random.randn(3, 2), columns=['A', 'B'])
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             Categorical(df)
 
     def test_constructor_interval(self):
