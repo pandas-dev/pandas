@@ -314,31 +314,6 @@ class EndMixin(object):
         return base + off
 
 
-class PickleMixin(object):
-    """Handle issues with backwards compat related to making DateOffset
-    immutable.
-    """
-
-    def __getstate__(self):
-        """Return a pickleable state"""
-        state = self.__dict__.copy()
-
-        # Add attributes from the C base class that aren't in self.__dict__
-        state['n'] = self.n
-        state['normalize'] = self.normalize
-
-        # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
-        if 'calendar' in state:
-            del state['calendar']
-        try:
-            state['kwds'].pop('calendar')
-        except KeyError:
-            pass
-
-        return state
-
-
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
     pass
@@ -431,8 +406,27 @@ cdef class _BaseOffset(object):
             self.kwds['holidays'] = self.holidays = holidays
             self.kwds['weekmask'] = state['weekmask']
 
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
 
-class BaseOffset(_BaseOffset, PickleMixin):
+        # Add attributes from the C base class that aren't in self.__dict__
+        state['n'] = self.n
+        state['normalize'] = self.normalize
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
+
+class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
     def __rmul__(self, someInt):
         return self.__mul__(someInt)
