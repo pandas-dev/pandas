@@ -1424,5 +1424,5 @@ def test_comparison_catches_system_error():
     # of IncompatibleFrequency
     per1 = pd.Period('2014Q1')
     per2 = pd.Period('2015', freq='A')
-    with pytest.raises(IncompatibleFrequency):
+    with pytest.raises(period.IncompatibleFrequency):
         per1 < per2
