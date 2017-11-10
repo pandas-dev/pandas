@@ -9,7 +9,7 @@ from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
 
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCIndexClass, ABCCategoricalIndex)
+    ABCSeries, ABCIndexClass, ABCCategoricalIndex)
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
@@ -308,7 +308,7 @@ class Categorical(PandasObject):
         elif isinstance(values, (ABCIndexClass, ABCSeries)):
             # we'll do inference later
             pass
-        elif isinstance(values, ABCDataFrame):
+        elif getattr(values, 'ndim', 0) > 1:
             raise TypeError("> 1 ndim Categorical are not "
                             "supported at this time")
 
@@ -2334,7 +2334,7 @@ def _factorize_from_iterable(values):
                                       categories=values.categories,
                                       ordered=values.ordered)
         codes = values.codes
-    elif isinstance(values, ABCDataFrame):
+    elif getattr(values, 'ndim', 0) > 1:
         raise TypeError('Factorizing DataFrame is not supported.')
     else:
         cat = Categorical(values, ordered=True)
