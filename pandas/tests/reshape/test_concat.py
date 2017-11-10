@@ -1983,3 +1983,21 @@ def test_concat_will_upcast(dt, pdt):
                pdt(np.array([5], dtype=dt, ndmin=dims))]
         x = pd.concat(dfs)
         assert x.values.dtype == 'float64'
+
+
+def test_concat_empty_and_non_empty_frame_regression():
+    # GH 18178 regression test
+    df1 = pd.DataFrame({'foo': [1]})
+    df2 = pd.DataFrame({'foo': []})
+    expected = pd.DataFrame({'foo': [1.0]})
+    result = pd.concat([df1, df2])
+    assert_frame_equal(result, expected)
+
+
+def test_concat_empty_and_non_empty_series_regression():
+    # GH 18187 regression test
+    s1 = pd.Series([1])
+    s2 = pd.Series([])
+    expected = s1
+    result = pd.concat([s1, s2])
+    tm.assert_series_equal(result, expected)
