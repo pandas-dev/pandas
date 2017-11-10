@@ -749,7 +749,7 @@ class MPLPlot(object):
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
-            msg = "No valid %s detected" % label
+            msg = "No valid {label} detected".format(label=label)
             raise ValueError(msg)
 
         return err
@@ -1414,7 +1414,7 @@ class KdePlot(HistPlot):
             gkde = gaussian_kde(y)
             if bw_method is not None:
                 msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is %s.' % spv)
+                       ' Scipy version in use is {spv}.'.format(spv=spv))
                 warnings.warn(msg)
 
         y = gkde.evaluate(ind)
@@ -2452,7 +2452,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         result = axes
 
     byline = by[0] if len(by) == 1 else by
-    fig.suptitle('Boxplot grouped by %s' % byline)
+    fig.suptitle('Boxplot grouped by {byline}'.format(byline=byline))
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result

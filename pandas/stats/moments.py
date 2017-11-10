@@ -458,7 +458,7 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     if how is None:
         how_arg_str = 'None'
     else:
-        how_arg_str = "'%s" % how
+        how_arg_str = "'{how}".format(how=how)
 
     @Substitution(desc, _unary_arg, _roll_kw % how_arg_str + additional_kw,
                   _type_of_input_retval, _roll_notes)

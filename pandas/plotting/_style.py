@@ -131,7 +131,8 @@ class _Options(dict):
         self._warn_if_deprecated()
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError('%s is not a valid pandas plotting option' % key)
+            raise ValueError(
+                '{key} is not a valid pandas plotting option'.format(key=key))
         return super(_Options, self).__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -142,7 +143,8 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError('Cannot remove default parameter %s' % key)
+            raise ValueError(
+                'Cannot remove default parameter {key}'.format(key=key))
         return super(_Options, self).__delitem__(key)
 
     def __contains__(self, key):
