@@ -62,6 +62,7 @@ def load_reduce(self):
             except:
                 pass
 
+
         # unknown exception, re-raise
         if getattr(self, 'is_verbose', None):
             print(sys.exc_info())

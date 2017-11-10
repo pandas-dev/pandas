@@ -23,8 +23,7 @@ from pandas._libs.tslibs.offsets import (
     _determine_offset,
     apply_index_wraps,
     BeginMixin, EndMixin,
-    BaseOffset,
-    BusinessMixin as _BusinessMixin)
+    BaseOffset)
 
 import functools
 import operator
@@ -157,13 +156,7 @@ class DateOffset(BaseOffset):
 
     Since 0 is a bit weird, we suggest avoiding its use.
     """
-    _use_relativedelta = False
     _adjust_dst = False
-
-    # default for prior pickles
-    # normalize = False
-    # FIXME: without commenting this out, all
-    # DateOffsets get initialized with normalize=False, regardless of kwarg
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
@@ -415,7 +408,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class BusinessMixin(_BusinessMixin):
+class BusinessMixin(object):
     """ mixin to business types to provide related functions """
 
     @property

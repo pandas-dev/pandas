@@ -314,11 +314,6 @@ class EndMixin(object):
         return base + off
 
 
-class BusinessMixin(object):
-    """ mixin to business types to provide related functions """
-    pass
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 @cython.auto_pickle(False)
@@ -384,6 +379,8 @@ cdef class _BaseOffset(object):
             # default for prior pickles
             # See GH #7748, #7789
             state['normalize'] = False
+        if '_use_relativedelta' not in state:
+            state['_use_relativedelta'] = False
 
         if 'offset' in state:
             # Older versions Business offsets have offset attribute
