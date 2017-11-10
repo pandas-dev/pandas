@@ -635,10 +635,6 @@ strings and apply several methods to it. These can be accessed like
        Series.cat
        Series.dt
        Index.str
-       MultiIndex.str
-       DatetimeIndex.str
-       TimedeltaIndex.str
-
 
 .. _api.categorical:
 
@@ -1321,7 +1317,7 @@ Time series-related
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
+.. /eautosummary::
    :toctree: generated/
 
    Panel.from_dict
@@ -1359,10 +1355,14 @@ Attributes
    Index.is_monotonic_decreasing
    Index.is_unique
    Index.has_duplicates
+   Index.has_nans
    Index.dtype
+   Index.dtype_str
    Index.inferred_type
    Index.is_all_dates
    Index.shape
+   Index.name
+   Index.names
    Index.nbytes
    Index.ndim
    Index.size
@@ -1389,11 +1389,26 @@ Modifying and Computations
    Index.duplicated
    Index.equals
    Index.factorize
+   Index.format
+   Index.groupby
+   Index.holds_integer
    Index.identical
    Index.insert
+   Index.is_
+   Index.is_boolean
+   Index.is_categorical
+   Index.is_floating
+   Index.is_integer
+   Index.is_interval
+   Index.is_lexsorted_for_tuple
+   Index.is_mixed
+   Index.is_numeric
+   Index.is_object
+   Index.is_type_compatible
    Index.min
    Index.max
    Index.reindex
+   Index.rename
    Index.repeat
    Index.where
    Index.take
@@ -1402,6 +1417,8 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
+   Index.T
+   Index.transpose
 
 Missing Values
 ~~~~~~~~~~~~~~
@@ -1419,8 +1436,12 @@ Conversion
    :toctree: generated/
 
    Index.astype
+   Index.item
+   Index.map
+   Index.ravel
    Index.tolist
    Index.to_datetime
+   Index.to_native_types
    Index.to_series
    Index.to_frame
 
@@ -1430,6 +1451,7 @@ Sorting
    :toctree: generated/
 
    Index.argsort
+   Index.searchsorted
    Index.sort_values
 
 Time-specific operations
@@ -1456,11 +1478,18 @@ Selecting
 .. autosummary::
    :toctree: generated/
 
+   Index.asof
+   Index.asof_locs
+   Index.contains
+   Index.get_duplicates
    Index.get_indexer
+   Index.get_indexer_for
    Index.get_indexer_non_unique
    Index.get_level_values
    Index.get_loc
+   Index.get_slice_bound
    Index.get_value
+   Index.get_values
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -1576,6 +1605,18 @@ MultiIndex Constructors
    MultiIndex.from_tuples
    MultiIndex.from_product
 
+MultiIndex Attributes
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.names
+   MultiIndex.levels
+   MultiIndex.labels
+   MultiIndex.nlevels
+   MultiIndex.levshape
+
 MultiIndex Components
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -1587,6 +1628,7 @@ MultiIndex Components
    MultiIndex.to_hierarchical
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
+   MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
@@ -1820,6 +1862,7 @@ Properties
     Timestamp.dayofyear
     Timestamp.days_in_month
     Timestamp.daysinmonth
+    Timestamp.fold
     Timestamp.hour
     Timestamp.is_leap_year
     Timestamp.is_month_end
@@ -1831,6 +1874,7 @@ Properties
     Timestamp.max
     Timestamp.microsecond
     Timestamp.min
+    Timestamp.minute
     Timestamp.month
     Timestamp.nanosecond
     Timestamp.quarter
@@ -1839,6 +1883,7 @@ Properties
     Timestamp.tz
     Timestamp.tzinfo
     Timestamp.value
+    Timestamp.week
     Timestamp.weekday_name
     Timestamp.weekofyear
     Timestamp.year
@@ -1923,7 +1968,9 @@ Properties
     Timedelta.asm8
     Timedelta.components
     Timedelta.days
+    Timedelta.delta
     Timedelta.freq
+    Timedetla.is_populated
     Timedelta.max
     Timedelta.microseconds
     Timedelta.min
@@ -1931,6 +1978,7 @@ Properties
     Timedelta.resolution
     Timedelta.seconds
     Timedelta.value
+    Timedelta.view
 
 Methods
 ~~~~~~~
@@ -2037,6 +2085,7 @@ Indexing, iteration
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    Grouper
 
@@ -2370,6 +2419,8 @@ Scalar introspection
 .. toctree::
    :hidden:
 
+   generated/pandas.DataFrame.index
+   generated/pandas.DataFrame.columns
    generated/pandas.DataFrame.as_blocks
    generated/pandas.DataFrame.ffill
    generated/pandas.DataFrame.bfill
@@ -2378,10 +2429,25 @@ Scalar introspection
    generated/pandas.DataFrame.consolidate
    generated/pandas.DataFrame.set_value
    generated/pandas.DataFrame.get_value
+   generated/pandas.DataFrame.ix
 
+   generated/pandas.Series.index
    generated/pandas.Series.as_blocks
    generated/pandas.Series.ffill
    generated/pandas.Series.bfill
    generated/pandas.Series.set_value
    generated/pandas.Series.get_value
    generated/pandas.Series.blocks
+   generated/pandas.Series.ix
+
+   generated/pandas.Index.flags
+   generated/pandas.Index.isnull
+   generated/pandas.Index.notnull
+   generated/pandas.Index.names
+   generated/pandas.Index.nlevels
+   generated/pandas.Index.reshape
+   generated/pandas.Index.sortlevel
+   generated/pandas.Index.sort
+
+   generated/pandas.Timestamp.offset
+   generated/pandas.Timestamp.to_datetime

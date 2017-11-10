@@ -98,6 +98,14 @@ class MultiIndex(Index):
     MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     Index : The base pandas Index type
 
+    Attributes
+    ----------
+    names
+    levels
+    labels
+    nlevels
+    levshape
+
     Methods
     -------
     from_arrays
@@ -108,6 +116,7 @@ class MultiIndex(Index):
     to_hierarchical
     to_frame
     is_lexsorted
+    sortlevel
     droplevel
     swaplevel
     reorder_levels
@@ -1379,10 +1388,12 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
+        """Integer number of levels in this MultiIndex."""
         return len(self.levels)
 
     @property
     def levshape(self):
+        """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
 
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
