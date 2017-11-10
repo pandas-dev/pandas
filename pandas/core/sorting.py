@@ -431,21 +431,32 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
+        from pandas import Period
+        per_pos = np.array([isinstance(x, Period) for x in values],
+                           dtype=bool)
         str_pos = np.array([isinstance(x, string_types) for x in values],
                            dtype=bool)
-        nums = np.sort(values[~str_pos])
+        nums = np.sort(values[~(str_pos | per_pos)])
         strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
+        try:
+            pers = np.sort(values[per_pos])
+        except (TypeError, ValueError):
+            # period.IncompatibleFrequency subclasses ValueError, leads
+            # to inconsistent behavior in py2/py3
+            pers = sorted(values[per_pos], key=lambda x: x.start_time)
+            pers = np.array(pers, dtype=object)
+        return np.concatenate([nums, np.asarray(strs, dtype=object), pers])
 
     sorter = None
     if PY3 and lib.infer_dtype(values) == 'mixed-integer':
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:
+        from pandas._libs.period import IncompatibleFrequency
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
-        except TypeError:
+        except (TypeError, IncompatibleFrequency):
             # try this anyway
             ordered = sort_mixed(values)
 
