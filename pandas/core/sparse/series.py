@@ -256,8 +256,12 @@ class SparseSeries(Series):
     def from_array(cls, arr, index=None, name=None, copy=False,
                    fill_value=None, fastpath=False):
         """
-        Simplified alternate constructor
+        DEPRECATED: use the pd.SparseSeries(..) constructor instead.
+
         """
+        warnings.warn("'from_array' is deprecated and will be removed in a "
+                      "future version. Please use the pd.SparseSeries(..) "
+                      "constructor instead.", FutureWarning, stacklevel=2)
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 
