@@ -386,7 +386,9 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         int year, month, day
         int dim, dy
 
-    (dy, month) = divmod(stamp.month + months, 12)
+    dy = (stamp.month + months) // 12
+    month = (stamp.month + months) % 12
+
     if month == 0:
         month = 12
         dy -= 1

@@ -2148,7 +2148,7 @@ class FY5253(DateOffset):
         if self.variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
             return (year_end == dt or
-                    self.get_year_end(shift_month(dt, 1, None)) == dt)
+                    self.get_year_end(shift_month(dt, -1, None)) == dt)
         else:
             return year_end == dt
 
