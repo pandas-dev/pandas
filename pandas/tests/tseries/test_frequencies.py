@@ -8,7 +8,8 @@ from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
 from pandas._libs.tslibs.frequencies import (_period_code_map, _get_rule_month,
-                                             _period_str_to_code)
+                                             _period_str_to_code,
+                                             _INVALID_FREQ_ERROR)
 
 import pandas.tseries.frequencies as frequencies
 from pandas.core.tools.datetimes import to_datetime
@@ -338,7 +339,7 @@ def test_period_str_to_code():
         assert isinstance(aliases, list)
         assert (_period_str_to_code(freq) == expected)
 
-        msg = frequencies._INVALID_FREQ_ERROR
+        msg = _INVALID_FREQ_ERROR
         for alias in aliases:
             with tm.assert_raises_regex(ValueError, msg):
                 _period_str_to_code(alias)
@@ -881,7 +882,7 @@ class TestFrequencyInference(object):
                  'WOM@4THU', 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI',
                  'WOM@4FRI']
 
-        msg = frequencies._INVALID_FREQ_ERROR
+        msg = _INVALID_FREQ_ERROR
         for freq in freqs:
             with tm.assert_raises_regex(ValueError, msg):
                 frequencies.get_offset(freq)
