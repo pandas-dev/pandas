@@ -1557,12 +1557,17 @@ MultiIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    MultiIndex
+
+.. autosummary::
+   :toctree: generated/
+
    IndexSlice
 
-MultiIndex Components
-~~~~~~~~~~~~~~~~~~~~~~
+MultiIndex Constructors
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -1570,6 +1575,13 @@ MultiIndex Components
    MultiIndex.from_arrays
    MultiIndex.from_tuples
    MultiIndex.from_product
+
+MultiIndex Components
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
    MultiIndex.set_levels
    MultiIndex.set_labels
    MultiIndex.to_hierarchical
@@ -1587,6 +1599,7 @@ DatetimeIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    DatetimeIndex
 
@@ -1665,6 +1678,7 @@ TimedeltaIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    TimedeltaIndex
 
@@ -2196,6 +2210,7 @@ Constructor
    :toctree: generated/
 
    Styler
+   Styler.from_custom_template
 
 Style Application
 ~~~~~~~~~~~~~~~~~
@@ -2208,6 +2223,7 @@ Style Application
    Styler.format
    Styler.set_precision
    Styler.set_table_styles
+   Styler.set_table_attributes
    Styler.set_caption
    Styler.set_properties
    Styler.set_uuid
@@ -2234,6 +2250,7 @@ Style Export and Import
    Styler.render
    Styler.export
    Styler.use
+   Styler.to_excel
 
 .. currentmodule:: pandas
 
