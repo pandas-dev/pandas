@@ -18,6 +18,7 @@ import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
 from pandas._libs.tslibs.timezones import get_timezone
+from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 
 from pandas.compat import lrange, long, PY3
 from pandas.util.testing import assert_series_equal
@@ -744,8 +745,7 @@ class TestTimestamp(object):
                                ('S', Timestamp('2000-01-05 05:09:15'))]:
             _check_round(freq, expected)
 
-        msg = frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
             stamp.round('foo')
 
     def test_class_ops_pytz(self):

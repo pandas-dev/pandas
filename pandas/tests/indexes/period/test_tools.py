@@ -367,7 +367,7 @@ class TestPeriodIndex(object):
         prng = rng.to_period()
         assert prng.freq == 'M'
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
