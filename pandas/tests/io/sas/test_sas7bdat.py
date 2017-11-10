@@ -1,9 +1,11 @@
 import pandas as pd
 from pandas.compat import PY2
 import pandas.util.testing as tm
+from pandas.errors import EmptyDataError
 import os
 import io
 import numpy as np
+import pytest
 
 
 class TestSAS7BDAT(object):
@@ -174,3 +176,11 @@ def test_date_time():
     df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
                                           'DateTimeHi', 'Taiw'])
     tm.assert_frame_equal(df, df0)
+
+
+def test_zero_variables():
+    # Check if the SAS file has zero variables (PR #18184)
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "zero_variables.sas7bdat")
+    with pytest.raises(EmptyDataError):
+        pd.read_sas(fname)

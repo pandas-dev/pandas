@@ -17,6 +17,7 @@ Reference for binary data compression:
 import pandas as pd
 from pandas import compat
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
+from pandas.errors import EmptyDataError
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
@@ -593,6 +594,9 @@ class SAS7BDATReader(BaseIterator):
             nrows = self.chunksize
         elif nrows is None:
             nrows = self.row_count
+
+        if len(self.column_types) == 0:
+            raise EmptyDataError("No columns to parse from file")
 
         if self._current_row_in_file_index >= self.row_count:
             return None
