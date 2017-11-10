@@ -1336,7 +1336,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
 
         Returns
         -------
