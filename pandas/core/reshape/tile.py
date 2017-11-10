@@ -148,7 +148,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 
     Parameters
     ----------
-    x : ndarray or Series
+    x : 1d ndarray or Series
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
