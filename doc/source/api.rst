@@ -1355,7 +1355,7 @@ Attributes
    Index.is_monotonic_decreasing
    Index.is_unique
    Index.has_duplicates
-   Index.has_nans
+   Index.hasnans
    Index.dtype
    Index.dtype_str
    Index.inferred_type
@@ -1970,7 +1970,7 @@ Properties
     Timedelta.days
     Timedelta.delta
     Timedelta.freq
-    Timedetla.is_populated
+    Timedelta.is_populated
     Timedelta.max
     Timedelta.microseconds
     Timedelta.min
