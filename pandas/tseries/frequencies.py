@@ -21,14 +21,14 @@ import pandas.tseries.offsets as offsets
 
 from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
-from pandas._libs.tslibs.frequencies import (  # noqa:F401
-    get_freq_code, _base_and_stride, _period_str_to_code,
-    _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
-    _period_code_map, _reverse_period_code_map, get_base_alias,
-    FreqGroup, get_to_timestamp_base, get_freq, _get_freq_str,
-    _maybe_coerce_freq, is_subperiod, is_superperiod,
-    _is_annual, _is_quarterly, _is_monthly, _is_weekly,
-    _quarter_months_conform, _get_rule_month)
+from pandas._libs.tslibs.frequencies import (
+    get_freq_code, _base_and_stride,
+    _INVALID_FREQ_ERROR, opattern,
+    _lite_rule_alias, _dont_uppercase)
+from pandas._libs.tslibs.frequencies import (  # noqa
+    get_freq, get_base_alias, get_to_timestamp_base,
+    FreqGroup,
+    is_subperiod, is_superperiod)
 from pytz import AmbiguousTimeError
 
 

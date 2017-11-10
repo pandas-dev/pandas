@@ -7,6 +7,9 @@ import numpy as np
 from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
+from pandas._libs.tslibs.frequencies import (_period_code_map, _get_rule_month,
+                                             _period_str_to_code)
+
 import pandas.tseries.frequencies as frequencies
 from pandas.core.tools.datetimes import to_datetime
 
@@ -284,84 +287,84 @@ def test_rule_aliases():
 
 
 def test_get_rule_month():
-    result = frequencies._get_rule_month('W')
+    result = _get_rule_month('W')
     assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.Week())
-    assert (result == 'DEC')
-
-    result = frequencies._get_rule_month('D')
-    assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.Day())
+    result = _get_rule_month(offsets.Week())
     assert (result == 'DEC')
 
-    result = frequencies._get_rule_month('Q')
+    result = _get_rule_month('D')
     assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=12))
+    result = _get_rule_month(offsets.Day())
+    assert (result == 'DEC')
+
+    result = _get_rule_month('Q')
+    assert (result == 'DEC')
+    result = _get_rule_month(offsets.QuarterEnd(startingMonth=12))
     print(result == 'DEC')
 
-    result = frequencies._get_rule_month('Q-JAN')
+    result = _get_rule_month('Q-JAN')
     assert (result == 'JAN')
-    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=1))
+    result = _get_rule_month(offsets.QuarterEnd(startingMonth=1))
     assert (result == 'JAN')
 
-    result = frequencies._get_rule_month('A-DEC')
+    result = _get_rule_month('A-DEC')
     assert (result == 'DEC')
-    result = frequencies._get_rule_month('Y-DEC')
+    result = _get_rule_month('Y-DEC')
     assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.YearEnd())
+    result = _get_rule_month(offsets.YearEnd())
     assert (result == 'DEC')
 
-    result = frequencies._get_rule_month('A-MAY')
+    result = _get_rule_month('A-MAY')
     assert (result == 'MAY')
-    result = frequencies._get_rule_month('Y-MAY')
+    result = _get_rule_month('Y-MAY')
     assert (result == 'MAY')
-    result = frequencies._get_rule_month(offsets.YearEnd(month=5))
+    result = _get_rule_month(offsets.YearEnd(month=5))
     assert (result == 'MAY')
 
 
 def test_period_str_to_code():
-    assert (frequencies._period_str_to_code('A') == 1000)
-    assert (frequencies._period_str_to_code('A-DEC') == 1000)
-    assert (frequencies._period_str_to_code('A-JAN') == 1001)
-    assert (frequencies._period_str_to_code('Y') == 1000)
-    assert (frequencies._period_str_to_code('Y-DEC') == 1000)
-    assert (frequencies._period_str_to_code('Y-JAN') == 1001)
+    assert (_period_str_to_code('A') == 1000)
+    assert (_period_str_to_code('A-DEC') == 1000)
+    assert (_period_str_to_code('A-JAN') == 1001)
+    assert (_period_str_to_code('Y') == 1000)
+    assert (_period_str_to_code('Y-DEC') == 1000)
+    assert (_period_str_to_code('Y-JAN') == 1001)
 
-    assert (frequencies._period_str_to_code('Q') == 2000)
-    assert (frequencies._period_str_to_code('Q-DEC') == 2000)
-    assert (frequencies._period_str_to_code('Q-FEB') == 2002)
+    assert (_period_str_to_code('Q') == 2000)
+    assert (_period_str_to_code('Q-DEC') == 2000)
+    assert (_period_str_to_code('Q-FEB') == 2002)
 
     def _assert_depr(freq, expected, aliases):
         assert isinstance(aliases, list)
-        assert (frequencies._period_str_to_code(freq) == expected)
+        assert (_period_str_to_code(freq) == expected)
 
         msg = frequencies._INVALID_FREQ_ERROR
         for alias in aliases:
             with tm.assert_raises_regex(ValueError, msg):
-                frequencies._period_str_to_code(alias)
+                _period_str_to_code(alias)
 
     _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
 
-    assert (frequencies._period_str_to_code('W') == 4000)
-    assert (frequencies._period_str_to_code('W-SUN') == 4000)
-    assert (frequencies._period_str_to_code('W-FRI') == 4005)
+    assert (_period_str_to_code('W') == 4000)
+    assert (_period_str_to_code('W-SUN') == 4000)
+    assert (_period_str_to_code('W-FRI') == 4005)
 
     _assert_depr("B", 5000, ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"])
     _assert_depr("D", 6000, ["DAY", "DLY", "DAILY"])
     _assert_depr("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
 
     _assert_depr("T", 8000, ["minute", "MINUTE", "MINUTELY"])
-    assert (frequencies._period_str_to_code('Min') == 8000)
+    assert (_period_str_to_code('Min') == 8000)
 
     _assert_depr("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
     _assert_depr("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
-    assert (frequencies._period_str_to_code('ms') == 10000)
+    assert (_period_str_to_code('ms') == 10000)
 
     _assert_depr("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
-    assert (frequencies._period_str_to_code('US') == 11000)
+    assert (_period_str_to_code('US') == 11000)
 
     _assert_depr("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
-    assert (frequencies._period_str_to_code('NS') == 12000)
+    assert (_period_str_to_code('NS') == 12000)
 
 
 class TestFrequencyCode(object):
@@ -379,7 +382,7 @@ class TestFrequencyCode(object):
         assert frequencies.get_freq('W-MON') == 4001
         assert frequencies.get_freq('W-FRI') == 4005
 
-        for freqstr, code in compat.iteritems(frequencies._period_code_map):
+        for freqstr, code in compat.iteritems(_period_code_map):
             result = frequencies.get_freq(freqstr)
             assert result == code
 

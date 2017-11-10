@@ -12,8 +12,10 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
+
+from pandas._libs.tslibs.frequencies import get_freq_code, _get_freq_str
+from pandas.tseries.frequencies import (_offset_map,
+                                        _INVALID_FREQ_ERROR,
                                         get_offset, get_standard_freq)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)

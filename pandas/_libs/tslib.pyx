@@ -90,7 +90,6 @@ from tslibs.timezones cimport (
     treat_tz_as_dateutil, treat_tz_as_pytz,
     get_timezone, get_utcoffset, maybe_get_tz,
     get_dst_info)
-from tslibs.frequencies cimport _get_rule_month
 from tslibs.fields import (
     get_date_name_field, get_start_end_field, get_date_field,
     build_field_sarray)
