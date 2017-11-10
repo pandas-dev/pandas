@@ -18,7 +18,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_firstbday, _get_calendar, _to_dt64, _validate_business_time,
+    _get_firstbday, _get_calendar, _to_dt64,
+    _validate_business_time, _validate_n, _validate_month, _validate_weekday,
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
@@ -1398,10 +1399,7 @@ class Week(EndMixin, DateOffset):
         self.normalize = normalize
         self.weekday = weekday
 
-        if self.weekday is not None:
-            if self.weekday < 0 or self.weekday > 6:
-                raise ValueError('Day must be 0<=day<=6, got {day}'
-                                 .format(day=self.weekday))
+        _validate_weekday(weekday, allow_none=True)
 
         self.kwds = {'weekday': weekday}
 
@@ -1490,12 +1488,8 @@ class WeekOfMonth(DateOffset):
         self.weekday = weekday
         self.week = week
 
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
-
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got {day}'
-                             .format(day=self.weekday))
+        _validate_n(n)
+        _validate_weekday(weekday)
         if self.week < 0 or self.week > 3:
             raise ValueError('Week must be 0<=week<=3, got {week}'
                              .format(week=self.week))
@@ -1586,12 +1580,8 @@ class LastWeekOfMonth(DateOffset):
         self.normalize = normalize
         self.weekday = weekday
 
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
-
-        if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got {day}'
-                             .format(day=self.weekday))
+        _validate_n(n)
+        _validate_weekday(weekday)
 
         self.kwds = {'weekday': weekday}
 
@@ -1848,8 +1838,7 @@ class YearOffset(DateOffset):
         month = month if month is not None else self._default_month
         self.month = month
 
-        if self.month < 1 or self.month > 12:
-            raise ValueError('Month must go from 1 to 12')
+        _validate_month(month)
 
         DateOffset.__init__(self, n=n, normalize=normalize, month=month)
 
@@ -2102,8 +2091,7 @@ class FY5253(DateOffset):
         self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
                      'variation': variation}
 
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
+        _validate_n(n)
 
         if self.variation not in ["nearest", "last"]:
             raise ValueError('{variation} is not a valid variation'
@@ -2354,8 +2342,7 @@ class FY5253Quarter(DateOffset):
                      'qtr_with_extra_week': qtr_with_extra_week,
                      'variation': variation}
 
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
+        _validate_n(n)
 
     @cache_readonly
     def _offset(self):

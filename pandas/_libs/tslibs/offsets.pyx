@@ -219,6 +219,23 @@ def _validate_business_time(t_input):
         raise ValueError("time data must be string or datetime.time")
 
 
+def _validate_n(n):
+    if n == 0 or not isinstance(n, int):
+        raise ValueError('N cannot be 0')
+
+
+def _validate_month(month):
+    if not isinstance(month, int) or not 1 <= month <= 12:
+        raise ValueError('Month must go from 1 to 12')
+
+
+def _validate_weekday(weekday, allow_none=False):
+    if allow_none and weekday is None:
+        pass
+    elif not isinstance(weekday, int) or not 0 <= weekday <= 6:
+        raise ValueError('weekday must be 0<=weekday<=6, got '
+                         '{day}'.format(day=weekday))
+
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
