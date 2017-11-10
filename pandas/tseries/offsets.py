@@ -23,7 +23,8 @@ from pandas._libs.tslibs.offsets import (
     _determine_offset,
     apply_index_wraps,
     BeginMixin, EndMixin,
-    BaseOffset)
+    BaseOffset,
+    BusinessMixin as _BusinessMixin)
 
 import functools
 import operator
@@ -160,11 +161,12 @@ class DateOffset(BaseOffset):
     _adjust_dst = False
 
     # default for prior pickles
-    normalize = False
+    # normalize = False
+    # FIXME: without commenting this out, all
+    # DateOffsets get initialized with normalize=False, regardless of kwarg
 
     def __init__(self, n=1, normalize=False, **kwds):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.kwds = kwds
 
         self._offset, self._use_relativedelta = _determine_offset(kwds)
@@ -256,6 +258,11 @@ class DateOffset(BaseOffset):
 
     def _params(self):
         all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
+
+        # Add in C-class attributes not present in self.__dict__
+        all_paras['n'] = self.n
+        all_paras['normalize'] = self.normalize
+
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'normalize', 'calendar']
@@ -408,7 +415,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class BusinessMixin(object):
+class BusinessMixin(_BusinessMixin):
     """ mixin to business types to provide related functions """
 
     @property
@@ -427,38 +434,6 @@ class BusinessMixin(object):
             out += ': ' + ', '.join(attrs)
         return out
 
-    def __getstate__(self):
-        """Return a pickleable state"""
-        state = self.__dict__.copy()
-
-        # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
-        if 'calendar' in state:
-            del state['calendar']
-        try:
-            state['kwds'].pop('calendar')
-        except KeyError:
-            pass
-
-        return state
-
-    def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
-        if 'offset' in state:
-            # Older versions have offset attribute instead of _offset
-            if '_offset' in state:  # pragma: no cover
-                raise ValueError('Unexpected key `_offset`')
-            state['_offset'] = state.pop('offset')
-            state['kwds']['offset'] = state['_offset']
-        self.__dict__ = state
-        if 'weekmask' in state and 'holidays' in state:
-            calendar, holidays = _get_calendar(weekmask=self.weekmask,
-                                               holidays=self.holidays,
-                                               calendar=None)
-            self.kwds['calendar'] = self.calendar = calendar
-            self.kwds['holidays'] = self.holidays = holidays
-            self.kwds['weekmask'] = state['weekmask']
-
 
 class BusinessDay(BusinessMixin, SingleConstructorOffset):
     """
@@ -468,8 +443,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.kwds = {'offset': offset}
         self._offset = offset
 
@@ -776,8 +750,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
     @cache_readonly
@@ -813,8 +786,7 @@ class CustomBusinessDay(BusinessDay):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self._offset = offset
         self.kwds = {}
 
@@ -881,8 +853,7 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None,
                  start='09:00', end='17:00', offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         super(CustomBusinessHour, self).__init__(start=start,
                                                  end=end, offset=offset)
 
@@ -975,6 +946,7 @@ class SemiMonthOffset(DateOffset):
     _min_day_of_month = 2
 
     def __init__(self, n=1, normalize=False, day_of_month=None):
+        BaseOffset.__init__(self, n, normalize)
         if day_of_month is None:
             self.day_of_month = self._default_day_of_month
         else:
@@ -983,8 +955,8 @@ class SemiMonthOffset(DateOffset):
             msg = 'day_of_month must be {min}<=day_of_month<=27, got {day}'
             raise ValueError(msg.format(min=self._min_day_of_month,
                                         day=self.day_of_month))
-        self.n = int(n)
-        self.normalize = normalize
+        # self.n = int(n)
+        # self.normalize = normalize
         self.kwds = {'day_of_month': self.day_of_month}
 
     @classmethod
@@ -1259,8 +1231,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self._offset = offset
         self.kwds = {}
 
@@ -1330,8 +1301,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self._offset = offset
         self.kwds = {}
 
@@ -1394,8 +1364,7 @@ class Week(EndMixin, DateOffset):
     _prefix = 'W'
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.weekday = weekday
 
         if self.weekday is not None:
@@ -1485,8 +1454,7 @@ class WeekOfMonth(DateOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, week=None, weekday=None):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.weekday = weekday
         self.week = week
 
@@ -1582,8 +1550,7 @@ class LastWeekOfMonth(DateOffset):
     _prefix = 'LWOM'
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.weekday = weekday
 
         if self.n == 0:
@@ -1656,8 +1623,7 @@ class QuarterOffset(DateOffset):
     #       point
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         if startingMonth is None:
             startingMonth = self._default_startingMonth
         self.startingMonth = startingMonth
@@ -2092,8 +2058,7 @@ class FY5253(DateOffset):
 
     def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
                  variation="nearest"):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
         self.startingMonth = startingMonth
         self.weekday = weekday
 
@@ -2342,8 +2307,7 @@ class FY5253Quarter(DateOffset):
 
     def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
                  qtr_with_extra_week=1, variation="nearest"):
-        self.n = n
-        self.normalize = normalize
+        BaseOffset.__init__(self, n, normalize)
 
         self.weekday = weekday
         self.startingMonth = startingMonth

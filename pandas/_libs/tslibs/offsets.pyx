@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 
 import numpy as np
 cimport numpy as np
+from numpy cimport int64_t
 np.import_array()
 
 
@@ -313,10 +314,59 @@ class EndMixin(object):
         return base + off
 
 
+def __unpickle():
+    return
+
+class PickleMixin(object):
+    """Handle issues with backwards compat related to making DateOffset
+    immutable.
+    """
+    '''
+    def __reduce__(self):
+        # We need to define this explicitly or else pickle tests fail
+        wlist_attrs = tuple(getattr(self, name) for name in sorted(self.kwds))
+        tup = (self.n, self.normalize,) + wlist_attrs
+        return (self.__class__, tup)
+        # FIXME: Isn't this going to screw up on DateOffset?
+
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # http://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
+    '''
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # Add attributes from the C base class that aren't in self.__dict__
+        state['n'] = self.n
+        state['normalize'] = self.normalize
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
+
+class BusinessMixin(object):
+    """ mixin to business types to provide related functions """
+    pass
+
+
 # ---------------------------------------------------------------------
 # Base Classes
-
-class _BaseOffset(object):
+@cython.auto_pickle(False)
+cdef class _BaseOffset(object):
     """
     Base class for DateOffset methods that are not overriden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -324,6 +374,14 @@ class _BaseOffset(object):
     _typ = "dateoffset"
     _normalize_cache = True
     _cacheable = False
+
+    cdef readonly:
+        int64_t n
+        bint normalize
+
+    def __init__(self, n, normalize):
+        self.n = n
+        self.normalize = normalize
 
     def __call__(self, other):
         return self.apply(other)
@@ -361,8 +419,37 @@ class _BaseOffset(object):
         out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
         return out
 
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        # Note: __setstate__ needs to be defined in the cython class otherwise
+        # trying to set self.n and self.normalize below will
+        # raise an AttributeError.
+        if 'normalize' not in state:
+            # default for prior pickles
+            # See GH #7748, #7789
+            state['normalize'] = False
 
-class BaseOffset(_BaseOffset):
+        if 'offset' in state:
+            # Older versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise ValueError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
+        
+        self.n = state.pop('n')
+        self.normalize = state.pop('normalize')
+        self.__dict__ = state
+
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+            self.kwds['calendar'] = self.calendar = calendar
+            self.kwds['holidays'] = self.holidays = holidays
+            self.kwds['weekmask'] = state['weekmask']
+
+
+class BaseOffset(_BaseOffset, PickleMixin):
     # Here we add __rfoo__ methods that don't play well with cdef classes
     def __rmul__(self, someInt):
         return self.__mul__(someInt)
