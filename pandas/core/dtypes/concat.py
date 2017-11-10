@@ -606,5 +606,5 @@ def _concat_rangeindex_same_dtype(indexes):
         return RangeIndex(start, stop, step)
     else:
         # Here all "indexes" had 0 length, i.e. were empty.
-        # In this case return an empty integer index.
-        return Int64Index([])
+        # In this case return an empty range index.
+        return RangeIndex(0, 0)
