@@ -21,11 +21,9 @@ import pandas.tseries.offsets as offsets
 
 from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
-from pandas._libs.tslibs.frequencies import (
-    get_freq_code, _base_and_stride,
-    _INVALID_FREQ_ERROR, opattern,
-    _lite_rule_alias, _dont_uppercase)
-from pandas._libs.tslibs.frequencies import (  # noqa
+import pandas._libs.tslibs.frequencies as libfreqs
+from pandas._libs.tslibs.frequencies import get_freq_code
+from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
     get_freq, get_base_alias, get_to_timestamp_base,
     FreqGroup,
     is_subperiod, is_superperiod)
@@ -333,7 +331,7 @@ def to_offset(freq):
         stride = freq[1]
         if isinstance(stride, compat.string_types):
             name, stride = stride, name
-        name, _ = _base_and_stride(name)
+        name, _ = libfreqs._base_and_stride(name)
         delta = get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
@@ -350,13 +348,13 @@ def to_offset(freq):
                     else:
                         delta = delta + offset
         except Exception:
-            raise ValueError(_INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
 
     else:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(opattern, freq)
+            splitted = re.split(libfreqs.opattern, freq)
             if splitted[-1] != '' and not splitted[-1].isspace():
                 # the last element must be blank
                 raise ValueError('last element must be blank')
@@ -364,7 +362,7 @@ def to_offset(freq):
                                          splitted[2::4]):
                 if sep != '' and not sep.isspace():
                     raise ValueError('separator must be spaces')
-                prefix = _lite_rule_alias.get(name) or name
+                prefix = libfreqs._lite_rule_alias.get(name) or name
                 if stride_sign is None:
                     stride_sign = -1 if stride.startswith('-') else 1
                 if not stride:
@@ -381,10 +379,10 @@ def to_offset(freq):
                 else:
                     delta = delta + offset
         except Exception:
-            raise ValueError(_INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
 
     if delta is None:
-        raise ValueError(_INVALID_FREQ_ERROR.format(freq))
+        raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
 
     return delta
 
@@ -397,12 +395,12 @@ def get_offset(name):
     --------
     get_offset('EOM') --> BMonthEnd(1)
     """
-    if name not in _dont_uppercase:
+    if name not in libfreqs._dont_uppercase:
         name = name.upper()
-        name = _lite_rule_alias.get(name, name)
-        name = _lite_rule_alias.get(name.lower(), name)
+        name = libfreqs._lite_rule_alias.get(name, name)
+        name = libfreqs._lite_rule_alias.get(name.lower(), name)
     else:
-        name = _lite_rule_alias.get(name, name)
+        name = libfreqs._lite_rule_alias.get(name, name)
 
     if name not in _offset_map:
         try:
@@ -413,7 +411,7 @@ def get_offset(name):
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
-            raise ValueError(_INVALID_FREQ_ERROR.format(name))
+            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(name))
         # cache
         _offset_map[name] = offset
     # do not return cache because it's mutable
