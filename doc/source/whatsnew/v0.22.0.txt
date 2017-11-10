@@ -87,10 +87,6 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
-- Bug in ``DataFrame.groupby`` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
-- Bug in :func:`pd.read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
-- Bug in :func:`pd.read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError``
 
 Conversion
 ^^^^^^^^^^
@@ -103,6 +99,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in :func:`PeriodIndex.truncate` which raises ``TypeError`` when ``PeriodIndex`` is monotonic (:issue:`17717`)
+- Bug in ``DataFrame.groupby`` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
 -
 -
 
@@ -110,6 +107,9 @@ I/O
 ^^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
+- Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
+- Bug in :func:`pd.read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
+- Bug in :func:`pd.read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 -
 -
 
