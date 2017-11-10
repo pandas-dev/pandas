@@ -23,7 +23,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Better support for ``Dataframe.style.to_excel()`` output with the ``xlsxwriter`` engine. (:issue:`16149`)
--
+- :func:`pd.tseries.frequencies.to_offset()` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 -
 
 .. _whatsnew_0220.api_breaking:
