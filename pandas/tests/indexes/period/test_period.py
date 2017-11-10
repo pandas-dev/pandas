@@ -40,21 +40,6 @@ class TestPeriodLevelMultiIndex(object):
         assert mi.names == ['Variable', 'Period']
         assert mi.get_level_values('Variable').equals(index)
 
-    def test_from_arrays_dataframe_level_invalid(self):
-        # GH#17112
-        index = pd.Index(['CPROF', 'HOUSING', 'INDPROD', 'NGDP', 'PGDP'],
-                         name='Variable')
-        data = [pd.Period('1968Q4')] * 5
-        df = pd.DataFrame(data, index=index, columns=['Period'])
-        with pytest.raises(TypeError):
-            # user should not pass a DataFrame as an index level.
-            # In this single-column case the user needs to specifically pass
-            # df['Period'].
-            # Check that this raises at construction time instead of later
-            # when accessing `mi.shape`, which used to raise
-            # "ValueError: all arrays must be the same length",
-            pd.MultiIndex.from_arrays([df.index, df])
-
 
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
