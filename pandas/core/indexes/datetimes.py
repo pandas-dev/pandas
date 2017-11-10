@@ -984,7 +984,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         dates : ndarray
         """
-        return libts.ints_to_pydatetime(self.asi8, kind="date")
+        return libts.ints_to_pydatetime(self.asi8, box="date")
 
     def to_pydatetime(self):
         """
@@ -1247,7 +1247,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             end_i = min((i + 1) * chunksize, length)
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
-                                                 box=True)
+                                                 box="timestamp")
             for v in converted:
                 yield v
 
