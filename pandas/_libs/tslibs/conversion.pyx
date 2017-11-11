@@ -401,7 +401,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
-    This is a single timezone versoin of tz_convert
+    This is a single timezone version of tz_convert
 
     Parameters
     ----------
