@@ -13,7 +13,7 @@ cimport numpy as np
 np.import_array()
 
 
-from util cimport is_string_object
+from util cimport is_string_object, is_integer_object
 
 from pandas._libs.tslib import pydt_to_i8, monthrange
 
@@ -381,7 +381,8 @@ class BaseOffset(_BaseOffset):
 # RelativeDelta Arithmetic
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+cpdef datetime shift_month(datetime stamp, int months,
+                           object day_opt=None) except? -1:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -423,7 +424,8 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         day = 1
     elif day_opt == 'end':
         day = dim
-    else:
-        # assume this is an integer (and a valid day)
+    elif is_integer_object(day_opt):
         day = min(day_opt, dim)
+    else:
+        raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
