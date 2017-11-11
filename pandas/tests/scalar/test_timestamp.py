@@ -1101,13 +1101,18 @@ class TestTimestamp(object):
 
         tsc = Timestamp('2014-10-11 11:00:01.12345678', tz='US/Central')
         utsc = tsc.tz_convert('UTC')
+
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
 
         if PY3:
-            # should agree with datetime.timestamp method
-            dt = ts.to_pydatetime()
-            assert dt.timestamp() == ts.timestamp()
+
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+
+                # should agree with datetime.timestamp method
+                dt = ts.to_pydatetime()
+                assert dt.timestamp() == ts.timestamp()
 
 
 class TestTimestampNsOperations(object):
