@@ -913,6 +913,13 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
 class MonthOffset(SingleConstructorOffset):
     _adjust_dst = True
 
+    def __init__(self, n=1, normalize=False):
+        self.n = n
+        self.normalize = normalize
+        self._offset = timedelta(1)
+        self._use_relativedelta = False
+        self.kwds = {}
+
     @property
     def name(self):
         if self.isAnchored:
@@ -2471,6 +2478,13 @@ class Easter(DateOffset):
     """
     _adjust_dst = True
 
+    def __init__(self, n=1, normalize=False):
+        self.n = n
+        self.normalize = normalize
+        self._offset = timedelta(1)
+        self._use_relativedelta = False
+        self.kwds = {}
+
     @apply_wraps
     def apply(self, other):
         currentEaster = easter(other.year)
@@ -2514,6 +2528,14 @@ def _tick_comp(op):
 class Tick(SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
     _prefix = 'undefined'
+
+    def __init__(self, n=1, normalize=False):
+        # TODO: do Tick classes with normalize=True make sense?
+        self.n = n
+        self.normalize = normalize
+        self._offset = timedelta(1)
+        self._use_relativedelta = False
+        self.kwds = {}
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
@@ -2573,6 +2595,7 @@ class Tick(SingleConstructorOffset):
     def nanos(self):
         return delta_to_nanoseconds(self.delta)
 
+    # TODO: Should Tick have its own apply_index?
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, Timestamp):

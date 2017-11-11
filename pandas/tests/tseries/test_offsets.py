@@ -1,3 +1,4 @@
+import inspect
 import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
@@ -17,7 +18,7 @@ from pandas.tseries.frequencies import (_offset_map, get_freq_code,
                                         get_offset, get_standard_freq)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
+from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset, _rd_kwds
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -4899,3 +4900,27 @@ class TestDST(object):
             first = Timestamp(test_values[0], tz='US/Eastern') + offset()
             second = Timestamp(test_values[1], tz='US/Eastern')
             assert first == second
+
+
+# ---------------------------------------------------------------------
+
+offset_classes = [getattr(offsets, x) for x in dir(offsets)]
+offset_classes = [x for x in offset_classes if inspect.isclass(x) and
+                  issubclass(x, DateOffset)]
+
+
+def test_valid_attributes():
+    # check that we cannot create e.g. MonthEnd(weeks=3)
+    month_classes = [x for x in offset_classes if
+                     issubclass(x, offsets.MonthOffset)]
+
+    for cls in month_classes:
+        for kwd in _rd_kwds:
+            with pytest.raises(TypeError):
+                cls(**{kwd: 3})
+
+    tick_classes = [x for x in offset_classes if issubclass(x, offsets.Tick)]
+    for cls in tick_classes:
+        for kwd in _rd_kwds:
+            with pytest.raises(TypeError):
+                cls(**{kwd: 4})
