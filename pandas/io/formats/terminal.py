@@ -57,12 +57,12 @@ def is_terminal():
     try:
         ip = get_ipython()
     except NameError:  # assume standard Python interpreter in a terminal
-        terminal = True
+        return True
+    else:
         if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
-            terminal = False
+            return False
         else:  # IPython in a terminal
-            terminal = True
-    return terminal
+            return True
 
 
 def _get_terminal_size_windows():
