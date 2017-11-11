@@ -89,11 +89,28 @@ cdef inline object create_date_from_ts(
 
 def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
                        box="datetime"):
-    # convert an i8 repr to an ndarray of datetimes (if box == "datetime"),
-    # Timestamp (if box == "timestamp") or dates (if box == "date")
+    """
+    Convert an i8 repr to an ndarray of datetimes, date or Timestamp
+
+    Parameters
+    ----------
+    arr  : array of i8 repr
+    tz   : the timezone to convert to,
+        can only be used with datetime/Timestamp,
+        default is None
+    freq : frequency to be used when converting to Timestamp, default is None
+    box  : the dtype to convert to, default is datetime
+        If datetime, convert to datetime.datetime
+        If date, convert to datetime.date
+        If Timestamp, convert to pandas.Timestamp
+
+    Returns
+    -------
+    result : array of dtype specified by box
+    """
 
     assert ((box == "datetime") or (box == "date") or (box == "timestamp")), \
-    "box must be one of 'datetime', 'date' or 'timestamp'"
+        "box must be one of 'datetime', 'date' or 'timestamp'"
 
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -105,6 +122,8 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         object (*func_create)(int64_t, pandas_datetimestruct, object, object)
 
     if box == "date":
+        assert (tz is not None), "tz should be None when converting to date"
+
         func_create = create_date_from_ts
     elif box == "timestamp":
         func_create = create_timestamp_from_ts
@@ -115,7 +134,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     elif box == "datetime":
         func_create = create_datetime_from_ts
 
-    if tz is not None and box != "date":
+    if tz is not None:
         if is_utc(tz):
             for i in range(n):
                 value = arr[i]

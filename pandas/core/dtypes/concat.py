@@ -410,7 +410,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
 
         elif x.dtype == _TD_DTYPE:
             shape = x.shape
-            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box="True")
+            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
             x = x.reshape(shape)
 
         if axis == 1:
