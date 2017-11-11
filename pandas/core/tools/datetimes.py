@@ -87,10 +87,10 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
 
     Returns
     -------
-    result : datetime of converted dates 
+    result : datetime of converted dates
         Returns:
 
-        - Index-like if box=True 
+        - Index-like if box=True
         - ndarray if box=False
     """
     from pandas import Series, DatetimeIndex, Index
