@@ -26,6 +26,7 @@ from pandas import (Timestamp, date_range, Period, Timedelta, compat,
                     Series, NaT, DataFrame, DatetimeIndex)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
+from pandas.tseries import offsets
 
 
 class TestTimestampArithmetic(object):
