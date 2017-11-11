@@ -422,6 +422,9 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         pandas_datetimestruct dts
         datetime dt
 
+    assert is_utc(tz1) or is_utc(tz2)
+    # See GH#17734
+
     if val == NPY_NAT:
         return val
 
@@ -445,7 +448,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if get_timezone(tz2) == 'UTC':
         return utc_date
     if is_tzlocal(tz2):
-        dt64_to_dtstruct(val, &dts)
+        dt64_to_dtstruct(utc_date, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
         delta = int(get_utcoffset(tz2, dt).total_seconds()) * 1000000000
@@ -486,6 +489,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         int64_t v, offset, delta
         pandas_datetimestruct dts
         datetime dt
+
+    assert is_utc(tz1) or is_utc(tz2)
+    # See GH#17734
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
