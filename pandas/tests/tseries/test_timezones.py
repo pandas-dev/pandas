@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
 import pandas.tseries.offsets as offsets
-from pandas.compat import lrange, zip
+from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
@@ -1278,16 +1278,22 @@ class TestTimeZones(object):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
-            assert result_dt.timestamp() == result_pd.timestamp()
+        if PY3:
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+                assert result_dt.timestamp() == result_pd.timestamp()
+
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
-            assert result_dt.timestamp() == result_pd.timestamp()
+        if PY3:
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+                assert result_dt.timestamp() == result_pd.timestamp()
+
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
