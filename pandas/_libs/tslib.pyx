@@ -122,7 +122,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         object (*func_create)(int64_t, pandas_datetimestruct, object, object)
 
     if box == "date":
-        assert (tz is not None), "tz should be None when converting to date"
+        assert (tz is None), "tz should be None when converting to date"
 
         func_create = create_date_from_ts
     elif box == "timestamp":
