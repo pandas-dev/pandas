@@ -173,6 +173,12 @@ class TestCategorical(object):
         pytest.raises(
             TypeError, lambda: Categorical(arr, ordered=True))
 
+    def test_constructor_dataframe_error(self):
+        # GH#17112
+        df = pd.DataFrame(np.random.randn(3, 2), columns=['A', 'B'])
+        with pytest.raises(NotImplementedError):
+            Categorical(df)
+
     def test_constructor_interval(self):
         result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
                              ordered=True)
