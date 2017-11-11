@@ -490,9 +490,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         pandas_datetimestruct dts
         datetime dt
 
-    # See GH#17734 We should always be converting either from UTC or to UTC
-    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
-
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
