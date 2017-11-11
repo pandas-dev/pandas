@@ -503,8 +503,8 @@ class Window(_Window):
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
 
-    If ``win_type=None`` a boxcar window is used. To learn more about different
-    window types see `scipy.signal window functions
+    If ``win_type=None`` all points are evenly weighted. To learn more about
+    different window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
     """
 
