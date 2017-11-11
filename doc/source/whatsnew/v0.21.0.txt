@@ -12,7 +12,7 @@ Highlights include:
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
-- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
 - Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
 - Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
@@ -369,11 +369,11 @@ Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 
 .. _whatsnew_0210.api_breaking.bottleneck:
 
-Sum/Prod of all-NaN Series/DataFrames is now consistently NaN
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
-whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed. (:issue:`9422`, :issue:`15507`).
+whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
 Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
 
@@ -381,34 +381,34 @@ Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of
 
    s = Series([np.nan])
 
-Previously NO ``bottleneck``
+Previously WITHOUT ``bottleneck`` installed:
 
 .. code-block:: ipython
 
    In [2]: s.sum()
    Out[2]: np.nan
 
-Previously WITH ``bottleneck``
+Previously WITH ``bottleneck``:
 
 .. code-block:: ipython
 
    In [2]: s.sum()
    Out[2]: 0.0
 
-New Behavior, without regard to the bottleneck installation.
+New Behavior, without regard to the bottleneck installation:
 
 .. ipython:: python
 
    s.sum()
 
-Note that this also changes the sum of an empty ``Series``
-
-Previously regardless of ``bottlenck``
+Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottlenck`` installation:
 
 .. code-block:: ipython
 
    In [1]: pd.Series([]).sum()
    Out[1]: 0
+
+but for consistency with the all-NaN case, this was changed to return NaN as well:
 
 .. ipython:: python
 
@@ -877,6 +877,28 @@ New Behavior:
 
    pd.interval_range(start=0, end=4)
 
+.. _whatsnew_0210.api.mpl_converters:
+
+No Automatic Matplotlib Converters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas no longer registers our ``date``, ``time``, ``datetime``,
+``datetime64``, and ``Period`` converters with matplotlib when pandas is
+imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
+nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
+must explicitly register these methods:
+
+.. ipython:: python
+
+   from pandas.tseries import converter
+   converter.register()
+
+   fig, ax = plt.subplots()
+   plt.plot(pd.date_range('2017', periods=6), range(6))
+
+Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
+converters on first-use (:issue:17710).
+
 .. _whatsnew_0210.api:
 
 Other API Changes
@@ -900,8 +922,6 @@ Other API Changes
 - Renamed non-functional ``index`` to ``index_col`` in :func:`read_stata` to improve API consistency (:issue:`16342`)
 - Bug in :func:`DataFrame.drop` caused boolean labels ``False`` and ``True`` to be treated as labels 0 and 1 respectively when dropping indices from a numeric index. This will now raise a ValueError (:issue:`16877`)
 - Restricted DateOffset keyword arguments.  Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior.  Now, only valid arguments will be accepted. (:issue:`17176`).
-- Pandas no longer registers matplotlib converters on import. The converters
-  will be registered and used when the first plot is draw (:issue:`17710`)
 
 .. _whatsnew_0210.deprecations:
 
