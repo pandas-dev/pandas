@@ -449,7 +449,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         try:
             inferred_tz = timezones.infer_tzinfo(start, end)
-        except:
+        except Exception:
             raise TypeError('Start and end cannot both be tz-aware with '
                             'different timezones')
 
@@ -1176,12 +1176,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # convert in chunks of 10k for efficiency
         data = self.asi8
-        l = len(self)
+        length = len(self)
         chunksize = 10000
-        chunks = int(l / chunksize) + 1
+        chunks = int(length / chunksize) + 1
         for i in range(chunks):
             start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, l)
+            end_i = min((i + 1) * chunksize, length)
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
                                                  box=True)
