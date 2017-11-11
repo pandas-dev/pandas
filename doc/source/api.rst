@@ -1870,8 +1870,52 @@ Methods
     Timedelta.to_timedelta64
     Timedelta.total_seconds
 
+.. _api.frequencies:
+
+Frequencies
+-----------
+
+.. currentmodule:: pandas.tseries.frequencies
+
+
+.. autosummary::
+   :toctree: generated/
+
+   to_offset
+
+.. _api.offsets:
+
+Offsets
+-------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   Week
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+
+.. autosummary::
+   :toctree: generated/
+
+   MonthBegin
+   MonthEnd
+   QuarterBegin
+   QuarterEnd
+   YearBegin
+   YearEnd
+
 Window
 ------
+
 .. currentmodule:: pandas.core.window
 
 Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
