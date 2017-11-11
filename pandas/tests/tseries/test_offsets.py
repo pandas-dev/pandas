@@ -42,6 +42,16 @@ import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
+offset_classes = [getattr(offsets, x) for x in dir(offsets)]
+offset_classes = [x for x in offset_classes if inspect.isclass(x) and
+                  issubclass(x, DateOffset)]
+
+
+@pytest.fixture(params=offset_classes)
+def offset_types(request):
+    return request.param
+
+
 def test_monthrange():
     import calendar
     for y in range(2000, 2013):
@@ -4904,23 +4914,15 @@ class TestDST(object):
 
 # ---------------------------------------------------------------------
 
-offset_classes = [getattr(offsets, x) for x in dir(offsets)]
-offset_classes = [x for x in offset_classes if inspect.isclass(x) and
-                  issubclass(x, DateOffset)]
+month_classes = [x for x in offset_classes if
+                 issubclass(x, offsets.MonthOffset)]
+
+tick_classes = [x for x in offset_classes if issubclass(x, offsets.Tick)]
 
 
-def test_valid_attributes():
+@pytest.parametrize('cls', month_classes+tick_classes)
+@pytest.parametrize('kwd', _rd_kwds)
+def test_valid_attributes(kwd, cls):
     # check that we cannot create e.g. MonthEnd(weeks=3)
-    month_classes = [x for x in offset_classes if
-                     issubclass(x, offsets.MonthOffset)]
-
-    for cls in month_classes:
-        for kwd in _rd_kwds:
-            with pytest.raises(TypeError):
-                cls(**{kwd: 3})
-
-    tick_classes = [x for x in offset_classes if issubclass(x, offsets.Tick)]
-    for cls in tick_classes:
-        for kwd in _rd_kwds:
-            with pytest.raises(TypeError):
-                cls(**{kwd: 4})
+    with pytest.raises(TypeError):
+        cls(**{kwd: 3})
