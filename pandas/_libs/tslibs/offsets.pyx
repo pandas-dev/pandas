@@ -382,6 +382,28 @@ class BaseOffset(_BaseOffset):
 
 
 cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+    """
+    Given a datetime (or Timestamp) `stamp`, an integer `months` and an
+    option `day_opt`, return a new datetimelike that many months later,
+    with day determined by `day_opt` using relativedelta semantics.
+
+    Scalar analogue of tslib.shift_months
+
+    Parameters
+    ----------
+    stamp : datetime or Timestamp
+    months : int
+    day_opt : None, 'start', 'end', or an integer
+        None: returned datetimelike has the same day as the input, or the
+              last day of the month if the new month is too short
+        'start': returned datetimelike has day=1
+        'end': returned datetimelike has day on the last day of the month
+        int: returned datetimelike has day equal to day_opt
+
+    Returns
+    -------
+    shifted : datetime or Timestamp (same as input `stamp`)
+    """
     cdef:
         int year, month, day
         int dim, dy
