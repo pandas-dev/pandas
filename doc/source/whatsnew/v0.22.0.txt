@@ -22,8 +22,8 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Better support for ``Dataframe.style.to_excel()`` output with the ``xlsxwriter`` engine. (:issue:`16149`)
-- :func:`pd.tseries.frequencies.to_offset()` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
+- Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
+- :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 -
 
 .. _whatsnew_0220.api_breaking:
@@ -41,10 +41,10 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
-- All-NaN levels in ``MultiIndex`` are now assigned float rather than object dtype, coherently with flat indexes (:issue:`17929`).
-- :class:`Timestamp` will no longer silently ignore unused or invalid `tz` or `tzinfo` keyword arguments (:issue:`17690`)
-- :class:`Timestamp` will no longer silently ignore invalid `freq` arguments (:issue:`5168`)
-- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the `tseries.offsets` module (:issue:`17830`)
+- All-NaN levels in a ``MultiIndex`` are now assigned ``float`` rather than ``object`` dtype, promoting consistency with ``Index`` (:issue:`17929`).
+- :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
+- :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
+- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 
 .. _whatsnew_0220.deprecations:
 
@@ -69,7 +69,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Indexers on Series or DataFrame no longer create a reference cycle (:issue:`17956`)
+- Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
 -
 -
 
@@ -98,8 +98,8 @@ Conversion
 Indexing
 ^^^^^^^^
 
-- Bug in :func:`PeriodIndex.truncate` which raises ``TypeError`` when ``PeriodIndex`` is monotonic (:issue:`17717`)
-- Bug in ``DataFrame.groupby`` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
+- Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
+- Bug in :func:`DataFrame.groupby` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
 -
 -
 
@@ -107,9 +107,9 @@ I/O
 ^^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
-- Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
-- Bug in :func:`pd.read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
-- Bug in :func:`pd.read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
+- Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
+- Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
+- Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 -
 -
 
