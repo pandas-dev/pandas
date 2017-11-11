@@ -706,7 +706,7 @@ class TestFreqConversion(object):
 
         assert initial.asfreq(freq="M", how="S") == Period('2013-01', 'M')
 
-        msg = pd._libs.tslibs._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 
