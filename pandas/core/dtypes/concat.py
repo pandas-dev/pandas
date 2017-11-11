@@ -604,7 +604,7 @@ def _concat_rangeindex_same_dtype(indexes):
         # from the last non-empty index
         stop = non_empty_indexes[-1]._stop if next is None else next
         return RangeIndex(start, stop, step)
-    else:
-        # Here all "indexes" had 0 length, i.e. were empty.
-        # In this case return an empty range index.
-        return RangeIndex(0, 0)
+
+    # Here all "indexes" had 0 length, i.e. were empty.
+    # In this case return an empty range index.
+    return RangeIndex(0, 0)
