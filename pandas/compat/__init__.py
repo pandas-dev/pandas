@@ -44,7 +44,7 @@ PY35 = (sys.version_info >= (3, 5))
 PY36 = (sys.version_info >= (3, 6))
 PYPY = (platform.python_implementation() == 'PyPy')
 
-try:
+try:  # Python 2 imports
     import __builtin__ as builtins
     # not writeable when instantiated with string, doesn't handle unicode well
     from cStringIO import StringIO as cStringIO
@@ -53,12 +53,14 @@ try:
     BytesIO = StringIO
     import cPickle
     import httplib
-except ImportError:
+    from urlparse import urlparse as parse_url
+except ImportError:  # Equivalent Python 3 imports
     import builtins
     from io import StringIO, BytesIO
     cStringIO = StringIO
     import pickle as cPickle
     import http.client as httplib
+    from urllib.parse import urlparse as parse_url
 
 from pandas.compat.chainmap import DeepChainMap
 
