@@ -15,7 +15,6 @@ from distutils.version import LooseVersion
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
-from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
 from pandas._libs.tslibs.timezones import get_timezone
 from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
