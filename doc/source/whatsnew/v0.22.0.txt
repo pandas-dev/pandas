@@ -70,7 +70,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
--
+- Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
 -
 
 .. _whatsnew_0220.docs:
