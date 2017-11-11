@@ -571,6 +571,7 @@ def _concat_rangeindex_same_dtype(indexes):
     indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
     indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
     """
+    from pandas import Int64Index, RangeIndex
 
     start = step = next = None
 
@@ -587,14 +588,12 @@ def _concat_rangeindex_same_dtype(indexes):
         elif step is None:
             # First non-empty index had only one element
             if obj._start == start:
-                from pandas import Int64Index
                 return _concat_index_same_dtype(indexes, klass=Int64Index)
             step = obj._start - start
 
         non_consecutive = ((step != obj._step and len(obj) > 1) or
                            (next is not None and obj._start != next))
         if non_consecutive:
-            from pandas import Int64Index
             return _concat_index_same_dtype(indexes, klass=Int64Index)
 
         if step is not None:
@@ -604,12 +603,8 @@ def _concat_rangeindex_same_dtype(indexes):
         # Get the stop value from "next" or alternatively
         # from the last non-empty index
         stop = non_empty_indexes[-1]._stop if next is None else next
-    else:
-        # Here all "indexes" had 0 length, i.e. were empty.
-        # Simply take start, stop, and step from the last empty index.
-        obj = indexes[-1]
-        start = obj._start
-        step = obj._step
-        stop = obj._stop
+        return RangeIndex(start, stop, step)
 
-    return indexes[0].__class__(start, stop, step)
+    # Here all "indexes" had 0 length, i.e. were empty.
+    # In this case return an empty range index.
+    return RangeIndex(0, 0)
