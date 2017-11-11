@@ -1686,6 +1686,8 @@ class QuarterOffset(DateOffset):
         self.startingMonth = startingMonth
 
         self.kwds = {'startingMonth': startingMonth}
+        self._offset = timedelta(1)
+        self._use_relativedelta = False
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
