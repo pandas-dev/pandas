@@ -597,7 +597,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return values[i]
         except IndexError:
             raise
-        except:
+        except Exception:
             if isinstance(i, slice):
                 indexer = self.index._convert_slice_indexer(i, kind='iloc')
                 return self._get_values(indexer)
@@ -675,7 +675,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple):
                 try:
                     return self._get_values_tuple(key)
-                except:
+                except Exception:
                     if len(key) == 1:
                         key = key[0]
                         if isinstance(key, slice):
@@ -818,7 +818,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if not isinstance(key, (list, Series, np.ndarray, Series)):
                 try:
                     key = list(key)
-                except:
+                except Exception:
                     key = [key]
 
             if isinstance(key, Index):
