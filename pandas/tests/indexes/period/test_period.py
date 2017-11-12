@@ -11,6 +11,36 @@ from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
 from ..datetimelike import DatetimeLike
 
 
+class TestPeriodLevelMultiIndex(object):
+    # TODO: Is there a more appropriate place for these?
+    def test_set_index(self):
+        # GH#17112
+        index = Index(['PCE'] * 4, name='Variable')
+        data = [Period('2018Q2'),
+                Period('2021', freq='5A-Dec'),
+                Period('2026', freq='10A-Dec'),
+                Period('2017Q2')]
+        ser = Series(data, index=index, name='Period')
+        df = ser.to_frame()
+
+        res = df.set_index('Period', append=True)
+        # If the doesn't raise then that's a good start
+        assert res.index.names == ['Variable', 'Period']
+
+    def test_from_arrays_period_level(self):
+        # GH#17112
+        index = Index(['PCE'] * 4, name='Variable')
+        data = [Period('2018Q2'),
+                Period('2021', freq='5A-Dec'),
+                Period('2026', freq='10A-Dec'),
+                Period('2017Q2')]
+        ser = Series(data, index=index, name='Period')
+
+        mi = pd.MultiIndex.from_arrays([ser.index, ser])
+        assert mi.names == ['Variable', 'Period']
+        assert mi.get_level_values('Variable').equals(index)
+
+
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True

@@ -431,11 +431,14 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
+        num_pos = np.array([isinstance(x, (float, int, long)) for x in values],
+                           dtype=bool)
         str_pos = np.array([isinstance(x, string_types) for x in values],
                            dtype=bool)
-        nums = np.sort(values[~str_pos])
+        nums = np.sort(values[num_pos])
         strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
+        others = values[~(str_pos | num_pos)]  # We don't bother sorting these
+        return np.concatenate([nums, np.asarray(strs, dtype=object), others])
 
     sorter = None
     if PY3 and lib.infer_dtype(values) == 'mixed-integer':
@@ -445,7 +448,9 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
-        except TypeError:
+        except (ValueError, TypeError):
+            # Period comparison may raise IncompatibleFrequency, which
+            # subclasses ValueError instead of TypeError
             # try this anyway
             ordered = sort_mixed(values)
 
