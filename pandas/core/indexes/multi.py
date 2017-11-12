@@ -446,6 +446,17 @@ class MultiIndex(Index):
                               **kwargs)
         return self._shallow_copy(values, **kwargs)
 
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    def __contains__(self, key):
+        hash(key)
+        try:
+            self.get_loc(key)
+            return True
+        except (LookupError, TypeError):
+            return False
+
+    contains = __contains__
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
@@ -1369,17 +1380,6 @@ class MultiIndex(Index):
     @property
     def levshape(self):
         return tuple(len(x) for x in self.levels)
-
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
-    def __contains__(self, key):
-        hash(key)
-        try:
-            self.get_loc(key)
-            return True
-        except LookupError:
-            return False
-
-    contains = __contains__
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
