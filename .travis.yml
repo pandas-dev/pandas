@@ -102,8 +102,6 @@ before_install:
   - uname -a
   - git --version
   - git tag
-  - ci/before_install_travis.sh
-  - export DISPLAY=":99.0"
 
 install:
   - echo "install start"
@@ -114,6 +112,8 @@ install:
 
 before_script:
   - ci/install_db_travis.sh
+  - export DISPLAY=":99.0"
+  - ci/before_script_travis.sh
 
 script:
   - echo "script start"
