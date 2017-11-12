@@ -2966,7 +2966,7 @@ class TestSemiMonthBegin(Base):
     @pytest.mark.parametrize('klass,assert_func',
                              [(Series, tm.assert_series_equal),
                               (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass):
+    def test_vectorized_offset_addition(self, klass, assert_func):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
         result = s + SemiMonthBegin()
@@ -3754,64 +3754,65 @@ class TestQuarterBegin(Base):
         assert QuarterBegin().isAnchored()
         assert not QuarterBegin(2, startingMonth=1).isAnchored()
 
-    def test_offset(self):
-        tests = []
+    offset_cases = []
+    offset_cases.append((QuarterBegin(startingMonth=1),
+                        {datetime(2007, 12, 1): datetime(2008, 1, 1),
+                         datetime(2008, 1, 1): datetime(2008, 4, 1),
+                         datetime(2008, 2, 15): datetime(2008, 4, 1),
+                         datetime(2008, 2, 29): datetime(2008, 4, 1),
+                         datetime(2008, 3, 15): datetime(2008, 4, 1),
+                         datetime(2008, 3, 31): datetime(2008, 4, 1),
+                         datetime(2008, 4, 15): datetime(2008, 7, 1),
+                         datetime(2008, 4, 1): datetime(2008, 7, 1), }))
 
-        tests.append((QuarterBegin(startingMonth=1),
-                      {datetime(2007, 12, 1): datetime(2008, 1, 1),
-                       datetime(2008, 1, 1): datetime(2008, 4, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2008, 3, 31): datetime(2008, 4, 1),
-                       datetime(2008, 4, 15): datetime(2008, 7, 1),
-                       datetime(2008, 4, 1): datetime(2008, 7, 1), }))
+    offset_cases.append((QuarterBegin(startingMonth=2),
+                        {datetime(2008, 1, 1): datetime(2008, 2, 1),
+                         datetime(2008, 1, 31): datetime(2008, 2, 1),
+                         datetime(2008, 1, 15): datetime(2008, 2, 1),
+                         datetime(2008, 2, 29): datetime(2008, 5, 1),
+                         datetime(2008, 3, 15): datetime(2008, 5, 1),
+                         datetime(2008, 3, 31): datetime(2008, 5, 1),
+                         datetime(2008, 4, 15): datetime(2008, 5, 1),
+                         datetime(2008, 4, 30): datetime(2008, 5, 1), }))
 
-        tests.append((QuarterBegin(startingMonth=2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2008, 1, 15): datetime(2008, 2, 1),
-                       datetime(2008, 2, 29): datetime(2008, 5, 1),
-                       datetime(2008, 3, 15): datetime(2008, 5, 1),
-                       datetime(2008, 3, 31): datetime(2008, 5, 1),
-                       datetime(2008, 4, 15): datetime(2008, 5, 1),
-                       datetime(2008, 4, 30): datetime(2008, 5, 1), }))
+    offset_cases.append((QuarterBegin(startingMonth=1, n=0),
+                        {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                         datetime(2008, 12, 1): datetime(2009, 1, 1),
+                         datetime(2008, 1, 1): datetime(2008, 1, 1),
+                         datetime(2008, 2, 15): datetime(2008, 4, 1),
+                         datetime(2008, 2, 29): datetime(2008, 4, 1),
+                         datetime(2008, 3, 15): datetime(2008, 4, 1),
+                         datetime(2008, 3, 31): datetime(2008, 4, 1),
+                         datetime(2008, 4, 15): datetime(2008, 7, 1),
+                         datetime(2008, 4, 30): datetime(2008, 7, 1), }))
 
-        tests.append((QuarterBegin(startingMonth=1, n=0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2008, 12, 1): datetime(2009, 1, 1),
-                       datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2008, 3, 31): datetime(2008, 4, 1),
-                       datetime(2008, 4, 15): datetime(2008, 7, 1),
-                       datetime(2008, 4, 30): datetime(2008, 7, 1), }))
+    offset_cases.append((QuarterBegin(startingMonth=1, n=-1),
+                        {datetime(2008, 1, 1): datetime(2007, 10, 1),
+                         datetime(2008, 1, 31): datetime(2008, 1, 1),
+                         datetime(2008, 2, 15): datetime(2008, 1, 1),
+                         datetime(2008, 2, 29): datetime(2008, 1, 1),
+                         datetime(2008, 3, 15): datetime(2008, 1, 1),
+                         datetime(2008, 3, 31): datetime(2008, 1, 1),
+                         datetime(2008, 4, 15): datetime(2008, 4, 1),
+                         datetime(2008, 4, 30): datetime(2008, 4, 1),
+                         datetime(2008, 7, 1): datetime(2008, 4, 1)}))
 
-        tests.append((QuarterBegin(startingMonth=1, n=-1),
-                      {datetime(2008, 1, 1): datetime(2007, 10, 1),
-                       datetime(2008, 1, 31): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 1, 1),
-                       datetime(2008, 2, 29): datetime(2008, 1, 1),
-                       datetime(2008, 3, 15): datetime(2008, 1, 1),
-                       datetime(2008, 3, 31): datetime(2008, 1, 1),
-                       datetime(2008, 4, 15): datetime(2008, 4, 1),
-                       datetime(2008, 4, 30): datetime(2008, 4, 1),
-                       datetime(2008, 7, 1): datetime(2008, 4, 1)}))
+    offset_cases.append((QuarterBegin(startingMonth=1, n=2),
+                        {datetime(2008, 1, 1): datetime(2008, 7, 1),
+                         datetime(2008, 2, 15): datetime(2008, 7, 1),
+                         datetime(2008, 2, 29): datetime(2008, 7, 1),
+                         datetime(2008, 3, 15): datetime(2008, 7, 1),
+                         datetime(2008, 3, 31): datetime(2008, 7, 1),
+                         datetime(2008, 4, 15): datetime(2008, 10, 1),
+                         datetime(2008, 4, 1): datetime(2008, 10, 1), }))
 
-        tests.append((QuarterBegin(startingMonth=1, n=2),
-                      {datetime(2008, 1, 1): datetime(2008, 7, 1),
-                       datetime(2008, 2, 15): datetime(2008, 7, 1),
-                       datetime(2008, 2, 29): datetime(2008, 7, 1),
-                       datetime(2008, 3, 15): datetime(2008, 7, 1),
-                       datetime(2008, 3, 31): datetime(2008, 7, 1),
-                       datetime(2008, 4, 15): datetime(2008, 10, 1),
-                       datetime(2008, 4, 1): datetime(2008, 10, 1), }))
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assertEq(offset, base, expected)
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
-
+    def test_offset_corner_case(self):
         # corner
         offset = QuarterBegin(n=-1, startingMonth=1)
         assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
