@@ -18,7 +18,7 @@ from pandas.io.clipboard import clipboard_set
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
     _DEPS_INSTALLED = 1
-except PyperclipException:
+except (PyperclipException, RuntimeError):
     _DEPS_INSTALLED = 0
 
 
