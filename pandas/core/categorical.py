@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
-    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
@@ -261,6 +260,7 @@ class Categorical(PandasObject):
         #    c.) infer from values
 
         if dtype is not None:
+            # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, compat.string_types):
                 if dtype == 'category':
                     dtype = CategoricalDtype(categories, ordered)
@@ -275,9 +275,12 @@ class Categorical(PandasObject):
             ordered = dtype.ordered
 
         elif is_categorical(values):
+            # If no "dtype" was passed, use the one from "values", but honor
+            # the "ordered" and "categories" arguments
             dtype = values.dtype._from_categorical_dtype(values.dtype,
                                                          categories, ordered)
         else:
+            # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
 
         # At this point, dtype is always a CategoricalDtype
@@ -294,28 +297,12 @@ class Categorical(PandasObject):
 
         # sanitize input
         if is_categorical_dtype(values):
+            if dtype.categories is None:
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
 
-            # we are either a Series or a CategoricalIndex
-            if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
-                values = values._values
-
-            if ordered is None:
-                ordered = values.ordered
-            if categories is None:
-                categories = values.categories
-            values = values.get_values()
-
-        elif isinstance(values, (ABCIndexClass, ABCSeries)):
-            # we'll do inference later
-            pass
-
-        else:
-
-            # on numpy < 1.6 datetimelike get inferred to all i8 by
-            # _sanitize_array which is fine, but since factorize does this
-            # correctly no need here this is an issue because _sanitize_array
-            # also coerces np.nan to a string under certain versions of numpy
-            # as well
+        elif not isinstance(values, (ABCIndexClass, ABCSeries)):
+            # _sanitize_array coerces np.nan to a string under certain versions
+            # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
@@ -335,7 +322,7 @@ class Categorical(PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError("'values' is not ordered, please "
@@ -347,33 +334,17 @@ class Categorical(PandasObject):
                 raise NotImplementedError("> 1 ndim Categorical are not "
                                           "supported at this time")
 
-            if dtype.categories is None:
-                # we're inferring from values
-                dtype = CategoricalDtype(categories, ordered)
+            # we're inferring from values
+            dtype = CategoricalDtype(categories, dtype.ordered)
+
+        elif is_categorical_dtype(values):
+            old_codes = (values.cat.codes if isinstance(values, ABCSeries)
+                         else values.codes)
+            codes = _recode_for_categories(old_codes, values.dtype.categories,
+                                           dtype.categories)
 
         else:
-            # there were two ways if categories are present
-            # - the old one, where each value is a int pointer to the levels
-            #   array -> not anymore possible, but code outside of pandas could
-            #   call us like that, so make some checks
-            # - the new one, where each value is also in the categories array
-            #   (or np.nan)
-
             codes = _get_codes_for_values(values, dtype.categories)
-
-            # TODO: check for old style usage. These warnings should be removes
-            # after 0.18/ in 2016
-            if (is_integer_dtype(values) and
-                    not is_integer_dtype(dtype.categories)):
-                warn("Values and categories have different dtypes. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
-
-            if (len(values) and is_integer_dtype(values) and
-                    (codes == -1).all()):
-                warn("None of the categories were found in values. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
 
         if null_mask.any():
             # Reinsert -1 placeholders for previously removed missing values
