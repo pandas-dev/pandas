@@ -447,7 +447,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     if get_timezone(tz2) == 'UTC':
         return utc_date
-    if is_tzlocal(tz2):
+    elif is_tzlocal(tz2):
         dt64_to_dtstruct(utc_date, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
