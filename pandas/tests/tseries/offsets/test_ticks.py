@@ -38,7 +38,7 @@ def test_delta_to_tick():
 # ---------------------------------------------------------------------
 
 
-def test_Hour(self):
+def test_Hour():
     assert_offset_equal(Hour(),
                         datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
     assert_offset_equal(Hour(-1),
@@ -54,7 +54,7 @@ def test_Hour(self):
     assert Hour(4) != Hour(1)
 
 
-def test_Minute(self):
+def test_Minute():
     assert_offset_equal(Minute(),
                         datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assert_offset_equal(Minute(-1),
@@ -69,7 +69,7 @@ def test_Minute(self):
     assert Minute(5) != Minute()
 
 
-def test_Second(self):
+def test_Second():
     assert_offset_equal(Second(),
                         datetime(2010, 1, 1),
                         datetime(2010, 1, 1, 0, 0, 1))
@@ -87,7 +87,7 @@ def test_Second(self):
     assert Second(3) - Second(2) == Second()
 
 
-def test_Millisecond(self):
+def test_Millisecond():
     assert_offset_equal(Milli(),
                         datetime(2010, 1, 1),
                         datetime(2010, 1, 1, 0, 0, 0, 1000))
@@ -108,7 +108,7 @@ def test_Millisecond(self):
     assert Milli(3) - Milli(2) == Milli()
 
 
-def test_MillisecondTimestampArithmetic(self):
+def test_MillisecondTimestampArithmetic():
     assert_offset_equal(Milli(),
                         Timestamp('2010-01-01'),
                         Timestamp('2010-01-01 00:00:00.001'))
@@ -117,7 +117,7 @@ def test_MillisecondTimestampArithmetic(self):
                         Timestamp('2010-01-01'))
 
 
-def test_Microsecond(self):
+def test_Microsecond():
     assert_offset_equal(Micro(),
                         datetime(2010, 1, 1),
                         datetime(2010, 1, 1, 0, 0, 0, 1))
@@ -136,7 +136,7 @@ def test_Microsecond(self):
     assert Micro(3) - Micro(2) == Micro()
 
 
-def test_NanosecondGeneric(self):
+def test_NanosecondGeneric():
     timestamp = Timestamp(datetime(2010, 1, 1))
     assert timestamp.nanosecond == 0
 
@@ -147,7 +147,7 @@ def test_NanosecondGeneric(self):
     assert reverse_result.nanosecond == 10
 
 
-def test_Nanosecond(self):
+def test_Nanosecond():
     timestamp = Timestamp(datetime(2010, 1, 1))
     assert_offset_equal(Nano(),
                         timestamp,
