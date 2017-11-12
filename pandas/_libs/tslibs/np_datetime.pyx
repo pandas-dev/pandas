@@ -26,6 +26,11 @@ cdef extern from "../src/datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
 
+    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                             PANDAS_DATETIMEUNIT fr,
+                                             pandas_timedeltastruct *result
+                                            ) nogil
+
     pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 # ----------------------------------------------------------------------
@@ -125,6 +130,13 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     """Convenience function to call pandas_datetime_to_datetimestruct
     with the by-far-most-common frequency PANDAS_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
+    return
+
+cdef inline void td64_to_tdstruct(int64_t td64,
+                                  pandas_timedeltastruct* out) nogil:
+    """Convenience function to call pandas_timedelta_to_timedeltastruct
+    with the by-far-most-common frequency PANDAS_FR_ns"""
+    pandas_timedelta_to_timedeltastruct(td64, PANDAS_FR_ns, out)
     return
 
 
