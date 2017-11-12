@@ -42,20 +42,6 @@ import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-offset_classes = [getattr(offsets, x) for x in dir(offsets)]
-offset_classes = [x for x in offset_classes if inspect.isclass(x) and
-                  issubclass(x, DateOffset) and
-                  x not in [offsets.YearOffset, offsets.Tick,
-                            offsets.SingleConstructorOffset,
-                            offsets.SemiMonthOffset,
-                            offsets.QuarterOffset, offsets.MonthOffset]]
-
-
-@pytest.fixture(params=offset_classes)
-def offset_types(request):
-    return request.param
-
-
 def test_monthrange():
     import calendar
     for y in range(2000, 2013):
@@ -4917,6 +4903,14 @@ class TestDST(object):
 
 
 # ---------------------------------------------------------------------
+
+offset_classes = [getattr(offsets, x) for x in dir(offsets)]
+offset_classes = [x for x in offset_classes if inspect.isclass(x) and
+                  issubclass(x, DateOffset) and
+                  x not in [offsets.YearOffset, offsets.Tick,
+                            offsets.SingleConstructorOffset,
+                            offsets.SemiMonthOffset,
+                            offsets.QuarterOffset, offsets.MonthOffset]]
 
 month_classes = [x for x in offset_classes if
                  issubclass(x, offsets.MonthOffset)]
