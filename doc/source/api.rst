@@ -701,7 +701,9 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.CategoricalDtype`.
+Pandas defines a custom data type for representing data that can take only a
+limited, fixed set of values. The dtype of a ``Categorical`` can be described by
+a :class:`pandas.api.types.CategoricalDtype`.
 
 .. autosummary::
    :toctree: generated/
@@ -715,6 +717,31 @@ The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.Ca
    api.types.CategoricalDtype.categories
    api.types.CategoricalDtype.ordered
 
+Categorical data can be stored in a :class:``pandas.Categorical``
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical
+
+The following two ``Categorical`` constructors are considered API but should only be used when
+adding ordering information or special categories is need at creation time of the categorical data:
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.categories
+   Categorical.from_codes
+
+``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
+the Categorical back to a numpy array, so categories and order information is not preserved!
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.__array__
+
+A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
@@ -740,33 +767,9 @@ following usable methods and properties:
    Series.cat.as_ordered
    Series.cat.as_unordered
 
-To create a Series of dtype ``category``, use ``cat = s.astype("category")``.
-
-The following two ``Categorical`` constructors are considered API but should only be used when
-adding ordering information or special categories is need at creation time of the categorical data:
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   Categorical
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.categories
-   Categorical.ordered
-   Categorical.codes
-   Categorical.dtype
-   Categorical.from_codes
-
-``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so categories and order information is not preserved!
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.__array__
+To create a Series of dtype ``category``, use ``cat = s.astype("category")`` or
+``s.astype(categorical_dtype)`` where ``categorical_dtype`` is an instance of
+:class:`~pandas.api.types.CategoricalDtype`.
 
 Plotting
 ~~~~~~~~
