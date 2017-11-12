@@ -2980,3 +2980,13 @@ class TestMultiIndex(Base):
         assert pd.isna(df0.index.get_level_values(1)).all()
         # the following failed in 0.14.1
         assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+    def test_million_record_attribute_error(self):
+        # GH 18165
+        r = list(range(1000000))
+        df = pd.DataFrame({'a': r, 'b': r},
+                          index=pd.MultiIndex.from_tuples([(x, x) for x in r]))
+
+        with tm.assert_raises_regex(AttributeError,
+                                    "'Series' object has no attribute 'foo'"):
+            df['a'].foo()
