@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
 cimport numpy as cnp

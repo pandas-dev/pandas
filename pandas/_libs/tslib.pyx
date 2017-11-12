@@ -97,9 +97,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos)
-from tslibs.conversion import (
-    tz_localize_to_utc, tz_convert,
-    tz_convert_single)
+from tslibs.conversion import (tz_localize_to_utc,
+                               tz_convert_single, date_normalize)
 
 from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat
@@ -1849,26 +1848,6 @@ cdef inline _to_i8(object val):
         return val
 
 
-cpdef pydt_to_i8(object pydt):
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
-
-
-def i8_to_pydt(int64_t i8, object tzinfo=None):
-    """
-    Inverse of pydt_to_i8
-    """
-    return Timestamp(i8)
-
-
 # ----------------------------------------------------------------------
 # Accessors
 
@@ -1890,130 +1869,6 @@ def get_time_micros(ndarray[int64_t] dtindex):
                                  60 * dts.min + dts.sec) + dts.us
 
     return micros
-
-
-cdef int64_t DAY_NS = 86400000000000LL
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def date_normalize(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef _normalize_local(ndarray[int64_t] stamps, object tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
-
-    if is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
-            result[i] = _normalized_stamp(&dts)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
-
-        # statictzinfo
-        if typ not in ['pytz', 'dateutil']:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = _normalized_stamp(&dts)
-        else:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
-    dts.ps = 0
-    return dtstruct_to_dt64(dts)
-
-
-def dates_normalized(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans, deltas
-        pandas_datetimestruct dts
-
-    if tz is None or is_utc(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-    elif is_tzlocal(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
-                          dts.sec, dts.us, tz)
-            dt = dt + tz.utcoffset(dt)
-            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
-                return False
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
-            pos = trans.searchsorted(stamps[i]) - 1
-            inf = tz._transition_info[pos]
-
-            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-
-    return True
 
 
 # ----------------------------------------------------------------------

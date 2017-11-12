@@ -16,8 +16,9 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
-from pandas._libs import tslib, period
+from pandas._libs import period
 from pandas._libs.tslibs.timezones import get_timezone
+from pandas._libs.tslibs import conversion
 
 from pandas.compat import lrange, long, PY3
 from pandas.util.testing import assert_series_equal
@@ -77,12 +78,12 @@ class TestTimestamp(object):
             for result in [Timestamp(date_str), Timestamp(date)]:
                 # only with timestring
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
@@ -90,18 +91,18 @@ class TestTimestamp(object):
                                                                      tz=tz)]:
                     expected_tz = expected - offset * 3600 * 1000000000
                     assert result.value == expected_tz
-                    assert tslib.pydt_to_i8(result) == expected_tz
+                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should preserve tz
                     result = Timestamp(result)
                     assert result.value == expected_tz
-                    assert tslib.pydt_to_i8(result) == expected_tz
+                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should convert to UTC
                     result = Timestamp(result, tz='UTC')
                     expected_utc = expected - offset * 3600 * 1000000000
                     assert result.value == expected_utc
-                    assert tslib.pydt_to_i8(result) == expected_utc
+                    assert conversion.pydt_to_i8(result) == expected_utc
 
     def test_constructor_with_stringoffset(self):
         # GH 7833
@@ -129,30 +130,30 @@ class TestTimestamp(object):
             for result in [Timestamp(date_str)]:
                 # only with timestring
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 result = Timestamp(date_str, tz=tz)
                 expected_tz = expected
                 assert result.value == expected_tz
-                assert tslib.pydt_to_i8(result) == expected_tz
+                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should preserve tz
                 result = Timestamp(result)
                 assert result.value == expected_tz
-                assert tslib.pydt_to_i8(result) == expected_tz
+                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should convert to UTC
                 result = Timestamp(result, tz='UTC')
                 expected_utc = expected
                 assert result.value == expected_utc
-                assert tslib.pydt_to_i8(result) == expected_utc
+                assert conversion.pydt_to_i8(result) == expected_utc
 
         # This should be 2013-11-01 05:00 in UTC
         # converted to Chicago tz

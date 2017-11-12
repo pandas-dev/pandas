@@ -21,6 +21,7 @@ import pandas.tseries.offsets as offsets
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (  # noqa
     get_freq_code, _base_and_stride, _period_str_to_code,
     _INVALID_FREQ_ERROR, opattern, _lite_rule_alias, _dont_uppercase,
@@ -583,7 +584,8 @@ class _FrequencyInferer(object):
         # the timezone so they are in local time
         if hasattr(index, 'tz'):
             if index.tz is not None:
-                self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
+                self.values = conversion.tz_convert(self.values,
+                                                    'UTC', index.tz)
 
         self.warn = warn
 

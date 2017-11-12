@@ -17,7 +17,7 @@ from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -1738,14 +1738,14 @@ class TestTslib(object):
 
     def test_tslib_tz_convert(self):
         def compare_utc_to_local(tz_didx, utc_didx):
-            f = lambda x: tslib.tz_convert_single(x, 'UTC', tz_didx.tz)
-            result = tslib.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
+            f = lambda x: conversion.tz_convert_single(x, 'UTC', tz_didx.tz)
+            result = conversion.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
             result_single = np.vectorize(f)(tz_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
         def compare_local_to_utc(tz_didx, utc_didx):
-            f = lambda x: tslib.tz_convert_single(x, tz_didx.tz, 'UTC')
-            result = tslib.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
+            f = lambda x: conversion.tz_convert_single(x, tz_didx.tz, 'UTC')
+            result = conversion.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
             result_single = np.vectorize(f)(utc_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
@@ -1770,14 +1770,14 @@ class TestTslib(object):
             compare_local_to_utc(tz_didx, utc_didx)
 
         # Check empty array
-        result = tslib.tz_convert(np.array([], dtype=np.int64),
-                                  timezones.maybe_get_tz('US/Eastern'),
-                                  timezones.maybe_get_tz('Asia/Tokyo'))
+        result = conversion.tz_convert(np.array([], dtype=np.int64),
+                                       timezones.maybe_get_tz('US/Eastern'),
+                                       timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
         # Check all-NaT array
-        result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
-                                  timezones.maybe_get_tz('US/Eastern'),
-                                  timezones.maybe_get_tz('Asia/Tokyo'))
+        result = conversion.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
+                                       timezones.maybe_get_tz('US/Eastern'),
+                                       timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))
