@@ -306,20 +306,18 @@ class TestCategorical(object):
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Catch old style constructor useage: two arrays, codes + categories
-        # We can only catch two cases:
+        # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],
                                 categories=["a", "b", "c"])  # noqa
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],  # noqa
                                 categories=[3, 4, 5])
 
-        # the next one are from the old docs, but unfortunately these don't
-        # trigger :-(
+        # the next one are from the old docs
         with tm.assert_produces_warning(None):
             c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
             cat = Categorical([1, 2], categories=[1, 2, 3])
