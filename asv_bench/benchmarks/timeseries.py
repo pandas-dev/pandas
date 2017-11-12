@@ -107,6 +107,8 @@ class DatetimeIndex(object):
     def time_infer_freq_business(self):
         infer_freq(self.b_freq)
 
+    def time_to_date(self):
+        self.rng.date
 
 class TimeDatetimeConverter(object):
     goal_time = 0.2
