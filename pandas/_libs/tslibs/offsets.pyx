@@ -4,7 +4,7 @@
 cimport cython
 
 import time
-from cpython.datetime cimport timedelta, time as dt_time
+from cpython.datetime cimport datetime, timedelta, time as dt_time
 
 from dateutil.relativedelta import relativedelta
 
@@ -13,9 +13,9 @@ cimport numpy as np
 np.import_array()
 
 
-from util cimport is_string_object
+from util cimport is_string_object, is_integer_object
 
-from pandas._libs.tslib import pydt_to_i8
+from pandas._libs.tslib import pydt_to_i8, monthrange
 
 from frequencies cimport get_freq_code
 from conversion cimport tz_convert_single
@@ -375,3 +375,56 @@ class BaseOffset(_BaseOffset):
             # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
             return other - self
         return -self + other
+
+
+# ----------------------------------------------------------------------
+# RelativeDelta Arithmetic
+
+
+cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+    """
+    Given a datetime (or Timestamp) `stamp`, an integer `months` and an
+    option `day_opt`, return a new datetimelike that many months later,
+    with day determined by `day_opt` using relativedelta semantics.
+
+    Scalar analogue of tslib.shift_months
+
+    Parameters
+    ----------
+    stamp : datetime or Timestamp
+    months : int
+    day_opt : None, 'start', 'end', or an integer
+        None: returned datetimelike has the same day as the input, or the
+              last day of the month if the new month is too short
+        'start': returned datetimelike has day=1
+        'end': returned datetimelike has day on the last day of the month
+        int: returned datetimelike has day equal to day_opt
+
+    Returns
+    -------
+    shifted : datetime or Timestamp (same as input `stamp`)
+    """
+    cdef:
+        int year, month, day
+        int dim, dy
+
+    dy = (stamp.month + months) // 12
+    month = (stamp.month + months) % 12
+
+    if month == 0:
+        month = 12
+        dy -= 1
+    year = stamp.year + dy
+
+    dim = monthrange(year, month)[1]
+    if day_opt is None:
+        day = min(stamp.day, dim)
+    elif day_opt == 'start':
+        day = 1
+    elif day_opt == 'end':
+        day = dim
+    elif is_integer_object(day_opt):
+        day = min(day_opt, dim)
+    else:
+        raise ValueError(day_opt)
+    return stamp.replace(year=year, month=month, day=day)
