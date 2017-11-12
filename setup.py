@@ -506,7 +506,8 @@ ext_data = {
     '_libs.index': {
         'pyxfile': '_libs/index',
         'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
-        'depends': _pxi_dep['index']},
+        'depends': _pxi_dep['index'],
+        'sources': np_datetime_sources},
     '_libs.indexing': {
         'pyxfile': '_libs/indexing',
         'include': []},
@@ -591,8 +592,9 @@ ext_data = {
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/nattype',
-                     '_libs/tslibs/np_datetime']},
+                     '_libs/tslibs/nattype'],
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
         'pxdfiles': ['_libs/src/util',
