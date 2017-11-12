@@ -60,7 +60,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
 -
 -
 
@@ -70,7 +70,8 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
--
+- Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
+- :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
 -
 
 .. _whatsnew_0220.docs:
