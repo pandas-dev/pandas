@@ -27,6 +27,11 @@ if [ "$BUILD_TEST" ]; then
     echo "[running]"
     cd /tmp
     unset PYTHONPATH
+
+    echo "[build-test: single]"
+    python -c 'import pandas; pandas.test(["--skip-slow", "--skip-network", "-r xX", "-m single"])'
+
+    echo "[build-test: not single]"
     python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
 
 elif [ "$DOC" ]; then
