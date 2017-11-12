@@ -859,7 +859,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
-            except:
+            except Exception:
                 pass
 
         freq = None
