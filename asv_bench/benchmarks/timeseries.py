@@ -89,6 +89,9 @@ class DatetimeIndex(object):
     def time_dti_tz_factorize(self):
         self.dti_tz.factorize()
 
+    def time_dti_time(self):
+        self.rng.time
+
     def time_timestamp_tzinfo_cons(self):
         self.rng5[0]
 
@@ -109,6 +112,9 @@ class DatetimeIndex(object):
 
     def time_to_date(self):
         self.rng.date
+
+    def time_to_pydatetime(self):
+        self.rng.to_pydatetime()
 
 class TimeDatetimeConverter(object):
     goal_time = 0.2
