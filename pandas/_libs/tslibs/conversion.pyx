@@ -401,7 +401,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
-    This is a single timezone versoin of tz_convert
+    This is a single timezone version of tz_convert
 
     Parameters
     ----------
@@ -421,6 +421,9 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
         datetime dt
+
+    # See GH#17734 We should always be converting either from UTC or to UTC
+    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
 
     if val == NPY_NAT:
         return val
@@ -444,8 +447,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     if get_timezone(tz2) == 'UTC':
         return utc_date
-    if is_tzlocal(tz2):
-        dt64_to_dtstruct(val, &dts)
+    elif is_tzlocal(tz2):
+        dt64_to_dtstruct(utc_date, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
         delta = int(get_utcoffset(tz2, dt).total_seconds()) * 1000000000
