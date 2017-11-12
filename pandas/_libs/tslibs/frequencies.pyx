@@ -15,7 +15,7 @@ from util cimport is_integer_object
 
 # hack to handle WOM-1MON
 opattern = re.compile(
-    r'([\-]?\d*|[\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
+    r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
 
 _INVALID_FREQ_ERROR = "Invalid frequency: {0}"

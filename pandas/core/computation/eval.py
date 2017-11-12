@@ -202,7 +202,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
         :meth:`~pandas.DataFrame.query` method to inject the
-        :attr:`~pandas.DataFrame.index` and :attr:`~pandas.DataFrame.columns`
+        ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
     level : int, optional

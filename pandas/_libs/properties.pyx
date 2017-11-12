@@ -63,7 +63,14 @@ cdef class AxisProperty(object):
         self.axis = axis
 
     def __get__(self, obj, type):
-        cdef list axes = obj._data.axes
+        cdef:
+            list axes
+
+        if obj is None:
+            # Only instances have _data, not classes
+            return None
+        else:
+            axes = obj._data.axes
         return axes[self.axis]
 
     def __set__(self, obj, value):
