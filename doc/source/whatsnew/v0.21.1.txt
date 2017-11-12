@@ -73,7 +73,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
 -
 -
 

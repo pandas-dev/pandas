@@ -64,7 +64,7 @@ def time2num(d):
     if isinstance(d, compat.string_types):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
-            raise ValueError('Could not parse time %s' % d)
+            raise ValueError('Could not parse time {d}'.format(d=d))
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
@@ -166,7 +166,7 @@ def get_datevalue(date, freq):
         return date
     elif date is None:
         return None
-    raise ValueError("Unrecognizable date '%s'" % date)
+    raise ValueError("Unrecognizable date '{date}'".format(date=date))
 
 
 def _dt_to_float_ordinal(dt):
@@ -351,10 +351,12 @@ class MilliSecondLocator(dates.DateLocator):
         estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
 
         if estimate > self.MAXTICKS * 2:
-            raise RuntimeError(('MillisecondLocator estimated to generate %d '
-                                'ticks from %s to %s: exceeds Locator.MAXTICKS'
-                                '* 2 (%d) ') %
-                               (estimate, dmin, dmax, self.MAXTICKS * 2))
+            raise RuntimeError(('MillisecondLocator estimated to generate '
+                                '{estimate:d} ticks from {dmin} to {dmax}: '
+                                'exceeds Locator.MAXTICKS'
+                                '* 2 ({arg:d}) ').format(
+                                    estimate=estimate, dmin=dmin, dmax=dmax,
+                                    arg=self.MAXTICKS * 2))
 
         freq = '%dL' % self._get_interval()
         tz = self.tz.tzname(None)
@@ -505,7 +507,7 @@ def _daily_finder(vmin, vmax, freq):
         elif freq == FreqGroup.FR_HR:
             periodsperday = 24
         else:  # pragma: no cover
-            raise ValueError("unexpected frequency: %s" % freq)
+            raise ValueError("unexpected frequency: {freq}".format(freq=freq))
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
 
@@ -864,7 +866,7 @@ def get_finder(freq):
     elif ((freq >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK):
         return _daily_finder
     else:  # pragma: no cover
-        errmsg = "Unsupported frequency: %s" % (freq)
+        errmsg = "Unsupported frequency: {freq}".format(freq=freq)
         raise NotImplementedError(errmsg)
 
 
