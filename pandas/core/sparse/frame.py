@@ -336,10 +336,11 @@ class SparseDataFrame(DataFrame):
 
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
-        result = super(SparseDataFrame, self).where(cond, other,
-                                                    inplace, axis,
-                                                    level, try_cast,
-                                                    raise_on_error)
+        result = super(SparseDataFrame,
+                       self).where(cond, other,
+                                   inplace, axis,
+                                   level, try_cast,
+                                   raise_on_error=raise_on_error)
         result._default_fill_value = other
         return result
 
