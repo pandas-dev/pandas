@@ -60,7 +60,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
 -
 -
 
