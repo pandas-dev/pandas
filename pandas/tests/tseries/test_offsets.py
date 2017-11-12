@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 import pytest
-from pandas.compat import range, iteritems
+from pandas.compat import range
 from pandas import compat
 
 import numpy as np
@@ -4670,27 +4670,29 @@ class TestDST(object):
             self._test_all_offsets(n=1, tstart=self._make_timestamp(
                 self.ts_pre_springfwd, hrs_pre, tz), expected_utc_offset=None)
 
-    def test_all_offset_classes(self):
-        tests = {MonthBegin: ['11/2/2012', '12/1/2012'],
-                 MonthEnd: ['11/2/2012', '11/30/2012'],
-                 BMonthBegin: ['11/2/2012', '12/3/2012'],
-                 BMonthEnd: ['11/2/2012', '11/30/2012'],
-                 CBMonthBegin: ['11/2/2012', '12/3/2012'],
-                 CBMonthEnd: ['11/2/2012', '11/30/2012'],
-                 SemiMonthBegin: ['11/2/2012', '11/15/2012'],
-                 SemiMonthEnd: ['11/2/2012', '11/15/2012'],
-                 Week: ['11/2/2012', '11/9/2012'],
-                 YearBegin: ['11/2/2012', '1/1/2013'],
-                 YearEnd: ['11/2/2012', '12/31/2012'],
-                 BYearBegin: ['11/2/2012', '1/1/2013'],
-                 BYearEnd: ['11/2/2012', '12/31/2012'],
-                 QuarterBegin: ['11/2/2012', '12/1/2012'],
-                 QuarterEnd: ['11/2/2012', '12/31/2012'],
-                 BQuarterBegin: ['11/2/2012', '12/3/2012'],
-                 BQuarterEnd: ['11/2/2012', '12/31/2012'],
-                 Day: ['11/4/2012', '11/4/2012 23:00']}
+    offset_classes = {MonthBegin: ['11/2/2012', '12/1/2012'],
+                      MonthEnd: ['11/2/2012', '11/30/2012'],
+                      BMonthBegin: ['11/2/2012', '12/3/2012'],
+                      BMonthEnd: ['11/2/2012', '11/30/2012'],
+                      CBMonthBegin: ['11/2/2012', '12/3/2012'],
+                      CBMonthEnd: ['11/2/2012', '11/30/2012'],
+                      SemiMonthBegin: ['11/2/2012', '11/15/2012'],
+                      SemiMonthEnd: ['11/2/2012', '11/15/2012'],
+                      Week: ['11/2/2012', '11/9/2012'],
+                      YearBegin: ['11/2/2012', '1/1/2013'],
+                      YearEnd: ['11/2/2012', '12/31/2012'],
+                      BYearBegin: ['11/2/2012', '1/1/2013'],
+                      BYearEnd: ['11/2/2012', '12/31/2012'],
+                      QuarterBegin: ['11/2/2012', '12/1/2012'],
+                      QuarterEnd: ['11/2/2012', '12/31/2012'],
+                      BQuarterBegin: ['11/2/2012', '12/3/2012'],
+                      BQuarterEnd: ['11/2/2012', '12/31/2012'],
+                      Day: ['11/4/2012', '11/4/2012 23:00']}.items()
 
-        for offset, test_values in iteritems(tests):
-            first = Timestamp(test_values[0], tz='US/Eastern') + offset()
-            second = Timestamp(test_values[1], tz='US/Eastern')
-            assert first == second
+    @pytest.mark.parametrize('tup', offset_classes)
+    def test_all_offset_classes(self, tup):
+        offset, test_values = tup
+
+        first = Timestamp(test_values[0], tz='US/Eastern') + offset()
+        second = Timestamp(test_values[1], tz='US/Eastern')
+        assert first == second
