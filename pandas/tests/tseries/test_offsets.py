@@ -40,6 +40,8 @@ import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
+from .common import assert_offset_equal, assert_onOffset
+
 
 def test_monthrange():
     import calendar
@@ -616,7 +618,7 @@ class TestBusinessDay(Base):
                  (BDay(), datetime(2008, 1, 5), False)]
 
         for offset, d, expected in tests:
-            assertOnOffset(offset, d, expected)
+            assert_onOffset(offset, d, expected)
 
     def test_apply(self):
         tests = []
@@ -661,7 +663,7 @@ class TestBusinessDay(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -1265,7 +1267,7 @@ class TestBusinessHour(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         tests = []
@@ -1324,7 +1326,7 @@ class TestBusinessHour(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_nanoseconds(self):
         tests = []
@@ -1347,7 +1349,7 @@ class TestBusinessHour(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -1621,7 +1623,7 @@ class TestCustomBusinessHour(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_nanoseconds(self):
         tests = []
@@ -1644,7 +1646,7 @@ class TestCustomBusinessHour(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
 
 class TestCustomBusinessDay(Base):
@@ -1745,7 +1747,7 @@ class TestCustomBusinessDay(Base):
                  (CDay(), datetime(2008, 1, 5), False)]
 
         for offset, d, expected in tests:
-            assertOnOffset(offset, d, expected)
+            assert_onOffset(offset, d, expected)
 
     def test_apply(self):
         tests = []
@@ -1791,7 +1793,7 @@ class TestCustomBusinessDay(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -1863,7 +1865,7 @@ class TestCustomBusinessDay(Base):
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
-        assertEq(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
+        assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
@@ -1990,7 +1992,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
                  (CBMonthEnd(), datetime(2008, 1, 1), False)]
 
         for offset, d, expected in tests:
-            assertOnOffset(offset, d, expected)
+            assert_onOffset(offset, d, expected)
 
     def test_apply(self):
         cbm = CBMonthEnd()
@@ -2015,7 +2017,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -2104,7 +2106,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
                  (CBMonthBegin(), datetime(2008, 1, 31), False)]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_apply(self):
         cbm = CBMonthBegin()
@@ -2128,7 +2130,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -2165,13 +2167,6 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         cbmb = CBMonthBegin(calendar=hcal)
         assert (DatetimeIndex(start='20120101', end='20130101',
                               freq=cbmb).tolist()[0] == datetime(2012, 1, 3))
-
-
-def assertOnOffset(offset, date, expected):
-    actual = offset.onOffset(date)
-    assert actual == expected, ("\nExpected: %s\nActual: %s\nFor Offset: %s)"
-                                "\nAt Date: %s" %
-                                (expected, actual, offset, date))
 
 
 class TestWeek(Base):
@@ -2224,7 +2219,7 @@ class TestWeek(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_onOffset(self):
         for weekday in range(7):
@@ -2237,7 +2232,7 @@ class TestWeek(Base):
                     expected = True
                 else:
                     expected = False
-            assertOnOffset(offset, date, expected)
+            assert_onOffset(offset, date, expected)
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -2309,7 +2304,7 @@ class TestWeekOfMonth(Base):
 
         for n, week, weekday, dt, expected in test_cases:
             offset = WeekOfMonth(n, week=week, weekday=weekday)
-            assertEq(offset, dt, expected)
+            assert_offset_equal(offset, dt, expected)
 
         # try subtracting
         result = datetime(2011, 2, 1) - WeekOfMonth(week=1, weekday=2)
@@ -2450,7 +2445,7 @@ class TestBMonthBegin(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -2460,7 +2455,7 @@ class TestBMonthBegin(Base):
                  (BMonthBegin(), datetime(2008, 3, 3), True)]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -2508,7 +2503,7 @@ class TestBMonthEnd(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_normalize(self):
         dt = datetime(2007, 1, 1, 3)
@@ -2523,7 +2518,7 @@ class TestBMonthEnd(Base):
                  (BMonthEnd(), datetime(2008, 1, 1), False)]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -2570,7 +2565,7 @@ class TestMonthBegin(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
 
 class TestMonthEnd(Base):
@@ -2612,7 +2607,7 @@ class TestMonthEnd(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_day_of_month(self):
         dt = datetime(2007, 1, 1)
@@ -2637,7 +2632,7 @@ class TestMonthEnd(Base):
                  (MonthEnd(), datetime(2008, 1, 1), False)]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
 
 class TestSemiMonthEnd(Base):
@@ -2752,7 +2747,7 @@ class TestSemiMonthEnd(Base):
                  datetime(2008, 12, 31))
 
         for base, exp_date in zip(dates[:-1], dates[1:]):
-            assertEq(SemiMonthEnd(), base, exp_date)
+            assert_offset_equal(SemiMonthEnd(), base, exp_date)
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
@@ -2768,7 +2763,7 @@ class TestSemiMonthEnd(Base):
     def test_offset(self):
         for offset, cases in self._get_tests():
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_index(self):
         for offset, cases in self._get_tests():
@@ -2786,7 +2781,7 @@ class TestSemiMonthEnd(Base):
                  (datetime(2008, 2, 29), True)]
 
         for dt, expected in tests:
-            assertOnOffset(SemiMonthEnd(), dt, expected)
+            assert_onOffset(SemiMonthEnd(), dt, expected)
 
     @pytest.mark.parametrize('klass,assert_func',
                              [(Series, tm.assert_series_equal),
@@ -2928,7 +2923,7 @@ class TestSemiMonthBegin(Base):
                  datetime(2008, 12, 15))
 
         for base, exp_date in zip(dates[:-1], dates[1:]):
-            assertEq(SemiMonthBegin(), base, exp_date)
+            assert_offset_equal(SemiMonthBegin(), base, exp_date)
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
@@ -2944,7 +2939,7 @@ class TestSemiMonthBegin(Base):
     def test_offset(self):
         for offset, cases in self._get_tests():
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
     def test_apply_index(self):
         for offset, cases in self._get_tests():
@@ -2961,7 +2956,7 @@ class TestSemiMonthBegin(Base):
                  (datetime(2008, 2, 15), True)]
 
         for dt, expected in tests:
-            assertOnOffset(SemiMonthBegin(), dt, expected)
+            assert_onOffset(SemiMonthBegin(), dt, expected)
 
     @pytest.mark.parametrize('klass,assert_func',
                              [(Series, tm.assert_series_equal),
@@ -3073,7 +3068,7 @@ class TestBQuarterBegin(Base):
 
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
-                assertEq(offset, base, expected)
+                assert_offset_equal(offset, base, expected)
 
         # corner
         offset = BQuarterBegin(n=-1, startingMonth=1)
@@ -3150,7 +3145,7 @@ class TestBQuarterEnd(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     def test_offset_corner_case(self):
         # corner
@@ -3189,7 +3184,7 @@ class TestBQuarterEnd(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):
@@ -3260,7 +3255,7 @@ class TestFY5253LastOfMonth(Base):
         ]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_apply(self):
         offset_lom_aug_sat = makeFY5253LastOfMonth(startingMonth=8,
@@ -3402,7 +3397,7 @@ class TestFY5253NearestEndMonth(Base):
         ]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_apply(self):
         date_seq_nem_8_sat = [datetime(2006, 9, 2), datetime(2007, 9, 1),
@@ -3507,27 +3502,28 @@ class TestFY5253LastOfMonthQuarter(Base):
                 datetime(2012, 9, 29), datetime(2012, 12, 29),
                 datetime(2013, 3, 30), datetime(2013, 6, 29)]
 
-        assertEq(offset, base=GMCR[0], expected=GMCR[1])
-        assertEq(offset, base=GMCR[0] + relativedelta(days=-1),
-                 expected=GMCR[0])
-        assertEq(offset, base=GMCR[1], expected=GMCR[2])
+        assert_offset_equal(offset, base=GMCR[0], expected=GMCR[1])
+        assert_offset_equal(offset, base=GMCR[0] + relativedelta(days=-1),
+                            expected=GMCR[0])
+        assert_offset_equal(offset, base=GMCR[1], expected=GMCR[2])
 
-        assertEq(offset2, base=GMCR[0], expected=GMCR[2])
-        assertEq(offset4, base=GMCR[0], expected=GMCR[4])
+        assert_offset_equal(offset2, base=GMCR[0], expected=GMCR[2])
+        assert_offset_equal(offset4, base=GMCR[0], expected=GMCR[4])
 
-        assertEq(offset_neg1, base=GMCR[-1], expected=GMCR[-2])
-        assertEq(offset_neg1, base=GMCR[-1] + relativedelta(days=+1),
-                 expected=GMCR[-1])
-        assertEq(offset_neg2, base=GMCR[-1], expected=GMCR[-3])
+        assert_offset_equal(offset_neg1, base=GMCR[-1], expected=GMCR[-2])
+        assert_offset_equal(offset_neg1,
+                            base=GMCR[-1] + relativedelta(days=+1),
+                            expected=GMCR[-1])
+        assert_offset_equal(offset_neg2, base=GMCR[-1], expected=GMCR[-3])
 
         date = GMCR[0] + relativedelta(days=-1)
         for expected in GMCR:
-            assertEq(offset, date, expected)
+            assert_offset_equal(offset, date, expected)
             date = date + offset
 
         date = GMCR[-1] + relativedelta(days=+1)
         for expected in reversed(GMCR):
-            assertEq(offset_neg1, date, expected)
+            assert_offset_equal(offset_neg1, date, expected)
             date = date + offset_neg1
 
     def test_onOffset(self):
@@ -3601,7 +3597,7 @@ class TestFY5253LastOfMonthQuarter(Base):
         ]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_year_has_extra_week(self):
         # End of long Q1
@@ -3714,29 +3710,35 @@ class TestFY5253NearestEndMonthQuarter(Base):
         ]
 
         for offset, dt, expected in tests:
-            assertOnOffset(offset, dt, expected)
+            assert_onOffset(offset, dt, expected)
 
     def test_offset(self):
         offset = makeFY5253NearestEndMonthQuarter(1, startingMonth=8,
                                                   weekday=WeekDay.THU,
                                                   qtr_with_extra_week=4)
 
-        MU = [datetime(2012, 5, 31), datetime(2012, 8, 30), datetime(2012, 11,
-                                                                     29),
+        MU = [datetime(2012, 5, 31),
+              datetime(2012, 8, 30), datetime(2012, 11, 29),
               datetime(2013, 2, 28), datetime(2013, 5, 30)]
 
         date = MU[0] + relativedelta(days=-1)
         for expected in MU:
-            assertEq(offset, date, expected)
+            assert_offset_equal(offset, date, expected)
             date = date + offset
 
-        assertEq(offset, datetime(2012, 5, 31), datetime(2012, 8, 30))
-        assertEq(offset, datetime(2012, 5, 30), datetime(2012, 5, 31))
+        assert_offset_equal(offset,
+                            datetime(2012, 5, 31),
+                            datetime(2012, 8, 30))
+        assert_offset_equal(offset,
+                            datetime(2012, 5, 30),
+                            datetime(2012, 5, 31))
 
         offset2 = FY5253Quarter(weekday=5, startingMonth=12, variation="last",
                                 qtr_with_extra_week=4)
 
-        assertEq(offset2, datetime(2013, 1, 15), datetime(2013, 3, 30))
+        assert_offset_equal(offset2,
+                            datetime(2013, 1, 15),
+                            datetime(2013, 3, 30))
 
 
 class TestQuarterBegin(Base):
@@ -3810,7 +3812,7 @@ class TestQuarterBegin(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     def test_offset_corner_case(self):
         # corner
@@ -3889,7 +3891,7 @@ class TestQuarterEnd(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     def test_offset_corner_case(self):
         # corner
@@ -3931,7 +3933,7 @@ class TestQuarterEnd(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 class TestBYearBegin(Base):
@@ -3977,7 +3979,7 @@ class TestBYearBegin(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
 
 class TestYearBegin(Base):
@@ -4058,7 +4060,7 @@ class TestYearBegin(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearBegin(), datetime(2007, 1, 3), False),
                        (YearBegin(), datetime(2008, 1, 1), True),
@@ -4068,7 +4070,7 @@ class TestYearBegin(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 class TestBYearEndLagged(Base):
@@ -4105,7 +4107,7 @@ class TestBYearEndLagged(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 class TestBYearEnd(Base):
@@ -4142,7 +4144,7 @@ class TestBYearEnd(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(BYearEnd(), datetime(2007, 12, 31), True),
                        (BYearEnd(), datetime(2008, 1, 1), False),
@@ -4152,7 +4154,7 @@ class TestBYearEnd(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 class TestYearEnd(Base):
@@ -4192,7 +4194,7 @@ class TestYearEnd(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearEnd(), datetime(2007, 12, 31), True),
                        (YearEnd(), datetime(2008, 1, 1), False),
@@ -4202,7 +4204,7 @@ class TestYearEnd(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
+        assert_onOffset(offset, dt, expected)
 
 
 class TestYearEndDiffMonth(Base):
@@ -4239,7 +4241,7 @@ class TestYearEndDiffMonth(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assertEq(offset, base, expected)
+            assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearEnd(month=3), datetime(2007, 3, 31), True),
                        (YearEnd(month=3), datetime(2008, 1, 1), False),
@@ -4249,37 +4251,27 @@ class TestYearEndDiffMonth(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, dt, expected = case
-        assertOnOffset(offset, dt, expected)
-
-
-def assertEq(offset, base, expected):
-    actual = offset + base
-    actual_swapped = base + offset
-    actual_apply = offset.apply(base)
-    try:
-        assert actual == expected
-        assert actual_swapped == expected
-        assert actual_apply == expected
-    except AssertionError:
-        raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
-                             "\nAt Date: %s" %
-                             (expected, actual, offset, base))
+        assert_onOffset(offset, dt, expected)
 
 
 def test_Easter():
-    assertEq(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
-    assertEq(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
-    assertEq(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
+    assert_offset_equal(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
+    assert_offset_equal(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
+    assert_offset_equal(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
 
-    assertEq(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
-    assertEq(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
+    assert_offset_equal(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
+    assert_offset_equal(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
 
-    assertEq(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
-    assertEq(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
-    assertEq(-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12))
+    assert_offset_equal(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
+    assert_offset_equal(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
+    assert_offset_equal(-Easter(2),
+                        datetime(2011, 1, 1),
+                        datetime(2009, 4, 12))
 
-    assertEq(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
-    assertEq(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
+    assert_offset_equal(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
+    assert_offset_equal(-Easter(2),
+                        datetime(2010, 4, 4),
+                        datetime(2008, 3, 23))
 
 
 class TestOffsetNames(object):

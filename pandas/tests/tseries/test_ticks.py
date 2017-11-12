@@ -11,25 +11,13 @@ from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
 from pandas.tseries.offsets import Hour, Minute, Second, Milli, Micro, Nano
 
+from .common import assert_offset_equal
 
 # ---------------------------------------------------------------------
 # Test Helpers
 
 tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
-
-def assertEq(offset, base, expected):
-    actual = offset + base
-    actual_swapped = base + offset
-    actual_apply = offset.apply(base)
-    try:
-        assert actual == expected
-        assert actual_swapped == expected
-        assert actual_apply == expected
-    except AssertionError:
-        raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
-                             "\nAt Date: %s" %
-                             (expected, actual, offset, base))
 
 # ---------------------------------------------------------------------
 
@@ -66,10 +54,14 @@ class TestTicks(object):
             assert result == expected
 
     def test_Hour(self):
-        assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
-        assertEq(Hour(-1), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
-        assertEq(2 * Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
-        assertEq(-1 * Hour(), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
+        assert_offset_equal(Hour(),
+                            datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
+        assert_offset_equal(Hour(-1),
+                            datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
+        assert_offset_equal(2 * Hour(),
+                            datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
+        assert_offset_equal(-1 * Hour(),
+                            datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
 
         assert Hour(3) + Hour(2) == Hour(5)
         assert Hour(3) - Hour(2) == Hour()
@@ -77,60 +69,78 @@ class TestTicks(object):
         assert Hour(4) != Hour(1)
 
     def test_Minute(self):
-        assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
-        assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
-        assertEq(2 * Minute(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 2))
-        assertEq(-1 * Minute(), datetime(2010, 1, 1, 0, 1),
-                 datetime(2010, 1, 1))
+        assert_offset_equal(Minute(),
+                            datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
+        assert_offset_equal(Minute(-1),
+                            datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
+        assert_offset_equal(2 * Minute(),
+                            datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 2))
+        assert_offset_equal(-1 * Minute(),
+                            datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
 
         assert Minute(3) + Minute(2) == Minute(5)
         assert Minute(3) - Minute(2) == Minute()
         assert Minute(5) != Minute()
 
     def test_Second(self):
-        assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
-        assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1),
-                 datetime(2010, 1, 1))
-        assertEq(2 * Second(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 2))
-        assertEq(-1 * Second(), datetime(2010, 1, 1, 0, 0, 1),
-                 datetime(2010, 1, 1))
+        assert_offset_equal(Second(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 1))
+        assert_offset_equal(Second(-1),
+                            datetime(2010, 1, 1, 0, 0, 1),
+                            datetime(2010, 1, 1))
+        assert_offset_equal(2 * Second(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 2))
+        assert_offset_equal(-1 * Second(),
+                            datetime(2010, 1, 1, 0, 0, 1),
+                            datetime(2010, 1, 1))
 
         assert Second(3) + Second(2) == Second(5)
         assert Second(3) - Second(2) == Second()
 
     def test_Millisecond(self):
-        assertEq(Milli(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 0, 1000))
-        assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000),
-                 datetime(2010, 1, 1))
-        assertEq(Milli(2), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 0, 2000))
-        assertEq(2 * Milli(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 0, 2000))
-        assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000),
-                 datetime(2010, 1, 1))
+        assert_offset_equal(Milli(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 0, 1000))
+        assert_offset_equal(Milli(-1),
+                            datetime(2010, 1, 1, 0, 0, 0, 1000),
+                            datetime(2010, 1, 1))
+        assert_offset_equal(Milli(2),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 0, 2000))
+        assert_offset_equal(2 * Milli(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 0, 2000))
+        assert_offset_equal(-1 * Milli(),
+                            datetime(2010, 1, 1, 0, 0, 0, 1000),
+                            datetime(2010, 1, 1))
 
         assert Milli(3) + Milli(2) == Milli(5)
         assert Milli(3) - Milli(2) == Milli()
 
     def test_MillisecondTimestampArithmetic(self):
-        assertEq(Milli(), Timestamp('2010-01-01'),
-                 Timestamp('2010-01-01 00:00:00.001'))
-        assertEq(Milli(-1), Timestamp('2010-01-01 00:00:00.001'),
-                 Timestamp('2010-01-01'))
+        assert_offset_equal(Milli(),
+                            Timestamp('2010-01-01'),
+                            Timestamp('2010-01-01 00:00:00.001'))
+        assert_offset_equal(Milli(-1),
+                            Timestamp('2010-01-01 00:00:00.001'),
+                            Timestamp('2010-01-01'))
 
     def test_Microsecond(self):
-        assertEq(Micro(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 0, 1))
-        assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1),
-                 datetime(2010, 1, 1))
+        assert_offset_equal(Micro(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 0, 1))
+        assert_offset_equal(Micro(-1),
+                            datetime(2010, 1, 1, 0, 0, 0, 1),
+                            datetime(2010, 1, 1))
 
-        assertEq(2 * Micro(), datetime(2010, 1, 1),
-                 datetime(2010, 1, 1, 0, 0, 0, 2))
-        assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1),
-                 datetime(2010, 1, 1))
+        assert_offset_equal(2 * Micro(),
+                            datetime(2010, 1, 1),
+                            datetime(2010, 1, 1, 0, 0, 0, 2))
+        assert_offset_equal(-1 * Micro(),
+                            datetime(2010, 1, 1, 0, 0, 0, 1),
+                            datetime(2010, 1, 1))
 
         assert Micro(3) + Micro(2) == Micro(5)
         assert Micro(3) - Micro(2) == Micro()
@@ -147,10 +157,18 @@ class TestTicks(object):
 
     def test_Nanosecond(self):
         timestamp = Timestamp(datetime(2010, 1, 1))
-        assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
-        assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
-        assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
-        assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
+        assert_offset_equal(Nano(),
+                            timestamp,
+                            timestamp + np.timedelta64(1, 'ns'))
+        assert_offset_equal(Nano(-1),
+                            timestamp + np.timedelta64(1, 'ns'),
+                            timestamp)
+        assert_offset_equal(2 * Nano(),
+                            timestamp,
+                            timestamp + np.timedelta64(2, 'ns'))
+        assert_offset_equal(-1 * Nano(),
+                            timestamp + np.timedelta64(1, 'ns'),
+                            timestamp)
 
         assert Nano(3) + Nano(2) == Nano(5)
         assert Nano(3) - Nano(2) == Nano()
