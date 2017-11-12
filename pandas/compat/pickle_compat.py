@@ -2,6 +2,7 @@
 Support pre-0.12 series pickle compatibility.
 """
 
+import inspect
 import sys
 import pandas  # noqa
 import copy
@@ -22,7 +23,6 @@ def load_reduce(self):
         stack[-1] = func(*args)
         return
     except Exception as e:
-
         # If we have a deprecated function,
         # try to replace and try again.
 
@@ -46,6 +46,22 @@ def load_reduce(self):
                 return
             except:
                 pass
+
+        if (len(args) and inspect.isclass(args[0]) and
+                getattr(args[0], '_typ', None) == 'dateoffset' and
+                args[1] is object):
+            # See GH#17313
+            from pandas.tseries import offsets
+            args = (args[0], offsets.BaseOffset,) + args[2:]
+            if len(args) == 3 and args[2] is None:
+                args = args[:2] + (1,)
+                # kludge
+            try:
+                stack[-1] = func(*args)
+                return
+            except:
+                pass
+
 
         # unknown exception, re-raise
         if getattr(self, 'is_verbose', None):
