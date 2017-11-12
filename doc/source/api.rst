@@ -2606,6 +2606,8 @@ Scalar introspection
    generated/pandas.Index.sort
    generated/pandas.Index.sortlevel
 
+   generated/pandas.Index.str
+
    generated/pandas.Panel.as_blocks.rst
    generated/pandas.Panel.blocks.rst
    generated/pandas.Panel.consolidate.rst
@@ -2625,6 +2627,10 @@ Scalar introspection
    generated/pandas.Series.ix
    generated/pandas.Series.notnull.rst
    generated/pandas.Series.set_value
+
+   generated/pandas.Series.cat
+   generated/pandas.Series.dt
+   generated/pandas.Series.str
 
    generated/pandas.Timestamp.offset
    generated/pandas.Timestamp.to_datetime
