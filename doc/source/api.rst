@@ -278,9 +278,25 @@ Attributes
    Series.size
    Series.strides
    Series.itemsize
+   Series.axes
    Series.base
    Series.T
    Series.memory_usage
+   Series.hasnans
+   Series.flags
+   Series.empty
+   Series.dtypes
+   Series.ftypes
+   Series.as_matrix
+   Series.data
+   Series.get_dtype_counts
+   Series.get_ftype_counts
+   Series.get_values
+   Series.is_copy
+   Series.imag
+   Series.real
+   Series.name
+   Series.put
 
 Conversion
 ~~~~~~~~~~
@@ -289,9 +305,15 @@ Conversion
 
    Series.astype
    Series.infer_objects
+   Series.convert_objects
    Series.copy
    Series.isna
    Series.notna
+   Series.bool
+   Series.to_period
+   Series.to_timestamp
+   Series.tolist
+
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -305,6 +327,12 @@ Indexing, iteration
    Series.iloc
    Series.__iter__
    Series.iteritems
+   Series.items
+   Series.keys
+   Series.pop
+   Series.compress
+   Series.item
+   Series.xs
 
 For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
@@ -316,6 +344,7 @@ Binary operator functions
 
    Series.add
    Series.sub
+   Series.subtract
    Series.mul
    Series.div
    Series.truediv
@@ -339,6 +368,9 @@ Binary operator functions
    Series.ge
    Series.ne
    Series.eq
+   Series.divide
+   Series.product
+   Series.dot
 
 Function application, GroupBy & Window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,6 +378,7 @@ Function application, GroupBy & Window
    :toctree: generated/
 
    Series.apply
+   Series.agg
    Series.aggregate
    Series.transform
    Series.map
@@ -353,6 +386,7 @@ Function application, GroupBy & Window
    Series.rolling
    Series.expanding
    Series.ewm
+   Series.pipe
 
 .. _api.series.stats:
 
@@ -404,6 +438,12 @@ Computations / Descriptive Stats
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
+   Series.compound
+   Series.nonzero
+   Series.ptp
+   Series.kurtosis
+   Series.multiply
+
 
 Reindexing / Selection / Label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -434,6 +474,9 @@ Reindexing / Selection / Label manipulation
    Series.truncate
    Series.where
    Series.mask
+   Series.add_prefix
+   Series.add_suffix
+   Series.filter
 
 Missing data handling
 ~~~~~~~~~~~~~~~~~~~~~
@@ -443,6 +486,7 @@ Missing data handling
    Series.dropna
    Series.fillna
    Series.interpolate
+   Series.valid
 
 Reshaping, sorting
 ~~~~~~~~~~~~~~~~~~
@@ -450,12 +494,24 @@ Reshaping, sorting
    :toctree: generated/
 
    Series.argsort
+   Series.argmin
+   Series.argmax
    Series.reorder_levels
    Series.sort_values
    Series.sort_index
    Series.swaplevel
    Series.unstack
    Series.searchsorted
+   Series.ravel
+   Series.reindex_axis
+   Series.repeat
+   Series.reshape
+   Series.squeeze
+   Series.view
+   Series.sortlevel
+   Series.swapaxes
+   Series.transpose
+
 
 Combining / joining / merging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -479,6 +535,10 @@ Time series-related
    Series.resample
    Series.tz_convert
    Series.tz_localize
+   Series.at_time
+   Series.between_time
+   Series.tshift
+   Series.slice_shift
 
 Datetimelike Properties
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -745,6 +805,7 @@ Serialization / IO / Conversion
    :toctree: generated/
 
    Series.from_csv
+   Series.from_array
    Series.to_pickle
    Series.to_csv
    Series.to_dict
@@ -1133,6 +1194,7 @@ Constructor
    :toctree: generated/
 
    Panel
+   Panel.from_dict
 
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1154,6 +1216,8 @@ Attributes and underlying data
    Panel.ftypes
    Panel.get_dtype_counts
    Panel.get_ftype_counts
+   Panel.empty
+   Panel.is_copy
 
 Conversion
 ~~~~~~~~~~
@@ -1164,6 +1228,9 @@ Conversion
    Panel.copy
    Panel.isna
    Panel.notna
+   Panel.as_matrix
+   Panel.convert_objects
+   Panel.infer_objects
 
 Getting and setting
 ~~~~~~~~~~~~~~~~~~~
@@ -1172,6 +1239,8 @@ Getting and setting
 
    Panel.get_value
    Panel.set_value
+   Panel.get
+   Panel.get_values
 
 Indexing, iteration, slicing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1188,6 +1257,11 @@ Indexing, iteration, slicing
    Panel.xs
    Panel.major_xs
    Panel.minor_xs
+   Panel.keys
+   Panel.major_axis
+   Panel.items
+   Panel.minor_axis
+   Panel.slice_shift
 
 For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
@@ -1227,6 +1301,7 @@ Function application, GroupBy
 
    Panel.apply
    Panel.groupby
+   Panel.pipe
 
 .. _api.panel.stats:
 
@@ -1255,6 +1330,27 @@ Computations / Descriptive Stats
    Panel.sum
    Panel.std
    Panel.var
+   Panel.agg
+   Panel.aggregate
+   Panel.all
+   Panel.any
+   Panel.bool
+   Panel.divide
+   Panel.kurt
+   Panel.kurtosis
+   Panel.mad
+   Panel.product
+   Panel.rank
+   Panel.head
+   Panel.tail
+   Panel.where
+   Panel.mask
+   Panel.compound
+   Panel.describe
+   Panel.multiply
+   Panel.subtract
+   Panel.round
+
 
 Reindexing / Selection / Label manipulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1276,6 +1372,13 @@ Reindexing / Selection / Label manipulation
    Panel.select
    Panel.take
    Panel.truncate
+   Panel.align
+   Panel.at_time
+   Panel.asof
+   Panel.between_time
+   Panel.rename_axis
+   Panel.set_axis
+
 
 Missing data handling
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1284,6 +1387,10 @@ Missing data handling
 
    Panel.dropna
    Panel.fillna
+   Panel.ffill
+   Panel.bfill
+   Panel.interpolate
+   Panel.replace
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1295,6 +1402,8 @@ Reshaping, sorting, transposing
    Panel.transpose
    Panel.swapaxes
    Panel.conform
+   Panel.sort_values
+   Panel.squeeze
 
 Combining / joining / merging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1312,22 +1421,31 @@ Time series-related
    Panel.asfreq
    Panel.shift
    Panel.resample
+   Panel.tshift
    Panel.tz_convert
    Panel.tz_localize
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. /eautosummary::
+.. autosummary::
    :toctree: generated/
 
    Panel.from_dict
-   Panel.to_pickle
-   Panel.to_excel
-   Panel.to_hdf
-   Panel.to_sparse
-   Panel.to_frame
-   Panel.to_xarray
+   Panel.toLong
    Panel.to_clipboard
+   Panel.to_dense
+   Panel.to_excel
+   Panel.to_frame
+   Panel.to_hdf
+   Panel.to_json
+   Panel.to_latex
+   Panel.to_long
+   Panel.to_msgpack
+   Panel.to_pickle
+   Panel.to_sparse
+   Panel.to_sql
+   Panel.to_xarray
+
 
 .. _api.index:
 
@@ -1417,6 +1535,7 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
+   Index.summary
    Index.T
    Index.transpose
 
@@ -1444,6 +1563,7 @@ Conversion
    Index.to_native_types
    Index.to_series
    Index.to_frame
+   Index.view
 
 Sorting
 ~~~~~~~
@@ -1490,6 +1610,7 @@ Selecting
    Index.get_slice_bound
    Index.get_value
    Index.get_values
+   Index.set_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -2419,35 +2540,47 @@ Scalar introspection
 .. toctree::
    :hidden:
 
-   generated/pandas.DataFrame.index
-   generated/pandas.DataFrame.columns
    generated/pandas.DataFrame.as_blocks
-   generated/pandas.DataFrame.ffill
    generated/pandas.DataFrame.bfill
    generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.sortlevel
+   generated/pandas.DataFrame.columns
    generated/pandas.DataFrame.consolidate
-   generated/pandas.DataFrame.set_value
+   generated/pandas.DataFrame.ffill
    generated/pandas.DataFrame.get_value
+   generated/pandas.DataFrame.index
    generated/pandas.DataFrame.ix
+   generated/pandas.DataFrame.set_value
+   generated/pandas.DataFrame.sortlevel
 
-   generated/pandas.Series.index
-   generated/pandas.Series.as_blocks
-   generated/pandas.Series.ffill
-   generated/pandas.Series.bfill
-   generated/pandas.Series.set_value
-   generated/pandas.Series.get_value
-   generated/pandas.Series.blocks
-   generated/pandas.Series.ix
-
+   generated/pandas.Index.data.rst
    generated/pandas.Index.flags
    generated/pandas.Index.isnull
-   generated/pandas.Index.notnull
    generated/pandas.Index.names
    generated/pandas.Index.nlevels
+   generated/pandas.Index.notnull
    generated/pandas.Index.reshape
-   generated/pandas.Index.sortlevel
    generated/pandas.Index.sort
+   generated/pandas.Index.sortlevel
+
+   generated/pandas.Panel.as_blocks.rst
+   generated/pandas.Panel.blocks.rst
+   generated/pandas.Panel.consolidate.rst
+   generated/pandas.Panel.fromDict.rst
+   generated/pandas.Panel.isnull.rst
+   generated/pandas.Panel.ix.rst
+   generated/pandas.Panel.notnull.rst
+   generated/pandas.Series.as_blocks
+   generated/pandas.Series.asobject.rst
+   generated/pandas.Series.bfill
+   generated/pandas.Series.blocks
+   generated/pandas.Series.consolidate.rst
+   generated/pandas.Series.ffill
+   generated/pandas.Series.get_value
+   generated/pandas.Series.index
+   generated/pandas.Series.isnull.rst
+   generated/pandas.Series.ix
+   generated/pandas.Series.notnull.rst
+   generated/pandas.Series.set_value
 
    generated/pandas.Timestamp.offset
    generated/pandas.Timestamp.to_datetime
