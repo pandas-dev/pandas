@@ -110,14 +110,6 @@ cpdef int64_t pydt_to_i8(object pydt) except? -1:
     return ts.value
 
 
-def i8_to_pydt(int64_t i8, object tzinfo=None):
-    """
-    Inverse of pydt_to_i8
-    """
-    from pandas import Timestamp
-    return Timestamp(i8)
-
-
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst):
     """
