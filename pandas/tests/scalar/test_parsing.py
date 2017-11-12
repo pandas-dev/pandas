@@ -67,37 +67,52 @@ class TestDatetimeParsingWrappers(object):
 
 
 class TestGuessDatetimeFormat(object):
-    def test_guess_datetime_format_with_parseable_formats(self):
+
+    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
+    @pytest.mark.parametrize(
+        "string, format",
+        [
+            ('20111230', '%Y%m%d'),
+            ('2011-12-30', '%Y-%m-%d'),
+            ('30-12-2011', '%d-%m-%Y'),
+            ('2011-12-30 00:00:00', '%Y-%m-%d %H:%M:%S'),
+            ('2011-12-30T00:00:00', '%Y-%m-%dT%H:%M:%S'),
+            ('2011-12-30 00:00:00.000000',
+             '%Y-%m-%d %H:%M:%S.%f')])
+    def test_guess_datetime_format_with_parseable_formats(
+            self, string, format):
         tm._skip_if_not_us_locale()
-        dt_string_to_format = (('20111230', '%Y%m%d'),
-                               ('2011-12-30', '%Y-%m-%d'),
-                               ('30-12-2011', '%d-%m-%Y'),
-                               ('2011-12-30 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-12-30T00:00:00', '%Y-%m-%dT%H:%M:%S'),
-                               ('2011-12-30 00:00:00.000000',
-                                '%Y-%m-%d %H:%M:%S.%f'), )
 
-        for dt_string, dt_format in dt_string_to_format:
-            assert parsing._guess_datetime_format(dt_string) == dt_format
+        result = parsing._guess_datetime_format(string)
+        assert result == format
 
-    def test_guess_datetime_format_with_dayfirst(self):
+    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
+    @pytest.mark.parametrize(
+        "dayfirst, expected",
+        [
+            (True, "%d/%m/%Y"),
+            (False, "%m/%d/%Y")])
+    def test_guess_datetime_format_with_dayfirst(self, dayfirst, expected):
         ambiguous_string = '01/01/2011'
-        assert parsing._guess_datetime_format(
-            ambiguous_string, dayfirst=True) == '%d/%m/%Y'
-        assert parsing._guess_datetime_format(
-            ambiguous_string, dayfirst=False) == '%m/%d/%Y'
+        result = parsing._guess_datetime_format(
+            ambiguous_string, dayfirst=dayfirst)
+        assert result == expected
 
-    def test_guess_datetime_format_with_locale_specific_formats(self):
+    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
+    @pytest.mark.parametrize(
+        "string, format",
+        [
+            ('30/Dec/2011', '%d/%b/%Y'),
+            ('30/December/2011', '%d/%B/%Y'),
+            ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S')])
+    def test_guess_datetime_format_with_locale_specific_formats(
+            self, string, format):
         # The month names will vary depending on the locale, in which
         # case these wont be parsed properly (dateutil can't parse them)
         tm._skip_if_has_locale()
 
-        dt_string_to_format = (('30/Dec/2011', '%d/%b/%Y'),
-                               ('30/December/2011', '%d/%B/%Y'),
-                               ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S'), )
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert parsing._guess_datetime_format(dt_string) == dt_format
+        result = parsing._guess_datetime_format(string)
+        assert result == format
 
     def test_guess_datetime_format_invalid_inputs(self):
         # A datetime string must include a year, month and a day for it
@@ -117,17 +132,20 @@ class TestGuessDatetimeFormat(object):
         for invalid_dt in invalid_dts:
             assert parsing._guess_datetime_format(invalid_dt) is None
 
-    def test_guess_datetime_format_nopadding(self):
+    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
+    @pytest.mark.parametrize(
+        "string, format",
+        [
+            ('2011-1-1', '%Y-%m-%d'),
+            ('30-1-2011', '%d-%m-%Y'),
+            ('1/1/2011', '%m/%d/%Y'),
+            ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
+            ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
+            ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S')])
+    def test_guess_datetime_format_nopadding(self, string, format):
         # GH 11142
-        dt_string_to_format = (('2011-1-1', '%Y-%m-%d'),
-                               ('30-1-2011', '%d-%m-%Y'),
-                               ('1/1/2011', '%m/%d/%Y'),
-                               ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S'))
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert parsing._guess_datetime_format(dt_string) == dt_format
+        result = parsing._guess_datetime_format(string)
+        assert result == format
 
 
 class TestArrayToDatetime(object):

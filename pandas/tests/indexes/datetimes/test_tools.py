@@ -995,6 +995,8 @@ class TestToDatetimeMisc(object):
 
 
 class TestGuessDatetimeFormat(object):
+
+    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
     def test_guess_datetime_format_for_array(self):
         tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
