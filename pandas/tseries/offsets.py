@@ -18,7 +18,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_firstbday, _get_calendar, _to_dt64, _validate_business_time,
+    _get_firstbday, _get_lastbday,
+    _get_calendar, _to_dt64, _validate_business_time,
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
@@ -1184,18 +1185,23 @@ class BusinessMonthEnd(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        last_bday = _get_lastbday(wkday, days_in_month)
 
-        if n > 0 and not other.day >= lastBDay:
+        if n > 0 and not other.day >= last_bday:
             n = n - 1
-        elif n <= 0 and other.day > lastBDay:
+        elif n <= 0 and other.day > last_bday:
             n = n + 1
         other = other + relativedelta(months=n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
         return other
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+        return dt.day == _get_lastbday(wkday, days_in_month)
 
 
 class BusinessMonthBegin(MonthOffset):
@@ -1226,13 +1232,8 @@ class BusinessMonthBegin(MonthOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        if first_weekday == 5:
-            return dt.day == 3
-        elif first_weekday == 6:
-            return dt.day == 2
-        else:
-            return dt.day == 1
+        wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+        return dt.day == _get_firstbday(wkday, days_in_month)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
@@ -1704,16 +1705,15 @@ class BQuarterEnd(QuarterOffset):
                          other.microsecond)
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        last_bday = _get_lastbday(wkday, days_in_month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
             monthsToGo = 0
 
-        if n > 0 and not (other.day >= lastBDay and monthsToGo == 0):
+        if n > 0 and not (other.day >= last_bday and monthsToGo == 0):
             n = n - 1
-        elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
+        elif n <= 0 and other.day > last_bday and monthsToGo == 0:
             n = n + 1
 
         other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
@@ -1876,17 +1876,16 @@ class BYearEnd(YearOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = (days_in_month -
-                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
+        last_bday = _get_lastbday(wkday, days_in_month)
 
         years = n
         if n > 0:
             if (other.month < self.month or
-                    (other.month == self.month and other.day < lastBDay)):
+                    (other.month == self.month and other.day < last_bday)):
                 years -= 1
         elif n <= 0:
             if (other.month > self.month or
-                    (other.month == self.month and other.day > lastBDay)):
+                    (other.month == self.month and other.day > last_bday)):
                 years += 1
 
         other = other + relativedelta(years=years)
