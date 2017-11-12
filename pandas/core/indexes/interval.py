@@ -121,6 +121,9 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+    mid
+    values
+    is_non_overlapping_monotonic
 
     Examples
     ---------
@@ -164,14 +167,6 @@ class IntervalIndex(IntervalMixin, Index):
     contains
     get_loc
 
-    Attributes
-    ----------
-    left
-    right
-    mid
-    closed
-    values
-    is_non_overlapping_monotonic
     """
     _typ = 'intervalindex'
     _comparables = ['name']
