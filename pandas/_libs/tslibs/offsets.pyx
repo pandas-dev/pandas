@@ -381,8 +381,7 @@ class BaseOffset(_BaseOffset):
 # RelativeDelta Arithmetic
 
 
-cpdef datetime shift_month(datetime stamp, int months,
-                           object day_opt=None) except? -1:
+cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
