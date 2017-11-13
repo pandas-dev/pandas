@@ -395,7 +395,7 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
-        Timestamp.fromordinal(ordina, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
