@@ -764,7 +764,7 @@ class FrameParser(Parser):
         if orient == "columns":
             args = loads(json, dtype=None, numpy=True, labelled=True,
                          precise_float=self.precise_float)
-            if args:
+            if len(args):
                 args = (args[0].T, args[2], args[1])
             self.obj = DataFrame(*args)
         elif orient == "split":
