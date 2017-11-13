@@ -136,7 +136,7 @@ def maybe_downcast_to_dtype(result, dtype):
                 try:
                     if np.allclose(new_result, result, rtol=0):
                         return new_result
-                except:
+                except Exception:
 
                     # comparison of an object dtype with a number type could
                     # hit here
@@ -151,14 +151,14 @@ def maybe_downcast_to_dtype(result, dtype):
         elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i', 'f']:
             try:
                 result = result.astype(dtype)
-            except:
+            except Exception:
                 if dtype.tz:
                     # convert to datetime and change timezone
                     from pandas import to_datetime
                     result = to_datetime(result).tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
 
-    except:
+    except Exception:
         pass
 
     return result
@@ -210,7 +210,7 @@ def maybe_upcast_putmask(result, mask, other):
                     new_result[mask] = om_at
                     result[:] = new_result
                     return result, False
-            except:
+            except Exception:
                 pass
 
             # we are forced to change the dtype of the result as the input
@@ -243,7 +243,7 @@ def maybe_upcast_putmask(result, mask, other):
 
         try:
             np.place(result, mask, other)
-        except:
+        except Exception:
             return changeit()
 
     return result, False
@@ -274,14 +274,14 @@ def maybe_promote(dtype, fill_value=np.nan):
             if issubclass(dtype.type, np.datetime64):
                 try:
                     fill_value = tslib.Timestamp(fill_value).value
-                except:
+                except Exception:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
                     fill_value = iNaT
             elif issubclass(dtype.type, np.timedelta64):
                 try:
                     fill_value = lib.Timedelta(fill_value).value
-                except:
+                except Exception:
                     # as for datetimes, cannot upcast to object
                     fill_value = iNaT
             else:
@@ -592,12 +592,12 @@ def maybe_convert_scalar(values):
 
 def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
-    l = len(categories)
-    if l < _int8_max:
+    length = len(categories)
+    if length < _int8_max:
         return _ensure_int8(indexer)
-    elif l < _int16_max:
+    elif length < _int16_max:
         return _ensure_int16(indexer)
-    elif l < _int32_max:
+    elif length < _int32_max:
         return _ensure_int32(indexer)
     return _ensure_int64(indexer)
 
@@ -629,7 +629,7 @@ def coerce_to_dtypes(result, dtypes):
                 r = float(r)
             elif dtype.kind == 'i':
                 r = int(r)
-        except:
+        except Exception:
             pass
 
         return r
@@ -756,7 +756,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                 if not isna(new_values).all():
                     values = new_values
 
-            except:
+            except Exception:
                 pass
         else:
             # soft-conversion
@@ -817,7 +817,7 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
             # If all NaNs, then do not-alter
             values = converted if not isna(converted).all() else values
             values = values.copy() if copy else values
-        except:
+        except Exception:
             pass
 
     return values
@@ -888,10 +888,10 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             try:
                 from pandas import to_datetime
                 return to_datetime(v)
-            except:
+            except Exception:
                 pass
 
-        except:
+        except Exception:
             pass
 
         return v.reshape(shape)
@@ -903,7 +903,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         from pandas import to_timedelta
         try:
             return to_timedelta(v)._values.reshape(shape)
-        except:
+        except Exception:
             return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))

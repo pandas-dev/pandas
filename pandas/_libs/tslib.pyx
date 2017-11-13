@@ -50,6 +50,7 @@ from datetime cimport (
 # stdlib datetime imports
 from datetime import time as datetime_time
 
+
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
@@ -60,12 +61,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  get_datetime64_unit, get_datetime64_value,
                                  get_timedelta64_value)
 from tslibs.np_datetime import OutOfBoundsDatetime
-
-from khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
 
 from .tslibs.parsing import parse_datetime_string
 
@@ -97,9 +92,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos)
-from tslibs.conversion import (
-    tz_localize_to_utc, tz_convert,
-    tz_convert_single)
+from tslibs.conversion import (tz_localize_to_utc,
+                               tz_convert_single, date_normalize)
 
 from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat
@@ -237,14 +231,12 @@ _no_input = object()
 
 
 class Timestamp(_Timestamp):
-    """TimeStamp is the pandas equivalent of python's Datetime
+    """Pandas replacement for datetime.datetime
+
+    TimeStamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
-
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
 
     Parameters
     ----------
@@ -259,22 +251,32 @@ class Timestamp(_Timestamp):
     offset : str, DateOffset
         Deprecated, use freq
 
+    year, month, day : int
+        .. versionadded:: 0.19.0
+    hour, minute, second, microsecond : int, optional, default 0
+        .. versionadded:: 0.19.0
+    tzinfo : datetime.tzinfo, optional, default None
+        .. versionadded:: 0.19.0
+
+    Notes
+    -----
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
+
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
 
-    :func:`datetime.datetime` Parameters
-    ------------------------------------
+    Examples
+    --------
+    >>> pd.Timestamp('2017-01-01T12')
+    Timestamp('2017-01-01 12:00:00')
 
-    .. versionadded:: 0.19.0
+    >>> pd.Timestamp(2017, 1, 1, 12)
+    Timestamp('2017-01-01 12:00:00')
 
-    year : int
-    month : int
-    day : int
-    hour : int, optional, default is 0
-    minute : int, optional, default is 0
-    second : int, optional, default is 0
-    microsecond : int, optional, default is 0
-    tzinfo : datetime.tzinfo, optional, default is None
+    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
+    Timestamp('2017-01-01 12:00:00')
     """
 
     @classmethod
@@ -592,11 +594,13 @@ class Timestamp(_Timestamp):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
+
         ambiguous : bool, 'NaT', default 'raise'
             - bool contains flags to determine if time is dst or not (note
-            that this flag is only applicable for ambiguous fall dst dates)
+              that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
         errors : 'raise', 'coerce', default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
@@ -866,33 +870,6 @@ cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
-
-
-# ----------------------------------------------------------------------
-# Frequency inference
-
-def unique_deltas(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t val
-        khiter_t k
-        kh_int64_t *table
-        int ret = 0
-        list uniques = []
-
-    table = kh_init_int64()
-    kh_resize_int64(table, 10)
-    for i in range(n - 1):
-        val = arr[i + 1] - arr[i]
-        k = kh_get_int64(table, val)
-        if k == table.n_buckets:
-            kh_put_int64(table, val, &ret)
-            uniques.append(val)
-    kh_destroy_int64(table)
-
-    result = np.array(uniques, dtype=np.int64)
-    result.sort()
-    return result
 
 
 cdef str _NDIM_STRING = "ndim"
@@ -1379,27 +1356,6 @@ _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 _MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 
-cpdef object _get_rule_month(object source, object default='DEC'):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
-
-
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
@@ -1839,26 +1795,6 @@ cdef inline _to_i8(object val):
         return val
 
 
-cpdef pydt_to_i8(object pydt):
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
-
-
-def i8_to_pydt(int64_t i8, object tzinfo=None):
-    """
-    Inverse of pydt_to_i8
-    """
-    return Timestamp(i8)
-
-
 # ----------------------------------------------------------------------
 # Accessors
 
@@ -1880,130 +1816,6 @@ def get_time_micros(ndarray[int64_t] dtindex):
                                  60 * dts.min + dts.sec) + dts.us
 
     return micros
-
-
-cdef int64_t DAY_NS = 86400000000000LL
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def date_normalize(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef _normalize_local(ndarray[int64_t] stamps, object tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
-
-    if is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
-            result[i] = _normalized_stamp(&dts)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
-
-        # statictzinfo
-        if typ not in ['pytz', 'dateutil']:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = _normalized_stamp(&dts)
-        else:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
-    dts.ps = 0
-    return dtstruct_to_dt64(dts)
-
-
-def dates_normalized(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans, deltas
-        pandas_datetimestruct dts
-
-    if tz is None or is_utc(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-    elif is_tzlocal(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
-                          dts.sec, dts.us, tz)
-            dt = dt + tz.utcoffset(dt)
-            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
-                return False
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
-            pos = trans.searchsorted(stamps[i]) - 1
-            inf = tz._transition_info[pos]
-
-            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-
-    return True
 
 
 # ----------------------------------------------------------------------

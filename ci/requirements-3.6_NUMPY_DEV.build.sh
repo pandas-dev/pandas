@@ -12,10 +12,7 @@ PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf
 pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS numpy scipy
 
 # install dateutil from master
-
-# TODO(jreback), temp disable dateutil master has changed
-# pip install -U git+git://github.com/dateutil/dateutil.git
-pip install python-dateutil
+pip install -U git+git://github.com/dateutil/dateutil.git
 
 # cython via pip
 pip install cython
