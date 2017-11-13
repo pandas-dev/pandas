@@ -4029,6 +4029,8 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
         func : function
+            Function that takes two series as inputs and return a Series or a
+            scalar
         fill_value : scalar value
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
@@ -4036,8 +4038,21 @@ class DataFrame(NDFrame):
         Returns
         -------
         result : DataFrame
-        """
 
+        Examples
+        --------
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+           A  B
+        0  0  3
+        1  0  3
+
+        See Also
+        --------
+        DataFrame.combine_first : Combine two DataFrame objects and default to
+            non-null values in frame calling the method
+        """
         other_idxlen = len(other.index)  # save for compare
 
         this, other = self.align(other, copy=False)
