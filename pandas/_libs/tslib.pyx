@@ -50,6 +50,7 @@ from datetime cimport (
 # stdlib datetime imports
 from datetime import time as datetime_time
 
+
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
@@ -60,12 +61,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  get_datetime64_unit, get_datetime64_value,
                                  get_timedelta64_value)
 from tslibs.np_datetime import OutOfBoundsDatetime
-
-from khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
 
 from .tslibs.parsing import parse_datetime_string
 
@@ -877,33 +872,6 @@ Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
 
-# ----------------------------------------------------------------------
-# Frequency inference
-
-def unique_deltas(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t val
-        khiter_t k
-        kh_int64_t *table
-        int ret = 0
-        list uniques = []
-
-    table = kh_init_int64()
-    kh_resize_int64(table, 10)
-    for i in range(n - 1):
-        val = arr[i + 1] - arr[i]
-        k = kh_get_int64(table, val)
-        if k == table.n_buckets:
-            kh_put_int64(table, val, &ret)
-            uniques.append(val)
-    kh_destroy_int64(table)
-
-    result = np.array(uniques, dtype=np.int64)
-    result.sort()
-    return result
-
-
 cdef str _NDIM_STRING = "ndim"
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -1386,27 +1354,6 @@ _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 _MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
-
-
-cpdef object _get_rule_month(object source, object default='DEC'):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
 
 
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
