@@ -3,6 +3,7 @@
 """Top level ``eval`` module.
 """
 
+import warnings
 import tokenize
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.computation.scope import _ensure_scope
@@ -303,7 +304,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                                  "if there is no assignment")
 
         # assign if needed
-        if env.target is not None and parsed_expr.assigner is not None:
+        assigner = parsed_expr.assigner
+        if env.target is not None and assigner is not None:
             target_modified = True
 
             # if returning a copy, copy only on the first assignment
@@ -317,22 +319,25 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
             # TypeError is most commonly raised (e.g. int, list), but you
             # get IndexError if you try to do this assignment on np.ndarray.
+            # we will ignore numpy warnings here; e.g. if trying
+            # to use a non-numeric indexer
             try:
-                target[parsed_expr.assigner] = ret
+                with warnings.catch_warnings(record=True):
+                    target[assigner] = ret
             except (TypeError, IndexError):
                 raise ValueError("Cannot assign expression output to target")
 
             if not resolvers:
-                resolvers = ({parsed_expr.assigner: ret},)
+                resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle
                 # case of mutating existing column in copy
                 for resolver in resolvers:
-                    if parsed_expr.assigner in resolver:
-                        resolver[parsed_expr.assigner] = ret
+                    if assigner in resolver:
+                        resolver[assigner] = ret
                         break
                 else:
-                    resolvers += ({parsed_expr.assigner: ret},)
+                    resolvers += ({assigner: ret},)
 
             ret = None
             first_expr = False
