@@ -28,8 +28,7 @@ from pandas.core.common import (_any_not_none,
                                 is_true_slices)
 
 import pandas.core.base as base
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate, deprecate_kwarg)
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -177,7 +176,8 @@ class MultiIndex(Index):
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
 
-    def _get_levels(self):
+    @property
+    def levels(self):
         return self._levels
 
     def _set_levels(self, levels, level=None, copy=False, validate=True,
@@ -279,14 +279,8 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
-    # remove me in 0.14 and change to read only property
-    __set_levels = deprecate("setting `levels` directly",
-                             partial(set_levels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_levels")
-    levels = property(fget=_get_levels, fset=__set_levels)
-
-    def _get_labels(self):
+    @property
+    def labels(self):
         return self._labels
 
     def _set_labels(self, labels, level=None, copy=False, validate=True,
@@ -378,13 +372,6 @@ class MultiIndex(Index):
         idx._set_labels(labels, level=level, verify_integrity=verify_integrity)
         if not inplace:
             return idx
-
-    # remove me in 0.14 and change to readonly property
-    __set_labels = deprecate("setting labels directly",
-                             partial(set_labels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_labels")
-    labels = property(fget=_get_labels, fset=__set_labels)
 
     def copy(self, names=None, dtype=None, levels=None, labels=None,
              deep=False, _set_identity=False, **kwargs):
