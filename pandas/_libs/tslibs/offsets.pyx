@@ -390,7 +390,6 @@ class BaseOffset(_BaseOffset):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-
 cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -416,7 +415,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     cdef:
         int year, month, day
-        int dim, dy
+        int wkday, days_in_month, dy
 
     dy = (stamp.month + months) // 12
     month = (stamp.month + months) % 12
@@ -426,15 +425,21 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         dy -= 1
     year = stamp.year + dy
 
-    dim = monthrange(year, month)[1]
+    (wkday, days_in_month) = monthrange(year, month)
     if day_opt is None:
-        day = min(stamp.day, dim)
+        day = min(stamp.day, days_in_month)
     elif day_opt == 'start':
         day = 1
     elif day_opt == 'end':
-        day = dim
+        day = days_in_month
+    elif day_opt == 'bstart':
+        # first business day of month
+        day = _get_firstbday(wkday, days_in_month)
+    elif day_opt == 'bend':
+        # last business day of month
+        day = _get_lastbday(wkday, days_in_month)
     elif is_integer_object(day_opt):
-        day = min(day_opt, dim)
+        day = min(day_opt, days_in_month)
     else:
         raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
