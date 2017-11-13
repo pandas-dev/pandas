@@ -718,6 +718,18 @@ class TestEvalNumexprPandas(object):
         expected = df.loc[[1], :]
         tm.assert_frame_equal(expected, result)
 
+    def test_disallow_python_keywords(self):
+        # GH 18221
+        df = pd.DataFrame([[0, 0, 0]], columns=['foo', 'bar', 'class'])
+        msg = "Python keyword not valid identifier in numexpr query"
+        with tm.assert_raises_regex(SyntaxError, msg):
+            df.query('class == 0')
+
+        df = pd.DataFrame()
+        df.index.name = 'lambda'
+        with tm.assert_raises_regex(SyntaxError, msg):
+            df.query('lambda == 0')
+
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
