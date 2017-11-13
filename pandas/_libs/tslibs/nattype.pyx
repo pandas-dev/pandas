@@ -340,28 +340,28 @@ class NaTType(_NaT):
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
 
-    utcfromtimestamp = _make_error_func('utcfromtimestamp',
+    utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
         """
         Timestamp.utcfromtimestamp(ts)
 
         Construct a naive UTC datetime from a POSIX timestamp.
         """
     )
-    fromtimestamp = _make_error_func('fromtimestamp',
+    fromtimestamp = _make_error_func('fromtimestamp',  # noqa:E128
         """
         Timestamp.fromtimestamp(ts)
 
         timestamp[, tz] -> tz's local time from POSIX timestamp.
         """
     )
-    combine = _make_error_func('combine',
+    combine = _make_error_func('combine',  # noqa:E128
         """
         Timsetamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
     )
-    utcnow = _make_error_func('utcnow',
+    utcnow = _make_error_func('utcnow',  # noqa:E128
         """
         Timestamp.utcnow()
 
