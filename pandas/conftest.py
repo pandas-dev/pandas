@@ -1,8 +1,10 @@
 import pytest
 
+from distutils.version import LooseVersion
 import numpy
 import pandas
 import pandas.util.testing as tm
+import dateutil
 
 
 def pytest_addoption(parser):
@@ -65,3 +67,11 @@ def ip():
     pytest.importorskip('IPython', minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
     return InteractiveShell()
+
+
+is_dateutil_le_261 = pytest.mark.skipif(
+    LooseVersion(dateutil.__version__) > '2.6.1',
+    reason="dateutil api change version")
+is_dateutil_gt_261 = pytest.mark.skipif(
+    LooseVersion(dateutil.__version__) <= '2.6.1',
+    reason="dateutil stable version")
