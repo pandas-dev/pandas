@@ -1276,7 +1276,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:  # naive datetime index but label provides timezone
                 warnings.warn("Access naive datetime index with a label "
                               "containing a timezone, assume UTC")
-                parsed = parsed.astimezone(_utc())
+                parsed = parsed.astimezone(utc)
         else:
             if parsed.tzinfo is None:  # treat like in same timezone
                 parsed = parsed.replace(tzinfo=self.tz)
