@@ -1955,8 +1955,9 @@ _shared_docs['boxplot'] = """
         array of axes is returned with the same shape as ``layout``.
         See the prose documentation for more.
 
-    `**kwds` other plotting keyword arguments to be passed to matplotlib boxplot
-           function
+    `**kwds` : Keyword Arguments
+        All other plotting keyword arguments to be passed to
+        matplotlib's boxplot function
 
     Returns
     -------
@@ -2327,8 +2328,9 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
-    `**kwds` other plotting keyword arguments to be passed to matplotlib boxplot
-           function
+    `**kwds` : Keyword Arguments
+        All other plotting keyword arguments to be passed to
+        matplotlib's boxplot function
 
     Returns
     -------
