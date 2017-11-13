@@ -288,6 +288,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
         """
+        Timestamp.fromordinal(ordina, freq=None, tz=None, offset=None)
+
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
 
@@ -308,8 +310,10 @@ class Timestamp(_Timestamp):
     @classmethod
     def now(cls, tz=None):
         """
-        Return the current time in the local timezone.  Equivalent
-        to datetime.now([tz])
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
 
         Parameters
         ----------
@@ -323,6 +327,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def today(cls, tz=None):
         """
+        Timestamp.today(cls, tz=None)
+
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.
@@ -336,18 +342,38 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def utcnow(cls):
+        """
+        Timestamp.utcnow
+
+        Return a new Timestamp representing UTC day and time.
+        """
         return cls.now('UTC')
 
     @classmethod
     def utcfromtimestamp(cls, ts):
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
     def fromtimestamp(cls, ts):
+        """
+        Timestamp.fromtimsetamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
         return cls(datetime.fromtimestamp(ts))
 
     @classmethod
     def combine(cls, date, time):
+        """
+        Timsetamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
         return cls(datetime.combine(date, time))
 
     def __new__(cls, object ts_input=_no_input,

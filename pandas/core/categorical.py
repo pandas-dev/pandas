@@ -430,7 +430,7 @@ class Categorical(PandasObject):
 
     @property
     def dtype(self):
-        """The :ref:`~pandas.api.types.CategoricalDtype` for this instance"""
+        """The :class:`~pandas.api.types.CategoricalDtype` for this instance"""
         return self._dtype
 
     @property
