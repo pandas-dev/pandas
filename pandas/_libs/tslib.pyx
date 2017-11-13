@@ -343,7 +343,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def utcnow(cls):
         """
-        Timestamp.utcnow
+        Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
         """
