@@ -2,7 +2,6 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
-from functools import partial
 from sys import getsizeof
 
 import numpy as np
