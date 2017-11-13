@@ -693,7 +693,12 @@ cdef class _Period(object):
 
     def __richcmp__(self, other, op):
         if is_period_object(other):
-            if other.freq != self.freq:
+            try:
+                if other.freq != self.freq:
+                    msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
+                    raise IncompatibleFrequency(msg)
+            except SystemError:
+                # See GH#17112 in python3
                 msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)

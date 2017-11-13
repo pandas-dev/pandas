@@ -1418,3 +1418,12 @@ def test_period_immutable():
     freq = per.freq
     with pytest.raises(AttributeError):
         per.freq = 2 * freq
+
+
+def test_comparison_catches_system_error():
+    # see GH#17112 in py3 this comparison could raise SystemError instead
+    # of IncompatibleFrequency
+    per1 = pd.Period('2014Q1')
+    per2 = pd.Period('2015', freq='A')
+    with pytest.raises(period.IncompatibleFrequency):
+        per1 < per2
