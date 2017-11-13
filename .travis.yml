@@ -52,10 +52,6 @@ matrix:
     - dist: trusty
       env:
         - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
-      addons:
-        apt:
-          packages:
-          - xsel
     - dist: trusty
       env:
         - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
@@ -66,7 +62,11 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+        - JOB="3.6_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+      addons:
+        apt:
+          packages:
+          - xsel
     # In allow_failures
     - dist: trusty
       env:
@@ -75,17 +75,17 @@ matrix:
     - dist: trusty
       env:
         - JOB="3.6_DOC" DOC=true
-      addons:
-        apt:
-          packages:
-          - xsel
     allow_failures:
       - dist: trusty
         env:
           - JOB="2.7_SLOW" SLOW=true
       - dist: trusty
         env:
-          - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+          - JOB="3.6_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+        addons:
+          apt:
+            packages:
+            - xsel
       - dist: trusty
         env:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
