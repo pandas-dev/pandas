@@ -24,8 +24,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 from pandas.core.reshape.reshape import (
-    pivot_simple as pivot, get_dummies,
-    lreshape, wide_to_long)
+    pivot_simple as pivot, get_dummies)
+from pandas.core.reshape.melt import lreshape, wide_to_long
 
 from pandas.core.indexing import IndexSlice
 from pandas.core.tools.numeric import to_numeric

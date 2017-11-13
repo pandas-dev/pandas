@@ -45,6 +45,7 @@ Other API Changes
 - :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
 - :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
+- `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 
 .. _whatsnew_0220.deprecations:
 
@@ -60,7 +61,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
 -
 -
 
@@ -71,6 +72,8 @@ Performance Improvements
 
 - Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
 - Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
+- :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
+- Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
 -
 
 .. _whatsnew_0220.docs:
@@ -99,7 +102,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
-- Bug in :func:`DataFrame.groupby` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
+- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 -
 -
 
@@ -158,6 +161,6 @@ Categorical
 Other
 ^^^^^
 
--
+- Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
 -
 -

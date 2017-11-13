@@ -28,6 +28,7 @@ from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
+from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -517,7 +518,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif frequencies.get_freq_group(freq) == FreqGroup.FR_WK:
+    elif resolution.get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -855,7 +856,7 @@ def _annual_finder(vmin, vmax, freq):
 def get_finder(freq):
     if isinstance(freq, compat.string_types):
         freq = frequencies.get_freq(freq)
-    fgroup = frequencies.get_freq_group(freq)
+    fgroup = resolution.get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
