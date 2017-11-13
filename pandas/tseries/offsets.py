@@ -18,7 +18,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_firstbday, _get_calendar, _to_dt64, _validate_business_time,
+    _get_firstbday, _get_lastbday,
+    _get_calendar, _to_dt64, _validate_business_time,
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
@@ -1188,8 +1189,7 @@ class BusinessMonthEnd(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = _get_lastbday(wkday, days_in_month)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
@@ -1706,8 +1706,7 @@ class BQuarterEnd(QuarterOffset):
                          other.microsecond)
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = _get_lastbday(wkday, days_in_month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1878,8 +1877,7 @@ class BYearEnd(YearOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = (days_in_month -
-                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
+        lastBDay = _get_lastbday(wkday, days_in_month)
 
         years = n
         if n > 0:

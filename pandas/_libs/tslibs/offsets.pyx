@@ -139,11 +139,21 @@ def apply_index_wraps(func):
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int _get_firstbday(int wkday):
+cpdef int _get_lastbday(int wkday, int days_in_month):
     """
-    wkday is the result of monthrange(year, month)
+    (wkday, days_in_month) is the result of monthrange(year, month)
+    """
+    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
+
+
+cpdef int _get_firstbday(int wkday, int days_in_month=0):
+    """
+    (wkday, days_in_month) is the result of monthrange(year, month)
 
     If it's a saturday or sunday, increment first business day to reflect this
+
+    days_in_month arg is a dummy so that this has the same signature as
+    _get_lastbday.
     """
     first = 1
     if wkday == 5:  # on Saturday
