@@ -4685,6 +4685,7 @@ class TestDST(object):
         second = Timestamp(test_values[1], tz='US/Eastern')
         assert first == second
 
+
 # ---------------------------------------------------------------------
 
 offset_classes = [getattr(offsets, x) for x in dir(offsets)]
