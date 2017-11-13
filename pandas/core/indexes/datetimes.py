@@ -55,8 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
-from pandas._libs.tslibs import timezones
-
+from pandas._libs.tslibs import timezones, conversion
 
 # -------- some conversion wrapper functions
 
@@ -384,8 +383,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                         getattr(data, 'tz', None) is None):
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
-                    subarr = libts.tz_localize_to_utc(ints, tz,
-                                                      ambiguous=ambiguous)
+                    subarr = conversion.tz_localize_to_utc(ints, tz,
+                                                           ambiguous=ambiguous)
                 subarr = subarr.view(_NS_DTYPE)
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
@@ -531,8 +530,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 index = _generate_regular_range(start, end, periods, offset)
 
             if tz is not None and getattr(index, 'tz', None) is None:
-                index = libts.tz_localize_to_utc(_ensure_int64(index), tz,
-                                                 ambiguous=ambiguous)
+                index = conversion.tz_localize_to_utc(_ensure_int64(index), tz,
+                                                      ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
                 # index is localized datetime64 array -> have to convert
@@ -561,11 +560,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _local_timestamps(self):
         if self.is_monotonic:
-            return libts.tz_convert(self.asi8, utc, self.tz)
+            return conversion.tz_convert(self.asi8, utc, self.tz)
         else:
             values = self.asi8
             indexer = values.argsort()
-            result = libts.tz_convert(values.take(indexer), utc, self.tz)
+            result = conversion.tz_convert(values.take(indexer), utc, self.tz)
 
             n = len(indexer)
             reverse = np.empty(n, dtype=np.int_)
@@ -1644,7 +1643,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         normalized : DatetimeIndex
         """
-        new_values = libts.date_normalize(self.asi8, self.tz)
+        new_values = conversion.date_normalize(self.asi8, self.tz)
         return DatetimeIndex(new_values, freq='infer', name=self.name,
                              tz=self.tz)
 
@@ -1683,7 +1682,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return libts.dates_normalized(self.asi8, self.tz)
+        return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @cache_readonly
     def _resolution(self):
@@ -1724,7 +1723,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
             if self.tz is not None:
-                new_dates = libts.tz_convert(new_dates, 'UTC', self.tz)
+                new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq,
                                  tz=self.tz)
 
@@ -1764,7 +1763,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     freq = self.freq
 
         if self.tz is not None:
-            new_dates = libts.tz_convert(new_dates, 'UTC', self.tz)
+            new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
     def tz_convert(self, tz):
@@ -1844,16 +1843,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         if self.tz is not None:
             if tz is None:
-                new_dates = libts.tz_convert(self.asi8, 'UTC', self.tz)
+                new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
             tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
-            new_dates = libts.tz_localize_to_utc(self.asi8, tz,
-                                                 ambiguous=ambiguous,
-                                                 errors=errors)
+            new_dates = conversion.tz_localize_to_utc(self.asi8, tz,
+                                                      ambiguous=ambiguous,
+                                                      errors=errors)
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)
 
@@ -2194,7 +2193,7 @@ def _to_m8(key, tz=None):
         # this also converts strings
         key = Timestamp(key, tz=tz)
 
-    return np.int64(libts.pydt_to_i8(key)).view(_NS_DTYPE)
+    return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))

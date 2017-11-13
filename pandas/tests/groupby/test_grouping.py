@@ -9,7 +9,7 @@ from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.compat import lrange
+from pandas.compat import lrange, long
 
 from pandas import compat
 import numpy as np
@@ -356,6 +356,30 @@ class TestGrouping(MixIn):
         # it works!
         df.groupby(1, as_index=False)[2].agg({'Q': np.mean})
 
+    def test_multiindex_columns_empty_level(self):
+        lst = [['count', 'values'], ['to filter', '']]
+        midx = MultiIndex.from_tuples(lst)
+
+        df = DataFrame([[long(1), 'A']], columns=midx)
+
+        grouped = df.groupby('to filter').groups
+        assert grouped['A'] == [0]
+
+        grouped = df.groupby([('to filter', '')]).groups
+        assert grouped['A'] == [0]
+
+        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        assert result == expected
+
+        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        tm.assert_dict_equal(result, expected)
+
     def test_groupby_multiindex_tuple(self):
         # GH 17979
         df = pd.DataFrame([[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
@@ -366,13 +390,18 @@ class TestGrouping(MixIn):
         result = df.groupby(('b', 1)).groups
         tm.assert_dict_equal(expected, result)
 
-        df2 = pd.DataFrame([[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+        df2 = pd.DataFrame(df.values,
                            columns=pd.MultiIndex.from_arrays(
                                [['a', 'b', 'b', 'c'],
                                 ['d', 'd', 'e', 'e']]))
-        df2.groupby([('b', 'd')]).groups
-        expected = df.groupby([('b', 'd')]).groups
-        result = df.groupby(('b', 'd')).groups
+        expected = df2.groupby([('b', 'd')]).groups
+        result = df.groupby(('b', 1)).groups
+        tm.assert_dict_equal(expected, result)
+
+        df3 = pd.DataFrame(df.values,
+                           columns=[('a', 'd'), ('b', 'd'), ('b', 'e'), 'c'])
+        expected = df3.groupby([('b', 'd')]).groups
+        result = df.groupby(('b', 1)).groups
         tm.assert_dict_equal(expected, result)
 
     @pytest.mark.parametrize('sort', [True, False])
