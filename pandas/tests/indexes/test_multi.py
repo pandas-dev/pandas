@@ -158,6 +158,24 @@ class TestMultiIndex(Base):
         assert res is None
         assert ind.names == new_names2
 
+    def test_set_levels_labels_directly(self):
+        # setting levels/labels directly raises AttributeError
+
+        levels = self.index.levels
+        new_levels = [[lev + 'a' for lev in level] for level in levels]
+
+        labels = self.index.labels
+        major_labels, minor_labels = labels
+        major_labels = [(x + 1) % 3 for x in major_labels]
+        minor_labels = [(x + 1) % 1 for x in minor_labels]
+        new_labels = [major_labels, minor_labels]
+
+        with pytest.raises(AttributeError):
+            self.index.levels = new_levels
+
+        with pytest.raises(AttributeError):
+            self.index.labels = new_labels
+
     def test_set_levels(self):
         # side note - you probably wouldn't want to use levels and labels
         # directly like this - but it is possible.
@@ -577,16 +595,6 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
-
-        # deprecated properties
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-
-            with tm.assert_raises_regex(ValueError, length_error):
-                self.index.copy().levels = [['a'], ['b']]
-
-            with tm.assert_raises_regex(ValueError, label_error):
-                self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
