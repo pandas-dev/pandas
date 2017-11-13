@@ -21,7 +21,8 @@ from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
-from pandas.tseries.frequencies import MONTHS, DAYS
+from pandas._libs.tslibs.resolution import DAYS
+from pandas.tseries.frequencies import MONTHS
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
