@@ -26,7 +26,8 @@ from util cimport (is_timedelta64_object, is_datetime64_object,
                    is_integer_object, is_float_object,
                    is_string_object)
 
-from np_datetime cimport cmp_scalar, reverse_ops
+from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
+                          pandas_timedeltastruct)
 
 from nattype import nat_strings, NaT
 from nattype cimport _checknull_with_nat
@@ -584,65 +585,26 @@ cdef class _Timedelta(timedelta):
         """
         compute the components
         """
-        cdef int64_t sfrac, ifrac, frac, ivalue = self.value
-
         if self.is_populated:
             return
 
-        # put frac in seconds
-        frac = ivalue / (1000 * 1000 * 1000)
-        if frac < 0:
-            self._sign = -1
+        cdef:
+            pandas_timedeltastruct tds
 
-            # even fraction
-            if (-frac % 86400) != 0:
-                self._d = -frac / 86400 + 1
-                frac += 86400 * self._d
-            else:
-                frac = -frac
+        td64_to_tdstruct(self.value, &tds)
+        self._d = tds.days
+        if self._d < 0:
+            self._sign = -1
         else:
             self._sign = 1
-            self._d = 0
-
-        if frac >= 86400:
-            self._d += frac / 86400
-            frac -= self._d * 86400
-
-        if frac >= 3600:
-            self._h = frac / 3600
-            frac -= self._h * 3600
-        else:
-            self._h = 0
-
-        if frac >= 60:
-            self._m = frac / 60
-            frac -= self._m * 60
-        else:
-            self._m = 0
-
-        if frac >= 0:
-            self._s = frac
-            frac -= self._s
-        else:
-            self._s = 0
-
-        sfrac = (self._h * 3600 + self._m * 60
-                 + self._s) * (1000 * 1000 * 1000)
-        if self._sign < 0:
-            ifrac = ivalue + self._d * DAY_NS - sfrac
-        else:
-            ifrac = ivalue - (self._d * DAY_NS + sfrac)
-
-        if ifrac != 0:
-            self._ms = ifrac / (1000 * 1000)
-            ifrac -= self._ms * 1000 * 1000
-            self._us = ifrac / 1000
-            ifrac -= self._us * 1000
-            self._ns = ifrac
-        else:
-            self._ms = 0
-            self._us = 0
-            self._ns = 0
+        self._h = tds.hrs
+        self._m = tds.min
+        self._s = tds.sec
+        self._ms = tds.ms
+        self._us = tds.us
+        self._ns = tds.ns
+        self._seconds = tds.seconds
+        self._microseconds = tds.microseconds
 
         self.is_populated = 1
 
@@ -671,10 +633,6 @@ cdef class _Timedelta(timedelta):
     def components(self):
         """ Return a Components NamedTuple-like """
         self._ensure_components()
-        if self._sign < 0:
-            return Components(-self._d, self._h, self._m, self._s,
-                              self._ms, self._us, self._ns)
-
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
                           self._ms, self._us, self._ns)
@@ -717,8 +675,6 @@ cdef class _Timedelta(timedelta):
         .components will return the shown components
         """
         self._ensure_components()
-        if self._sign < 0:
-            return -1 * self._d
         return self._d
 
     @property
@@ -729,7 +685,7 @@ cdef class _Timedelta(timedelta):
         .components will return the shown components
         """
         self._ensure_components()
-        return self._h * 3600 + self._m * 60 + self._s
+        return self._seconds
 
     @property
     def microseconds(self):
@@ -739,7 +695,7 @@ cdef class _Timedelta(timedelta):
         .components will return the shown components
         """
         self._ensure_components()
-        return self._ms * 1000 + self._us
+        return self._microseconds
 
     @property
     def nanoseconds(self):
@@ -778,9 +734,9 @@ cdef class _Timedelta(timedelta):
         if format == 'all':
             seconds_pretty = "%02d.%03d%03d%03d" % (
                 self._s, self._ms, self._us, self._ns)
-            return "%s%d days%s%02d:%02d:%s" % (sign_pretty, self._d,
-                                                sign2_pretty, self._h,
-                                                self._m, seconds_pretty)
+            return "%d days%s%02d:%02d:%s" % (self._d,
+                                              sign2_pretty, self._h,
+                                              self._m, seconds_pretty)
 
         # by default not showing nano
         if self._ms or self._us or self._ns:
@@ -794,7 +750,7 @@ cdef class _Timedelta(timedelta):
 
         if format == 'even_day':
             if not subs:
-                return "%s%d days" % (sign_pretty, self._d)
+                return "%d days" % (self._d)
 
         elif format == 'sub_day':
             if not self._d:
@@ -806,10 +762,10 @@ cdef class _Timedelta(timedelta):
                                              self._h, self._m, seconds_pretty)
 
         if subs or format=='long':
-            return "%s%d days%s%02d:%02d:%s" % (sign_pretty, self._d,
-                                                sign2_pretty, self._h,
-                                                self._m, seconds_pretty)
-        return "%s%d days" % (sign_pretty, self._d)
+            return "%d days%s%02d:%02d:%s" % (self._d,
+                                              sign2_pretty, self._h,
+                                              self._m, seconds_pretty)
+        return "%d days" % (self._d)
 
     def __repr__(self):
         return "Timedelta('{0}')".format(self._repr_base(format='long'))
