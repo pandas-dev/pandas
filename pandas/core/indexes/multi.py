@@ -820,9 +820,10 @@ class MultiIndex(Index):
 
         return duplicated_int64(ids, keep)
 
-    @Appender(ibase._index_shared_docs['fillna'])
     def fillna(self, value=None, downcast=None):
-        # isna is not implemented for MultiIndex
+        """
+        fillna is not implemented for MultiIndex
+        """
         raise NotImplementedError('isna is not defined for MultiIndex')
 
     @Appender(_index_shared_docs['dropna'])
