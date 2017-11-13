@@ -101,7 +101,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
-- Bug in :func:`DataFrame.groupby` where key as tuple in a ``MultiIndex`` were interpreted as a list of keys (:issue:`17979`)
+- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 -
 -
 

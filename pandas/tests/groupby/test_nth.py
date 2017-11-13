@@ -202,7 +202,7 @@ class TestNth(MixIn):
                                        freq='B')
         df = DataFrame(1, index=business_dates, columns=['a', 'b'])
         # get the first, fourth and last two business days for each month
-        key = (df.index.year, df.index.month)
+        key = [df.index.year, df.index.month]
         result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
         expected_dates = pd.to_datetime(
             ['2014/4/1', '2014/4/4', '2014/4/29', '2014/4/30', '2014/5/1',
