@@ -12,6 +12,7 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
+from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
@@ -996,7 +997,7 @@ class TestToDatetimeMisc(object):
 
 class TestGuessDatetimeFormat(object):
 
-    @pytest.mark.xfail(reason="GH18141 - dateutil > 2.6.1 broken")
+    @is_dateutil_le_261
     def test_guess_datetime_format_for_array(self):
         tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
@@ -1011,6 +1012,27 @@ class TestGuessDatetimeFormat(object):
         for test_array in test_arrays:
             assert tools._guess_datetime_format_for_array(
                 test_array) == expected_format
+
+        format_for_string_of_nans = tools._guess_datetime_format_for_array(
+            np.array(
+                [np.nan, np.nan, np.nan], dtype='O'))
+        assert format_for_string_of_nans is None
+
+    @is_dateutil_gt_261
+    def test_guess_datetime_format_for_array_gt_261(self):
+        tm._skip_if_not_us_locale()
+        expected_format = '%Y-%m-%d %H:%M:%S.%f'
+        dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
+
+        test_arrays = [
+            np.array([dt_string, dt_string, dt_string], dtype='O'),
+            np.array([np.nan, np.nan, dt_string], dtype='O'),
+            np.array([dt_string, 'random_string'], dtype='O'),
+        ]
+
+        for test_array in test_arrays:
+            assert tools._guess_datetime_format_for_array(
+                test_array) is None
 
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array(
