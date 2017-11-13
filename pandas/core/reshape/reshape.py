@@ -1100,6 +1100,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         first level.
 
         .. versionadded:: 0.18.0
+
     Returns
     -------
     dummies : DataFrame or SparseDataFrame

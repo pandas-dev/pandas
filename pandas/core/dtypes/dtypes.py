@@ -125,6 +125,10 @@ class CategoricalDtype(ExtensionDtype):
     categories
     ordered
 
+    Methods
+    -------
+    None
+
     Notes
     -----
     This class is useful for specifying the type of a ``Categorical``

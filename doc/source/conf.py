@@ -55,7 +55,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc', # used to parse numpy-style docstrings for autodoc
+              'numpydoc',
               'IPython.sphinxext.ipython_directive',
               'IPython.sphinxext.ipython_console_highlighting',
               'sphinx.ext.intersphinx',
@@ -67,7 +67,6 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
-numpydoc_show_class_members = False
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()

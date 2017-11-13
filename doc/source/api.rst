@@ -733,6 +733,16 @@ adding ordering information or special categories is need at creation time of th
    Categorical.categories
    Categorical.from_codes
 
+The dtype information is available on the ``Categorical``
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.dtype
+   Categorical.categories
+   Categorical.ordered
+   Categorical.codes
+
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
 the Categorical back to a numpy array, so categories and order information is not preserved!
 
@@ -2124,41 +2134,13 @@ Frequencies
 
 .. currentmodule:: pandas.tseries.frequencies
 
+.. _api.offsets:
 
 .. autosummary::
    :toctree: generated/
 
    to_offset
 
-.. _api.offsets:
-
-Offsets
--------
-
-.. currentmodule:: pandas.tseries.offsets
-
-.. autosummary::
-   :toctree: generated/
-
-   DateOffset
-   Week
-   Day
-   Hour
-   Minute
-   Second
-   Milli
-   Micro
-   Nano
-
-.. autosummary::
-   :toctree: generated/
-
-   MonthBegin
-   MonthEnd
-   QuarterBegin
-   QuarterEnd
-   YearBegin
-   YearEnd
 
 Window
 ------
@@ -2420,14 +2402,23 @@ Style
 
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
-
-Constructor
-~~~~~~~~~~~
+Styler Constructor
+~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    Styler
    Styler.from_custom_template
+
+
+Styler Attributes
+~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Styler.env
+   Styler.template
+   Styler.loader
 
 Style Application
 ~~~~~~~~~~~~~~~~~
@@ -2600,6 +2591,7 @@ Scalar introspection
    generated/pandas.DataFrame.sortlevel
 
    generated/pandas.Index.data.rst
+   generated/pandas.Index.asi8.rst
    generated/pandas.Index.flags
    generated/pandas.Index.isnull
    generated/pandas.Index.names
@@ -2637,3 +2629,12 @@ Scalar introspection
 
    generated/pandas.Timestamp.offset
    generated/pandas.Timestamp.to_datetime
+
+   generated/pandas.Categorical.base.rst
+   generated/pandas.Categorical.itemsize.rst
+   generated/pandas.Categorical.labels.rst
+   generated/pandas.Categorical.nbytes.rst
+   generated/pandas.Categorical.ndim.rst
+   generated/pandas.Categorical.shape.rst
+   generated/pandas.Categorical.size.rst
+   generated/pandas.Categorical.T.rst
