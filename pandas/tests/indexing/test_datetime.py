@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
