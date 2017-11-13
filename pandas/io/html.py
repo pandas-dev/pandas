@@ -359,7 +359,7 @@ class _HtmlFrameParser(object):
             trs = self._parse_tr(thead[0])
             for tr in trs:
                 cols = lmap(self._text_getter, self._parse_td(tr))
-                if any([col != '' for col in cols]):
+                if any(col != '' for col in cols):
                     res.append(cols)
         return res
 
@@ -606,7 +606,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
             for tr in trs:
                 cols = [_remove_whitespace(x.text_content()) for x in
                         self._parse_td(tr)]
-                if any([col != '' for col in cols]):
+                if any(col != '' for col in cols):
                     res.append(cols)
         return res
 

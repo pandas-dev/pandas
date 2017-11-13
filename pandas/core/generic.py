@@ -1006,8 +1006,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # Comparisons
 
     def _indexed_same(self, other):
-        return all([self._get_axis(a).equals(other._get_axis(a))
-                    for a in self._AXIS_ORDERS])
+        return all(self._get_axis(a).equals(other._get_axis(a))
+                   for a in self._AXIS_ORDERS)
 
     def __neg__(self):
         values = _values_from_object(self)
@@ -2989,8 +2989,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
-        if all([self._get_axis(axis).identical(ax)
-                for axis, ax in axes.items() if ax is not None]):
+        if all(self._get_axis(axis).identical(ax)
+               for axis, ax in axes.items() if ax is not None):
             if copy:
                 return self.copy()
             return self
@@ -5886,8 +5886,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if (axis is None and
-                        not all([other._get_axis(i).equals(ax)
-                                 for i, ax in enumerate(self.axes)])):
+                        not all(other._get_axis(i).equals(ax)
+                                for i, ax in enumerate(self.axes))):
                     raise InvalidIndexError
 
             # slice me out of the other
