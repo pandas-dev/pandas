@@ -350,6 +350,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/fields.pyx',
                  'pandas/_libs/tslibs/offsets.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -589,6 +590,13 @@ ext_data = {
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'include': numpy_incls},
+    '_libs.tslibs.resolution': {
+        'pyxfile': '_libs/tslibs/resolution',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash',
+                     '_libs/tslibs/frequencies',
+                     '_libs/tslibs/timezones'],
+        'depends': tseries_depends},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
@@ -772,6 +780,7 @@ setup(name=DISTNAME,
                 'pandas.tests.series',
                 'pandas.tests.scalar',
                 'pandas.tests.tseries',
+                'pandas.tests.tseries.offsets',
                 'pandas.tests.plotting',
                 'pandas.tests.tools',
                 'pandas.tests.util',
@@ -807,7 +816,7 @@ setup(name=DISTNAME,
                     'pandas.tests.io.formats': ['data/*.csv'],
                     'pandas.tests.io.msgpack': ['data/*.mp'],
                     'pandas.tests.reshape': ['data/*.csv'],
-                    'pandas.tests.tseries': ['data/*.pickle'],
+                    'pandas.tests.tseries.offsets': ['data/*.pickle'],
                     'pandas.io.formats': ['templates/*.tpl']
                     },
       ext_modules=extensions,
