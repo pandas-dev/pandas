@@ -797,7 +797,7 @@ setup(name=DISTNAME,
                     'pandas.tests.io.formats': ['data/*.csv'],
                     'pandas.tests.io.msgpack': ['data/*.mp'],
                     'pandas.tests.reshape': ['data/*.csv'],
-                    'pandas.tests.tseries': ['data/*.pickle'],
+                    'pandas.tests.tseries.offsets': ['data/*.pickle'],
                     'pandas.io.formats': ['templates/*.tpl']
                     },
       ext_modules=extensions,
