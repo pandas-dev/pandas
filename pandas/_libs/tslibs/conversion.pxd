@@ -26,3 +26,5 @@ cdef void _localize_tso(_TSObject obj, object tz)
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2)
 
 cdef int64_t get_datetime64_nanos(object val) except? -1
+
+cpdef int64_t pydt_to_i8(object pydt) except? -1
