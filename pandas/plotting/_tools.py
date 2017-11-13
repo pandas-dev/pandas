@@ -84,8 +84,9 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError(msg)
 
         if nrows * ncols < nplots:
-            raise ValueError('Layout of %sx%s must be larger than '
-                             'required size %s' % (nrows, ncols, nplots))
+            raise ValueError('Layout of {nrows}x{ncols} must be larger '
+                             'than required size {nplots}'.format(
+                                 nrows=nrows, ncols=ncols, nplots=nplots))
 
         return layout
 

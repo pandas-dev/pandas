@@ -2267,7 +2267,8 @@ class DataFrame(NDFrame):
         by default, which allows you to treat both the index and columns of the
         frame as a column in the frame.
         The identifier ``index`` is used for the frame index; you can also
-        use the name of the index to identify it in a query.
+        use the name of the index to identify it in a query. Please note that
+        Python keywords may not be used as identifiers.
 
         For further details and examples see the ``query`` documentation in
         :ref:`indexing <indexing.query>`.
@@ -4637,7 +4638,7 @@ class DataFrame(NDFrame):
                    other='melt'))
     def melt(self, id_vars=None, value_vars=None, var_name=None,
              value_name='value', col_level=None):
-        from pandas.core.reshape.reshape import melt
+        from pandas.core.reshape.melt import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
                     col_level=col_level)
