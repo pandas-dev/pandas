@@ -176,7 +176,7 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     if df.columns.inferred_type not in valid_types:
         raise ValueError("parquet must have string column names")
 
-    return impl.write(df, path, compression=compression)
+    return impl.write(df, path, compression=compression, **kwargs)
 
 
 def read_parquet(path, engine='auto', columns=None, **kwargs):
