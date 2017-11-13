@@ -23,6 +23,7 @@ from pandas._libs.tslibs.offsets import (
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
+    shift_month,
     BeginMixin, EndMixin,
     BaseOffset)
 
@@ -253,6 +254,8 @@ class DateOffset(BaseOffset):
                                       "applied vectorized".format(kwd=kwd))
 
     def isAnchored(self):
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what isAnchored means.
         return (self.n == 1)
 
     def _params(self):
@@ -722,6 +725,7 @@ class BusinessHourMixin(BusinessMixin):
 
             return result
         else:
+            # TODO: Figure out the end of this sente
             raise ApplyTypeError(
                 'Only know how to combine business hour with ')
 
@@ -928,10 +932,10 @@ class MonthEnd(MonthOffset):
         n = self.n
         _, days_in_month = tslib.monthrange(other.year, other.month)
         if other.day != days_in_month:
-            other = other + relativedelta(months=-1, day=31)
+            other = shift_month(other, -1, 'end')
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(months=n, day=31)
+        other = shift_month(other, n, 'end')
         return other
 
     @apply_index_wraps
@@ -957,7 +961,7 @@ class MonthBegin(MonthOffset):
         if other.day > 1 and n <= 0:  # then roll forward if n<=0
             n += 1
 
-        return other + relativedelta(months=n, day=1)
+        return shift_month(other, n, 'start')
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1003,12 +1007,12 @@ class SemiMonthOffset(DateOffset):
         if not self.onOffset(other):
             _, days_in_month = tslib.monthrange(other.year, other.month)
             if 1 < other.day < self.day_of_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n > 0:
                     # rollforward so subtract 1
                     n -= 1
             elif self.day_of_month < other.day < days_in_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n < 0:
                     # rollforward in the negative direction so add 1
                     n += 1
@@ -1085,11 +1089,11 @@ class SemiMonthEnd(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n > 0:
                 n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = 1
             else:
@@ -1097,7 +1101,7 @@ class SemiMonthEnd(SemiMonthOffset):
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
-        return other + relativedelta(months=months, day=day)
+        return shift_month(other, months, day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1142,13 +1146,13 @@ class SemiMonthBegin(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = -1
             else:
                 n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n == 0:
                 n = 1
             elif n < 0:
@@ -1156,7 +1160,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
-        return other + relativedelta(months=months, day=day)
+        return shift_month(other, months, day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1192,7 +1196,7 @@ class BusinessMonthEnd(MonthOffset):
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = other + relativedelta(months=n, day=31)
+        other = shift_month(other, n, 'end')
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -1216,7 +1220,7 @@ class BusinessMonthBegin(MonthOffset):
             other = other + timedelta(days=first - other.day)
             n -= 1
 
-        other = other + relativedelta(months=n)
+        other = shift_month(other, n, None)
         wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first,
@@ -1514,8 +1518,7 @@ class WeekOfMonth(DateOffset):
             else:
                 months = self.n + 1
 
-        other = self.getOffsetOfMonth(
-            other + relativedelta(months=months, day=1))
+        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
                          base.minute, base.second, base.microsecond)
         return other
@@ -1602,8 +1605,7 @@ class LastWeekOfMonth(DateOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(
-            other + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
     def getOffsetOfMonth(self, dt):
         m = MonthEnd()
@@ -1706,7 +1708,7 @@ class BQuarterEnd(QuarterOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
+        other = shift_month(other, monthsToGo + 3 * n, 'end')
         other = tslib._localize_pydatetime(other, base.tzinfo)
         if other.weekday() > 4:
             other = other - BDay()
@@ -1751,7 +1753,7 @@ class BQuarterBegin(QuarterOffset):
             n = n - 1
 
         # get the first bday for result
-        other = other + relativedelta(months=3 * n - monthsSince)
+        other = shift_month(other, 3 * n - monthsSince, None)
         wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first,
@@ -1785,7 +1787,7 @@ class QuarterEnd(EndMixin, QuarterOffset):
         if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
 
-        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
+        other = shift_month(other, monthsToGo + 3 * n, 'end')
         return other
 
     @apply_index_wraps
@@ -1820,7 +1822,7 @@ class QuarterBegin(BeginMixin, QuarterOffset):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
 
-        other = other + relativedelta(months=3 * n - monthsSince, day=1)
+        other = shift_month(other, 3 * n - monthsSince, 'start')
         return other
 
     @apply_index_wraps
@@ -1878,7 +1880,7 @@ class BYearEnd(YearOffset):
                     (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = other + relativedelta(years=years)
+        other = shift_month(other, 12 * years, None)
 
         _, days_in_month = tslib.monthrange(other.year, self.month)
         result = datetime(other.year, self.month, days_in_month,
@@ -1916,7 +1918,7 @@ class BYearBegin(YearOffset):
                 years += 1
 
         # set first bday for result
-        other = other + relativedelta(years=years)
+        other = shift_month(other, years * 12, None)
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
         first = _get_firstbday(wkday)
         return datetime(other.year, self.month, first, other.hour,
@@ -2133,8 +2135,8 @@ class FY5253(DateOffset):
 
         if self.variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
-            return year_end == dt or \
-                self.get_year_end(dt - relativedelta(months=1)) == dt
+            return (year_end == dt or
+                    self.get_year_end(shift_month(dt, -1, None)) == dt)
         else:
             return year_end == dt
 
@@ -2214,8 +2216,8 @@ class FY5253(DateOffset):
     def get_target_month_end(self, dt):
         target_month = datetime(
             dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
-        next_month_first_of = target_month + relativedelta(months=+1)
-        return next_month_first_of + relativedelta(days=-1)
+        next_month_first_of = shift_month(target_month, 1, None)
+        return next_month_first_of + timedelta(days=-1)
 
     def _get_year_end_nearest(self, dt):
         target_date = self.get_target_month_end(dt)
@@ -2369,7 +2371,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other + self._offset)
 
                 for weeks in qtr_lens:
-                    start += relativedelta(weeks=weeks)
+                    start += timedelta(weeks=weeks)
                     if start > other:
                         other = start
                         n -= 1
@@ -2386,7 +2388,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other)
 
                 for weeks in reversed(qtr_lens):
-                    end -= relativedelta(weeks=weeks)
+                    end -= timedelta(weeks=weeks)
                     if end < other:
                         other = end
                         n -= 1
@@ -2429,7 +2431,7 @@ class FY5253Quarter(DateOffset):
 
         current = next_year_end
         for qtr_len in qtr_lens[0:4]:
-            current += relativedelta(weeks=qtr_len)
+            current += timedelta(weeks=qtr_len)
             if dt == current:
                 return True
         return False
