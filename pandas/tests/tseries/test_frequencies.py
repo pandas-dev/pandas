@@ -7,6 +7,7 @@ import numpy as np
 from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
+from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.core.tools.datetimes import to_datetime
 
@@ -383,35 +384,35 @@ class TestFrequencyCode(object):
             result = frequencies.get_freq(freqstr)
             assert result == code
 
-            result = frequencies.get_freq_group(freqstr)
+            result = resolution.get_freq_group(freqstr)
             assert result == code // 1000 * 1000
 
-            result = frequencies.get_freq_group(code)
+            result = resolution.get_freq_group(code)
             assert result == code // 1000 * 1000
 
     def test_freq_group(self):
-        assert frequencies.get_freq_group('A') == 1000
-        assert frequencies.get_freq_group('3A') == 1000
-        assert frequencies.get_freq_group('-1A') == 1000
-        assert frequencies.get_freq_group('A-JAN') == 1000
-        assert frequencies.get_freq_group('A-MAY') == 1000
+        assert resolution.get_freq_group('A') == 1000
+        assert resolution.get_freq_group('3A') == 1000
+        assert resolution.get_freq_group('-1A') == 1000
+        assert resolution.get_freq_group('A-JAN') == 1000
+        assert resolution.get_freq_group('A-MAY') == 1000
 
-        assert frequencies.get_freq_group('Y') == 1000
-        assert frequencies.get_freq_group('3Y') == 1000
-        assert frequencies.get_freq_group('-1Y') == 1000
-        assert frequencies.get_freq_group('Y-JAN') == 1000
-        assert frequencies.get_freq_group('Y-MAY') == 1000
+        assert resolution.get_freq_group('Y') == 1000
+        assert resolution.get_freq_group('3Y') == 1000
+        assert resolution.get_freq_group('-1Y') == 1000
+        assert resolution.get_freq_group('Y-JAN') == 1000
+        assert resolution.get_freq_group('Y-MAY') == 1000
 
-        assert frequencies.get_freq_group(offsets.YearEnd()) == 1000
-        assert frequencies.get_freq_group(offsets.YearEnd(month=1)) == 1000
-        assert frequencies.get_freq_group(offsets.YearEnd(month=5)) == 1000
+        assert resolution.get_freq_group(offsets.YearEnd()) == 1000
+        assert resolution.get_freq_group(offsets.YearEnd(month=1)) == 1000
+        assert resolution.get_freq_group(offsets.YearEnd(month=5)) == 1000
 
-        assert frequencies.get_freq_group('W') == 4000
-        assert frequencies.get_freq_group('W-MON') == 4000
-        assert frequencies.get_freq_group('W-FRI') == 4000
-        assert frequencies.get_freq_group(offsets.Week()) == 4000
-        assert frequencies.get_freq_group(offsets.Week(weekday=1)) == 4000
-        assert frequencies.get_freq_group(offsets.Week(weekday=5)) == 4000
+        assert resolution.get_freq_group('W') == 4000
+        assert resolution.get_freq_group('W-MON') == 4000
+        assert resolution.get_freq_group('W-FRI') == 4000
+        assert resolution.get_freq_group(offsets.Week()) == 4000
+        assert resolution.get_freq_group(offsets.Week(weekday=1)) == 4000
+        assert resolution.get_freq_group(offsets.Week(weekday=5)) == 4000
 
     def test_get_to_timestamp_base(self):
         tsb = frequencies.get_to_timestamp_base
@@ -523,7 +524,7 @@ class TestFrequencyCode(object):
                 (frequencies.get_freq('W-FRI'), -2))
 
     def test_frequency_misc(self):
-        assert (frequencies.get_freq_group('T') ==
+        assert (resolution.get_freq_group('T') ==
                 frequencies.FreqGroup.FR_MIN)
 
         code, stride = frequencies.get_freq_code(offsets.Hour())
