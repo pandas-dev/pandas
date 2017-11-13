@@ -1257,7 +1257,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         reso : Resolution
             Resolution provided by parsed string.
-        parsed : datetime | object
+        parsed : datetime or object
             Datetime from parsed string.
 
         Returns

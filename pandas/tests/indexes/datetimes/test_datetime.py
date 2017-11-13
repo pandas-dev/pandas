@@ -213,11 +213,8 @@ class TestDatetimeIndex(object):
         start = datetime.datetime.now()
         idx = DatetimeIndex(start=start, freq="1d", periods=10)
         df = DataFrame(lrange(10), index=idx)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with tm.assert_produces_warning(UserWarning):
             df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
-            assert len(w) == 1
-            assert issubclass(w[-1].category, UserWarning)
 
     def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
