@@ -94,15 +94,15 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
 
     Parameters
     ----------
-    arr  : array of i8 repr
-    tz   : the timezone to convert to,
-        can only be used with datetime/Timestamp,
-        default is None
-    freq : frequency to be used when converting to Timestamp, default is None
-    box  : the dtype to convert to, default is datetime
-        If datetime, convert to datetime.datetime
-        If date, convert to datetime.date
-        If Timestamp, convert to pandas.Timestamp
+    arr  : array of i8
+    tz   : str, default None
+         convert to this timezone
+    freq : str/Offset, default None
+         freq to convert
+    box  : {'datetime', 'timestamp', 'date'}, default 'datetime'
+         If datetime, convert to datetime.datetime
+         If date, convert to datetime.date
+         If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
