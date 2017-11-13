@@ -9,7 +9,7 @@ from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.compat import lrange
+from pandas.compat import lrange, long
 
 from pandas import compat
 import numpy as np
@@ -355,6 +355,30 @@ class TestGrouping(MixIn):
 
         # it works!
         df.groupby(1, as_index=False)[2].agg({'Q': np.mean})
+
+    def test_multiindex_columns_empty_level(self):
+        lst = [['count', 'values'], ['to filter', '']]
+        midx = MultiIndex.from_tuples(lst)
+
+        df = DataFrame([[long(1), 'A']], columns=midx)
+
+        grouped = df.groupby('to filter').groups
+        assert grouped['A'] == [0]
+
+        grouped = df.groupby([('to filter', '')]).groups
+        assert grouped['A'] == [0]
+
+        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        assert result == expected
+
+        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        tm.assert_dict_equal(result, expected)
 
     def test_groupby_multiindex_tuple(self):
         # GH 17979
