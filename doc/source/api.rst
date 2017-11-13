@@ -1822,7 +1822,7 @@ Interval
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Interval.closed
     Interval.closed_left
@@ -1843,7 +1843,7 @@ Timedelta
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.asm8
     Timedelta.components
@@ -1860,7 +1860,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.ceil
     Timedelta.floor
@@ -1870,8 +1870,52 @@ Methods
     Timedelta.to_timedelta64
     Timedelta.total_seconds
 
+.. _api.frequencies:
+
+Frequencies
+-----------
+
+.. currentmodule:: pandas.tseries.frequencies
+
+
+.. autosummary::
+   :toctree: generated/
+
+   to_offset
+
+.. _api.offsets:
+
+Offsets
+-------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   Week
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+
+.. autosummary::
+   :toctree: generated/
+
+   MonthBegin
+   MonthEnd
+   QuarterBegin
+   QuarterEnd
+   YearBegin
+   YearEnd
+
 Window
 ------
+
 .. currentmodule:: pandas.core.window
 
 Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.

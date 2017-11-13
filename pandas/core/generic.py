@@ -352,7 +352,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             try:
                 return self._AXIS_NUMBERS[axis]
-            except:
+            except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
                          .format(axis, type(self)))
@@ -365,7 +365,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             try:
                 return self._AXIS_NAMES[axis]
-            except:
+            except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
                          .format(axis, type(self)))
@@ -701,7 +701,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return self.iloc[
                 tuple([0 if i in axis and len(a) == 1 else slice(None)
                        for i, a in enumerate(self.axes)])]
-        except:
+        except Exception:
             return self
 
     def swaplevel(self, i=-2, j=-1, axis=0):
@@ -1021,7 +1021,7 @@ class NDFrame(PandasObject, SelectionMixin):
         try:
             arr = operator.inv(_values_from_object(self))
             return self.__array_wrap__(arr)
-        except:
+        except Exception:
 
             # inv fails with 0 len
             if not np.prod(self.shape):
@@ -1907,7 +1907,7 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 try:
                     ref._maybe_cache_changed(cacher[0], self)
-                except:
+                except Exception:
                     pass
 
         if verify_is_copy:
@@ -2016,7 +2016,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not gc.get_referents(self.is_copy()):
                     self.is_copy = None
                     return
-            except:
+            except Exception:
                 pass
 
             # we might be a false positive
@@ -2024,7 +2024,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if self.is_copy().shape == self.shape:
                     self.is_copy = None
                     return
-            except:
+            except Exception:
                 pass
 
             # a custom message
@@ -2999,7 +2999,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if self._needs_reindex_multi(axes, method, level):
             try:
                 return self._reindex_multi(axes, copy, fill_value)
-            except:
+            except Exception:
                 pass
 
         # perform the reindex on the axes
@@ -3715,7 +3715,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 try:
                     if np.isnan(value):
                         return True
-                except:
+                except Exception:
                     pass
 
                 raise TypeError('Cannot do inplace boolean setting on '
@@ -5005,6 +5005,8 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
+        if axis is not None:
+            axis = self._get_axis_number(axis)
 
         # GH 17276
         # numpy doesn't like NaN as a clip value
@@ -5090,14 +5092,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        by : mapping, function, str, or iterable
+        by : mapping, function, label, or list of labels
             Used to determine the groups for the groupby.
             If ``by`` is a function, it's called on each value of the object's
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If an ndarray is passed, the
-            values are used as-is determine the groups. A str or list of strs
-            may be passed to group by the columns in ``self``
+            values are used as-is determine the groups. A label or list of
+            labels may be passed to group by the columns in ``self``. Notice
+            that a tuple is interpreted a (single) key.
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -5916,7 +5919,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                 new_other = _values_from_object(self).copy()
                                 new_other[icond] = other
                                 other = new_other
-                            except:
+                            except Exception:
                                 try_quick = False
 
                         # let's create a new (if we failed at the above
@@ -6276,6 +6279,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * 0 or 'index': apply truncation to rows
             * 1 or 'columns': apply truncation to columns
+
             Default is stat axis for given data type (0 for Series and
             DataFrames, 1 for Panels)
         copy : boolean, default is True,

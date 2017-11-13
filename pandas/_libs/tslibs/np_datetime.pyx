@@ -14,27 +14,7 @@ PyDateTime_IMPORT
 
 from numpy cimport int64_t
 
-cdef extern from "numpy/ndarrayobject.h":
-    ctypedef int64_t npy_timedelta
-    ctypedef int64_t npy_datetime
-
 cdef extern from "../src/datetime/np_datetime.h":
-    ctypedef enum PANDAS_DATETIMEUNIT:
-        PANDAS_FR_Y
-        PANDAS_FR_M
-        PANDAS_FR_W
-        PANDAS_FR_D
-        PANDAS_FR_B
-        PANDAS_FR_h
-        PANDAS_FR_m
-        PANDAS_FR_s
-        PANDAS_FR_ms
-        PANDAS_FR_us
-        PANDAS_FR_ns
-        PANDAS_FR_ps
-        PANDAS_FR_fs
-        PANDAS_FR_as
-
     int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
                                   pandas_datetimestruct *b)
 
@@ -46,7 +26,38 @@ cdef extern from "../src/datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
 
+    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                             PANDAS_DATETIMEUNIT fr,
+                                             pandas_timedeltastruct *result
+                                            ) nogil
+
     pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+
+# ----------------------------------------------------------------------
+# numpy object inspection
+
+cdef inline npy_datetime get_datetime64_value(object obj) nogil:
+    """
+    returns the int64 value underlying scalar numpy datetime64 object
+
+    Note that to interpret this as a datetime, the corresponding unit is
+    also needed.  That can be found using `get_datetime64_unit`.
+    """
+    return (<PyDatetimeScalarObject*>obj).obval
+
+
+cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
+    """
+    returns the int64 value underlying scalar numpy timedelta64 object
+    """
+    return (<PyTimedeltaScalarObject*>obj).obval
+
+
+cdef inline PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+    """
+    returns the unit part of the dtype for a numpy datetime64 object.
+    """
+    return <PANDAS_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
 
 # ----------------------------------------------------------------------
 # Comparison
@@ -119,6 +130,13 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     """Convenience function to call pandas_datetime_to_datetimestruct
     with the by-far-most-common frequency PANDAS_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
+    return
+
+cdef inline void td64_to_tdstruct(int64_t td64,
+                                  pandas_timedeltastruct* out) nogil:
+    """Convenience function to call pandas_timedelta_to_timedeltastruct
+    with the by-far-most-common frequency PANDAS_FR_ns"""
+    pandas_timedelta_to_timedeltastruct(td64, PANDAS_FR_ns, out)
     return
 
 

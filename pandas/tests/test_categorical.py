@@ -306,20 +306,18 @@ class TestCategorical(object):
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Catch old style constructor useage: two arrays, codes + categories
-        # We can only catch two cases:
+        # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],
                                 categories=["a", "b", "c"])  # noqa
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],  # noqa
                                 categories=[3, 4, 5])
 
-        # the next one are from the old docs, but unfortunately these don't
-        # trigger :-(
+        # the next one are from the old docs
         with tm.assert_produces_warning(None):
             c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
             cat = Categorical([1, 2], categories=[1, 2, 3])
@@ -796,6 +794,97 @@ class TestCategorical(object):
         cat = self.factor.copy()
         cat.set_categories(['a', 'b', 'c', 'd'], inplace=True)
         tm.assert_index_equal(cat.categories, pd.Index(['a', 'b', 'c', 'd']))
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
+         pytest.param("datetime64[D]",
+                      marks=pytest.mark.xfail(reason="issue7996"))]
+    )
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_non_bool(self, dtype, is_ordered):
+        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
+
+        # Test case 1
+        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
+        tc1 = Series(Categorical(input1, categories=cat_array,
+                                 ordered=is_ordered))
+
+        expected = Series([False, False, False, True])
+        tm.assert_series_equal(tc1.duplicated(), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, False])
+        tm.assert_series_equal(tc1.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep='last'),
+                               tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc1.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        # Test case 2
+        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
+        tc2 = Series(Categorical(
+            input2, categories=cat_array, ordered=is_ordered)
+        )
+
+        expected = Series([False, False, False, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        tm.assert_series_equal(tc2.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep='last'),
+                               tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_bool(self, is_ordered):
+        tc = Series(Categorical([True, False, True, False],
+                                categories=[True, False], ordered=is_ordered))
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc.duplicated(), expected)
+        tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, False, False])
+        tm.assert_series_equal(tc.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(tc.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
 
     def test_describe(self):
         # string type

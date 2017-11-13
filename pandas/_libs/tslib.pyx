@@ -41,12 +41,8 @@ PyDateTime_IMPORT
 from datetime cimport (
     pandas_datetime_to_datetimestruct,
     days_per_month_table,
-    get_datetime64_value,
-    get_timedelta64_value,
-    get_datetime64_unit,
     PANDAS_DATETIMEUNIT,
     _string_to_dts,
-    npy_datetime,
     is_leapyear,
     dayofweek,
     PANDAS_FR_ns)
@@ -54,25 +50,21 @@ from datetime cimport (
 # stdlib datetime imports
 from datetime import time as datetime_time
 
+
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
                                  pandas_datetimestruct,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
-                                 pydatetime_to_dt64, pydate_to_dt64)
+                                 pydatetime_to_dt64, pydate_to_dt64,
+                                 npy_datetime,
+                                 get_datetime64_unit, get_datetime64_value,
+                                 get_timedelta64_value)
 from tslibs.np_datetime import OutOfBoundsDatetime
-
-from khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
 
 from .tslibs.parsing import parse_datetime_string
 
 cimport cython
-
-from pandas.compat import iteritems
 
 import warnings
 
@@ -86,7 +78,8 @@ import_array()
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT
 
-from tslibs.timedeltas cimport parse_timedelta_string, cast_from_unit
+from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
+from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
@@ -99,9 +92,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos)
-from tslibs.conversion import (
-    tz_localize_to_utc, tz_convert,
-    tz_convert_single)
+from tslibs.conversion import (tz_localize_to_utc,
+                               tz_convert_single, date_normalize)
 
 from tslibs.nattype import NaT, nat_strings
 from tslibs.nattype cimport _checknull_with_nat
@@ -239,14 +231,12 @@ _no_input = object()
 
 
 class Timestamp(_Timestamp):
-    """TimeStamp is the pandas equivalent of python's Datetime
+    """Pandas replacement for datetime.datetime
+
+    TimeStamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
-
-    There are essentially three calling conventions for the constructor. The
-    primary form accepts four parameters. They can be passed by position or
-    keyword.
 
     Parameters
     ----------
@@ -261,22 +251,32 @@ class Timestamp(_Timestamp):
     offset : str, DateOffset
         Deprecated, use freq
 
+    year, month, day : int
+        .. versionadded:: 0.19.0
+    hour, minute, second, microsecond : int, optional, default 0
+        .. versionadded:: 0.19.0
+    tzinfo : datetime.tzinfo, optional, default None
+        .. versionadded:: 0.19.0
+
+    Notes
+    -----
+    There are essentially three calling conventions for the constructor. The
+    primary form accepts four parameters. They can be passed by position or
+    keyword.
+
     The other two forms mimic the parameters from ``datetime.datetime``. They
     can be passed by either position or keyword, but not both mixed together.
 
-    :func:`datetime.datetime` Parameters
-    ------------------------------------
+    Examples
+    --------
+    >>> pd.Timestamp('2017-01-01T12')
+    Timestamp('2017-01-01 12:00:00')
 
-    .. versionadded:: 0.19.0
+    >>> pd.Timestamp(2017, 1, 1, 12)
+    Timestamp('2017-01-01 12:00:00')
 
-    year : int
-    month : int
-    day : int
-    hour : int, optional, default is 0
-    minute : int, optional, default is 0
-    second : int, optional, default is 0
-    microsecond : int, optional, default is 0
-    tzinfo : datetime.tzinfo, optional, default is None
+    >>> pd.Timestamp(year=2017, month=1, day=1, hour=12)
+    Timestamp('2017-01-01 12:00:00')
     """
 
     @classmethod
@@ -594,11 +594,13 @@ class Timestamp(_Timestamp):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
+
         ambiguous : bool, 'NaT', default 'raise'
             - bool contains flags to determine if time is dst or not (note
-            that this flag is only applicable for ambiguous fall dst dates)
+              that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
         errors : 'raise', 'coerce', default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
@@ -870,33 +872,6 @@ Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
 
-# ----------------------------------------------------------------------
-# Frequency inference
-
-def unique_deltas(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t val
-        khiter_t k
-        kh_int64_t *table
-        int ret = 0
-        list uniques = []
-
-    table = kh_init_int64()
-    kh_resize_int64(table, 10)
-    for i in range(n - 1):
-        val = arr[i + 1] - arr[i]
-        k = kh_get_int64(table, val)
-        if k == table.n_buckets:
-            kh_put_int64(table, val, &ret)
-            uniques.append(val)
-    kh_destroy_int64(table)
-
-    result = np.array(uniques, dtype=np.int64)
-    result.sort()
-    return result
-
-
 cdef str _NDIM_STRING = "ndim"
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -1070,7 +1045,7 @@ cdef class _Timestamp(datetime):
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
-            nanos = _delta_to_nanoseconds(other)
+            nanos = delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)
             if getattr(other, 'normalize', False):
@@ -1379,27 +1354,6 @@ _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 _MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 _MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
-
-
-cpdef object _get_rule_month(object source, object default='DEC'):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
 
 
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
@@ -1790,366 +1744,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return oresult
 
 
-from tslibs.timedeltas cimport _Timedelta as __Timedelta
-
-# Similar to Timestamp/datetime, this is a construction requirement for
-# timedeltas that we need to do object instantiation in python. This will
-# serve as a C extension type that shadows the Python class, where we do any
-# heavy lifting.
-cdef class _Timedelta(__Timedelta):
-
-    def __hash__(_Timedelta self):
-        if self._has_ns():
-            return hash(self.value)
-        else:
-            return timedelta.__hash__(self)
-
-    def __richcmp__(_Timedelta self, object other, int op):
-        cdef:
-            _Timedelta ots
-            int ndim
-
-        if isinstance(other, _Timedelta):
-            ots = other
-        elif PyDelta_Check(other):
-            ots = Timedelta(other)
-        else:
-            ndim = getattr(other, _NDIM_STRING, -1)
-
-            if ndim != -1:
-                if ndim == 0:
-                    if is_timedelta64_object(other):
-                        other = Timedelta(other)
-                    else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type %r with type %r' %
-                                        (type(self).__name__,
-                                         type(other).__name__))
-                if util.is_array(other):
-                    return PyObject_RichCompare(np.array([self]), other, op)
-                return PyObject_RichCompare(other, self, reverse_ops[op])
-            else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
-
-        return cmp_scalar(self.value, ots.value, op)
-
-
-def _binary_op_method_timedeltalike(op, name):
-    # define a binary operation that only works if the other argument is
-    # timedelta like or an array of timedeltalike
-    def f(self, other):
-        # an offset
-        if hasattr(other, 'delta') and not isinstance(other, Timedelta):
-            return op(self, other.delta)
-
-        # a datetimelike
-        if (isinstance(other, (datetime, np.datetime64))
-                and not (isinstance(other, Timestamp) or other is NaT)):
-            return op(self, Timestamp(other))
-
-        # nd-array like
-        if hasattr(other, 'dtype'):
-            if other.dtype.kind not in ['m', 'M']:
-                # raise rathering than letting numpy return wrong answer
-                return NotImplemented
-            return op(self.to_timedelta64(), other)
-
-        if not _validate_ops_compat(other):
-            return NotImplemented
-
-        if other is NaT:
-            return NaT
-
-        try:
-            other = Timedelta(other)
-        except ValueError:
-            # failed to parse as timedelta
-            return NotImplemented
-
-        return Timedelta(op(self.value, other.value), unit='ns')
-
-    f.__name__ = name
-    return f
-
-
-def _op_unary_method(func, name):
-
-    def f(self):
-        return Timedelta(func(self.value), unit='ns')
-    f.__name__ = name
-    return f
-
-
-cdef bint _validate_ops_compat(other):
-    # return True if we are compat with operating
-    if _checknull_with_nat(other):
-        return True
-    elif PyDelta_Check(other) or is_timedelta64_object(other):
-        return True
-    elif util.is_string_object(other):
-        return True
-    elif hasattr(other, 'delta'):
-        return True
-    return False
-
-
-# Python front end to C extension type _Timedelta
-# This serves as the box for timedelta64
-
-
-class Timedelta(_Timedelta):
-    """
-    Represents a duration, the difference between two dates or times.
-
-    Timedelta is the pandas equivalent of python's ``datetime.timedelta``
-    and is interchangable with it in most cases.
-
-    Parameters
-    ----------
-    value : Timedelta, timedelta, np.timedelta64, string, or integer
-    unit : string, [D,h,m,s,ms,us,ns]
-        Denote the unit of the input, if input is an integer. Default 'ns'.
-    days, seconds, microseconds,
-    milliseconds, minutes, hours, weeks : numeric, optional
-        Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coereced to python ints and floats.
-
-    Notes
-    -----
-    The ``.value`` attribute is always in ns.
-
-    """
-
-    def __new__(cls, object value=_no_input, unit=None, **kwargs):
-        cdef _Timedelta td_base
-
-        if value is _no_input:
-            if not len(kwargs):
-                raise ValueError("cannot construct a Timedelta without a "
-                                 "value/unit or descriptive keywords "
-                                 "(days,seconds....)")
-
-            def _to_py_int_float(v):
-                if is_integer_object(v):
-                    return int(v)
-                elif is_float_object(v):
-                    return float(v)
-                raise TypeError("Invalid type {0}. Must be int or "
-                                "float.".format(type(v)))
-
-            kwargs = dict([(k, _to_py_int_float(v))
-                           for k, v in iteritems(kwargs)])
-
-            try:
-                nano = kwargs.pop('nanoseconds', 0)
-                value = convert_to_timedelta64(
-                    timedelta(**kwargs), 'ns') + nano
-            except TypeError as e:
-                raise ValueError("cannot construct a Timedelta from the "
-                                 "passed arguments, allowed keywords are "
-                                 "[weeks, days, hours, minutes, seconds, "
-                                 "milliseconds, microseconds, nanoseconds]")
-
-        if isinstance(value, Timedelta):
-            value = value.value
-        elif is_string_object(value):
-            value = np.timedelta64(parse_timedelta_string(value))
-        elif PyDelta_Check(value):
-            value = convert_to_timedelta64(value, 'ns')
-        elif is_timedelta64_object(value):
-            if unit is not None:
-                value = value.astype('timedelta64[{0}]'.format(unit))
-            value = value.astype('timedelta64[ns]')
-        elif hasattr(value, 'delta'):
-            value = np.timedelta64(_delta_to_nanoseconds(value.delta), 'ns')
-        elif is_integer_object(value) or is_float_object(value):
-            # unit=None is de-facto 'ns'
-            value = convert_to_timedelta64(value, unit)
-        elif _checknull_with_nat(value):
-            return NaT
-        else:
-            raise ValueError("Value must be Timedelta, string, integer, "
-                             "float, timedelta or convertible")
-
-        if is_timedelta64_object(value):
-            value = value.view('i8')
-
-        # nat
-        if value == NPY_NAT:
-            return NaT
-
-        # make timedelta happy
-        td_base = _Timedelta.__new__(cls, microseconds=int(value) / 1000)
-        td_base.value = value
-        td_base.is_populated = 0
-        return td_base
-
-    def _round(self, freq, rounder):
-
-        cdef int64_t result, unit
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
-
-    def round(self, freq):
-        """
-        Round the Timedelta to the specified resolution
-
-        Returns
-        -------
-        a new Timedelta rounded to the given resolution of `freq`
-
-        Parameters
-        ----------
-        freq : a freq string indicating the rounding resolution
-
-        Raises
-        ------
-        ValueError if the freq cannot be converted
-        """
-        return self._round(freq, np.round)
-
-    def floor(self, freq):
-        """
-        return a new Timedelta floored to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
-
-    def ceil(self, freq):
-        """
-        return a new Timedelta ceiled to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the ceiling resolution
-        """
-        return self._round(freq, np.ceil)
-
-    def __setstate__(self, state):
-        (value) = state
-        self.value = value
-
-    def __reduce__(self):
-        object_state = self.value,
-        return (Timedelta, object_state)
-
-    __add__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__add__')
-    __radd__ = _binary_op_method_timedeltalike(lambda x, y: x + y, '__radd__')
-    __sub__ = _binary_op_method_timedeltalike(lambda x, y: x - y, '__sub__')
-    __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
-
-    def __mul__(self, other):
-
-        # nd-array like
-        if hasattr(other, 'dtype'):
-            return other * self.to_timedelta64()
-
-        if other is NaT:
-            return NaT
-
-        # only integers and floats allowed
-        if not (is_integer_object(other) or is_float_object(other)):
-            return NotImplemented
-
-        return Timedelta(other * self.value, unit='ns')
-
-    __rmul__ = __mul__
-
-    def __truediv__(self, other):
-
-        if hasattr(other, 'dtype'):
-            return self.to_timedelta64() / other
-
-        # integers or floats
-        if is_integer_object(other) or is_float_object(other):
-            return Timedelta(self.value /other, unit='ns')
-
-        if not _validate_ops_compat(other):
-            return NotImplemented
-
-        other = Timedelta(other)
-        if other is NaT:
-            return np.nan
-        return self.value /float(other.value)
-
-    def __rtruediv__(self, other):
-        if hasattr(other, 'dtype'):
-            return other / self.to_timedelta64()
-
-        if not _validate_ops_compat(other):
-            return NotImplemented
-
-        other = Timedelta(other)
-        if other is NaT:
-            return NaT
-        return float(other.value) / self.value
-
-    if not PY3:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
-
-    def __floordiv__(self, other):
-
-        if hasattr(other, 'dtype'):
-
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-
-            return self.value // other
-
-        # integers only
-        if is_integer_object(other):
-            return Timedelta(self.value // other, unit='ns')
-
-        if not _validate_ops_compat(other):
-            return NotImplemented
-
-        other = Timedelta(other)
-        if other is NaT:
-            return np.nan
-        return self.value // other.value
-
-    def __rfloordiv__(self, other):
-        if hasattr(other, 'dtype'):
-
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-            return other // self.value
-
-        if not _validate_ops_compat(other):
-            return NotImplemented
-
-        other = Timedelta(other)
-        if other is NaT:
-            return NaT
-        return other.value // self.value
-
-    __inv__ = _op_unary_method(lambda x: -x, '__inv__')
-    __neg__ = _op_unary_method(lambda x: -x, '__neg__')
-    __pos__ = _op_unary_method(lambda x: x, '__pos__')
-    __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')
-
-
-# resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)
-Timedelta.max = Timedelta(np.iinfo(np.int64).max)
-
 cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
 
 
@@ -2157,121 +1751,8 @@ cdef inline bint is_timedelta(object o):
     return Py_TYPE(o) == td_type  # isinstance(o, Timedelta)
 
 
-cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
-    """
-    Convert an ndarray to an array of timedeltas. If errors == 'coerce',
-    coerce non-convertible objects to NaT. Otherwise, raise.
-    """
-
-    cdef:
-        Py_ssize_t i, n
-        ndarray[int64_t] iresult
-
-    if errors not in ('ignore', 'raise', 'coerce'):
-        raise ValueError("errors must be one of 'ignore', "
-                         "'raise', or 'coerce'}")
-
-    n = values.shape[0]
-    result = np.empty(n, dtype='m8[ns]')
-    iresult = result.view('i8')
-
-    # Usually, we have all strings. If so, we hit the fast path.
-    # If this path fails, we try conversion a different way, and
-    # this is where all of the error handling will take place.
-    try:
-        for i in range(n):
-            result[i] = parse_timedelta_string(values[i])
-    except:
-        for i in range(n):
-            try:
-                result[i] = convert_to_timedelta64(values[i], unit)
-            except ValueError:
-                if errors == 'coerce':
-                    result[i] = NPY_NAT
-                else:
-                    raise
-
-    return iresult
-
-
-cpdef convert_to_timedelta64(object ts, object unit):
-    """
-    Convert an incoming object to a timedelta64 if possible
-
-    Handle these types of objects:
-        - timedelta/Timedelta
-        - timedelta64
-        - an offset
-        - np.int64 (with unit providing a possible modifier)
-        - None/NaT
-
-    Return an ns based int64
-
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
-    """
-    if _checknull_with_nat(ts):
-        return np.timedelta64(NPY_NAT)
-    elif isinstance(ts, Timedelta):
-        # already in the proper format
-        ts = np.timedelta64(ts.value)
-    elif is_datetime64_object(ts):
-        # only accept a NaT here
-        if ts.astype('int64') == NPY_NAT:
-            return np.timedelta64(NPY_NAT)
-    elif is_timedelta64_object(ts):
-        ts = ts.astype("m8[{0}]".format(unit.lower()))
-    elif is_integer_object(ts):
-        if ts == NPY_NAT:
-            return np.timedelta64(NPY_NAT)
-        else:
-            if util.is_array(ts):
-                ts = ts.astype('int64').item()
-            if unit in ['Y', 'M', 'W']:
-                ts = np.timedelta64(ts, unit)
-            else:
-                ts = cast_from_unit(ts, unit)
-                ts = np.timedelta64(ts)
-    elif is_float_object(ts):
-        if util.is_array(ts):
-            ts = ts.astype('int64').item()
-        if unit in ['Y', 'M', 'W']:
-            ts = np.timedelta64(int(ts), unit)
-        else:
-            ts = cast_from_unit(ts, unit)
-            ts = np.timedelta64(ts)
-    elif is_string_object(ts):
-        ts = np.timedelta64(parse_timedelta_string(ts))
-    elif hasattr(ts, 'delta'):
-        ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
-
-    if PyDelta_Check(ts):
-        ts = np.timedelta64(_delta_to_nanoseconds(ts), 'ns')
-    elif not is_timedelta64_object(ts):
-        raise ValueError("Invalid type for timedelta "
-                         "scalar: %s" % type(ts))
-    return ts.astype('timedelta64[ns]')
-
-
 # ----------------------------------------------------------------------
 # Conversion routines
-
-cpdef int64_t _delta_to_nanoseconds(delta) except? -1:
-    if util.is_array(delta):
-        return delta.astype('m8[ns]').astype('int64')
-    if hasattr(delta, 'nanos'):
-        return delta.nanos
-    if hasattr(delta, 'delta'):
-        delta = delta.delta
-    if is_timedelta64_object(delta):
-        return delta.astype("timedelta64[ns]").item()
-    if is_integer_object(delta):
-        return delta
-
-    return (delta.days * 24 * 60 * 60 * 1000000 +
-            delta.seconds * 1000000 +
-            delta.microseconds) * 1000
-
 
 def cast_to_nanoseconds(ndarray arr):
     cdef:
@@ -2314,26 +1795,6 @@ cdef inline _to_i8(object val):
         return val
 
 
-cpdef pydt_to_i8(object pydt):
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
-
-
-def i8_to_pydt(int64_t i8, object tzinfo=None):
-    """
-    Inverse of pydt_to_i8
-    """
-    return Timestamp(i8)
-
-
 # ----------------------------------------------------------------------
 # Accessors
 
@@ -2355,130 +1816,6 @@ def get_time_micros(ndarray[int64_t] dtindex):
                                  60 * dts.min + dts.sec) + dts.us
 
     return micros
-
-
-cdef int64_t DAY_NS = 86400000000000LL
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def date_normalize(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef _normalize_local(ndarray[int64_t] stamps, object tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
-
-    if is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
-            result[i] = _normalized_stamp(&dts)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
-
-        # statictzinfo
-        if typ not in ['pytz', 'dateutil']:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = _normalized_stamp(&dts)
-        else:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
-
-    return result
-
-cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
-    dts.ps = 0
-    return dtstruct_to_dt64(dts)
-
-
-def dates_normalized(ndarray[int64_t] stamps, tz=None):
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans, deltas
-        pandas_datetimestruct dts
-
-    if tz is None or is_utc(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-    elif is_tzlocal(tz):
-        for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
-                          dts.sec, dts.us, tz)
-            dt = dt + tz.utcoffset(dt)
-            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
-                return False
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
-            pos = trans.searchsorted(stamps[i]) - 1
-            inf = tz._transition_info[pos]
-
-            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
-
-    return True
 
 
 # ----------------------------------------------------------------------

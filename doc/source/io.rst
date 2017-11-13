@@ -115,7 +115,7 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
-    a ``UserWarning`` to be issued.
+  a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -4537,6 +4537,16 @@ Read from a parquet file.
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
 
    result.dtypes
+
+Read only certain columns of a parquet file. 
+
+.. ipython:: python
+
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow', columns=['a', 'b'])
+   result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
+
+   result.dtypes
+
 
 .. ipython:: python
    :suppress:

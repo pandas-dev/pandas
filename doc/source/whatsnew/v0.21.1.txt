@@ -59,6 +59,9 @@ Bug Fixes
 - Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
 - Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
 - Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
+- Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
+- Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
+- Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
 
 Conversion
 ^^^^^^^^^^
@@ -70,7 +73,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
 -
 -
 
@@ -79,7 +82,9 @@ I/O
 
 - Bug in class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
 - Bug in :func:`read_csv` when reading a compressed UTF-16 encoded file (:issue:`18071`)
+- Bug in :func:`read_csv` for handling null values in index columns when specifying ``na_filter=False`` (:issue:`5239`)
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
+- :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
 
 Plotting
 ^^^^^^^^
