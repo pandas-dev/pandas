@@ -368,7 +368,6 @@ Binary operator functions
    Series.ge
    Series.ne
    Series.eq
-   Series.divide
    Series.product
    Series.dot
 
@@ -431,6 +430,7 @@ Computations / Descriptive Stats
    Series.std
    Series.sum
    Series.var
+   Series.kurtosis
    Series.unique
    Series.nunique
    Series.is_unique
@@ -441,8 +441,6 @@ Computations / Descriptive Stats
    Series.compound
    Series.nonzero
    Series.ptp
-   Series.kurtosis
-   Series.multiply
 
 
 Reindexing / Selection / Label manipulation
@@ -933,11 +931,8 @@ Binary operator functions
 
    DataFrame.add
    DataFrame.sub
-   DataFrame.subtract
    DataFrame.mul
-   DataFrame.multiply
    DataFrame.div
-   DataFrame.divide
    DataFrame.truediv
    DataFrame.floordiv
    DataFrame.mod
@@ -2638,3 +2633,9 @@ Scalar introspection
    generated/pandas.Categorical.shape.rst
    generated/pandas.Categorical.size.rst
    generated/pandas.Categorical.T.rst
+
+   generated/pandas.DataFrame.subtract
+   generated/pandas.DataFrame.multiply
+   generated/pandas.DataFrame.divide
+   generated/pandas.Series.divide
+   generated/pandas.Series.multiply
