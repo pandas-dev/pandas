@@ -613,7 +613,7 @@ cdef class Validator:
         self.dtype = dtype
         self.skipna = skipna
 
-    cdef bint validate(self, object[:] values) except -1:
+    cdef bint validate(self, ndarray values) except -1:
         if not self.n:
             return False
 
@@ -629,7 +629,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate(self, object[:] values) except -1:
+    cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -642,7 +642,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate_skipna(self, object[:] values) except -1:
+    cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -852,7 +852,7 @@ cdef class DatetimeValidator(TemporalValidator):
         return is_null_datetime64(value)
 
 
-cpdef bint is_datetime_array(ndarray[object] values):
+cpdef bint is_datetime_array(ndarray values):
     cdef:
         DatetimeValidator validator = DatetimeValidator(
             len(values),
@@ -876,7 +876,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
+cpdef bint is_datetime_with_singletz_array(ndarray values):
     """
     Check values have the same tzinfo attribute.
     Doesn't check values are datetime-like types.
@@ -959,7 +959,7 @@ cdef class DateValidator(Validator):
         return is_date(value)
 
 
-cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef DateValidator validator = DateValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -970,7 +970,7 @@ cdef class TimeValidator(Validator):
         return is_time(value)
 
 
-cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef TimeValidator validator = TimeValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -984,7 +984,7 @@ cdef class PeriodValidator(TemporalValidator):
         return is_null_period(value)
 
 
-cpdef bint is_period_array(ndarray[object] values):
+cpdef bint is_period_array(ndarray values):
     cdef PeriodValidator validator = PeriodValidator(len(values), skipna=True)
     return validator.validate(values)
 
@@ -995,7 +995,7 @@ cdef class IntervalValidator(Validator):
         return is_interval(value)
 
 
-cpdef bint is_interval_array(ndarray[object] values):
+cpdef bint is_interval_array(ndarray values):
     cdef:
         IntervalValidator validator = IntervalValidator(
             len(values),
