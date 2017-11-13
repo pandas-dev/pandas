@@ -361,7 +361,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromtimestamp(cls, ts):
         """
-        Timestamp.fromtimsetamp(ts)
+        Timestamp.fromtimestamp(ts)
 
         timestamp[, tz] -> tz's local time from POSIX timestamp.
         """
