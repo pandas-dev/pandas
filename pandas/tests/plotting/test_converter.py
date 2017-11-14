@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, date
 
 import numpy as np
-from pandas import Timestamp, Period, Index
+from pandas import Timestamp, Period, Index, date_range, Series
 from pandas.compat import u
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro, Day
@@ -13,6 +13,37 @@ converter = pytest.importorskip('pandas.plotting._converter')
 
 def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
+
+
+class TestImplicitRegistration(object):
+
+    def test_warns(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        # Set to the "warning" state, in case this isn't the first test run
+        converter._WARN = True
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w:
+            ax.plot(s.index, s.values)
+            plt.close()
+
+        assert len(w) == 1
+        assert "Using an implicitly registered datetime converter" in str(w[0])
+
+    def test_registering_no_warning(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        # Set to the "no-warn" state, in case this isn't the first test run
+        converter._WARN = True
+        converter.register()
+        with tm.assert_produces_warning(None) as w:
+            ax.plot(s.index, s.values)
+
+        assert len(w) == 0
 
 
 class TestDateTimeConverter(object):
