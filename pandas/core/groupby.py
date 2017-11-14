@@ -3890,8 +3890,7 @@ class NDFrameGroupBy(GroupBy):
             # values are not series or array-like but scalars
             else:
                 # only coerce dates if we find at least 1 datetime
-                coerce = True if any(isinstance(x, Timestamp)
-                                     for x in values) else False
+                coerce = any(isinstance(x, Timestamp) for x in values)
                 # self._selection_name not passed through to Series as the
                 # result should not take the name of original selection
                 # of columns
