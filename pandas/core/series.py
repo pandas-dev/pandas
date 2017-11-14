@@ -1306,7 +1306,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
@@ -1336,7 +1342,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
