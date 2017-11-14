@@ -1677,9 +1677,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        return self._maybe_mask_results(libalgos.arrmap_object(
-            self.astype(object).values,
-            lambda x: np.nan if x is libts.NaT else x.time()))
+        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):
