@@ -2610,9 +2610,9 @@ class TestGroupBy(MixIn):
             'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
             'C': in_vals}
         df = pd.DataFrame(source_dict)
-        result = df.groupby(['B']).C.is_monotonic_increasing()
-        expected = pd.Series(index=list('abcd'), name='B')
-
+        result = df.groupby('B').C.is_monotonic_increasing()
+        expected = pd.Series(index=list('abcd'), data=out_vals, name='C')
+        expected.index.name = 'B'
         tm.assert_series_equal(result, expected)
 
         # Also check result equal to manually taking x.is_monotonic_increasing.
@@ -2641,7 +2641,8 @@ class TestGroupBy(MixIn):
 
         df = pd.DataFrame(source_dict)
         result = df.groupby('B').C.is_monotonic_decreasing()
-        expected = pd.Series(index=list('abcd'), name='B')
+        expected = pd.Series(index=list('abcd'), data=out_vals, name='C')
+        expected.index.name = 'B'
         tm.assert_series_equal(result, expected)
 
     def test_apply_numeric_coercion_when_datetime(self):
