@@ -33,8 +33,8 @@ def recursive_repr(fillvalue='...'):
 
 
 class ChainMap(MutableMapping):
-    """ A ChainMap groups multiple dicts (or other mappings) together
-    to create a single, updatable view.
+    """A ChainMap groups multiple dicts (or other mappings) together\to create
+    a single, updatable view.
 
     The underlying mappings are stored in a list.  That list is public and can
     be accessed / updated using the *maps* attribute.  There is no other state.
@@ -43,6 +43,18 @@ class ChainMap(MutableMapping):
     In contrast, writes, updates, and deletions only operate on the first
     mapping.
 
+
+    If the class has public attributes, they may be documented here
+    in an ``Attributes`` section and follow the same formatting as a
+    function's ``Args`` section. Alternatively, attributes may be documented
+    inline with the attribute's declaration (see __init__ method below).
+    Properties created with the ``@property`` decorator should be documented
+    in the property's getter method.
+    Attributes
+    ----------
+    maps : list
+        a list of given mappings or an empty dictionary
+
     """
 
     def __init__(self, *maps):
@@ -50,7 +62,7 @@ class ChainMap(MutableMapping):
         If no mappings are provided, a single empty dictionary is used.
 
         """
-        self.maps = list(maps) or [{}]          # always at least one map
+        self.maps = list(maps) or [{}]  # always at least one map
 
     def __missing__(self, key):
         raise KeyError(key)
@@ -100,7 +112,7 @@ class ChainMap(MutableMapping):
 
     __copy__ = copy
 
-    def new_child(self, m=None):                # like Django's Context.push()
+    def new_child(self, m=None):  # like Django's Context.push()
         """
         New ChainMap with a new map followed by all previous maps. If no
         map is provided, an empty dict is used.
@@ -110,7 +122,7 @@ class ChainMap(MutableMapping):
         return self.__class__(m, *self.maps)
 
     @property
-    def parents(self):                          # like Django's Context.pop()
+    def parents(self):  # like Django's Context.pop()
         'New ChainMap from maps[1:].'
         return self.__class__(*self.maps[1:])
 
