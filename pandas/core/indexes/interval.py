@@ -132,7 +132,6 @@ class IntervalIndex(IntervalMixin, Index):
     from_breaks
     from_intervals
     contains
-    get_loc
 
     Examples
     ---------
