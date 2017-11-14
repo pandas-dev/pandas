@@ -4538,7 +4538,7 @@ Read from a parquet file.
 
    result.dtypes
 
-Read only certain columns of a parquet file. 
+Read only certain columns of a parquet file.
 
 .. ipython:: python
 
