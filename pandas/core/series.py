@@ -280,8 +280,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, dtype=dtype, copy=copy,
-                               fastpath=fastpath)
+        return cls._from_array(arr, index=index, name=name, dtype=dtype,
+                               copy=copy, fastpath=fastpath)
 
     @classmethod
     def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
