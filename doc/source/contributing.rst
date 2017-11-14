@@ -324,10 +324,10 @@ Some other important things to know about the docs:
   We have two autosummary templates for classes.
 
   1. ``_templates/autosummary/class.rst``. Use this when you want to
-     automatically autogenerate a page for public method and attribute on the
-     class. The class should include the regular ``Parameters`` section, but
-     need not include ``Attributes`` or ``Methods``. Those sections will be
-     automatically added to the rendered documentation by numpydoc.
+     automatically generate a page for every public method and attribute on the
+     class. The ``Attributes`` and ``Methods`` sections will be automatically
+     added to the class' rendered documentation by numpydoc. See ``DataFrame``
+     for an example.
 
   2. ``_templates/autosummary/class_without_autosummary``. Use this when you
      want to pick a subset of methods / attributes to auto-generate pages for.
