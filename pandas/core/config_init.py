@@ -480,3 +480,19 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+
+# --------
+# Plotting
+# --------
+
+plotting_engine_doc = """
+: str
+    The name of a plotting engine.
+"""
+
+
+with cf.config_prefix("plotting"):
+    cf.register_option(
+        "engine", "auto", plotting_engine_doc, validator=str
+    )

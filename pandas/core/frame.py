@@ -99,6 +99,7 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.console as console
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
+import pandas.plotting.base as gfx_base
 
 from pandas._libs import lib, algos as libalgos
 
@@ -6128,8 +6129,8 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
-                                     gfx.FramePlotMethods)
+    plot = accessor.AccessorProperty(gfx_base.Dispatcher,
+                                     gfx_base.Dispatcher)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 
