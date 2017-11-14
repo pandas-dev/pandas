@@ -3,84 +3,11 @@ from pandas import Series, Period, PeriodIndex, date_range
 
 
 class PeriodProperties(object):
-    def setup(self):
-        self.per = Period('2012-06-01', freq='M')
+    params = ['M', 'min']
+    param_names = ['freq']
 
-    def time_year(self):
-        self.per.year
-
-    def time_month(self):
-        self.per.month
-
-    def time_quarter(self):
-        self.per.quarter
-
-    def time_day(self):
-        self.per.day
-
-    def time_hour(self):
-        self.per.hour
-
-    def time_minute(self):
-        self.per.second
-
-    def time_second(self):
-        self.per.second
-
-    def time_leap_year(self):
-        self.per.is_leapyear
-
-
-class Constructor(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.rng = date_range('1985', periods=1000)
-        self.rng2 = date_range('1985', periods=1000).to_pydatetime()
-
-    def time_from_date_range(self):
-        PeriodIndex(self.rng, freq='D')
-
-    def time_from_pydatetime(self):
-        PeriodIndex(self.rng2, freq='D')
-
-
-class DataFrame(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.rng = pd.period_range(start='1/1/1990', freq='S', periods=20000)
-        self.df = pd.DataFrame(index=range(len(self.rng)))
-
-    def time_setitem_period_column(self):
-        self.df['col'] = self.rng
-
-
-class Algorithms(object):
-    goal_time = 0.2
-
-    def setup(self):
-        data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
-                Period('2011-03', freq='M'), Period('2011-04', freq='M')]
-        self.s = Series(data * 1000)
-        self.i = PeriodIndex(data, freq='M')
-
-    def time_drop_duplicates_pseries(self):
-        self.s.drop_duplicates()
-
-    def time_drop_duplicates_pindex(self):
-        self.i.drop_duplicates()
-
-    def time_value_counts_pseries(self):
-        self.s.value_counts()
-
-    def time_value_counts_pindex(self):
-        self.i.value_counts()
-
-
-class Properties(object):
-    def setup(self):
-        self.per = Period('2017-09-06 08:28', freq='min')
+    def setup(self, freq):
+        self.per = Period('2012-06-01', freq=freq)
 
     def time_year(self):
         self.per.year
@@ -101,7 +28,7 @@ class Properties(object):
         self.per.second
 
     def time_is_leap_year(self):
-        self.per.is_leap_year
+        self.per.is_leapyear
 
     def time_quarter(self):
         self.per.quarter
@@ -137,7 +64,68 @@ class Properties(object):
         self.per.asfreq('A')
 
 
-class period_standard_indexing(object):
+class PeriodIndexConstructor(object):
+    goal_time = 0.2
+
+    params = ['D']
+    param_names = ['freq']
+
+    def setup(self, freq):
+        self.freq = freq
+        self.rng = date_range('1985', periods=1000)
+        self.rng2 = date_range('1985', periods=1000).to_pydatetime()
+
+    def time_from_date_range(self):
+        PeriodIndex(self.rng, freq=self.freq)
+
+    def time_from_pydatetime(self):
+        PeriodIndex(self.rng2, freq=self.freq)
+
+
+class DataFramePeriodColumn(object):
+    goal_time = 0.2
+
+    def setup_cache(self):
+        rng = pd.period_range(start='1/1/1990', freq='S', periods=20000)
+        df = pd.DataFrame(index=range(len(rng)))
+        return rng, df
+
+    def time_setitem_period_column(self, tup):
+        rng, df = tup
+        df['col'] = rng
+
+
+class PeriodIndexAlgorithms(object):
+    goal_time = 0.2
+
+    def setup(self):
+        data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
+                Period('2011-03', freq='M'), Period('2011-04', freq='M')]
+        self.index = PeriodIndex(data, freq='M')
+
+    def time_drop_duplicates(self):
+        self.index.drop_duplicates()
+
+    def time_value_counts(self):
+        self.index.value_counts()
+
+
+class PeriodSeriesAlgorithms(object):
+    goal_time = 0.2
+
+    def setup(self):
+        data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
+                Period('2011-03', freq='M'), Period('2011-04', freq='M')]
+        self.series = Series(data * 1000)
+
+    def time_drop_duplicates(self):
+        self.series.drop_duplicates()
+
+    def time_value_counts(self):
+        self.series.value_counts()
+
+
+class PeriodStandardIndexing(object):
     goal_time = 0.2
 
     def setup(self):
