@@ -750,6 +750,12 @@ the Categorical back to a numpy array, so categories and order information is no
    Categorical.__array__
 
 A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
+To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
+``Series(..., dtype=dtype)`` where ``dtype`` is either
+
+* the string ``'category'``
+* an instance of :class:`~pandas.api.types.CategoricalDtype`.
+
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
 following usable methods and properties:
@@ -774,10 +780,6 @@ following usable methods and properties:
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
-
-To create a Series of dtype ``category``, use ``cat = s.astype("category")`` or
-``s.astype(categorical_dtype)`` where ``categorical_dtype`` is an instance of
-:class:`~pandas.api.types.CategoricalDtype`.
 
 Plotting
 ~~~~~~~~
