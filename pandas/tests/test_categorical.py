@@ -4569,6 +4569,45 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'a': Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
+    @pytest.mark.parametrize('fill_value expected_output', [
+        ('a', ['a', 'a', 'b', 'a', 'a']),
+        ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),
+        ({1: 'a'}, ['a', 'a', 'b', np.nan, np.nan]),
+        ({1: 'a', 3: 'b'}, ['a', 'a', 'b', 'b', np.nan]),
+        (pd.Series('a'), ['a', np.nan, 'b', np.nan, np.nan]),
+        (pd.Series('a', index=[1]), ['a', 'a', 'b', np.nan, np.nan]),
+        (pd.Series({1: 'a', 3: 'b'}), ['a', 'a', 'b', 'b', np.nan]),
+        (pd.Series(['a', 'b'], index=[3, 4]))
+    ])
+    def fillna_series_categorical(self, fill_value, expected_output):
+        # GH 17033
+        # Test fillna for a Categorical series
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = pd.Series(pd.Categorical(data, categories=['a', 'b']))
+        exp = pd.Series(pd.Categorical(expected_output, categories=['a', 'b']))
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
+    def fillna_series_categorical_errormsg(self):
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = pd.Series(pd.Categorical(data, categories=['a', 'b']))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna('d')
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna(pd.Series('d'))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna({1: 'd', 3: 'a'})
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict but you passed a "list"'):
+            s.fillna(['a', 'b'])
+
     def test_astype_to_other(self):
 
         s = self.cat['value_group']

@@ -1665,16 +1665,26 @@ class Categorical(PandasObject):
 
         else:
 
-            if not isna(value) and value not in self.categories:
-                raise ValueError("fill value must be in categories")
+            if isinstance(value, ABCSeries):
+                if not value[~value.isin(self.categories)].isna().all():
+                    raise ValueError("fill value must be in categories")
 
-            mask = values == -1
-            if mask.any():
-                values = values.copy()
-                if isna(value):
-                    values[mask] = -1
-                else:
-                    values[mask] = self.categories.get_loc(value)
+                values_codes = _get_codes_for_values(value, self.categories)
+                indexer = np.where(values_codes != -1)
+                values[indexer] = values_codes[values_codes != -1]
+
+            # Scalar value
+            else:
+                if not isna(value) and value not in self.categories:
+                    raise ValueError("fill value must be in categories")
+
+                mask = values == -1
+                if mask.any():
+                    values = values.copy()
+                    if isna(value):
+                        values[mask] = -1
+                    else:
+                        values[mask] = self.categories.get_loc(value)
 
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
