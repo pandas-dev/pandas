@@ -428,3 +428,36 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     else:
         raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
+
+
+cpdef int _get_day_of_month(datetime other, day_opt):
+    if day_opt == 'start':
+        return 1
+    elif day_opt == 'end':
+        return monthrange(other.year, other.month)[1]
+    else:
+        raise ValueError(day_opt)
+
+
+cpdef int roll_yearday(other, n, month, day_opt='start'):
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Mirrors `roll_check` in tslib.shift_months
+    """
+    # Note: The other.day < ... condition will never hold when day_opt=='start'
+    # and the other.day > ... condition will never hold when day_opt=='end'.
+    # At some point these extra checks may need to be optimized away.
+    # But that point isn't today.
+    if n > 0:
+        if other.month < month or (other.month == month and
+                                   other.day < _get_day_of_month(other,
+                                                                 day_opt)):
+            n -= 1
+    elif n <= 0:
+        if other.month > month or (other.month == month and
+                                   other.day > _get_day_of_month(other,
+                                                                 day_opt)):
+            n += 1
+    return n
