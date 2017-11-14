@@ -295,7 +295,7 @@ class TestBasic(Base):
         expected = pd.DataFrame({'string': list('abc')})
         self.check_round_trip(df, engine, expected=expected,
                               write_kwargs={'compression': None},
-                              read_kwargs = {'columns': ['string']})
+                              read_kwargs={'columns': ['string']})
 
 
 class TestParquetPyArrow(Base):
@@ -423,7 +423,7 @@ class TestParquetFastParquet(Base):
         # warns on the coercion
         with catch_warnings(record=True):
             self.check_round_trip(df, fp, df.astype('datetime64[ns]'),
-                                 write_kwargs={'compression': None})
+                                  write_kwargs={'compression': None})
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
