@@ -257,8 +257,8 @@ class Styler(object):
                     row_es.append(es)
                 head.append(row_es)
 
-        if self.data.index.names and _any_not_none(*self.data.index.names) and
-                index_visible:
+        if (self.data.index.names and _any_not_none(*self.data.index.names) and
+                not hidden_index):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
