@@ -4569,7 +4569,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'a': Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-    @pytest.mark.parametrize('fill_value expected_output', [
+    @pytest.mark.parametrize('fill_value, expected_output', [
         ('a', ['a', 'a', 'b', 'a', 'a']),
         ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),
         ({1: 'a'}, ['a', 'a', 'b', np.nan, np.nan]),
@@ -4577,9 +4577,9 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         (pd.Series('a'), ['a', np.nan, 'b', np.nan, np.nan]),
         (pd.Series('a', index=[1]), ['a', 'a', 'b', np.nan, np.nan]),
         (pd.Series({1: 'a', 3: 'b'}), ['a', 'a', 'b', 'b', np.nan]),
-        (pd.Series(['a', 'b'], index=[3, 4]))
+        (pd.Series(['a', 'b'], index=[3, 4]), ['a', np.nan, 'b', 'a', 'b'])
     ])
-    def fillna_series_categorical(self, fill_value, expected_output):
+    def test_fillna_series_categorical(self, fill_value, expected_output):
         # GH 17033
         # Test fillna for a Categorical series
         data = ['a', np.nan, 'b', np.nan, np.nan]
@@ -4587,7 +4587,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         exp = pd.Series(pd.Categorical(expected_output, categories=['a', 'b']))
         tm.assert_series_equal(s.fillna(fill_value), exp)
 
-    def fillna_series_categorical_errormsg(self):
+    def test_fillna_series_categorical_errormsg(self):
         data = ['a', np.nan, 'b', np.nan, np.nan]
         s = pd.Series(pd.Categorical(data, categories=['a', 'b']))
 
@@ -4605,7 +4605,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         with tm.assert_raises_regex(TypeError,
                                     '"value" parameter must be a scalar or '
-                                    'dict but you passed a "list"'):
+                                    'dict, but you passed a "list"'):
             s.fillna(['a', 'b'])
 
     def test_astype_to_other(self):
@@ -4941,3 +4941,4 @@ class TestCategoricalSubclassing(object):
         assert isinstance(res, tm.SubclassedCategorical)
         exp = Categorical(['A', 'B', 'C'])
         tm.assert_categorical_equal(res, exp)
+
