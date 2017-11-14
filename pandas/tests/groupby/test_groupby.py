@@ -2612,6 +2612,7 @@ class TestGroupBy(MixIn):
         df = pd.DataFrame(source_dict)
         result = df.groupby(['B']).C.is_monotonic_increasing()
         expected = pd.Series(index=list('abcd'), name='B')
+
         tm.assert_series_equal(result, expected)
 
         # Also check result equal to manually taking x.is_monotonic_increasing.
