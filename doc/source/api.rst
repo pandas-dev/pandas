@@ -723,7 +723,7 @@ Categorical data can be stored in a :class:`pandas.Categorical`
    Categorical
 
 
-The alternative :ref:`Categorical.from_codes` constructor can be used when you
+The alternative :meth:`Categorical.from_codes` constructor can be used when you
 have the categories and integer codes already:
 
 .. autosummary::
