@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+import re
 import pytest
 
 from itertools import product
 
 import numpy as np
 import pandas as pd
-from pandas import Series, Categorical, IntervalIndex, date_range
+from pandas import (
+    Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
@@ -649,3 +651,17 @@ class TestCategoricalDtypeParametrized(object):
         result = CategoricalDtype._from_categorical_dtype(
             c1, categories=[1, 2], ordered=False)
         assert result == CategoricalDtype([1, 2], ordered=False)
+
+    def test_str_vs_repr(self):
+        c1 = CategoricalDtype(['a', 'b'])
+        assert str(c1) == 'category'
+        # Py2 will have unicode prefixes
+        pat = r"CategoricalDtype\(categories=\[.*\], ordered=False\)"
+        assert re.match(pat, repr(c1))
+
+    def test_categorical_categories(self):
+        # GH17884
+        c1 = CategoricalDtype(Categorical(['a', 'b']))
+        tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
+        c1 = CategoricalDtype(CategoricalIndex(['a', 'b']))
+        tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))

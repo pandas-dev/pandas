@@ -17,9 +17,9 @@ from tslib cimport _to_i8
 
 from hashtable cimport HashTable
 
-from pandas._libs import algos, hashtable as _hash
+from pandas._libs import algos, period as periodlib, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from cpython cimport PyTuple_Check, PyList_Check
 
@@ -122,7 +122,7 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            loc = _bin_search(values, val) # .searchsorted(val, side='left')
+            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
             if util.get_value_at(values, loc) != val:
@@ -270,12 +270,15 @@ cdef class IndexEngine:
 
             values = self._get_index_values()
             self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values)
+            self._call_map_locations(values)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
 
         self.need_unique_check = 0
+
+    cpdef _call_map_locations(self, values):
+        self.mapping.map_locations(values)
 
     def clear_mapping(self):
         self.mapping = None
@@ -475,21 +478,67 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other,
-                                limit=limit)
+        return algos.pad_int64(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.backfill_int64(self._get_index_values(), other,
-                                     limit=limit)
+                                    limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef _get_box_dtype(self):
         return 'm8[ns]'
+
+
+cdef class PeriodEngine(Int64Engine):
+
+    cdef _get_index_values(self):
+        return super(PeriodEngine, self).vgetter()
+
+    cpdef _call_map_locations(self, values):
+        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+
+    def _call_monotonic(self, values):
+        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+
+    def get_indexer(self, values):
+        cdef ndarray[int64_t, ndim=1] ordinals
+
+        super(PeriodEngine, self)._ensure_mapping_populated()
+
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinals = periodlib.extract_ordinals(values, freq)
+
+        return self.mapping.lookup(ordinals)
+
+    def get_pad_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.pad_int64(self._get_index_values(),
+                               np.asarray(ordinal), limit=limit)
+
+    def get_backfill_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.backfill_int64(self._get_index_values(),
+                                    np.asarray(ordinal), limit=limit)
+
+    def get_indexer_non_unique(self, targets):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(targets, freq)
+        ordinal_array = np.asarray(ordinal)
+
+        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+
+    cdef _get_index_values_for_bool_indexer(self):
+        return self._get_index_values().view('i8')
+
 
 cpdef convert_scalar(ndarray arr, object value):
     # we don't turn integers
@@ -500,7 +549,7 @@ cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, datetime):
+        elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
             return iNaT

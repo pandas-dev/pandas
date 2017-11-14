@@ -645,8 +645,13 @@ strings and apply several methods to it. These can be accessed like
 Categorical
 ~~~~~~~~~~~
 
-.. autoclass:: api.types.CategoricalDtype
-   :members: categories, ordered
+The dtype of a ``Categorical`` can be described by a :class:`pandas.api.types.CategoricalDtype`.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   api.types.CategoricalDtype
 
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
@@ -1376,6 +1381,7 @@ Conversion
    Index.tolist
    Index.to_datetime
    Index.to_series
+   Index.to_frame
 
 Sorting
 ~~~~~~~
@@ -1591,6 +1597,7 @@ Conversion
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
+   DatetimeIndex.to_frame
 
 TimedeltaIndex
 --------------
@@ -1623,8 +1630,55 @@ Conversion
    TimedeltaIndex.round
    TimedeltaIndex.floor
    TimedeltaIndex.ceil
+   TimedeltaIndex.to_frame
 
 .. currentmodule:: pandas
+
+PeriodIndex
+--------------
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   PeriodIndex
+
+Attributes
+~~~~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    PeriodIndex.day
+    PeriodIndex.dayofweek
+    PeriodIndex.dayofyear
+    PeriodIndex.days_in_month
+    PeriodIndex.daysinmonth
+    PeriodIndex.end_time
+    PeriodIndex.freq
+    PeriodIndex.freqstr
+    PeriodIndex.hour
+    PeriodIndex.is_leap_year
+    PeriodIndex.minute
+    PeriodIndex.month
+    PeriodIndex.quarter
+    PeriodIndex.qyear
+    PeriodIndex.second
+    PeriodIndex.start_time
+    PeriodIndex.week
+    PeriodIndex.weekday
+    PeriodIndex.weekofyear
+    PeriodIndex.year
+
+Methods
+~~~~~~~
+.. autosummary::
+    :toctree: generated/
+
+    PeriodIndex.asfreq
+    PeriodIndex.strftime
+    PeriodIndex.to_timestamp
+    PeriodIndex.tz_convert
+    PeriodIndex.tz_localize
 
 Scalars
 -------
@@ -1653,13 +1707,11 @@ Attributes
     Period.is_leap_year
     Period.minute
     Period.month
-    Period.now
     Period.ordinal
     Period.quarter
     Period.qyear
     Period.second
     Period.start_time
-    Period.strftime
     Period.week
     Period.weekday
     Period.weekofyear
@@ -1671,6 +1723,7 @@ Methods
     :toctree: generated/
 
     Period.asfreq
+    Period.now
     Period.strftime
     Period.to_timestamp
 
@@ -1741,6 +1794,7 @@ Methods
     Timestamp.strftime
     Timestamp.strptime
     Timestamp.time
+    Timestamp.timestamp
     Timestamp.timetuple
     Timestamp.timetz
     Timestamp.to_datetime64
@@ -1768,7 +1822,7 @@ Interval
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Interval.closed
     Interval.closed_left
@@ -1789,7 +1843,7 @@ Timedelta
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.asm8
     Timedelta.components
@@ -1806,7 +1860,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
 
     Timedelta.ceil
     Timedelta.floor
@@ -1816,8 +1870,52 @@ Methods
     Timedelta.to_timedelta64
     Timedelta.total_seconds
 
+.. _api.frequencies:
+
+Frequencies
+-----------
+
+.. currentmodule:: pandas.tseries.frequencies
+
+
+.. autosummary::
+   :toctree: generated/
+
+   to_offset
+
+.. _api.offsets:
+
+Offsets
+-------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   Week
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+
+.. autosummary::
+   :toctree: generated/
+
+   MonthBegin
+   MonthEnd
+   QuarterBegin
+   QuarterEnd
+   YearBegin
+   YearEnd
+
 Window
 ------
+
 .. currentmodule:: pandas.core.window
 
 Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
@@ -1921,6 +2019,7 @@ Function application
    GroupBy.apply
    GroupBy.aggregate
    GroupBy.transform
+   GroupBy.pipe
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

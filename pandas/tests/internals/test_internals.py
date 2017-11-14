@@ -2,6 +2,7 @@
 # pylint: disable=W0102
 
 from datetime import datetime, date
+import operator
 import sys
 import pytest
 import numpy as np
@@ -1213,3 +1214,64 @@ class TestBlockPlacement(object):
 
             with pytest.raises(ValueError):
                 BlockPlacement(slice(2, None, -1)).add(-1)
+
+
+class DummyElement(object):
+    def __init__(self, value, dtype):
+        self.value = value
+        self.dtype = np.dtype(dtype)
+
+    def __array__(self):
+        return np.array(self.value, dtype=self.dtype)
+
+    def __str__(self):
+        return "DummyElement({}, {})".format(self.value, self.dtype)
+
+    def __repr__(self):
+        return str(self)
+
+    def astype(self, dtype, copy=False):
+        self.dtype = dtype
+        return self
+
+    def view(self, dtype):
+        return type(self)(self.value.view(dtype), dtype)
+
+    def any(self, axis=None):
+        return bool(self.value)
+
+
+class TestCanHoldElement(object):
+    @pytest.mark.parametrize('value, dtype', [
+        (1, 'i8'),
+        (1.0, 'f8'),
+        (1j, 'complex128'),
+        (True, 'bool'),
+        (np.timedelta64(20, 'ns'), '<m8[ns]'),
+        (np.datetime64(20, 'ns'), '<M8[ns]'),
+    ])
+    @pytest.mark.parametrize('op', [
+        operator.add,
+        operator.sub,
+        operator.mul,
+        operator.truediv,
+        operator.mod,
+        operator.pow,
+    ], ids=lambda x: x.__name__)
+    def test_binop_other(self, op, value, dtype):
+        skip = {(operator.add, 'bool'),
+                (operator.sub, 'bool'),
+                (operator.mul, 'bool'),
+                (operator.truediv, 'bool'),
+                (operator.mod, 'i8'),
+                (operator.mod, 'complex128'),
+                (operator.mod, '<M8[ns]'),
+                (operator.mod, '<m8[ns]'),
+                (operator.pow, 'bool')}
+        if (op, dtype) in skip:
+            pytest.skip("Invalid combination {},{}".format(op, dtype))
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+        result = op(s, e).dtypes
+        expected = op(s, value).dtypes
+        assert_series_equal(result, expected)

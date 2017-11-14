@@ -100,6 +100,10 @@ if PY3:
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
 
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        return data.start, data.stop, data.step
+
     # have to explicitly put builtins into the namespace
     range = range
     map = map
@@ -145,6 +149,24 @@ else:
 
     def signature(f):
         return inspect.getargspec(f)
+
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        # seems we only have indexing ops to infer
+        # rather than direct accessors
+        if len(data) > 1:
+            step = data[1] - data[0]
+            stop = data[-1] + step
+            start = data[0]
+        elif len(data):
+            start = data[0]
+            stop = data[0] + 1
+            step = 1
+        else:
+            start = stop = 0
+            step = 1
+
+        return start, stop, step
 
     # import iterator versions of these functions
     range = xrange
@@ -359,17 +381,20 @@ If traceback is not passed, uses sys.exc_info() to get traceback."""
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
-from dateutil import parser as _date_parser
 import dateutil
+
+if PY2 and LooseVersion(dateutil.__version__) == '2.0':
+    # dateutil brokenness
+    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
+    'install version 1.5 or 2.1+!')
+
+from dateutil import parser as _date_parser
 if LooseVersion(dateutil.__version__) < '2.0':
+
     @functools.wraps(_date_parser.parse)
     def parse_date(timestr, *args, **kwargs):
         timestr = bytes(timestr)
         return _date_parser.parse(timestr, *args, **kwargs)
-elif PY2 and LooseVersion(dateutil.__version__) == '2.0':
-    # dateutil brokenness
-    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                    'install version 1.5 or 2.1+!')
 else:
     parse_date = _date_parser.parse
 

@@ -22,7 +22,7 @@ environment:
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
-      CONDA_NPY: "112"
+      CONDA_NPY: "113"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
@@ -59,7 +59,7 @@ install:
 
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
-  # - cmd: conda update -q conda
+  - cmd: conda update -q conda
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority

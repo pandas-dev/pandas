@@ -69,7 +69,9 @@ class SharedWithSparse(object):
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                result = self.frame.get_value(idx, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
                 tm.assert_almost_equal(result, expected)
 
@@ -303,6 +305,11 @@ class SharedWithSparse(object):
         expected = f.sum(axis=1)
         result = f.sum(axis='columns')
         assert_series_equal(result, expected)
+
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        DataFrame.index  # no exception!
+        DataFrame.columns  # no exception!
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.as_matrix()

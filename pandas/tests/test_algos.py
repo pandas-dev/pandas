@@ -765,7 +765,7 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.mark.xfail(resaon="Complex bug. GH 16399")(
+        pytest.mark.xfail(reason="Complex bug. GH 16399")(
             np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
                      2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j])
         ),
@@ -1132,19 +1132,19 @@ def test_pad_backfill_object_segfault():
 
     result = libalgos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.pad_object(new, old)
     expected = np.array([], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill_object(old, new)
     expected = np.array([-1], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill_object(new, old)
     expected = np.array([], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_arrmap():
@@ -1219,7 +1219,7 @@ def test_is_lexsorted():
                   1, 1, 1, 1, 1, 1, 1,
                   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                   0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0]),
+                  0, 0, 0, 0, 0, 0, 0, 0, 0], dtype='int64'),
         np.array([30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
                   15, 14,
                   13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 30, 29, 28,
@@ -1231,18 +1231,9 @@ def test_is_lexsorted():
                   7, 6, 5, 4, 3, 2, 1, 0, 30, 29, 28, 27, 26, 25, 24, 23, 22,
                   21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
                   6, 5,
-                  4, 3, 2, 1, 0])]
+                  4, 3, 2, 1, 0], dtype='int64')]
 
     assert (not libalgos.is_lexsorted(failure))
-
-# def test_get_group_index():
-#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype=np.int64)
-#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype=np.int64)
-#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype=np.int64)
-
-#     result = lib.get_group_index([a, b], (3, 4))
-
-#     assert(np.array_equal(result, expected))
 
 
 def test_groupsort_indexer():
@@ -1252,14 +1243,22 @@ def test_groupsort_indexer():
     result = libalgos.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
+    # np.argsort returns int, groupsort_indexer
+    # always returns int64
     expected = np.argsort(a, kind='mergesort')
-    assert (np.array_equal(result, expected))
+    expected = expected.astype(np.int64)
+
+    tm.assert_numpy_array_equal(result, expected)
 
     # compare with lexsort
+    # np.lexsort returns int, groupsort_indexer
+    # always returns int64
     key = a * 1000 + b
     result = libalgos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
-    assert (np.array_equal(result, expected))
+    expected = expected.astype(np.int64)
+
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_infinity_sort():

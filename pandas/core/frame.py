@@ -82,8 +82,10 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature)
+from pandas.util._validators import (validate_bool_kwarg,
+                                     validate_axis_style_args)
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -111,7 +113,13 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""",
-    versionadded_to_excel='')
+    versionadded_to_excel='',
+    optional_labels="""labels : array-like, optional
+            New labels / index to conform the axis specified by 'axis' to.""",
+    optional_axis="""axis : int or str, optional
+            Axis to target. Can be either the axis name ('index', 'columns')
+            or number (0, 1).""",
+)
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -173,8 +181,6 @@ indicator : boolean or string, default False
     for observations whose merge key only appears in 'left' DataFrame,
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
-
-    .. versionadded:: 0.17.0
 
 validate : string, default None
     If specified, checks if merge is of specified type.
@@ -297,7 +303,8 @@ class DataFrame(NDFrame):
         return DataFrame
 
     _constructor_sliced = Series
-    _deprecations = NDFrame._deprecations | frozenset(['sortlevel'])
+    _deprecations = NDFrame._deprecations | frozenset(
+        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
 
     @property
     def _constructor_expanddim(self):
@@ -907,8 +914,6 @@ class DataFrame(NDFrame):
               [{column -> value}, ... , {column -> value}]
             - index : dict like {index -> {column -> value}}
 
-              .. versionadded:: 0.17.0
-
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
@@ -1287,10 +1292,10 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0, parse_dates=True,
-                 encoding=None, tupleize_cols=False,
+                 encoding=None, tupleize_cols=None,
                  infer_datetime_format=False):
         """
-        Read CSV file (DISCOURAGED, please use :func:`pandas.read_csv`
+        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
         instead).
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
@@ -1338,6 +1343,13 @@ class DataFrame(NDFrame):
         y : DataFrame
 
         """
+
+        warnings.warn("from_csv is deprecated. Please use read_csv(...) "
+                      "instead. Note that some of the default arguments are "
+                      "different, so please refer to the documentation "
+                      "for from_csv when changing your function calls",
+                      FutureWarning, stacklevel=2)
+
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
@@ -1418,7 +1430,7 @@ class DataFrame(NDFrame):
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
-               tupleize_cols=False, date_format=None, doublequote=True,
+               tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""Write DataFrame to a comma-separated values (csv) file
 
@@ -1471,8 +1483,13 @@ class DataFrame(NDFrame):
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
-            write multi_index columns as a list of tuples (if True)
-            or new (expanded format) if False)
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
         date_format : string, default None
             Format string for datetime objects
         decimal: string, default '.'
@@ -1480,6 +1497,14 @@ class DataFrame(NDFrame):
             European data
 
         """
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator, sep=sep,
                                      encoding=encoding,
@@ -1667,7 +1692,7 @@ class DataFrame(NDFrame):
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
-            Convert the characters <, >, and & to HTML-safe sequences.=
+            Convert the characters <, >, and & to HTML-safe sequences.
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
@@ -1678,6 +1703,7 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator, e.g. ',' in Europe
 
             .. versionadded:: 0.18.0
+
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -1922,6 +1948,10 @@ class DataFrame(NDFrame):
         """
         Quickly retrieve single value at passed column and index
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : row label
@@ -1932,6 +1962,14 @@ class DataFrame(NDFrame):
         -------
         value : scalar value
         """
+
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(index, col, takeable=takeable)
+
+    def _get_value(self, index, col, takeable=False):
 
         if takeable:
             series = self._iget_item_cache(col)
@@ -1948,11 +1986,16 @@ class DataFrame(NDFrame):
             # use positional
             col = self.columns.get_loc(col)
             index = self.index.get_loc(index)
-            return self.get_value(index, col, takeable=True)
+            return self._get_value(index, col, takeable=True)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
         """
         Put single value at passed column and index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1967,10 +2010,17 @@ class DataFrame(NDFrame):
             If label pair is contained, will be reference to calling DataFrame,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(index, col, value, takeable=takeable)
+
+    def _set_value(self, index, col, value, takeable=False):
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
-                return series.set_value(index, value, takeable=True)
+                return series._set_value(index, value, takeable=True)
 
             series = self._get_item_cache(col)
             engine = self.index._engine
@@ -1983,6 +2033,7 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+    _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i, axis=0):
         """
@@ -2216,7 +2267,8 @@ class DataFrame(NDFrame):
         by default, which allows you to treat both the index and columns of the
         frame as a column in the frame.
         The identifier ``index`` is used for the frame index; you can also
-        use the name of the index to identify it in a query.
+        use the name of the index to identify it in a query. Please note that
+        Python keywords may not be used as identifiers.
 
         For further details and examples see the ``query`` documentation in
         :ref:`indexing <indexing.query>`.
@@ -2582,7 +2634,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         For python 3.6 and above, the columns are inserted in the order of
-        **kwargs. For python 3.5 and earlier, since **kwargs is unordered,
+        \*\*kwargs. For python 3.5 and earlier, since \*\*kwargs is unordered,
         the columns are inserted in alphabetical order at the end of your
         DataFrame.  Assigning multiple columns within the same ``assign``
         is possible, but you cannot reference other columns created within
@@ -2692,7 +2744,7 @@ class DataFrame(NDFrame):
                 if isinstance(loc, (slice, Series, np.ndarray, Index)):
                     cols = maybe_droplevels(self.columns[loc], key)
                     if len(cols) and not cols.equals(value.columns):
-                        value = value.reindex_axis(cols, axis=1)
+                        value = value.reindex(cols, axis=1)
             # now align rows
             value = reindexer(value).T
 
@@ -2791,7 +2843,7 @@ class DataFrame(NDFrame):
         else:
             result = np.empty(n, dtype='O')
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self.get_value(r, c)
+                result[i] = self._get_value(r, c)
 
         if is_object_dtype(result):
             result = lib.maybe_convert_objects(result)
@@ -2865,9 +2917,20 @@ class DataFrame(NDFrame):
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, index=None, columns=None, **kwargs):
-        return super(DataFrame, self).reindex(index=index, columns=columns,
-                                              **kwargs)
+    @rewrite_axis_style_signature('labels', [('method', None),
+                                             ('copy', True),
+                                             ('level', None),
+                                             ('fill_value', np.nan),
+                                             ('limit', None),
+                                             ('tolerance', None)])
+    def reindex(self, *args, **kwargs):
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
+        kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
+        return super(DataFrame, self).reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
@@ -2877,10 +2940,89 @@ class DataFrame(NDFrame):
                                         method=method, level=level, copy=copy,
                                         limit=limit, fill_value=fill_value)
 
-    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, columns=None, **kwargs):
-        return super(DataFrame, self).rename(index=index, columns=columns,
-                                             **kwargs)
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False),
+                                             ('level', None)])
+    def rename(self, *args, **kwargs):
+        """Alter axes labels.
+
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is. Extra labels listed don't throw an
+        error.
+
+        See the :ref:`user guide <basics.rename>` for more.
+
+        Parameters
+        ----------
+        mapper, index, columns : dict-like or function, optional
+            dict-like or functions transformations to apply to
+            that axis' values. Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index`` and
+            ``columns``.
+        axis : int or str, optional
+            Axis to target with ``mapper``. Can be either the axis name
+            ('index', 'columns') or number (0, 1). The default is 'index'.
+        copy : boolean, default True
+            Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new %(klass)s. If True then value of copy is
+            ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
+
+        Returns
+        -------
+        renamed : DataFrame
+
+        See Also
+        --------
+        pandas.DataFrame.rename_axis
+
+        Examples
+        --------
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+           a  c
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+           a  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+        """
+        axes = validate_axis_style_args(self, args, kwargs, 'mapper', 'rename')
+        kwargs.update(axes)
+        # Pop these, since the values are in `kwargs` under different names
+        kwargs.pop('axis', None)
+        kwargs.pop('mapper', None)
+        return super(DataFrame, self).rename(**kwargs)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
@@ -3433,7 +3575,8 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
-        vals = (self[col].values for col in subset)
+        vals = (col.values for name, col in self.iteritems()
+                if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -3598,8 +3741,6 @@ class DataFrame(NDFrame):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         n : int
@@ -3634,8 +3775,6 @@ class DataFrame(NDFrame):
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
         values of `columns`.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -3836,9 +3975,9 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error=True, try_cast=True):
+    def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
-                                   raise_on_error=raise_on_error,
+                                   errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
@@ -3890,6 +4029,8 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
         func : function
+            Function that takes two series as inputs and return a Series or a
+            scalar
         fill_value : scalar value
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
@@ -3897,8 +4038,21 @@ class DataFrame(NDFrame):
         Returns
         -------
         result : DataFrame
-        """
 
+        Examples
+        --------
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+           A  B
+        0  0  3
+        1  0  3
+
+        See Also
+        --------
+        DataFrame.combine_first : Combine two DataFrame objects and default to
+            non-null values in frame calling the method
+        """
         other_idxlen = len(other.index)  # save for compare
 
         this, other = self.align(other, copy=False)
@@ -3986,16 +4140,24 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
 
-        Examples
-        --------
-        a's values prioritized, use values from b to fill holes:
-
-        >>> a.combine_first(b)
-
-
         Returns
         -------
         combined : DataFrame
+
+        Examples
+        --------
+        df1's values prioritized, use values from df2 to fill holes:
+
+        >>> df1 = pd.DataFrame([[1, np.nan]])
+        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1.combine_first(df2)
+           0    1
+        0  1  4.0
+
+        See Also
+        --------
+        DataFrame.combine : Perform series-wise operation on two DataFrames
+            using a given function
         """
         import pandas.core.computation.expressions as expressions
 
@@ -4009,8 +4171,7 @@ class DataFrame(NDFrame):
             else:
                 mask = isna(x_values)
 
-            return expressions.where(mask, y_values, x_values,
-                                     raise_on_error=True)
+            return expressions.where(mask, y_values, x_values)
 
         return self.combine(other, combiner, overwrite=False)
 
@@ -4032,6 +4193,61 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, 5, 6],
+        ...                        'C': [7, 8, 9]})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e', 'f', 'g', 'h', 'i']})
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  d
+        1  b  e
+        2  c  f
+
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_column = pd.Series(['d', 'e'], name='B', index=[0, 2])
+        >>> df.update(new_column)
+        >>> df
+           A  B
+        0  a  d
+        1  b  y
+        2  c  e
+        >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
+        ...                    'B': ['x', 'y', 'z']})
+        >>> new_df = pd.DataFrame({'B': ['d', 'e']}, index=[1, 2])
+        >>> df.update(new_df)
+        >>> df
+           A  B
+        0  a  x
+        1  b  d
+        2  c  e
+
+        If ``other`` contains NaNs the corresponding values are not updated
+        in the original dataframe.
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3],
+        ...                    'B': [400, 500, 600]})
+        >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
+        >>> df.update(new_df)
+        >>> df
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
@@ -4065,8 +4281,7 @@ class DataFrame(NDFrame):
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that,
-                                          raise_on_error=True)
+            self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Misc methods
@@ -4446,7 +4661,7 @@ class DataFrame(NDFrame):
                    other='melt'))
     def melt(self, id_vars=None, value_vars=None, var_name=None,
              value_name='value', col_level=None):
-        from pandas.core.reshape.reshape import melt
+        from pandas.core.reshape.melt import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
                     col_level=col_level)
@@ -4915,7 +5130,7 @@ class DataFrame(NDFrame):
 
         >>> df = pd.DataFrame(columns=['A'])
         >>> for i in range(5):
-        ...     df = df.append({'A'}: i}, ignore_index=True)
+        ...     df = df.append({'A': i}, ignore_index=True)
         >>> df
            A
         0  0
@@ -5151,8 +5366,6 @@ class DataFrame(NDFrame):
     def round(self, decimals=0, *args, **kwargs):
         """
         Round a DataFrame to a variable number of decimal places.
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -5592,7 +5805,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------
@@ -5623,7 +5841,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be first index.
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------

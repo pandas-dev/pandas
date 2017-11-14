@@ -721,6 +721,13 @@ class TestDataFrameIndexing(TestData):
                 df[df > df2] = 47
                 assert_frame_equal(df, df2)
 
+    def test_setitem_scalars_no_index(self):
+        # GH16823 / 17894
+        df = DataFrame()
+        df['foo'] = 1
+        expected = DataFrame(columns=['foo']).astype(np.int64)
+        assert_frame_equal(df, expected)
+
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue #11859
 
@@ -1629,7 +1636,9 @@ class TestDataFrameIndexing(TestData):
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                result = self.frame.get_value(idx, col)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
                 assert result == expected
 
@@ -1637,7 +1646,9 @@ class TestDataFrameIndexing(TestData):
         def alt(df, rows, cols, dtype):
             result = []
             for r, c in zip(rows, cols):
-                result.append(df.get_value(r, c))
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    result.append(df.get_value(r, c))
             return np.array(result, dtype=dtype)
 
         def testit(df):
@@ -1671,32 +1682,48 @@ class TestDataFrameIndexing(TestData):
     def test_set_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                self.frame.set_value(idx, col, 1)
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    self.frame.set_value(idx, col, 1)
                 assert self.frame[col][idx] == 1
 
     def test_set_value_resize(self):
 
-        res = self.frame.set_value('foobar', 'B', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.frame.set_value('foobar', 'B', 0)
         assert res is self.frame
         assert res.index[-1] == 'foobar'
-        assert res.get_value('foobar', 'B') == 0
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res.get_value('foobar', 'B') == 0
 
         self.frame.loc['foobar', 'qux'] = 0
-        assert self.frame.get_value('foobar', 'qux') == 0
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert self.frame.get_value('foobar', 'qux') == 0
 
         res = self.frame.copy()
-        res3 = res.set_value('foobar', 'baz', 'sam')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res3 = res.set_value('foobar', 'baz', 'sam')
         assert res3['baz'].dtype == np.object_
 
         res = self.frame.copy()
-        res3 = res.set_value('foobar', 'baz', True)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res3 = res.set_value('foobar', 'baz', True)
         assert res3['baz'].dtype == np.object_
 
         res = self.frame.copy()
-        res3 = res.set_value('foobar', 'baz', 5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res3 = res.set_value('foobar', 'baz', 5)
         assert is_float_dtype(res3['baz'])
         assert isna(res3['baz'].drop(['foobar'])).all()
-        pytest.raises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pytest.raises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(randn(3, 3), index=lrange(3), columns=list('ABC'))
@@ -1704,7 +1731,9 @@ class TestDataFrameIndexing(TestData):
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created
         df = df_orig.copy()
-        df.set_value('C', 2, 1.0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df.set_value('C', 2, 1.0)
         assert list(df.index) == list(df_orig.index) + ['C']
         # assert list(df.columns) == list(df_orig.columns) + [2]
 
@@ -1715,7 +1744,9 @@ class TestDataFrameIndexing(TestData):
 
         # create both new
         df = df_orig.copy()
-        df.set_value('C', 'D', 1.0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df.set_value('C', 'D', 1.0)
         assert list(df.index) == list(df_orig.index) + ['C']
         assert list(df.columns) == list(df_orig.columns) + ['D']
 
@@ -1728,8 +1759,9 @@ class TestDataFrameIndexing(TestData):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
         df = DataFrame(index=index, columns=lrange(4))
-        pytest.raises(KeyError, df.get_value, 0, 1)
-        # pytest.raises(KeyError, df.set_value, 0, 1, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pytest.raises(KeyError, df.get_value, 0, 1)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
@@ -1905,8 +1937,12 @@ class TestDataFrameIndexing(TestData):
 
             actual = df.reindex_like(df, method=method, tolerance=0)
             assert_frame_equal(df, actual)
+            actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
+            assert_frame_equal(df, actual)
 
             actual = df.reindex(target, method=method, tolerance=1)
+            assert_frame_equal(expected, actual)
+            actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
             assert_frame_equal(expected, actual)
 
             e2 = expected[::-1]
@@ -1926,6 +1962,11 @@ class TestDataFrameIndexing(TestData):
 
         expected = pd.DataFrame({'x': [0, 1, 1, np.nan]}, index=target)
         actual = df.reindex(target, method='nearest', tolerance=0.2)
+        assert_frame_equal(expected, actual)
+
+        expected = pd.DataFrame({'x': [0, np.nan, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method='nearest',
+                            tolerance=[0.5, 0.01, 0.4, 0.1])
         assert_frame_equal(expected, actual)
 
     def test_reindex_frame_add_nat(self):

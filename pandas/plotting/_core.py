@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.common import AbstractMethodError, _try_sort
+from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 
@@ -607,7 +607,7 @@ class MPLPlot(object):
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
-            if any(x is not None for x in name):
+            if _any_not_none(*name):
                 name = ','.join([pprint_thing(x) for x in name])
             else:
                 name = None
@@ -697,7 +697,7 @@ class MPLPlot(object):
         from pandas import DataFrame, Series
 
         def match_labels(data, e):
-            e = e.reindex_axis(data.index)
+            e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
@@ -749,7 +749,7 @@ class MPLPlot(object):
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
-            msg = "No valid %s detected" % label
+            msg = "No valid {label} detected".format(label=label)
             raise ValueError(msg)
 
         return err
@@ -955,7 +955,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = any(e is not None for e in self.errors.values())
+        is_errorbar = _any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -1414,7 +1414,7 @@ class KdePlot(HistPlot):
             gkde = gaussian_kde(y)
             if bw_method is not None:
                 msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is %s.' % spv)
+                       ' Scipy version in use is {spv}.'.format(spv=spv))
                 warnings.warn(msg)
 
         y = gkde.evaluate(ind)
@@ -1847,8 +1847,6 @@ _shared_docs['plot'] = """
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
     table : boolean, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
@@ -2000,7 +1998,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
-        values = [remove_na_arraylike(v) for v in values]
+        values = [np.asarray(remove_na_arraylike(v)) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis='both', labelsize=fontsize)
@@ -2454,7 +2452,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         result = axes
 
     byline = by[0] if len(by) == 1 else by
-    fig.suptitle('Boxplot grouped by %s' % byline)
+    fig.suptitle('Boxplot grouped by {byline}'.format(byline=byline))
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
@@ -2505,8 +2503,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Line plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2521,8 +2517,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def bar(self, **kwds):
         """
         Vertical bar plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2539,8 +2533,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Horizontal bar plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2556,8 +2548,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Boxplot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2572,8 +2562,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def hist(self, bins=10, **kwds):
         """
         Histogram
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2592,8 +2580,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Kernel Density Estimate plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2611,8 +2597,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         Area plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2627,8 +2611,6 @@ class SeriesPlotMethods(BasePlotMethods):
     def pie(self, **kwds):
         """
         Pie chart
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2679,8 +2661,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Line plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         x, y : label or position, optional
@@ -2697,8 +2677,6 @@ class FramePlotMethods(BasePlotMethods):
     def bar(self, x=None, y=None, **kwds):
         """
         Vertical bar plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2717,8 +2695,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Horizontal bar plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         x, y : label or position, optional
@@ -2736,8 +2712,6 @@ class FramePlotMethods(BasePlotMethods):
         r"""
         Boxplot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         by : string or sequence
@@ -2754,8 +2728,6 @@ class FramePlotMethods(BasePlotMethods):
     def hist(self, by=None, bins=10, **kwds):
         """
         Histogram
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2776,8 +2748,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Kernel Density Estimate plot
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         **kwds : optional
@@ -2794,8 +2764,6 @@ class FramePlotMethods(BasePlotMethods):
     def area(self, x=None, y=None, **kwds):
         """
         Area plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2814,8 +2782,6 @@ class FramePlotMethods(BasePlotMethods):
         """
         Pie chart
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         y : label or position, optional
@@ -2832,8 +2798,6 @@ class FramePlotMethods(BasePlotMethods):
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
         Scatter plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------
@@ -2856,8 +2820,6 @@ class FramePlotMethods(BasePlotMethods):
                **kwds):
         """
         Hexbin plot
-
-        .. versionadded:: 0.17.0
 
         Parameters
         ----------

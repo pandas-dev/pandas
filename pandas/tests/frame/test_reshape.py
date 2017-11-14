@@ -116,22 +116,22 @@ class TestDataFrameReshape(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_stack_unstack(self):
-        f = self.frame.copy()
-        f[:] = np.arange(np.prod(f.shape)).reshape(f.shape)
+        df = self.frame.copy()
+        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
-        stacked = f.stack()
+        stacked = df.stack()
         stacked_df = DataFrame({'foo': stacked, 'bar': stacked})
 
         unstacked = stacked.unstack()
         unstacked_df = stacked_df.unstack()
 
-        assert_frame_equal(unstacked, f)
-        assert_frame_equal(unstacked_df['bar'], f)
+        assert_frame_equal(unstacked, df)
+        assert_frame_equal(unstacked_df['bar'], df)
 
         unstacked_cols = stacked.unstack(0)
         unstacked_cols_df = stacked_df.unstack(0)
-        assert_frame_equal(unstacked_cols.T, f)
-        assert_frame_equal(unstacked_cols_df['bar'].T, f)
+        assert_frame_equal(unstacked_cols.T, df)
+        assert_frame_equal(unstacked_cols_df['bar'].T, df)
 
     def test_unstack_fill(self):
 
@@ -152,6 +152,30 @@ class TestDataFrameReshape(TestData):
         result = data.unstack(fill_value=0.5)
         expected = DataFrame({'a': [1, 0.5, 5], 'b': [2, 4, 0.5]},
                              index=['x', 'y', 'z'], dtype=np.float)
+        assert_frame_equal(result, expected)
+
+        # GH #13971: fill_value when unstacking multiple levels:
+        df = DataFrame({'x': ['a', 'a', 'b'],
+                        'y': ['j', 'k', 'j'],
+                        'z': [0, 1, 2],
+                        'w': [0, 1, 2]}).set_index(['x', 'y', 'z'])
+        unstacked = df.unstack(['x', 'y'], fill_value=0)
+        key = ('w', 'b', 'j')
+        expected = unstacked[key]
+        result = pd.Series([0, 0, 2], index=unstacked.index, name=key)
+        assert_series_equal(result, expected)
+
+        stacked = unstacked.stack(['x', 'y'])
+        stacked.index = stacked.index.reorder_levels(df.index.names)
+        # Workaround for GH #17886 (unnecessarily casts to float):
+        stacked = stacked.astype(np.int64)
+        result = stacked.loc[df.index]
+        assert_frame_equal(result, df)
+
+        # From a series
+        s = df['w']
+        result = s.unstack(['x', 'y'], fill_value=0)
+        expected = unstacked['w']
         assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame(self):

@@ -31,7 +31,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -86,7 +86,7 @@ index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
-    subset of data is selected with ``parse_cols``, index_col
+    subset of data is selected with ``usecols``, index_col
     is based on the subset.
 names : array-like, default None
     List of column names to use. If file contains no header row,
@@ -115,6 +115,10 @@ false_values : list, default None
     .. versionadded:: 0.19.0
 
 parse_cols : int or list, default None
+    .. deprecated:: 0.21.0
+       Pass in `usecols` instead.
+
+usecols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
@@ -205,8 +209,9 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
+@deprecate_kwarg("parse_cols", "usecols")
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
+               index_col=None, names=None, usecols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
@@ -226,7 +231,7 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
+        index_col=index_col, usecols=usecols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, skip_footer=skip_footer,
         converters=converters, dtype=dtype, true_values=true_values,
@@ -295,7 +300,7 @@ class ExcelFile(object):
         return self._io
 
     def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, parse_cols=None, parse_dates=False,
+              names=None, index_col=None, usecols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, converters=None, true_values=None,
               false_values=None, squeeze=False, **kwds):
@@ -309,7 +314,7 @@ class ExcelFile(object):
         return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
-                                 parse_cols=parse_cols,
+                                 usecols=usecols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands,
@@ -321,7 +326,7 @@ class ExcelFile(object):
                                  squeeze=squeeze,
                                  **kwds)
 
-    def _should_parse(self, i, parse_cols):
+    def _should_parse(self, i, usecols):
 
         def _range2cols(areas):
             """
@@ -347,15 +352,15 @@ class ExcelFile(object):
                     cols.append(_excel2num(rng))
             return cols
 
-        if isinstance(parse_cols, int):
-            return i <= parse_cols
-        elif isinstance(parse_cols, compat.string_types):
-            return i in _range2cols(parse_cols)
+        if isinstance(usecols, int):
+            return i <= usecols
+        elif isinstance(usecols, compat.string_types):
+            return i in _range2cols(usecols)
         else:
-            return i in parse_cols
+            return i in usecols
 
     def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, parse_cols=None,
+                     skip_footer=0, index_col=None, usecols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, convert_float=True, true_values=None,
                      false_values=None, verbose=False, dtype=None,
@@ -470,10 +475,10 @@ class ExcelFile(object):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if parse_cols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, parse_cols)
+                    if usecols is not None and j not in should_parse:
+                        should_parse[j] = self._should_parse(j, usecols)
 
-                    if parse_cols is None or should_parse[j]:
+                    if usecols is None or should_parse[j]:
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
@@ -1573,6 +1578,149 @@ class _XlwtWriter(ExcelWriter):
 register_writer(_XlwtWriter)
 
 
+class _XlsxStyler(object):
+    # Map from openpyxl-oriented styles to flatter xlsxwriter representation
+    # Ordering necessary for both determinism and because some are keyed by
+    # prefixes of others.
+    STYLE_MAPPING = {
+        'font': [
+            (('name',), 'font_name'),
+            (('sz',), 'font_size'),
+            (('size',), 'font_size'),
+            (('color', 'rgb',), 'font_color'),
+            (('color',), 'font_color'),
+            (('b',), 'bold'),
+            (('bold',), 'bold'),
+            (('i',), 'italic'),
+            (('italic',), 'italic'),
+            (('u',), 'underline'),
+            (('underline',), 'underline'),
+            (('strike',), 'font_strikeout'),
+            (('vertAlign',), 'font_script'),
+            (('vertalign',), 'font_script'),
+        ],
+        'number_format': [
+            (('format_code',), 'num_format'),
+            ((), 'num_format',),
+        ],
+        'protection': [
+            (('locked',), 'locked'),
+            (('hidden',), 'hidden'),
+        ],
+        'alignment': [
+            (('horizontal',), 'align'),
+            (('vertical',), 'valign'),
+            (('text_rotation',), 'rotation'),
+            (('wrap_text',), 'text_wrap'),
+            (('indent',), 'indent'),
+            (('shrink_to_fit',), 'shrink'),
+        ],
+        'fill': [
+            (('patternType',), 'pattern'),
+            (('patterntype',), 'pattern'),
+            (('fill_type',), 'pattern'),
+            (('start_color', 'rgb',), 'fg_color'),
+            (('fgColor', 'rgb',), 'fg_color'),
+            (('fgcolor', 'rgb',), 'fg_color'),
+            (('start_color',), 'fg_color'),
+            (('fgColor',), 'fg_color'),
+            (('fgcolor',), 'fg_color'),
+            (('end_color', 'rgb',), 'bg_color'),
+            (('bgColor', 'rgb',), 'bg_color'),
+            (('bgcolor', 'rgb',), 'bg_color'),
+            (('end_color',), 'bg_color'),
+            (('bgColor',), 'bg_color'),
+            (('bgcolor',), 'bg_color'),
+        ],
+        'border': [
+            (('color', 'rgb',), 'border_color'),
+            (('color',), 'border_color'),
+            (('style',), 'border'),
+            (('top', 'color', 'rgb',), 'top_color'),
+            (('top', 'color',), 'top_color'),
+            (('top', 'style',), 'top'),
+            (('top',), 'top'),
+            (('right', 'color', 'rgb',), 'right_color'),
+            (('right', 'color',), 'right_color'),
+            (('right', 'style',), 'right'),
+            (('right',), 'right'),
+            (('bottom', 'color', 'rgb',), 'bottom_color'),
+            (('bottom', 'color',), 'bottom_color'),
+            (('bottom', 'style',), 'bottom'),
+            (('bottom',), 'bottom'),
+            (('left', 'color', 'rgb',), 'left_color'),
+            (('left', 'color',), 'left_color'),
+            (('left', 'style',), 'left'),
+            (('left',), 'left'),
+        ],
+    }
+
+    @classmethod
+    def convert(cls, style_dict, num_format_str=None):
+        """
+        converts a style_dict to an xlsxwriter format dict
+
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        num_format_str: optional number format string
+        """
+
+        # Create a XlsxWriter format object.
+        props = {}
+
+        if num_format_str is not None:
+            props['num_format'] = num_format_str
+
+        if style_dict is None:
+            return props
+
+        if 'borders' in style_dict:
+            style_dict = style_dict.copy()
+            style_dict['border'] = style_dict.pop('borders')
+
+        for style_group_key, style_group in style_dict.items():
+            for src, dst in cls.STYLE_MAPPING.get(style_group_key, []):
+                # src is a sequence of keys into a nested dict
+                # dst is a flat key
+                if dst in props:
+                    continue
+                v = style_group
+                for k in src:
+                    try:
+                        v = v[k]
+                    except (KeyError, TypeError):
+                        break
+                else:
+                    props[dst] = v
+
+        if isinstance(props.get('pattern'), string_types):
+            # TODO: support other fill patterns
+            props['pattern'] = 0 if props['pattern'] == 'none' else 1
+
+        for k in ['border', 'top', 'right', 'bottom', 'left']:
+            if isinstance(props.get(k), string_types):
+                try:
+                    props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
+                                'thick', 'double', 'hair', 'mediumDashed',
+                                'dashDot', 'mediumDashDot', 'dashDotDot',
+                                'mediumDashDotDot', 'slantDashDot'].\
+                        index(props[k])
+                except ValueError:
+                    props[k] = 2
+
+        if isinstance(props.get('font_script'), string_types):
+            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
+                index(props['font_script'])
+
+        if isinstance(props.get('underline'), string_types):
+            props['underline'] = {'none': 0, 'single': 1, 'double': 2,
+                                  'singleAccounting': 33,
+                                  'doubleAccounting': 34}[props['underline']]
+
+        return props
+
+
 class _XlsxWriter(ExcelWriter):
     engine = 'xlsxwriter'
     supported_extensions = ('.xlsx',)
@@ -1607,7 +1755,7 @@ class _XlsxWriter(ExcelWriter):
             wks = self.book.add_worksheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        style_dict = {}
+        style_dict = {'null': None}
 
         if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
@@ -1628,7 +1776,8 @@ class _XlsxWriter(ExcelWriter):
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = self._convert_to_style(cell.style, num_format_str)
+                style = self.book.add_format(
+                    _XlsxStyler.convert(cell.style, num_format_str))
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
@@ -1641,50 +1790,6 @@ class _XlsxWriter(ExcelWriter):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
-
-    def _convert_to_style(self, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlsxwriter format object
-        Parameters
-        ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
-        """
-
-        # If there is no formatting we don't create a format object.
-        if num_format_str is None and style_dict is None:
-            return None
-
-        # Create a XlsxWriter format object.
-        xl_format = self.book.add_format()
-
-        if num_format_str is not None:
-            xl_format.set_num_format(num_format_str)
-
-        if style_dict is None:
-            return xl_format
-
-        # Map the cell font to XlsxWriter font properties.
-        if style_dict.get('font'):
-            font = style_dict['font']
-            if font.get('bold'):
-                xl_format.set_bold()
-
-        # Map the alignment to XlsxWriter alignment properties.
-        alignment = style_dict.get('alignment')
-        if alignment:
-            if (alignment.get('horizontal') and
-                    alignment['horizontal'] == 'center'):
-                xl_format.set_align('center')
-            if (alignment.get('vertical') and
-                    alignment['vertical'] == 'top'):
-                xl_format.set_align('top')
-
-        # Map the cell borders to XlsxWriter border properties.
-        if style_dict.get('borders'):
-            xl_format.set_border()
-
-        return xl_format
 
 
 register_writer(_XlsxWriter)

@@ -698,8 +698,8 @@ class Dtype(object):
         return expects
 
     def _create_dtype_data(self, dtype):
-        sr1 = Series(range(5), dtype=dtype)
-        sr2 = Series(range(10, 0, -2), dtype=dtype)
+        sr1 = Series(np.arange(5), dtype=dtype)
+        sr2 = Series(np.arange(10, 0, -2), dtype=dtype)
         df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
 
         data = {
@@ -2355,7 +2355,8 @@ class TestMomentsConsistency(Base):
                         expanding_apply_f_result = x.expanding(
                             min_periods=min_periods).apply(func=f)
 
-                    if not tm._incompat_bottleneck_version(name):
+                    # GH 9422
+                    if name in ['sum', 'prod']:
                         assert_equal(expanding_f_result,
                                      expanding_apply_f_result)
 
@@ -2453,7 +2454,9 @@ class TestMomentsConsistency(Base):
                         rolling_apply_f_result = x.rolling(
                             window=window, min_periods=min_periods,
                             center=center).apply(func=f)
-                    if not tm._incompat_bottleneck_version(name):
+
+                    # GH 9422
+                    if name in ['sum', 'prod']:
                         assert_equal(rolling_f_result,
                                      rolling_apply_f_result)
 
@@ -2975,6 +2978,16 @@ class TestMomentsConsistency(Base):
         expected = Series([np.NaN, np.NaN, np.NaN, 1.224307, 2.671499])
         x = d.rolling(window=4).kurt()
         tm.assert_series_equal(expected, x)
+
+    def test_rolling_skew_eq_value_fperr(self):
+        # #18804 all rolling skew for all equal values should return Nan
+        a = pd.Series([1.1] * 15).rolling(window=10).skew()
+        assert np.isnan(a).all()
+
+    def test_rolling_kurt_eq_value_fperr(self):
+        # #18804 all rolling kurt for all equal values should return Nan
+        a = pd.Series([1.1] * 15).rolling(window=10).kurt()
+        assert np.isnan(a).all()
 
     def _check_expanding_ndarray(self, func, static_comp, has_min_periods=True,
                                  has_time_rule=True, preserve_nan=True):

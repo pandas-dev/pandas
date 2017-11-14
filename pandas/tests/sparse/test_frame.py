@@ -430,22 +430,32 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # ok, as the index gets converted to object
         frame = self.frame.copy()
-        res = frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = frame.set_value('foobar', 'B', 1.5)
         assert res.index.dtype == 'object'
 
         res = self.frame
         res.index = res.index.astype(object)
 
-        res = self.frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.frame.set_value('foobar', 'B', 1.5)
         assert res is not self.frame
         assert res.index[-1] == 'foobar'
-        assert res.get_value('foobar', 'B') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res.get_value('foobar', 'B') == 1.5
 
-        res2 = res.set_value('foobar', 'qux', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res2 = res.set_value('foobar', 'qux', 1.5)
         assert res2 is not res
         tm.assert_index_equal(res2.columns,
                               pd.Index(list(self.frame.columns) + ['qux']))
-        assert res2.get_value('foobar', 'qux') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
         # axis = 0
@@ -1388,3 +1398,139 @@ class TestSparseDataFrameAnalytics(object):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
+
+    @pytest.mark.parametrize('data', [
+        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
+        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
+        [
+            [1.0, 1.0 + 1.0j],
+            [2.0 + 2.0j, 2.0],
+            [3.0, 3.0 + 3.0j],
+            [4.0 + 4.0j, 4.0],
+            [nan, nan]
+        ]
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_numeric_data(self, data):
+        # GH 17386
+        lower_bound = 1.5
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse > lower_bound)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense > lower_bound)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.parametrize('data', [
+        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
+        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
+        [
+            [1.0, 1.0 + 1.0j],
+            [2.0 + 2.0j, 2.0],
+            [3.0, 3.0 + 3.0j],
+            [4.0 + 4.0j, 4.0],
+            [nan, nan]
+        ]
+    ])
+    @pytest.mark.parametrize('other', [
+        True,
+        -100,
+        0.1,
+        100.0 + 100.0j
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_numeric_data_and_other(self, data, other):
+        # GH 17386
+        lower_bound = 1.5
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse > lower_bound, other)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense > lower_bound, other)
+        sparse_expected = SparseDataFrame(dense_expected,
+                                          default_fill_value=other)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_bool_data(self):
+        # GH 17386
+        data = [[False, False], [True, True], [False, False]]
+        cond = True
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse == cond)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense == cond)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.parametrize('other', [
+        True,
+        0,
+        0.1,
+        100.0 + 100.0j
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_bool_data_and_other(self, other):
+        # GH 17386
+        data = [[False, False], [True, True], [False, False]]
+        cond = True
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse == cond, other)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense == cond, other)
+        sparse_expected = SparseDataFrame(dense_expected,
+                                          default_fill_value=other)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_quantile(self):
+        # GH 17386
+        data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
+        q = 0.1
+
+        sparse_df = SparseDataFrame(data)
+        result = sparse_df.quantile(q)
+
+        dense_df = DataFrame(data)
+        dense_expected = dense_df.quantile(q)
+        sparse_expected = SparseSeries(dense_expected)
+
+        tm.assert_series_equal(result, dense_expected)
+        tm.assert_sp_series_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_quantile_multi(self):
+        # GH 17386
+        data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
+        q = [0.1, 0.5]
+
+        sparse_df = SparseDataFrame(data)
+        result = sparse_df.quantile(q)
+
+        dense_df = DataFrame(data)
+        dense_expected = dense_df.quantile(q)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)

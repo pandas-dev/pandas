@@ -229,12 +229,7 @@ You can pass only the columns that you need to assemble.
 Invalid Data
 ~~~~~~~~~~~~
 
-.. note::
-
-   In version 0.17.0, the default for ``to_datetime`` is now ``errors='raise'``, rather than ``errors='ignore'``. This means
-   that invalid parsing will raise rather that return the original input as in previous versions.
-
-The default behavior, ``errors='raise'``, is to raise when unparseable: 
+The default behavior, ``errors='raise'``, is to raise when unparseable:
 
 .. code-block:: ipython
 
@@ -657,18 +652,25 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A ``truncate`` convenience function is provided that is equivalent to slicing:
+A ``truncate`` convenience function is provided that is similar to slicing.
+Note that ``truncate`` assumes a 0 value for any unspecified date component
+in a ``DatetimeIndex`` in contrast to slicing which returns any partially
+matching dates:
 
 .. ipython:: python
 
-   ts.truncate(before='10/31/2011', after='12/31/2011')
+   rng2 = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+   ts2 = pd.Series(np.random.randn(len(rng2)), index=rng2)
+
+   ts2.truncate(before='2011-11', after='2011-12')
+   ts2['2011-11':'2011-12']
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
 regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts[[0, 2, 6]].index
+   ts2[[0, 2, 6]].index
 
 .. _timeseries.components:
 
@@ -1456,8 +1458,9 @@ The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
 operation.
 
-The ``how`` parameter can be a function name or numpy array function that takes
-an array and produces aggregated values:
+Any function available via :ref:`dispatching <groupby.dispatch>` is available as
+a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
+``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``:
 
 .. ipython:: python
 
@@ -1467,9 +1470,6 @@ an array and produces aggregated values:
 
    ts.resample('5Min').max()
 
-Any function available via :ref:`dispatching <groupby.dispatch>` can be given to
-the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``sem``,
-``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``.
 
 For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
 end of the interval is closed:
@@ -1487,11 +1487,30 @@ labels.
 
 .. ipython:: python
 
-   ts.resample('5Min').mean() # by default label='right'
+   ts.resample('5Min').mean() # by default label='left'
 
    ts.resample('5Min', label='left').mean()
 
    ts.resample('5Min', label='left', loffset='1s').mean()
+
+.. note::
+
+    The default values for ``label`` and ``closed`` is 'left' for all 
+    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' 
+    which all have a default of 'right'.
+
+    .. ipython:: python
+
+       rng2 = pd.date_range('1/1/2012', end='3/31/2012', freq='D')
+       ts2 = pd.Series(range(len(rng2)), index=rng2)
+
+       # default: label='right', closed='right'
+       ts2.resample('M').max()
+
+       # default: label='left', closed='left'
+       ts2.resample('SM').max()
+
+       ts2.resample('SM', label='right', closed='right').max()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
@@ -2205,8 +2224,6 @@ constructor as well as ``tz_localize``.
 
 TZ Aware Dtypes
 ~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.17.0
 
 ``Series/DatetimeIndex`` with a timezone **naive** value are represented with a dtype of ``datetime64[ns]``.
 

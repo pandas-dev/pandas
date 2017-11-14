@@ -158,6 +158,24 @@ class TestMultiIndex(Base):
         assert res is None
         assert ind.names == new_names2
 
+    def test_set_levels_labels_directly(self):
+        # setting levels/labels directly raises AttributeError
+
+        levels = self.index.levels
+        new_levels = [[lev + 'a' for lev in level] for level in levels]
+
+        labels = self.index.labels
+        major_labels, minor_labels = labels
+        major_labels = [(x + 1) % 3 for x in major_labels]
+        minor_labels = [(x + 1) % 1 for x in minor_labels]
+        new_labels = [major_labels, minor_labels]
+
+        with pytest.raises(AttributeError):
+            self.index.levels = new_levels
+
+        with pytest.raises(AttributeError):
+            self.index.labels = new_labels
+
     def test_set_levels(self):
         # side note - you probably wouldn't want to use levels and labels
         # directly like this - but it is possible.
@@ -458,7 +476,7 @@ class TestMultiIndex(Base):
         df = df.sort_index()
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
-        df = df.set_value(('grethe', '4'), 'one', 99.34)
+        df.at[('grethe', '4'), 'one'] = 99.34
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
 
@@ -577,16 +595,6 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
-
-        # deprecated properties
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-
-            with tm.assert_raises_regex(ValueError, length_error):
-                self.index.copy().levels = [['a'], ['b']]
-
-            with tm.assert_raises_regex(ValueError, label_error):
-                self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
@@ -970,12 +978,13 @@ class TestMultiIndex(Base):
 
         arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        expected = np.array([np.nan, np.nan, np.nan])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
-        values = index.get_level_values(1)
-        expected = np.array(['a', np.nan, 1], dtype=object)
-        tm.assert_numpy_array_equal(values.values, expected)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan])
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1])
+        tm.assert_index_equal(result, expected)
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)
@@ -2980,3 +2989,13 @@ class TestMultiIndex(Base):
         assert pd.isna(df0.index.get_level_values(1)).all()
         # the following failed in 0.14.1
         assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+    def test_million_record_attribute_error(self):
+        # GH 18165
+        r = list(range(1000000))
+        df = pd.DataFrame({'a': r, 'b': r},
+                          index=pd.MultiIndex.from_tuples([(x, x) for x in r]))
+
+        with tm.assert_raises_regex(AttributeError,
+                                    "'Series' object has no attribute 'foo'"):
+            df['a'].foo()

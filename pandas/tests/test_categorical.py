@@ -306,20 +306,18 @@ class TestCategorical(object):
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Catch old style constructor useage: two arrays, codes + categories
-        # We can only catch two cases:
+        # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],
                                 categories=["a", "b", "c"])  # noqa
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2],  # noqa
                                 categories=[3, 4, 5])
 
-        # the next one are from the old docs, but unfortunately these don't
-        # trigger :-(
+        # the next one are from the old docs
         with tm.assert_produces_warning(None):
             c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
             cat = Categorical([1, 2], categories=[1, 2, 3])
@@ -519,6 +517,18 @@ class TestCategorical(object):
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
+    def test_constructor_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical(
+            ['a', 'b'], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical(
+            ['a', 'b'], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
@@ -559,6 +569,22 @@ class TestCategorical(object):
         if hasattr(np.random, "choice"):
             codes = np.random.choice([0, 1], 5, p=[0.9, 0.1])
             pd.Categorical.from_codes(codes, categories=["train", "test"])
+
+    def test_from_codes_with_categorical_categories(self):
+        # GH17884
+        expected = Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+
+        result = Categorical.from_codes(
+            [0, 1], categories=Categorical(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        result = Categorical.from_codes(
+            [0, 1], categories=CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_categorical_equal(result, expected)
+
+        # non-unique Categorical still raises
+        with pytest.raises(ValueError):
+            Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
@@ -768,6 +794,97 @@ class TestCategorical(object):
         cat = self.factor.copy()
         cat.set_categories(['a', 'b', 'c', 'd'], inplace=True)
         tm.assert_index_equal(cat.categories, pd.Index(['a', 'b', 'c', 'd']))
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
+         pytest.param("datetime64[D]",
+                      marks=pytest.mark.xfail(reason="issue7996"))]
+    )
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_non_bool(self, dtype, is_ordered):
+        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
+
+        # Test case 1
+        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
+        tc1 = Series(Categorical(input1, categories=cat_array,
+                                 ordered=is_ordered))
+
+        expected = Series([False, False, False, True])
+        tm.assert_series_equal(tc1.duplicated(), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, False])
+        tm.assert_series_equal(tc1.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep='last'),
+                               tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc1.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        # Test case 2
+        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
+        tc2 = Series(Categorical(
+            input2, categories=cat_array, ordered=is_ordered)
+        )
+
+        expected = Series([False, False, False, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        tm.assert_series_equal(tc2.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep='last'),
+                               tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_bool(self, is_ordered):
+        tc = Series(Categorical([True, False, True, False],
+                                categories=[True, False], ordered=is_ordered))
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc.duplicated(), expected)
+        tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, False, False])
+        tm.assert_series_equal(tc.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(tc.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
 
     def test_describe(self):
         # string type
@@ -1174,6 +1291,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Shorten
         with pytest.raises(ValueError):
             cat.rename_categories([1, 2])
+
+    def test_rename_categories_series(self):
+        # https://github.com/pandas-dev/pandas/issues/17981
+        c = pd.Categorical(['a', 'b'])
+        xpr = "Treating Series 'new_categories' as a list-like "
+        with tm.assert_produces_warning(FutureWarning) as rec:
+            result = c.rename_categories(pd.Series([0, 1]))
+
+        assert len(rec) == 1
+        assert xpr in str(rec[0].message)
+        expected = pd.Categorical([0, 1])
+        tm.assert_categorical_equal(result, expected)
 
     def test_rename_categories_dict(self):
         # GH 17336
@@ -2083,6 +2212,13 @@ class TestCategoricalAsBlock(object):
             l, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_empty_astype(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
 
     def test_construction_series(self):
 
@@ -3592,7 +3728,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(res_fancy, exp_fancy)
 
         # get_value
-        res_val = df.get_value("j", "cats")
+        res_val = df.at["j", "cats"]
         assert res_val == exp_val
 
         # i : int, slice, or sequence of integers
@@ -3956,12 +4092,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # set_value
         df = orig.copy()
-        df.set_value("j", "cats", "b")
+        df.at["j", "cats"] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         def f():
             df = orig.copy()
-            df.set_value("j", "cats", "c")
+            df.at["j", "cats"] = "c"
 
         pytest.raises(ValueError, f)
 

@@ -21,7 +21,8 @@ from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
-from pandas.tseries.frequencies import MONTHS, DAYS
+from pandas._libs.tslibs.resolution import DAYS
+from pandas.tseries.frequencies import MONTHS
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -1422,7 +1423,7 @@ class TestDatetimeIndex(Base):
                     Timestamp('2011-01-06 10:59:05', tz=None): 1500000000,
                     Timestamp('2011-01-06 12:43:33', tz=None): 5000000000,
                     Timestamp('2011-01-06 12:54:09', tz=None): 100000000}})
-        ).reindex_axis(['VOLUME', 'PRICE'], axis=1)
+        ).reindex(['VOLUME', 'PRICE'], axis=1)
         res = df.resample('H').ohlc()
         exp = pd.concat([df['VOLUME'].resample('H').ohlc(),
                          df['PRICE'].resample('H').ohlc()],
@@ -1652,7 +1653,7 @@ class TestDatetimeIndex(Base):
         expected = DataFrame({'Group_obj': ['A', 'A'],
                               'Group': ['A', 'A']},
                              index=pd.to_timedelta([0, 10], unit='s'))
-        expected = expected.reindex_axis(['Group_obj', 'Group'], 1)
+        expected = expected.reindex(['Group_obj', 'Group'], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_resample_daily_anchored(self):
@@ -3033,7 +3034,7 @@ class TestResamplerGrouper(object):
         result = pd.Series(range(3), index=index).resample('20s').nearest()
 
         expected = pd.Series(
-            np.array([0, 0, 1, 1, 1, 2, 2]),
+            [0, 0, 1, 1, 1, 2, 2],
             index=pd.DatetimeIndex(
                 ['2000-01-01 00:00:00', '2000-01-01 00:00:20',
                  '2000-01-01 00:00:40', '2000-01-01 00:01:00',
@@ -3102,6 +3103,26 @@ class TestResamplerGrouper(object):
 
         result = g.apply(f)
         assert_frame_equal(result, expected)
+
+    def test_apply_with_mutated_index(self):
+        # GH 15169
+        index = pd.date_range('1-1-2015', '12-31-15', freq='D')
+        df = pd.DataFrame(data={'col1': np.random.rand(len(index))},
+                          index=index)
+
+        def f(x):
+            s = pd.Series([1, 2], index=['a', 'b'])
+            return s
+
+        expected = df.groupby(pd.Grouper(freq='M')).apply(f)
+
+        result = df.resample('M').apply(f)
+        assert_frame_equal(result, expected)
+
+        # A case for series
+        expected = df['col1'].groupby(pd.Grouper(freq='M')).apply(f)
+        result = df['col1'].resample('M').apply(f)
+        assert_series_equal(result, expected)
 
     def test_resample_groupby_with_label(self):
         # GH 13235

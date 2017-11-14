@@ -10,6 +10,8 @@ import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, concat, option_context)
 from pandas.compat import u
+from pandas import _np_version_under1p14
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
@@ -531,7 +533,12 @@ class TestDataFrameDataTypes(TestData):
             assert_frame_equal(result, expected)
 
             result = DataFrame([1.12345678901234567890]).astype(tt)
-            expected = DataFrame(['1.12345678901'])
+            if _np_version_under1p14:
+                # < 1.14 truncates
+                expected = DataFrame(['1.12345678901'])
+            else:
+                # >= 1.14 preserves the full repr
+                expected = DataFrame(['1.1234567890123457'])
             assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -611,6 +618,20 @@ class TestDataFrameDataTypes(TestData):
         result = df.astype({'a': 'str'})
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("cls", [
+        pd.api.types.CategoricalDtype,
+        pd.api.types.DatetimeTZDtype,
+        pd.api.types.IntervalDtype
+    ])
+    def test_astype_categoricaldtype_class_raises(self, cls):
+        df = DataFrame({"A": ['a', 'a', 'b', 'c']})
+        xpr = "Expected an instance of {}".format(cls.__name__)
+        with tm.assert_raises_regex(TypeError, xpr):
+            df.astype({"A": cls})
+
+        with tm.assert_raises_regex(TypeError, xpr):
+            df['A'].astype(cls)
 
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,

@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
+from pandas.core.common import _all_not_none
 
 import pandas.compat as compat
 from pandas.compat import (
@@ -401,21 +402,6 @@ def _skip_if_no_localpath():
         pytest.skip("py.path not installed")
 
 
-def _incompat_bottleneck_version(method):
-    """ skip if we have bottleneck installed
-    and its >= 1.0
-    as we don't match the nansum/nanprod behavior for all-nan
-    ops, see GH9422
-    """
-    if method not in ['sum', 'prod']:
-        return False
-    try:
-        import bottleneck as bn
-        return bn.__version__ >= LooseVersion('1.0')
-    except ImportError:
-        return False
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,
@@ -540,7 +526,7 @@ def get_locales(prefix=None, normalize=True,
     """
     try:
         raw_locales = locale_getter()
-    except:
+    except Exception:
         return None
 
     try:
@@ -594,7 +580,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if all(lc is not None for lc in normalized_locale):
+            if _all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale
@@ -771,7 +757,7 @@ def set_trace():
     from IPython.core.debugger import Pdb
     try:
         Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except:
+    except Exception:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
 
@@ -1088,8 +1074,12 @@ def assert_categorical_equal(left, right, check_dtype=True,
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
+    elif is_categorical_dtype(left):
+        left = repr(left)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
+    elif is_categorical_dtype(right):
+        right = repr(right)
 
     msg = """{obj} are different
 
@@ -1275,9 +1265,9 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         # TODO: big hack here
-        l = pd.IntervalIndex(left)
-        r = pd.IntervalIndex(right)
-        assert_index_equal(l, r, obj='{obj}.index'.format(obj=obj))
+        left = pd.IntervalIndex(left)
+        right = pd.IntervalIndex(right)
+        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1449,8 +1439,8 @@ def assert_panelnd_equal(left, right,
         assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     if by_blocks:
-        rblocks = right.blocks
-        lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
@@ -2355,7 +2345,7 @@ def network(t, url="http://www.google.com",
 
             try:
                 e_str = traceback.format_exc(e)
-            except:
+            except Exception:
                 e_str = str(e)
 
             if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
@@ -2592,7 +2582,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except:
+                except Exception:
                     pass
 
         saw_warning = False
@@ -2859,7 +2849,7 @@ def set_timezone(tz):
         if tz is None:
             try:
                 del os.environ['TZ']
-            except:
+            except KeyError:
                 pass
         else:
             os.environ['TZ'] = tz

@@ -260,8 +260,11 @@ dialect : str or csv.Dialect instance, default None
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
 tupleize_cols : boolean, default False
+    .. deprecated:: 0.21.0
+       This argument will be removed and will always convert to MultiIndex
+
     Leave a list of tuples on columns as is (default is to convert to
-    a Multi Index on the columns)
+    a MultiIndex on the columns)
 error_bad_lines : boolean, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -313,7 +316,8 @@ _engine_doc = """engine : {'c', 'python'}, optional
 _sep_doc = r"""sep : str, default {default}
     Delimiter to use. If sep is None, the C engine cannot automatically detect
     the separator, but the Python parsing engine can, meaning the latter will
-    be used automatically. In addition, separators longer than 1 character and
+    be used and automatically detect the separator by Python's builtin sniffer
+    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
@@ -510,6 +514,7 @@ _c_parser_defaults = {
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
+    'tupleize_cols': False,
     'float_precision': None
 }
 
@@ -524,11 +529,20 @@ _python_unsupported = {
     'buffer_lines',
     'float_precision',
 }
+
+_deprecated_defaults = {
+    'as_recarray': None,
+    'buffer_lines': None,
+    'compact_ints': None,
+    'use_unsigned': None,
+    'tupleize_cols': None
+}
 _deprecated_args = {
     'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
+    'tupleize_cols',
 }
 
 
@@ -588,7 +602,7 @@ def _make_parser_function(name, sep=','):
                  comment=None,
                  encoding=None,
                  dialect=None,
-                 tupleize_cols=False,
+                 tupleize_cols=None,
 
                  # Error Handling
                  error_bad_lines=True,
@@ -600,9 +614,9 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=False,
-                 compact_ints=False,
-                 use_unsigned=False,
+                 as_recarray=None,
+                 compact_ints=None,
+                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
                  buffer_lines=None,
                  memory_map=False,
@@ -825,12 +839,14 @@ class TextFileReader(BaseIterator):
                     if ('python' in engine and
                             argname not in _python_unsupported):
                         pass
+                    elif value == _deprecated_defaults.get(argname, default):
+                        pass
                     else:
                         raise ValueError(
                             'The %r option is not supported with the'
                             ' %r engine' % (argname, engine))
             else:
-                value = default
+                value = _deprecated_defaults.get(argname, default)
             options[argname] = value
 
         if engine == 'python-fwf':
@@ -956,15 +972,23 @@ class TextFileReader(BaseIterator):
 
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
+            depr_default = _deprecated_defaults[arg]
+
             msg = ("The '{arg}' argument has been deprecated "
                    "and will be removed in a future version."
                    .format(arg=arg))
 
             if arg == 'as_recarray':
                 msg += ' Please call pd.to_csv(...).to_records() instead.'
+            elif arg == 'tupleize_cols':
+                msg += (' Column tuples will then '
+                        'always be converted to MultiIndex.')
 
-            if result.get(arg, parser_default) != parser_default:
+            if result.get(arg, depr_default) != depr_default:
+                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + '\n\n'
+            else:
+                result[arg] = parser_default
 
         if depr_warning != '':
             warnings.warn(depr_warning, FutureWarning, stacklevel=2)
@@ -1080,6 +1104,24 @@ class TextFileReader(BaseIterator):
 
 def _is_index_col(col):
     return col is not None and col is not False
+
+
+def _is_potential_multi_index(columns):
+    """
+    Check whether or not the `columns` parameter
+    could be converted into a MultiIndex.
+
+    Parameters
+    ----------
+    columns : array-like
+        Object which may or may not be convertible into a MultiIndex
+
+    Returns
+    -------
+    boolean : Whether or not columns could become a MultiIndex
+    """
+    return (len(columns) and not isinstance(columns, MultiIndex) and
+            all([isinstance(c, tuple) for c in columns]))
 
 
 def _evaluate_usecols(usecols, names):
@@ -1207,6 +1249,8 @@ class ParserBase(object):
 
         self.na_values = kwds.get('na_values')
         self.na_fvalues = kwds.get('na_fvalues')
+        self.na_filter = kwds.get('na_filter', False)
+
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
         self.as_recarray = kwds.get('as_recarray', False)
@@ -1350,6 +1394,7 @@ class ParserBase(object):
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts = defaultdict(int)
+            is_potential_mi = _is_potential_multi_index(names)
 
             for i, col in enumerate(names):
                 cur_count = counts[col]
@@ -1357,7 +1402,10 @@ class ParserBase(object):
                 while cur_count > 0:
                     counts[col] = cur_count + 1
 
-                    col = '%s.%d' % (col, cur_count)
+                    if is_potential_mi:
+                        col = col[:-1] + ('%s.%d' % (col[-1], cur_count),)
+                    else:
+                        col = '%s.%d' % (col, cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1367,9 +1415,7 @@ class ParserBase(object):
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if (not self.tupleize_cols and len(columns) and
-                not isinstance(columns, MultiIndex) and
-                all([isinstance(c, tuple) for c in columns])):
+        if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
@@ -1380,7 +1426,6 @@ class ParserBase(object):
         elif not self._has_complex_date_col:
             index = self._get_simple_index(alldata, columns)
             index = self._agg_index(index)
-
         elif self._has_complex_date_col:
             if not self._name_processed:
                 (self.index_names, _,
@@ -1407,7 +1452,6 @@ class ParserBase(object):
             if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
-        index = None
 
         to_remove = []
         index = []
@@ -1438,8 +1482,6 @@ class ParserBase(object):
                 if i == icol:
                     return c
 
-        index = None
-
         to_remove = []
         index = []
         for idx in self.index_col:
@@ -1460,11 +1502,15 @@ class ParserBase(object):
 
         for i, arr in enumerate(index):
 
-            if (try_parse_dates and self._should_parse_dates(i)):
+            if try_parse_dates and self._should_parse_dates(i):
                 arr = self._date_conv(arr)
 
-            col_na_values = self.na_values
-            col_na_fvalues = self.na_fvalues
+            if self.na_filter:
+                col_na_values = self.na_values
+                col_na_fvalues = self.na_fvalues
+            else:
+                col_na_values = set()
+                col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
                 col_name = self.index_names[i]
@@ -1647,7 +1693,9 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if 'utf-16' in (kwds.get('encoding') or ''):
+        if (kwds.get('compression') is None
+           and 'utf-16' in (kwds.get('encoding') or '')):
+            # if source is utf-16 plain text, convert source to utf-8
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
                 self.handles.append(src)
@@ -2016,8 +2064,6 @@ class PythonParser(ParserBase):
         self.error_bad_lines = kwds['error_bad_lines']
 
         self.names_passed = kwds['names'] or None
-
-        self.na_filter = kwds['na_filter']
 
         self.has_index_names = False
         if 'has_index_names' in kwds:

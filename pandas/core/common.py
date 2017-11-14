@@ -223,17 +223,36 @@ def _mut_exclusive(**kwargs):
 
 
 def _not_none(*args):
+    """Returns a generator consisting of the arguments that are not None"""
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
+    """Returns a boolean indicating if any argument is None"""
     for arg in args:
         if arg is None:
             return True
     return False
 
 
+def _all_none(*args):
+    """Returns a boolean indicating if all arguments are None"""
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
+def _any_not_none(*args):
+    """Returns a boolean indicating if any argument is not None"""
+    for arg in args:
+        if arg is not None:
+            return True
+    return False
+
+
 def _all_not_none(*args):
+    """Returns a boolean indicating if all arguments are not None"""
     for arg in args:
         if arg is None:
             return False
@@ -241,6 +260,7 @@ def _all_not_none(*args):
 
 
 def _count_not_none(*args):
+    """Returns the count of arguments that are not None"""
     return sum(x is not None for x in args)
 
 
@@ -445,17 +465,18 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
     otherwise return as it is
+
+    Parameters
+    ----------
+    maybe_callable : possibly a callable
+    obj : NDFrame
+    **kwargs
     """
+
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
+
     return maybe_callable
-
-
-def _all_none(*args):
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
 
 
 def _where_compat(mask, arr1, arr2):
@@ -643,3 +664,38 @@ def _get_distinct_objs(objs):
             ids.add(id(obj))
             res.append(obj)
     return res
+
+
+def _pipe(obj, func, *args, **kwargs):
+    """
+    Apply a function ``func`` to object ``obj`` either by passing obj as the
+    first argument to the function or, in the case that the func is a tuple,
+    interpret the first element of the tuple as a function and pass the obj to
+    that function as a keyword argument whose key is the value of the second
+    element of the tuple.
+
+    Parameters
+    ----------
+    func : callable or tuple of (callable, string)
+        Function to apply to this object or, alternatively, a
+        ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+        string indicating the keyword of `callable`` that expects the
+        object.
+    args : iterable, optional
+        positional arguments passed into ``func``.
+    kwargs : dict, optional
+        a dictionary of keyword arguments passed into ``func``.
+
+    Returns
+    -------
+    object : the return type of ``func``.
+    """
+    if isinstance(func, tuple):
+        func, target = func
+        if target in kwargs:
+            msg = '%s is both the pipe target and a keyword argument' % target
+            raise ValueError(msg)
+        kwargs[target] = obj
+        return func(*args, **kwargs)
+    else:
+        return func(obj, *args, **kwargs)

@@ -292,15 +292,15 @@ class TestSeriesMissingData(TestData):
                           dtype='object')
         assert_series_equal(result, expected)
 
-        # where (we ignore the raise_on_error)
+        # where (we ignore the errors=)
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=False)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=True)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -636,17 +636,21 @@ class TestSeriesMissingData(TestData):
 
     def test_isna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.isna(),
-                       Series([False, False, False, True, False]).values)
+        expected = Series([False, False, False, True, False])
+        tm.assert_series_equal(ser.isna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.isna(), Series([False, False, True]).values)
+        expected = Series([False, False, True])
+        tm.assert_series_equal(ser.isna(), expected)
 
     def test_notna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.notna(),
-                       Series([True, True, True, False, True]).values)
+        expected = Series([True, True, True, False, True])
+        tm.assert_series_equal(ser.notna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.notna(), Series([True, True, False]).values)
+        expected = Series([True, True, False])
+        tm.assert_series_equal(ser.notna(), expected)
 
     def test_pad_nan(self):
         x = Series([np.nan, 1., np.nan, 3., np.nan], ['z', 'a', 'b', 'c', 'd'],

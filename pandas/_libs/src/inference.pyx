@@ -2,7 +2,9 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT
+from tslibs.nattype import NaT
+from tslib cimport convert_to_tsobject
+from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
@@ -165,20 +167,8 @@ cdef class Seen(object):
                      two conflict cases was also detected. However, we are
                      trying to force conversion to a numeric dtype.
         """
-        if self.uint_ and (self.null_ or self.sint_):
-            if not self.coerce_numeric:
-                return True
-
-            if self.null_:
-                msg = ("uint64 array detected, and such an "
-                       "array cannot contain NaN.")
-            else:  # self.sint_ = 1
-                msg = ("uint64 and negative values detected. "
-                       "Cannot safely return a numeric array "
-                       "without truncating data.")
-
-            raise ValueError(msg)
-        return False
+        return (self.uint_ and (self.null_ or self.sint_)
+                and not self.coerce_numeric)
 
     cdef inline saw_null(self):
         """
@@ -226,7 +216,7 @@ cdef _try_infer_map(v):
 
 def infer_dtype(object value, bint skipna=False):
     """
-    Effeciently infer the type of a passed val, or list-like
+    Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
 
     Parameters
@@ -361,12 +351,12 @@ def infer_dtype(object value, bint skipna=False):
     if values.dtype != np.object_:
         values = values.astype('O')
 
+    # make contiguous
+    values = values.ravel()
+
     n = len(values)
     if n == 0:
         return 'empty'
-
-    # make contiguous
-    values = values.ravel()
 
     # try to use a valid value
     for i in range(n):
@@ -459,8 +449,8 @@ def infer_dtype(object value, bint skipna=False):
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
-            not util.is_timedelta64_object(val) and
-            not util.is_datetime64_object(val)):
+                not util.is_timedelta64_object(val) and
+                not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'
@@ -532,7 +522,7 @@ cpdef object infer_datetimelike_array(object arr):
     # convert *every* string array
     if len(objs):
         try:
-            tslib.array_to_datetime(objs, errors='raise')
+            array_to_datetime(objs, errors='raise')
             return 'datetime'
         except:
             pass
@@ -623,7 +613,7 @@ cdef class Validator:
         self.dtype = dtype
         self.skipna = skipna
 
-    cdef bint validate(self, object[:] values) except -1:
+    cdef bint validate(self, ndarray values) except -1:
         if not self.n:
             return False
 
@@ -639,7 +629,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate(self, object[:] values) except -1:
+    cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -652,7 +642,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate_skipna(self, object[:] values) except -1:
+    cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -862,7 +852,7 @@ cdef class DatetimeValidator(TemporalValidator):
         return is_null_datetime64(value)
 
 
-cpdef bint is_datetime_array(ndarray[object] values):
+cpdef bint is_datetime_array(ndarray values):
     cdef:
         DatetimeValidator validator = DatetimeValidator(
             len(values),
@@ -886,7 +876,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
+cpdef bint is_datetime_with_singletz_array(ndarray values):
     """
     Check values have the same tzinfo attribute.
     Doesn't check values are datetime-like types.
@@ -969,7 +959,7 @@ cdef class DateValidator(Validator):
         return is_date(value)
 
 
-cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef DateValidator validator = DateValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -980,7 +970,7 @@ cdef class TimeValidator(Validator):
         return is_time(value)
 
 
-cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef TimeValidator validator = TimeValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -994,7 +984,7 @@ cdef class PeriodValidator(TemporalValidator):
         return is_null_period(value)
 
 
-cpdef bint is_period_array(ndarray[object] values):
+cpdef bint is_period_array(ndarray values):
     cdef PeriodValidator validator = PeriodValidator(len(values), skipna=True)
     return validator.validate(values)
 
@@ -1005,7 +995,7 @@ cdef class IntervalValidator(Validator):
         return is_interval(value)
 
 
-cpdef bint is_interval_array(ndarray[object] values):
+cpdef bint is_interval_array(ndarray values):
     cdef:
         IntervalValidator validator = IntervalValidator(
             len(values),
@@ -1103,10 +1093,17 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_int(val)
 
             if val >= 0:
-                uints[i] = val
+                if val <= oUINT64_MAX:
+                    uints[i] = val
+                else:
+                    seen.float_ = True
 
             if val <= oINT64_MAX:
                 ints[i] = val
+
+            if seen.sint_ and seen.uint_:
+                seen.float_ = True
+
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
@@ -1154,6 +1151,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                             uints[i] = as_int
                         if as_int <= oINT64_MAX:
                             ints[i] = as_int
+
+                    seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:

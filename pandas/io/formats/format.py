@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -36,7 +37,6 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
@@ -84,12 +84,23 @@ _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "match-parent", "initial", "unset")
 
 justify_docstring = """
-    justify : {'left', 'right', 'center', 'justify',
-               'justify-all', 'start', 'end', 'inherit',
-               'match-parent', 'initial', 'unset'}, default None
+    justify : str, default None
         How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
-        of the box."""
+        of the box. Valid values are
+
+        * left
+        * right
+        * center
+        * justify
+        * justify-all
+        * start
+        * end
+        * inherit
+        * match-parent
+        * initial
+        * unset
+"""
 
 return_docstring = """
 
@@ -1257,7 +1268,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1426,7 +1437,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -1612,12 +1623,20 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
+        if self.encoding is None:
+            if compat.PY2:
+                encoding = 'ascii'
+            else:
+                encoding = 'utf-8'
+        else:
+            encoding = self.encoding
+
         if hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=self.encoding,
+                                     encoding=encoding,
                                      compression=self.compression)
             close = True
 
@@ -1627,11 +1646,11 @@ class CSVFormatter(object):
                                  doublequote=self.doublequote,
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
-            if self.encoding is not None:
-                writer_kwargs['encoding'] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
-            else:
+            if encoding == 'ascii':
                 self.writer = csv.writer(f, **writer_kwargs)
+            else:
+                writer_kwargs['encoding'] = encoding
+                self.writer = UnicodeWriter(f, **writer_kwargs)
 
             self._save()
 
@@ -1687,7 +1706,7 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
-        if not has_mi_columns:
+        if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
             writer.writerow(encoded_labels)
         else:
@@ -2344,7 +2363,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return any([x is not None for x in index.names])
+        return _any_not_none(*index.names)
     else:
         return index.name is not None
 

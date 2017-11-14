@@ -742,6 +742,18 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
         try:
             tables = p.parse_tables()
         except Exception as caught:
+            # if `io` is an io-like object, check if it's seekable
+            # and try to rewind it before trying the next parser
+            if hasattr(io, 'seekable') and io.seekable():
+                io.seek(0)
+            elif hasattr(io, 'seekable') and not io.seekable():
+                # if we couldn't rewind it, let the user know
+                raise ValueError('The flavor {} failed to parse your input. '
+                                 'Since you passed a non-rewindable file '
+                                 'object, we can\'t rewind it to try '
+                                 'another parser. Try read_html() with a '
+                                 'different flavor.'.format(flav))
+
             retained = caught
         else:
             break
@@ -759,7 +771,7 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
-              tupleize_cols=False, thousands=',', encoding=None,
+              tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
               keep_default_na=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -827,6 +839,9 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         If ``False`` try to parse multiple header rows into a
         :class:`~pandas.MultiIndex`, otherwise return raw tuples. Defaults to
         ``False``.
+
+        .. deprecated:: 0.21.0
+           This argument will be removed and will always convert to MultiIndex
 
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
