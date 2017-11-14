@@ -3,7 +3,7 @@ from pandas._libs.properties import cache_readonly  # noqa
 import inspect
 import types
 import warnings
-from textwrap import dedent
+from textwrap import dedent, wrap
 from functools import wraps, update_wrapper
 
 
@@ -29,11 +29,16 @@ def deprecate(name, alternative, alt_name=None, klass=None,
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    msg = msg or "{} is deprecated. Use {} instead".format(name, alt_name)
+    msg = msg or "{} is deprecated, use {} instead".format(name, alt_name)
 
+    @wraps(alternative)
     def wrapper(*args, **kwargs):
         warnings.warn(msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
+
+    if getattr(wrapper, '__doc__', None) is not None:
+        wrapper.__doc__ = ('\n'.join(wrap(msg, 70)) + '\n'
+                           + dedent(wrapper.__doc__))
     return wrapper
 
 

@@ -1361,13 +1361,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ndarray compat
     argmin = deprecate('argmin', idxmin,
-                       msg="'argmin' is deprecated. Use 'idxmin' instead. "
+                       msg="'argmin' is deprecated, use 'idxmin' instead. "
                            "The behavior of 'argmin' will be corrected to "
                            "return the positional minimum in the future. "
                            "Use 'series.values.argmin' to get the position of "
                            "the minimum now.")
     argmax = deprecate('argmax', idxmax,
-                       msg="'argmax' is deprecated. Use 'idxmax' instead. "
+                       msg="'argmax' is deprecated, use 'idxmax' instead. "
                            "The behavior of 'argmax' will be corrected to "
                            "return the positional maximum in the future. "
                            "Use 'series.values.argmax' to get the position of "
