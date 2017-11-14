@@ -28,7 +28,7 @@ class PeriodProperties(object):
         self.per.second
 
     def time_is_leap_year(self):
-        self.per.is_leapyear
+        self.per.is_leap_year
 
     def time_quarter(self):
         self.per.quarter
@@ -54,13 +54,21 @@ class PeriodProperties(object):
     def time_end_time(self):
         self.per.end_time
 
-    def time_to_timestamp():
+
+class PeriodUnaryMethods(object):
+    params = ['M', 'min']
+    param_names = ['freq']
+
+    def setup(self, freq):
+        self.per = Period('2012-06-01', freq=freq)
+
+    def time_to_timestamp(self):
         self.per.to_timestamp()
 
-    def time_now():
+    def time_now(self):
         self.per.now()
 
-    def time_asfreq():
+    def time_asfreq(self):
         self.per.asfreq('A')
 
 
@@ -95,34 +103,26 @@ class DataFramePeriodColumn(object):
         df['col'] = rng
 
 
-class PeriodIndexAlgorithms(object):
+class Algorithms(object):
     goal_time = 0.2
 
-    def setup(self):
+    params = [PeriodIndex, Series]
+    param_names = ['box_cls']
+
+    def setup(self, box_cls):
         data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
                 Period('2011-03', freq='M'), Period('2011-04', freq='M')]
-        self.index = PeriodIndex(data, freq='M')
+
+        if box_cls is PeriodIndex:
+            self.vector = PeriodIndex(data, freq='M')
+        else:
+            self.vector = Series(data * 1000)
 
     def time_drop_duplicates(self):
-        self.index.drop_duplicates()
+        self.vector.drop_duplicates()
 
     def time_value_counts(self):
-        self.index.value_counts()
-
-
-class PeriodSeriesAlgorithms(object):
-    goal_time = 0.2
-
-    def setup(self):
-        data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
-                Period('2011-03', freq='M'), Period('2011-04', freq='M')]
-        self.series = Series(data * 1000)
-
-    def time_drop_duplicates(self):
-        self.series.drop_duplicates()
-
-    def time_value_counts(self):
-        self.series.value_counts()
+        self.vector.value_counts()
 
 
 class PeriodStandardIndexing(object):
