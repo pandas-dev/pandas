@@ -2512,122 +2512,26 @@ Scalar introspection
 .. toctree::
    :hidden:
 
-   generated/pandas.DataFrame.as_blocks
-   generated/pandas.DataFrame.bfill
-   generated/pandas.DataFrame.blocks
    generated/pandas.DataFrame.columns
-   generated/pandas.DataFrame.consolidate
-   generated/pandas.DataFrame.ffill
-   generated/pandas.DataFrame.get_value
    generated/pandas.DataFrame.index
    generated/pandas.DataFrame.ix
-   generated/pandas.DataFrame.set_value
-   generated/pandas.DataFrame.sortlevel
-   generated/pandas.DataFrame.isnull
-   generated/pandas.DataFrame.notnull
-
-   generated/pandas.Index.data
    generated/pandas.Index.asi8
+   generated/pandas.Index.data
    generated/pandas.Index.flags
-   generated/pandas.Index.isnull
-   generated/pandas.Index.names
    generated/pandas.Index.nlevels
-   generated/pandas.Index.notnull
-   generated/pandas.Index.reshape
    generated/pandas.Index.sort
-   generated/pandas.Index.sortlevel
-
-   generated/pandas.Index.str
-
-   generated/pandas.Panel.as_blocks
-   generated/pandas.Panel.blocks
-   generated/pandas.Panel.consolidate
-   generated/pandas.Panel.fromDict
-   generated/pandas.Panel.isnull
-   generated/pandas.Panel.ix
-   generated/pandas.Panel.notnull
-   generated/pandas.Panel.from_dict
-   generated/pandas.Panel.empty
-   generated/pandas.Panel.is_copy
-   generated/pandas.Panel.as_matrix
-   generated/pandas.Panel.convert_objects
-   generated/pandas.Panel.infer_objects
-   generated/pandas.Panel.get
-   generated/pandas.Panel.get_values
-   generated/pandas.Panel.keys
-   generated/pandas.Panel.major_axis
-   generated/pandas.Panel.items
-   generated/pandas.Panel.minor_axis
-   generated/pandas.Panel.slice_shift
-   generated/pandas.Panel.pipe
    generated/pandas.Panel.agg
    generated/pandas.Panel.aggregate
-   generated/pandas.Panel.all
-   generated/pandas.Panel.any
-   generated/pandas.Panel.bool
-   generated/pandas.Panel.divide
-   generated/pandas.Panel.kurt
-   generated/pandas.Panel.kurtosis
-   generated/pandas.Panel.mad
-   generated/pandas.Panel.product
-   generated/pandas.Panel.rank
-   generated/pandas.Panel.head
-   generated/pandas.Panel.tail
-   generated/pandas.Panel.where
-   generated/pandas.Panel.mask
-   generated/pandas.Panel.compound
-   generated/pandas.Panel.describe
-   generated/pandas.Panel.multiply
-   generated/pandas.Panel.subtract
-   generated/pandas.Panel.round
-   generated/pandas.Panel.align
-   generated/pandas.Panel.at_time
-   generated/pandas.Panel.asof
-   generated/pandas.Panel.between_time
-   generated/pandas.Panel.rename_axis
-   generated/pandas.Panel.set_axis
-   generated/pandas.Panel.fillna
-   generated/pandas.Panel.ffill
-   generated/pandas.Panel.bfill
-   generated/pandas.Panel.interpolate
-   generated/pandas.Panel.replace
-   generated/pandas.Panel.sort_values
-   generated/pandas.Panel.squeeze
-   generated/pandas.Panel.tshift
-   generated/pandas.Panel.toLong
-   generated/pandas.Panel.to_dense
-   generated/pandas.Panel.to_json
-   generated/pandas.Panel.to_latex
-   generated/pandas.Panel.to_long
-   generated/pandas.Panel.to_msgpack
-   generated/pandas.Panel.to_sql
-   generated/pandas.Panel.to_xarray
-
-   generated/pandas.Series.from_csv
-   generated/pandas.Series.as_blocks
+   generated/pandas.Panel.blocks
+   generated/pandas.Panel.empty
+   generated/pandas.Panel.is_copy
+   generated/pandas.Panel.items
+   generated/pandas.Panel.ix
+   generated/pandas.Panel.major_axis
+   generated/pandas.Panel.minor_axis
    generated/pandas.Series.asobject
-   generated/pandas.Series.bfill
    generated/pandas.Series.blocks
-   generated/pandas.Series.consolidate
-   generated/pandas.Series.ffill
    generated/pandas.Series.from_array
-   generated/pandas.Series.get_value
    generated/pandas.Series.index
-   generated/pandas.Series.isnull
    generated/pandas.Series.ix
-   generated/pandas.Series.notnull
-   generated/pandas.Series.set_value
-   generated/pandas.Series.subtract
-
-   generated/pandas.Series.cat
-   generated/pandas.Series.dt
-   generated/pandas.Series.str
-
    generated/pandas.Timestamp.offset
-   generated/pandas.Timestamp.to_datetime
-
-   generated/pandas.DataFrame.subtract
-   generated/pandas.DataFrame.multiply
-   generated/pandas.DataFrame.divide
-   generated/pandas.Series.divide
-   generated/pandas.Series.multiply
