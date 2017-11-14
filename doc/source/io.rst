@@ -4427,8 +4427,10 @@ Several caveats.
 
 - This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
   to the earlier versions.
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index()`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
@@ -4491,8 +4493,10 @@ dtypes, including extension dtypes such as datetime with tz.
 
 Several caveats.
 
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
@@ -4538,7 +4542,7 @@ Read from a parquet file.
 
    result.dtypes
 
-Read only certain columns of a parquet file. 
+Read only certain columns of a parquet file.
 
 .. ipython:: python
 
