@@ -194,6 +194,11 @@ class Categorical(PandasObject):
 
         .. versionadded:: 0.21.0
 
+    Methods
+    -------
+    from_codes
+    __array__
+
     Raises
     ------
     ValueError

@@ -344,7 +344,6 @@ Binary operator functions
 
    Series.add
    Series.sub
-   Series.subtract
    Series.mul
    Series.div
    Series.truediv
@@ -715,20 +714,21 @@ a :class:`pandas.api.types.CategoricalDtype`.
    api.types.CategoricalDtype.categories
    api.types.CategoricalDtype.ordered
 
-Categorical data can be stored in a :class:``pandas.Categorical``
+Categorical data can be stored in a :class:`pandas.Categorical`
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    Categorical
 
-The following two ``Categorical`` constructors are considered API but should only be used when
-adding ordering information or special categories is need at creation time of the categorical data:
+
+The alternative :ref:`Categorical.from_codes` constructor can be used when you
+have the categories and integer codes already:
 
 .. autosummary::
    :toctree: generated/
 
-   Categorical.categories
    Categorical.from_codes
 
 The dtype information is available on the ``Categorical``
@@ -2617,6 +2617,7 @@ Scalar introspection
    generated/pandas.Series.ix
    generated/pandas.Series.notnull.rst
    generated/pandas.Series.set_value
+   generated/pandas.Series.subtract
 
    generated/pandas.Series.cat
    generated/pandas.Series.dt
@@ -2624,15 +2625,6 @@ Scalar introspection
 
    generated/pandas.Timestamp.offset
    generated/pandas.Timestamp.to_datetime
-
-   generated/pandas.Categorical.base.rst
-   generated/pandas.Categorical.itemsize.rst
-   generated/pandas.Categorical.labels.rst
-   generated/pandas.Categorical.nbytes.rst
-   generated/pandas.Categorical.ndim.rst
-   generated/pandas.Categorical.shape.rst
-   generated/pandas.Categorical.size.rst
-   generated/pandas.Categorical.T.rst
 
    generated/pandas.DataFrame.subtract
    generated/pandas.DataFrame.multiply

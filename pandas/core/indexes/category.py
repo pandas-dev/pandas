@@ -52,10 +52,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     categories
     ordered
 
-    See Also
-    --------
-    Categorical, Index
-
     Methods
     -------
     rename_categories
@@ -67,6 +63,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     as_ordered
     as_unordered
     map
+
+    See Also
+    --------
+    Categorical, Index
     """
 
     _typ = 'categoricalindex'
