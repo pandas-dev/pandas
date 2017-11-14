@@ -2460,6 +2460,36 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     return result
 
 
+class BokehSeriesPlotMethods(base.SeriesPlotMethods):
+    """Let's start hacking"""
+
+    @property
+    def engine_name(self):
+        return 'bokeh'
+
+    def __call__(self, kind='line', ax=None,
+                 figsize=None, use_index=True, title=None, grid=None,
+                 legend=False, style=None, logx=False, logy=False,
+                 loglog=False, xticks=None, yticks=None,
+                 xlim=None, ylim=None,
+                 rot=None, fontsize=None, colormap=None, table=False,
+                 yerr=None, xerr=None,
+                 label=None, secondary_y=False, **kwds):
+
+    __call__.__doc__ = plot_series.__doc__
+
+    def line(self, **kwds):
+        """Line drawn using bokeh
+
+        Args:
+            **kwds:
+
+        Returns:
+
+        """
+        return self(kind='line', **kwds)
+
+
 class MPLSeriesPlotMethods(base.SeriesPlotMethods):
     """Series plotting accessor and method
 
