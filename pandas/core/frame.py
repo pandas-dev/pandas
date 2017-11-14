@@ -4125,16 +4125,24 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
 
-        Examples
-        --------
-        a's values prioritized, use values from b to fill holes:
-
-        >>> a.combine_first(b)
-
-
         Returns
         -------
         combined : DataFrame
+
+        Examples
+        --------
+        df1's values prioritized, use values from df2 to fill holes:
+
+        >>> df1 = pd.DataFrame([[1, np.nan]])
+        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1.combine_first(df2)
+           0    1
+        0  1  4.0
+
+        See Also
+        --------
+        DataFrame.combine : Perform series-wise operation on two DataFrames
+            using a given function
         """
         import pandas.core.computation.expressions as expressions
 

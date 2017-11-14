@@ -1764,7 +1764,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        y : Series
+        combined : Series
+
+        Examples
+        --------
+        >>> s1 = pd.Series([1, np.nan])
+        >>> s2 = pd.Series([3, 4])
+        >>> s1.combine_first(s2)
+        0    1.0
+        1    4.0
+        dtype: float64
+
+        See Also
+        --------
+        Series.combine : Perform elementwise operation on two Series
+            using a given function
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
