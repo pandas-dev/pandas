@@ -86,6 +86,7 @@ I/O
 - Bug in :func:`read_csv` for handling null values in index columns when specifying ``na_filter=False`` (:issue:`5239`)
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
 - :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
+- :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 
 Plotting
 ^^^^^^^^
