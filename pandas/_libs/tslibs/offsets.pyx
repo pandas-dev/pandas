@@ -139,22 +139,23 @@ def apply_index_wraps(func):
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int _get_lastbday(int wkday, int days_in_month):
+cpdef int get_lastbday(int wkday, int days_in_month):
     """
     (wkday, days_in_month) is the result of monthrange(year, month)
     """
     return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
 
-cpdef int _get_firstbday(int wkday, int days_in_month=0):
+cpdef int get_firstbday(int wkday, int days_in_month=0):
     """
     (wkday, days_in_month) is the result of monthrange(year, month)
 
     If it's a saturday or sunday, increment first business day to reflect this
 
     days_in_month arg is a dummy so that this has the same signature as
-    _get_lastbday.
+    get_lastbday.
     """
+    cdef int first
     first = 1
     if wkday == 5:  # on Saturday
         first = 3
@@ -425,19 +426,19 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         dy -= 1
     year = stamp.year + dy
 
-    (wkday, days_in_month) = monthrange(year, month)
+    wkday, days_in_month = monthrange(year, month)
     if day_opt is None:
         day = min(stamp.day, days_in_month)
     elif day_opt == 'start':
         day = 1
     elif day_opt == 'end':
         day = days_in_month
-    elif day_opt == 'bstart':
+    elif day_opt == 'business_start':
         # first business day of month
-        day = _get_firstbday(wkday, days_in_month)
-    elif day_opt == 'bend':
+        day = get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
         # last business day of month
-        day = _get_lastbday(wkday, days_in_month)
+        day = get_lastbday(wkday, days_in_month)
     elif is_integer_object(day_opt):
         day = min(day_opt, days_in_month)
     else:

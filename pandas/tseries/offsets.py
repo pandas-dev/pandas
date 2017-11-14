@@ -18,7 +18,7 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_firstbday, _get_lastbday,
+    get_firstbday, get_lastbday,
     _get_calendar, _to_dt64, _validate_business_time,
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
@@ -1189,14 +1189,14 @@ class BusinessMonthEnd(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = _get_lastbday(wkday, days_in_month)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
 
-        return shift_month(other, n, 'bend')
+        return shift_month(other, n, 'business_end')
 
 
 class BusinessMonthBegin(MonthOffset):
@@ -1207,7 +1207,7 @@ class BusinessMonthBegin(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         if other.day > first and n <= 0:
             # as if rolled forward already
@@ -1216,13 +1216,13 @@ class BusinessMonthBegin(MonthOffset):
             other = other + timedelta(days=first - other.day)
             n -= 1
 
-        return shift_month(other, n, 'bstart')
+        return shift_month(other, n, 'business_start')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
         first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        return dt.day == _get_firstbday(first_weekday)
+        return dt.day == get_firstbday(first_weekday)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
@@ -1684,7 +1684,7 @@ class BQuarterEnd(QuarterOffset):
         n = self.n
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = _get_lastbday(wkday, days_in_month)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1695,7 +1695,7 @@ class BQuarterEnd(QuarterOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        return shift_month(other, monthsToGo + 3 * n, 'bend')
+        return shift_month(other, monthsToGo + 3 * n, 'business_end')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1721,7 +1721,7 @@ class BQuarterBegin(QuarterOffset):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -1735,7 +1735,7 @@ class BQuarterBegin(QuarterOffset):
         elif n > 0 and (monthsSince == 0 and other.day < first):
             n = n - 1
 
-        return shift_month(other, 3 * n - monthsSince, 'bstart')
+        return shift_month(other, 3 * n - monthsSince, 'business_start')
 
 
 class QuarterEnd(EndMixin, QuarterOffset):
@@ -1844,7 +1844,7 @@ class BYearEnd(YearOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = _get_lastbday(wkday, days_in_month)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         years = n
         if n > 0:
@@ -1857,7 +1857,7 @@ class BYearEnd(YearOffset):
                 years += 1
 
         months = years * 12 + (self.month - other.month)
-        return shift_month(other, months, 'bend')
+        return shift_month(other, months, 'business_end')
 
 
 class BYearBegin(YearOffset):
@@ -1871,7 +1871,7 @@ class BYearBegin(YearOffset):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         years = n
 
@@ -1886,7 +1886,7 @@ class BYearBegin(YearOffset):
 
         # set first bday for result
         months = years * 12 + (self.month - other.month)
-        return shift_month(other, months, 'bstart')
+        return shift_month(other, months, 'business_start')
 
 
 class YearEnd(EndMixin, YearOffset):
