@@ -1265,23 +1265,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         lower, upper: pd.Timestamp
 
         """
-        if not hasattr(parsed, "tzinfo"):
-            # see the following:
-            # - TestSlicing.test_partial_slicing_with_multiindex
-            # - test_partial_setting_with_datetimelike_dtype
-            pass
-        elif self.tz is None:
-            if parsed.tzinfo is None:  # both are naive, nothing to do
+        parsed = Timestamp(parsed)
+        if self.tz is None:
+            if parsed.tz is None:  # both are naive, nothing to do
                 pass
             else:  # naive datetime index but label provides timezone
                 warnings.warn("Access naive datetime index with a label "
                               "containing a timezone, assume UTC")
-                parsed = parsed.astimezone(utc)
+                parsed = parsed.tz_convert(utc)
         else:
-            if parsed.tzinfo is None:  # treat like in same timezone
-                parsed = parsed.replace(tzinfo=self.tz)
+            if parsed.tz is None:  # treat like in same timezone
+                parsed = parsed.tz_localize(self.tz)
             else:  # actual timezone of the label should be considered
-                parsed = parsed.astimezone(tz=self.tz)
+                parsed = parsed.tz_convert(tz=self.tz)
 
         if reso == 'year':
             return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
