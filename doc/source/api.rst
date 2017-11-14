@@ -2512,6 +2512,7 @@ Scalar introspection
 .. toctree::
    :hidden:
 
+   generated/pandas.DataFrame.blocks
    generated/pandas.DataFrame.columns
    generated/pandas.DataFrame.index
    generated/pandas.DataFrame.ix
