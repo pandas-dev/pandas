@@ -125,6 +125,15 @@ class IntervalIndex(IntervalMixin, Index):
     values
     is_non_overlapping_monotonic
 
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_breaks
+    from_intervals
+    contains
+    get_loc
+
     Examples
     ---------
     A new ``IntervalIndex`` is typically constructed using
@@ -157,16 +166,6 @@ class IntervalIndex(IntervalMixin, Index):
     IntervalIndex.from_intervals, IntervalIndex.from_tuples
     cut, qcut : convert arrays of continuous data into categoricals/series of
                 ``Interval``.
-
-    Methods
-    -------
-    from_arrays
-    from_tuples
-    from_breaks
-    from_intervals
-    contains
-    get_loc
-
     """
     _typ = 'intervalindex'
     _comparables = ['name']

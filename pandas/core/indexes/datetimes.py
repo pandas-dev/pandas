@@ -203,34 +203,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     name : object
         Name to be stored in the index
 
-    Notes
-    -----
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    See Also
-    ---------
-    Index : The base pandas Index type
-    TimedeltaIndex : Index of timedelta64 data
-    PeriodIndex : Index of Period data
-
-    Methods
-    -------
-    normalize
-    strftime
-    snap
-    tz_convert
-    tz_localize
-    round
-    floor
-    ceil
-    to_datetime
-    to_period
-    to_perioddelta
-    to_pydatetime
-    to_series
-    to_frame
-
     Attributes
     ----------
     year
@@ -261,6 +233,34 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_year_end
     is_leap_year
     inferred_freq
+
+    Methods
+    -------
+    normalize
+    strftime
+    snap
+    tz_convert
+    tz_localize
+    round
+    floor
+    ceil
+    to_datetime
+    to_period
+    to_perioddelta
+    to_pydatetime
+    to_series
+    to_frame
+
+    Notes
+    -----
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    TimedeltaIndex : Index of timedelta64 data
+    PeriodIndex : Index of Period data
     """
 
     _typ = 'datetimeindex'

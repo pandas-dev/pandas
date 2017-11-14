@@ -46,6 +46,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     name : object
         Name to be stored in the index
 
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
+
     See Also
     --------
     Categorical, Index
@@ -60,14 +66,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     set_categories
     as_ordered
     as_unordered
-    get_loc
     map
-
-    Attributes
-    ----------
-    codes
-    categories
-    ordered
     """
 
     _typ = 'categoricalindex'
