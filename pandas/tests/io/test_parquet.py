@@ -189,13 +189,14 @@ class Base(object):
                 to_parquet(df, path, engine, compression=None)
 
     def check_round_trip(self, df, engine, expected=None,
-                         extra_write_kwargs=None, **kwargs):
-        write_kwargs = kwargs.copy()
-        if extra_write_kwargs is not None:
-            write_kwargs.update(extra_write_kwargs)
+                         write_kwargs=None, read_kwargs=None):
+        if write_kwargs is None:
+            write_kwargs = {}
+        if read_kwargs is None:
+            read_kwargs = {}
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine, **write_kwargs)
-            result = read_parquet(path, engine, **kwargs)
+            result = read_parquet(path, engine, **read_kwargs)
 
             if expected is None:
                 expected = df
@@ -203,7 +204,7 @@ class Base(object):
 
             # repeat
             to_parquet(df, path, engine, **write_kwargs)
-            result = pd.read_parquet(path, engine, **kwargs)
+            result = pd.read_parquet(path, engine, **read_kwargs)
 
             if expected is None:
                 expected = df
@@ -225,8 +226,7 @@ class TestBasic(Base):
 
         # unicode
         df.columns = [u'foo', u'bar']
-        self.check_round_trip(df, engine,
-                              extra_write_kwargs={'compression': None})
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
     def test_columns_dtypes_invalid(self, engine):
 
@@ -250,8 +250,7 @@ class TestBasic(Base):
     def test_write_with_index(self, engine):
 
         df = pd.DataFrame({'A': [1, 2, 3]})
-        self.check_round_trip(df, engine,
-                              extra_write_kwargs={'compression': None})
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
         # non-default index
         for index in [[2, 3, 4],
@@ -286,7 +285,7 @@ class TestBasic(Base):
 
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine,
-                              extra_write_kwargs={'compression': compression})
+                              write_kwargs={'compression': compression})
 
     def test_read_columns(self, engine):
         # GH18154
@@ -295,8 +294,8 @@ class TestBasic(Base):
 
         expected = pd.DataFrame({'string': list('abc')})
         self.check_round_trip(df, engine, expected=expected,
-                              extra_write_kwargs={'compression': None},
-                              columns=["string"])
+                              write_kwargs={'compression': None},
+                              read_kwargs = {'columns': ['string']})
 
 
 class TestParquetPyArrow(Base):
@@ -384,7 +383,7 @@ class TestParquetFastParquet(Base):
              'timedelta': pd.timedelta_range('1 day', periods=3),
              })
 
-        self.check_round_trip(df, fp, extra_write_kwargs={'compression': None})
+        self.check_round_trip(df, fp, write_kwargs={'compression': None})
 
     @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
@@ -398,7 +397,7 @@ class TestParquetFastParquet(Base):
         df = pd.DataFrame({'a': [True, None, False]})
         expected = pd.DataFrame({'a': [1.0, np.nan, 0.0]}, dtype='float16')
         self.check_round_trip(df, fp, expected=expected,
-                              extra_write_kwargs={'compression': None})
+                              write_kwargs={'compression': None})
 
     def test_unsupported(self, fp):
 
@@ -414,7 +413,7 @@ class TestParquetFastParquet(Base):
         if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_round_trip(df, fp, extra_write_kwargs={'compression': None})
+        self.check_round_trip(df, fp, write_kwargs={'compression': None})
 
     def test_datetime_tz(self, fp):
         # doesn't preserve tz
@@ -424,7 +423,7 @@ class TestParquetFastParquet(Base):
         # warns on the coercion
         with catch_warnings(record=True):
             self.check_round_trip(df, fp, df.astype('datetime64[ns]'),
-                                  extra_write_kwargs={'compression': None})
+                                 write_kwargs={'compression': None})
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
