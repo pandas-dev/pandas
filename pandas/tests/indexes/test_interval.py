@@ -375,6 +375,11 @@ class TestIntervalIndex(Base):
         pytest.raises(ValueError, self.index.insert, 0,
                       Interval(2, 3, closed='left'))
 
+        # GH 18295
+        expected = self.index_with_nan
+        result = self.index.insert(1, np.nan)
+        tm.assert_index_equal(result, expected)
+
     def test_take(self, closed):
         index = self.create_index(closed=closed)
 
