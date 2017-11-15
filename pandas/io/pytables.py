@@ -1539,8 +1539,8 @@ class IndexCol(StringMixin):
 
     def __eq__(self, other):
         """ compare 2 col items """
-        return all([getattr(self, a, None) == getattr(other, a, None)
-                    for a in ['name', 'cname', 'axis', 'pos']])
+        return all(getattr(self, a, None) == getattr(other, a, None)
+                   for a in ['name', 'cname', 'axis', 'pos'])
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -1824,8 +1824,8 @@ class DataCol(IndexCol):
 
     def __eq__(self, other):
         """ compare 2 col items """
-        return all([getattr(self, a, None) == getattr(other, a, None)
-                    for a in ['name', 'cname', 'dtype', 'pos']])
+        return all(getattr(self, a, None) == getattr(other, a, None)
+                   for a in ['name', 'cname', 'dtype', 'pos'])
 
     def set_data(self, data, dtype=None):
         self.data = data
@@ -3094,7 +3094,7 @@ class Table(Fixed):
     @property
     def ncols(self):
         """ the number of total columns in the values axes """
-        return sum([len(a.values) for a in self.values_axes])
+        return sum(len(a.values) for a in self.values_axes)
 
     @property
     def is_transposed(self):

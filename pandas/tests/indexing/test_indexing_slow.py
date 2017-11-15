@@ -70,7 +70,7 @@ class TestIndexingSlow(object):
             keys += list(map(lambda t: t[:-1], vals[::n // m]))
 
             # covers both unique index and non-unique index
-            df = pd.DataFrame(vals, columns=cols)
+            df = DataFrame(vals, columns=cols)
             a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
 
             for frame in a, b:

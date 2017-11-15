@@ -1121,7 +1121,7 @@ def _is_potential_multi_index(columns):
     boolean : Whether or not columns could become a MultiIndex
     """
     return (len(columns) and not isinstance(columns, MultiIndex) and
-            all([isinstance(c, tuple) for c in columns]))
+            all(isinstance(c, tuple) for c in columns))
 
 
 def _evaluate_usecols(usecols, names):
@@ -1367,7 +1367,7 @@ class ParserBase(object):
         # if we find 'Unnamed' all of a single level, then our header was too
         # long
         for n in range(len(columns[0])):
-            if all(['Unnamed' in tostr(c[n]) for c in columns]):
+            if all('Unnamed' in tostr(c[n]) for c in columns):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
@@ -2017,7 +2017,7 @@ def TextParser(*args, **kwds):
 
 
 def count_empty_vals(vals):
-    return sum([1 for v in vals if v == '' or v is None])
+    return sum(1 for v in vals if v == '' or v is None)
 
 
 class PythonParser(ParserBase):
@@ -2524,7 +2524,7 @@ class PythonParser(ParserBase):
         if self.usecols is not None:
             if callable(self.usecols):
                 col_indices = _evaluate_usecols(self.usecols, usecols_key)
-            elif any([isinstance(u, string_types) for u in self.usecols]):
+            elif any(isinstance(u, string_types) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
@@ -2888,7 +2888,7 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
-        max_len = max([len(row) for row in content])
+        max_len = max(len(row) for row in content)
 
         # Check that there are no rows with too many
         # elements in their row (rows with too few
