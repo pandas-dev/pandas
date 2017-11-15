@@ -406,12 +406,12 @@ class TestIndexOps(Ops):
             if isinstance(o, Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
-                expected_index = pd.Index(o[::-1])
+                expected_index = Index(o[::-1])
                 expected_index.name = None
                 o = o.repeat(range(1, len(o) + 1))
                 o.name = 'a'
             else:
-                expected_index = pd.Index(values[::-1])
+                expected_index = Index(values[::-1])
                 idx = o.index.repeat(range(1, len(o) + 1))
                 rep = np.repeat(values, range(1, len(o) + 1))
                 o = klass(rep, index=idx, name='a')
@@ -487,7 +487,7 @@ class TestIndexOps(Ops):
                     if is_datetimetz(o):
                         expected_index = orig._values._shallow_copy(values)
                     else:
-                        expected_index = pd.Index(values)
+                        expected_index = Index(values)
                     expected_index.name = None
                     o = o.repeat(range(1, len(o) + 1))
                     o.name = 'a'
@@ -500,7 +500,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, Index):
                     tm.assert_numpy_array_equal(pd.isna(o), nanloc)
                 else:
-                    exp = pd.Series(nanloc, o.index, name='a')
+                    exp = Series(nanloc, o.index, name='a')
                     tm.assert_series_equal(pd.isna(o), exp)
 
                 expected_s_na = Series(list(range(10, 2, -1)) + [3],
@@ -1139,36 +1139,36 @@ class TestToIterable(object):
         assert isinstance(result, Timestamp)
 
     def test_iter_box(self):
-        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
-        s = pd.Series(vals)
+        vals = [Timestamp('2011-01-01'), Timestamp('2011-01-02')]
+        s = Series(vals)
         assert s.dtype == 'datetime64[ns]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
+            assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
 
-        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                pd.Timestamp('2011-01-02', tz='US/Eastern')]
-        s = pd.Series(vals)
+        vals = [Timestamp('2011-01-01', tz='US/Eastern'),
+                Timestamp('2011-01-02', tz='US/Eastern')]
+        s = Series(vals)
 
         assert s.dtype == 'datetime64[ns, US/Eastern]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
+            assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
 
         # timedelta
-        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
-        s = pd.Series(vals)
+        vals = [Timedelta('1 days'), Timedelta('2 days')]
+        s = Series(vals)
         assert s.dtype == 'timedelta64[ns]'
         for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timedelta)
+            assert isinstance(res, Timedelta)
             assert res == exp
 
         # period (object dtype, not boxed)
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
-        s = pd.Series(vals)
+        s = Series(vals)
         assert s.dtype == 'object'
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)

@@ -11,8 +11,8 @@ class TestDatetimeIndex(object):
         # support .loc with alignment and tz-aware DatetimeIndex
         mask = np.array([True, False, True, False])
 
-        idx = pd.date_range('20010101', periods=4, tz='UTC')
-        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+        idx = date_range('20010101', periods=4, tz='UTC')
+        df = DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
 
         result = df.copy()
         result.loc[mask, :] = df.loc[mask, :]
@@ -22,8 +22,8 @@ class TestDatetimeIndex(object):
         result.loc[mask] = df.loc[mask]
         tm.assert_frame_equal(result, df)
 
-        idx = pd.date_range('20010101', periods=4)
-        df = pd.DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
+        idx = date_range('20010101', periods=4)
+        df = DataFrame({'a': np.arange(4)}, index=idx).astype('float64')
 
         result = df.copy()
         result.loc[mask, :] = df.loc[mask, :]
@@ -127,10 +127,9 @@ class TestDatetimeIndex(object):
 
         # GH 12050
         # indexing on a series with a datetimeindex with tz
-        index = pd.date_range('2015-01-01', periods=2, tz='utc')
+        index = date_range('2015-01-01', periods=2, tz='utc')
 
-        ser = pd.Series(range(2), index=index,
-                        dtype='int64')
+        ser = Series(range(2), index=index, dtype='int64')
 
         # list-like indexing
 
@@ -141,7 +140,7 @@ class TestDatetimeIndex(object):
             # setitem
             result = ser.copy()
             result[sel] = 1
-            expected = pd.Series(1, index=index)
+            expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
             # .loc getitem
@@ -150,7 +149,7 @@ class TestDatetimeIndex(object):
             # .loc setitem
             result = ser.copy()
             result.loc[sel] = 1
-            expected = pd.Series(1, index=index)
+            expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
@@ -161,7 +160,7 @@ class TestDatetimeIndex(object):
         # setitem
         result = ser.copy()
         result[index[1]] = 5
-        expected = pd.Series([0, 5], index=index)
+        expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 
         # .loc getitem
@@ -170,16 +169,15 @@ class TestDatetimeIndex(object):
         # .loc setitem
         result = ser.copy()
         result.loc[index[1]] = 5
-        expected = pd.Series([0, 5], index=index)
+        expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 
     def test_partial_setting_with_datetimelike_dtype(self):
 
         # GH9478
         # a datetimeindex alignment issue with partial setting
-        df = pd.DataFrame(np.arange(6.).reshape(3, 2), columns=list('AB'),
-                          index=pd.date_range('1/1/2000', periods=3,
-                                              freq='1H'))
+        df = DataFrame(np.arange(6.).reshape(3, 2), columns=list('AB'),
+                       index=date_range('1/1/2000', periods=3, freq='1H'))
         expected = df.copy()
         expected['C'] = [expected.index[0]] + [pd.NaT, pd.NaT]
 
@@ -196,7 +194,7 @@ class TestDatetimeIndex(object):
         for conv in [lambda x: x, lambda x: x.to_datetime64(),
                      lambda x: x.to_pydatetime(), lambda x: np.datetime64(x)]:
 
-            df = pd.DataFrame()
+            df = DataFrame()
             df.loc[conv(dt1), 'one'] = 100
             df.loc[conv(dt2), 'one'] = 200
 

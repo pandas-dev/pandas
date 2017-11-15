@@ -8,8 +8,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, StringIO
-from pandas import (Series, DataFrame, Timestamp,
-                    date_range, MultiIndex)
+from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -165,13 +164,13 @@ class TestLoc(Base):
                           typs=['ints', 'uints'], axes=2, fails=KeyError)
 
     def test_getitem_label_list_with_missing(self):
-        s = pd.Series(range(3), index=['a', 'b', 'c'])
+        s = Series(range(3), index=['a', 'b', 'c'])
 
         # consistency
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s[['a', 'd']]
 
-        s = pd.Series(range(3))
+        s = Series(range(3))
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s[[0, 3]]
 
@@ -552,7 +551,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_coerceion(self):
 
         # 12411
-        df = DataFrame({'date': [pd.Timestamp('20130101').tz_localize('UTC'),
+        df = DataFrame({'date': [Timestamp('20130101').tz_localize('UTC'),
                                  pd.NaT]})
         expected = df.dtypes
 

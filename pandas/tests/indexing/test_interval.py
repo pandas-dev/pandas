@@ -179,7 +179,7 @@ class TestIntervalIndex(object):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
 
-        s = pd.Series(range(len(idx)), index=idx)
+        s = Series(range(len(idx)), index=idx)
 
         result = s.loc[Interval(1, 3)]
         assert result == 0

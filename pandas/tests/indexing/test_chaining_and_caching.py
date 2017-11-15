@@ -318,9 +318,9 @@ class TestChaining(object):
     def test_setting_with_copy_bug(self):
 
         # operating on a copy
-        df = pd.DataFrame({'a': list(range(4)),
-                           'b': list('ab..'),
-                           'c': ['a', 'b', np.nan, 'd']})
+        df = DataFrame({'a': list(range(4)),
+                        'b': list('ab..'),
+                        'c': ['a', 'b', np.nan, 'd']})
         mask = pd.isna(df.c)
 
         def f():
