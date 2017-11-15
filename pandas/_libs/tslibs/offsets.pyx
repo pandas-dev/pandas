@@ -430,7 +430,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(datetime other, day_opt):
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's onOffset
     policy, as described by the `day_opt` argument.
@@ -463,7 +463,7 @@ cdef int get_day_of_month(datetime other, day_opt):
         raise ValueError(day_opt)
 
 
-cpdef int roll_yearday(other, n, month, day_opt='start'):
+cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
