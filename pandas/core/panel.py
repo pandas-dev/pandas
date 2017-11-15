@@ -741,9 +741,9 @@ class Panel(NDFrame):
         elif is_scalar(other):
             return self._combine_const(other, func)
         else:
-            raise NotImplementedError("{otype!s} is not supported in combine "
-                                      "operation with {selftype!s}".format(
-                                        otype=type(other), selftype=type(self)))
+            raise NotImplementedError(
+                "{otype!s} is not supported in combine operation with "
+                "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
     def _combine_const(self, other, func, try_cast=True):
         with np.errstate(all='ignore'):
