@@ -4,6 +4,7 @@ from datetime import datetime, date
 import numpy as np
 from pandas import Timestamp, Period, Index, date_range, Series
 from pandas.compat import u
+import pandas.core.config as cf
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
@@ -15,7 +16,7 @@ def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
 
 
-class TestImplicitRegistration(object):
+class TestRegistration(object):
 
     def test_warns(self):
         plt = pytest.importorskip("matplotlib.pyplot")
@@ -37,7 +38,7 @@ class TestImplicitRegistration(object):
         s = Series(range(12), index=date_range('2017', periods=12))
         _, ax = plt.subplots()
 
-        # Set to the "no-warn" state, in case this isn't the first test run
+        # Set to the "warn" state, in case this isn't the first test run
         converter._WARN = True
         converter.register()
         with tm.assert_produces_warning(None) as w:
@@ -48,10 +49,38 @@ class TestImplicitRegistration(object):
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range('2017', periods=12))
-        # Set to the "no-warn" state, in case this isn't the first test run
+        # Set to the "warn" state, in case this isn't the first test run
         converter._WARN = True
         with tm.assert_produces_warning(None) as w:
             s.plot()
+
+        assert len(w) == 0
+
+    def test_matplotlib_formatters(self):
+        units = pytest.importorskip("matplotlib.units")
+        assert Timestamp in units.registry
+
+        ctx = cf.option_context("plotting.matplotlib.register_formatters",
+                                False)
+        with ctx:
+            assert Timestamp not in units.registry
+
+        assert Timestamp in units.registry
+
+    def test_option_no_warning(self):
+        pytest.importorskip("matplotlib.pyplot")
+        ctx = cf.option_context("plotting.matplotlib.register_formatters",
+                                False)
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        # Set to the "warn" state, in case this isn't the first test run
+        converter._WARN = True
+        converter.register()
+        with ctx:
+            with tm.assert_produces_warning(None) as w:
+                ax.plot(s.index, s.values)
 
         assert len(w) == 0
 

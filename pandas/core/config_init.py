@@ -480,3 +480,31 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+# --------
+# Plotting
+# ---------
+
+register_formatter_doc = """
+: bool
+    Whether to register formatters with matplotlib's units registry for
+    dates, times, datetimes, and Periods.
+"""
+
+
+def register_formatter_cb(key):
+    from matplotlib import units
+    from pandas.plotting._converter import (
+        register, get_pairs)
+
+    if cf.get_option(key):
+        register()
+    else:
+        for type_, cls in get_pairs():
+            if isinstance(units.registry.get(type_), cls):
+                units.registry.pop(type_)
+
+
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_formatters", True, register_formatter_doc,
+                       validator=bool, cb=register_formatter_cb)

@@ -45,7 +45,11 @@ without explicitly registering the converters will cause a ``FutureWarning``:
 As the error message says, you'll need to register the converters if you intend
 to use them with matplotlib plotting functions. Pandas plotting functions, such
 as ``Series.plot``, will register them for you calling ``converter.register()``
-first is not necessary. (:issue:`18301`)
+first is not necessary.
+
+Finally, control the formatters, we've added a new option:
+``pd.options.plotting.matplotlib.register_formatters``. By default, they are
+registered. Toggling this to ``False`` removes pandas' formatters (:issue:`18301`)
 
 .. _whatsnew_0211.enhancements:
 

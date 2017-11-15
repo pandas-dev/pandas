@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+from pandas.core.config import get_option
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -41,15 +42,12 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
                                     format_date_labels)
 
 try:
-    # We want to warn if the formatter is called implicitly
-    # by `ax.plot(datetimeindex, another)`
-    # We don't want to warn if
-    # * Series.plot
-    # * User calls `register` explicitly
     from pandas.plotting import _converter
-    _converter.register(warn=True)
 except ImportError:
     pass
+else:
+    if get_option('plotting.matplotlib.register_formatters'):
+        _converter.register(warn=True)
 
 
 def _get_standard_kind(kind):

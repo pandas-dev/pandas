@@ -48,6 +48,16 @@ MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
 
 _WARN = True
 
+def get_pairs():
+    return [
+        (lib.Timestamp, DatetimeConverter),
+        (Period, PeriodConverter),
+        (pydt.datetime, DatetimeConverter),
+        (pydt.date, DatetimeConverter),
+        (pydt.time, TimeConverter),
+        (np.datetime64, DatetimeConverter),
+    ]
+
 
 def register(warn=False):
     global _WARN
@@ -55,12 +65,8 @@ def register(warn=False):
     if not warn:
         _WARN = False
 
-    units.registry[lib.Timestamp] = DatetimeConverter()
-    units.registry[Period] = PeriodConverter()
-    units.registry[pydt.datetime] = DatetimeConverter()
-    units.registry[pydt.date] = DatetimeConverter()
-    units.registry[pydt.time] = TimeConverter()
-    units.registry[np.datetime64] = DatetimeConverter()
+    for type_, cls in get_pairs():
+        units.registry[type_] = cls()
 
 
 def _check_implicitly_registered():
