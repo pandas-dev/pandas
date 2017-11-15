@@ -75,7 +75,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
 
-    **kwargs : Arbitrary keyword arguments
+    `**kwargs` : Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
         For example:
 

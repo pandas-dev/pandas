@@ -185,6 +185,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         strings, especially ones with timezone offsets.
 
         .. versionadded: 0.22.0
+
     Returns
     -------
     ret : datetime if parsing succeeded.
@@ -200,7 +201,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Examples
     --------
-
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
     common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same

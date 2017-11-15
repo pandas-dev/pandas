@@ -161,6 +161,37 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
 
+    Attributes
+    ----------
+    day
+    dayofweek
+    dayofyear
+    days_in_month
+    daysinmonth
+    end_time
+    freq
+    freqstr
+    hour
+    is_leap_year
+    minute
+    month
+    quarter
+    qyear
+    second
+    start_time
+    week
+    weekday
+    weekofyear
+    year
+
+    Methods
+    -------
+    asfreq
+    strftime
+    to_timestamp
+    tz_convert
+    tz_localize
+
     Examples
     --------
     >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)

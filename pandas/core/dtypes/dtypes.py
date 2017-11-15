@@ -120,6 +120,15 @@ class CategoricalDtype(ExtensionDtype):
         Must be unique, and must not contain any nulls.
     ordered : bool, default False
 
+    Attributes
+    ----------
+    categories
+    ordered
+
+    Methods
+    -------
+    None
+
     Notes
     -----
     This class is useful for specifying the type of a ``Categorical``

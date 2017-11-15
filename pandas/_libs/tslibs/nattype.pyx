@@ -336,15 +336,38 @@ class NaTType(_NaT):
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
 
-    # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None)
-    fromtimestamp = _make_error_func('fromtimestamp', None)
-    combine = _make_error_func('combine', None)
-    utcnow = _make_error_func('utcnow', None)
-
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
+    )
+    fromtimestamp = _make_error_func('fromtimestamp',  # noqa:E128
+        """
+        Timestamp.fromtimestamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
+    )
+    combine = _make_error_func('combine',  # noqa:E128
+        """
+        Timsetamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
+    )
+    utcnow = _make_error_func('utcnow',  # noqa:E128
+        """
+        Timestamp.utcnow()
+
+        Return a new Timestamp representing UTC day and time.
+        """
+    )
 
     timestamp = _make_error_func('timestamp',  # noqa:E128
         """Return POSIX timestamp as float.""")
@@ -372,6 +395,8 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
+        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
 
@@ -397,8 +422,10 @@ class NaTType(_NaT):
 
     now = _make_nat_func('now',  # noqa:E128
         """
-        Return the current time in the local timezone.  Equivalent
-        to datetime.now([tz])
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
 
         Parameters
         ----------
@@ -407,6 +434,8 @@ class NaTType(_NaT):
         """)
     today = _make_nat_func('today',  # noqa:E128
         """
+        Timestamp.today(cls, tz=None)
+
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.

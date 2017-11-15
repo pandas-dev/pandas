@@ -42,13 +42,6 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                class_members_toctree=app.config.numpydoc_class_members_toctree,
               )
 
-    # PANDAS HACK (to remove the list of methods/attributes for Categorical)
-    no_autosummary = [".Categorical", "CategoricalIndex", "IntervalIndex",
-                      "RangeIndex", "Int64Index", "UInt64Index",
-                      "Float64Index", "PeriodIndex", "CategoricalDtype"]
-    if what == "class" and any(name.endswith(n) for n in no_autosummary):
-        cfg['class_members_list'] = False
-
     if what == 'module':
         # Strip top title
         title_re = re.compile(sixu('^\\s*[#*=]{4,}\\n[a-z0-9 -]+\\n[#*=]{4,}\\s*'),
