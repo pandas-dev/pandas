@@ -266,7 +266,7 @@ if PY3:
         Calculate display width considering unicode East Asian Width
         """
         if isinstance(data, text_type):
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -318,7 +318,7 @@ else:
                 data = data.decode(encoding)
             except UnicodeError:
                 pass
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
