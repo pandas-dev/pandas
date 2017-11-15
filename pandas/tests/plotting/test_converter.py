@@ -45,6 +45,16 @@ class TestImplicitRegistration(object):
 
         assert len(w) == 0
 
+    def test_pandas_plots_register(self):
+        pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        # Set to the "no-warn" state, in case this isn't the first test run
+        converter._WARN = True
+        with tm.assert_produces_warning(None) as w:
+            s.plot()
+
+        assert len(w) == 0
+
 
 class TestDateTimeConverter(object):
 

@@ -25,7 +25,7 @@ the converter.
 
 This caused problems for some users, so we're temporarily reverting that change;
 pandas will again register the converters on import. Using the converters
-without explicitly registering the formatters will cause a ``FutureWarning``:
+without explicitly registering the converters will cause a ``FutureWarning``:
 
 .. code-block:: python
 
@@ -42,9 +42,10 @@ without explicitly registering the formatters will cause a ``FutureWarning``:
            >>> from pandas.tseries import converter
            >>> converter.register()
 
-As the error message says, you'll need to register the converts if you intend to
-use them with matplotlib plotting functions. Pandas plotting functions, such as
-``Series.plot``, will register them for you. (:issue:`18301`)
+As the error message says, you'll need to register the converters if you intend
+to use them with matplotlib plotting functions. Pandas plotting functions, such
+as ``Series.plot``, will register them for you calling ``converter.register()``
+first is not necessary. (:issue:`18301`)
 
 .. _whatsnew_0211.enhancements:
 
