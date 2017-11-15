@@ -800,7 +800,7 @@ def is_one_of_factory(legal_values):
         from pandas.io.formats.printing import pprint_thing as pp
         if x not in legal_values:
 
-            if not any([c(x) for c in callables]):
+            if not any(c(x) for c in callables):
                 pp_values = pp("|".join(lmap(pp, legal_values)))
                 msg = "Value must be one of {pp_values}"
                 if len(callables):

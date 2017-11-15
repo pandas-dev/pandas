@@ -486,13 +486,13 @@ class SelectionMixin(object):
 
             def is_any_series():
                 # return a boolean if we have *any* nested series
-                return any([isinstance(r, ABCSeries)
-                            for r in compat.itervalues(result)])
+                return any(isinstance(r, ABCSeries)
+                           for r in compat.itervalues(result))
 
             def is_any_frame():
                 # return a boolean if we have *any* nested series
-                return any([isinstance(r, ABCDataFrame)
-                            for r in compat.itervalues(result)])
+                return any(isinstance(r, ABCDataFrame)
+                           for r in compat.itervalues(result))
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1), True

@@ -1484,7 +1484,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
             if len(slices) == 1:
                 yield blkno, slice(slices[0][0], slices[0][1])
             else:
-                tot_len = sum([stop - start for start, stop in slices])
+                tot_len = sum(stop - start for start, stop in slices)
                 result = np.empty(tot_len, dtype=np.int64)
                 res_view = result
 

@@ -3539,13 +3539,13 @@ class BlockManager(PandasObject):
     def is_numeric_mixed_type(self):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
-        return all([block.is_numeric for block in self.blocks])
+        return all(block.is_numeric for block in self.blocks)
 
     @property
     def is_datelike_mixed_type(self):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
-        return any([block.is_datelike for block in self.blocks])
+        return any(block.is_datelike for block in self.blocks)
 
     @property
     def is_view(self):
@@ -4574,7 +4574,7 @@ class SingleBlockManager(BlockManager):
         if len(non_empties) > 0:
             blocks = [obj.blocks[0] for obj in non_empties]
 
-            if all([type(b) is type(blocks[0]) for b in blocks[1:]]):  # noqa
+            if all(type(b) is type(blocks[0]) for b in blocks[1:]):  # noqa
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
@@ -5211,13 +5211,13 @@ def is_uniform_join_units(join_units):
     """
     return (
         # all blocks need to have the same type
-        all([type(ju.block) is type(join_units[0].block) for ju in join_units]) and  # noqa
+        all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        all([not ju.is_na for ju in join_units]) and
+        all(not ju.is_na for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
-        all([not ju.indexers for ju in join_units]) and
+        all(not ju.indexers for ju in join_units) and
         # disregard Panels
-        all([ju.block.ndim <= 2 for ju in join_units]) and
+        all(ju.block.ndim <= 2 for ju in join_units) and
         # only use this path when there is something to concatenate
         len(join_units) > 1)
 

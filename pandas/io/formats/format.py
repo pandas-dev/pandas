@@ -546,7 +546,7 @@ class DataFrameFormatter(TableFormatter):
                                                minimum=header_colwidth,
                                                adj=self.adj)
 
-                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
+                max_len = max(max(self.adj.len(x) for x in fmt_values),
                               header_colwidth)
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
@@ -761,7 +761,7 @@ class DataFrameFormatter(TableFormatter):
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any([l.is_floating for l in columns.levels])
+            restrict_formatting = any(l.is_floating for l in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -2302,7 +2302,7 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     if adj is None:
         adj = _get_adjustment()
 
-    max_len = np.max([adj.len(x) for x in strings])
+    max_len = max(adj.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -2330,8 +2330,8 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 
     def _cond(values):
         non_na = [x for x in values if x != na_rep]
-        return (len(non_na) > 0 and all([x.endswith('0') for x in non_na]) and
-                not (any([('e' in x) or ('E' in x) for x in non_na])))
+        return (len(non_na) > 0 and all(x.endswith('0') for x in non_na) and
+                not (any(('e' in x) or ('E' in x) for x in non_na)))
 
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
