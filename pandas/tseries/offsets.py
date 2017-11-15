@@ -1093,10 +1093,7 @@ class SemiMonthEnd(SemiMonthOffset):
                 n -= 1
         elif other.day > self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            else:
-                n += 1
+            n += 1
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
@@ -1146,15 +1143,10 @@ class SemiMonthBegin(SemiMonthOffset):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = -1
-            else:
-                n -= 1
+            n -= 1
         elif other.day > self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            elif n < 0:
+            if n <= 0:
                 n += 1
 
         months = n // 2 + n % 2
@@ -1414,29 +1406,17 @@ class Week(EndMixin, DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        base = other
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if self.n > 0:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-                k = k - 1
-            for i in range(k):
-                other = other + self._inc
-        else:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-            for i in range(-k):
-                other = other - self._inc
+        k = self.n
+        otherDay = other.weekday()
+        if otherDay != self.weekday:
+            other = other + timedelta((self.weekday - otherDay) % 7)
+            if k > 0:
+                k -= 1
 
-        other = datetime(other.year, other.month, other.day,
-                         base.hour, base.minute, base.second, base.microsecond)
-        return other
+        return other + timedelta(weeks=k)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1511,18 +1491,11 @@ class WeekOfMonth(DateOffset):
         base = other
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
         other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
@@ -1533,11 +1506,7 @@ class WeekOfMonth(DateOffset):
         w = Week(weekday=self.weekday)
         d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
         d = w.rollforward(d)
-
-        for i in range(self.week):
-            d = w.apply(d)
-
-        return d
+        return d + timedelta(weeks=self.week)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1602,18 +1571,11 @@ class LastWeekOfMonth(DateOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
         return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
