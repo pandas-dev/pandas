@@ -697,7 +697,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None, sparse=False, drop_first=False):
+                columns=None, sparse=False, drop_first=False, dtype=None):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -725,6 +725,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
+    dtype : dtype, default np.uint8
+        Data type to force on a new columns. Only a single dtype is allowed.
 
         .. versionadded:: 0.18.0
 
@@ -783,12 +785,21 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     3  0  0
     4  0  0
 
+    >>> pd.get_dummies(pd.Series(list('abc')), dtype=float)
+         a    b    c
+    0  1.0  0.0  0.0
+    1  0.0  1.0  0.0
+    2  0.0  0.0  1.0
+
     See Also
     --------
     Series.str.get_dummies
     """
     from pandas.core.reshape.concat import concat
     from itertools import cycle
+
+    if dtype is None:
+        dtype = np.uint8
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
@@ -835,17 +846,17 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
-                                    drop_first=drop_first)
+                                    drop_first=drop_first, dtype=dtype)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
-                                 sparse=sparse, drop_first=drop_first)
+                                 sparse=sparse, drop_first=drop_first, dtype=dtype)
     return result
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False, drop_first=False):
+                    sparse=False, drop_first=False, dtype=np.uint8):
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -903,18 +914,18 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
-            sarr = SparseArray(np.ones(len(ixs), dtype=np.uint8),
+            sarr = SparseArray(np.ones(len(ixs), dtype=dtype),
                                sparse_index=IntIndex(N, ixs), fill_value=0,
-                               dtype=np.uint8)
+                               dtype=dtype)
             sparse_series[col] = SparseSeries(data=sarr, index=index)
 
         out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
                               default_fill_value=0,
-                              dtype=np.uint8)
+                              dtype=dtype)
         return out
 
     else:
-        dummy_mat = np.eye(number_of_cols, dtype=np.uint8).take(codes, axis=0)
+        dummy_mat = np.eye(number_of_cols, dtype=dtype).take(codes, axis=0)
 
         if not dummy_na:
             # reset NaN GH4446
