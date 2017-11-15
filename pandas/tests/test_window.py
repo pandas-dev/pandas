@@ -97,7 +97,7 @@ class TestApi(Base):
                              columns=list('AB'))
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
+        expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
         result = r.sum()
         tm.assert_frame_equal(result, expected, check_like=True)
 
@@ -113,30 +113,30 @@ class TestApi(Base):
         b_sum = r['B'].sum()
 
         result = r.aggregate([np.mean, np.std])
-        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+        expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([['A', 'B'], ['mean',
                                                                     'std']])
         tm.assert_frame_equal(result, expected)
 
         result = r.aggregate({'A': np.mean, 'B': np.std})
 
-        expected = pd.concat([a_mean, b_std], axis=1)
+        expected = concat([a_mean, b_std], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': ['mean', 'std']})
-        expected = pd.concat([a_mean, a_std], axis=1)
+        expected = concat([a_mean, a_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'), ('A',
                                                                       'std')])
         tm.assert_frame_equal(result, expected)
 
         result = r['A'].aggregate(['mean', 'sum'])
-        expected = pd.concat([a_mean, a_sum], axis=1)
+        expected = concat([a_mean, a_sum], axis=1)
         expected.columns = ['mean', 'sum']
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
             result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
-        expected = pd.concat([a_mean, a_sum], axis=1)
+        expected = concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
                                                       ('A', 'sum')])
         tm.assert_frame_equal(result, expected, check_like=True)
@@ -146,13 +146,13 @@ class TestApi(Base):
                                         'sum': 'sum'},
                                   'B': {'mean2': 'mean',
                                         'sum2': 'sum'}})
-        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
+        expected = concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         exp_cols = [('A', 'mean'), ('A', 'sum'), ('B', 'mean2'), ('B', 'sum2')]
         expected.columns = pd.MultiIndex.from_tuples(exp_cols)
         tm.assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': ['mean', 'std'], 'B': ['mean', 'std']})
-        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+        expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
 
         exp_cols = [('A', 'mean'), ('A', 'std'), ('B', 'mean'), ('B', 'std')]
         expected.columns = pd.MultiIndex.from_tuples(exp_cols)
@@ -161,7 +161,7 @@ class TestApi(Base):
         # passed lambda
         result = r.agg({'A': np.sum, 'B': lambda x: np.std(x, ddof=1)})
         rcustom = r['B'].apply(lambda x: np.std(x, ddof=1))
-        expected = pd.concat([a_sum, rcustom], axis=1)
+        expected = concat([a_sum, rcustom], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
     def test_agg_consistency(self):
@@ -193,8 +193,8 @@ class TestApi(Base):
 
         pytest.raises(SpecificationError, f)
 
-        expected = pd.concat([r['A'].mean(), r['A'].std(), r['B'].mean(),
-                              r['B'].std()], axis=1)
+        expected = concat([r['A'].mean(), r['A'].std(),
+                           r['B'].mean(), r['B'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         with catch_warnings(record=True):
@@ -225,8 +225,8 @@ class TestApi(Base):
              'fl_inf': [1., 2., np.Inf],
              'fl_nan': [1., 2., np.NaN],
              'str_nan': ['aa', 'bb', np.NaN],
-             'dt_nat': [pd.Timestamp('20170101'), pd.Timestamp('20170203'),
-                        pd.Timestamp(None)],
+             'dt_nat': [Timestamp('20170101'), Timestamp('20170203'),
+                        Timestamp(None)],
              'periods_nat': [pd.Period('2012-01'), pd.Period('2012-02'),
                              pd.Period(None)]},
             columns=cols)
@@ -258,7 +258,7 @@ class TestApi(Base):
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
                                                  win_type='gaussian')
-        expected = pd.concat([r.mean(std=10), r.mean(std=.01)], axis=1)
+        expected = concat([r.mean(std=10), r.mean(std=.01)], axis=1)
         expected.columns = ['<lambda>', '<lambda>']
         result = r.aggregate([lambda x: x.mean(std=10),
                               lambda x: x.mean(std=.01)])
@@ -270,7 +270,7 @@ class TestApi(Base):
         def b(x):
             return x.mean(std=0.01)
 
-        expected = pd.concat([r.mean(std=10), r.mean(std=.01)], axis=1)
+        expected = concat([r.mean(std=10), r.mean(std=.01)], axis=1)
         expected.columns = ['a', 'b']
         result = r.aggregate([a, b])
         tm.assert_frame_equal(result, expected)
@@ -288,9 +288,8 @@ class TestApi(Base):
         # in prior versions, we would allow how to be used in the resample
         # now that its deprecated, we need to handle this in the actual
         # aggregation functions
-        s = pd.Series(
-            np.random.randn(20),
-            index=pd.date_range('1/1/2000', periods=20, freq='12H'))
+        s = Series(np.random.randn(20),
+                   index=pd.date_range('1/1/2000', periods=20, freq='12H'))
 
         for how in ['min', 'max', 'median']:
             for op in ['mean', 'sum', 'std', 'var', 'kurt', 'skew']:
@@ -408,17 +407,14 @@ class TestRolling(Base):
     def test_constructor_with_timedelta_window(self):
         # GH 15440
         n = 10
-        df = pd.DataFrame({'value': np.arange(n)},
-                          index=pd.date_range('2015-12-24',
-                                              periods=n,
-                                              freq="D"))
+        df = DataFrame({'value': np.arange(n)},
+                       index=pd.date_range('2015-12-24', periods=n, freq="D"))
         expected_data = np.append([0., 1.], np.arange(3., 27., 3))
         for window in [timedelta(days=3), pd.Timedelta(days=3)]:
             result = df.rolling(window=window).sum()
-            expected = pd.DataFrame({'value': expected_data},
-                                    index=pd.date_range('2015-12-24',
-                                                        periods=n,
-                                                        freq="D"))
+            expected = DataFrame({'value': expected_data},
+                                 index=pd.date_range('2015-12-24', periods=n,
+                                                     freq="D"))
             tm.assert_frame_equal(result, expected)
             expected = df.rolling('3D').sum()
             tm.assert_frame_equal(result, expected)
@@ -428,15 +424,11 @@ class TestRolling(Base):
     def test_constructor_with_timedelta_window_and_minperiods(self, window):
         # GH 15305
         n = 10
-        df = pd.DataFrame({'value': np.arange(n)},
-                          index=pd.date_range('2017-08-08',
-                                              periods=n,
-                                              freq="D"))
-        expected = pd.DataFrame({'value': np.append([np.NaN, 1.],
-                                                    np.arange(3., 27., 3))},
-                                index=pd.date_range('2017-08-08',
-                                                    periods=n,
-                                                    freq="D"))
+        df = DataFrame({'value': np.arange(n)},
+                       index=pd.date_range('2017-08-08', periods=n, freq="D"))
+        expected = DataFrame(
+            {'value': np.append([np.NaN, 1.], np.arange(3., 27., 3))},
+            index=pd.date_range('2017-08-08', periods=n, freq="D"))
         result_roll_sum = df.rolling(window=window, min_periods=2).sum()
         result_roll_generic = df.rolling(window=window,
                                          min_periods=2).apply(sum)
@@ -480,7 +472,7 @@ class TestRolling(Base):
         # GH 16789, 16825
         cols = pd.MultiIndex.from_product([['A', 'B'], ['C', 'D', 'E']],
                                           names=['1', '2'])
-        df = pd.DataFrame(np.ones((10, 6)), columns=cols)
+        df = DataFrame(np.ones((10, 6)), columns=cols)
         result = df.rolling(3).cov()
 
         tm.assert_index_equal(result.columns, df.columns)
@@ -1176,8 +1168,7 @@ class TestMoments(Base):
         row = 10
         col = 5
         idx = pd.date_range('20100101', periods=row, freq='B')
-        df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
-                          index=idx)
+        df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
 
         df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
         np_percentile = np.percentile(df, [25, 50, 75], axis=0)
@@ -1186,9 +1177,9 @@ class TestMoments(Base):
 
     def test_rolling_quantile_series(self):
         # #16211: Tests that rolling window's quantile default behavior
-        # is analogus to pd.Series' quantile
+        # is analogus to Series' quantile
         arr = np.arange(100)
-        s = pd.Series(arr)
+        s = Series(arr)
         q1 = s.quantile(0.1)
         q2 = s.rolling(100).quantile(0.1).iloc[-1]
 
@@ -2981,12 +2972,12 @@ class TestMomentsConsistency(Base):
 
     def test_rolling_skew_eq_value_fperr(self):
         # #18804 all rolling skew for all equal values should return Nan
-        a = pd.Series([1.1] * 15).rolling(window=10).skew()
+        a = Series([1.1] * 15).rolling(window=10).skew()
         assert np.isnan(a).all()
 
     def test_rolling_kurt_eq_value_fperr(self):
         # #18804 all rolling kurt for all equal values should return Nan
-        a = pd.Series([1.1] * 15).rolling(window=10).kurt()
+        a = Series([1.1] * 15).rolling(window=10).kurt()
         assert np.isnan(a).all()
 
     def _check_expanding_ndarray(self, func, static_comp, has_min_periods=True,
@@ -3452,11 +3443,11 @@ class TestRollingTS(object):
         # using multiple aggregation columns
         df = DataFrame({'A': [0, 1, 2, 3, 4],
                         'B': [0, 1, 2, np.nan, 4],
-                        'C': pd.Index([pd.Timestamp('20130101 09:00:00'),
-                                       pd.Timestamp('20130101 09:00:02'),
-                                       pd.Timestamp('20130101 09:00:03'),
-                                       pd.Timestamp('20130101 09:00:05'),
-                                       pd.Timestamp('20130101 09:00:06')])},
+                        'C': Index([Timestamp('20130101 09:00:00'),
+                                    Timestamp('20130101 09:00:02'),
+                                    Timestamp('20130101 09:00:03'),
+                                    Timestamp('20130101 09:00:05'),
+                                    Timestamp('20130101 09:00:06')])},
                        columns=['A', 'C', 'B'])
 
         expected1 = DataFrame({'A': [0., 1, 3, 3, 7],
@@ -3517,11 +3508,11 @@ class TestRollingTS(object):
         # xref GH13965
 
         df = DataFrame({'A': [1] * 5},
-                       index=[pd.Timestamp('20130101 09:00:01'),
-                              pd.Timestamp('20130101 09:00:02'),
-                              pd.Timestamp('20130101 09:00:03'),
-                              pd.Timestamp('20130101 09:00:04'),
-                              pd.Timestamp('20130101 09:00:06')])
+                       index=[Timestamp('20130101 09:00:01'),
+                              Timestamp('20130101 09:00:02'),
+                              Timestamp('20130101 09:00:03'),
+                              Timestamp('20130101 09:00:04'),
+                              Timestamp('20130101 09:00:06')])
 
         # closed must be 'right', 'left', 'both', 'neither'
         with pytest.raises(ValueError):
@@ -3892,7 +3883,7 @@ class TestRollingTS(object):
             ['Ryan', '3/31/2016', 50], ['Joe', '7/1/2015', 100],
             ['Joe', '9/9/2015', 500], ['Joe', '10/15/2015', 50]]
 
-        df = pd.DataFrame(data=data, columns=['name', 'date', 'amount'])
+        df = DataFrame(data=data, columns=['name', 'date', 'amount'])
         df['date'] = pd.to_datetime(df['date'])
 
         expected = df.set_index('date').groupby('name').apply(
@@ -3905,9 +3896,9 @@ class TestRollingTS(object):
 
         dates = pd.date_range(start='2016-01-01 09:30:00',
                               periods=20, freq='s')
-        df = pd.DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
-                           'B': np.concatenate((dates, dates)),
-                           'C': np.arange(40)})
+        df = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
+                        'B': np.concatenate((dates, dates)),
+                        'C': np.arange(40)})
 
         result = df.groupby('A').rolling('4s', on='B').C.mean()
         expected = df.set_index('B').groupby('A').apply(
@@ -3922,20 +3913,17 @@ class TestRollingTS(object):
         # GH16058
 
         idx = pd.date_range('2017-01-01', periods=24, freq='1h')
-        ss = pd.Series(np.arange(len(idx)), index=idx)
+        ss = Series(np.arange(len(idx)), index=idx)
 
         result = ss.rolling('2h').cov()
-        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
-                             index=idx)
+        expected = Series([np.nan] + [0.5] * (len(idx) - 1), index=idx)
         tm.assert_series_equal(result, expected)
 
         expected2 = ss.rolling(2, min_periods=1).cov()
         tm.assert_series_equal(result, expected2)
 
         result = ss.rolling('3h').cov()
-        expected = pd.Series([np.nan, 0.5] +
-                             [1.0 for _ in range(len(idx) - 2)],
-                             index=idx)
+        expected = Series([np.nan, 0.5] + [1.0] * (len(idx) - 2), index=idx)
         tm.assert_series_equal(result, expected)
 
         expected2 = ss.rolling(3, min_periods=1).cov()
