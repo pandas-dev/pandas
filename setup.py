@@ -553,13 +553,14 @@ ext_data = {
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/nattype',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/timedeltas'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
-        'pxdfiles': ['_libs/src/util'],
+        'pxdfiles': ['_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
