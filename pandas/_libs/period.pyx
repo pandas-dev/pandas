@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 from datetime import datetime, date, timedelta
-import operator
 
 from cpython cimport (
     PyUnicode_Check,
@@ -203,7 +202,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         Py_ssize_t i, n
         freq_conv_func func
         asfreq_info finfo
-        int64_t val, ordinal
+        int64_t val
         char relation
 
     n = len(arr)
@@ -238,9 +237,6 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
 def period_ordinal(int y, int m, int d, int h, int min,
                    int s, int us, int ps, int freq):
-    cdef:
-        int64_t ordinal
-
     return get_period_ordinal(y, m, d, h, min, s, us, ps, freq)
 
 
