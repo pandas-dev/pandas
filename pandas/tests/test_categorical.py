@@ -4496,6 +4496,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             tm.assert_raises_regex(ValueError, msg, np.reshape,
                                    cat, cat.shape, order='F')
 
+<<<<<<< HEAD
     def test_na_actions(self):
 
         cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
@@ -4608,6 +4609,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                     'dict, but you passed a "list"'):
             s.fillna(['a', 'b'])
 
+=======
+>>>>>>> move tests and add whatsnew
     def test_astype_to_other(self):
 
         s = self.cat['value_group']
