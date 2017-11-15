@@ -1673,6 +1673,10 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         exp_cat = Categorical(["b", np.nan, "a"], categories=["b", "a"])
         tm.assert_categorical_equal(res, exp_cat)
 
+        # GH 18051 unique()._codes should be writeable
+        cat_nan = Categorical([np.nan])
+        assert cat_nan.unique()._codes.flags.writeable
+
     def test_unique_ordered(self):
         # keep categories order when ordered=True
         cat = Categorical(['b', 'a', 'b'], categories=['a', 'b'], ordered=True)
