@@ -300,7 +300,7 @@ class Float64Index(NumericIndex):
 
     @property
     def inferred_type(self):
-        """Always 'floating' for ``Float64Index"""
+        """Always 'floating' for ``Float64Index``"""
         return 'floating'
 
     @Appender(_index_shared_docs['astype'])
