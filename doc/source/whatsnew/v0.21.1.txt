@@ -117,7 +117,7 @@ Reshaping
 Numeric
 ^^^^^^^
 
--
+- Fixed incorrect maximum :func:`Series.rank` percentile when using the `dense` method with repeated values (:issue:`18296`)
 -
 -
 
