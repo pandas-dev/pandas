@@ -601,7 +601,7 @@ class DataFrame(NDFrame):
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max([len(l) for l in value.split('\n')])
+        repr_width = max(len(l) for l in value.split('\n'))
 
         return repr_width < width
 
@@ -1798,7 +1798,7 @@ class DataFrame(NDFrame):
         def _verbose_repr():
             lines.append('Data columns (total %d columns):' %
                          len(self.columns))
-            space = max([len(pprint_thing(k)) for k in self.columns]) + 4
+            space = max(len(pprint_thing(k)) for k in self.columns) + 4
             counts = None
 
             tmpl = "%s%s"
@@ -5805,7 +5805,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------
@@ -5836,7 +5841,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be first index.
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------
@@ -6414,7 +6424,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    has_some_name = any([getattr(s, 'name', None) is not None for s in data])
+    has_some_name = any(getattr(s, 'name', None) is not None for s in data)
     if not has_some_name:
         return _default_index(len(data))
 
