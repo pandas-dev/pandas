@@ -278,7 +278,6 @@ Attributes
    Series.size
    Series.strides
    Series.itemsize
-   Series.axes
    Series.base
    Series.T
    Series.memory_usage
@@ -287,14 +286,8 @@ Attributes
    Series.empty
    Series.dtypes
    Series.ftypes
-   Series.as_matrix
    Series.data
-   Series.get_dtype_counts
-   Series.get_ftype_counts
-   Series.get_values
    Series.is_copy
-   Series.imag
-   Series.real
    Series.name
    Series.put
 
@@ -307,12 +300,11 @@ Conversion
    Series.infer_objects
    Series.convert_objects
    Series.copy
-   Series.isna
-   Series.notna
    Series.bool
    Series.to_period
    Series.to_timestamp
    Series.tolist
+   Series.get_values
 
 
 Indexing, iteration
@@ -330,7 +322,6 @@ Indexing, iteration
    Series.items
    Series.keys
    Series.pop
-   Series.compress
    Series.item
    Series.xs
 
@@ -480,10 +471,11 @@ Missing data handling
 .. autosummary::
    :toctree: generated/
 
+   Series.isna
+   Series.notna
    Series.dropna
    Series.fillna
    Series.interpolate
-   Series.valid
 
 Reshaping, sorting
 ~~~~~~~~~~~~~~~~~~
@@ -500,14 +492,10 @@ Reshaping, sorting
    Series.unstack
    Series.searchsorted
    Series.ravel
-   Series.reindex_axis
    Series.repeat
-   Series.reshape
    Series.squeeze
    Series.view
    Series.sortlevel
-   Series.swapaxes
-   Series.transpose
 
 
 Combining / joining / merging
@@ -1456,9 +1444,6 @@ Modifying and Computations
    Index.duplicated
    Index.equals
    Index.factorize
-   Index.format
-   Index.groupby
-   Index.holds_integer
    Index.identical
    Index.insert
    Index.is_
@@ -1471,7 +1456,6 @@ Modifying and Computations
    Index.is_mixed
    Index.is_numeric
    Index.is_object
-   Index.is_type_compatible
    Index.min
    Index.max
    Index.reindex
@@ -1484,9 +1468,6 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
-   Index.summary
-   Index.T
-   Index.transpose
 
 Missing Values
 ~~~~~~~~~~~~~~
