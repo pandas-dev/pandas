@@ -398,7 +398,7 @@ def _asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def _index_labels_to_array(labels):
+def _index_labels_to_array(labels, dtype=None):
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
@@ -408,7 +408,7 @@ def _index_labels_to_array(labels):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels)
+    labels = _asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 
