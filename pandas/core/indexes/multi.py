@@ -95,6 +95,30 @@ class MultiIndex(Index):
                               of iterables
     MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     Index : The base pandas Index type
+
+    Attributes
+    ----------
+    names
+    levels
+    labels
+    nlevels
+    levshape
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_product
+    set_levels
+    set_labels
+    to_hierarchical
+    to_frame
+    is_lexsorted
+    sortlevel
+    droplevel
+    swaplevel
+    reorder_levels
+    remove_unused_levels
     """
 
     # initialize to zero-length tuples to make everything work
@@ -461,7 +485,7 @@ class MultiIndex(Index):
         """ return a boolean if we need a qualified .info display """
         def f(l):
             return 'mixed' in l or 'string' in l or 'unicode' in l
-        return any([f(l) for l in self._inferred_type_levels])
+        return any(f(l) for l in self._inferred_type_levels)
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
@@ -489,9 +513,9 @@ class MultiIndex(Index):
         # for implementations with no useful getsizeof (PyPy)
         objsize = 24
 
-        level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
-        label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
+        level_nbytes = sum(i.memory_usage(deep=deep) for i in self.levels)
+        label_nbytes = sum(i.nbytes for i in self.labels)
+        names_nbytes = sum(getsizeof(i, objsize) for i in self.names)
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -1362,10 +1386,12 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
+        """Integer number of levels in this MultiIndex."""
         return len(self.levels)
 
     @property
     def levshape(self):
+        """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
 
     def __reduce__(self):
@@ -2214,12 +2240,12 @@ class MultiIndex(Index):
                         # here we have a completely specified key, but are
                         # using some partial string matching here
                         # GH4758
-                        all_dates = [(l.is_all_dates and
+                        all_dates = ((l.is_all_dates and
                                       not isinstance(k, compat.string_types))
-                                     for k, l in zip(key, self.levels)]
+                                     for k, l in zip(key, self.levels))
                         can_index_exactly = any(all_dates)
-                        if (any([l.is_all_dates
-                                 for k, l in zip(key, self.levels)]) and
+                        if (any(l.is_all_dates
+                                for k, l in zip(key, self.levels)) and
                                 not can_index_exactly):
                             indexer = self.get_loc(key)
 

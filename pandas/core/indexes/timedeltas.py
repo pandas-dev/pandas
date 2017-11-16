@@ -137,6 +137,24 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data
     PeriodIndex : Index of Period data
+
+    Attributes
+    ----------
+    days
+    seconds
+    microseconds
+    nanoseconds
+    components
+    inferred_freq
+
+    Methods
+    -------
+    to_pytimedelta
+    to_series
+    round
+    floor
+    ceil
+    to_frame
     """
 
     _typ = 'timedeltaindex'

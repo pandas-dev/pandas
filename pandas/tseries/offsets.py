@@ -21,10 +21,12 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_firstbday, _get_calendar, _to_dt64, _validate_business_time,
+    get_firstbday, get_lastbday,
+    _get_calendar, _to_dt64, _validate_business_time,
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
+    roll_yearday,
     shift_month,
     BeginMixin, EndMixin,
     BaseOffset)
@@ -1102,10 +1104,7 @@ class SemiMonthEnd(SemiMonthOffset):
                 n -= 1
         elif other.day > self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            else:
-                n += 1
+            n += 1
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
@@ -1155,15 +1154,10 @@ class SemiMonthBegin(SemiMonthOffset):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = -1
-            else:
-                n -= 1
+            n -= 1
         elif other.day > self.day_of_month:
             other = other.replace(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            elif n < 0:
+            if n <= 0:
                 n += 1
 
         months = n // 2 + n % 2
@@ -1197,18 +1191,14 @@ class BusinessMonthEnd(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = shift_month(other, n, 'end')
 
-        if other.weekday() > 4:
-            other = other - BDay()
-        return other
+        return shift_month(other, n, 'business_end')
 
 
 class BusinessMonthBegin(MonthOffset):
@@ -1219,7 +1209,7 @@ class BusinessMonthBegin(MonthOffset):
     def apply(self, other):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         if other.day > first and n <= 0:
             # as if rolled forward already
@@ -1228,24 +1218,13 @@ class BusinessMonthBegin(MonthOffset):
             other = other + timedelta(days=first - other.day)
             n -= 1
 
-        other = shift_month(other, n, None)
-        wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first,
-                          other.hour, other.minute,
-                          other.second, other.microsecond)
-        return result
+        return shift_month(other, n, 'business_start')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
         first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        if first_weekday == 5:
-            return dt.day == 3
-        elif first_weekday == 6:
-            return dt.day == 2
-        else:
-            return dt.day == 1
+        return dt.day == get_firstbday(first_weekday)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
@@ -1423,29 +1402,17 @@ class Week(EndMixin, DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        base = other
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if self.n > 0:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-                k = k - 1
-            for i in range(k):
-                other = other + self._inc
-        else:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-            for i in range(-k):
-                other = other - self._inc
+        k = self.n
+        otherDay = other.weekday()
+        if otherDay != self.weekday:
+            other = other + timedelta((self.weekday - otherDay) % 7)
+            if k > 0:
+                k -= 1
 
-        other = datetime(other.year, other.month, other.day,
-                         base.hour, base.minute, base.second, base.microsecond)
-        return other
+        return other + timedelta(weeks=k)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1520,18 +1487,11 @@ class WeekOfMonth(DateOffset):
         base = other
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
         other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
@@ -1542,11 +1502,7 @@ class WeekOfMonth(DateOffset):
         w = Week(weekday=self.weekday)
         d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
         d = w.rollforward(d)
-
-        for i in range(self.week):
-            d = w.apply(d)
-
-        return d
+        return d + timedelta(weeks=self.week)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1611,18 +1567,11 @@ class LastWeekOfMonth(DateOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
         return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
@@ -1657,10 +1606,7 @@ class LastWeekOfMonth(DateOffset):
 
 class QuarterOffset(DateOffset):
     """Quarter representation - doesn't call super"""
-
-    #: default month for __init__
     _default_startingMonth = None
-    #: default month in _from_name
     _from_name_startingMonth = None
     _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
@@ -1704,21 +1650,15 @@ class BQuarterEnd(QuarterOffset):
     """
     _outputName = 'BusinessQuarterEnd'
     _default_startingMonth = 3
-    # 'BQ'
     _from_name_startingMonth = 12
     _prefix = 'BQ'
 
     @apply_wraps
     def apply(self, other):
         n = self.n
-        base = other
-        other = datetime(other.year, other.month, other.day,
-                         other.hour, other.minute, other.second,
-                         other.microsecond)
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1729,11 +1669,7 @@ class BQuarterEnd(QuarterOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = shift_month(other, monthsToGo + 3 * n, 'end')
-        other = tslib._localize_pydatetime(other, base.tzinfo)
-        if other.weekday() > 4:
-            other = other - BDay()
-        return other
+        return shift_month(other, monthsToGo + 3 * n, 'business_end')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1759,7 +1695,7 @@ class BQuarterBegin(QuarterOffset):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -1773,14 +1709,7 @@ class BQuarterBegin(QuarterOffset):
         elif n > 0 and (monthsSince == 0 and other.day < first):
             n = n - 1
 
-        # get the first bday for result
-        other = shift_month(other, 3 * n - monthsSince, None)
-        wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-        return result
+        return shift_month(other, 3 * n - monthsSince, 'business_start')
 
 
 class QuarterEnd(EndMixin, QuarterOffset):
@@ -1889,8 +1818,7 @@ class BYearEnd(YearOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = (days_in_month -
-                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         years = n
         if n > 0:
@@ -1902,17 +1830,8 @@ class BYearEnd(YearOffset):
                     (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = shift_month(other, 12 * years, None)
-
-        _, days_in_month = tslib.monthrange(other.year, self.month)
-        result = datetime(other.year, self.month, days_in_month,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-
-        if result.weekday() > 4:
-            result = result - BDay()
-
-        return result
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, 'business_end')
 
 
 class BYearBegin(YearOffset):
@@ -1926,7 +1845,7 @@ class BYearBegin(YearOffset):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         years = n
 
@@ -1940,11 +1859,8 @@ class BYearBegin(YearOffset):
                 years += 1
 
         # set first bday for result
-        other = shift_month(other, years * 12, None)
-        wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        first = _get_firstbday(wkday)
-        return datetime(other.year, self.month, first, other.hour,
-                        other.minute, other.second, other.microsecond)
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, 'business_start')
 
 
 class YearEnd(EndMixin, YearOffset):
@@ -1954,49 +1870,12 @@ class YearEnd(EndMixin, YearOffset):
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date):
-            if date.month == self.month:
-                _, days_in_month = tslib.monthrange(date.year, self.month)
-                if date.day != days_in_month:
-                    year = date.year
-                else:
-                    year = date.year + 1
-            elif date.month < self.month:
-                year = date.year
-            else:
-                year = date.year + 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _decrement(date):
-            year = date.year if date.month > self.month else date.year - 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
-                date = _increment(date)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
-        elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'end')
+        year = other.year + n
+        days_in_month = tslib.monthrange(year, self.month)[1]
+        return datetime(year, self.month, days_in_month,
+                        other.hour, other.minute, other.second,
+                        other.microsecond)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -2017,36 +1896,9 @@ class YearBegin(BeginMixin, YearOffset):
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date, n):
-            year = date.year + n - 1
-            if date.month >= self.month:
-                year += 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _decrement(date, n):
-            year = date.year + n + 1
-            if date.month < self.month or (date.month == self.month and
-                                           date.day == 1):
-                year -= 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _rollf(date):
-            if (date.month != self.month) or date.day > 1:
-                date = _increment(date, 1)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            result = _increment(result, n)
-        elif n < 0:
-            result = _decrement(result, n)
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'start')
+        year = other.year + n
+        return other.replace(year=year, month=self.month, day=1)
 
     @apply_index_wraps
     def apply_index(self, i):
