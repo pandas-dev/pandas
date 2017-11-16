@@ -119,7 +119,7 @@ Reshaping
 Numeric
 ^^^^^^^
 
--
+- Fixed incorrect maximum :func:`Series.rank` percentile for large arrays (:issue:`18271`)
 -
 -
 
