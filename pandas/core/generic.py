@@ -6340,8 +6340,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # GH 17935
         # Check that index is sorted
-        if (not ax.is_monotonic_increasing and
-           not ax.is_monotonic_decreasing):
+        if not ax.is_monotonic_increasing and not ax.is_monotonic_decreasing:
             raise ValueError("truncate requires a sorted index")
 
         # if we have a date index, convert to dates, otherwise

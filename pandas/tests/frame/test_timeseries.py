@@ -392,8 +392,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
                            index=rng)
         with tm.assert_raises_regex(ValueError,
                                     'truncate requires a sorted index'):
-            ts.sort_values(ascending=False).truncate(before='2011-11',
-                                                     after='2011-12')
+            ts.sort_values('A', ascending=False).truncate(before='2011-11',
+                                                          after='2011-12')
 
         df = pd.DataFrame({3: np.random.randn(5),
                            20: np.random.randn(5),
