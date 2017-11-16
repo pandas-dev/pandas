@@ -399,6 +399,18 @@ def _asarray_tuplesafe(values, dtype=None):
 
 
 def _index_labels_to_array(labels, dtype=None):
+    """
+    Transform label or iterable of labels to array, for use in Index.
+
+    Parameters
+    ----------
+    dtype : dtype
+        If specified, use as dtype of the resulting array, otherwise infer.
+
+    Returns
+    -------
+    array
+    """
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
