@@ -557,6 +557,33 @@ We are stopping on the included end-point as it is part of the index
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+
+``DatetimeIndex`` partial string indexing also works with timezones.
+If a timezone is provided by the label, that timezone is respected.
+If no timezone is provided, then the same timezone as used in the ``DatetimeIndex`` is assumed.
+
+.. ipython:: python
+
+   first_january_cet = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                     freq='T', tz="CET")
+   df = pd.DataFrame(index=first_january_utc, data=np.arange(len(first_january_utc)))
+
+   four_minute_slice = df["2016-01-01T00:00-01:00":"2016-01-01T02:03"]
+
+
+``DatetimeIndex`` partial string indexing can be used with naive labels as well.
+If a timezone is provided by the label, the datetime index is assumed to be UTC and a ``UserWarning`` is emitted.
+
+.. ipython:: python
+
+   first_january_implicit_utc = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                              freq='T')
+   df = pd.DataFrame(index=first_january_implicit_utc, data=np.arange(len(first_january_implicit_utc)))
+
+   four_minute_slice = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
+
+
+
 .. _timeseries.slice_vs_exact_match:
 
 Slice vs. Exact Match
