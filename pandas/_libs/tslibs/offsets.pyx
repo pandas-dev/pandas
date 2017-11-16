@@ -141,19 +141,41 @@ def apply_index_wraps(func):
 
 cpdef int get_lastbday(int wkday, int days_in_month):
     """
-    (wkday, days_in_month) is the result of monthrange(year, month)
+    Find the last day of the month that is a business day.
+
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int
+
+    Returns
+    -------
+    last_bday : int
     """
     return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
 
 cpdef int get_firstbday(int wkday, int days_in_month=0):
     """
-    (wkday, days_in_month) is the result of monthrange(year, month)
+    Find the first day of the month that is a business day.
 
-    If it's a saturday or sunday, increment first business day to reflect this
+    (wkday, days_in_month) is the output from monthrange(year, month)
 
-    days_in_month arg is a dummy so that this has the same signature as
-    get_lastbday.
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int, default 0
+
+    Returns
+    -------
+    first_bday : int
+
+    Notes
+    -----
+    `days_in_month` arg is a dummy so that this has the same signature as
+    `get_lastbday`.
     """
     cdef int first
     first = 1
