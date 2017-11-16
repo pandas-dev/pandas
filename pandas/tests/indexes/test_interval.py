@@ -375,10 +375,29 @@ class TestIntervalIndex(Base):
         pytest.raises(ValueError, self.index.insert, 0,
                       Interval(2, 3, closed='left'))
 
+    @pytest.mark.parametrize('data', [
+        interval_range(0, periods=10),
+        interval_range(1.7, periods=8, freq=2.5),
+        interval_range(Timestamp('20170101'), periods=12),
+        interval_range(Timedelta('1 day'), periods=6),
+        IntervalIndex.from_tuples([('a', 'd'), ('e', 'j'), ('w', 'z')]),
+        IntervalIndex.from_tuples([(1, 2), ('a', 'z'), (3.14, 6.28)])])
+    def test_insert_na(self, data):
         # GH 18295
-        expected = self.index_with_nan
-        result = self.index.insert(1, np.nan)
+        valid_na, invalid_na = np.nan, pd.NaT
+        if data.left._na_value is pd.NaT:
+            valid_na, invalid_na = invalid_na, valid_na
+
+        # valid insertion
+        expected = IntervalIndex([data[0], np.nan]).append(data[1:])
+        result = data.insert(1, valid_na)
         tm.assert_index_equal(result, expected)
+
+        # invalid insertion
+        msg = ('cannot insert with incompatible NA value: got {invalid}, '
+               'expected {valid}').format(invalid=invalid_na, valid=valid_na)
+        with tm.assert_raises_regex(TypeError, msg):
+            data.insert(1, invalid_na)
 
     def test_take(self, closed):
         index = self.create_index(closed=closed)
