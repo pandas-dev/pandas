@@ -34,7 +34,7 @@ from pandas.core.tools.datetimes import (
     to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, offsets as liboffsets
 from pandas._libs.tslib import normalize_date, NaT, Timestamp
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
@@ -4683,3 +4683,43 @@ class TestDST(object):
         first = Timestamp(test_values[0], tz='US/Eastern') + offset()
         second = Timestamp(test_values[1], tz='US/Eastern')
         assert first == second
+
+
+def test_get_lastbday():
+    dt = datetime(2017, 11, 30)
+    assert dt.weekday() == 3  # i.e. this is a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_lastbday(wkday, days_in_month) == 30
+
+    dt = datetime(1993, 10, 31)
+    assert dt.weekday() == 6  # i.e. this is not a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_lastbday(wkday, days_in_month) == 29
+
+
+def test_get_firstbday():
+    dt = datetime(2017, 4, 1)
+    assert dt.weekday() == 5  # i.e. not a weekday
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_firstbday(wkday, days_in_month) == 3
+
+    dt = datetime(1993, 10, 1)
+    assert dt.weekday() == 4  # i.e. a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_firstbday(wkday, days_in_month) == 1
+
+
+def test_shift_month():
+    dt = datetime(2017, 11, 30)
+    assert liboffsets.shift_month(dt, 0, 'business_end') == dt
+    assert liboffsets.shift_month(dt, 0,
+                                  'business_start') == datetime(2017, 11, 1)
+
+    ts = Timestamp('1929-05-05')
+    assert liboffsets.shift_month(ts, 1, 'start') == Timestamp('1929-06-01')
+    assert liboffsets.shift_month(ts, -3, 'end') == Timestamp('1929-02-28')
+
+    assert liboffsets.shift_month(ts, 25, None) == Timestamp('1931-06-5')
+
+    # Try to shift to April 31, then shift back to Apr 30 to get a real date
+    assert liboffsets.shift_month(ts, -1, 31) == Timestamp('1929-04-30')
