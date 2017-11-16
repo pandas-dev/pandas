@@ -4691,7 +4691,7 @@ def test_get_lastbday():
     wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
     assert liboffsets.get_lastbday(wkday, days_in_month) == 30
 
-    dt = datetime.datetime(1993, 10, 31)
+    dt = datetime(1993, 10, 31)
     assert dt.weekday() == 6  # i.e. this is not a business day
     wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
     assert liboffsets.get_lastbday(wkday, days_in_month) == 29
@@ -4703,7 +4703,7 @@ def test_get_firstbday():
     wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
     assert liboffsets.get_firstbday(wkday, days_in_month) == 3
 
-    dt = datetime.datetime(1993, 10, 1)
+    dt = datetime(1993, 10, 1)
     assert dt.weekday() == 4  # i.e. a business day
     wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
     assert liboffsets.get_firstbday(wkday, days_in_month) == 1
