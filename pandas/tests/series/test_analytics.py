@@ -694,7 +694,7 @@ class TestSeriesAnalytics(TestData):
             p = p.astype('float64')
             result = p['first'] % p['second']
             result2 = p['second'] % p['first']
-            assert not np.array_equal(result, result2)
+            assert not result.equals(result2)
 
             # GH 9144
             s = Series([0, 1])
