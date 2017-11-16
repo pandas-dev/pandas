@@ -1,4 +1,3 @@
-import inspect
 import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
@@ -4688,24 +4687,21 @@ class TestDST(object):
 
 # ---------------------------------------------------------------------
 
-offset_classes = [getattr(offsets, x) for x in dir(offsets)]
-offset_classes = [x for x in offset_classes if inspect.isclass(x) and
-                  issubclass(x, DateOffset) and
-                  x not in [offsets.YearOffset, offsets.Tick,
-                            offsets.SingleConstructorOffset,
-                            offsets.SemiMonthOffset,
-                            offsets.QuarterOffset, offsets.MonthOffset]]
 
-month_classes = [x for x in offset_classes if
-                 issubclass(x, offsets.MonthOffset)]
-
-tick_classes = [x for x in offset_classes if issubclass(x, offsets.Tick)]
-
-
-@pytest.mark.parametrize('cls', month_classes + tick_classes)
 @pytest.mark.parametrize('kwd', _rd_kwds)
-def test_valid_attributes(kwd, cls):
+def test_valid_month_attributes(kwd, month_classes):
+    # GH#18226
+    cls = month_classes
     # check that we cannot create e.g. MonthEnd(weeks=3)
+    with pytest.raises(TypeError):
+        cls(**{kwd: 3})
+
+
+@pytest.mark.parametrize('kwd', _rd_kwds)
+def test_valid_tick_attributes(kwd, tick_classes):
+    # GH#18226
+    cls = tick_classes
+    # check that we cannot create e.g. Hour(weeks=3)
     with pytest.raises(TypeError):
         cls(**{kwd: 3})
 
