@@ -1561,7 +1561,7 @@ Equivalent to ``{equiv}``.
 Parameters
 ----------
 other : {construct} or {cls_name}
-axis : {{axis_order}}
+axis : {{{axis_order}}}
     Axis to broadcast over
 
 Returns
@@ -1583,7 +1583,7 @@ See also
                 Parameters
                 ----------
                 other : {construct} or {cls_name}
-                axis : {{axis_order}}
+                axis : {{{axis_order}}}
                     Axis to broadcast over
 
                 Returns
