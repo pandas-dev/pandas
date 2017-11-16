@@ -240,7 +240,7 @@ class TestTimeSeries(TestData):
         # GH 17935
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'],
-                       index=[5, 3, 2, 9, 0])
+                      index=[5, 3, 2, 9, 0])
         with tm.assert_raises_regex(ValueError,
                                     'truncate requires a sorted index'):
             s.truncate(before=3, after=9)
