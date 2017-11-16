@@ -1577,6 +1577,7 @@ See also
                     cls_name=cls.__name__, reverse=op_desc['reverse'],
                     axis_order=', '.join(cls._AXIS_ORDERS))
             else:
+                # doc strings substitors
                 _agg_doc = """
                 Wrapper method for {wrp_method}
 
