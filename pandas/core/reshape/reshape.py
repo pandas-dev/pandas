@@ -851,7 +851,9 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
-                                 sparse=sparse, drop_first=drop_first, dtype=dtype)
+                                 sparse=sparse,
+                                 drop_first=drop_first,
+                                 dtype=dtype)
     return result
 
 
