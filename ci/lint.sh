@@ -72,7 +72,7 @@ if [ "$LINT" ]; then
     echo "Linting *.c and *.h DONE"
 
     echo "Check for invalid testing"
-    grep -r -E --include '*.py' --exclude testing.py '(numpy|np)\.testing' pandas
+    grep -r -E --include '*.py' --exclude testing.py '(numpy|np)\.testing|(numpy|np)\.array_equal' pandas/tests
     if [ $? = "0" ]; then
         RET=1
     fi
