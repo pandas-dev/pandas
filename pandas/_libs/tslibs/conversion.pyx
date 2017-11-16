@@ -20,15 +20,14 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
+                          PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
+                          npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
+                          get_datetime64_unit, get_datetime64_value,
                           pydatetime_to_dt64)
 
-from datetime cimport (pandas_datetime_to_datetimestruct,
-                       PANDAS_DATETIMEUNIT, PANDAS_FR_ns, npy_datetime,
-                       _string_to_dts,
-                       get_datetime64_unit, get_datetime64_value)
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
-cimport util
 from util cimport (is_string_object,
                    is_datetime64_object,
                    is_integer_object, is_float_object)
@@ -41,10 +40,10 @@ from timezones cimport (
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
+from nattype cimport NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
-cdef int64_t NPY_NAT = util.get_nat()
 
 cdef int64_t DAY_NS = 86400000000000LL
 

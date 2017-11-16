@@ -26,6 +26,7 @@ from util cimport (get_nat,
 nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 cdef int64_t NPY_NAT = get_nat()
+iNaT = NPY_NAT  # python-visible constant
 
 cdef bint _nat_scalar_rules[6]
 _nat_scalar_rules[Py_EQ] = False
