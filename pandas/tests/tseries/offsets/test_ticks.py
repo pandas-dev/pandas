@@ -39,8 +39,24 @@ def test_delta_to_tick():
 
 
 class TestHour(object):
-    def test_hour_add_hour(self):
-        assert Hour(3) + Hour(2) == Hour(5)
+    def test_construct_hour3(self):
+        # smoketest to debug appveyor segfault
+        Hour(3)
+
+    def test_construct_hour2(self):
+        # smoketest to debug appveyor segfault
+        Hour(2)
+
+    def test_construct_hour5(self):
+        # smoketest to debug appveyor segfault
+        Hour(5)
+
+    def test_hour3_add_hour2(self):
+        # smoketest to debug appveyor segfault
+        Hour(3) + Hour(2)
+
+    # def test_hour_add_hour(self):
+    #    assert Hour(3) + Hour(2) == Hour(5)
 
     def test_hour_sub_hour(self):
         assert Hour(3) - Hour(2) == Hour()
