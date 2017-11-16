@@ -515,7 +515,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     elif is_integer_object(day_opt):
         day = min(day_opt, days_in_month)
     else:
-        # Note: unlike `shift_month`, this get_day_of_month does not
+        # Note: unlike `shift_month`, get_day_of_month does not
         # allow day_opt = None
         raise ValueError(day_opt)
 
