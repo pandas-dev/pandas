@@ -3156,9 +3156,9 @@ class DataFrame(NDFrame):
         regex : bool or same types as `to_replace`, default False
             Whether to interpret ``to_replace`` and/or ``value`` as regular
             expressions. If this is ``True`` then ``to_replace`` *must* be a
-            string. Alternatively, this could be a regular expression or a list,
-            dict, or array of regular expressions in which case ``to_replace``
-            must be ``None``.
+            string. Alternatively, this could be a regular expression or a
+            list, dict, or array of regular expressions in which case
+            ``to_replace`` must be ``None``.
         method : string, optional, {'pad', 'ffill', 'bfill'}
             The method to use when for replacement, when ``to_replace`` is a
             ``list``.
@@ -3175,13 +3175,15 @@ class DataFrame(NDFrame):
         Raises
         ------
         AssertionError
-            * If ``regex`` is not a ``bool`` and ``to_replace`` is not ``None``.
+            * If ``regex`` is not a ``bool`` and ``to_replace`` is not
+              ``None``.
         TypeError
             * If ``to_replace`` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
-            * If ``to_replace`` is ``None`` and ``regex`` is not compilable into a
-              regular expression or is a list, dict, ndarray, or Series.
-            * When replacing multiple ``bool`` or ``datetime64`` objects and the
+            * If ``to_replace`` is ``None`` and ``regex`` is not compilable
+              into a regular expression or is a list, dict, ndarray, or
+              Series.
+            * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to `to_replace` does not match the type of the
               value being replaced
         ValueError
@@ -3195,8 +3197,8 @@ class DataFrame(NDFrame):
         * Regular expressions will only substitute on strings, meaning you
           cannot provide, for example, a regular expression matching floating
           point numbers and expect the columns in your frame that have a
-          numeric dtype to be matched. However, if those floating point numbers
-          *are* strings, then you can do this.
+          numeric dtype to be matched. However, if those floating point
+          numbers *are* strings, then you can do this.
         * This method has *a lot* of options. You are encouraged to experiment
           and play with this method to gain intuition about how it works.
 
@@ -3293,8 +3295,9 @@ class DataFrame(NDFrame):
 
         """
         return super(DataFrame, self).replace(to_replace=to_replace,
-                    value=value, inplace=inplace, limit=limit, regex=regex,
-                    method=method, axis=axis)
+                                              value=value, inplace=inplace,
+                                              limit=limit, regex=regex,
+                                              method=method, axis=axis)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

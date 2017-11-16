@@ -2730,9 +2730,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         regex : bool or same types as ``to_replace``, default False
             Whether to interpret ``to_replace`` and/or ``value`` as regular
             expressions. If this is ``True`` then ``to_replace`` *must* be a
-            string. Alternatively, this could be a regular expression or a list,
-            dict, or array of regular expressions in which case ``to_replace``
-            must be ``None``.
+            string. Alternatively, this could be a regular expression or a
+            list, dict, or array of regular expressions in which case
+            ``to_replace`` must be ``None``.
         method : string, optional, {'pad', 'ffill', 'bfill'}
             The method to use when for replacement, when ``to_replace`` is a
             ``list``.
@@ -2749,13 +2749,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Raises
         ------
         AssertionError
-            * If ``regex`` is not a ``bool`` and ``to_replace`` is not ``None``.
+            * If ``regex`` is not a ``bool`` and ``to_replace`` is not
+              ``None``.
         TypeError
             * If ``to_replace`` is a ``dict`` and ``value`` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
-            * If ``to_replace`` is ``None`` and ``regex`` is not compilable into a
+            * If ``to_replace`` is ``None`` and ``regex`` is not compilable
+              into a
               regular expression or is a list, dict, ndarray, or Series.
-            * When replacing multiple ``bool`` or ``datetime64`` objects and the
+            * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to ``to_replace`` does not match the type of the
               value being replaced
         ValueError
@@ -2855,8 +2857,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         return super(Series, self).replace(to_replace=to_replace, value=value,
-                    inplace=inplace, limit=limit,
-                    regex=regex, method=method, axis=axis)
+                                           inplace=inplace, limit=limit,
+                                           regex=regex, method=method,
+                                           axis=axis)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
