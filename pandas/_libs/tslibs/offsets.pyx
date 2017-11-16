@@ -139,12 +139,45 @@ def apply_index_wraps(func):
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int _get_firstbday(int wkday):
+cpdef int get_lastbday(int wkday, int days_in_month):
     """
-    wkday is the result of monthrange(year, month)
+    Find the last day of the month that is a business day.
 
-    If it's a saturday or sunday, increment first business day to reflect this
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int
+
+    Returns
+    -------
+    last_bday : int
     """
+    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
+
+
+cpdef int get_firstbday(int wkday, int days_in_month=0):
+    """
+    Find the first day of the month that is a business day.
+
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int, default 0
+
+    Returns
+    -------
+    first_bday : int
+
+    Notes
+    -----
+    `days_in_month` arg is a dummy so that this has the same signature as
+    `get_lastbday`.
+    """
+    cdef int first
     first = 1
     if wkday == 5:  # on Saturday
         first = 3
@@ -380,7 +413,6 @@ class BaseOffset(_BaseOffset):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-
 cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -406,7 +438,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     cdef:
         int year, month, day
-        int dim, dy
+        int wkday, days_in_month, dy
 
     dy = (stamp.month + months) // 12
     month = (stamp.month + months) % 12
@@ -416,15 +448,21 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         dy -= 1
     year = stamp.year + dy
 
-    dim = monthrange(year, month)[1]
+    wkday, days_in_month = monthrange(year, month)
     if day_opt is None:
-        day = min(stamp.day, dim)
+        day = min(stamp.day, days_in_month)
     elif day_opt == 'start':
         day = 1
     elif day_opt == 'end':
-        day = dim
+        day = days_in_month
+    elif day_opt == 'business_start':
+        # first business day of month
+        day = get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
+        # last business day of month
+        day = get_lastbday(wkday, days_in_month)
     elif is_integer_object(day_opt):
-        day = min(day_opt, dim)
+        day = min(day_opt, days_in_month)
     else:
         raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
