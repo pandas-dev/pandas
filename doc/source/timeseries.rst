@@ -566,9 +566,13 @@ If no timezone is provided, then the same timezone as used in the ``DatetimeInde
 
    first_january_cet = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
                                      freq='T', tz="CET")
-   df = pd.DataFrame(index=first_january_utc, data=np.arange(len(first_january_utc)))
+
+   df = pd.DataFrame(index=first_january_cet,
+                     data=np.arange(len(first_january_cet)))
 
    four_minute_slice = df["2016-01-01T00:00-01:00":"2016-01-01T02:03"]
+
+   four_minute_slice
 
 
 ``DatetimeIndex`` partial string indexing can be used with naive labels as well.
@@ -578,10 +582,13 @@ If a timezone is provided by the label, the datetime index is assumed to be UTC 
 
    first_january_implicit_utc = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
                                               freq='T')
-   df = pd.DataFrame(index=first_january_implicit_utc, data=np.arange(len(first_january_implicit_utc)))
+
+   df = pd.DataFrame(index=first_january_implicit_utc,
+                     data=np.arange(len(first_january_implicit_utc)))
 
    four_minute_slice = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
 
+   four_minute_slice
 
 
 .. _timeseries.slice_vs_exact_match:
