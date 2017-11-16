@@ -38,14 +38,7 @@ from cpython.datetime cimport (PyDelta_Check, PyTZInfo_Check,
 # import datetime C API
 PyDateTime_IMPORT
 # this is our datetime.pxd
-from datetime cimport (
-    pandas_datetime_to_datetimestruct,
-    days_per_month_table,
-    PANDAS_DATETIMEUNIT,
-    _string_to_dts,
-    is_leapyear,
-    dayofweek,
-    PANDAS_FR_ns)
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
 # stdlib datetime imports
 from datetime import time as datetime_time
@@ -55,11 +48,14 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
                                  pandas_datetimestruct,
+                                 PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  npy_datetime,
                                  get_datetime64_unit, get_datetime64_value,
-                                 get_timedelta64_value)
+                                 get_timedelta64_value,
+                                 days_per_month_table,
+                                 dayofweek, is_leapyear)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from .tslibs.parsing import parse_datetime_string
@@ -74,9 +70,6 @@ UTC = pytz.utc
 # initialize numpy
 import_array()
 
-
-cdef int64_t NPY_NAT = util.get_nat()
-iNaT = NPY_NAT
 
 from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
 from tslibs.timedeltas import Timedelta
@@ -95,8 +88,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
 from tslibs.conversion import (tz_localize_to_utc,
                                tz_convert_single, date_normalize)
 
-from tslibs.nattype import NaT, nat_strings
-from tslibs.nattype cimport _checknull_with_nat
+from tslibs.nattype import NaT, nat_strings, iNaT
+from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
 
 
 cdef inline object create_timestamp_from_ts(
@@ -282,6 +275,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
         """
+        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
 
@@ -302,8 +297,10 @@ class Timestamp(_Timestamp):
     @classmethod
     def now(cls, tz=None):
         """
-        Return the current time in the local timezone.  Equivalent
-        to datetime.now([tz])
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
 
         Parameters
         ----------
@@ -317,6 +314,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def today(cls, tz=None):
         """
+        Timestamp.today(cls, tz=None)
+
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.
@@ -330,18 +329,38 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def utcnow(cls):
+        """
+        Timestamp.utcnow()
+
+        Return a new Timestamp representing UTC day and time.
+        """
         return cls.now('UTC')
 
     @classmethod
     def utcfromtimestamp(cls, ts):
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
     def fromtimestamp(cls, ts):
+        """
+        Timestamp.fromtimestamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
         return cls(datetime.fromtimestamp(ts))
 
     @classmethod
     def combine(cls, date, time):
+        """
+        Timsetamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
         return cls(datetime.combine(date, time))
 
     def __new__(cls, object ts_input=_no_input,

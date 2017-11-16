@@ -139,12 +139,45 @@ def apply_index_wraps(func):
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int _get_firstbday(int wkday):
+cpdef int get_lastbday(int wkday, int days_in_month):
     """
-    wkday is the result of monthrange(year, month)
+    Find the last day of the month that is a business day.
 
-    If it's a saturday or sunday, increment first business day to reflect this
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int
+
+    Returns
+    -------
+    last_bday : int
     """
+    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
+
+
+cpdef int get_firstbday(int wkday, int days_in_month=0):
+    """
+    Find the first day of the month that is a business day.
+
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int, default 0
+
+    Returns
+    -------
+    first_bday : int
+
+    Notes
+    -----
+    `days_in_month` arg is a dummy so that this has the same signature as
+    `get_lastbday`.
+    """
+    cdef int first
     first = 1
     if wkday == 5:  # on Saturday
         first = 3
@@ -380,7 +413,6 @@ class BaseOffset(_BaseOffset):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-
 cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
@@ -406,7 +438,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     cdef:
         int year, month, day
-        int dim, dy
+        int wkday, days_in_month, dy
 
     dy = (stamp.month + months) // 12
     month = (stamp.month + months) % 12
@@ -416,15 +448,123 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
         dy -= 1
     year = stamp.year + dy
 
-    dim = monthrange(year, month)[1]
+    wkday, days_in_month = monthrange(year, month)
     if day_opt is None:
-        day = min(stamp.day, dim)
+        day = min(stamp.day, days_in_month)
     elif day_opt == 'start':
         day = 1
     elif day_opt == 'end':
-        day = dim
+        day = days_in_month
+    elif day_opt == 'business_start':
+        # first business day of month
+        day = get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
+        # last business day of month
+        day = get_lastbday(wkday, days_in_month)
     elif is_integer_object(day_opt):
-        day = min(day_opt, dim)
+        day = min(day_opt, days_in_month)
     else:
         raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
+
+
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
+    """
+    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    policy, as described by the `day_opt` argument.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    day_of_month : int
+
+    Examples
+    -------
+    >>> other = datetime(2017, 11, 14)
+    >>> get_day_of_month(other, 'start')
+    1
+    >>> get_day_of_month(other, 'end')
+    30
+
+    """
+    if day_opt == 'start':
+        return 1
+    elif day_opt == 'end':
+        return monthrange(other.year, other.month)[1]
+    else:
+        raise ValueError(day_opt)
+
+
+cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    n : int number of periods to increment
+
+    Notes
+    -----
+    * Mirrors `roll_check` in tslib.shift_months
+
+    Examples
+    -------
+    >>> month = 3
+    >>> day_opt = 'start'              # `other` will be compared to March 1
+    >>> other = datetime(2017, 2, 10)  # before March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    1
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    2
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    >>> month = 6
+    >>> day_opt = 'end'                # `other` will be compared to June 30
+    >>> other = datetime(1999, 6, 29)  # before June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    4
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    5
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    """
+    # Note: The other.day < ... condition will never hold when day_opt=='start'
+    # and the other.day > ... condition will never hold when day_opt=='end'.
+    # At some point these extra checks may need to be optimized away.
+    # But that point isn't today.
+    if n > 0:
+        if other.month < month or (other.month == month and
+                                   other.day < get_day_of_month(other,
+                                                                day_opt)):
+            n -= 1
+    elif n <= 0:
+        if other.month > month or (other.month == month and
+                                   other.day > get_day_of_month(other,
+                                                                day_opt)):
+            n += 1
+    return n

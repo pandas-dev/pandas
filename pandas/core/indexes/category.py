@@ -46,6 +46,24 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     name : object
         Name to be stored in the index
 
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
+
+    Methods
+    -------
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    set_categories
+    as_ordered
+    as_unordered
+    map
+
     See Also
     --------
     Categorical, Index
