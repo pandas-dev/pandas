@@ -22,6 +22,7 @@ from pandas._libs.tslibs.offsets import (
     _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
+    roll_yearday,
     shift_month,
     BeginMixin, EndMixin,
     BaseOffset)
@@ -1905,49 +1906,12 @@ class YearEnd(EndMixin, YearOffset):
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date):
-            if date.month == self.month:
-                _, days_in_month = tslib.monthrange(date.year, self.month)
-                if date.day != days_in_month:
-                    year = date.year
-                else:
-                    year = date.year + 1
-            elif date.month < self.month:
-                year = date.year
-            else:
-                year = date.year + 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _decrement(date):
-            year = date.year if date.month > self.month else date.year - 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
-                date = _increment(date)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
-        elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'end')
+        year = other.year + n
+        days_in_month = tslib.monthrange(year, self.month)[1]
+        return datetime(year, self.month, days_in_month,
+                        other.hour, other.minute, other.second,
+                        other.microsecond)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1968,36 +1932,9 @@ class YearBegin(BeginMixin, YearOffset):
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date, n):
-            year = date.year + n - 1
-            if date.month >= self.month:
-                year += 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _decrement(date, n):
-            year = date.year + n + 1
-            if date.month < self.month or (date.month == self.month and
-                                           date.day == 1):
-                year -= 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _rollf(date):
-            if (date.month != self.month) or date.day > 1:
-                date = _increment(date, 1)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            result = _increment(result, n)
-        elif n < 0:
-            result = _decrement(result, n)
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'start')
+        year = other.year + n
+        return other.replace(year=year, month=self.month, day=1)
 
     @apply_index_wraps
     def apply_index(self, i):
