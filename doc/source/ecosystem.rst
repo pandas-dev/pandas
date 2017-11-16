@@ -225,7 +225,13 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask is a flexible parallel computing library for analytics. Dask
-allow a familiar ``DataFrame`` interface to out-of-core, parallel and distributed computing.
+provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
+
+`Dask-ML <https://dask-ml.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
+
 
 `Blaze <http://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
