@@ -428,3 +428,105 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     else:
         raise ValueError(day_opt)
     return stamp.replace(year=year, month=month, day=day)
+
+
+cdef int get_day_of_month(datetime other, day_opt) except? -1:
+    """
+    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    policy, as described by the `day_opt` argument.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    day_of_month : int
+
+    Examples
+    -------
+    >>> other = datetime(2017, 11, 14)
+    >>> get_day_of_month(other, 'start')
+    1
+    >>> get_day_of_month(other, 'end')
+    30
+
+    """
+    if day_opt == 'start':
+        return 1
+    elif day_opt == 'end':
+        return monthrange(other.year, other.month)[1]
+    else:
+        raise ValueError(day_opt)
+
+
+cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    n : int number of periods to increment
+
+    Notes
+    -----
+    * Mirrors `roll_check` in tslib.shift_months
+
+    Examples
+    -------
+    >>> month = 3
+    >>> day_opt = 'start'              # `other` will be compared to March 1
+    >>> other = datetime(2017, 2, 10)  # before March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    1
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    2
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    >>> month = 6
+    >>> day_opt = 'end'                # `other` will be compared to June 30
+    >>> other = datetime(1999, 6, 29)  # before June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    4
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    5
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    """
+    # Note: The other.day < ... condition will never hold when day_opt=='start'
+    # and the other.day > ... condition will never hold when day_opt=='end'.
+    # At some point these extra checks may need to be optimized away.
+    # But that point isn't today.
+    if n > 0:
+        if other.month < month or (other.month == month and
+                                   other.day < get_day_of_month(other,
+                                                                day_opt)):
+            n -= 1
+    elif n <= 0:
+        if other.month > month or (other.month == month and
+                                   other.day > get_day_of_month(other,
+                                                                day_opt)):
+            n += 1
+    return n
