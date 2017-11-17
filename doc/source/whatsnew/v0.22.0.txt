@@ -156,7 +156,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
-- :func:`get_dummies` now supports ``dtype`` argument
+-
 -
 -
 
