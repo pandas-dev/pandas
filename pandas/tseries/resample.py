@@ -1149,7 +1149,7 @@ class TimeGrouper(Grouper):
             binner = labels = DatetimeIndex(
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
-        
+
         first, last = ax.min(), ax.max()
         first, last = _get_range_edges(first, last, self.freq,
                                        closed=self.closed,
