@@ -92,7 +92,6 @@ from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
 
 
-# TODO: Can this become a classmethod?
 cdef inline object create_timestamp_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
@@ -1162,7 +1161,8 @@ cdef class _Timestamp(datetime):
 
     @property
     def _repr_base(self):
-        return '%s %s' % (self._date_repr, self._time_repr)
+        return '{date} {time}'.format(date=self._date_repr,
+                                      time=self._time_repr)
 
     @property
     def _date_repr(self):
