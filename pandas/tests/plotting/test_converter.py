@@ -75,7 +75,15 @@ class TestRegistration(object):
         s = Series(range(12), index=date_range('2017', periods=12))
         _, ax = plt.subplots()
 
-        # Set to the "warn" state, in case this isn't the first test run
+        converter._WARN = True
+        # Test without registering first, no warning
+        with ctx:
+            with tm.assert_produces_warning(None) as w:
+                ax.plot(s.index, s.values)
+
+        assert len(w) == 0
+
+        # Now test with registering
         converter._WARN = True
         converter.register()
         with ctx:
