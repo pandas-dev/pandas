@@ -22,7 +22,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
-- :class:`DatetimeIndex` is now timezone aware when using strings as labels  (:issue:`16785`)
+- :class:`DatetimeIndex` is now timezone aware when using strings as labels for indexing (:issue:`16785`)
 -
 
 .. _whatsnew_0211.deprecations:

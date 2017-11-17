@@ -557,8 +557,32 @@ We are stopping on the included end-point as it is part of the index
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+.. versionadded:: 0.21.1
 
-``DatetimeIndex`` partial string indexing also works with timezones.
+``DatetimeIndex`` partial string indexing can be used with naive datetime-like labels when the ``DatetimeIndex`` has no timezone set.
+If a timezone is provided by the label, the datetime index is assumed to be UTC and a ``UserWarning`` is emitted.
+
+.. note::
+
+   This both works with ``pd.Timestamp`` and strings
+
+.. ipython:: python
+   :okwarning:
+
+   first_january_implicit_utc = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                              freq='T')
+
+   df = pd.DataFrame(index=first_january_implicit_utc,
+                     data=np.arange(len(first_january_implicit_utc)))
+
+   df
+
+   four_minute_slice = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
+
+   four_minute_slice
+
+
+``DatetimeIndex`` partial string indexing is always well-defined on a ``DatetimeIndex`` with timezone information.
 If a timezone is provided by the label, that timezone is respected.
 If no timezone is provided, then the same timezone as used in the ``DatetimeIndex`` is assumed.
 
@@ -570,23 +594,9 @@ If no timezone is provided, then the same timezone as used in the ``DatetimeInde
    df = pd.DataFrame(index=first_january_cet,
                      data=np.arange(len(first_january_cet)))
 
+   df
+
    four_minute_slice = df["2016-01-01T00:00-01:00":"2016-01-01T02:03"]
-
-   four_minute_slice
-
-
-``DatetimeIndex`` partial string indexing can be used with naive labels as well.
-If a timezone is provided by the label, the datetime index is assumed to be UTC and a ``UserWarning`` is emitted.
-
-.. ipython:: python
-
-   first_january_implicit_utc = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
-                                              freq='T')
-
-   df = pd.DataFrame(index=first_january_implicit_utc,
-                     data=np.arange(len(first_january_implicit_utc)))
-
-   four_minute_slice = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
 
    four_minute_slice
 
