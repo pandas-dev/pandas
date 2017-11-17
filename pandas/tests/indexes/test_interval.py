@@ -6,6 +6,7 @@ from datetime import timedelta
 from pandas import (Interval, IntervalIndex, Index, isna,
                     interval_range, Timestamp, Timedelta,
                     compat, date_range, timedelta_range, DateOffset)
+from pandas.compat import product, zip
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
@@ -25,31 +26,39 @@ class TestIntervalIndex(Base):
     def create_index(self):
         return IntervalIndex.from_breaks(np.arange(10))
 
-    def test_constructors(self):
-        expected = self.index
-        actual = IntervalIndex.from_breaks(np.arange(3), closed='right')
-        assert expected.equals(actual)
+    @pytest.mark.parametrize('closed, name', product(
+        ['left', 'right', 'both', 'neither'], [None, 'foo']))
+    def test_constructors(self, closed, name):
+        left, right = Index([0, 1, 2, 3]), Index([1, 2, 3, 4])
+        ivs = [Interval(l, r, closed=closed) for l, r in zip(left, right)]
+        expected = IntervalIndex._simple_new(
+            left=left, right=right, closed=closed, name=name)
 
-        alternate = IntervalIndex.from_breaks(np.arange(3), closed='left')
-        assert not expected.equals(alternate)
+        result = IntervalIndex(ivs, name=name)
+        tm.assert_index_equal(result, expected)
 
-        actual = IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        assert expected.equals(actual)
+        result = IntervalIndex.from_intervals(ivs, name=name)
+        tm.assert_index_equal(result, expected)
 
-        actual = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-        assert expected.equals(actual)
+        result = IntervalIndex.from_breaks(
+            np.arange(5), closed=closed, name=name)
+        tm.assert_index_equal(result, expected)
 
-        actual = IntervalIndex.from_arrays(np.arange(2), np.arange(2) + 1,
-                                           closed='right')
-        assert expected.equals(actual)
+        result = IntervalIndex.from_arrays(
+            left.values, right.values, closed=closed, name=name)
+        tm.assert_index_equal(result, expected)
 
-        actual = Index([Interval(0, 1), Interval(1, 2)])
-        assert isinstance(actual, IntervalIndex)
-        assert expected.equals(actual)
+        result = IntervalIndex.from_tuples(
+            zip(left, right), closed=closed, name=name)
+        tm.assert_index_equal(result, expected)
 
-        actual = Index(expected)
-        assert isinstance(actual, IntervalIndex)
-        assert expected.equals(actual)
+        result = Index(ivs, name=name)
+        assert isinstance(result, IntervalIndex)
+        tm.assert_index_equal(result, expected)
+
+        # idempotent
+        tm.assert_index_equal(IntervalIndex(expected), expected)
+        tm.assert_index_equal(Index(expected), expected)
 
     def test_constructors_other(self):
 
@@ -165,13 +174,16 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(index.isna(),
                                     np.array([False, True, False]))
 
-    def test_copy(self):
-        actual = self.index.copy()
-        assert actual.equals(self.index)
+    @pytest.mark.parametrize('closed', ['left', 'right', 'both', 'neither'])
+    def test_copy(self, closed):
+        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
 
-        actual = self.index.copy(deep=True)
-        assert actual.equals(self.index)
-        assert actual.left is not self.index.left
+        result = expected.copy()
+        assert result.equals(expected)
+
+        result = expected.copy(deep=True)
+        assert result.equals(expected)
+        assert result.left is not expected.left
 
     def test_ensure_copied_data(self):
         # exercise the copy flag in the constructor
@@ -191,19 +203,31 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(index.right.values, result.right.values,
                                     check_same='copy')
 
-    def test_equals(self):
+    @pytest.mark.parametrize('closed', ['left', 'right', 'both', 'neither'])
+    def test_equals(self, closed):
+        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
+        assert expected.equals(expected)
+        assert expected.equals(expected.copy())
 
-        idx = self.index
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
+        assert not expected.equals(expected.astype(object))
+        assert not expected.equals(np.array(expected))
+        assert not expected.equals(list(expected))
 
-        assert not idx.equals(idx.astype(object))
-        assert not idx.equals(np.array(idx))
-        assert not idx.equals(list(idx))
+        assert not expected.equals([1, 2])
+        assert not expected.equals(np.array([1, 2]))
+        assert not expected.equals(pd.date_range('20130101', periods=2))
 
-        assert not idx.equals([1, 2])
-        assert not idx.equals(np.array([1, 2]))
-        assert not idx.equals(pd.date_range('20130101', periods=2))
+        expected_name1 = IntervalIndex.from_breaks(
+            np.arange(5), closed=closed, name='foo')
+        expected_name2 = IntervalIndex.from_breaks(
+            np.arange(5), closed=closed, name='bar')
+        assert expected.equals(expected_name1)
+        assert expected_name1.equals(expected_name2)
+
+        for other_closed in {'left', 'right', 'both', 'neither'} - {closed}:
+            expected_other_closed = IntervalIndex.from_breaks(
+                np.arange(5), closed=other_closed)
+            assert not expected.equals(expected_other_closed)
 
     def test_astype(self):
 
