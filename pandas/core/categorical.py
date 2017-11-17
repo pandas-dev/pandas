@@ -1623,8 +1623,12 @@ class Categorical(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar
-            Value to use to fill holes (e.g. 0)
+        value : scalar, dict, Series
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, a Series or dict can be used to fill in different
+            values for each index. The value should not be a list. The
+            value(s) passed should either be in the categories or should be
+            NaN.
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive
@@ -1665,6 +1669,8 @@ class Categorical(PandasObject):
 
         else:
 
+            # If value is a dict or a Series (a dict value has already
+            # been converted to a Series)
             if isinstance(value, ABCSeries):
                 if not value[~value.isin(self.categories)].isna().all():
                     raise ValueError("fill value must be in categories")
@@ -1673,7 +1679,7 @@ class Categorical(PandasObject):
                 indexer = np.where(values_codes != -1)
                 values[indexer] = values_codes[values_codes != -1]
 
-            # Scalar value
+            # If value is not a dict or Series it should be a scalar
             else:
                 if not isna(value) and value not in self.categories:
                     raise ValueError("fill value must be in categories")
