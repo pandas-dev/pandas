@@ -3,20 +3,22 @@
 
 from datetime import datetime, timedelta
 
+import sys
+
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range)
+from pandas import (Index, Series, DataFrame, date_range, option_context)
 from pandas.core.index import MultiIndex
 
-from pandas.compat import StringIO, lrange, range, u
+from pandas.compat import lrange, range, u
 from pandas import compat
 import pandas.util.testing as tm
 
 from .common import TestData
 
 
-class TestSeriesRepr(TestData, tm.TestCase):
+class TestSeriesRepr(TestData):
 
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
@@ -32,24 +34,29 @@ class TestSeriesRepr(TestData, tm.TestCase):
                     "qux    one       7", "       two       8",
                     "       three     9", "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
-        self.assertEqual(repr(s), expected)
+        assert repr(s) == expected
 
     def test_name_printing(self):
-        # test small series
+        # Test small Series.
         s = Series([0, 1, 2])
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
-        # test big series (diff code path)
+        assert "Name:" not in repr(s)
+
+        # Test big Series (diff code path).
         s = Series(lrange(0, 1000))
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
+        assert "Name:" not in repr(s)
 
         s = Series(index=date_range('20010101', '20020101'), name='test')
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
 
     def test_repr(self):
         str(self.ts)
@@ -88,44 +95,39 @@ class TestSeriesRepr(TestData, tm.TestCase):
         # 0 as name
         ser = Series(np.random.randn(100), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         # tidy repr
         ser = Series(np.random.randn(1001), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
-        self.assertFalse("\t" in repr(ser))
-        self.assertFalse("\r" in repr(ser))
-        self.assertFalse("a\n" in repr(ser))
+        assert "\t" not in repr(ser)
+        assert "\r" not in repr(ser)
+        assert "a\n" not in repr(ser)
 
         # with empty series (#4651)
         s = Series([], dtype=np.int64, name='foo')
-        self.assertEqual(repr(s), 'Series([], Name: foo, dtype: int64)')
+        assert repr(s) == 'Series([], Name: foo, dtype: int64)'
 
         s = Series([], dtype=np.int64, name=None)
-        self.assertEqual(repr(s), 'Series([], dtype: int64)')
+        assert repr(s) == 'Series([], dtype: int64)'
 
     def test_tidy_repr(self):
         a = Series([u("\u05d0")] * 1000)
         a.name = 'title1'
         repr(a)  # should not raise exception
 
+    @tm.capture_stderr
     def test_repr_bool_fails(self):
         s = Series([DataFrame(np.random.randn(2, 2)) for i in range(5)])
 
-        import sys
+        # It works (with no Cython exception barf)!
+        repr(s)
 
-        buf = StringIO()
-        tmp = sys.stderr
-        sys.stderr = buf
-        try:
-            # it works (with no Cython exception barf)!
-            repr(s)
-        finally:
-            sys.stderr = tmp
-        self.assertEqual(buf.getvalue(), '')
+        output = sys.stderr.getvalue()
+        assert output == ''
 
     def test_repr_name_iterable_indexable(self):
         s = Series([1, 2, 3], name=np.int64(3))
@@ -146,7 +148,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
         data = [8, 5, 3, 5]
         index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
         df = Series(data, index=index1)
-        self.assertTrue(type(df.__repr__() == str))  # both py2 / 3
+        assert type(df.__repr__() == str)  # both py2 / 3
 
     def test_repr_max_rows(self):
         # GH 6863
@@ -174,7 +176,25 @@ class TestSeriesRepr(TestData, tm.TestCase):
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
-        self.assertTrue(repr(ts).splitlines()[-1].startswith('Freq:'))
+        assert repr(ts).splitlines()[-1].startswith('Freq:')
 
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
+
+    def test_latex_repr(self):
+        result = r"""\begin{tabular}{ll}
+\toprule
+{} &         0 \\
+\midrule
+0 &  $\alpha$ \\
+1 &         b \\
+2 &         c \\
+\bottomrule
+\end{tabular}
+"""
+        with option_context('display.latex.escape', False,
+                            'display.latex.repr', True):
+            s = Series([r'$\alpha$', 'b', 'c'])
+            assert result == s._repr_latex_()
+
+        assert s._repr_latex_() is None

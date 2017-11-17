@@ -5,7 +5,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseSeriesConcat(tm.TestCase):
+class TestSparseSeriesConcat(object):
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -69,7 +69,7 @@ class TestSparseSeriesConcat(tm.TestCase):
         res = pd.concat([sparse1, sparse2], axis=1)
         exp = pd.concat([pd.Series(val1, name='x'),
                          pd.Series(val2, name='y')], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_different_kind(self):
@@ -122,9 +122,9 @@ class TestSparseSeriesConcat(tm.TestCase):
             tm.assert_sp_series_equal(res, exp)
 
 
-class TestSparseDataFrameConcat(tm.TestCase):
+class TestSparseDataFrameConcat(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.dense1 = pd.DataFrame({'A': [0., 1., 2., np.nan],
                                     'B': [0., 0., 0., 0.],
@@ -234,12 +234,12 @@ class TestSparseDataFrameConcat(tm.TestCase):
         # each columns keeps its fill_value, thus compare in dense
         res = pd.concat([sparse, sparse3])
         exp = pd.concat([self.dense1, self.dense3])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([sparse3, sparse])
         exp = pd.concat([self.dense3, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_series(self):
@@ -309,12 +309,12 @@ class TestSparseDataFrameConcat(tm.TestCase):
         # each columns keeps its fill_value, thus compare in dense
         res = pd.concat([sparse, sparse3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([sparse3, sparse], axis=1)
         exp = pd.concat([self.dense3, self.dense1], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_sparse_dense(self):
@@ -322,32 +322,32 @@ class TestSparseDataFrameConcat(tm.TestCase):
 
         res = pd.concat([sparse, self.dense2])
         exp = pd.concat([self.dense1, self.dense2])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([self.dense2, sparse])
         exp = pd.concat([self.dense2, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         sparse = self.dense1.to_sparse(fill_value=0)
 
         res = pd.concat([sparse, self.dense2])
         exp = pd.concat([self.dense1, self.dense2])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([self.dense2, sparse])
         exp = pd.concat([self.dense2, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([self.dense3, sparse], axis=1)
         exp = pd.concat([self.dense3, self.dense1], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res, exp)
 
         res = pd.concat([sparse, self.dense3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res, exp)

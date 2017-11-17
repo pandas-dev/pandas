@@ -10,7 +10,7 @@
    pd.options.display.max_rows = 15
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -73,7 +73,7 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    Starting in v0.8.0, pandas supports non-unique index values. If an operation
+    pandas supports non-unique index values. If an operation
     that does not support duplicate index values is attempted, an exception
     will be raised at that time. The reason for being lazy is nearly all performance-based
     (there are many instances in computations, like parts of GroupBy, where the index
@@ -153,7 +153,7 @@ Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When doing data analysis, as with raw NumPy arrays looping through Series
-value-by-value is usually not necessary. Series can be also be passed into most
+value-by-value is usually not necessary. Series can also be passed into most
 NumPy methods expecting an ndarray.
 
 
@@ -453,8 +453,6 @@ available to insert at a particular location in the columns:
 Assigning New Columns in Method Chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.0
-
 Inspired by `dplyr's
 <http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
 ``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
@@ -698,7 +696,7 @@ DataFrame in tabular form, though it won't always fit the console width:
 
    print(baseball.iloc[-20:, :12].to_string())
 
-New since 0.10.0, wide DataFrames will now be printed across multiple rows by
+Wide DataFrames will be printed across multiple rows by
 default:
 
 .. ipython:: python
@@ -763,6 +761,11 @@ completion mechanism so they can be tab-completed:
 Panel
 -----
 
+.. warning::
+
+    In 0.20.0, ``Panel`` is deprecated and will be removed in
+    a future version. See the section :ref:`Deprecate Panel <dsintro.deprecate_panel>`.
+
 Panel is a somewhat less-used, but still important container for 3-dimensional
 data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
 derived from econometrics and is partially responsible for the name pandas:
@@ -783,6 +786,7 @@ From 3D ndarray with optional axis labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
+   :okwarning:
 
    wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
                  major_axis=pd.date_range('1/1/2000', periods=5),
@@ -794,6 +798,7 @@ From dict of DataFrame objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
+   :okwarning:
 
    data = {'Item1' : pd.DataFrame(np.random.randn(4, 3)),
            'Item2' : pd.DataFrame(np.random.randn(4, 2))}
@@ -816,6 +821,7 @@ dictionary of DataFrames as above, and the following named parameters:
 For example, compare to the construction above:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Panel.from_dict(data, orient='minor')
 
@@ -824,6 +830,7 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 ``dtype=object`` unless you pass ``orient='minor'``:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({'a': ['foo', 'bar', 'baz'],
                       'b': np.random.randn(3)})
@@ -836,21 +843,19 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 
 .. note::
 
-   Unfortunately Panel, being less commonly used than Series and DataFrame,
+   Panel, being less commonly used than Series and DataFrame,
    has been slightly neglected feature-wise. A number of methods and options
-   available in DataFrame are not available in Panel. This will get worked
-   on, of course, in future releases. And faster if you join me in working on
-   the codebase.
+   available in DataFrame are not available in Panel.
 
 .. _dsintro.to_panel:
 
 From DataFrame using ``to_panel`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This method was introduced in v0.7 to replace ``LongPanel.to_long``, and converts
-a DataFrame with a two-level index to a Panel.
+``to_panel`` converts a DataFrame with a two-level index to a Panel.
 
 .. ipython:: python
+   :okwarning:
 
    midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
    df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
@@ -880,6 +885,7 @@ A Panel can be rearranged using its ``transpose`` method (which does not make a
 copy by default unless the data are heterogeneous):
 
 .. ipython:: python
+   :okwarning:
 
    wp.transpose(2, 0, 1)
 
@@ -909,6 +915,7 @@ Squeezing
 Another way to change the dimensionality of an object is to ``squeeze`` a 1-len object, similar to ``wp['Item1']``
 
 .. ipython:: python
+   :okwarning:
 
    wp.reindex(items=['Item1']).squeeze()
    wp.reindex(items=['Item1'], minor=['B']).squeeze()
@@ -923,11 +930,55 @@ for more on this. To convert a Panel to a DataFrame, use the ``to_frame``
 method:
 
 .. ipython:: python
+   :okwarning:
 
    panel = pd.Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
                     major_axis=pd.date_range('1/1/2000', periods=5),
                     minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()
+
+
+.. _dsintro.deprecate_panel:
+
+Deprecate Panel
+---------------
+
+Over the last few years, pandas has increased in both breadth and depth, with new features,
+datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
+routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
+difficult-to-understand codebase.
+
+The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
+than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
+pandas to focus on these areas exclusively.
+
+Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
+
+In additon, the ``xarray`` package was built from the ground up, specifically in order to
+support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
+`Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+   :okwarning:
+
+   p.to_frame()
+
+Alternatively, one can convert to an xarray ``DataArray``.
+
+.. ipython:: python
+   :okwarning:
+
+   p.to_xarray()
+
+You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
 
 .. _dsintro.panelnd:
 .. _dsintro.panel4d:

@@ -1,7 +1,9 @@
-from pandas.tseries.converter import DatetimeConverter
+try:
+    from pandas.plotting._converter import DatetimeConverter
+except ImportError:
+    from pandas.tseries.converter import DatetimeConverter
 from .pandas_vb_common import *
 import pandas as pd
-from datetime import timedelta
 import datetime as dt
 try:
     import pandas.tseries.holiday
@@ -51,10 +53,14 @@ class DatetimeIndex(object):
         self.rng6 = date_range(start='1/1/1', periods=self.N, freq='B')
 
         self.rng7 = date_range(start='1/1/1700', freq='D', periods=100000)
-        self.a = self.rng7[:50000].append(self.rng7[50002:])
+        self.no_freq = self.rng7[:50000].append(self.rng7[50002:])
+        self.d_freq = self.rng7[:50000].append(self.rng7[50000:])
+
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=75000)
+        self.b_freq = self.rng8[:50000].append(self.rng8[50000:])
 
     def time_add_timedelta(self):
-        (self.rng + timedelta(minutes=2))
+        (self.rng + dt.timedelta(minutes=2))
 
     def time_add_offset_delta(self):
         (self.rng + self.delta_offset)
@@ -92,8 +98,14 @@ class DatetimeIndex(object):
     def time_timeseries_is_month_start(self):
         self.rng6.is_month_start
 
-    def time_infer_freq(self):
-        infer_freq(self.a)
+    def time_infer_freq_none(self):
+        infer_freq(self.no_freq)
+
+    def time_infer_freq_daily(self):
+        infer_freq(self.d_freq)
+
+    def time_infer_freq_business(self):
+        infer_freq(self.b_freq)
 
 
 class TimeDatetimeConverter(object):
@@ -292,7 +304,10 @@ class TimeSeries(object):
         self.rng3 = date_range(start='1/1/2000', periods=1500000, freq='S')
         self.ts3 = Series(1, index=self.rng3)
 
-    def time_sort_index(self):
+    def time_sort_index_monotonic(self):
+        self.ts2.sort_index()
+
+    def time_sort_index_non_monotonic(self):
         self.ts.sort_index()
 
     def time_timeseries_slice_minutely(self):
@@ -331,16 +346,21 @@ class ToDatetime(object):
 
     def setup(self):
         self.rng = date_range(start='1/1/2000', periods=10000, freq='D')
-        self.stringsD = Series((((self.rng.year * 10000) + (self.rng.month * 100)) + self.rng.day), dtype=np.int64).apply(str)
+        self.stringsD = Series(self.rng.strftime('%Y%m%d'))
 
         self.rng = date_range(start='1/1/2000', periods=20000, freq='H')
-        self.strings = [x.strftime('%Y-%m-%d %H:%M:%S') for x in self.rng]
-        self.strings_nosep = [x.strftime('%Y%m%d %H:%M:%S') for x in self.rng]
+        self.strings = self.rng.strftime('%Y-%m-%d %H:%M:%S').tolist()
+        self.strings_nosep = self.rng.strftime('%Y%m%d %H:%M:%S').tolist()
         self.strings_tz_space = [x.strftime('%Y-%m-%d %H:%M:%S') + ' -0800'
                                  for x in self.rng]
 
         self.s = Series((['19MAY11', '19MAY11:00:00:00'] * 100000))
         self.s2 = self.s.str.replace(':\\S+$', '')
+
+        self.unique_numeric_seconds = range(10000)
+        self.dup_numeric_seconds = [1000] * 10000
+        self.dup_string_dates = ['2000-02-11'] * 10000
+        self.dup_string_with_tz = ['2000-02-11 15:00:00-0800'] * 10000
 
     def time_format_YYYYMMDD(self):
         to_datetime(self.stringsD, format='%Y%m%d')
@@ -365,6 +385,36 @@ class ToDatetime(object):
 
     def time_format_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
+
+    def time_cache_true_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=True)
+
+    def time_cache_false_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=False)
+
+    def time_cache_true_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=True)
+
+    def time_cache_false_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=False)
+
+    def time_cache_true_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=True)
+
+    def time_cache_false_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=False)
+
+    def time_cache_true_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=True)
+
+    def time_cache_false_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=False)
+
+    def time_cache_true_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=True)
+
+    def time_cache_false_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=False)
 
 
 class Offsets(object):
@@ -495,3 +545,17 @@ class SemiMonthOffset(object):
 
     def time_begin_decr_rng(self):
         self.rng - self.semi_month_begin
+
+
+class DatetimeAccessor(object):
+    def setup(self):
+        self.N = 100000
+        self.series = pd.Series(
+            pd.date_range(start='1/1/2000', periods=self.N, freq='T')
+        )
+
+    def time_dt_accessor(self):
+        self.series.dt
+
+    def time_dt_accessor_normalize(self):
+        self.series.dt.normalize()

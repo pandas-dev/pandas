@@ -12,9 +12,9 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_as_frame_columns(self):
@@ -37,11 +37,11 @@ class TestPeriodIndex(tm.TestCase):
         df['Index'] = rng
         rs = Index(df['Index'])
         tm.assert_index_equal(rs, rng, check_names=False)
-        self.assertEqual(rs.name, 'Index')
-        self.assertEqual(rng.name, 'index')
+        assert rs.name == 'Index'
+        assert rng.name == 'index'
 
         rs = df.reset_index().set_index('index')
-        tm.assertIsInstance(rs.index, PeriodIndex)
+        assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
     def test_frame_to_time_stamp(self):
@@ -106,18 +106,19 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis
-        tm.assertRaisesRegexp(ValueError, 'axis', df.to_timestamp, axis=2)
+        tm.assert_raises_regex(
+            ValueError, 'axis', df.to_timestamp, axis=2)
 
         result1 = df.to_timestamp('5t', axis=1)
         result2 = df.to_timestamp('t', axis=1)
         expected = pd.date_range('2001-01-01', '2009-01-01', freq='AS')
-        self.assertTrue(isinstance(result1.columns, DatetimeIndex))
-        self.assertTrue(isinstance(result2.columns, DatetimeIndex))
-        self.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
-        self.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
+        assert isinstance(result1.columns, DatetimeIndex)
+        assert isinstance(result2.columns, DatetimeIndex)
+        tm.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
+        tm.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
         # PeriodIndex.to_timestamp always use 'infer'
-        self.assertEqual(result1.columns.freqstr, 'AS-JAN')
-        self.assertEqual(result2.columns.freqstr, 'AS-JAN')
+        assert result1.columns.freqstr == 'AS-JAN'
+        assert result2.columns.freqstr == 'AS-JAN'
 
     def test_frame_index_to_string(self):
         index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')

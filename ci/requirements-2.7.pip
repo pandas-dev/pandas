@@ -1,6 +1,10 @@
 blosc
 pandas-gbq
+html5lib
+beautifulsoup4
 pathlib
 backports.lzma
 py
 PyCrypto
+mock
+ipython

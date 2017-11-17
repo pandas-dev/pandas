@@ -26,12 +26,6 @@ See the :ref:`Indexing and Selecting Data <indexing>` for general indexing docum
    should be avoided.  See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`
 
-.. warning::
-
-   In 0.15.0 ``Index`` has internally been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
 .. _advanced.hierarchical:
@@ -46,7 +40,7 @@ data with an arbitrary number of dimensions in lower dimensional data
 structures like Series (1d) and DataFrame (2d).
 
 In this section, we will show what exactly we mean by "hierarchical" indexing
-and how it integrates with the all of the pandas indexing functionality
+and how it integrates with all of the pandas indexing functionality
 described above and in prior sections. Later, when discussing :ref:`group by
 <groupby>` and :ref:`pivoting and reshaping data <reshaping>`, we'll show
 non-trivial applications to illustrate how it aids in structuring data for
@@ -136,7 +130,7 @@ can find yourself working with hierarchically-indexed data without creating a
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
 Note that how the index is displayed by be controlled using the
-``multi_sparse`` option in ``pandas.set_printoptions``:
+``multi_sparse`` option in ``pandas.set_options()``:
 
 .. ipython:: python
 
@@ -175,35 +169,40 @@ completely analogous way to selecting a column in a regular DataFrame:
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
 
-.. note::
+.. _advanced.shown_levels:
 
-   The repr of a ``MultiIndex`` shows ALL the defined levels of an index, even
-   if the they are not actually used. When slicing an index, you may notice this.
-   For example:
+Defined Levels
+~~~~~~~~~~~~~~
 
-   .. ipython:: python
+The repr of a ``MultiIndex`` shows all the defined levels of an index, even
+if the they are not actually used. When slicing an index, you may notice this.
+For example:
 
-      # original multi-index
-      df.columns
+.. ipython:: python
 
-      # sliced
-      df[['foo','qux']].columns
+   # original MultiIndex
+   df.columns
 
-   This is done to avoid a recomputation of the levels in order to make slicing
-   highly performant. If you want to see the actual used levels.
+   # sliced
+   df[['foo','qux']].columns
 
-   .. ipython:: python
+This is done to avoid a recomputation of the levels in order to make slicing
+highly performant. If you want to see the actual used levels.
 
-      df[['foo','qux']].columns.values
+.. ipython:: python
 
-      # for a specific level
-      df[['foo','qux']].columns.get_level_values(0)
+   df[['foo','qux']].columns.values
 
-   To reconstruct the multiindex with only the used levels
+   # for a specific level
+   df[['foo','qux']].columns.get_level_values(0)
 
-   .. ipython:: python
+To reconstruct the ``MultiIndex`` with only the used levels
 
-      pd.MultiIndex.from_tuples(df[['foo','qux']].columns.values)
+.. versionadded:: 0.20.0
+
+.. ipython:: python
+
+   df[['foo','qux']].columns.remove_unused_levels()
 
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -265,10 +264,7 @@ Passing a list of labels or tuples works similar to reindexing:
 Using slicers
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
-In 0.14.0 we added a new way to slice multi-indexed objects.
-You can slice a multi-index by providing multiple indexers.
+You can slice a ``MultiIndex`` by providing multiple indexers.
 
 You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
 including slices, lists of labels, labels, and boolean indexers.
@@ -282,16 +278,16 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
    for the **columns**. There are some ambiguous cases where the passed indexer could be mis-interpreted
-   as indexing *both* axes, rather than into say the MuliIndex for the rows.
+   as indexing *both* axes, rather than into say the ``MultiIndex`` for the rows.
 
    You should do this:
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....),:]
+      df.loc[(slice('A1','A3'),.....), :]
 
-   rather than this:
-
+   rather than this:
+ 
    .. code-block:: python
 
       df.loc[(slice('A1','A3'),.....)]
@@ -317,43 +313,43 @@ Basic multi-index slicing using slices, lists, and labels.
 
 .. ipython:: python
 
-   dfmi.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+   dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
 You can use a ``pd.IndexSlice`` to have a more natural syntax using ``:`` rather than using ``slice(None)``
 
 .. ipython:: python
 
    idx = pd.IndexSlice
-   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 
 It is possible to perform quite complicated selections using this method on multiple
 axes at the same time.
 
 .. ipython:: python
 
-   dfmi.loc['A1',(slice(None),'foo')]
-   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+   dfmi.loc['A1', (slice(None), 'foo')]
+   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 
 Using a boolean indexer you can provide selection related to the *values*.
 
 .. ipython:: python
 
-   mask = dfmi[('a','foo')]>200
-   dfmi.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+   mask = dfmi[('a', 'foo')] > 200
+   dfmi.loc[idx[mask, :, ['C1', 'C3']], idx[:, 'foo']]
 
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.
 
 .. ipython:: python
 
-   dfmi.loc(axis=0)[:,:,['C1','C3']]
+   dfmi.loc(axis=0)[:, :, ['C1', 'C3']]
 
 Furthermore you can *set* the values using these methods
 
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc(axis=0)[:,:,['C1','C3']] = -10
+   df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
    df2
 
 You can use a right-hand-side of an alignable object as well.
@@ -361,7 +357,7 @@ You can use a right-hand-side of an alignable object as well.
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
+   df2.loc[idx[:, :, ['C1', 'C3']], :] = df2 * 1000
    df2
 
 .. _advanced.xs:
@@ -379,7 +375,7 @@ selecting data at a particular level of a MultiIndex easier.
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[(slice(None),'one'),:]
 
 You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
@@ -392,7 +388,7 @@ providing the axis argument
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[:,(slice(None),'one')]
 
 :meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys
@@ -403,10 +399,8 @@ providing the axis argument
 
 .. ipython:: python
 
-   # using the slicers (new in 0.14.0)
+   # using the slicers
    df.loc[:,('bar','one')]
-
-.. versionadded:: 0.13.0
 
 You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
 the level that was selected
@@ -500,7 +494,7 @@ are named.
    s.sort_index(level='L2')
 
 On higher dimensional objects, you can sort any of the other axes by level if
-they have a MultiIndex:
+they have a ``MultiIndex``:
 
 .. ipython:: python
 
@@ -631,30 +625,29 @@ Index Types
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
 are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
 
-In the following sub-sections we will highlite some other index types.
+In the following sub-sections we will highlight some other index types.
 
 .. _indexing.categoricalindex:
 
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.1
-
-We introduce a ``CategoricalIndex``, a new type of index object that is useful for supporting
-indexing with duplicates. This is a container around a ``Categorical`` (introduced in v0.15.0)
-and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
-setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
+``CategoricalIndex`` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical``
+and allows efficient indexing and storage of an index with a large number of duplicated elements.
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
+
    df = pd.DataFrame({'A': np.arange(6),
                       'B': list('aabbca')})
-   df['B'] = df['B'].astype('category', categories=list('cab'))
+   df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
    df
    df.dtypes
    df.B.cat.categories
 
-Setting the index, will create create a ``CategoricalIndex``
+Setting the index, will create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -690,7 +683,7 @@ Groupby operations on the index will preserve the index nature as well
 Reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. ipython :: python
@@ -731,22 +724,12 @@ Int64Index and RangeIndex
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 
 Float64Index
 ~~~~~~~~~~~~
-
-.. note::
-
-   As of 0.14.0, ``Float64Index`` is backed by a native ``float64`` dtype
-   array. Prior to 0.14.0, ``Float64Index`` was backed by an ``object`` dtype
-   array. Using a ``float64`` dtype in the backend speeds up arithmetic
-   operations by about 30x and boolean indexing operations on the
-   ``Float64Index`` itself are about 2x as fast.
-
-.. versionadded:: 0.13.0
 
 By default a ``Float64Index`` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
 This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
@@ -845,6 +828,62 @@ Of course if you need integer based selection, then use ``iloc``
 
    dfir.iloc[0:5]
 
+.. _indexing.intervallindex:
+
+IntervalIndex
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+:class:`IntervalIndex` together with its own dtype, ``interval`` as well as the
+:class:`Interval` scalar type,  allow first-class support in pandas for interval
+notation.
+
+The ``IntervalIndex`` allows some unique indexing and is also used as a
+return type for the categories in :func:`cut` and :func:`qcut`.
+
+.. warning::
+
+   These indexing behaviors are provisional and may change in a future version of pandas.
+
+An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3, 4]},
+                      index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
+   df
+
+Label based indexing via ``.loc`` along the edges of an interval works as you would expect,
+selecting that particular interval.
+
+.. ipython:: python
+
+   df.loc[2]
+   df.loc[[2, 3]]
+
+If you select a label *contained* within an interval, this will also select the interval.
+
+.. ipython:: python
+
+   df.loc[2.5]
+   df.loc[[2.5, 3.5]]
+
+``Interval`` and ``IntervalIndex`` are used by ``cut`` and ``qcut``:
+
+.. ipython:: python
+
+   c = pd.cut(range(4), bins=2)
+   c
+   c.categories
+
+Furthermore, ``IntervalIndex`` allows one to bin *other* data with these same
+bins, with ``NaN`` representing a missing value similar to other dtypes.
+
+.. ipython:: python
+
+   pd.cut([0, 3, 5, 1], bins=c.categories)
+
 Miscellaneous indexing FAQ
 --------------------------
 
@@ -910,6 +949,16 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     In [11]: df.loc[2:3, :]
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
+:meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
+an index is weakly monotonic. To check for strict montonicity, you can combine one of those with
+:meth:`Index.is_unique`
+
+.. ipython:: python
+
+   weakly_monotonic = pd.Index(['a', 'b', 'c', 'c'])
+   weakly_monotonic
+   weakly_monotonic.is_monotonic_increasing
+   weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
 
 Endpoints are inclusive
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -939,7 +988,7 @@ index can be somewhat complicated. For example, the following does not work:
     s.loc['c':'e'+1]
 
 A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design design to make label-based
+specific dates. To enable this, we made the design to make label-based
 slicing include both endpoints:
 
 .. ipython:: python
@@ -960,7 +1009,7 @@ The different indexing operation can potentially change the dtype of a ``Series`
 
    series1 = pd.Series([1, 2, 3])
    series1.dtype
-   res = series1[[0,4]]
+   res = series1.reindex([0, 4])
    res.dtype
    res
 

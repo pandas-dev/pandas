@@ -1,8 +1,11 @@
 from .pandas_vb_common import *
 try:
-    from pandas.types.concat import union_categoricals
+    from pandas.api.types import union_categoricals
 except ImportError:
-    pass
+    try:
+        from pandas.types.concat import union_categoricals
+    except ImportError:
+        pass
 
 
 class Categoricals(object):
@@ -22,6 +25,9 @@ class Categoricals(object):
 
         self.datetimes = pd.Series(pd.date_range(
             '1995-01-01 00:00:00', periods=10000, freq='s'))
+
+        self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
+        self.values_all_nan = [np.nan] * len(self.values)
 
     def time_concat(self):
         concat([self.s, self.s])
@@ -43,6 +49,12 @@ class Categoricals(object):
         t.iloc[-1] = pd.NaT
         Categorical(t)
 
+    def time_constructor_with_nan(self):
+        Categorical(self.values_some_nan)
+
+    def time_constructor_all_nan(self):
+        Categorical(self.values_all_nan)
+
 
 class Categoricals2(object):
     goal_time = 0.2
@@ -63,6 +75,9 @@ class Categoricals2(object):
 
     def time_rendering(self):
         str(self.sel)
+
+    def time_set_categories(self):
+        self.ts.cat.set_categories(self.ts.cat.categories[::2])
 
 
 class Categoricals3(object):

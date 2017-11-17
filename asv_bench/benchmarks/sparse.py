@@ -1,8 +1,8 @@
+import itertools
+
 from .pandas_vb_common import *
-import pandas.sparse.series
 import scipy.sparse
-from pandas.core.sparse import SparseSeries, SparseDataFrame
-from pandas.core.sparse import SparseDataFrame
+from pandas import SparseSeries, SparseDataFrame, SparseArray
 
 
 class sparse_series_to_frame(object):
@@ -23,11 +23,80 @@ class sparse_series_to_frame(object):
         SparseDataFrame(self.series)
 
 
+class sparse_array_constructor(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1)
+        self.int64_10percent = self.make_numeric_array(length=1000000, dense_size=100000, fill_value=0, dtype=np.int64)
+        self.int64_1percent = self.make_numeric_array(length=1000000, dense_size=10000, fill_value=0, dtype=np.int64)
+
+        self.float64_10percent = self.make_numeric_array(length=1000000, dense_size=100000, fill_value=np.nan, dtype=np.float64)
+        self.float64_1percent = self.make_numeric_array(length=1000000, dense_size=10000, fill_value=np.nan, dtype=np.float64)
+
+        self.object_nan_fill_value_10percent = self.make_object_array(length=1000000, dense_size=100000, fill_value=np.nan)
+        self.object_nan_fill_value_1percent = self.make_object_array(length=1000000, dense_size=10000, fill_value=np.nan)
+
+        self.object_non_nan_fill_value_10percent = self.make_object_array(length=1000000, dense_size=100000, fill_value=0)
+        self.object_non_nan_fill_value_1percent = self.make_object_array(length=1000000, dense_size=10000, fill_value=0)
+
+    def make_numeric_array(self, length, dense_size, fill_value, dtype):
+        arr = np.array([fill_value] * length, dtype=dtype)
+        indexer = np.unique(np.random.randint(0, length, dense_size))
+        arr[indexer] = np.random.randint(0, 100, len(indexer))
+        return (arr, fill_value, dtype)
+
+    def make_object_array(self, length, dense_size, fill_value):
+        elems = np.array(['a', 0.0, False, 1, 2], dtype=np.object)
+        arr = np.array([fill_value] * length, dtype=np.object)
+        indexer = np.unique(np.random.randint(0, length, dense_size))
+        arr[indexer] = np.random.choice(elems, len(indexer))
+        return (arr, fill_value, np.object)
+
+    def time_sparse_array_constructor_int64_10percent(self):
+        arr, fill_value, dtype = self.int64_10percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_int64_1percent(self):
+        arr, fill_value, dtype = self.int64_1percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_float64_10percent(self):
+        arr, fill_value, dtype = self.float64_10percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_float64_1percent(self):
+        arr, fill_value, dtype = self.float64_1percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_nan_fill_value_10percent(self):
+        arr, fill_value, dtype = self.object_nan_fill_value_10percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_nan_fill_value_1percent(self):
+        arr, fill_value, dtype = self.object_nan_fill_value_1percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_non_nan_fill_value_10percent(self):
+        arr, fill_value, dtype = self.object_non_nan_fill_value_10percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+    def time_sparse_array_constructor_object_non_nan_fill_value_1percent(self):
+        arr, fill_value, dtype = self.object_non_nan_fill_value_1percent
+        SparseArray(arr, fill_value=fill_value, dtype=dtype)
+
+
 class sparse_frame_constructor(object):
     goal_time = 0.2
 
     def time_sparse_frame_constructor(self):
         SparseDataFrame(columns=np.arange(100), index=np.arange(1000))
+
+    def time_sparse_from_scipy(self):
+        SparseDataFrame(scipy.sparse.rand(1000, 1000, 0.005))
+
+    def time_sparse_from_dict(self):
+        SparseDataFrame(dict(zip(range(1000), itertools.repeat([0]))))
 
 
 class sparse_series_from_coo(object):
@@ -37,7 +106,7 @@ class sparse_series_from_coo(object):
         self.A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        self.ss = pandas.sparse.series.SparseSeries.from_coo(self.A)
+        self.ss = SparseSeries.from_coo(self.A)
 
 
 class sparse_series_to_coo(object):

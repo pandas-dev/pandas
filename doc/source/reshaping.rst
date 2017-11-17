@@ -156,7 +156,7 @@ the level numbers:
    stacked.unstack('second')
 
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
-levels involved. Hence a call to ``stack`` and then ``unstack``, or viceversa,
+levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
 will result in a **sorted** copy of the original DataFrame or Series:
 
 .. ipython:: python
@@ -265,8 +265,8 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The :func:`~pandas.melt` function is useful to massage a
-DataFrame into a format where one or more columns are identifier variables,
+The top-level :func:`melt` and :func:`~DataFrame.melt` functions are useful to
+massage a DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "unpivoted" to the
 row axis, leaving just two non-identifier columns, "variable" and "value". The
 names of those columns can be customized by supplying the ``var_name`` and
@@ -281,10 +281,11 @@ For instance,
                           'height' : [5.5, 6.0],
                           'weight' : [130, 150]})
    cheese
-   pd.melt(cheese, id_vars=['first', 'last'])
-   pd.melt(cheese, id_vars=['first', 'last'], var_name='quantity')
+   cheese.melt(id_vars=['first', 'last'])
+   cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
-Another way to transform is to use the ``wide_to_long`` panel data convenience function.
+Another way to transform is to use the ``wide_to_long`` panel data convenience
+function.
 
 .. ipython:: python
 
@@ -516,7 +517,15 @@ Alternatively we can specify custom bin-edges:
 
 .. ipython:: python
 
-   pd.cut(ages, bins=[0, 18, 35, 70])
+   c = pd.cut(ages, bins=[0, 18, 35, 70])
+   c
+
+.. versionadded:: 0.20.0
+
+If the ``bins`` keyword is an ``IntervalIndex``, then these will be
+used to bin the passed data.
+
+   pd.cut([25, 20, 50], bins=c.categories)
 
 
 .. _reshaping.dummies:
@@ -559,8 +568,6 @@ This function is often used along with discretization functions like ``cut``:
    pd.get_dummies(pd.cut(values, bins))
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
-
-.. versionadded:: 0.15.0
 
 :func:`get_dummies` also accepts a DataFrame. By default all categorical
 variables (categorical in the statistical sense,
@@ -627,7 +634,7 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
-
+.. _reshaping.factorize:
 
 Factorizing values
 ------------------
@@ -666,4 +673,4 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`. This feature was introduced in version 0.15.
+    :ref:`API documentation <api.categorical>`.

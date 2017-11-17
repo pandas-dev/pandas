@@ -1,23 +1,25 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.missing import isnull, notnull
-from pandas.types.common import (is_bool_dtype,
-                                 is_categorical_dtype,
-                                 is_object_dtype,
-                                 is_string_like,
-                                 is_list_like,
-                                 is_scalar,
-                                 is_integer)
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex
+from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_object_dtype,
+    is_string_like,
+    is_list_like,
+    is_scalar,
+    is_integer,
+    is_re)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.util.decorators import Appender
+from pandas.core.base import NoNewAttributesMixin
+from pandas.util._decorators import Appender
 import re
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import warnings
 import textwrap
 import codecs
@@ -99,7 +101,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arrays = _get_array_list(arr, others)
 
         n = _length_check(arrays)
-        masks = np.array([isnull(x) for x in arrays])
+        masks = np.array([isna(x) for x in arrays])
         cats = None
 
         if na_rep is None:
@@ -127,12 +129,12 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         return result
     else:
         arr = np.asarray(arr, dtype=object)
-        mask = isnull(arr)
+        mask = isna(arr)
         if na_rep is None and mask.any():
             if sep == '':
                 na_rep = ''
             else:
-                return sep.join(arr[notnull(arr)])
+                return sep.join(arr[notna(arr)])
         return sep.join(np.where(mask, na_rep, arr))
 
 
@@ -163,7 +165,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
-        mask = isnull(arr)
+        mask = isna(arr)
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
@@ -303,7 +305,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     """
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -311,8 +313,12 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
+    pat : string or compiled regex
+        String can be a character sequence or regular expression.
+
+        .. versionadded:: 0.20.0
+            `pat` also accepts a compiled regex.
+
     repl : string or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
@@ -323,14 +329,23 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     n : int, default -1 (all)
         Number of replacements to make from start
-    case : boolean, default True
-        If True, case sensitive
+    case : boolean, default None
+        - If True, case sensitive (the default if `pat` is a string)
+        - Set to False for case insensitive
+        - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        - re module flags, e.g. re.IGNORECASE
+        - Cannot be set if `pat` is a compiled regex
 
     Returns
     -------
     replaced : Series/Index of objects
+
+    Notes
+    -----
+    When `pat` is a compiled regex, all flags should be included in the
+    compiled regex. Use of `case` or `flags` with a compiled regex will
+    raise an error.
 
     Examples
     --------
@@ -372,21 +387,42 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     0    tWO
     1    bAR
     dtype: object
+
+    Using a compiled regex with flags
+
+    >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+    0    foo
+    1    bar
+    2    NaN
+    dtype: object
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (is_string_like(repl) or callable(repl)):
         raise TypeError("repl must be a string or callable")
-    use_re = not case or len(pat) > 1 or flags or callable(repl)
+
+    is_compiled_re = is_re(pat)
+    if is_compiled_re:
+        if (case is not None) or (flags != 0):
+            raise ValueError("case and flags cannot be set"
+                             " when pat is a compiled regex")
+    else:
+        # not a compiled regex
+        # set default case
+        if case is None:
+            case = True
+
+        # add case flag, if provided
+        if case is False:
+            flags |= re.IGNORECASE
+
+    use_re = is_compiled_re or len(pat) > 1 or flags or callable(repl)
 
     if use_re:
-        if not case:
-            flags |= re.IGNORECASE
-        regex = re.compile(pat, flags=flags)
         n = n if n >= 0 else 0
-
-        def f(x):
-            return regex.sub(repl, x, count=n)
+        regex = re.compile(pat, flags=flags)
+        f = lambda x: regex.sub(repl=repl, string=x, count=n)
     else:
         f = lambda x: x.replace(pat, repl, n)
 
@@ -429,11 +465,9 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     """
-    Deprecated: Find groups in each string in the Series/Index
-    using passed regular expression.
-    If as_indexer=True, determine if each string matches a regular expression.
+    Determine if each string matches a regular expression.
 
     Parameters
     ----------
@@ -444,60 +478,37 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : False, by default, gives deprecated behavior better achieved
-        using str_extract. True return boolean indexer.
+    as_indexer : DEPRECATED - Keyword is ignored.
 
     Returns
     -------
     Series/array of boolean values
-        if as_indexer=True
-    Series/Index of tuples
-        if as_indexer=False, default but deprecated
 
     See Also
     --------
     contains : analogous, but less strict, relying on re.search instead of
         re.match
-    extract : now preferred to the deprecated usage of match (as_indexer=False)
+    extract : extract matched groups
 
-    Notes
-    -----
-    To extract matched groups, which is the deprecated behavior of match, use
-    str.extract.
     """
-
     if not case:
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
 
-    if (not as_indexer) and regex.groups > 0:
-        # Do this first, to make sure it happens even if the re.compile
-        # raises below.
-        warnings.warn("In future versions of pandas, match will change to"
-                      " always return a bool indexer.", FutureWarning,
-                      stacklevel=3)
+    if (as_indexer is False) and (regex.groups > 0):
+        raise ValueError("as_indexer=False with a pattern with groups is no "
+                         "longer supported. Use '.str.extract(pat)' instead")
+    elif as_indexer is not None:
+        # Previously, this keyword was used for changing the default but
+        # deprecated behaviour. This keyword is now no longer needed.
+        warnings.warn("'as_indexer' keyword was specified but is ignored "
+                      "(match now returns a boolean indexer by default), "
+                      "and will be removed in a future version.",
+                      FutureWarning, stacklevel=3)
 
-    if as_indexer and regex.groups > 0:
-        warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.", UserWarning, stacklevel=3)
-
-    # If not as_indexer and regex.groups == 0, this returns empty lists
-    # and is basically useless, so we will not warn.
-
-    if (not as_indexer) and regex.groups > 0:
-        dtype = object
-
-        def f(x):
-            m = regex.match(x)
-            if m:
-                return m.groups()
-            else:
-                return []
-    else:
-        # This is the new behavior of str_match.
-        dtype = bool
-        f = lambda x: bool(regex.match(x))
+    dtype = bool
+    f = lambda x: bool(regex.match(x))
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -591,8 +602,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
-    .. versionadded:: 0.13.0
-
     Parameters
     ----------
     pat : string
@@ -600,10 +609,11 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    .. versionadded:: 0.18.0
     expand : bool, default False
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -787,7 +797,7 @@ def str_extractall(arr, pat, flags=0):
     if 0 < len(index_list):
         from pandas import MultiIndex
         index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names.union(["match"]))
+            index_list, names=arr.index.names + ["match"])
     else:
         index = None
     result = arr._constructor_expanddim(match_list, index=index,
@@ -1004,7 +1014,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1034,8 +1043,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1253,7 +1260,7 @@ def str_get(arr, i):
     -------
     items : Series/Index of objects
     """
-    f = lambda x: x[i] if len(x) > i else np.nan
+    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
     return _na_map(f, arr)
 
 
@@ -1379,7 +1386,7 @@ class StringMethods(NoNewAttributesMixin):
     def __iter__(self):
         i = 0
         g = self.get(i)
-        while g.notnull().any():
+        while g.notna().any():
             yield g
             i += 1
             g = self.get(i)
@@ -1440,7 +1447,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1552,13 +1564,13 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         result = str_match(self._data, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=True, flags=0):
+    def replace(self, pat, repl, n=-1, case=None, flags=0):
         result = str_replace(self._data, pat, repl, n=n, case=case,
                              flags=flags)
         return self._wrap_result(result)
@@ -1878,18 +1890,14 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
+    @classmethod
+    def _make_accessor(cls, data):
         from pandas.core.index import Index
 
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
             # it's neither a string series not a categorical series with
             # strings inside the categories.
             # this really should exclude all series with any non-string values
@@ -1898,30 +1906,18 @@ class StringAccessorMixin(object):
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
-        elif isinstance(self, Index):
+        elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
             # see scc/inferrence.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
+            if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
                 raise AttributeError(message)
-            if self.nlevels > 1:
+            if data.nlevels > 1:
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(self)
-
-    str = AccessorProperty(StringMethods, _make_str_accessor)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

@@ -6,19 +6,25 @@ import sys
 import warnings
 from datetime import datetime, timedelta
 from functools import partial
+import inspect
+import collections
 
 import numpy as np
-import pandas.lib as lib
-import pandas.tslib as tslib
+from pandas._libs import lib, tslib
+
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
-from pandas.types.generic import ABCSeries
-from pandas.types.common import _NS_DTYPE
-from pandas.types.inference import _iterable_not_string
-from pandas.types.missing import isnull
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex
+from pandas.core.dtypes.common import _NS_DTYPE
+from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
-from pandas.types import common
+from pandas.core.dtypes import common
+
+# compat
+from pandas.errors import (  # noqa
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
 
 # back-compat of public API
 # deprecate these functions
@@ -56,7 +62,7 @@ for t in ['is_datetime_arraylike',
             warnings.warn("pandas.core.common.{t} is deprecated. "
                           "These are not longer public API functions, "
                           "but can be imported from "
-                          "pandas.types.common.{t} instead".format(t=t),
+                          "pandas.api.types.{t} instead".format(t=t),
                           DeprecationWarning, stacklevel=3)
             return getattr(common, t)(*args, **kwargs)
         return wrapper
@@ -69,16 +75,8 @@ for t in ['is_datetime_arraylike',
 def array_equivalent(*args, **kwargs):
     warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
                   "is no longer public API", DeprecationWarning, stacklevel=2)
-    from pandas.types import missing
+    from pandas.core.dtypes import missing
     return missing.array_equivalent(*args, **kwargs)
-
-
-class PandasError(Exception):
-    pass
-
-
-class PerformanceWarning(Warning):
-    pass
 
 
 class SettingWithCopyError(ValueError):
@@ -86,24 +84,6 @@ class SettingWithCopyError(ValueError):
 
 
 class SettingWithCopyWarning(Warning):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
-    pass
-
-
-class UnsupportedFunctionCall(ValueError):
-    pass
-
-
-class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
-    and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
-
-    """
     pass
 
 
@@ -116,8 +96,8 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return ("This method must be defined in the concrete class of %s" %
-                self.class_instance.__class__.__name__)
+        msg = "This method must be defined in the concrete class of {name}"
+        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -170,8 +150,8 @@ def _maybe_match_name(a, b):
 def _get_info_slice(obj, indexer):
     """Slice the info axis of `obj` with `indexer`."""
     if not hasattr(obj, '_info_axis_number'):
-        raise TypeError('object of type %r has no info axis' %
-                        type(obj).__name__)
+        msg = 'object of type {typ!r} has no info axis'
+        raise TypeError(msg.format(typ=type(obj).__name__))
     slices = [slice(None)] * obj.ndim
     slices[obj._info_axis_number] = indexer
     return tuple(slices)
@@ -202,12 +182,12 @@ _values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray)):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
             if not lib.is_bool_array(key):
-                if isnull(key).any():
+                if isna(key).any():
                     raise ValueError('cannot index with vector containing '
                                      'NA / NaN values')
                 return False
@@ -234,8 +214,8 @@ def _mut_exclusive(**kwargs):
     label1, val1 = item1
     label2, val2 = item2
     if val1 is not None and val2 is not None:
-        raise TypeError('mutually exclusive arguments: %r and %r' %
-                        (label1, label2))
+        msg = 'mutually exclusive arguments: {label1!r} and {label2!r}'
+        raise TypeError(msg.format(label1=label1, label2=label2))
     elif val1 is not None:
         return val1
     else:
@@ -243,17 +223,36 @@ def _mut_exclusive(**kwargs):
 
 
 def _not_none(*args):
+    """Returns a generator consisting of the arguments that are not None"""
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
+    """Returns a boolean indicating if any argument is None"""
     for arg in args:
         if arg is None:
             return True
     return False
 
 
+def _all_none(*args):
+    """Returns a boolean indicating if all arguments are None"""
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
+def _any_not_none(*args):
+    """Returns a boolean indicating if any argument is not None"""
+    for arg in args:
+        if arg is not None:
+            return True
+    return False
+
+
 def _all_not_none(*args):
+    """Returns a boolean indicating if all arguments are not None"""
     for arg in args:
         if arg is None:
             return False
@@ -261,6 +260,7 @@ def _all_not_none(*args):
 
 
 def _count_not_none(*args):
+    """Returns the count of arguments that are not None"""
     return sum(x is not None for x in args)
 
 
@@ -431,6 +431,13 @@ def is_null_slice(obj):
             obj.stop is None and obj.step is None)
 
 
+def is_true_slices(l):
+    """
+    Find non-trivial slices in "l": return a list of booleans with same length.
+    """
+    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+
+
 def is_full_slice(obj, l):
     """ we have a full length slice """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
@@ -458,17 +465,18 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
     otherwise return as it is
+
+    Parameters
+    ----------
+    maybe_callable : possibly a callable
+    obj : NDFrame
+    **kwargs
     """
+
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
+
     return maybe_callable
-
-
-def _all_none(*args):
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
 
 
 def _where_compat(mask, arr1, arr2):
@@ -476,7 +484,6 @@ def _where_compat(mask, arr1, arr2):
         new_vals = np.where(mask, arr1.view('i8'), arr2.view('i8'))
         return new_vals.view(_NS_DTYPE)
 
-    import pandas.tslib as tslib
     if arr1.dtype == _NS_DTYPE:
         arr1 = tslib.ints_to_pydatetime(arr1.view('i8'))
     if arr2.dtype == _NS_DTYPE:
@@ -500,6 +507,42 @@ def _dict_compat(d):
     """
     return dict((_maybe_box_datetimelike(key), value)
                 for key, value in iteritems(d))
+
+
+def standardize_mapping(into):
+    """
+    Helper function to standardize a supplied mapping.
+
+    .. versionadded:: 0.21.0
+
+    Parameters
+    ----------
+    into : instance or subclass of collections.Mapping
+        Must be a class, an initialized collections.defaultdict,
+        or an instance of a collections.Mapping subclass.
+
+    Returns
+    -------
+    mapping : a collections.Mapping subclass or other constructor
+        a callable object that can accept an iterator to create
+        the desired Mapping.
+
+    See Also
+    --------
+    DataFrame.to_dict
+    Series.to_dict
+    """
+    if not inspect.isclass(into):
+        if isinstance(into, collections.defaultdict):
+            return partial(
+                collections.defaultdict, into.default_factory)
+        into = type(into)
+    if not issubclass(into, collections.Mapping):
+        raise TypeError('unsupported type: {into}'.format(into=into))
+    elif into == collections.defaultdict:
+        raise TypeError(
+            'to_dict() only accepts initialized defaultdicts')
+    return into
 
 
 def sentinel_factory():
@@ -533,7 +576,8 @@ def in_qtconsole():
     """
     check if we're inside an IPython qtconsole
 
-    DEPRECATED: This is no longer needed, or working, in IPython 3 and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -551,8 +595,8 @@ def in_ipnb():
     """
     check if we're inside an IPython Notebook
 
-    DEPRECATED: This is no longer used in pandas, and won't work in IPython 3
-    and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -606,3 +650,52 @@ def _random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
+
+
+def _get_distinct_objs(objs):
+    """
+    Return a list with distinct elements of "objs" (different ids).
+    Preserves order.
+    """
+    ids = set()
+    res = []
+    for obj in objs:
+        if not id(obj) in ids:
+            ids.add(id(obj))
+            res.append(obj)
+    return res
+
+
+def _pipe(obj, func, *args, **kwargs):
+    """
+    Apply a function ``func`` to object ``obj`` either by passing obj as the
+    first argument to the function or, in the case that the func is a tuple,
+    interpret the first element of the tuple as a function and pass the obj to
+    that function as a keyword argument whose key is the value of the second
+    element of the tuple.
+
+    Parameters
+    ----------
+    func : callable or tuple of (callable, string)
+        Function to apply to this object or, alternatively, a
+        ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+        string indicating the keyword of `callable`` that expects the
+        object.
+    args : iterable, optional
+        positional arguments passed into ``func``.
+    kwargs : dict, optional
+        a dictionary of keyword arguments passed into ``func``.
+
+    Returns
+    -------
+    object : the return type of ``func``.
+    """
+    if isinstance(func, tuple):
+        func, target = func
+        if target in kwargs:
+            msg = '%s is both the pipe target and a keyword argument' % target
+            raise ValueError(msg)
+        kwargs[target] = obj
+        return func(*args, **kwargs)
+    else:
+        return func(obj, *args, **kwargs)
