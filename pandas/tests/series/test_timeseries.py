@@ -935,8 +935,9 @@ class TestTimeSeries(TestData):
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
 
-        s = Series.from_array(arr['Date'], Index([0]))
-        assert s[0] == dates[0][0]
+        with pytest.warns(FutureWarning):
+            s = Series.from_array(arr['Date'], Index([0]))
+            assert s[0] == dates[0][0]
 
     def test_get_level_values_box(self):
         from pandas import MultiIndex
