@@ -2055,7 +2055,7 @@ def convert_from_missing_indexer_tuple(indexer, axes):
         return (axes[_i].get_loc(_idx['key']) if isinstance(_idx, dict) else
                 _idx)
 
-    return tuple([get_indexer(_i, _idx) for _i, _idx in enumerate(indexer)])
+    return tuple(get_indexer(_i, _idx) for _i, _idx in enumerate(indexer))
 
 
 def maybe_convert_indices(indices, n):

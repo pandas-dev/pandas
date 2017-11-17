@@ -1350,18 +1350,18 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # make sure that we don't trigger any warnings
             result = self.panel.apply(f, axis=['items', 'major_axis'])
-            expected = Panel(dict([(ax, f(self.panel.loc[:, :, ax]))
-                                   for ax in self.panel.minor_axis]))
+            expected = Panel(dict((ax, f(self.panel.loc[:, :, ax]))
+                                  for ax in self.panel.minor_axis))
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['major_axis', 'minor_axis'])
-            expected = Panel(dict([(ax, f(self.panel.loc[ax]))
-                                   for ax in self.panel.items]))
+            expected = Panel(dict((ax, f(self.panel.loc[ax]))
+                                  for ax in self.panel.items))
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['minor_axis', 'items'])
-            expected = Panel(dict([(ax, f(self.panel.loc[:, ax]))
-                                   for ax in self.panel.major_axis]))
+            expected = Panel(dict((ax, f(self.panel.loc[:, ax]))
+                                  for ax in self.panel.major_axis))
             assert_panel_equal(result, expected)
 
             # with multi-indexes
