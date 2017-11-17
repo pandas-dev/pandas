@@ -175,6 +175,7 @@ class Numeric(Base):
         expected = Index(index.values % 2)
         tm.assert_index_equal(index % 2, expected)
 
+<<<<<<< HEAD
     @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
@@ -186,6 +187,14 @@ class Numeric(Base):
         expected = Float64Index([i._na_value] + i[1:].tolist())
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
+=======
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
+>>>>>>> Generalize NA Compat
 
 
 class TestFloat64Index(Numeric):
@@ -1193,3 +1202,10 @@ class TestUInt64Index(NumericInt):
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = UInt64Index([0, 0, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)

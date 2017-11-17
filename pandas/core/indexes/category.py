@@ -1,5 +1,5 @@
 import numpy as np
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -690,7 +690,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         """
         code = self.categories.get_indexer([item])
-        if (code == -1):
+        if (code == -1) and not lib.checknull(item):
             raise TypeError("cannot insert an item into a CategoricalIndex "
                             "that is not already an existing category")
 

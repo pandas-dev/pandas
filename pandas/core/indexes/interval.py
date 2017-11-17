@@ -23,7 +23,7 @@ from pandas.core.indexes.base import (
     Index, _ensure_index,
     default_pprint, _index_shared_docs)
 
-from pandas._libs import Timestamp, Timedelta
+from pandas._libs import lib, Timestamp, Timedelta
 from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
@@ -1007,12 +1007,8 @@ class IntervalIndex(IntervalMixin, Index):
                                  'side as the index')
             left_insert = item.left
             right_insert = item.right
-        elif is_scalar(item) and isna(item):
+        elif lib.checknull(item):
             # GH 18295
-            if item is not self.left._na_value:
-                raise TypeError('cannot insert with incompatible NA value: '
-                                'got {item}, expected {na}'
-                                .format(item=item, na=self.left._na_value))
             left_insert = right_insert = item
         else:
             raise ValueError('can only insert Interval objects and NA into '
