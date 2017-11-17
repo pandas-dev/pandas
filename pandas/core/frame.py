@@ -2099,10 +2099,8 @@ class DataFrame(NDFrame):
 
                 if index_len and not len(values):
                     values = np.array([np.nan] * index_len, dtype=object)
-                result = self._constructor_sliced.from_array(values,
-                                                             index=self.index,
-                                                             name=label,
-                                                             fastpath=True)
+                result = self._constructor_sliced._from_array(
+                    values, index=self.index, name=label, fastpath=True)
 
                 # this is a cached value, mark it so
                 result._set_as_cached(label, self)
@@ -2497,8 +2495,8 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        return self._constructor_sliced.from_array(values, index=self.index,
-                                                   name=items, fastpath=True)
+        return self._constructor_sliced._from_array(values, index=self.index,
+                                                    name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         key = com._apply_if_callable(key, self)
@@ -4939,8 +4937,8 @@ class DataFrame(NDFrame):
             res_index = self.index
             res_columns = self.columns
             values = self.values
-            series_gen = (Series.from_array(arr, index=res_columns, name=name,
-                                            dtype=dtype)
+            series_gen = (Series._from_array(arr, index=res_columns, name=name,
+                                             dtype=dtype)
                           for i, (arr, name) in enumerate(zip(values,
                                                               res_index)))
         else:  # pragma : no cover

@@ -195,6 +195,11 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    def test_from_array_deprecated(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.series_klass.from_array([1, 2, 3])
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
