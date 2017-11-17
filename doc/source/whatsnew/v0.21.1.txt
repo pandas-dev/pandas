@@ -12,7 +12,7 @@ of bug fixes. We recommend that all users upgrade to this version.
 Restore Matplotlib datetime Converter Registration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas implements some matplotlib converters for nicely formatting the axis
+Pandas implements some matplotlib formatters for nicely formatting the axis
 labels on plots with ``datetime`` or ``Period`` values. Prior to pandas 0.21.0,
 these were implicitly registered with matplotlib, as a side effect of
 ``import pandas``. In pandas 0.21.0, we required users to explicitly register
@@ -24,8 +24,8 @@ the converter.
    >>> converter.register()
 
 This caused problems for some users, so we're temporarily reverting that change;
-pandas will again register the converters on import. Using the converters
-without explicitly registering the converters will cause a ``FutureWarning``:
+pandas will again register the formatters on import. Using the formatters
+without explicitly registering the formatters will cause a ``FutureWarning``:
 
 .. code-block:: python
 
@@ -36,18 +36,18 @@ without explicitly registering the converters will cause a ``FutureWarning``:
    FutureWarning: Using an implicitly registered datetime converter for a
    matplotlib plotting method. The converter was registered by pandas on import.
    Future versions of pandas will require you to explicitly register matplotlib
-   converters.
+   formatters.
  
-   To register the converters:
+   To register the formatters:
            >>> from pandas.tseries import converter
            >>> converter.register()
 
-As the error message says, you'll need to register the converters if you intend
+As the error message says, you'll need to register the formatters if you intend
 to use them with matplotlib plotting functions. Pandas plotting functions, such
-as ``Series.plot``, will register them for you calling ``converter.register()``
+as ``Series.plot``, will register them for you; calling ``converter.register()``
 first is not necessary.
 
-Finally, control the formatters, we've added a new option:
+Finally, we've added a new option to control the formatters,
 ``pd.options.plotting.matplotlib.register_formatters``. By default, they are
 registered. Toggling this to ``False`` removes pandas' formatters (:issue:`18301`)
 
