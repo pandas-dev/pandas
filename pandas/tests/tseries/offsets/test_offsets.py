@@ -4723,3 +4723,11 @@ def test_shift_month():
 
     # Try to shift to April 31, then shift back to Apr 30 to get a real date
     assert liboffsets.shift_month(ts, -1, 31) == Timestamp('1929-04-30')
+
+
+def test_get_offset_day_error():
+    # subclass of _BaseOffset must override _day_opt attribute, or we should
+    # get a NotImplementedError
+
+    with pytest.raises(NotImplementedError):
+        DateOffset()._get_offset_day(datetime.now())
