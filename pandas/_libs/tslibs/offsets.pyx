@@ -394,6 +394,23 @@ class _BaseOffset(object):
         out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
         return out
 
+    def __eq__(self, other):
+        if other is None:
+            return False
+
+        if is_string_object(other):
+            from pandas.tseries.frequencies import to_offset
+
+            other = to_offset(other)
+
+        if not isinstance(other, _BaseOffset):
+            return False
+
+        return self._params() == other._params()
+
+    def __hash__(self):
+        return hash(self._params())
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
