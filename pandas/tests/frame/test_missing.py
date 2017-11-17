@@ -322,7 +322,7 @@ class TestDataFrameMissingData(TestData):
         res = df.fillna(df.median())
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp},
-                              dtype='category')
+                           dtype='category')
         tm.assert_frame_equal(res, df_exp)
 
         result = df.cats.fillna(np.nan)
