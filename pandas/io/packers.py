@@ -48,23 +48,23 @@ import numpy as np
 from pandas import compat
 from pandas.compat import u, u_safe
 
-from pandas.types.common import (is_categorical_dtype, is_object_dtype,
-                                 needs_i8_conversion, pandas_dtype)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_object_dtype,
+    needs_i8_conversion, pandas_dtype)
 
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical, CategoricalIndex)
-from pandas.tslib import NaTType
-from pandas.sparse.api import SparseSeries, SparseDataFrame
-from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries, SparseDataFrame
+from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import PerformanceWarning
-from pandas.io.common import get_filepath_or_buffer
+from pandas.errors import PerformanceWarning
+from pandas.io.common import get_filepath_or_buffer, _stringify_path
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
-from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
+from pandas.io.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
 from pandas.util._move import (
     BadMove as _BadMove,
     move_into_mutable_buffer as _move_into_mutable_buffer,
@@ -148,6 +148,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         for a in args:
             fh.write(pack(a, **kwargs))
 
+    path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, mode) as fh:
             writer(fh)
@@ -191,7 +192,6 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
-
         try:
             exists = os.path.exists(path_or_buf)
         except (TypeError, ValueError):
@@ -201,18 +201,21 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    # treat as a binary-like
     if isinstance(path_or_buf, compat.binary_type):
+        # treat as a binary-like
         fh = None
         try:
-            fh = compat.BytesIO(path_or_buf)
-            return read(fh)
+            # We can't distinguish between a path and a buffer of bytes in
+            # Python 2 so instead assume the first byte of a valid path is
+            # less than 0x80.
+            if compat.PY3 or ord(path_or_buf[0]) >= 0x80:
+                fh = compat.BytesIO(path_or_buf)
+                return read(fh)
         finally:
             if fh is not None:
                 fh.close()
-
-    # a buffer like
-    if hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+    elif hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+        # treat as a buffer like
         return read(path_or_buf)
 
     raise ValueError('path_or_buf needs to be a string file path or file-like')
@@ -349,8 +352,11 @@ def unconvert(values, dtype, compress=None):
                 )
                 # fall through to copying `np.fromstring`
 
-    # Copy the string into a numpy array.
-    return np.fromstring(values, dtype=dtype)
+    # Copy the bytes into a numpy array.
+    buf = np.frombuffer(values, dtype=dtype)
+    buf = buf.copy()  # required to not mutate the original data
+    buf.flags.writeable = True
+    return buf
 
 
 def encode(obj):
@@ -468,7 +474,7 @@ def encode(obj):
                     }
 
     elif isinstance(obj, (datetime, date, np.datetime64, timedelta,
-                          np.timedelta64, NaTType)):
+                          np.timedelta64)) or obj is NaT:
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -480,7 +486,7 @@ def encode(obj):
                     u'value': obj.value,
                     u'freq': freq,
                     u'tz': tz}
-        if isinstance(obj, NaTType):
+        if obj is NaT:
             return {u'typ': u'nat'}
         elif isinstance(obj, np.timedelta64):
             return {u'typ': u'timedelta64',
@@ -573,7 +579,7 @@ def decode(obj):
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
-        return globals()[obj[u'klass']](data, **d)
+        return globals()[obj[u'klass']]._from_ordinals(data, **d)
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
@@ -589,8 +595,7 @@ def decode(obj):
         from_codes = globals()[obj[u'klass']].from_codes
         return from_codes(codes=obj[u'codes'],
                           categories=obj[u'categories'],
-                          ordered=obj[u'ordered'],
-                          name=obj[u'name'])
+                          ordered=obj[u'ordered'])
 
     elif typ == u'series':
         dtype = dtype_for(obj[u'dtype'])

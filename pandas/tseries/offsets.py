@@ -1,17 +1,32 @@
+# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.types.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
-from pandas.tseries.tools import to_datetime, normalize_date
+from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
+from pandas.core.tools.datetimes import to_datetime, normalize_date
 from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
-import pandas.tslib as tslib
-from pandas.tslib import Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas.util._decorators import cache_readonly
+
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError,
+    as_datetime, _is_normalized,
+    get_firstbday, get_lastbday,
+    _get_calendar, _to_dt64, _validate_business_time,
+    _int_to_weekday, _weekday_to_int,
+    _determine_offset,
+    apply_index_wraps,
+    roll_yearday,
+    shift_month,
+    BeginMixin, EndMixin,
+    BaseOffset)
 
 import functools
 import operator
@@ -39,13 +54,6 @@ def as_timestamp(obj):
         return Timestamp(obj)
     except (OutOfBoundsDatetime):
         pass
-    return obj
-
-
-def as_datetime(obj):
-    f = getattr(obj, 'to_pydatetime', None)
-    if f is not None:
-        obj = f()
     return obj
 
 
@@ -104,36 +112,11 @@ def apply_wraps(func):
     return wrapper
 
 
-def apply_index_wraps(func):
-    @functools.wraps(func)
-    def wrapper(self, other):
-        result = func(self, other)
-        if self.normalize:
-            result = result.to_period('D').to_timestamp()
-        return result
-    return wrapper
-
-
-def _is_normalized(dt):
-    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
-            dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
-        return False
-    return True
-
 # ---------------------------------------------------------------------
 # DateOffset
 
 
-class ApplyTypeError(TypeError):
-    # sentinel class for catching the apply error to return NotImplemented
-    pass
-
-
-class CacheableOffset(object):
-    _cacheable = True
-
-
-class DateOffset(object):
+class DateOffset(BaseOffset):
     """
     Standard kind of date increment used for a date range.
 
@@ -176,13 +159,6 @@ class DateOffset(object):
 
     Since 0 is a bit weird, we suggest avoiding its use.
     """
-    _cacheable = False
-    _normalize_cache = True
-    _kwds_use_relativedelta = (
-        'years', 'months', 'weeks', 'days',
-        'year', 'month', 'week', 'day', 'weekday',
-        'hour', 'minute', 'second', 'microsecond'
-    )
     _use_relativedelta = False
     _adjust_dst = False
 
@@ -193,28 +169,8 @@ class DateOffset(object):
         self.n = int(n)
         self.normalize = normalize
         self.kwds = kwds
-        self._offset, self._use_relativedelta = self._determine_offset()
 
-    def _determine_offset(self):
-        # timedelta is used for sub-daily plural offsets and all singular
-        # offsets relativedelta is used for plural offsets of daily length or
-        # more nanosecond(s) are handled by apply_wraps
-        kwds_no_nanos = dict(
-            (k, v) for k, v in self.kwds.items()
-            if k not in ('nanosecond', 'nanoseconds')
-        )
-        use_relativedelta = False
-
-        if len(kwds_no_nanos) > 0:
-            if any(k in self._kwds_use_relativedelta for k in kwds_no_nanos):
-                use_relativedelta = True
-                offset = relativedelta(**kwds_no_nanos)
-            else:
-                # sub-daily offset - use timedelta (tz-aware)
-                offset = timedelta(**kwds_no_nanos)
-        else:
-            offset = timedelta(1)
-        return offset, use_relativedelta
+        self._offset, self._use_relativedelta = _determine_offset(kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -249,8 +205,6 @@ class DateOffset(object):
         raises NotImplentedError for offsets without a
         vectorized implementation
 
-        .. versionadded:: 0.17.0
-
         Parameters
         ----------
         i : DatetimeIndex
@@ -261,10 +215,10 @@ class DateOffset(object):
         """
 
         if not type(self) is DateOffset:
-            raise NotImplementedError("DateOffset subclass %s "
+            raise NotImplementedError("DateOffset subclass {name} "
                                       "does not have a vectorized "
-                                      "implementation"
-                                      % (self.__class__.__name__,))
+                                      "implementation".format(
+                                          name=self.__class__.__name__))
         relativedelta_fast = set(['years', 'months', 'weeks',
                                   'days', 'hours', 'minutes',
                                   'seconds', 'microseconds'])
@@ -295,19 +249,15 @@ class DateOffset(object):
             return i + (self._offset * self.n)
         else:
             # relativedelta with other keywords
+            kwd = set(self.kwds) - relativedelta_fast
             raise NotImplementedError("DateOffset with relativedelta "
-                                      "keyword(s) %s not able to be "
-                                      "applied vectorized" %
-                                      (set(self.kwds) - relativedelta_fast),)
+                                      "keyword(s) {kwd} not able to be "
+                                      "applied vectorized".format(kwd=kwd))
 
     def isAnchored(self):
+        # TODO: Does this make sense for the general case?  It would help
+        # if there were a canonical docstring for what isAnchored means.
         return (self.n == 1)
-
-    def copy(self):
-        return self.__class__(self.n, normalize=self.normalize, **self.kwds)
-
-    def _should_cache(self):
-        return self.isAnchored() and self._cacheable
 
     def _params(self):
         all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
@@ -320,38 +270,29 @@ class DateOffset(object):
         params = tuple([str(self.__class__)] + attrs)
         return params
 
-    def __repr__(self):
-        className = getattr(self, '_outputName', type(self).__name__)
+    # TODO: Combine this with BusinessMixin version by defining a whitelisted
+    # set of attributes on each object rather than the existing behavior of
+    # iterating over internal ``__dict__``
+    def _repr_attrs(self):
         exclude = set(['n', 'inc', 'normalize'])
         attrs = []
         for attr in sorted(self.__dict__):
-            if ((attr == 'kwds' and len(self.kwds) == 0) or
-                    attr.startswith('_')):
+            if attr.startswith('_'):
                 continue
-            elif attr == 'kwds':
+            elif attr == 'kwds':  # TODO: get rid of this
                 kwds_new = {}
                 for key in self.kwds:
                     if not hasattr(self, key):
                         kwds_new[key] = self.kwds[key]
                 if len(kwds_new) > 0:
-                    attrs.append('='.join((attr, repr(kwds_new))))
-            else:
-                if attr not in exclude:
-                    attrs.append('='.join((attr, repr(getattr(self, attr)))))
+                    attrs.append('kwds={kwds_new}'.format(kwds_new=kwds_new))
+            elif attr not in exclude:
+                value = getattr(self, attr)
+                attrs.append('{attr}={value}'.format(attr=attr, value=value))
 
-        if abs(self.n) != 1:
-            plural = 's'
-        else:
-            plural = ''
-
-        n_str = ""
-        if self.n != 1:
-            n_str = "%s * " % self.n
-
-        out = '<%s' % n_str + className + plural
+        out = ''
         if attrs:
             out += ': ' + ', '.join(attrs)
-        out += '>'
         return out
 
     @property
@@ -378,9 +319,6 @@ class DateOffset(object):
     def __hash__(self):
         return hash(self._params())
 
-    def __call__(self, other):
-        return self.apply(other)
-
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
             return other + self
@@ -391,9 +329,6 @@ class DateOffset(object):
         except ApplyTypeError:
             return NotImplemented
 
-    def __radd__(self, other):
-        return self.__add__(other)
-
     def __sub__(self, other):
         if isinstance(other, datetime):
             raise TypeError('Cannot subtract datetime from offset.')
@@ -402,22 +337,6 @@ class DateOffset(object):
                                   **self.kwds)
         else:  # pragma: no cover
             return NotImplemented
-
-    def __rsub__(self, other):
-        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
-            return other - self
-        return self.__class__(-self.n, normalize=self.normalize,
-                              **self.kwds) + other
-
-    def __mul__(self, someInt):
-        return self.__class__(n=someInt * self.n, normalize=self.normalize,
-                              **self.kwds)
-
-    def __rmul__(self, someInt):
-        return self.__mul__(someInt)
-
-    def __neg__(self):
-        return self.__class__(-self.n, normalize=self.normalize, **self.kwds)
 
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
@@ -447,43 +366,6 @@ class DateOffset(object):
         b = ((dt + self) - self)
         return a == b
 
-    # helpers for vectorized offsets
-    def _beg_apply_index(self, i, freq):
-        """Offsets index to beginning of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        from pandas.tseries.frequencies import get_freq_code
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n <= 0:
-            # when subtracting, dates on start roll to prior
-            roll = np.where(base_period.to_timestamp() == i - off,
-                            self.n, self.n + 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp()
-        return base + off
-
-    def _end_apply_index(self, i, freq):
-        """Offsets index to end of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        from pandas.tseries.frequencies import get_freq_code
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n > 0:
-            # when adding, dates on end roll to next
-            roll = np.where(base_period.to_timestamp(how='end') == i - off,
-                            self.n, self.n - 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp(how='end')
-        return base + off
-
     # way to get around weirdness with rule_code
     @property
     def _prefix(self):
@@ -501,51 +383,48 @@ class DateOffset(object):
             return repr(self)
 
         if self.n != 1:
-            fstr = '%d%s' % (self.n, code)
+            fstr = '{n}{code}'.format(n=self.n, code=code)
         else:
             fstr = code
 
+        try:
+            if self._offset:
+                fstr += self._offset_str()
+        except AttributeError:
+            # TODO: standardize `_offset` vs `offset` naming convention
+            pass
+
         return fstr
+
+    def _offset_str(self):
+        return ''
 
     @property
     def nanos(self):
-        raise ValueError("{0} is a non-fixed frequency".format(self))
+        raise ValueError("{name} is a non-fixed frequency".format(name=self))
 
 
 class SingleConstructorOffset(DateOffset):
-
     @classmethod
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
-            raise ValueError("Bad freq suffix %s" % suffix)
+            raise ValueError("Bad freq suffix {suffix}".format(suffix=suffix))
         return cls()
 
 
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
 
-    # TODO: Combine this with DateOffset by defining a whitelisted set of
-    # attributes on each object rather than the existing behavior of iterating
-    # over internal ``__dict__``
-    def __repr__(self):
-        className = getattr(self, '_outputName', self.__class__.__name__)
-
-        if abs(self.n) != 1:
-            plural = 's'
-        else:
-            plural = ''
-
-        n_str = ""
-        if self.n != 1:
-            n_str = "%s * " % self.n
-
-        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
-        return out
+    @property
+    def offset(self):
+        """Alias for self._offset"""
+        # Alias for backward compat
+        return self._offset
 
     def _repr_attrs(self):
         if self.offset:
-            attrs = ['offset=%s' % repr(self.offset)]
+            attrs = ['offset={offset!r}'.format(offset=self.offset)]
         else:
             attrs = None
         out = ''
@@ -570,11 +449,17 @@ class BusinessMixin(object):
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise ValueError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
         self.__dict__ = state
         if 'weekmask' in state and 'holidays' in state:
-            calendar, holidays = self.get_calendar(weekmask=self.weekmask,
-                                                   holidays=self.holidays,
-                                                   calendar=None)
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
             self.kwds['calendar'] = self.calendar = calendar
             self.kwds['holidays'] = self.holidays = holidays
             self.kwds['weekmask'] = state['weekmask']
@@ -587,28 +472,11 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _prefix = 'B'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-
-    @property
-    def freqstr(self):
-        try:
-            code = self.rule_code
-        except NotImplementedError:
-            return repr(self)
-
-        if self.n != 1:
-            fstr = '%d%s' % (self.n, code)
-        else:
-            fstr = code
-
-        if self.offset:
-            fstr += self._offset_str()
-
-        return fstr
+        self.kwds = {'offset': offset}
+        self._offset = offset
 
     def _offset_str(self):
         def get_str(td):
@@ -640,9 +508,6 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return off_str
         else:
             return '+' + repr(self.offset)
-
-    def isAnchored(self):
-        return (self.n == 1)
 
     @apply_wraps
     def apply(self, other):
@@ -702,31 +567,13 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
 
 class BusinessHourMixin(BusinessMixin):
 
-    def __init__(self, **kwds):
+    def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
-        kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
-        kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
+        kwds = {'offset': offset}
+        self.start = kwds['start'] = _validate_business_time(start)
+        self.end = kwds['end'] = _validate_business_time(end)
         self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self.start = kwds.get('start', '09:00')
-        self.end = kwds.get('end', '17:00')
-
-    def _validate_time(self, t_input):
-        from datetime import time as dt_time
-        import time
-        if isinstance(t_input, compat.string_types):
-            try:
-                t = time.strptime(t_input, '%H:%M')
-                return dt_time(hour=t.tm_hour, minute=t.tm_min)
-            except ValueError:
-                raise ValueError("time data must match '%H:%M' format")
-        elif isinstance(t_input, dt_time):
-            if t_input.second != 0 or t_input.microsecond != 0:
-                raise ValueError(
-                    "time data must be specified only with hour and minute")
-            return t_input
-        else:
-            raise ValueError("time data must be string or datetime.time")
+        self._offset = offset
 
     def _get_daytime_flag(self):
         if self.start == self.end:
@@ -774,15 +621,15 @@ class BusinessHourMixin(BusinessMixin):
         Return business hours in a day by seconds.
         """
         if self._get_daytime_flag():
-            # create dummy datetime to calcurate businesshours in a day
+            # create dummy datetime to calculate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
         else:
             self.daytime = False
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 2, self.end.hour, self.end.minute)
-            return tslib.tot_seconds(until - dtstart)
+            return (until - dtstart).total_seconds()
 
     @apply_wraps
     def rollback(self, dt):
@@ -809,7 +656,7 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        # calcurate here because offset is not immutable
+        # calculate here because offset is not immutable
         daytime = self._get_daytime_flag()
         businesshours = self._get_business_hours_by_sec()
         bhdelta = timedelta(seconds=businesshours)
@@ -858,7 +705,7 @@ class BusinessHourMixin(BusinessMixin):
                 if n >= 0:
                     bday_edge = self._prev_opening_time(other)
                     bday_edge = bday_edge + bhdelta
-                    # calcurate remainder
+                    # calculate remainder
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
@@ -879,6 +726,7 @@ class BusinessHourMixin(BusinessMixin):
 
             return result
         else:
+            # TODO: Figure out the end of this sente
             raise ApplyTypeError(
                 'Only know how to combine business hour with ')
 
@@ -896,7 +744,7 @@ class BusinessHourMixin(BusinessMixin):
 
     def _onOffset(self, dt, businesshours):
         """
-        Slight speedups using calcurated values
+        Slight speedups using calculated values
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
@@ -906,7 +754,7 @@ class BusinessHourMixin(BusinessMixin):
             op = self._prev_opening_time(dt)
         else:
             op = self._next_opening_time(dt)
-        span = tslib.tot_seconds(dt - op)
+        span = (dt - op).total_seconds()
         if span <= businesshours:
             return True
         else:
@@ -932,28 +780,26 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     _prefix = 'BH'
     _anchor = 0
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, start='09:00',
+                 end='17:00', offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        super(BusinessHour, self).__init__(**kwds)
+        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
+    @cache_readonly
+    def next_bday(self):
         # used for moving to next businessday
         if self.n >= 0:
             nb_offset = 1
         else:
             nb_offset = -1
-        self.next_bday = BusinessDay(n=nb_offset)
+        return BusinessDay(n=nb_offset)
 
 
 class CustomBusinessDay(BusinessDay):
     """
-    **EXPERIMENTAL** DateOffset subclass representing possibly n business days
+    DateOffset subclass representing possibly n custom business days,
     excluding holidays
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
 
     Parameters
     ----------
@@ -972,14 +818,15 @@ class CustomBusinessDay(BusinessDay):
     _prefix = 'C'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        calendar, holidays = self.get_calendar(weekmask=weekmask,
-                                               holidays=holidays,
-                                               calendar=calendar)
+        self._offset = offset
+        self.kwds = {}
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
         # CustomBusinessDay instances are identified by the
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
@@ -987,36 +834,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['weekmask'] = self.weekmask = weekmask
         self.kwds['holidays'] = self.holidays = holidays
         self.kwds['calendar'] = self.calendar = calendar
-
-    def get_calendar(self, weekmask, holidays, calendar):
-        """Generate busdaycalendar"""
-        if isinstance(calendar, np.busdaycalendar):
-            if not holidays:
-                holidays = tuple(calendar.holidays)
-            elif not isinstance(holidays, tuple):
-                holidays = tuple(holidays)
-            else:
-                # trust that calendar.holidays and holidays are
-                # consistent
-                pass
-            return calendar, holidays
-
-        if holidays is None:
-            holidays = []
-        try:
-            holidays = holidays + calendar.holidays().tolist()
-        except AttributeError:
-            pass
-        holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
-                    holidays]
-        holidays = tuple(sorted(holidays))
-
-        kwargs = {'weekmask': weekmask}
-        if holidays:
-            kwargs['holidays'] = holidays
-
-        busdaycalendar = np.busdaycalendar(**kwargs)
-        return busdaycalendar, holidays
+        self.kwds['offset'] = offset
 
     @apply_wraps
     def apply(self, other):
@@ -1049,25 +867,10 @@ class CustomBusinessDay(BusinessDay):
     def apply_index(self, i):
         raise NotImplementedError
 
-    @staticmethod
-    def _to_dt64(dt, dtype='datetime64'):
-        # Currently
-        # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
-        # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
-        # Thus astype is needed to cast datetime to datetime64[D]
-        if getattr(dt, 'tzinfo', None) is not None:
-            i8 = tslib.pydt_to_i8(dt)
-            dt = tslib.tz_convert_single(i8, 'UTC', dt.tzinfo)
-            dt = Timestamp(dt)
-        dt = np.datetime64(dt)
-        if dt.dtype.name != dtype:
-            dt = dt.astype(dtype)
-        return dt
-
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        day64 = self._to_dt64(dt, 'datetime64[D]')
+        day64 = _to_dt64(dt, 'datetime64[D]')
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
@@ -1082,23 +885,31 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     _anchor = 0
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None,
+                 start='09:00', end='17:00', offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        super(CustomBusinessHour, self).__init__(**kwds)
+        super(CustomBusinessHour, self).__init__(start=start,
+                                                 end=end, offset=offset)
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+    @cache_readonly
+    def next_bday(self):
         # used for moving to next businessday
         if self.n >= 0:
             nb_offset = 1
         else:
             nb_offset = -1
-        self.next_bday = CustomBusinessDay(n=nb_offset,
-                                           weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-
-        self.kwds['weekmask'] = self.next_bday.weekmask
-        self.kwds['holidays'] = self.next_bday.holidays
-        self.kwds['calendar'] = self.next_bday.calendar
+        return CustomBusinessDay(n=nb_offset,
+                                 weekmask=self.weekmask,
+                                 holidays=self.holidays,
+                                 calendar=self.calendar)
 
 
 class MonthOffset(SingleConstructorOffset):
@@ -1109,21 +920,23 @@ class MonthOffset(SingleConstructorOffset):
         if self.isAnchored:
             return self.rule_code
         else:
-            return "%s-%s" % (self.rule_code, _int_to_month[self.n])
+            return "{code}-{month}".format(code=self.rule_code,
+                                           month=_int_to_month[self.n])
 
 
 class MonthEnd(MonthOffset):
     """DateOffset of one month end"""
+    _prefix = 'M'
 
     @apply_wraps
     def apply(self, other):
         n = self.n
         _, days_in_month = tslib.monthrange(other.year, other.month)
         if other.day != days_in_month:
-            other = other + relativedelta(months=-1, day=31)
+            other = shift_month(other, -1, 'end')
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(months=n, day=31)
+        other = shift_month(other, n, 'end')
         return other
 
     @apply_index_wraps
@@ -1137,11 +950,10 @@ class MonthEnd(MonthOffset):
         days_in_month = tslib.monthrange(dt.year, dt.month)[1]
         return dt.day == days_in_month
 
-    _prefix = 'M'
-
 
 class MonthBegin(MonthOffset):
     """DateOffset of one month at beginning"""
+    _prefix = 'MS'
 
     @apply_wraps
     def apply(self, other):
@@ -1150,7 +962,7 @@ class MonthBegin(MonthOffset):
         if other.day > 1 and n <= 0:  # then roll forward if n<=0
             n += 1
 
-        return other + relativedelta(months=n, day=1)
+        return shift_month(other, n, 'start')
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1162,27 +974,24 @@ class MonthBegin(MonthOffset):
             return False
         return dt.day == 1
 
-    _prefix = 'MS'
-
 
 class SemiMonthOffset(DateOffset):
     _adjust_dst = True
     _default_day_of_month = 15
     _min_day_of_month = 2
 
-    def __init__(self, n=1, day_of_month=None, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, day_of_month=None):
         if day_of_month is None:
             self.day_of_month = self._default_day_of_month
         else:
             self.day_of_month = int(day_of_month)
         if not self._min_day_of_month <= self.day_of_month <= 27:
-            raise ValueError('day_of_month must be '
-                             '{}<=day_of_month<=27, got {}'.format(
-                                 self._min_day_of_month, self.day_of_month))
+            msg = 'day_of_month must be {min}<=day_of_month<=27, got {day}'
+            raise ValueError(msg.format(min=self._min_day_of_month,
+                                        day=self.day_of_month))
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.kwds['day_of_month'] = self.day_of_month
+        self.kwds = {'day_of_month': self.day_of_month}
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -1190,7 +999,7 @@ class SemiMonthOffset(DateOffset):
 
     @property
     def rule_code(self):
-        suffix = '-{}'.format(self.day_of_month)
+        suffix = '-{day_of_month}'.format(day_of_month=self.day_of_month)
         return self._prefix + suffix
 
     @apply_wraps
@@ -1199,12 +1008,12 @@ class SemiMonthOffset(DateOffset):
         if not self.onOffset(other):
             _, days_in_month = tslib.monthrange(other.year, other.month)
             if 1 < other.day < self.day_of_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n > 0:
                     # rollforward so subtract 1
                     n -= 1
             elif self.day_of_month < other.day < days_in_month:
-                other += relativedelta(day=self.day_of_month)
+                other = other.replace(day=self.day_of_month)
                 if n < 0:
                     # rollforward in the negative direction so add 1
                     n += 1
@@ -1281,19 +1090,16 @@ class SemiMonthEnd(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
+            other = other.replace(day=self.day_of_month)
             if n > 0:
                 n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            else:
-                n += 1
+            other = other.replace(day=self.day_of_month)
+            n += 1
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
-        return other + relativedelta(months=months, day=day)
+        return shift_month(other, months, day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1338,21 +1144,16 @@ class SemiMonthBegin(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
-            if n == 0:
-                n = -1
-            else:
-                n -= 1
+            other = other.replace(day=self.day_of_month)
+            n -= 1
         elif other.day > self.day_of_month:
-            other += relativedelta(day=self.day_of_month)
-            if n == 0:
-                n = 1
-            elif n < 0:
+            other = other.replace(day=self.day_of_month)
+            if n <= 0:
                 n += 1
 
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
-        return other + relativedelta(months=months, day=day)
+        return shift_month(other, months, day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1375,38 +1176,31 @@ class SemiMonthBegin(SemiMonthOffset):
 
 class BusinessMonthEnd(MonthOffset):
     """DateOffset increments between business EOM dates"""
-
-    def isAnchored(self):
-        return (self.n == 1)
+    _prefix = 'BM'
 
     @apply_wraps
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = other + relativedelta(months=n, day=31)
 
-        if other.weekday() > 4:
-            other = other - BDay()
-        return other
-
-    _prefix = 'BM'
+        return shift_month(other, n, 'business_end')
 
 
 class BusinessMonthBegin(MonthOffset):
     """DateOffset of one business month at beginning"""
+    _prefix = 'BMS'
 
     @apply_wraps
     def apply(self, other):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         if other.day > first and n <= 0:
             # as if rolled forward already
@@ -1415,36 +1209,19 @@ class BusinessMonthBegin(MonthOffset):
             other = other + timedelta(days=first - other.day)
             n -= 1
 
-        other = other + relativedelta(months=n)
-        wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first,
-                          other.hour, other.minute,
-                          other.second, other.microsecond)
-        return result
+        return shift_month(other, n, 'business_start')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
         first_weekday, _ = tslib.monthrange(dt.year, dt.month)
-        if first_weekday == 5:
-            return dt.day == 3
-        elif first_weekday == 6:
-            return dt.day == 2
-        else:
-            return dt.day == 1
-
-    _prefix = 'BMS'
+        return dt.day == get_firstbday(first_weekday)
 
 
 class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     """
-    **EXPERIMENTAL** DateOffset of one custom business month
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
+    DateOffset subclass representing one custom business month, incrementing
+    between end of month dates
 
     Parameters
     ----------
@@ -1464,16 +1241,31 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     _prefix = 'CBM'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
-                                       weekmask=weekmask, holidays=holidays,
-                                       calendar=calendar, **kwds)
-        self.m_offset = MonthEnd(n=1, normalize=normalize, **kwds)
-        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
+        self._offset = offset
+        self.kwds = {}
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['offset'] = offset
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
+        return MonthEnd(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -1499,12 +1291,8 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
 class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     """
-    **EXPERIMENTAL** DateOffset of one custom business month
-
-    .. warning:: EXPERIMENTAL
-
-        This class is not officially supported and the API is likely to change
-        in future versions. Use this at your own risk.
+    DateOffset subclass representing one custom business month, incrementing
+    between beginning of month dates
 
     Parameters
     ----------
@@ -1524,16 +1312,33 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     _prefix = 'CBMS'
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, **kwds):
+                 holidays=None, calendar=None, offset=timedelta(0)):
         self.n = int(n)
         self.normalize = normalize
-        self.kwds = kwds
-        self.offset = kwds.get('offset', timedelta(0))
-        self.cbday = CustomBusinessDay(n=self.n, normalize=normalize,
-                                       weekmask=weekmask, holidays=holidays,
-                                       calendar=calendar, **kwds)
-        self.m_offset = MonthBegin(n=1, normalize=normalize, **kwds)
-        self.kwds['calendar'] = self.cbday.calendar  # cache numpy calendar
+        self._offset = offset
+        self.kwds = {}
+
+        # _get_calendar does validation and possible transformation
+        # of calendar and holidays.
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['offset'] = offset
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
+        return MonthBegin(n=1, normalize=self.normalize, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -1558,7 +1363,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         return result
 
 
-class Week(DateOffset):
+class Week(EndMixin, DateOffset):
     """
     Weekly offset
 
@@ -1568,49 +1373,37 @@ class Week(DateOffset):
         Always generate specific day of week. 0 for Monday
     """
     _adjust_dst = True
+    _inc = timedelta(weeks=1)
+    _prefix = 'W'
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds.get('weekday', None)
+        self.weekday = weekday
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise ValueError('Day must be 0<=day<=6, got %d' %
-                                 self.weekday)
+                raise ValueError('Day must be 0<=day<=6, got {day}'
+                                 .format(day=self.weekday))
 
-        self._inc = timedelta(weeks=1)
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday}
 
     def isAnchored(self):
         return (self.n == 1 and self.weekday is not None)
 
     @apply_wraps
     def apply(self, other):
-        base = other
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if self.n > 0:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-                k = k - 1
-            other = other
-            for i in range(k):
-                other = other + self._inc
-        else:
-            k = self.n
-            otherDay = other.weekday()
-            if otherDay != self.weekday:
-                other = other + timedelta((self.weekday - otherDay) % 7)
-            for i in range(-k):
-                other = other - self._inc
+        k = self.n
+        otherDay = other.weekday()
+        if otherDay != self.weekday:
+            other = other + timedelta((self.weekday - otherDay) % 7)
+            if k > 0:
+                k -= 1
 
-        other = datetime(other.year, other.month, other.day,
-                         base.hour, base.minute, base.second, base.microsecond)
-        return other
+        return other + timedelta(weeks=k)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1625,13 +1418,11 @@ class Week(DateOffset):
             return False
         return dt.weekday() == self.weekday
 
-    _prefix = 'W'
-
     @property
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
-            suffix = '-%s' % (_int_to_weekday[self.weekday])
+            suffix = '-{weekday}'.format(weekday=_int_to_weekday[self.weekday])
         return self._prefix + suffix
 
     @classmethod
@@ -1643,29 +1434,6 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
-class WeekDay(object):
-    MON = 0
-    TUE = 1
-    WED = 2
-    THU = 3
-    FRI = 4
-    SAT = 5
-    SUN = 6
-
-
-_int_to_weekday = {
-    WeekDay.MON: 'MON',
-    WeekDay.TUE: 'TUE',
-    WeekDay.WED: 'WED',
-    WeekDay.THU: 'THU',
-    WeekDay.FRI: 'FRI',
-    WeekDay.SAT: 'SAT',
-    WeekDay.SUN: 'SUN'
-}
-
-_weekday_to_int = dict((v, k) for k, v in _int_to_weekday.items())
-
-
 class WeekOfMonth(DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
@@ -1673,9 +1441,9 @@ class WeekOfMonth(DateOffset):
     Parameters
     ----------
     n : int
-    week : {0, 1, 2, 3, ...}
+    week : {0, 1, 2, 3, ...}, default None
         0 is 1st week of month, 1 2nd week, etc.
-    weekday : {0, 1, ..., 6}
+    weekday : {0, 1, ..., 6}, default None
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1684,47 +1452,39 @@ class WeekOfMonth(DateOffset):
         5: Saturdays
         6: Sundays
     """
-
+    _prefix = 'WOM'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, week=None, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds['weekday']
-        self.week = kwds['week']
+        self.weekday = weekday
+        self.week = week
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got %d' %
-                             self.weekday)
+            raise ValueError('Day must be 0<=day<=6, got {day}'
+                             .format(day=self.weekday))
         if self.week < 0 or self.week > 3:
-            raise ValueError('Week must be 0<=day<=3, got %d' %
-                             self.week)
+            raise ValueError('Week must be 0<=week<=3, got {week}'
+                             .format(week=self.week))
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'week': week}
 
     @apply_wraps
     def apply(self, other):
         base = other
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
-        other = self.getOffsetOfMonth(
-            other + relativedelta(months=months, day=1))
+        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
                          base.minute, base.second, base.microsecond)
         return other
@@ -1733,11 +1493,7 @@ class WeekOfMonth(DateOffset):
         w = Week(weekday=self.weekday)
         d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
         d = w.rollforward(d)
-
-        for i in range(self.week):
-            d = w.apply(d)
-
-        return d
+        return d + timedelta(weeks=self.week)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1747,15 +1503,16 @@ class WeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%d%s' % (self._prefix, self.week + 1,
-                            _int_to_weekday.get(self.weekday, ''))
-
-    _prefix = 'WOM'
+        weekday = _int_to_weekday.get(self.weekday, '')
+        return '{prefix}-{week}{weekday}'.format(prefix=self._prefix,
+                                                 week=self.week + 1,
+                                                 weekday=weekday)
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError("Prefix %r requires a suffix." % (cls._prefix))
+            raise ValueError("Prefix {prefix!r} requires a suffix."
+                             .format(prefix=cls._prefix))
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
@@ -1770,8 +1527,8 @@ class LastWeekOfMonth(DateOffset):
 
     Parameters
     ----------
-    n : int
-    weekday : {0, 1, ..., 6}
+    n : int, default 1
+    weekday : {0, 1, ..., 6}, default None
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1779,41 +1536,35 @@ class LastWeekOfMonth(DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
-    """
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    """
+    _prefix = 'LWOM'
+
+    def __init__(self, n=1, normalize=False, weekday=None):
         self.n = n
         self.normalize = normalize
-        self.weekday = kwds['weekday']
+        self.weekday = weekday
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError('Day must be 0<=day<=6, got %d' %
-                             self.weekday)
+            raise ValueError('Day must be 0<=day<=6, got {day}'
+                             .format(day=self.weekday))
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday}
 
     @apply_wraps
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        if offsetOfMonth > other:
-            if self.n > 0:
-                months = self.n - 1
-            else:
-                months = self.n
-        elif offsetOfMonth == other:
-            months = self.n
-        else:
-            if self.n > 0:
-                months = self.n
-            else:
-                months = self.n + 1
+        months = self.n
+        if months > 0 and offsetOfMonth > other:
+            months -= 1
+        elif months <= 0 and offsetOfMonth < other:
+            months += 1
 
-        return self.getOffsetOfMonth(
-            other + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
     def getOffsetOfMonth(self, dt):
         m = MonthEnd()
@@ -1830,14 +1581,15 @@ class LastWeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_weekday.get(self.weekday, ''))
-
-    _prefix = 'LWOM'
+        weekday = _int_to_weekday.get(self.weekday, '')
+        return '{prefix}-{weekday}'.format(prefix=self._prefix,
+                                           weekday=weekday)
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError("Prefix %r requires a suffix." % (cls._prefix))
+            raise ValueError("Prefix {prefix!r} requires a suffix."
+                             .format(prefix=cls._prefix))
         # TODO: handle n here...
         weekday = _weekday_to_int[suffix]
         return cls(weekday=weekday)
@@ -1845,22 +1597,20 @@ class LastWeekOfMonth(DateOffset):
 
 class QuarterOffset(DateOffset):
     """Quarter representation - doesn't call super"""
-
-    #: default month for __init__
     _default_startingMonth = None
-    #: default month in _from_name
     _from_name_startingMonth = None
     _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, startingMonth=None):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth',
-                                      self._default_startingMonth)
+        if startingMonth is None:
+            startingMonth = self._default_startingMonth
+        self.startingMonth = startingMonth
 
-        self.kwds = kwds
+        self.kwds = {'startingMonth': startingMonth}
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -1877,7 +1627,8 @@ class QuarterOffset(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_month[self.startingMonth])
+        month = _int_to_month[self.startingMonth]
+        return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1888,21 +1639,15 @@ class BQuarterEnd(QuarterOffset):
     """
     _outputName = 'BusinessQuarterEnd'
     _default_startingMonth = 3
-    # 'BQ'
     _from_name_startingMonth = 12
     _prefix = 'BQ'
 
     @apply_wraps
     def apply(self, other):
         n = self.n
-        base = other
-        other = datetime(other.year, other.month, other.day,
-                         other.hour, other.minute, other.second,
-                         other.microsecond)
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                        % 7) - 4, 0)
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1913,11 +1658,7 @@ class BQuarterEnd(QuarterOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
-        other = tslib._localize_pydatetime(other, base.tzinfo)
-        if other.weekday() > 4:
-            other = other - BDay()
-        return other
+        return shift_month(other, monthsToGo + 3 * n, 'business_end')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1943,7 +1684,7 @@ class BQuarterBegin(QuarterOffset):
         n = self.n
         wkday, _ = tslib.monthrange(other.year, other.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -1957,17 +1698,10 @@ class BQuarterBegin(QuarterOffset):
         elif n > 0 and (monthsSince == 0 and other.day < first):
             n = n - 1
 
-        # get the first bday for result
-        other = other + relativedelta(months=3 * n - monthsSince)
-        wkday, _ = tslib.monthrange(other.year, other.month)
-        first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-        return result
+        return shift_month(other, 3 * n - monthsSince, 'business_start')
 
 
-class QuarterEnd(QuarterOffset):
+class QuarterEnd(EndMixin, QuarterOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1976,16 +1710,6 @@ class QuarterEnd(QuarterOffset):
     _outputName = 'QuarterEnd'
     _default_startingMonth = 3
     _prefix = 'Q'
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.n = n
-        self.normalize = normalize
-        self.startingMonth = kwds.get('startingMonth', 3)
-
-        self.kwds = kwds
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
 
     @apply_wraps
     def apply(self, other):
@@ -2002,7 +1726,7 @@ class QuarterEnd(QuarterOffset):
         if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
 
-        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
+        other = shift_month(other, monthsToGo + 3 * n, 'end')
         return other
 
     @apply_index_wraps
@@ -2016,14 +1740,11 @@ class QuarterEnd(QuarterOffset):
         return MonthEnd().onOffset(dt) and modMonth == 0
 
 
-class QuarterBegin(QuarterOffset):
+class QuarterBegin(BeginMixin, QuarterOffset):
     _outputName = 'QuarterBegin'
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = 'QS'
-
-    def isAnchored(self):
-        return (self.n == 1 and self.startingMonth is not None)
 
     @apply_wraps
     def apply(self, other):
@@ -2040,14 +1761,13 @@ class QuarterBegin(QuarterOffset):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
 
-        other = other + relativedelta(months=3 * n - monthsSince, day=1)
+        other = shift_month(other, 3 * n - monthsSince, 'start')
         return other
 
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
-        # freq_month = self.startingMonth
-        freqstr = 'Q-%s' % (_int_to_month[freq_month],)
+        freqstr = 'Q-{month}'.format(month=_int_to_month[freq_month])
         return self._beg_apply_index(i, freqstr)
 
 
@@ -2055,13 +1775,14 @@ class YearOffset(DateOffset):
     """DateOffset that just needs a month"""
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.month = kwds.get('month', self._default_month)
+    def __init__(self, n=1, normalize=False, month=None):
+        month = month if month is not None else self._default_month
+        self.month = month
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
 
-        DateOffset.__init__(self, n=n, normalize=normalize, **kwds)
+        DateOffset.__init__(self, n=n, normalize=normalize, month=month)
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2072,7 +1793,8 @@ class YearOffset(DateOffset):
 
     @property
     def rule_code(self):
-        return '%s-%s' % (self._prefix, _int_to_month[self.month])
+        month = _int_to_month[self.month]
+        return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
 class BYearEnd(YearOffset):
@@ -2085,8 +1807,7 @@ class BYearEnd(YearOffset):
     def apply(self, other):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        lastBDay = (days_in_month -
-                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
+        lastBDay = get_lastbday(wkday, days_in_month)
 
         years = n
         if n > 0:
@@ -2098,17 +1819,8 @@ class BYearEnd(YearOffset):
                     (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = other + relativedelta(years=years)
-
-        _, days_in_month = tslib.monthrange(other.year, self.month)
-        result = datetime(other.year, self.month, days_in_month,
-                          other.hour, other.minute, other.second,
-                          other.microsecond)
-
-        if result.weekday() > 4:
-            result = result - BDay()
-
-        return result
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, 'business_end')
 
 
 class BYearBegin(YearOffset):
@@ -2122,7 +1834,7 @@ class BYearBegin(YearOffset):
         n = self.n
         wkday, days_in_month = tslib.monthrange(other.year, self.month)
 
-        first = _get_firstbday(wkday)
+        first = get_firstbday(wkday)
 
         years = n
 
@@ -2136,63 +1848,23 @@ class BYearBegin(YearOffset):
                 years += 1
 
         # set first bday for result
-        other = other + relativedelta(years=years)
-        wkday, days_in_month = tslib.monthrange(other.year, self.month)
-        first = _get_firstbday(wkday)
-        return datetime(other.year, self.month, first, other.hour,
-                        other.minute, other.second, other.microsecond)
+        months = years * 12 + (self.month - other.month)
+        return shift_month(other, months, 'business_start')
 
 
-class YearEnd(YearOffset):
+class YearEnd(EndMixin, YearOffset):
     """DateOffset increments between calendar year ends"""
     _default_month = 12
     _prefix = 'A'
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date):
-            if date.month == self.month:
-                _, days_in_month = tslib.monthrange(date.year, self.month)
-                if date.day != days_in_month:
-                    year = date.year
-                else:
-                    year = date.year + 1
-            elif date.month < self.month:
-                year = date.year
-            else:
-                year = date.year + 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _decrement(date):
-            year = date.year if date.month > self.month else date.year - 1
-            _, days_in_month = tslib.monthrange(year, self.month)
-            return datetime(year, self.month, days_in_month,
-                            date.hour, date.minute, date.second,
-                            date.microsecond)
-
-        def _rollf(date):
-            if date.month != self.month or\
-               date.day < tslib.monthrange(date.year, date.month)[1]:
-                date = _increment(date)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            while n > 0:
-                result = _increment(result)
-                n -= 1
-        elif n < 0:
-            while n < 0:
-                result = _decrement(result)
-                n += 1
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'end')
+        year = other.year + n
+        days_in_month = tslib.monthrange(year, self.month)[1]
+        return datetime(year, self.month, days_in_month,
+                        other.hour, other.minute, other.second,
+                        other.microsecond)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -2206,48 +1878,21 @@ class YearEnd(YearOffset):
         return self.month == dt.month and dt.day == days_in_month
 
 
-class YearBegin(YearOffset):
+class YearBegin(BeginMixin, YearOffset):
     """DateOffset increments between calendar year begin dates"""
     _default_month = 1
     _prefix = 'AS'
 
     @apply_wraps
     def apply(self, other):
-        def _increment(date, n):
-            year = date.year + n - 1
-            if date.month >= self.month:
-                year += 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _decrement(date, n):
-            year = date.year + n + 1
-            if date.month < self.month or (date.month == self.month and
-                                           date.day == 1):
-                year -= 1
-            return datetime(year, self.month, 1, date.hour, date.minute,
-                            date.second, date.microsecond)
-
-        def _rollf(date):
-            if (date.month != self.month) or date.day > 1:
-                date = _increment(date, 1)
-            return date
-
-        n = self.n
-        result = other
-        if n > 0:
-            result = _increment(result, n)
-        elif n < 0:
-            result = _decrement(result, n)
-        else:
-            # n == 0, roll forward
-            result = _rollf(result)
-        return result
+        n = roll_yearday(other, self.n, self.month, 'start')
+        year = other.year + n
+        return other.replace(year=year, month=self.month, day=1)
 
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.month == 1 else self.month - 1
-        freqstr = 'A-%s' % (_int_to_month[freq_month],)
+        freqstr = 'A-{month}'.format(month=_int_to_month[freq_month])
         return self._beg_apply_index(i, freqstr)
 
     def onOffset(self, dt):
@@ -2299,28 +1944,47 @@ class FY5253(DateOffset):
     _suffix_prefix_nearest = 'N'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
+                 variation="nearest"):
         self.n = n
         self.normalize = normalize
-        self.startingMonth = kwds['startingMonth']
-        self.weekday = kwds["weekday"]
+        self.startingMonth = startingMonth
+        self.weekday = weekday
 
-        self.variation = kwds["variation"]
+        self.variation = variation
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
+                     'variation': variation}
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
         if self.variation not in ["nearest", "last"]:
-            raise ValueError('%s is not a valid variation' % self.variation)
+            raise ValueError('{variation} is not a valid variation'
+                             .format(variation=self.variation))
 
+    @cache_readonly
+    def _relativedelta_forward(self):
         if self.variation == "nearest":
             weekday_offset = weekday(self.weekday)
-            self._rd_forward = relativedelta(weekday=weekday_offset)
-            self._rd_backward = relativedelta(weekday=weekday_offset(-1))
+            return relativedelta(weekday=weekday_offset)
         else:
-            self._offset_lwom = LastWeekOfMonth(n=1, weekday=self.weekday)
+            return None
+
+    @cache_readonly
+    def _relativedelta_backward(self):
+        if self.variation == "nearest":
+            weekday_offset = weekday(self.weekday)
+            return relativedelta(weekday=weekday_offset(-1))
+        else:
+            return None
+
+    @cache_readonly
+    def _offset_lwom(self):
+        if self.variation == "nearest":
+            return None
+        else:
+            return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
         return self.n == 1 \
@@ -2335,8 +1999,8 @@ class FY5253(DateOffset):
 
         if self.variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
-            return year_end == dt or \
-                self.get_year_end(dt - relativedelta(months=1)) == dt
+            return (year_end == dt or
+                    self.get_year_end(shift_month(dt, -1, None)) == dt)
         else:
             return year_end == dt
 
@@ -2416,16 +2080,16 @@ class FY5253(DateOffset):
     def get_target_month_end(self, dt):
         target_month = datetime(
             dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
-        next_month_first_of = target_month + relativedelta(months=+1)
-        return next_month_first_of + relativedelta(days=-1)
+        next_month_first_of = shift_month(target_month, 1, None)
+        return next_month_first_of + timedelta(days=-1)
 
     def _get_year_end_nearest(self, dt):
         target_date = self.get_target_month_end(dt)
         if target_date.weekday() == self.weekday:
             return target_date
         else:
-            forward = target_date + self._rd_forward
-            backward = target_date + self._rd_backward
+            forward = target_date + self._relativedelta_forward
+            backward = target_date + self._relativedelta_backward
 
             if forward - target_date < target_date - backward:
                 return forward
@@ -2439,8 +2103,9 @@ class FY5253(DateOffset):
 
     @property
     def rule_code(self):
+        prefix = self._get_prefix()
         suffix = self.get_rule_code_suffix()
-        return "%s-%s" % (self._get_prefix(), suffix)
+        return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
 
     def _get_prefix(self):
         return self._prefix
@@ -2452,9 +2117,11 @@ class FY5253(DateOffset):
             return self._suffix_prefix_last
 
     def get_rule_code_suffix(self):
-        return '%s-%s-%s' % (self._get_suffix_prefix(),
-                             _int_to_month[self.startingMonth],
-                             _int_to_weekday[self.weekday])
+        prefix = self._get_suffix_prefix()
+        month = _int_to_month[self.startingMonth]
+        weekday = _int_to_weekday[self.weekday]
+        return '{prefix}-{month}-{weekday}'.format(prefix=prefix, month=month,
+                                                   weekday=weekday)
 
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
@@ -2464,7 +2131,7 @@ class FY5253(DateOffset):
             variation = "last"
         else:
             raise ValueError(
-                "Unable to parse varion_code: %s" % (varion_code,))
+                "Unable to parse varion_code: {code}".format(code=varion_code))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
@@ -2527,21 +2194,29 @@ class FY5253Quarter(DateOffset):
     _prefix = 'REQ'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
+                 qtr_with_extra_week=1, variation="nearest"):
         self.n = n
         self.normalize = normalize
 
-        self.qtr_with_extra_week = kwds["qtr_with_extra_week"]
+        self.weekday = weekday
+        self.startingMonth = startingMonth
+        self.qtr_with_extra_week = qtr_with_extra_week
+        self.variation = variation
 
-        self.kwds = kwds
+        self.kwds = {'weekday': weekday, 'startingMonth': startingMonth,
+                     'qtr_with_extra_week': qtr_with_extra_week,
+                     'variation': variation}
 
         if self.n == 0:
             raise ValueError('N cannot be 0')
 
-        self._offset = FY5253(
-            startingMonth=kwds['startingMonth'],
-            weekday=kwds["weekday"],
-            variation=kwds["variation"])
+    @cache_readonly
+    def _offset(self):
+        return FY5253(
+            startingMonth=self.startingMonth,
+            weekday=self.weekday,
+            variation=self.variation)
 
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
@@ -2561,7 +2236,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other + self._offset)
 
                 for weeks in qtr_lens:
-                    start += relativedelta(weeks=weeks)
+                    start += timedelta(weeks=weeks)
                     if start > other:
                         other = start
                         n -= 1
@@ -2578,7 +2253,7 @@ class FY5253Quarter(DateOffset):
                     qtr_lens = self.get_weeks(other)
 
                 for weeks in reversed(qtr_lens):
-                    end -= relativedelta(weeks=weeks)
+                    end -= timedelta(weeks=weeks)
                     if end < other:
                         other = end
                         n -= 1
@@ -2621,7 +2296,7 @@ class FY5253Quarter(DateOffset):
 
         current = next_year_end
         for qtr_len in qtr_lens[0:4]:
-            current += relativedelta(weeks=qtr_len)
+            current += timedelta(weeks=qtr_len)
             if dt == current:
                 return True
         return False
@@ -2629,8 +2304,9 @@ class FY5253Quarter(DateOffset):
     @property
     def rule_code(self):
         suffix = self._offset.get_rule_code_suffix()
-        return "%s-%s" % (self._prefix,
-                          "%s-%d" % (suffix, self.qtr_with_extra_week))
+        qtr = self.qtr_with_extra_week
+        return "{prefix}-{suffix}-{qtr}".format(prefix=self._prefix,
+                                                suffix=suffix, qtr=qtr)
 
     @classmethod
     def _from_name(cls, *args):
@@ -2646,9 +2322,6 @@ class Easter(DateOffset):
     1583-4099.
     """
     _adjust_dst = True
-
-    def __init__(self, n=1, **kwds):
-        super(Easter, self).__init__(n, **kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -2692,6 +2365,7 @@ def _tick_comp(op):
 
 class Tick(SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
+    _prefix = 'undefined'
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
@@ -2713,8 +2387,8 @@ class Tick(SingleConstructorOffset):
         except ApplyTypeError:
             return NotImplemented
         except OverflowError:
-            raise OverflowError("the add operation between {} and {} "
-                                "will overflow".format(self, other))
+            raise OverflowError("the add operation between {self} and {other} "
+                                "will overflow".format(self=self, other=other))
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
@@ -2749,7 +2423,7 @@ class Tick(SingleConstructorOffset):
 
     @property
     def nanos(self):
-        return _delta_to_nanoseconds(self.delta)
+        return delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
@@ -2772,9 +2446,8 @@ class Tick(SingleConstructorOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
-        raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
-
-    _prefix = 'undefined'
+        raise ApplyTypeError('Unhandled type: {type_str}'
+                             .format(type_str=type(other).__name__))
 
     def isAnchored(self):
         return False
@@ -2793,16 +2466,13 @@ def _delta_to_tick(delta):
             else:
                 return Second(seconds)
     else:
-        nanos = _delta_to_nanoseconds(delta)
+        nanos = delta_to_nanoseconds(delta)
         if nanos % 1000000 == 0:
             return Milli(nanos // 1000000)
         elif nanos % 1000 == 0:
             return Micro(nanos // 1000)
         else:  # pragma: no cover
             return Nano(nanos)
-
-
-_delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
 
 class Day(Tick):
@@ -2847,19 +2517,7 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
-
-def _get_firstbday(wkday):
-    """
-    wkday is the result of monthrange(year, month)
-
-    If it's a saturday or sunday, increment first business day to reflect this
-    """
-    first = 1
-    if wkday == 5:  # on Saturday
-        first = 3
-    elif wkday == 6:  # on Sunday
-        first = 2
-    return first
+# ---------------------------------------------------------------------
 
 
 def generate_range(start=None, end=None, periods=None,
@@ -2922,7 +2580,8 @@ def generate_range(start=None, end=None, periods=None,
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
-                raise ValueError('Offset %s did not increment date' % offset)
+                raise ValueError('Offset {offset} did not increment date'
+                                 .format(offset=offset))
             cur = next_date
     else:
         while cur >= end:
@@ -2931,7 +2590,8 @@ def generate_range(start=None, end=None, periods=None,
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date >= cur:
-                raise ValueError('Offset %s did not decrement date' % offset)
+                raise ValueError('Offset {offset} did not decrement date'
+                                 .format(offset=offset))
             cur = next_date
 
 
@@ -2952,6 +2612,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     CustomBusinessHour,        # 'CBH'
     MonthEnd,                  # 'M'
     MonthBegin,                # 'MS'
+    Nano,                      # 'N'
     SemiMonthEnd,              # 'SM'
     SemiMonthBegin,            # 'SMS'
     Week,                      # 'W'
@@ -2967,5 +2628,3 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     FY5253,
     FY5253Quarter,
 ])
-
-prefix_mapping['N'] = Nano

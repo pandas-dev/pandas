@@ -6,9 +6,9 @@ from __future__ import division
 
 import warnings
 import numpy as np
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.api import DataFrame, Series
-from pandas.util.decorators import Substitution, Appender
+from pandas.util._decorators import Substitution, Appender
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
@@ -458,7 +458,7 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     if how is None:
         how_arg_str = 'None'
     else:
-        how_arg_str = "'%s" % how
+        how_arg_str = "'{how}".format(how=how)
 
     @Substitution(desc, _unary_arg, _roll_kw % how_arg_str + additional_kw,
                   _type_of_input_retval, _roll_notes)

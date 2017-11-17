@@ -37,6 +37,489 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.21.0
+-------------
+
+**Release date:** October 27, 2017
+
+This is a major release from 0.20.3 and includes a number of API changes,
+deprecations, new features, enhancements, and performance improvements along
+with a large number of bug fixes. We recommend that all users upgrade to this
+version.
+
+Highlights include:
+
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+- Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+- Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
+- Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
+- Indexing with a list of labels, where one or more of the labels is missing, is deprecated and will raise a KeyError in a future version, see :ref:`here <whatsnew_0210.api_breaking.loc>`.
+
+See the :ref:`v0.21.0 Whatsnew <whatsnew_0210>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.21.0
+
+Thanks
+~~~~~~
+
+A total of 206 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+Contributors
+============
+
+* 3553x +
+* Aaron Barber
+* Adam Gleave +
+* Adam Smith +
+* AdamShamlian +
+* Adrian Liaw +
+* Alan Velasco +
+* Alan Yee +
+* Alex B +
+* Alex Lubbock +
+* Alex Marchenko +
+* Alex Rychyk +
+* Amol K +
+* Andreas Winkler
+* Andrew +
+* Andrew 亮
+* André Jonasson +
+* Becky Sweger
+* Berkay +
+* Bob Haffner +
+* Bran Yang
+* Brian Tu +
+* Brock Mendel +
+* Carol Willing +
+* Carter Green +
+* Chankey Pathak +
+* Chris
+* Chris Billington
+* Chris Filo Gorgolewski +
+* Chris Kerr
+* Chris M +
+* Chris Mazzullo +
+* Christian Prinoth
+* Christian Stade-Schuldt
+* Christoph Moehl +
+* DSM
+* Daniel Chen +
+* Daniel Grady
+* Daniel Himmelstein
+* Dave Willmer
+* David Cook
+* David Gwynne
+* David Read +
+* Dillon Niederhut +
+* Douglas Rudd
+* Eric Stein +
+* Eric Wieser +
+* Erik Fredriksen
+* Florian Wilhelm +
+* Floris Kint +
+* Forbidden Donut
+* Gabe F +
+* Giftlin +
+* Giftlin Rajaiah +
+* Giulio Pepe +
+* Guilherme Beltramini
+* Guillem Borrell +
+* Hanmin Qin +
+* Hendrik Makait +
+* Hugues Valois
+* Hussain Tamboli +
+* Iva Miholic +
+* Jan Novotný +
+* Jan Rudolph
+* Jean Helie +
+* Jean-Baptiste Schiratti +
+* Jean-Mathieu Deschenes
+* Jeff Knupp +
+* Jeff Reback
+* Jeff Tratner
+* JennaVergeynst
+* JimStearns206
+* Joel Nothman
+* John W. O'Brien
+* Jon Crall +
+* Jon Mease
+* Jonathan J. Helmus +
+* Joris Van den Bossche
+* JosephWagner
+* Juarez Bochi
+* Julian Kuhlmann +
+* Karel De Brabandere
+* Kassandra Keeton +
+* Keiron Pizzey +
+* Keith Webber
+* Kernc
+* Kevin Sheppard
+* Kirk Hansen +
+* Licht Takeuchi +
+* Lucas Kushner +
+* Mahdi Ben Jelloul +
+* Makarov Andrey +
+* Malgorzata Turzanska +
+* Marc Garcia +
+* Margaret Sy +
+* MarsGuy +
+* Matt Bark +
+* Matthew Roeschke
+* Matti Picus
+* Mehmet Ali "Mali" Akmanalp
+* Michael Gasvoda +
+* Michael Penkov +
+* Milo +
+* Morgan Stuart +
+* Morgan243 +
+* Nathan Ford +
+* Nick Eubank
+* Nick Garvey +
+* Oleg Shteynbuk +
+* P-Tillmann +
+* Pankaj Pandey
+* Patrick Luo
+* Patrick O'Melveny
+* Paul Reidy +
+* Paula +
+* Peter Quackenbush
+* Peter Yanovich +
+* Phillip Cloud
+* Pierre Haessig
+* Pietro Battiston
+* Pradyumna Reddy Chinthala
+* Prasanjit Prakash
+* RobinFiveWords
+* Ryan Hendrickson
+* Sam Foo
+* Sangwoong Yoon +
+* Simon Gibbons +
+* SimonBaron
+* Steven Cutting +
+* Sudeep +
+* Sylvia +
+* T N +
+* Telt
+* Thomas A Caswell
+* Tim Swast +
+* Tom Augspurger
+* Tong SHEN
+* Tuan +
+* Utkarsh Upadhyay +
+* Vincent La +
+* Vivek +
+* WANG Aiyong
+* WBare
+* Wes McKinney
+* XF +
+* Yi Liu +
+* Yosuke Nakabayashi +
+* aaron315 +
+* abarber4gh +
+* aernlund +
+* agustín méndez +
+* andymaheshw +
+* ante328 +
+* aviolov +
+* bpraggastis
+* cbertinato +
+* cclauss +
+* chernrick
+* chris-b1
+* dkamm +
+* dwkenefick
+* economy
+* faic +
+* fding253 +
+* gfyoung
+* guygoldberg +
+* hhuuggoo +
+* huashuai +
+* ian
+* iulia +
+* jaredsnyder
+* jbrockmendel +
+* jdeschenes
+* jebob +
+* jschendel +
+* keitakurita
+* kernc +
+* kiwirob +
+* kjford
+* linebp
+* lloydkirk
+* louispotok +
+* majiang +
+* manikbhandari +
+* matthiashuschle +
+* mattip
+* maxwasserman +
+* mjlove12 +
+* nmartensen +
+* pandas-docs-bot +
+* parchd-1 +
+* philipphanemann +
+* rdk1024 +
+* reidy-p +
+* ri938
+* ruiann +
+* rvernica +
+* s-weigand +
+* scotthavard92 +
+* skwbc +
+* step4me +
+* tobycheese +
+* topper-123 +
+* tsdlovell
+* ysau +
+* zzgao +
+
+
+pandas 0.20.0 / 0.20.1
+----------------------
+
+**Release date:** May 5, 2017
+
+
+This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
+- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
+- Improved user API when grouping by index levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
+- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec and that gives the possibility for a more interactive repr in the Jupyter Notebook, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Experimental support for exporting styled DataFrames (``DataFrame.style``) to Excel, see :ref:`here <whatsnew_0200.enhancements.style_excel>`
+- Window binary corr/cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+- Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
+- Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
+
+See the :ref:`v0.20.1 Whatsnew <whatsnew_0200>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.20.1.
+
+
+.. note::
+
+   This is a combined release for 0.20.0 and and 0.20.1.
+   Version 0.20.1 contains one additional change for backwards-compatibility with downstream projects using pandas' ``utils`` routines. (:issue:`16250`)
+
+Thanks
+~~~~~~
+
+- abaldenko
+- Adam J. Stewart
+- Adrian
+- adrian-stepien
+- Ajay Saxena
+- Akash Tandon
+- Albert Villanova del Moral
+- Aleksey Bilogur
+- alexandercbooth
+- Alexis Mignon
+- Amol Kahat
+- Andreas Winkler
+- Andrew Kittredge
+- Anthonios Partheniou
+- Arco Bast
+- Ashish Singal
+- atbd
+- bastewart
+- Baurzhan Muftakhidinov
+- Ben Kandel
+- Ben Thayer
+- Ben Welsh
+- Bill Chambers
+- bmagnusson
+- Brandon M. Burroughs
+- Brian
+- Brian McFee
+- carlosdanielcsantos
+- Carlos Souza
+- chaimdemulder
+- Chris
+- chris-b1
+- Chris Ham
+- Christopher C. Aycock
+- Christoph Gohlke
+- Christoph Paulik
+- Chris Warth
+- Clemens Brunner
+- DaanVanHauwermeiren
+- Daniel Himmelstein
+- Dave Willmer
+- David Cook
+- David Gwynne
+- David Hoffman
+- David Krych
+- dickreuter
+- Diego Fernandez
+- Dimitris Spathis
+- discort
+- Dmitry L
+- Dody Suria Wijaya
+- Dominik Stanczak
+- Dr-Irv
+- Dr. Irv
+- dr-leo
+- D.S. McNeil
+- dubourg
+- dwkenefick
+- Elliott Sales de Andrade
+- Ennemoser Christoph
+- Francesc Alted
+- Fumito Hamamura
+- funnycrab
+- gfyoung
+- Giacomo Ferroni
+- goldenbull
+- Graham R. Jeffries
+- Greg Williams
+- Guilherme Beltramini
+- Guilherme Samora
+- Hao Wu
+- Harshit Patni
+- hesham.shabana@hotmail.com
+- Ilya V. Schurov
+- Iván Vallés Pérez
+- Jackie Leng
+- Jaehoon Hwang
+- James Draper
+- James Goppert
+- James McBride
+- James Santucci
+- Jan Schulz
+- Jeff Carey
+- Jeff Reback
+- JennaVergeynst
+- Jim
+- Jim Crist
+- Joe Jevnik
+- Joel Nothman
+- John
+- John Tucker
+- John W. O'Brien
+- John Zwinck
+- jojomdt
+- Jonathan de Bruin
+- Jonathan Whitmore
+- Jon Mease
+- Jon M. Mease
+- Joost Kranendonk
+- Joris Van den Bossche
+- Joshua Bradt
+- Julian Santander
+- Julien Marrec
+- Jun Kim
+- Justin Solinsky
+- Kacawi
+- Kamal Kamalaldin
+- Kerby Shedden
+- Kernc
+- Keshav Ramaswamy
+- Kevin Sheppard
+- Kyle Kelley
+- Larry Ren
+- Leon Yin
+- linebp
+- Line Pedersen
+- Lorenzo Cestaro
+- Luca Scarabello
+- Lukasz
+- Mahmoud Lababidi
+- manu
+- manuels
+- Mark Mandel
+- Matthew Brett
+- Matthew Roeschke
+- mattip
+- Matti Picus
+- Matt Roeschke
+- maxalbert
+- Maximilian Roos
+- mcocdawc
+- Michael Charlton
+- Michael Felt
+- Michael Lamparski
+- Michiel Stock
+- Mikolaj Chwalisz
+- Min RK
+- Miroslav Šedivý
+- Mykola Golubyev
+- Nate Yoder
+- Nathalie Rud
+- Nicholas Ver Halen
+- Nick Chmura
+- Nolan Nichols
+- nuffe
+- Pankaj Pandey
+- paul-mannino
+- Pawel Kordek
+- pbreach
+- Pete Huang
+- Peter
+- Peter Csizsek
+- Petio Petrov
+- Phil Ruffwind
+- Pietro Battiston
+- Piotr Chromiec
+- Prasanjit Prakash
+- Robert Bradshaw
+- Rob Forgione
+- Robin
+- Rodolfo Fernandez
+- Roger Thomas
+- Rouz Azari
+- Sahil Dua
+- sakkemo
+- Sam Foo
+- Sami Salonen
+- Sarah Bird
+- Sarma Tangirala
+- scls19fr
+- Scott Sanderson
+- Sebastian Bank
+- Sebastian Gsänger
+- Sébastien de Menten
+- Shawn Heide
+- Shyam Saladi
+- sinhrks
+- Sinhrks
+- Stephen Rauch
+- stijnvanhoey
+- Tara Adiseshan
+- themrmax
+- the-nose-knows
+- Thiago Serafim
+- Thoralf Gutierrez
+- Thrasibule
+- Tobias Gustafsson
+- Tom Augspurger
+- tomrod
+- Tong Shen
+- Tong SHEN
+- TrigonaMinima
+- tzinckgraf
+- Uwe
+- wandersoncferreira
+- watercrossing
+- wcwagner
+- Wes Turner
+- Wiktor Tomczak
+- WillAyd
+- xgdgsc
+- Yaroslav Halchenko
+- Yimeng Zhang
+- yui-knk
+
 
 pandas 0.19.2
 -------------

@@ -8,31 +8,43 @@ arguments when parsing.
 """
 
 import csv
-import sys
 import pytest
 
 import pandas.util.testing as tm
 from pandas import DataFrame, Index
 from pandas import compat
+from pandas.errors import ParserError
 from pandas.compat import StringIO, BytesIO, u
 
 
 class PythonParserTests(object):
 
-    def test_negative_skipfooter_raises(self):
-        text = """#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-1/1/2000,1.,2.,3.
-1/2/2000,4,5,6
-1/3/2000,7,8,9
-"""
+    def test_default_separator(self):
+        # GH17333
+        # csv.Sniffer in Python treats 'o' as separator.
+        text = 'aob\n1o2\n3o4'
+        expected = DataFrame({'a': [1, 3], 'b': [2, 4]})
 
-        with tm.assertRaisesRegexp(
-                ValueError, 'skip footer cannot be negative'):
+        result = self.read_csv(StringIO(text), sep=None)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_invalid_skipfooter(self):
+        text = "a\n1\n2"
+
+        # see gh-15925 (comment)
+        msg = "skipfooter must be an integer"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter="foo")
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter=1.5)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter=True)
+
+        msg = "skipfooter cannot be negative"
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=-1)
 
     def test_sniff_delimiter(self):
@@ -42,8 +54,8 @@ bar|4|5|6
 baz|7|8|9
 """
         data = self.read_csv(StringIO(text), index_col=0, sep=None)
-        self.assert_index_equal(data.index,
-                                Index(['foo', 'bar', 'baz'], name='index'))
+        tm.assert_index_equal(data.index,
+                              Index(['foo', 'bar', 'baz'], name='index'))
 
         data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
         tm.assert_frame_equal(data, data2)
@@ -89,16 +101,9 @@ baz|7|8|9
 
     def test_single_line(self):
         # see gh-6607: sniff separator
-
-        buf = StringIO()
-        sys.stdout = buf
-
-        try:
-            df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
-                               header=None, sep=None)
-            tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
-        finally:
-            sys.stdout = sys.__stdout__
+        df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
+                           header=None, sep=None)
+        tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
 
     def test_skipfooter(self):
         # see gh-6607
@@ -153,8 +158,8 @@ also also skip this
             result = self.read_csv(path, sep='::', compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
+            pytest.raises(ValueError, self.read_csv,
+                          path, compression='bz3')
 
     def test_read_table_buglet_4x_multiindex(self):
         # see gh-6607
@@ -165,7 +170,7 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         df = self.read_table(StringIO(text), sep=r'\s+')
-        self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
+        assert df.index.names == ('one', 'two', 'three', 'four')
 
         # see gh-6893
         data = '      A B C\na b c\n1 3 7 0 3 6\n3 1 4 1 5 9'
@@ -213,27 +218,46 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = 'a,,b\n1,,a\n2,,"2,,b"'
         msg = 'ignored when a multi-char delimiter is used'
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ParserError, msg):
             self.read_csv(StringIO(data), sep=',,')
 
         # We expect no match, so there should be an assertion
         # error out of the inner context manager.
-        with tm.assertRaises(AssertionError):
-            with tm.assertRaisesRegexp(ValueError, msg):
+        with pytest.raises(AssertionError):
+            with tm.assert_raises_regex(ParserError, msg):
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
+    def test_none_delimiter(self):
+        # see gh-13374 and gh-17465
+
+        data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
+        expected = DataFrame({'a': [0, 7],
+                              'b': [1, 8],
+                              'c': [2, 9]})
+
+        # We expect the third line in the data to be
+        # skipped because it is malformed,
+        # but we do not expect any errors to occur.
+        result = self.read_csv(StringIO(data), header=0,
+                               sep=None,
+                               error_bad_lines=False,
+                               warn_bad_lines=True)
+        tm.assert_frame_equal(result, expected)
+
     def test_skipfooter_bad_row(self):
         # see gh-13879
+        # see gh-15910
 
-        data = 'a,b,c\ncat,foo,bar\ndog,foo,"baz'
         msg = 'parsing errors in the skipped footer rows'
 
-        with tm.assertRaisesRegexp(csv.Error, msg):
-            self.read_csv(StringIO(data), skipfooter=1)
+        for data in ('a\n1\n"b"a',
+                     'a,b,c\ncat,foo,bar\ndog,foo,"baz'):
+            with tm.assert_raises_regex(ParserError, msg):
+                self.read_csv(StringIO(data), skipfooter=1)
 
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with tm.assertRaises(AssertionError):
-            with tm.assertRaisesRegexp(csv.Error, msg):
-                self.read_csv(StringIO(data))
+            # We expect no match, so there should be an assertion
+            # error out of the inner context manager.
+            with pytest.raises(AssertionError):
+                with tm.assert_raises_regex(ParserError, msg):
+                    self.read_csv(StringIO(data))

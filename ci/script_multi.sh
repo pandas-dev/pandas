@@ -4,11 +4,6 @@ echo "[script multi]"
 
 source activate pandas
 
-# don't run the tests for the doc build
-if [ x"$DOC_BUILD" != x"" ]; then
-    exit 0
-fi
-
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE";
     echo "Setting LC_ALL to $LOCALE_OVERRIDE"
@@ -24,13 +19,37 @@ export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 429496
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
 if [ "$BUILD_TEST" ]; then
-    echo "We are not running pytest as this is simply a build test."
+    echo "[build-test]"
+
+    echo "[env]"
+    pip list --format columns |grep pandas
+
+    echo "[running]"
+    cd /tmp
+    unset PYTHONPATH
+
+    echo "[build-test: single]"
+    python -c 'import pandas; pandas.test(["--skip-slow", "--skip-network", "-r xX", "-m single"])'
+
+    echo "[build-test: not single]"
+    python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
+
+elif [ "$DOC" ]; then
+    echo "We are not running pytest as this is a doc-build"
+
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+
+elif [ "$SLOW" ]; then
+    TEST_ARGS="--only-slow --skip-network"
+    echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+
 else
-    echo pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
+
 fi
 
 RET="$?"

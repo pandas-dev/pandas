@@ -206,14 +206,6 @@ of its first argument in its second:
    s <- 0:4
    match(s, c(2,4))
 
-The :meth:`~pandas.core.groupby.GroupBy.apply` method can be used to replicate
-this:
-
-.. ipython:: python
-
-   s = pd.Series(np.arange(5),dtype=np.float32)
-   pd.Series(pd.match(s,[2,4],np.nan))
-
 For more details and examples see :ref:`the reshaping documentation
 <indexing.basics.indexing_isin>`.
 
@@ -255,8 +247,6 @@ For more details and examples see :ref:`the reshaping documentation
 |subset|_
 ~~~~~~~~~~
 
-.. versionadded:: 0.13
-
 The :meth:`~pandas.DataFrame.query` method is similar to the base R ``subset``
 function. In R you might want to get the rows of a ``data.frame`` where one
 column's values are less than another column's values:
@@ -284,8 +274,6 @@ For more details and examples see :ref:`the query documentation
 
 |with|_
 ~~~~~~~~
-
-.. versionadded:: 0.13
 
 An expression using a data.frame called ``df`` in R with the columns ``a`` and
 ``b`` would be evaluated using ``with`` like so:
@@ -516,8 +504,6 @@ For more details and examples see :ref:`the reshaping documentation
 
 |factor|_
 ~~~~~~~~~
-
-.. versionadded:: 0.15
 
 pandas has a data type for categorical data.
 

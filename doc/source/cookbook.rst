@@ -20,7 +20,7 @@
    pd.options.display.max_rows=15
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
 
    np.set_printoptions(precision=4, suppress=True)
 
@@ -256,12 +256,6 @@ Panels
 
    pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
 
-   #Assignment using Transpose  (pandas < 0.15)
-   pf = pf.transpose(2,0,1)
-   pf['E'] = pd.DataFrame(data, rng, cols)
-   pf = pf.transpose(1,2,0);pf
-
-   #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
@@ -776,11 +770,17 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`TimeGrouping of values grouped across time
-<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+`Using Grouper instead of TimeGrouper for time grouping of values
+<https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
 
-`TimeGrouping #2
-<http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
+`Time grouping with some missing values
+<https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
+
+`Valid frequency arguments to Grouper
+<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+
+`Grouping using a MultiIndex
+<https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
 <https://github.com/pandas-dev/pandas/issues/3791>`__
@@ -812,7 +812,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
 
-ignore_index is needed in pandas < v0.13, and depending on df construction
+Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 
@@ -905,13 +905,10 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action <http://wesmckinney.com/blog/?p=635>`__
+`read_csv in action <http://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
 
 `appending to a csv
 <http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
-
-`how to read in multiple files, appending to create a single dataframe
-<http://stackoverflow.com/questions/25210819/speeding-up-data-import-function-pandas-and-appending-to-dataframe/25210900#25210900>`__
 
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
@@ -942,6 +939,42 @@ using that handle to read.
 
 `Write a multi-row index CSV without writing duplicates
 <http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
+
+.. _cookbook.csv.multiple_files:
+
+Reading multiple files to create a single DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all
+of the individual frames into a list, and then combine the frames in the list using :func:`pd.concat`:
+
+.. ipython:: python
+
+    for i in range(3):
+        data = pd.DataFrame(np.random.randn(10, 4))
+        data.to_csv('file_{}.csv'.format(i))
+
+    files = ['file_0.csv', 'file_1.csv', 'file_2.csv']
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+
+You can use the same approach to read all files matching a pattern.  Here is an example using ``glob``:
+
+.. ipython:: python
+
+    import glob
+    files = glob.glob('file_*.csv')
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+
+Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
+
+.. ipython:: python
+    :suppress:
+
+    for i in range(3):
+        os.remove('file_{}.csv'.format(i))
+
+Parsing date components in multi-columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing date components in multi-columns is faster with a format
 

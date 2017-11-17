@@ -18,22 +18,10 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.4, 3.5, and 3.6
+Officially Python 2.7, 3.5, and 3.6.
 
 Installing pandas
 -----------------
-
-Trying out pandas, no installation required!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The easiest way to start experimenting with pandas doesn't involve installing
-pandas at all.
-
-`Wakari <https://wakari.io>`__ is a free service that provides a hosted
-`IPython Notebook <http://ipython.org/notebook.html>`__ service in the cloud.
-
-Simply create an account, and have access to pandas from within your brower via
-an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
 
 .. _install.anaconda:
 
@@ -119,7 +107,7 @@ following command::
 
 To install a specific pandas version::
 
-    conda install pandas=0.13.1
+    conda install pandas=0.20.3
 
 To install other packages, IPython for example::
 
@@ -195,27 +183,23 @@ installed), make sure you have `pytest
 
     >>> import pandas as pd
     >>> pd.test()
-    Running unit tests for pandas
-    pandas version 0.18.0
-    numpy version 1.10.2
-    pandas is installed in pandas
-    Python version 2.7.11 |Continuum Analytics, Inc.|
-       (default, Dec  6 2015, 18:57:58) [GCC 4.2.1 (Apple Inc. build 5577)]
-    nose version 1.3.7
+    running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
+    ============================= test session starts =============================
+    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
+    collected 12145 items / 3 skipped
+
     ..................................................................S......
     ........S................................................................
     .........................................................................
 
-    ----------------------------------------------------------------------
-    Ran 9252 tests in 368.339s
-
-    OK (SKIP=117)
+    ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
 
 Dependencies
 ------------
 
-* `setuptools <http://pythonhosted.org/setuptools>`__
-* `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
+* `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
 
@@ -229,7 +213,8 @@ Recommended Dependencies
   If installed, must be Version 2.4.6 or higher.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
-  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
+  must be Version 1.0.0 or higher.
 
 .. note::
 
@@ -244,17 +229,18 @@ Optional Dependencies
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
   version. Version 0.23 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
   * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
   * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
   * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting
+* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
@@ -272,7 +258,7 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* For Google BigQuery I/O - see :ref:`here <io.bigquery_deps>`.
+* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
 
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the

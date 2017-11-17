@@ -14,8 +14,9 @@ def _try_import():
                           "the pandas-gbq package is not installed\n"
                           "see the docs: https://pandas-gbq.readthedocs.io\n"
                           "\n"
-                          "you can install via:\n"
-                          "pip install pandas-gbq\n")
+                          "you can install via pip or conda:\n"
+                          "pip install pandas-gbq\n"
+                          "conda install pandas-gbq -c conda-forge\n")
 
     return pandas_gbq
 
@@ -74,7 +75,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
 
-    **kwargs : Arbitrary keyword arguments
+    `**kwargs` : Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
         For example:
 

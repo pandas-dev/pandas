@@ -155,7 +155,7 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 Modern Pandas
 -------------
 
-- `Modern Pandas <http://tomaugspurger.github.io/modern-1.html>`_
+- `Modern Pandas <http://tomaugspurger.github.io/modern-1-intro.html>`_
 - `Method Chaining <http://tomaugspurger.github.io/method-chaining.html>`_
 - `Indexes <http://tomaugspurger.github.io/modern-3-indexes.html>`_
 - `Performance <http://tomaugspurger.github.io/modern-4-performance.html>`_
@@ -178,3 +178,4 @@ Various Tutorials
 - `Pandas and Python: Top 10, by Manish Amde <http://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
 - `Pandas Tutorial, by Mikhail Semeniuk <http://www.bearrelroll.com/2013/05/python-pandas-tutorial>`_
 - `Pandas DataFrames Tutorial, by Karlijn Willems <http://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
+- `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_
