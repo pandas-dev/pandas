@@ -357,6 +357,7 @@ class _BaseOffset(object):
     _typ = "dateoffset"
     _normalize_cache = True
     _cacheable = False
+    _day_opt = None
 
     def __call__(self, other):
         return self.apply(other)
@@ -395,7 +396,8 @@ class _BaseOffset(object):
         return out
 
     def _get_offset_day(self, datetime other):
-        # subclass must implement `_day_opt`
+        # subclass must implement `_day_opt`; calling from the base class
+        # will raise NotImplementedError.
         return get_day_of_month(other, self._day_opt)
 
 
@@ -514,6 +516,8 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         return get_lastbday(wkday, days_in_month)
     elif is_integer_object(day_opt):
         day = min(day_opt, days_in_month)
+    elif day_opt is None:
+        raise NotImplementedError
     else:
         # Note: unlike `shift_month`, get_day_of_month does not
         # allow day_opt = None
