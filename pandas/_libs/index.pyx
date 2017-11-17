@@ -19,15 +19,12 @@ from hashtable cimport HashTable
 
 from pandas._libs import algos, period as periodlib, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from cpython cimport PyTuple_Check, PyList_Check
+from cpython.slice cimport PySlice_Check
 
 cdef int64_t iNaT = util.get_nat()
-
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 
 cdef inline is_definitely_invalid_key(object val):
@@ -549,7 +546,7 @@ cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, datetime):
+        elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
             return iNaT

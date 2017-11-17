@@ -386,12 +386,11 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        r"""
-        Render the built up styles to HTML
+        """Render the built up styles to HTML
 
         Parameters
         ----------
-        **kwargs:
+        `**kwargs`:
             Any additional keyword arguments are passed through
             to ``self.template.render``. This is useful when you
             need to provide additional variables for a custom

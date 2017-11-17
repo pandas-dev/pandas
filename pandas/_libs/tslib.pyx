@@ -5,7 +5,7 @@
 # distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
-from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
+from numpy cimport (int32_t, int64_t, import_array, ndarray,
                     float64_t, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
@@ -24,8 +24,6 @@ from cpython cimport (
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
-from libc.stdlib cimport free
-
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object, is_timedelta64_object,
                    INT64_MAX)
@@ -38,14 +36,7 @@ from cpython.datetime cimport (PyDelta_Check, PyTZInfo_Check,
 # import datetime C API
 PyDateTime_IMPORT
 # this is our datetime.pxd
-from datetime cimport (
-    pandas_datetime_to_datetimestruct,
-    days_per_month_table,
-    PANDAS_DATETIMEUNIT,
-    _string_to_dts,
-    is_leapyear,
-    dayofweek,
-    PANDAS_FR_ns)
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
 # stdlib datetime imports
 from datetime import time as datetime_time
@@ -55,11 +46,13 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
                                  pandas_datetimestruct,
+                                 PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
-                                 npy_datetime,
                                  get_datetime64_unit, get_datetime64_value,
-                                 get_timedelta64_value)
+                                 get_timedelta64_value,
+                                 days_per_month_table,
+                                 dayofweek, is_leapyear)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from .tslibs.parsing import parse_datetime_string
@@ -75,19 +68,14 @@ UTC = pytz.utc
 import_array()
 
 
-cdef int64_t NPY_NAT = util.get_nat()
-iNaT = NPY_NAT
-
 from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
 from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_dateutil, treat_tz_as_pytz,
-    get_timezone, get_utcoffset, maybe_get_tz,
+    treat_tz_as_pytz,
+    get_timezone, maybe_get_tz,
     get_dst_info)
-from tslibs.fields import (
-    get_date_name_field, get_start_end_field, get_date_field,
-    build_field_sarray)
+from tslibs.fields import get_start_end_field, get_date_field
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
@@ -95,8 +83,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
 from tslibs.conversion import (tz_localize_to_utc,
                                tz_convert_single, date_normalize)
 
-from tslibs.nattype import NaT, nat_strings
-from tslibs.nattype cimport _checknull_with_nat
+from tslibs.nattype import NaT, nat_strings, iNaT
+from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
 
 
 cdef inline object create_timestamp_from_ts(
@@ -282,6 +270,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
         """
+        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
 
@@ -302,8 +292,10 @@ class Timestamp(_Timestamp):
     @classmethod
     def now(cls, tz=None):
         """
-        Return the current time in the local timezone.  Equivalent
-        to datetime.now([tz])
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
 
         Parameters
         ----------
@@ -317,6 +309,8 @@ class Timestamp(_Timestamp):
     @classmethod
     def today(cls, tz=None):
         """
+        Timestamp.today(cls, tz=None)
+
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.
@@ -330,18 +324,38 @@ class Timestamp(_Timestamp):
 
     @classmethod
     def utcnow(cls):
+        """
+        Timestamp.utcnow()
+
+        Return a new Timestamp representing UTC day and time.
+        """
         return cls.now('UTC')
 
     @classmethod
     def utcfromtimestamp(cls, ts):
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
     def fromtimestamp(cls, ts):
+        """
+        Timestamp.fromtimestamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
         return cls(datetime.fromtimestamp(ts))
 
     @classmethod
     def combine(cls, date, time):
+        """
+        Timsetamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
         return cls(datetime.combine(date, time))
 
     def __new__(cls, object ts_input=_no_input,
@@ -1742,13 +1756,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 return values
 
         return oresult
-
-
-cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
-
-
-cdef inline bint is_timedelta(object o):
-    return Py_TYPE(o) == td_type  # isinstance(o, Timedelta)
 
 
 # ----------------------------------------------------------------------

@@ -121,6 +121,17 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+    mid
+    values
+    is_non_overlapping_monotonic
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_breaks
+    from_intervals
+    contains
 
     Examples
     ---------
