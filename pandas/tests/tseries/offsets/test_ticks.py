@@ -38,56 +38,20 @@ def test_delta_to_tick():
 # ---------------------------------------------------------------------
 
 
-class TestHour(object):
-    def test_construct_hour3(self):
-        # smoketest to debug appveyor segfault
-        Hour(3)
+def test_Hour():
+    assert_offset_equal(Hour(),
+                        datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
+    assert_offset_equal(Hour(-1),
+                        datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
+    assert_offset_equal(2 * Hour(),
+                        datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
+    assert_offset_equal(-1 * Hour(),
+                        datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
 
-    def test_construct_hour2(self):
-        # smoketest to debug appveyor segfault
-        Hour(2)
+    assert Hour(3) + Hour(2) == Hour(5)
+    assert Hour(3) - Hour(2) == Hour()
 
-    def test_construct_hour5(self):
-        # smoketest to debug appveyor segfault
-        Hour(5)
-
-    def test_hour3_add_hour2(self):
-        # smoketest to debug appveyor segfault
-        Hour(3) + Hour(2)
-
-    # def test_hour_add_hour(self):
-    #    assert Hour(3) + Hour(2) == Hour(5)
-
-    def test_hour_sub_hour(self):
-        assert Hour(3) - Hour(2) == Hour()
-
-    def test_hour_neq_hours(self):
-        assert Hour(4) != Hour(1)
-
-    def test_neg_hour(self):
-        assert_offset_equal(-1 * Hour(),
-                            datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
-
-    def test_negative_n(self):
-        assert_offset_equal(Hour(-1),
-                            datetime(2010, 1, 1, 1),
-                            datetime(2010, 1, 1))
-
-    def test_one_hour(self):
-        v1 = Hour()
-        v2 = Hour(n=1)
-        assert v1 == v2
-        assert v1 + datetime(2010, 1, 1) == v2 + datetime(2010, 1, 1)
-        assert_offset_equal(Hour(),
-                            datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
-
-    def test_multiple_hours(self):
-        v1 = Hour(n=2)
-        v2 = 2 * Hour()
-        assert v1 == v2
-        assert v1 + datetime(2010, 1, 1) == v2 + datetime(2010, 1, 1)
-        assert_offset_equal(2 * Hour(),
-                            datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
+    assert Hour(4) != Hour(1)
 
 
 def test_Minute():

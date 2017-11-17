@@ -4688,7 +4688,7 @@ class TestDST(object):
 # ---------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('kwd', _rd_kwds)
+@pytest.mark.parametrize('kwd', sorted(list(_rd_kwds)))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
@@ -4697,7 +4697,7 @@ def test_valid_month_attributes(kwd, month_classes):
         cls(**{kwd: 3})
 
 
-@pytest.mark.parametrize('kwd', _rd_kwds)
+@pytest.mark.parametrize('kwd', sorted(list(_rd_kwds)))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
