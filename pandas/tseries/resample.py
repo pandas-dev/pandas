@@ -1150,14 +1150,11 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
         
-        tz = ax.tz
-        if tz:
-            ax = ax.tz_convert('UTC')
-        
         first, last = ax.min(), ax.max()
         first, last = _get_range_edges(first, last, self.freq,
                                        closed=self.closed,
                                        base=self.base)
+        tz = ax.tz
         # GH #12037
         # use first/last directly instead of call replace() on them
         # because replace() will swallow the nanosecond part
@@ -1166,8 +1163,8 @@ class TimeGrouper(Grouper):
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first,
                                         end=last,
-                                        tz='UTC',
-                                        name=ax.name).tz_convert(tz)
+                                        tz=tz,
+                                        name=ax.name)
 
         # a little hack
         trimmed = False
