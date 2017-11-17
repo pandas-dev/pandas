@@ -236,6 +236,22 @@ class TestTimeSeries(TestData):
                       before=self.ts.index[-1] + offset,
                       after=self.ts.index[0] - offset)
 
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        s = pd.Series(['a', 'b', 'c', 'd', 'e'],
+                      index=[5, 3, 2, 9, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            s.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.Series(np.random.randn(len(rng)), index=rng)
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            ts.sort_values(ascending=False).truncate(before='2011-11',
+                                                     after='2011-12')
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30), datetime(
             2009, 11, 30), datetime(2009, 12, 31)])
