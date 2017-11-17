@@ -22,12 +22,9 @@ from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta, date
 
 from cpython cimport PyTuple_Check, PyList_Check
+from cpython.slice cimport PySlice_Check
 
 cdef int64_t iNaT = util.get_nat()
-
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 
 cdef inline is_definitely_invalid_key(object val):

@@ -5,7 +5,7 @@
 # distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
-from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
+from numpy cimport (int32_t, int64_t, import_array, ndarray,
                     float64_t, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
@@ -23,8 +23,6 @@ from cpython cimport (
 
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
-
-from libc.stdlib cimport free
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object, is_timedelta64_object,
@@ -51,7 +49,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
-                                 npy_datetime,
                                  get_datetime64_unit, get_datetime64_value,
                                  get_timedelta64_value,
                                  days_per_month_table,
@@ -75,12 +72,10 @@ from tslibs.timedeltas cimport cast_from_unit, delta_to_nanoseconds
 from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_dateutil, treat_tz_as_pytz,
-    get_timezone, get_utcoffset, maybe_get_tz,
+    treat_tz_as_pytz,
+    get_timezone, maybe_get_tz,
     get_dst_info)
-from tslibs.fields import (
-    get_date_name_field, get_start_end_field, get_date_field,
-    build_field_sarray)
+from tslibs.fields import get_start_end_field, get_date_field
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_to_tsobject,
                                 convert_datetime_to_tsobject,
@@ -1761,13 +1756,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 return values
 
         return oresult
-
-
-cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
-
-
-cdef inline bint is_timedelta(object o):
-    return Py_TYPE(o) == td_type  # isinstance(o, Timedelta)
 
 
 # ----------------------------------------------------------------------
