@@ -55,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp, period as libperiod)
-from pandas._libs.tslibs import timezones, conversion
+from pandas._libs.tslibs import timezones, conversion, fields
 
 # -------- some conversion wrapper functions
 
@@ -75,20 +75,20 @@ def _field_accessor(name, field, docstring=None):
                                                self.freq.kwds.get('month', 12))
                             if self.freq else 12)
 
-                result = libts.get_start_end_field(values, field, self.freqstr,
-                                                   month_kw)
+                result = fields.get_start_end_field(values, field,
+                                                    self.freqstr, month_kw)
             else:
-                result = libts.get_date_field(values, field)
+                result = fields.get_date_field(values, field)
 
             # these return a boolean by-definition
             return result
 
         if field in self._object_ops:
-            result = libts.get_date_name_field(values, field)
+            result = fields.get_date_name_field(values, field)
             result = self._maybe_mask_results(result)
 
         else:
-            result = libts.get_date_field(values, field)
+            result = fields.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')
 
         return Index(result, name=self.name)
