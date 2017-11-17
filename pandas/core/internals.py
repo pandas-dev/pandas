@@ -639,7 +639,7 @@ class Block(PandasObject):
             if newb.shape != self.shape:
                 raise TypeError(
                     "cannot set astype for copy = [{copy}] for dtype "
-                    "({dtype} [{itemsize}]) with smaller itemsize that "
+                    "({dtype} [{itemsize}]) with smaller itemsize than "
                     "current ({newb_dtype} [{newb_size}])".format(
                         copy=copy, dtype=self.dtype.name,
                         itemsize=self.itemsize, newb_dtype=newb.dtype.name,
