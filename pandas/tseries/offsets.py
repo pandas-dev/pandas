@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import functools
+import operator
+
 from datetime import date, datetime, timedelta
 from pandas.compat import range
 from pandas import compat
@@ -28,8 +31,6 @@ from pandas._libs.tslibs.offsets import (
     BeginMixin, EndMixin,
     BaseOffset)
 
-import functools
-import operator
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
