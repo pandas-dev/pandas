@@ -1130,6 +1130,8 @@ class TimeGrouper(Grouper):
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
+        values_present = isinstance(getattr(self, 'obj', None), (pd.DataFrame, pd.Series))
+
         # GH #12037
         # use first/last directly instead of call replace() on them
         # because replace() will swallow the nanosecond part
@@ -1139,7 +1141,8 @@ class TimeGrouper(Grouper):
                                         start=first,
                                         end=last,
                                         tz=tz,
-                                        name=ax.name)
+                                        name=ax.name,
+                                        values_present=values_present)
 
         # a little hack
         trimmed = False
