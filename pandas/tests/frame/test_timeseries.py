@@ -377,6 +377,33 @@ class TestDataFrameTimeSeriesMethods(TestData):
         truncated.values[:] = 5.
         assert not (self.tsframe.values[5:11] == 5).any()
 
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e']},
+                          index=[5, 3, 2, 9, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            df.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.DataFrame({'A': np.random.randn(len(rng)),
+                           'B': np.random.randn(len(rng))},
+                          index=rng)
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            ts.sort_values('A', ascending=False).truncate(before='2011-11',
+                                                          after='2011-12')
+
+        df = pd.DataFrame({3: np.random.randn(5),
+                           20: np.random.randn(5),
+                           2: np.random.randn(5),
+                           0: np.random.randn(5)},
+                          columns=[3, 20, 2, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            df.truncate(before=2, after=20, axis=1)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
         rule_monthly = self.tsframe.asfreq('BM')

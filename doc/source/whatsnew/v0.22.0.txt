@@ -46,14 +46,15 @@ Other API Changes
 - :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
-- Restricted DateOffset keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
+- :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 
 .. _whatsnew_0220.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
--
+- ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
 -
 -
 
