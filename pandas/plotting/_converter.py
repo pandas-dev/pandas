@@ -47,6 +47,7 @@ SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
 
 _WARN = True
+_mpl_units = {}
 
 
 def get_pairs():
@@ -61,13 +62,55 @@ def get_pairs():
 
 
 def register(warn=False):
+    """Register Pandas Formatters and Converters with matplotlib
+
+    This function modifies the global ``matplotlib.units.registry``
+    dictionary. Pandas adds custom formatters for
+
+    * pd.Timestamp
+    * pd.Period
+    * np.datetime64
+    * datetime.datetime
+    * datetime.date
+    * datetime.time
+
+    See Also
+    --------
+    deregister
+    """
     global _WARN
 
     if not warn:
         _WARN = False
 
     for type_, cls in get_pairs():
-        units.registry[type_] = cls()
+        converter = cls()
+        previous = units.registry.setdefault(type_, converter)
+        if previous is not converter:
+            _mpl_units[type_] = previous
+
+
+def deregister():
+    """Remove pandas' formatters and converters
+
+    Removes the custom formatters added by :func:`register`. This attempts
+    to set the state of the registry back to the state before pandas
+    registered its own units. Formatters for our own types like Timestamp
+    and Period are removed completely. Formatters like datetime.datetime,
+    which :func:`register` overwrites, are placed back to their original
+    value.
+
+    See Also
+    --------
+    register
+    """
+    for type_, cls in get_pairs():
+        if isinstance(units.registry.get(type_), cls):
+            units.registry.pop(type_)
+
+    # restore the old keys
+    for unit, formatter in _mpl_units.items():
+        units.registry[unit] = formatter
 
 
 def _check_implicitly_registered():

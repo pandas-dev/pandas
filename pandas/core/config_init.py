@@ -493,16 +493,12 @@ register_formatter_doc = """
 
 
 def register_formatter_cb(key):
-    from matplotlib import units
-    from pandas.plotting._converter import (
-        register, get_pairs)
+    from pandas.plotting._converter import register, deregister
 
     if cf.get_option(key):
         register()
     else:
-        for type_, cls in get_pairs():
-            if isinstance(units.registry.get(type_), cls):
-                units.registry.pop(type_)
+        deregister()
 
 
 with cf.config_prefix("plotting.matplotlib"):
