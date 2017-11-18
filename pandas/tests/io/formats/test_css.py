@@ -182,5 +182,5 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {'font-size': relative_to}
-    assert_resolves('font-size: {size}'.format(size=size), {'font-size': resolved},
-                    inherited=inherited)
+    assert_resolves('font-size: {size}'.format(size=size),
+                    {'font-size': resolved}, inherited=inherited)

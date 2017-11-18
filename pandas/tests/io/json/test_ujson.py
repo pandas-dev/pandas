@@ -856,7 +856,7 @@ class TestUltraJSONTests(object):
         boundary2 = 2**32  # noqa
         docs = (
             '{"id": 3590016419}',
-            '{{"id": {low}}}'.format(low=2**31) ,
+            '{{"id": {low}}}'.format(low=2**31),
             '{{"id": {high}}}'.format(high=2**32),
             '{{"id": {one_less}}}'.format(one_less=(2**32) - 1),
         )

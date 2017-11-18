@@ -531,7 +531,8 @@ class TestPandasContainer(object):
 
         # verify the proper conversion of printable content
         df_printable = DataFrame({'A': [binthing.hexed]})
-        assert df_printable.to_json() == '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
+        assert df_printable.to_json() == \
+            '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
 
         # check if non-printable content throws appropriate Exception
         df_nonprintable = DataFrame({'A': [binthing]})
