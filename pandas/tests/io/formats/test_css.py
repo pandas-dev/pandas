@@ -127,10 +127,10 @@ def test_css_none_absent(style, equiv):
 
 @pytest.mark.parametrize('size,resolved', [
     ('xx-small', '6pt'),
-    ('x-small', '{pt}pt'.format(pt=7.5)),
-    ('small', '{pt}pt'.format(pt=9.6)),
+    ('x-small', '{pt:f}pt'.format(pt=7.5)),
+    ('small', '{pt:f}pt'.format(pt=9.6)),
     ('medium', '12pt'),
-    ('large', '{pt}pt'.format(pt=13.5)),
+    ('large', '{pt:f}pt'.format(pt=13.5)),
     ('x-large', '18pt'),
     ('xx-large', '24pt'),
 
@@ -174,7 +174,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
 
     ('smaller', None, '10pt'),
     ('smaller', '18pt', '15pt'),
-    ('larger', None, '{pt}pt'.format(pt=14.4)),
+    ('larger', None, '{pt:f}pt'.format(pt=14.4)),
     ('larger', '15pt', '18pt'),
 ])
 def test_css_relative_font_size(size, relative_to, resolved):

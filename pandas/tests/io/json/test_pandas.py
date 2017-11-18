@@ -549,13 +549,14 @@ class TestPandasContainer(object):
         assert df_nonprintable.to_json(default_handler=str) == \
             '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
         assert df_mixed.to_json(default_handler=str) == \
-            '{"A":{"0":"{hex}"},"B":{"0":1}}'.format(hex=hexed)
+            '{{"A":{{"0":"{hex}"}},"B":{{"0":1}}}}'.format(hex=hexed)
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
         df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
         assert df.to_json() == \
-            '{{{bar}:{{"0":1}},"foo":{{"0":1337}}}}'.format(bar='bar' * 100000)
+            '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
+                bar=('bar' * 100000))
 
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
