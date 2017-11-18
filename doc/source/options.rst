@@ -430,6 +430,8 @@ compute.use_bottleneck              True         Use the bottleneck library to a
                                                  computation if it is installed.
 compute.use_numexpr                 True         Use the numexpr library to accelerate
                                                  computation if it is installed.
+plotting.mpl.formatters             True         Register custom formatters with
+                                                 matplotlib. Set to false to deregister.
 =================================== ============ ==================================
 
 

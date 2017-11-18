@@ -85,9 +85,10 @@ def register(warn=False):
 
     for type_, cls in get_pairs():
         converter = cls()
-        previous = units.registry.setdefault(type_, converter)
-        if previous is not converter:
+        if type_ in units.registry:
+            previous = units.registry[type_]
             _mpl_units[type_] = previous
+        units.registry[type_] = converter
 
 
 def deregister():
@@ -110,7 +111,10 @@ def deregister():
 
     # restore the old keys
     for unit, formatter in _mpl_units.items():
-        units.registry[unit] = formatter
+        if type(formatter) not in {DatetimeConverter, PeriodConverter,
+                                   TimeConverter}:
+            # make it idempotent by excluding ours.
+            units.registry[unit] = formatter
 
 
 def _check_implicitly_registered():

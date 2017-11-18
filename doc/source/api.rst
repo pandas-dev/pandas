@@ -2218,6 +2218,17 @@ Style Export and Import
    Styler.export
    Styler.use
 
+Plotting
+~~~~~~~~
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: generated/
+
+   plotting.register_converters
+   plotting.deregister_converters
+
 .. currentmodule:: pandas
 
 General utility functions

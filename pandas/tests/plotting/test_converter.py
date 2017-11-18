@@ -107,9 +107,8 @@ class TestRegistration(object):
             units.registry[date] = date_converter
 
             converter.register()
-            assert len(units.registry) > 2
+            assert not units.registry[date] is date_converter
             converter.deregister()
-            assert len(units.registry) == 2
             assert units.registry[date] is date_converter
 
         finally:

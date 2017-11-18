@@ -12,6 +12,7 @@ from pandas.plotting._core import boxplot
 from pandas.plotting._style import plot_params
 from pandas.plotting._tools import table
 try:
-    from pandas.plotting import _converter as converter
+    from pandas.plotting._converter import register as register_converters
+    from pandas.plotting._converter import deregister as deregister_converters
 except ImportError:
     pass
