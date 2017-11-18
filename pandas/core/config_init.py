@@ -489,8 +489,7 @@ register_converter_doc = """
 : bool
     Whether to register converters with matplotlib's units registry for
     dates, times, datetimes, and Periods. Toggling to False will remove
-    the converters, replacing them with any converters that pandas
-    overwrote.
+    the converters, restoring any converters that pandas overwrote.
 """
 
 

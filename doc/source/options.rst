@@ -431,7 +431,7 @@ compute.use_bottleneck              True         Use the bottleneck library to a
 compute.use_numexpr                 True         Use the numexpr library to accelerate
                                                  computation if it is installed.
 plotting.mpl.converters             True         Register custom converters with
-                                                 matplotlib. Set to false to de-register.
+                                                 matplotlib. Set to False to de-register.
 =================================== ============ ==================================
 
 

@@ -96,10 +96,10 @@ def deregister():
 
     Removes the custom converters added by :func:`register`. This
     attempts to set the state of the registry back to the state before
-    pandas registered its own units. Conveters for our own types like
-    Timestamp and Period are removed completely. Converters for, e.g.,
-    datetime.datetime, which :func:`register` overwrites, are placed
-    back to their original value.
+    pandas registered its own units. Converters for pandas' own types like
+    Timestamp and Period are removed completely. Converters for types
+    pandas overwrites, like ``datetime.datetime``, are restored to their
+    original value.
 
     See Also
     --------
@@ -127,8 +127,8 @@ def _check_implicitly_registered():
                "by pandas on import. Future versions of pandas will require "
                "you to explicitly register matplotlib converters.\n\n"
                "To register the converters:\n\t"
-               ">>> from pandas.plotting import register_conveters\n\t"
-               ">>> register_conveters.register()")
+               ">>> from pandas.plotting import register_converters\n\t"
+               ">>> register_converters()")
         warnings.warn(msg, FutureWarning)
         _WARN = False
 
