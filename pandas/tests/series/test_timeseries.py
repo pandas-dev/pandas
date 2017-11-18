@@ -951,5 +951,6 @@ class TestTimeSeries(TestData):
         assert isinstance(index.get_level_values(0)[0], Timestamp)
 
     def test_tz_naive_and_tz_aware_mix(self):
-        s = Series([Timestamp('20130101'), Timestamp('20130101', tz='US/Eastern')])
+        s = Series([Timestamp('20130101'),
+                    Timestamp('20130101', tz='US/Eastern')])
         assert (s.dtype == object)
