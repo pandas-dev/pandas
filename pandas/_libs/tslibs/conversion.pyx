@@ -149,7 +149,7 @@ cdef inline _to_i8(object val):
         if is_datetime64_object(val):
             return get_datetime64_value(val)
         elif PyDateTime_Check(val):
-            convert_datetime_to_tsobject(val, None).value
+            return convert_datetime_to_tsobject(val, None).value
         return val
 
 
