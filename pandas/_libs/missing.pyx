@@ -8,7 +8,7 @@ from cython cimport Py_ssize_t
 
 import numpy as np
 cimport numpy as np
-from numpy cimport ndarray, uint8_t
+from numpy cimport ndarray, int64_t, uint8_t
 np.import_array()
 
 cimport util
@@ -18,6 +18,8 @@ from tslibs.nattype import NaT, iNaT
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
+
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cdef inline bint is_null_datetimelike(v):
