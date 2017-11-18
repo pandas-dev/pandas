@@ -2017,7 +2017,7 @@ DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
 
 
-def _generate_regular_range(start, end, periods, offset, values_present):
+def _generate_regular_range(start, end, periods, offset, values_present=False):
     if isinstance(offset, Tick):
         stride = offset.nanos
         if periods is None:
