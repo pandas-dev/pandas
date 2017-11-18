@@ -68,6 +68,7 @@ from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
+from pandas._libs.tslibs import conversion
 
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -2462,7 +2463,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
         if values.dtype != _NS_DTYPE:
-            values = tslib.cast_to_nanoseconds(values)
+            values = conversion.cast_to_nanoseconds(values)
 
         super(DatetimeBlock, self).__init__(values, fastpath=True,
                                             placement=placement, **kwargs)
@@ -2584,7 +2585,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if values.dtype != _NS_DTYPE:
             # Workaround for numpy 1.6 bug
-            values = tslib.cast_to_nanoseconds(values)
+            values = conversion.cast_to_nanoseconds(values)
 
         self.values[locs] = values
 
@@ -4674,7 +4675,7 @@ def form_blocks(arrays, names, axes):
             complex_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
-                v = tslib.cast_to_nanoseconds(v)
+                v = conversion.cast_to_nanoseconds(v)
 
             if is_datetimetz(v):
                 datetime_tz_items.append((i, k, v))

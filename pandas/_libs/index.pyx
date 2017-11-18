@@ -13,7 +13,7 @@ cimport util
 
 import numpy as np
 
-from tslib cimport _to_i8
+from tslibs.conversion cimport _to_i8
 
 from hashtable cimport HashTable
 
