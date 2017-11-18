@@ -65,7 +65,7 @@ def register(warn=False):
     """Register Pandas Formatters and Converters with matplotlib
 
     This function modifies the global ``matplotlib.units.registry``
-    dictionary. Pandas adds custom formatters for
+    dictionary. Pandas adds custom converters for
 
     * pd.Timestamp
     * pd.Period
@@ -94,19 +94,20 @@ def register(warn=False):
 def deregister():
     """Remove pandas' formatters and converters
 
-    Removes the custom formatters added by :func:`register`. This attempts
-    to set the state of the registry back to the state before pandas
-    registered its own units. Formatters for our own types like Timestamp
-    and Period are removed completely. Formatters like datetime.datetime,
-    which :func:`register` overwrites, are placed back to their original
-    value.
+    Removes the custom converters added by :func:`register`. This
+    attempts to set the state of the registry back to the state before
+    pandas registered its own units. Conveters for our own types like
+    Timestamp and Period are removed completely. Converters for, e.g.,
+    datetime.datetime, which :func:`register` overwrites, are placed
+    back to their original value.
 
     See Also
     --------
     register
     """
     for type_, cls in get_pairs():
-        if isinstance(units.registry.get(type_), cls):
+        # We use type to catch our classes directly, no inheritance
+        if type(units.registry.get(type_)) is cls:
             units.registry.pop(type_)
 
     # restore the old keys
@@ -126,8 +127,8 @@ def _check_implicitly_registered():
                "by pandas on import. Future versions of pandas will require "
                "you to explicitly register matplotlib converters.\n\n"
                "To register the converters:\n\t"
-               ">>> from pandas.tseries import converter\n\t"
-               ">>> converter.register()")
+               ">>> from pandas.plotting import register_conveters\n\t"
+               ">>> register_conveters.register()")
         warnings.warn(msg, FutureWarning)
         _WARN = False
 

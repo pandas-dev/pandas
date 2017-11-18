@@ -46,7 +46,7 @@ try:
 except ImportError:
     pass
 else:
-    if get_option('plotting.matplotlib.register_formatters'):
+    if get_option('plotting.mpl.converters'):
         _converter.register(warn=True)
 
 

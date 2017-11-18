@@ -60,8 +60,7 @@ class TestRegistration(object):
         units = pytest.importorskip("matplotlib.units")
         assert Timestamp in units.registry
 
-        ctx = cf.option_context("plotting.matplotlib.register_formatters",
-                                False)
+        ctx = cf.option_context("plotting.mpl.converters", False)
         with ctx:
             assert Timestamp not in units.registry
 
@@ -69,8 +68,7 @@ class TestRegistration(object):
 
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
-        ctx = cf.option_context("plotting.matplotlib.register_formatters",
-                                False)
+        ctx = cf.option_context("plotting.mpl.converters", False)
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range('2017', periods=12))
         _, ax = plt.subplots()

@@ -485,22 +485,24 @@ with cf.config_prefix('io.parquet'):
 # Plotting
 # ---------
 
-register_formatter_doc = """
+register_converter_doc = """
 : bool
-    Whether to register formatters with matplotlib's units registry for
-    dates, times, datetimes, and Periods.
+    Whether to register converters with matplotlib's units registry for
+    dates, times, datetimes, and Periods. Toggling to False will remove
+    the converters, replacing them with any converters that pandas
+    overwrote.
 """
 
 
-def register_formatter_cb(key):
-    from pandas.plotting._converter import register, deregister
+def register_converter_cb(key):
+    from pandas.plotting import register_converters, deregister_converters
 
     if cf.get_option(key):
-        register()
+        register_converters()
     else:
-        deregister()
+        deregister_converters()
 
 
-with cf.config_prefix("plotting.matplotlib"):
-    cf.register_option("register_formatters", True, register_formatter_doc,
-                       validator=bool, cb=register_formatter_cb)
+with cf.config_prefix("plotting.mpl"):
+    cf.register_option("converters", True, register_converter_doc,
+                       validator=bool, cb=register_converter_cb)
