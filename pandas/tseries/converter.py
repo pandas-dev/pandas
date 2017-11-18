@@ -18,4 +18,3 @@ def register():
            "'pandas.plotting.register_converters'. ")
     warnings.warn(msg, FutureWarning, stacklevel=2)
     register_()
-
