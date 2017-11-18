@@ -906,11 +906,18 @@ class _MergeOperation(object):
                 continue
 
             # if we are numeric, then allow differing
-            # kinds to proceed, eg. int64 and int8
+            # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
             # the same, then proceed
             if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
+                    continue
+
+                # check whether ints and floats
+                if is_integer_dtype(rk) and is_float_dtype(lk):
+                    continue
+
+                if is_float_dtype(rk) and is_integer_dtype(lk):
                     continue
 
                 # let's infer and see if we are ok
