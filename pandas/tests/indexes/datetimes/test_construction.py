@@ -7,7 +7,7 @@ from datetime import timedelta
 import pandas as pd
 from pandas import offsets
 import pandas.util.testing as tm
-from pandas._libs import tslib, lib
+from pandas._libs import lib
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
