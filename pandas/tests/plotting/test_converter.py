@@ -115,6 +115,14 @@ class TestRegistration(object):
             for k, v in original.items():
                 units.registry[k] = v
 
+    def test_old_import_warns(self):
+        with tm.assert_produces_warning(FutureWarning) as w:
+            from pandas.tseries import converter
+            converter.register()
+
+        assert len(w)
+        assert 'pandas.plotting.register_converters' in str(w[0].message)
+
 
 class TestDateTimeConverter(object):
 
