@@ -4,7 +4,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
-import pandas._libs.lib as lib
+from pandas._libs import lib, missing as libmissing
 import pandas.util.testing as tm
 
 
@@ -215,7 +215,7 @@ class TestNAObj(object):
         expected = np.atleast_2d(expected)
 
         for method in TestNAObj._2d_methods:
-            result = getattr(lib, method)(arr)
+            result = getattr(libmissing, method)(arr)
             tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):

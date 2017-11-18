@@ -42,7 +42,7 @@ cdef extern from "numpy/npy_math.h":
 cimport cython
 cimport numpy as cnp
 
-from pandas._libs.lib import checknull
+from missing import checknull  # TODO: Any reason not to cimport?
 
 cnp.import_array()
 cnp.import_ufunc()

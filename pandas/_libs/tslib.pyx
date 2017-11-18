@@ -15,7 +15,6 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 from cpython cimport (
     PyTypeObject,
     PyFloat_Check,
-    PyComplex_Check,
     PyObject_RichCompareBool,
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE,
@@ -828,24 +827,6 @@ class Timestamp(_Timestamp):
 
 
 # ----------------------------------------------------------------------
-
-
-cdef inline bint _check_all_nulls(object val):
-    """ utility to check if a value is any type of null """
-    cdef bint res
-    if PyFloat_Check(val) or PyComplex_Check(val):
-        res = val != val
-    elif val is NaT:
-        res = 1
-    elif val is None:
-        res = 1
-    elif is_datetime64_object(val):
-        res = get_datetime64_value(val) == NPY_NAT
-    elif is_timedelta64_object(val):
-        res = get_timedelta64_value(val) == NPY_NAT
-    else:
-        res = 0
-    return res
 
 
 cpdef object get_value_box(ndarray arr, object loc):

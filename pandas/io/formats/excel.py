@@ -12,6 +12,7 @@ from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.common import _any_not_none
 from pandas.core.dtypes.common import is_float
+from pandas._libs import missing as libmissing
 import pandas._libs.lib as lib
 from pandas import Index, MultiIndex, PeriodIndex
 from pandas.io.formats.common import get_level_lengths
@@ -381,12 +382,12 @@ class ExcelFormatter(object):
         self.inf_rep = inf_rep
 
     def _format_value(self, val):
-        if lib.checknull(val):
+        if libmissing.checknull(val):
             val = self.na_rep
         elif is_float(val):
-            if lib.isposinf_scalar(val):
+            if libmissing.isposinf_scalar(val):
                 val = self.inf_rep
-            elif lib.isneginf_scalar(val):
+            elif libmissing.isneginf_scalar(val):
                 val = '-{inf}'.format(inf=self.inf_rep)
             elif self.float_format is not None:
                 val = float(self.float_format % val)
