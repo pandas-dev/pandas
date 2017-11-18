@@ -1186,7 +1186,7 @@ class SQLDatabase(PandasSQL):
     def get_table(self, table_name, schema=None):
         schema = schema or self.meta.schema
         if schema:
-            tbl = self.meta.tables.get('.'.join(schema, table_name))
+            tbl = self.meta.tables.get('.'.join([schema, table_name]))
         else:
             tbl = self.meta.tables.get(table_name)
 

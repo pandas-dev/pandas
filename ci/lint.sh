@@ -84,7 +84,7 @@ if [ "$LINT" ]; then
     fi
     echo "Check for invalid testing DONE"
 
-    echo "Check for use of lists in built-in Python functions"
+    echo "Check for use of lists instead of generators in built-in Python functions"
 
     # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`
     #
@@ -95,7 +95,7 @@ if [ "$LINT" ]; then
     if [ $? = "0" ]; then
         RET=1
     fi
-    echo "Check for use of lists in built-in Python functions DONE"
+    echo "Check for use of lists instead of generators in built-in Python functions DONE"
 
 else
     echo "NOT Linting"
