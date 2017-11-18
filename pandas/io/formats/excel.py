@@ -13,7 +13,6 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.common import _any_not_none
 from pandas.core.dtypes.common import is_float
 from pandas._libs import missing as libmissing
-import pandas._libs.lib as lib
 from pandas import Index, MultiIndex, PeriodIndex
 from pandas.io.formats.common import get_level_lengths
 
