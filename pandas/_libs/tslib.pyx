@@ -28,15 +28,14 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
 # import datetime C API
 PyDateTime_IMPORT
 # this is our datetime.pxd
-from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
+from datetime cimport _string_to_dts
 
 
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  pandas_datetimestruct,
-                                 PANDAS_DATETIMEUNIT,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
-                                 get_datetime64_unit, get_datetime64_value,
+                                 get_datetime64_value,
                                  get_timedelta64_value,
                                  days_per_month_table,
                                  dayofweek, is_leapyear)
@@ -271,43 +270,6 @@ cpdef inline object _localize_pydatetime(object dt, object tz):
         return tz.localize(dt)
     except AttributeError:
         return dt.replace(tzinfo=tz)
-
-
-def datetime_to_datetime64(ndarray[object] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val, inferred_tz = None
-        ndarray[int64_t] iresult
-        pandas_datetimestruct dts
-        _TSObject _ts
-
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
-    for i in range(n):
-        val = values[i]
-        if _checknull_with_nat(val):
-            iresult[i] = NPY_NAT
-        elif PyDateTime_Check(val):
-            if val.tzinfo is not None:
-                if inferred_tz is not None:
-                    if get_timezone(val.tzinfo) != inferred_tz:
-                        raise ValueError('Array must be all same time zone')
-                else:
-                    inferred_tz = get_timezone(val.tzinfo)
-
-                _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
-                check_dts_bounds(&_ts.dts)
-            else:
-                if inferred_tz is not None:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
-        else:
-            raise TypeError('Unrecognized value type: %s' % type(val))
-
-    return result, inferred_tz
 
 
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
@@ -787,50 +749,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 return values
 
         return oresult
-
-
-# ----------------------------------------------------------------------
-# Conversion routines
-
-def cast_to_nanoseconds(ndarray arr):
-    cdef:
-        Py_ssize_t i, n = arr.size
-        ndarray[int64_t] ivalues, iresult
-        PANDAS_DATETIMEUNIT unit
-        pandas_datetimestruct dts
-
-    shape = (<object> arr).shape
-
-    ivalues = arr.view(np.int64).ravel()
-
-    result = np.empty(shape, dtype='M8[ns]')
-    iresult = result.ravel().view(np.int64)
-
-    if len(iresult) == 0:
-        return result
-
-    unit = get_datetime64_unit(arr.flat[0])
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
-
-    return result
-
-
-cdef inline _to_i8(object val):
-    cdef pandas_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            return Timestamp(val).value
-        return val
 
 
 # ----------------------------------------------------------------------
