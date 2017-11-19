@@ -75,6 +75,18 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 
 def cast_to_nanoseconds(ndarray arr):
+    """
+    Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray with dtype datetime64[ns]
+
+    """
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[int64_t] ivalues, iresult
@@ -104,6 +116,19 @@ def cast_to_nanoseconds(ndarray arr):
 
 
 def datetime_to_datetime64(ndarray[object] values):
+    """
+    Convert ndarray of datetime-like objects to int64 array representing
+    nanosecond timestamps.
+
+    Parameters
+    ----------
+    values : ndarray
+
+    Returns
+    -------
+    result : ndarray witth dtype int64
+    inferred_tz : tzinfo or None
+    """
     cdef:
         Py_ssize_t i, n = len(values)
         object val, inferred_tz = None
@@ -140,7 +165,19 @@ def datetime_to_datetime64(ndarray[object] values):
     return result, inferred_tz
 
 
-cdef inline _to_i8(object val):
+cdef inline _maybe_datetimelike_to_i8(object val):
+    """
+    Try to convert to a nanosecond timestamp.  Fall back to returning the
+    input value.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    val : int64 timestamp or original input
+    """
     cdef:
         pandas_datetimestruct dts
     try:
