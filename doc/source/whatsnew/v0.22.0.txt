@@ -30,6 +30,27 @@ Other Enhancements
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 
+``get_dummies`` now supports ``dtype`` argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`get_dummies` function now accepts ``dtype`` argument, which forces specific dtype for new columns. When ``dtype`` is not specified or equals to ``None``, new columns will have dtype ``uint8`` (as before), so this change is backwards compatible. (:issue:`18330`)
+
+**Previous behavior**:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+   pd.get_dummies(df, columns=['c'])
+
+**New behavior**:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+   pd.get_dummies(df, columns=['c'])
+   pd.get_dummies(df, columns=['c'], dtype=bool)
+   pd.get_dummies(df, columns=['c'], dtype=np.float64)
+
 .. _whatsnew_0220.api_breaking:
 
 Backwards incompatible API changes
