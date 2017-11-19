@@ -115,9 +115,9 @@ class Block(PandasObject):
         self.values = values
 
         if ndim and len(self.mgr_locs) != len(self.values):
-            raise ValueError('Wrong number of items passed %d, placement '
-                             'implies %d' % (len(self.values),
-                                             len(self.mgr_locs)))
+            raise ValueError(
+                'Wrong number of items passed {val}, placement implies '
+                '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
 
     @property
     def _consolidate_key(self):
@@ -236,13 +236,15 @@ class Block(PandasObject):
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
 
-            result = '%s: %s dtype: %s' % (name, len(self), self.dtype)
+            result = '{name}: {len} dtype: {dtype}'.format(
+                name=name, len=len(self), dtype=self.dtype)
 
         else:
 
             shape = ' x '.join([pprint_thing(s) for s in self.shape])
-            result = '%s: %s, %s, dtype: %s' % (name, pprint_thing(
-                self.mgr_locs.indexer), shape, self.dtype)
+            result = '{name}: {index}, {shape}, dtype: {dtype}'.format(
+                name=name, index=pprint_thing(self.mgr_locs.indexer),
+                shape=shape, dtype=self.dtype)
 
         return result
 
@@ -310,7 +312,7 @@ class Block(PandasObject):
 
     @property
     def ftype(self):
-        return "%s:%s" % (self.dtype, self._ftype)
+        return "{dtype}:{ftype}".format(dtype=self.dtype, ftype=self._ftype)
 
     def merge(self, other):
         return _merge_blocks([self, other])
@@ -330,7 +332,8 @@ class Block(PandasObject):
         Reindex using pre-computed indexer information
         """
         if axis < 1:
-            raise AssertionError('axis must be at least 1, got %d' % axis)
+            raise AssertionError(
+                'axis must be at least 1, got {axis}'.format(axis=axis))
         if fill_value is None:
             fill_value = self.fill_value
 
@@ -634,11 +637,13 @@ class Block(PandasObject):
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
-                raise TypeError("cannot set astype for copy = [%s] for dtype "
-                                "(%s [%s]) with smaller itemsize that current "
-                                "(%s [%s])" % (copy, self.dtype.name,
-                                               self.itemsize, newb.dtype.name,
-                                               newb.itemsize))
+                raise TypeError(
+                    "cannot set astype for copy = [{copy}] for dtype "
+                    "({dtype} [{itemsize}]) with smaller itemsize than "
+                    "current ({newb_dtype} [{newb_size}])".format(
+                        copy=copy, dtype=self.dtype.name,
+                        itemsize=self.itemsize, newb_dtype=newb.dtype.name,
+                        newb_size=newb.itemsize))
         return newb
 
     def convert(self, copy=True, **kwargs):
@@ -1306,9 +1311,10 @@ class Block(PandasObject):
                     is_transposed = True
                 else:
                     # this is a broadcast error heree
-                    raise ValueError("cannot broadcast shape [%s] with block "
-                                     "values [%s]" % (values.T.shape,
-                                                      other.shape))
+                    raise ValueError(
+                        "cannot broadcast shape [{t_shape}] with "
+                        "block values [{oth_shape}]".format(
+                            t_shape=values.T.shape, oth_shape=other.shape))
 
         transf = (lambda x: x.T) if is_transposed else (lambda x: x)
 
@@ -1363,8 +1369,9 @@ class Block(PandasObject):
 
             if errors == 'raise':
                 # The 'detail' variable is defined in outer scope.
-                raise TypeError('Could not operate %s with block values %s' %
-                                (repr(other), str(detail)))  # noqa
+                raise TypeError(
+                    'Could not operate {other!r} with block values '
+                    '{detail!s}'.format(other=other, detail=detail))  # noqa
             else:
                 # return the values
                 result = np.empty(values.shape, dtype='O')
@@ -1391,11 +1398,12 @@ class Block(PandasObject):
                 # differentiate between an invalid ndarray-ndarray comparison
                 # and an invalid type comparison
                 if isinstance(values, np.ndarray) and is_list_like(other):
-                    raise ValueError('Invalid broadcasting comparison [%s] '
-                                     'with block values' % repr(other))
+                    raise ValueError(
+                        'Invalid broadcasting comparison [{other!r}] with '
+                        'block values'.format(other=other))
 
-                raise TypeError('Could not compare [%s] with block values' %
-                                repr(other))
+                raise TypeError('Could not compare [{other!r}] '
+                                'with block values'.format(other=other))
 
         # transpose if needed
         result = transf(result)
@@ -1466,8 +1474,9 @@ class Block(PandasObject):
                     cond, values, other))
             except Exception as detail:
                 if errors == 'raise':
-                    raise TypeError('Could not operate [%s] with block values '
-                                    '[%s]' % (repr(other), str(detail)))
+                    raise TypeError(
+                        'Could not operate [{other!r}] with block values '
+                        '[{detail!s}]'.format(other=other, detail=detail))
                 else:
                     # return the values
                     result = np.empty(values.shape, dtype='float64')
@@ -2894,7 +2903,8 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         Reindex using pre-computed indexer information
         """
         if axis < 1:
-            raise AssertionError('axis must be at least 1, got %d' % axis)
+            raise AssertionError(
+                'axis must be at least 1, got {axis}'.format(axis=axis))
 
         # taking on the 0th axis always here
         if fill_value is None:
@@ -3020,9 +3030,10 @@ class BlockManager(PandasObject):
                                          "items")
             else:
                 if self.ndim != block.ndim:
-                    raise AssertionError('Number of Block dimensions (%d) '
-                                         'must equal number of axes (%d)' %
-                                         (block.ndim, self.ndim))
+                    raise AssertionError(
+                        'Number of Block dimensions ({block}) must equal '
+                        'number of axes ({self})'.format(block=block.ndim,
+                                                         self=self.ndim))
 
         if do_integrity_check:
             self._verify_integrity()
@@ -3064,9 +3075,9 @@ class BlockManager(PandasObject):
         new_len = len(new_labels)
 
         if new_len != old_len:
-            raise ValueError('Length mismatch: Expected axis has %d elements, '
-                             'new values have %d elements' %
-                             (old_len, new_len))
+            raise ValueError(
+                'Length mismatch: Expected axis has {old} elements, new '
+                'values have {new} elements'.format(old=old_len, new=new_len))
 
         self.axes[axis] = new_labels
 
@@ -3223,12 +3234,12 @@ class BlockManager(PandasObject):
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += u('\nItems: %s') % ax
+                output += u('\nItems: {ax}'.format(ax=ax))
             else:
-                output += u('\nAxis %d: %s') % (i, ax)
+                output += u('\nAxis {i}: {ax}'.format(i=i, ax=ax))
 
         for block in self.blocks:
-            output += u('\n%s') % pprint_thing(block)
+            output += u('\n{block}'.format(block=pprint_thing(block)))
         return output
 
     def _verify_integrity(self):
@@ -3732,8 +3743,8 @@ class BlockManager(PandasObject):
 
     def xs(self, key, axis=1, copy=True, takeable=False):
         if axis < 1:
-            raise AssertionError('Can only take xs across axis >= 1, got %d' %
-                                 axis)
+            raise AssertionError(
+                'Can only take xs across axis >= 1, got {ax}'.format(ax=axis))
 
         # take by position
         if takeable:
@@ -4284,8 +4295,9 @@ class BlockManager(PandasObject):
         Check all axes except items
         """
         if self.ndim != other.ndim:
-            raise AssertionError('Number of dimensions must agree '
-                                 'got %d and %d' % (self.ndim, other.ndim))
+            raise AssertionError(
+                'Number of dimensions must agree got {ndim} and '
+                '{oth_ndim}'.format(ndim=self.ndim, oth_ndim=other.ndim))
         for ax, oax in zip(self.axes[1:], other.axes[1:]):
             if not ax.equals(oax):
                 return False
@@ -4934,12 +4946,14 @@ def _maybe_compare(a, b, op):
         type_names = [type(a).__name__, type(b).__name__]
 
         if is_a_array:
-            type_names[0] = 'ndarray(dtype=%s)' % a.dtype
+            type_names[0] = 'ndarray(dtype={dtype})'.format(dtype=a.dtype)
 
         if is_b_array:
-            type_names[1] = 'ndarray(dtype=%s)' % b.dtype
+            type_names[1] = 'ndarray(dtype={dtype})'.format(dtype=b.dtype)
 
-        raise TypeError("Cannot compare types %r and %r" % tuple(type_names))
+        raise TypeError(
+            "Cannot compare types {a!r} and {b!r}".format(a=type_names[0],
+                                                          b=type_names[1]))
     return result
 
 
@@ -5017,17 +5031,17 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
         return left, right
     else:
         if not lsuffix and not rsuffix:
-            raise ValueError('columns overlap but no suffix specified: %s' %
-                             to_rename)
+            raise ValueError('columns overlap but no suffix specified: '
+                             '{rename}'.format(rename=to_rename))
 
         def lrenamer(x):
             if x in to_rename:
-                return '%s%s' % (x, lsuffix)
+                return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
             return x
 
         def rrenamer(x):
             if x in to_rename:
-                return '%s%s' % (x, rsuffix)
+                return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
             return x
 
         return (_transform_index(left, lrenamer),
@@ -5519,8 +5533,9 @@ class JoinUnit(object):
         self.shape = shape
 
     def __repr__(self):
-        return '%s(%r, %s)' % (self.__class__.__name__, self.block,
-                               self.indexers)
+        return '{name}({block!r}, {indexers})'.format(
+            name=self.__class__.__name__, block=self.block,
+            indexers=self.indexers)
 
     @cache_readonly
     def needs_filling(self):
