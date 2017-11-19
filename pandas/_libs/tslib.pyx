@@ -19,8 +19,7 @@ cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object, is_timedelta64_object,
-                   INT64_MAX)
+                   is_datetime64_object, is_timedelta64_object)
 cimport util
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
@@ -71,7 +70,8 @@ from tslibs.conversion import tz_convert_single
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
 
-from tslibs.timestamps cimport create_timestamp_from_ts
+from tslibs.timestamps cimport (create_timestamp_from_ts,
+                                _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
 
 
@@ -225,19 +225,6 @@ cpdef object get_value_box(ndarray arr, object loc):
         return Timedelta(util.get_value_1d(arr, i))
     else:
         return util.get_value_1d(arr, i)
-
-
-# Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
-
-# Resolution is in nanoseconds
-Timestamp.min = Timestamp(_NS_LOWER_BOUND)
-Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 
 
 cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp

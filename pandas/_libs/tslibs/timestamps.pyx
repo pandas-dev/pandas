@@ -17,7 +17,8 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object)
+                   is_integer_object, is_string_object,
+                   INT64_MAX)
 
 from conversion import tz_localize_to_utc, date_normalize
 from conversion cimport (tz_convert_single, _TSObject,
@@ -979,3 +980,16 @@ class Timestamp(_Timestamp):
         # __radd__ on cython extension types like _Timestamp is not used, so
         # define it here instead
         return self + other
+
+
+# Add the min and max fields at the class level
+cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+# the smallest value we could actually represent is
+#   INT64_MIN + 1 == -9223372036854775807
+# but to allow overflow free conversion with a microsecond resolution
+# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
+cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
+
+# Resolution is in nanoseconds
+Timestamp.min = Timestamp(_NS_LOWER_BOUND)
+Timestamp.max = Timestamp(_NS_UPPER_BOUND)

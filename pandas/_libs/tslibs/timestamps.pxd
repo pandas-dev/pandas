@@ -7,3 +7,5 @@ from np_datetime cimport pandas_datetimestruct
 cdef object create_timestamp_from_ts(int64_t value,
                                      pandas_datetimestruct dts,
                                      object tz, object freq)
+
+cdef int64_t _NS_UPPER_BOUND, _NS_LOWER_BOUND
