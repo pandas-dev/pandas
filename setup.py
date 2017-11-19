@@ -461,13 +461,6 @@ def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
 
-if _have_setuptools:
-    # Note: this is a list, whereas `numpy_incl` in build_ext.build_extensions
-    # is a string
-    numpy_incls = [pkg_resources.resource_filename('numpy', 'core/include')]
-else:
-    numpy_incls = []
-
 # args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
@@ -510,8 +503,7 @@ ext_data = {
         'depends': _pxi_dep['index'],
         'sources': np_datetime_sources},
     '_libs.indexing': {
-        'pyxfile': '_libs/indexing',
-        'include': []},
+        'pyxfile': '_libs/indexing'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
@@ -544,12 +536,10 @@ ext_data = {
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape'],
-        'include': numpy_incls},
+        'depends': _pxi_dep['reshape']},
     '_libs.sparse': {
         'pyxfile': '_libs/sparse',
-        'depends': _pxi_dep['sparse'],
-        'include': numpy_incls},
+        'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
@@ -590,7 +580,8 @@ ext_data = {
                      '_libs/tslibs/frequencies']},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': numpy_incls},
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
@@ -614,16 +605,14 @@ ext_data = {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
     '_libs.testing': {
-        'pyxfile': '_libs/testing',
-        'include': []},
+        'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
         'depends': ['pandas/_libs/src/skiplist.pyx',
                     'pandas/_libs/src/skiplist.h']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas',
-        'include': numpy_incls}}
+        'pyxfile': 'io/sas/sas'}}
 
 extensions = []
 

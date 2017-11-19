@@ -1,5 +1,5 @@
 from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t)
+                    float64_t, float32_t, float16_t)
 cimport numpy as np
 
 cimport cython
