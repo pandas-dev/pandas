@@ -10,7 +10,7 @@ import numpy as np
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like, is_bool_dtype,
-    needs_i8_conversion, is_sparse)
+    needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
 
@@ -804,8 +804,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     if dtype is None:
         dtype = np.uint8
 
-    if np.dtype(dtype) is np.dtype('O'):
-        raise TypeError("'object' is not a valid type for get_dummies")
+    if is_object_dtype(dtype):
+        raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
