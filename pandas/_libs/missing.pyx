@@ -57,6 +57,28 @@ cdef inline bint _check_all_nulls(object val):
 
 
 cpdef bint checknull(object val):
+    """
+    Return boolean describing of the input is NA-like, defined here as any
+    of:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    result : bool
+
+    Notes
+    -----
+    The difference between `checknull` and `checknull_old` is that `checknull`
+    does *not* consider INF or NEGINF to be NA.
+    """
     if util.is_float_object(val) or util.is_complex_object(val):
         return val != val  # and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
@@ -72,6 +94,30 @@ cpdef bint checknull(object val):
 
 
 cpdef bint checknull_old(object val):
+    """
+    Return boolean describing of the input is NA-like, defined here as any
+    of:
+     - None
+     - nan
+     - INF
+     - NEGINF
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    result : bool
+
+    Notes
+    -----
+    The difference between `checknull` and `checknull_old` is that `checknull`
+    does *not* consider INF or NEGINF to be NA.
+    """
     if util.is_float_object(val) or util.is_complex_object(val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
@@ -97,6 +143,23 @@ cdef inline bint _check_none_nan_inf_neginf(object val):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj(ndarray arr):
+    """
+    Return boolean mask denoting which elements of a 1-D array are na-like,
+    according to the criteria defined in `_check_all_nulls`:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+    """
     cdef:
         Py_ssize_t i, n
         object val
@@ -115,6 +178,23 @@ def isnaobj(ndarray arr):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj_old(ndarray arr):
+    """
+    Return boolean mask denoting which elements of a 1-D array are na-like,
+    defined as being any of:
+     - None
+     - nan
+     - INF
+     - NEGINF
+     - NaT
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+    """
     cdef:
         Py_ssize_t i, n
         object val
@@ -133,6 +213,28 @@ def isnaobj_old(ndarray arr):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj2d(ndarray arr):
+    """
+    Return boolean mask denoting which elements of a 2-D array are na-like,
+    according to the criteria defined in `checknull`:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+
+    Notes
+    -----
+    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
+    does *not* consider INF or NEGINF to be NA.
+    """
     cdef:
         Py_ssize_t i, j, n, m
         object val
@@ -153,6 +255,30 @@ def isnaobj2d(ndarray arr):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj2d_old(ndarray arr):
+    """
+    Return boolean mask denoting which elements of a 2-D array are na-like,
+    according to the criteria defined in `checknull_old`:
+     - None
+     - nan
+     - INF
+     - NEGINF
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+
+    Parameters
+    ----------
+    arr : ndarray
+
+    Returns
+    -------
+    result : ndarray (dtype=np.bool_)
+
+    Notes
+    -----
+    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
+    does *not* consider INF or NEGINF to be NA.
+    """
     cdef:
         Py_ssize_t i, j, n, m
         object val
