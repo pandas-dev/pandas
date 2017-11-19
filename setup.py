@@ -45,8 +45,7 @@ import pkg_resources
 
 min_numpy_ver = '1.9.0'
 
-setuptools_kwargs = {'test_suite': 'nose.collector',
-                     'zip_safe': False,
+setuptools_kwargs = {'zip_safe': False,
                      'setup_requires': ['numpy >= %s' % min_numpy_ver],
                      'install_requires': ['pytz >= 2011k',
                                           'numpy >= %s' % min_numpy_ver]}
