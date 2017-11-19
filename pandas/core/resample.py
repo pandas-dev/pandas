@@ -1130,7 +1130,6 @@ class TimeGrouper(Grouper):
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
-
         # GH #12037
         # use first/last directly instead of call replace() on them
         # because replace() will swallow the nanosecond part
@@ -1138,7 +1137,7 @@ class TimeGrouper(Grouper):
         # nanosecond part and lead to `Values falls after last bin` error
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first,
-                                        end=last ,
+                                        end=last,
                                         tz=tz,
                                         name=ax.name)
 
