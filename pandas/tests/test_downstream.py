@@ -53,7 +53,6 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
-@tm.network
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
