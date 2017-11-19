@@ -101,7 +101,7 @@ def _union_indexes(indexes):
 
 
 def _sanitize_and_check(indexes):
-    kinds = list(set(type(index) for index in indexes))
+    kinds = list({type(index) for index in indexes})
 
     if list in kinds:
         if len(kinds) > 1:

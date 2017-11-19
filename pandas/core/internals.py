@@ -241,7 +241,7 @@ class Block(PandasObject):
 
         else:
 
-            shape = ' x '.join([pprint_thing(s) for s in self.shape])
+            shape = ' x '.join(pprint_thing(s) for s in self.shape)
             result = '{name}: {index}, {shape}, dtype: {dtype}'.format(
                 name=name, index=pprint_thing(self.mgr_locs.indexer),
                 shape=shape, dtype=self.dtype)
