@@ -34,7 +34,7 @@ from pandas.core.tools.datetimes import (
     to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
-from pandas._libs.tslibs import timezones, offsets as liboffsets
+from pandas._libs.tslibs import timezones
 from pandas._libs.tslib import normalize_date, NaT, Timestamp
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
@@ -2997,79 +2997,80 @@ class TestBQuarterBegin(Base):
         assert BQuarterBegin().isAnchored()
         assert not BQuarterBegin(2, startingMonth=1).isAnchored()
 
-    def test_offset(self):
-        tests = []
+    offset_cases = []
+    offset_cases.append((BQuarterBegin(startingMonth=1), {
+        datetime(2008, 1, 1): datetime(2008, 4, 1),
+        datetime(2008, 1, 31): datetime(2008, 4, 1),
+        datetime(2008, 2, 15): datetime(2008, 4, 1),
+        datetime(2008, 2, 29): datetime(2008, 4, 1),
+        datetime(2008, 3, 15): datetime(2008, 4, 1),
+        datetime(2008, 3, 31): datetime(2008, 4, 1),
+        datetime(2008, 4, 15): datetime(2008, 7, 1),
+        datetime(2007, 3, 15): datetime(2007, 4, 2),
+        datetime(2007, 2, 28): datetime(2007, 4, 2),
+        datetime(2007, 1, 1): datetime(2007, 4, 2),
+        datetime(2007, 4, 15): datetime(2007, 7, 2),
+        datetime(2007, 7, 1): datetime(2007, 7, 2),
+        datetime(2007, 4, 1): datetime(2007, 4, 2),
+        datetime(2007, 4, 2): datetime(2007, 7, 2),
+        datetime(2008, 4, 30): datetime(2008, 7, 1)}))
 
-        tests.append((BQuarterBegin(startingMonth=1),
-                      {datetime(2008, 1, 1): datetime(2008, 4, 1),
-                       datetime(2008, 1, 31): datetime(2008, 4, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2008, 3, 31): datetime(2008, 4, 1),
-                       datetime(2008, 4, 15): datetime(2008, 7, 1),
-                       datetime(2007, 3, 15): datetime(2007, 4, 2),
-                       datetime(2007, 2, 28): datetime(2007, 4, 2),
-                       datetime(2007, 1, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 15): datetime(2007, 7, 2),
-                       datetime(2007, 7, 1): datetime(2007, 7, 2),
-                       datetime(2007, 4, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 2): datetime(2007, 7, 2),
-                       datetime(2008, 4, 30): datetime(2008, 7, 1), }))
+    offset_cases.append((BQuarterBegin(startingMonth=2), {
+        datetime(2008, 1, 1): datetime(2008, 2, 1),
+        datetime(2008, 1, 31): datetime(2008, 2, 1),
+        datetime(2008, 1, 15): datetime(2008, 2, 1),
+        datetime(2008, 2, 29): datetime(2008, 5, 1),
+        datetime(2008, 3, 15): datetime(2008, 5, 1),
+        datetime(2008, 3, 31): datetime(2008, 5, 1),
+        datetime(2008, 4, 15): datetime(2008, 5, 1),
+        datetime(2008, 8, 15): datetime(2008, 11, 3),
+        datetime(2008, 9, 15): datetime(2008, 11, 3),
+        datetime(2008, 11, 1): datetime(2008, 11, 3),
+        datetime(2008, 4, 30): datetime(2008, 5, 1)}))
 
-        tests.append((BQuarterBegin(startingMonth=2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2008, 1, 15): datetime(2008, 2, 1),
-                       datetime(2008, 2, 29): datetime(2008, 5, 1),
-                       datetime(2008, 3, 15): datetime(2008, 5, 1),
-                       datetime(2008, 3, 31): datetime(2008, 5, 1),
-                       datetime(2008, 4, 15): datetime(2008, 5, 1),
-                       datetime(2008, 8, 15): datetime(2008, 11, 3),
-                       datetime(2008, 9, 15): datetime(2008, 11, 3),
-                       datetime(2008, 11, 1): datetime(2008, 11, 3),
-                       datetime(2008, 4, 30): datetime(2008, 5, 1), }))
+    offset_cases.append((BQuarterBegin(startingMonth=1, n=0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2007, 12, 31): datetime(2008, 1, 1),
+        datetime(2008, 2, 15): datetime(2008, 4, 1),
+        datetime(2008, 2, 29): datetime(2008, 4, 1),
+        datetime(2008, 1, 15): datetime(2008, 4, 1),
+        datetime(2008, 2, 27): datetime(2008, 4, 1),
+        datetime(2008, 3, 15): datetime(2008, 4, 1),
+        datetime(2007, 4, 1): datetime(2007, 4, 2),
+        datetime(2007, 4, 2): datetime(2007, 4, 2),
+        datetime(2007, 7, 1): datetime(2007, 7, 2),
+        datetime(2007, 4, 15): datetime(2007, 7, 2),
+        datetime(2007, 7, 2): datetime(2007, 7, 2)}))
 
-        tests.append((BQuarterBegin(startingMonth=1, n=0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2007, 12, 31): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 1, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 27): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2007, 4, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 2): datetime(2007, 4, 2),
-                       datetime(2007, 7, 1): datetime(2007, 7, 2),
-                       datetime(2007, 4, 15): datetime(2007, 7, 2),
-                       datetime(2007, 7, 2): datetime(2007, 7, 2), }))
+    offset_cases.append((BQuarterBegin(startingMonth=1, n=-1), {
+        datetime(2008, 1, 1): datetime(2007, 10, 1),
+        datetime(2008, 1, 31): datetime(2008, 1, 1),
+        datetime(2008, 2, 15): datetime(2008, 1, 1),
+        datetime(2008, 2, 29): datetime(2008, 1, 1),
+        datetime(2008, 3, 15): datetime(2008, 1, 1),
+        datetime(2008, 3, 31): datetime(2008, 1, 1),
+        datetime(2008, 4, 15): datetime(2008, 4, 1),
+        datetime(2007, 7, 3): datetime(2007, 7, 2),
+        datetime(2007, 4, 3): datetime(2007, 4, 2),
+        datetime(2007, 7, 2): datetime(2007, 4, 2),
+        datetime(2008, 4, 1): datetime(2008, 1, 1)}))
 
-        tests.append((BQuarterBegin(startingMonth=1, n=-1),
-                      {datetime(2008, 1, 1): datetime(2007, 10, 1),
-                       datetime(2008, 1, 31): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 1, 1),
-                       datetime(2008, 2, 29): datetime(2008, 1, 1),
-                       datetime(2008, 3, 15): datetime(2008, 1, 1),
-                       datetime(2008, 3, 31): datetime(2008, 1, 1),
-                       datetime(2008, 4, 15): datetime(2008, 4, 1),
-                       datetime(2007, 7, 3): datetime(2007, 7, 2),
-                       datetime(2007, 4, 3): datetime(2007, 4, 2),
-                       datetime(2007, 7, 2): datetime(2007, 4, 2),
-                       datetime(2008, 4, 1): datetime(2008, 1, 1), }))
+    offset_cases.append((BQuarterBegin(startingMonth=1, n=2), {
+        datetime(2008, 1, 1): datetime(2008, 7, 1),
+        datetime(2008, 1, 15): datetime(2008, 7, 1),
+        datetime(2008, 2, 29): datetime(2008, 7, 1),
+        datetime(2008, 3, 15): datetime(2008, 7, 1),
+        datetime(2007, 3, 31): datetime(2007, 7, 2),
+        datetime(2007, 4, 15): datetime(2007, 10, 1),
+        datetime(2008, 4, 30): datetime(2008, 10, 1)}))
 
-        tests.append((BQuarterBegin(startingMonth=1, n=2),
-                      {datetime(2008, 1, 1): datetime(2008, 7, 1),
-                       datetime(2008, 1, 15): datetime(2008, 7, 1),
-                       datetime(2008, 2, 29): datetime(2008, 7, 1),
-                       datetime(2008, 3, 15): datetime(2008, 7, 1),
-                       datetime(2007, 3, 31): datetime(2007, 7, 2),
-                       datetime(2007, 4, 15): datetime(2007, 10, 1),
-                       datetime(2008, 4, 30): datetime(2008, 10, 1), }))
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
+    def test_offset_corner_case(self):
         # corner
         offset = BQuarterBegin(n=-1, startingMonth=1)
         assert datetime(2007, 4, 3) + offset == datetime(2007, 4, 2)
@@ -3204,58 +3205,55 @@ def makeFY5253LastOfMonth(*args, **kwds):
 
 
 class TestFY5253LastOfMonth(Base):
+    offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8,
+                                               weekday=WeekDay.SAT)
+    offset_lom_sat_sep = makeFY5253LastOfMonth(1, startingMonth=9,
+                                               weekday=WeekDay.SAT)
 
-    def test_onOffset(self):
+    on_offset_cases = [
+        # From Wikipedia (see:
+        # http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
+        (offset_lom_sat_aug, datetime(2006, 8, 26), True),
+        (offset_lom_sat_aug, datetime(2007, 8, 25), True),
+        (offset_lom_sat_aug, datetime(2008, 8, 30), True),
+        (offset_lom_sat_aug, datetime(2009, 8, 29), True),
+        (offset_lom_sat_aug, datetime(2010, 8, 28), True),
+        (offset_lom_sat_aug, datetime(2011, 8, 27), True),
+        (offset_lom_sat_aug, datetime(2012, 8, 25), True),
+        (offset_lom_sat_aug, datetime(2013, 8, 31), True),
+        (offset_lom_sat_aug, datetime(2014, 8, 30), True),
+        (offset_lom_sat_aug, datetime(2015, 8, 29), True),
+        (offset_lom_sat_aug, datetime(2016, 8, 27), True),
+        (offset_lom_sat_aug, datetime(2017, 8, 26), True),
+        (offset_lom_sat_aug, datetime(2018, 8, 25), True),
+        (offset_lom_sat_aug, datetime(2019, 8, 31), True),
 
-        offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8,
-                                                   weekday=WeekDay.SAT)
-        offset_lom_sat_sep = makeFY5253LastOfMonth(1, startingMonth=9,
-                                                   weekday=WeekDay.SAT)
+        (offset_lom_sat_aug, datetime(2006, 8, 27), False),
+        (offset_lom_sat_aug, datetime(2007, 8, 28), False),
+        (offset_lom_sat_aug, datetime(2008, 8, 31), False),
+        (offset_lom_sat_aug, datetime(2009, 8, 30), False),
+        (offset_lom_sat_aug, datetime(2010, 8, 29), False),
+        (offset_lom_sat_aug, datetime(2011, 8, 28), False),
 
-        tests = [
-            # From Wikipedia (see:
-            # http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
-            (offset_lom_sat_aug, datetime(2006, 8, 26), True),
-            (offset_lom_sat_aug, datetime(2007, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2008, 8, 30), True),
-            (offset_lom_sat_aug, datetime(2009, 8, 29), True),
-            (offset_lom_sat_aug, datetime(2010, 8, 28), True),
-            (offset_lom_sat_aug, datetime(2011, 8, 27), True),
-            (offset_lom_sat_aug, datetime(2012, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2013, 8, 31), True),
-            (offset_lom_sat_aug, datetime(2014, 8, 30), True),
-            (offset_lom_sat_aug, datetime(2015, 8, 29), True),
-            (offset_lom_sat_aug, datetime(2016, 8, 27), True),
-            (offset_lom_sat_aug, datetime(2017, 8, 26), True),
-            (offset_lom_sat_aug, datetime(2018, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2019, 8, 31), True),
+        (offset_lom_sat_aug, datetime(2006, 8, 25), False),
+        (offset_lom_sat_aug, datetime(2007, 8, 24), False),
+        (offset_lom_sat_aug, datetime(2008, 8, 29), False),
+        (offset_lom_sat_aug, datetime(2009, 8, 28), False),
+        (offset_lom_sat_aug, datetime(2010, 8, 27), False),
+        (offset_lom_sat_aug, datetime(2011, 8, 26), False),
+        (offset_lom_sat_aug, datetime(2019, 8, 30), False),
 
-            (offset_lom_sat_aug, datetime(2006, 8, 27), False),
-            (offset_lom_sat_aug, datetime(2007, 8, 28), False),
-            (offset_lom_sat_aug, datetime(2008, 8, 31), False),
-            (offset_lom_sat_aug, datetime(2009, 8, 30), False),
-            (offset_lom_sat_aug, datetime(2010, 8, 29), False),
-            (offset_lom_sat_aug, datetime(2011, 8, 28), False),
+        # From GMCR (see for example:
+        # http://yahoo.brand.edgar-online.com/Default.aspx?
+        # companyid=3184&formtypeID=7)
+        (offset_lom_sat_sep, datetime(2010, 9, 25), True),
+        (offset_lom_sat_sep, datetime(2011, 9, 24), True),
+        (offset_lom_sat_sep, datetime(2012, 9, 29), True)]
 
-            (offset_lom_sat_aug, datetime(2006, 8, 25), False),
-            (offset_lom_sat_aug, datetime(2007, 8, 24), False),
-            (offset_lom_sat_aug, datetime(2008, 8, 29), False),
-            (offset_lom_sat_aug, datetime(2009, 8, 28), False),
-            (offset_lom_sat_aug, datetime(2010, 8, 27), False),
-            (offset_lom_sat_aug, datetime(2011, 8, 26), False),
-            (offset_lom_sat_aug, datetime(2019, 8, 30), False),
-
-            # From GMCR (see for example:
-            # http://yahoo.brand.edgar-online.com/Default.aspx?
-            # companyid=3184&formtypeID=7)
-            (offset_lom_sat_sep, datetime(2010, 9, 25), True),
-            (offset_lom_sat_sep, datetime(2011, 9, 24), True),
-            (offset_lom_sat_sep, datetime(2012, 9, 29), True),
-
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, dt, expected = case
+        assert_onOffset(offset, dt, expected)
 
     def test_apply(self):
         offset_lom_aug_sat = makeFY5253LastOfMonth(startingMonth=8,
@@ -3333,71 +3331,71 @@ class TestFY5253NearestEndMonth(Base):
         assert (JNJ.get_year_end(datetime(2006, 1, 1)) ==
                 datetime(2006, 12, 31))
 
-    def test_onOffset(self):
-        offset_lom_aug_sat = makeFY5253NearestEndMonth(1, startingMonth=8,
-                                                       weekday=WeekDay.SAT)
-        offset_lom_aug_thu = makeFY5253NearestEndMonth(1, startingMonth=8,
-                                                       weekday=WeekDay.THU)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest")
+    offset_lom_aug_sat = makeFY5253NearestEndMonth(1, startingMonth=8,
+                                                   weekday=WeekDay.SAT)
+    offset_lom_aug_thu = makeFY5253NearestEndMonth(1, startingMonth=8,
+                                                   weekday=WeekDay.THU)
+    offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
+                      variation="nearest")
 
-        tests = [
-            #    From Wikipedia (see:
-            #    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
-            #    #Saturday_nearest_the_end_of_month)
-            #    2006-09-02   2006 September 2
-            #    2007-09-01   2007 September 1
-            #    2008-08-30   2008 August 30    (leap year)
-            #    2009-08-29   2009 August 29
-            #    2010-08-28   2010 August 28
-            #    2011-09-03   2011 September 3
-            #    2012-09-01   2012 September 1  (leap year)
-            #    2013-08-31   2013 August 31
-            #    2014-08-30   2014 August 30
-            #    2015-08-29   2015 August 29
-            #    2016-09-03   2016 September 3  (leap year)
-            #    2017-09-02   2017 September 2
-            #    2018-09-01   2018 September 1
-            #    2019-08-31   2019 August 31
-            (offset_lom_aug_sat, datetime(2006, 9, 2), True),
-            (offset_lom_aug_sat, datetime(2007, 9, 1), True),
-            (offset_lom_aug_sat, datetime(2008, 8, 30), True),
-            (offset_lom_aug_sat, datetime(2009, 8, 29), True),
-            (offset_lom_aug_sat, datetime(2010, 8, 28), True),
-            (offset_lom_aug_sat, datetime(2011, 9, 3), True),
+    on_offset_cases = [
+        #    From Wikipedia (see:
+        #    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
+        #    #Saturday_nearest_the_end_of_month)
+        #    2006-09-02   2006 September 2
+        #    2007-09-01   2007 September 1
+        #    2008-08-30   2008 August 30    (leap year)
+        #    2009-08-29   2009 August 29
+        #    2010-08-28   2010 August 28
+        #    2011-09-03   2011 September 3
+        #    2012-09-01   2012 September 1  (leap year)
+        #    2013-08-31   2013 August 31
+        #    2014-08-30   2014 August 30
+        #    2015-08-29   2015 August 29
+        #    2016-09-03   2016 September 3  (leap year)
+        #    2017-09-02   2017 September 2
+        #    2018-09-01   2018 September 1
+        #    2019-08-31   2019 August 31
+        (offset_lom_aug_sat, datetime(2006, 9, 2), True),
+        (offset_lom_aug_sat, datetime(2007, 9, 1), True),
+        (offset_lom_aug_sat, datetime(2008, 8, 30), True),
+        (offset_lom_aug_sat, datetime(2009, 8, 29), True),
+        (offset_lom_aug_sat, datetime(2010, 8, 28), True),
+        (offset_lom_aug_sat, datetime(2011, 9, 3), True),
 
-            (offset_lom_aug_sat, datetime(2016, 9, 3), True),
-            (offset_lom_aug_sat, datetime(2017, 9, 2), True),
-            (offset_lom_aug_sat, datetime(2018, 9, 1), True),
-            (offset_lom_aug_sat, datetime(2019, 8, 31), True),
+        (offset_lom_aug_sat, datetime(2016, 9, 3), True),
+        (offset_lom_aug_sat, datetime(2017, 9, 2), True),
+        (offset_lom_aug_sat, datetime(2018, 9, 1), True),
+        (offset_lom_aug_sat, datetime(2019, 8, 31), True),
 
-            (offset_lom_aug_sat, datetime(2006, 8, 27), False),
-            (offset_lom_aug_sat, datetime(2007, 8, 28), False),
-            (offset_lom_aug_sat, datetime(2008, 8, 31), False),
-            (offset_lom_aug_sat, datetime(2009, 8, 30), False),
-            (offset_lom_aug_sat, datetime(2010, 8, 29), False),
-            (offset_lom_aug_sat, datetime(2011, 8, 28), False),
+        (offset_lom_aug_sat, datetime(2006, 8, 27), False),
+        (offset_lom_aug_sat, datetime(2007, 8, 28), False),
+        (offset_lom_aug_sat, datetime(2008, 8, 31), False),
+        (offset_lom_aug_sat, datetime(2009, 8, 30), False),
+        (offset_lom_aug_sat, datetime(2010, 8, 29), False),
+        (offset_lom_aug_sat, datetime(2011, 8, 28), False),
 
-            (offset_lom_aug_sat, datetime(2006, 8, 25), False),
-            (offset_lom_aug_sat, datetime(2007, 8, 24), False),
-            (offset_lom_aug_sat, datetime(2008, 8, 29), False),
-            (offset_lom_aug_sat, datetime(2009, 8, 28), False),
-            (offset_lom_aug_sat, datetime(2010, 8, 27), False),
-            (offset_lom_aug_sat, datetime(2011, 8, 26), False),
-            (offset_lom_aug_sat, datetime(2019, 8, 30), False),
+        (offset_lom_aug_sat, datetime(2006, 8, 25), False),
+        (offset_lom_aug_sat, datetime(2007, 8, 24), False),
+        (offset_lom_aug_sat, datetime(2008, 8, 29), False),
+        (offset_lom_aug_sat, datetime(2009, 8, 28), False),
+        (offset_lom_aug_sat, datetime(2010, 8, 27), False),
+        (offset_lom_aug_sat, datetime(2011, 8, 26), False),
+        (offset_lom_aug_sat, datetime(2019, 8, 30), False),
 
-            # From Micron, see:
-            # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
-            (offset_lom_aug_thu, datetime(2012, 8, 30), True),
-            (offset_lom_aug_thu, datetime(2011, 9, 1), True),
+        # From Micron, see:
+        # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
+        (offset_lom_aug_thu, datetime(2012, 8, 30), True),
+        (offset_lom_aug_thu, datetime(2011, 9, 1), True),
 
-            (offset_n, datetime(2012, 12, 31), False),
-            (offset_n, datetime(2013, 1, 1), True),
-            (offset_n, datetime(2013, 1, 2), False),
-        ]
+        (offset_n, datetime(2012, 12, 31), False),
+        (offset_n, datetime(2013, 1, 1), True),
+        (offset_n, datetime(2013, 1, 2), False)]
 
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, dt, expected = case
+        assert_onOffset(offset, dt, expected)
 
     def test_apply(self):
         date_seq_nem_8_sat = [datetime(2006, 9, 2), datetime(2007, 9, 1),
@@ -3526,78 +3524,78 @@ class TestFY5253LastOfMonthQuarter(Base):
             assert_offset_equal(offset_neg1, date, expected)
             date = date + offset_neg1
 
-    def test_onOffset(self):
-        lomq_aug_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=8,
-                                                      weekday=WeekDay.SAT,
-                                                      qtr_with_extra_week=4)
-        lomq_sep_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=9,
-                                                      weekday=WeekDay.SAT,
-                                                      qtr_with_extra_week=4)
+    lomq_aug_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=8,
+                                                  weekday=WeekDay.SAT,
+                                                  qtr_with_extra_week=4)
+    lomq_sep_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=9,
+                                                  weekday=WeekDay.SAT,
+                                                  qtr_with_extra_week=4)
 
-        tests = [
-            # From Wikipedia
-            (lomq_aug_sat_4, datetime(2006, 8, 26), True),
-            (lomq_aug_sat_4, datetime(2007, 8, 25), True),
-            (lomq_aug_sat_4, datetime(2008, 8, 30), True),
-            (lomq_aug_sat_4, datetime(2009, 8, 29), True),
-            (lomq_aug_sat_4, datetime(2010, 8, 28), True),
-            (lomq_aug_sat_4, datetime(2011, 8, 27), True),
-            (lomq_aug_sat_4, datetime(2019, 8, 31), True),
+    on_offset_cases = [
+        # From Wikipedia
+        (lomq_aug_sat_4, datetime(2006, 8, 26), True),
+        (lomq_aug_sat_4, datetime(2007, 8, 25), True),
+        (lomq_aug_sat_4, datetime(2008, 8, 30), True),
+        (lomq_aug_sat_4, datetime(2009, 8, 29), True),
+        (lomq_aug_sat_4, datetime(2010, 8, 28), True),
+        (lomq_aug_sat_4, datetime(2011, 8, 27), True),
+        (lomq_aug_sat_4, datetime(2019, 8, 31), True),
 
-            (lomq_aug_sat_4, datetime(2006, 8, 27), False),
-            (lomq_aug_sat_4, datetime(2007, 8, 28), False),
-            (lomq_aug_sat_4, datetime(2008, 8, 31), False),
-            (lomq_aug_sat_4, datetime(2009, 8, 30), False),
-            (lomq_aug_sat_4, datetime(2010, 8, 29), False),
-            (lomq_aug_sat_4, datetime(2011, 8, 28), False),
+        (lomq_aug_sat_4, datetime(2006, 8, 27), False),
+        (lomq_aug_sat_4, datetime(2007, 8, 28), False),
+        (lomq_aug_sat_4, datetime(2008, 8, 31), False),
+        (lomq_aug_sat_4, datetime(2009, 8, 30), False),
+        (lomq_aug_sat_4, datetime(2010, 8, 29), False),
+        (lomq_aug_sat_4, datetime(2011, 8, 28), False),
 
-            (lomq_aug_sat_4, datetime(2006, 8, 25), False),
-            (lomq_aug_sat_4, datetime(2007, 8, 24), False),
-            (lomq_aug_sat_4, datetime(2008, 8, 29), False),
-            (lomq_aug_sat_4, datetime(2009, 8, 28), False),
-            (lomq_aug_sat_4, datetime(2010, 8, 27), False),
-            (lomq_aug_sat_4, datetime(2011, 8, 26), False),
-            (lomq_aug_sat_4, datetime(2019, 8, 30), False),
+        (lomq_aug_sat_4, datetime(2006, 8, 25), False),
+        (lomq_aug_sat_4, datetime(2007, 8, 24), False),
+        (lomq_aug_sat_4, datetime(2008, 8, 29), False),
+        (lomq_aug_sat_4, datetime(2009, 8, 28), False),
+        (lomq_aug_sat_4, datetime(2010, 8, 27), False),
+        (lomq_aug_sat_4, datetime(2011, 8, 26), False),
+        (lomq_aug_sat_4, datetime(2019, 8, 30), False),
 
-            # From GMCR
-            (lomq_sep_sat_4, datetime(2010, 9, 25), True),
-            (lomq_sep_sat_4, datetime(2011, 9, 24), True),
-            (lomq_sep_sat_4, datetime(2012, 9, 29), True),
+        # From GMCR
+        (lomq_sep_sat_4, datetime(2010, 9, 25), True),
+        (lomq_sep_sat_4, datetime(2011, 9, 24), True),
+        (lomq_sep_sat_4, datetime(2012, 9, 29), True),
 
-            (lomq_sep_sat_4, datetime(2013, 6, 29), True),
-            (lomq_sep_sat_4, datetime(2012, 6, 23), True),
-            (lomq_sep_sat_4, datetime(2012, 6, 30), False),
+        (lomq_sep_sat_4, datetime(2013, 6, 29), True),
+        (lomq_sep_sat_4, datetime(2012, 6, 23), True),
+        (lomq_sep_sat_4, datetime(2012, 6, 30), False),
 
-            (lomq_sep_sat_4, datetime(2013, 3, 30), True),
-            (lomq_sep_sat_4, datetime(2012, 3, 24), True),
+        (lomq_sep_sat_4, datetime(2013, 3, 30), True),
+        (lomq_sep_sat_4, datetime(2012, 3, 24), True),
 
-            (lomq_sep_sat_4, datetime(2012, 12, 29), True),
-            (lomq_sep_sat_4, datetime(2011, 12, 24), True),
+        (lomq_sep_sat_4, datetime(2012, 12, 29), True),
+        (lomq_sep_sat_4, datetime(2011, 12, 24), True),
 
-            # INTC (extra week in Q1)
-            # See: http://www.intc.com/releasedetail.cfm?ReleaseID=542844
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2011, 4, 2), True),
+        # INTC (extra week in Q1)
+        # See: http://www.intc.com/releasedetail.cfm?ReleaseID=542844
+        (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
+                                      weekday=WeekDay.SAT,
+                                      qtr_with_extra_week=1),
+         datetime(2011, 4, 2), True),
 
-            # see: http://google.brand.edgar-online.com/?sym=INTC&formtypeID=7
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2012, 12, 29), True),
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2011, 12, 31), True),
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2010, 12, 25), True),
-        ]
+        # see: http://google.brand.edgar-online.com/?sym=INTC&formtypeID=7
+        (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
+                                      weekday=WeekDay.SAT,
+                                      qtr_with_extra_week=1),
+         datetime(2012, 12, 29), True),
+        (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
+                                      weekday=WeekDay.SAT,
+                                      qtr_with_extra_week=1),
+         datetime(2011, 12, 31), True),
+        (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
+                                      weekday=WeekDay.SAT,
+                                      qtr_with_extra_week=1),
+         datetime(2010, 12, 25), True)]
 
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, dt, expected = case
+        assert_onOffset(offset, dt, expected)
 
     def test_year_has_extra_week(self):
         # End of long Q1
@@ -3651,66 +3649,65 @@ class TestFY5253LastOfMonthQuarter(Base):
 
 class TestFY5253NearestEndMonthQuarter(Base):
 
-    def test_onOffset(self):
+    offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
+        1, startingMonth=8, weekday=WeekDay.SAT,
+        qtr_with_extra_week=4)
+    offset_nem_thu_aug_4 = makeFY5253NearestEndMonthQuarter(
+        1, startingMonth=8, weekday=WeekDay.THU,
+        qtr_with_extra_week=4)
+    offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
+                      variation="nearest")
 
-        offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
-            1, startingMonth=8, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4)
-        offset_nem_thu_aug_4 = makeFY5253NearestEndMonthQuarter(
-            1, startingMonth=8, weekday=WeekDay.THU,
-            qtr_with_extra_week=4)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest")
+    on_offset_cases = [
+        # From Wikipedia
+        (offset_nem_sat_aug_4, datetime(2006, 9, 2), True),
+        (offset_nem_sat_aug_4, datetime(2007, 9, 1), True),
+        (offset_nem_sat_aug_4, datetime(2008, 8, 30), True),
+        (offset_nem_sat_aug_4, datetime(2009, 8, 29), True),
+        (offset_nem_sat_aug_4, datetime(2010, 8, 28), True),
+        (offset_nem_sat_aug_4, datetime(2011, 9, 3), True),
 
-        tests = [
-            # From Wikipedia
-            (offset_nem_sat_aug_4, datetime(2006, 9, 2), True),
-            (offset_nem_sat_aug_4, datetime(2007, 9, 1), True),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 30), True),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 29), True),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 28), True),
-            (offset_nem_sat_aug_4, datetime(2011, 9, 3), True),
+        (offset_nem_sat_aug_4, datetime(2016, 9, 3), True),
+        (offset_nem_sat_aug_4, datetime(2017, 9, 2), True),
+        (offset_nem_sat_aug_4, datetime(2018, 9, 1), True),
+        (offset_nem_sat_aug_4, datetime(2019, 8, 31), True),
 
-            (offset_nem_sat_aug_4, datetime(2016, 9, 3), True),
-            (offset_nem_sat_aug_4, datetime(2017, 9, 2), True),
-            (offset_nem_sat_aug_4, datetime(2018, 9, 1), True),
-            (offset_nem_sat_aug_4, datetime(2019, 8, 31), True),
+        (offset_nem_sat_aug_4, datetime(2006, 8, 27), False),
+        (offset_nem_sat_aug_4, datetime(2007, 8, 28), False),
+        (offset_nem_sat_aug_4, datetime(2008, 8, 31), False),
+        (offset_nem_sat_aug_4, datetime(2009, 8, 30), False),
+        (offset_nem_sat_aug_4, datetime(2010, 8, 29), False),
+        (offset_nem_sat_aug_4, datetime(2011, 8, 28), False),
 
-            (offset_nem_sat_aug_4, datetime(2006, 8, 27), False),
-            (offset_nem_sat_aug_4, datetime(2007, 8, 28), False),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 31), False),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 30), False),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 29), False),
-            (offset_nem_sat_aug_4, datetime(2011, 8, 28), False),
+        (offset_nem_sat_aug_4, datetime(2006, 8, 25), False),
+        (offset_nem_sat_aug_4, datetime(2007, 8, 24), False),
+        (offset_nem_sat_aug_4, datetime(2008, 8, 29), False),
+        (offset_nem_sat_aug_4, datetime(2009, 8, 28), False),
+        (offset_nem_sat_aug_4, datetime(2010, 8, 27), False),
+        (offset_nem_sat_aug_4, datetime(2011, 8, 26), False),
+        (offset_nem_sat_aug_4, datetime(2019, 8, 30), False),
 
-            (offset_nem_sat_aug_4, datetime(2006, 8, 25), False),
-            (offset_nem_sat_aug_4, datetime(2007, 8, 24), False),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 29), False),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 28), False),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 27), False),
-            (offset_nem_sat_aug_4, datetime(2011, 8, 26), False),
-            (offset_nem_sat_aug_4, datetime(2019, 8, 30), False),
+        # From Micron, see:
+        # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
+        (offset_nem_thu_aug_4, datetime(2012, 8, 30), True),
+        (offset_nem_thu_aug_4, datetime(2011, 9, 1), True),
 
-            # From Micron, see:
-            # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
-            (offset_nem_thu_aug_4, datetime(2012, 8, 30), True),
-            (offset_nem_thu_aug_4, datetime(2011, 9, 1), True),
+        # See: http://google.brand.edgar-online.com/?sym=MU&formtypeID=13
+        (offset_nem_thu_aug_4, datetime(2013, 5, 30), True),
+        (offset_nem_thu_aug_4, datetime(2013, 2, 28), True),
+        (offset_nem_thu_aug_4, datetime(2012, 11, 29), True),
+        (offset_nem_thu_aug_4, datetime(2012, 5, 31), True),
+        (offset_nem_thu_aug_4, datetime(2007, 3, 1), True),
+        (offset_nem_thu_aug_4, datetime(1994, 3, 3), True),
 
-            # See: http://google.brand.edgar-online.com/?sym=MU&formtypeID=13
-            (offset_nem_thu_aug_4, datetime(2013, 5, 30), True),
-            (offset_nem_thu_aug_4, datetime(2013, 2, 28), True),
-            (offset_nem_thu_aug_4, datetime(2012, 11, 29), True),
-            (offset_nem_thu_aug_4, datetime(2012, 5, 31), True),
-            (offset_nem_thu_aug_4, datetime(2007, 3, 1), True),
-            (offset_nem_thu_aug_4, datetime(1994, 3, 3), True),
+        (offset_n, datetime(2012, 12, 31), False),
+        (offset_n, datetime(2013, 1, 1), True),
+        (offset_n, datetime(2013, 1, 2), False)]
 
-            (offset_n, datetime(2012, 12, 31), False),
-            (offset_n, datetime(2013, 1, 1), True),
-            (offset_n, datetime(2013, 1, 2), False)
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, dt, expected = case
+        assert_onOffset(offset, dt, expected)
 
     def test_offset(self):
         offset = makeFY5253NearestEndMonthQuarter(1, startingMonth=8,
@@ -4683,43 +4680,3 @@ class TestDST(object):
         first = Timestamp(test_values[0], tz='US/Eastern') + offset()
         second = Timestamp(test_values[1], tz='US/Eastern')
         assert first == second
-
-
-def test_get_lastbday():
-    dt = datetime(2017, 11, 30)
-    assert dt.weekday() == 3  # i.e. this is a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 30
-
-    dt = datetime(1993, 10, 31)
-    assert dt.weekday() == 6  # i.e. this is not a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 29
-
-
-def test_get_firstbday():
-    dt = datetime(2017, 4, 1)
-    assert dt.weekday() == 5  # i.e. not a weekday
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 3
-
-    dt = datetime(1993, 10, 1)
-    assert dt.weekday() == 4  # i.e. a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 1
-
-
-def test_shift_month():
-    dt = datetime(2017, 11, 30)
-    assert liboffsets.shift_month(dt, 0, 'business_end') == dt
-    assert liboffsets.shift_month(dt, 0,
-                                  'business_start') == datetime(2017, 11, 1)
-
-    ts = Timestamp('1929-05-05')
-    assert liboffsets.shift_month(ts, 1, 'start') == Timestamp('1929-06-01')
-    assert liboffsets.shift_month(ts, -3, 'end') == Timestamp('1929-02-28')
-
-    assert liboffsets.shift_month(ts, 25, None) == Timestamp('1931-06-5')
-
-    # Try to shift to April 31, then shift back to Apr 30 to get a real date
-    assert liboffsets.shift_month(ts, -1, 31) == Timestamp('1929-04-30')
