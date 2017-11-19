@@ -804,6 +804,9 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     if dtype is None:
         dtype = np.uint8
 
+    if np.dtype(dtype) is np.dtype('O'):
+        raise TypeError("'object' is not a valid type for get_dummies")
+
     if isinstance(data, DataFrame):
         # determine columns being encoded
 
