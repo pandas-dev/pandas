@@ -29,6 +29,7 @@ from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           pandas_datetimestruct, dt64_to_dtstruct,
                           is_leapyear)
+from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport get_timezone, is_utc, maybe_get_tz
 
@@ -276,7 +277,6 @@ cdef class _Timestamp(datetime):
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
-            from timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
