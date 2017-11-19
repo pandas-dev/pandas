@@ -497,7 +497,7 @@ class TestTimeSeries(object):
         arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
         idx = Index(arr)
 
-        assert (idx.values == conversion.cast_to_nanoseconds(arr)).all()
+        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
 
     def test_constructor_int64_nocopy(self):
         # #1624

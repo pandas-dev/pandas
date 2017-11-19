@@ -29,4 +29,4 @@ cdef int64_t get_datetime64_nanos(object val) except? -1
 
 cpdef int64_t pydt_to_i8(object pydt) except? -1
 
-cdef _maybe_datetimelike_to_i8(object val)
+cdef maybe_datetimelike_to_i8(object val)

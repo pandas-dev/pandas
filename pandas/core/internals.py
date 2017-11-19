@@ -2463,7 +2463,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
         if values.dtype != _NS_DTYPE:
-            values = conversion.cast_to_nanoseconds(values)
+            values = conversion.ensure_datetime64ns(values)
 
         super(DatetimeBlock, self).__init__(values, fastpath=True,
                                             placement=placement, **kwargs)
@@ -2585,7 +2585,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if values.dtype != _NS_DTYPE:
             # Workaround for numpy 1.6 bug
-            values = conversion.cast_to_nanoseconds(values)
+            values = conversion.ensure_datetime64ns(values)
 
         self.values[locs] = values
 
@@ -4675,7 +4675,7 @@ def form_blocks(arrays, names, axes):
             complex_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
-                v = conversion.cast_to_nanoseconds(v)
+                v = conversion.ensure_datetime64ns(v)
 
             if is_datetimetz(v):
                 datetime_tz_items.append((i, k, v))
