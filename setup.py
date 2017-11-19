@@ -547,6 +547,7 @@ ext_data = {
                      '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends,
