@@ -366,11 +366,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 pass
 
         if data is None:
-            values_present = kwargs.pop('values_present', False)
             return cls._generate(start, end, periods, name, freq,
                                  tz=tz, normalize=normalize, closed=closed,
-                                 ambiguous=ambiguous,
-                                 values_present=values_present)
+                                 ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if is_scalar(data):
@@ -465,8 +463,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
-                  tz=None, normalize=False, ambiguous='raise', closed=None,
-                  values_present=False):
+                  tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Of the three parameters: start, end, and '
                              'periods, exactly two must be specified')
@@ -555,8 +552,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
-                index = _generate_regular_range(start, end, periods, offset,
-                                                values_present)
+                index = _generate_regular_range(start, end, periods, offset)
 
         else:
 
@@ -2020,16 +2016,15 @@ DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
 
 
-def _generate_regular_range(start, end, periods, offset, values_present=False):
+def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):
         stride = offset.nanos
         if periods is None:
             b = Timestamp(start).value
-            if values_present:
-                e = (Timestamp(end).value + stride // 2 + 1)
-            else:
-                e = (b + (Timestamp(end).value - b) // stride * stride +
-                     stride // 2 + 1)
+            # cannot just use e = Timestamp(end) + 1 because arange breaks when
+            # stride is too large, see GH10887
+            e = (b + (Timestamp(end).value - b) // stride * stride +
+                 stride // 2 + 1)
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:

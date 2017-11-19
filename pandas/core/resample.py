@@ -1130,8 +1130,6 @@ class TimeGrouper(Grouper):
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
-        values_present = isinstance(getattr(self, 'obj', None),
-                                    (pd.DataFrame, pd.Series))
 
         # GH #12037
         # use first/last directly instead of call replace() on them
@@ -1140,10 +1138,17 @@ class TimeGrouper(Grouper):
         # nanosecond part and lead to `Values falls after last bin` error
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first,
-                                        end=last,
+                                        end=last ,
                                         tz=tz,
-                                        name=ax.name,
-                                        values_present=values_present)
+                                        name=ax.name)
+
+        # GH 15549
+        values_present = isinstance(getattr(self, 'obj', None),
+                                    (pd.DataFrame, pd.Series))
+        if values_present and binner[-1] < last:
+            extra_date_range = pd.date_range(binner[-2], last + self.freq,
+                                             freq=self.freq)
+            binner = labels = binner.append(extra_date_range[-1:])
 
         # a little hack
         trimmed = False
