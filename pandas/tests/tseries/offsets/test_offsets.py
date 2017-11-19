@@ -4703,3 +4703,7 @@ def test_valid_tick_attributes(kwd, tick_classes):
     with pytest.raises(TypeError):
         cls(**{kwd: 3})
 
+
+def test_validate_n_error():
+    with pytest.raises(ValueError):
+        DateOffset(n='Doh!')
