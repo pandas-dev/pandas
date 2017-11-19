@@ -35,7 +35,7 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``KeyError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
+- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 -
 -
 
