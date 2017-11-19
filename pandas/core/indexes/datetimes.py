@@ -2026,7 +2026,7 @@ def _generate_regular_range(start, end, periods, offset, values_present=False):
         if periods is None:
             b = Timestamp(start).value
             if values_present:
-                e = (Timestamp(end).value + stride//2 + 1)
+                e = (Timestamp(end).value + stride // 2 + 1)
             else:
                 e = (b + (Timestamp(end).value - b) // stride * stride +
                      stride // 2 + 1)
