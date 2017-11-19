@@ -2720,7 +2720,8 @@ class TestPeriodIndex(Base):
         df.resample('W-MON', closed='left', label='left').first()
 
     def test_resample_tz_aware_bug_15549(self):
-        index = pd.DatetimeIndex([1450137600000000000, 1474059600000000000], tz='UTC').tz_convert('America/Chicago')
+        index = pd.DatetimeIndex([1450137600000000000, 1474059600000000000],
+                                 tz='UTC').tz_convert('America/Chicago')
         df = pd.DataFrame([1, 2], index=index)
         df.resample('12h', closed='right', label='right').last().ffill()
 
