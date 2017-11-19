@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from pandas._libs import tslib
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import parsing, conversion
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
     DateParseError,
@@ -373,7 +373,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         except ValueError as e:
             try:
-                values, tz = tslib.datetime_to_datetime64(arg)
+                values, tz = conversion.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, name=name, tz=tz)
             except (ValueError, TypeError):
                 raise e

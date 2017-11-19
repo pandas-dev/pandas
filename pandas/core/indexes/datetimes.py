@@ -409,7 +409,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     verify_integrity = False
             else:
                 if data.dtype != _NS_DTYPE:
-                    subarr = libts.cast_to_nanoseconds(data)
+                    subarr = conversion.ensure_datetime64ns(data)
                 else:
                     subarr = data
         else:
