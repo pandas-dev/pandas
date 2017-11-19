@@ -86,6 +86,14 @@ cpdef bint checknull_old(object val):
         return util._checknull(val)
 
 
+cdef inline bint _check_none_nan_inf_neginf(object val):
+    try:
+        return val is None or (PyFloat_Check(val) and
+                               (val != val or val == INF or val == NEGINF))
+    except ValueError:
+        return False
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj(ndarray arr):
@@ -118,7 +126,7 @@ def isnaobj_old(ndarray arr):
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
         val = arr[i]
-        result[i] = val is NaT or util._checknull_old(val)
+        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
     return result.view(np.bool_)
 
 

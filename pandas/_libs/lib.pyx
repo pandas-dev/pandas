@@ -60,7 +60,7 @@ from missing cimport checknull
 cdef int64_t NPY_NAT = util.get_nat()
 
 cimport util
-from util cimport is_array, _checknull, _checknan
+from util cimport is_array, _checknull
 
 from libc.math cimport sqrt, fabs
 
