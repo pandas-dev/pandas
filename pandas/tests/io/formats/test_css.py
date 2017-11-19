@@ -69,25 +69,25 @@ def test_css_parse_invalid(invalid_css, remainder):
 def test_css_side_shorthands(shorthand, expansions):
     top, right, bottom, left = expansions
 
-    assert_resolves('%s: 1pt' % shorthand,
+    assert_resolves('{shorthand}: 1pt'.format(shorthand=shorthand),
                     {top: '1pt', right: '1pt',
                      bottom: '1pt', left: '1pt'})
 
-    assert_resolves('%s: 1pt 4pt' % shorthand,
+    assert_resolves('{shorthand}: 1pt 4pt'.format(shorthand=shorthand),
                     {top: '1pt', right: '4pt',
                      bottom: '1pt', left: '4pt'})
 
-    assert_resolves('%s: 1pt 4pt 2pt' % shorthand,
+    assert_resolves('{shorthand}: 1pt 4pt 2pt'.format(shorthand=shorthand),
                     {top: '1pt', right: '4pt',
                      bottom: '2pt', left: '4pt'})
 
-    assert_resolves('%s: 1pt 4pt 2pt 0pt' % shorthand,
+    assert_resolves('{shorthand}: 1pt 4pt 2pt 0pt'.format(shorthand=shorthand),
                     {top: '1pt', right: '4pt',
                      bottom: '2pt', left: '0pt'})
 
     with tm.assert_produces_warning(CSSWarning):
-        assert_resolves('%s: 1pt 1pt 1pt 1pt 1pt' % shorthand,
-                        {})
+        assert_resolves(
+            '{shorthand}: 1pt 1pt 1pt 1pt 1pt'.format(shorthand=shorthand), {})
 
 
 @pytest.mark.parametrize('style,inherited,equiv', [
@@ -127,10 +127,10 @@ def test_css_none_absent(style, equiv):
 
 @pytest.mark.parametrize('size,resolved', [
     ('xx-small', '6pt'),
-    ('x-small', '%fpt' % 7.5),
-    ('small', '%fpt' % 9.6),
+    ('x-small', '{pt:f}pt'.format(pt=7.5)),
+    ('small', '{pt:f}pt'.format(pt=9.6)),
     ('medium', '12pt'),
-    ('large', '%fpt' % 13.5),
+    ('large', '{pt:f}pt'.format(pt=13.5)),
     ('x-large', '18pt'),
     ('xx-large', '24pt'),
 
@@ -149,8 +149,8 @@ def test_css_absolute_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {'font-size': relative_to}
-    assert_resolves('font-size: %s' % size, {'font-size': resolved},
-                    inherited=inherited)
+    assert_resolves('font-size: {size}'.format(size=size),
+                    {'font-size': resolved}, inherited=inherited)
 
 
 @pytest.mark.parametrize('size,relative_to,resolved', [
@@ -174,7 +174,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
 
     ('smaller', None, '10pt'),
     ('smaller', '18pt', '15pt'),
-    ('larger', None, '%fpt' % 14.4),
+    ('larger', None, '{pt:f}pt'.format(pt=14.4)),
     ('larger', '15pt', '18pt'),
 ])
 def test_css_relative_font_size(size, relative_to, resolved):
@@ -182,5 +182,5 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {'font-size': relative_to}
-    assert_resolves('font-size: %s' % size, {'font-size': resolved},
-                    inherited=inherited)
+    assert_resolves('font-size: {size}'.format(size=size),
+                    {'font-size': resolved}, inherited=inherited)

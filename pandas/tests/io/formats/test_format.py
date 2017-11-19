@@ -313,7 +313,7 @@ class TestDataFrameFormatting(object):
                         "{0} x {1}".format(term_width, term_height))
 
         def mkframe(n):
-            index = ['%05d' % i for i in range(n)]
+            index = ['{i:05d}'.format(i=i) for i in range(n)]
             return DataFrame(0, index, index)
 
         df6 = mkframe(6)
@@ -465,9 +465,9 @@ class TestDataFrameFormatting(object):
                         'object': [(1, 2), True, False]},
                        columns=['int', 'float', 'object'])
 
-        formatters = [('int', lambda x: '0x%x' % x),
-                      ('float', lambda x: '[% 4.1f]' % x),
-                      ('object', lambda x: '-%s-' % str(x))]
+        formatters = [('int', lambda x: '0x{x:x}'.format(x=x)),
+                      ('float', lambda x: '[{x: 4.1f}]'.format(x=x)),
+                      ('object', lambda x: '-{x!s}-'.format(x=x))]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=lzip(*formatters)[1])
         assert result == ('  int  float    object\n'
@@ -500,7 +500,8 @@ class TestDataFrameFormatting(object):
 
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
-        result = df.to_string(formatters={u('c/\u03c3'): lambda x: '%s' % x})
+        result = df.to_string(
+            formatters={u('c/\u03c3'): lambda x: '{x}'.format(x=x)})
         assert result == u('  c/\u03c3\n') + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_frame(self):
@@ -944,7 +945,7 @@ class TestDataFrameFormatting(object):
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
 
-            assert "10 rows x %d columns" % (max_cols - 1) in rep_str
+            assert "10 rows x {c} columns".format(c=max_cols - 1) in rep_str
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             assert rep_str != wide_repr
@@ -1056,7 +1057,7 @@ class TestDataFrameFormatting(object):
         n = 1000
         s = Series(
             np.random.randint(-50, 50, n),
-            index=['s%04d' % x for x in range(n)], dtype='int64')
+            index=['s{x:04d}'.format(x=x) for x in range(n)], dtype='int64')
 
         import re
         str_rep = str(s)
@@ -1174,7 +1175,7 @@ class TestDataFrameFormatting(object):
         assert header == expected
 
         biggie.to_string(columns=['B', 'A'],
-                         formatters={'A': lambda x: '%.1f' % x})
+                         formatters={'A': lambda x: '{x:.1f}'.format(x=x)})
 
         biggie.to_string(columns=['B', 'A'], float_format=str)
         biggie.to_string(columns=['B', 'A'], col_space=12, float_format=str)
@@ -1269,7 +1270,7 @@ class TestDataFrameFormatting(object):
 
         result = df.to_string()
         # sadness per above
-        if '%.4g' % 1.7e8 == '1.7e+008':
+        if '{x:.4g}'.format(x=1.7e8) == '1.7e+008':
             expected = ('               a\n'
                         '0  1.500000e+000\n'
                         '1  1.000000e-017\n'
@@ -1456,7 +1457,7 @@ c  10  11  12  13  14\
             long_repr = df._repr_html_()
             assert '..' in long_repr
             assert str(41 + max_rows // 2) not in long_repr
-            assert u('%d rows ') % h in long_repr
+            assert u('{h} rows ').format(h=h) in long_repr
             assert u('2 columns') in long_repr
 
     def test_repr_html_float(self):
@@ -1478,7 +1479,7 @@ c  10  11  12  13  14\
             long_repr = df._repr_html_()
             assert '..' in long_repr
             assert '31' not in long_repr
-            assert u('%d rows ') % h in long_repr
+            assert u('{h} rows ').format(h=h) in long_repr
             assert u('2 columns') in long_repr
 
     def test_repr_html_long_multiindex(self):
@@ -1673,7 +1674,7 @@ class TestSeriesFormatting(object):
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split('\n')[-1].strip()
         assert last_line == ("Freq: B, Name: foo, "
-                             "Length: %d, dtype: float64" % len(cp))
+                             "Length: {cp}, dtype: float64".format(cp=len(cp)))
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
@@ -2176,7 +2177,7 @@ class TestSeriesFormatting(object):
 
 
 def _three_digit_exp():
-    return '%.4g' % 1.7e8 == '1.7e+008'
+    return '{x:.4g}'.format(x=1.7e8) == '1.7e+008'
 
 
 class TestFloatArrayFormatter(object):
