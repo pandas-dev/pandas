@@ -11,7 +11,7 @@ from pandas.core.base import _shared_docs
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _INT64_DTYPE,
-    is_object_dtype, is_datetime64_dtype,
+    is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_datetimetz, is_dtype_equal,
     is_integer, is_float,
     is_integer_dtype,
@@ -104,6 +104,7 @@ def _dt_index_cmp(opname, nat_result=False):
     """
 
     def wrapper(self, other):
+        self._assert_tzawareness_compat(other)
         func = getattr(super(DatetimeIndex, self), opname)
         if (isinstance(other, datetime) or
                 isinstance(other, compat.string_types)):
@@ -648,6 +649,20 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result.tz = timezones.maybe_get_tz(tz)
         result._reset_identity()
         return result
+
+    def _assert_tzawareness_compat(self, other):
+        # adapted from _Timestamp._assert_tzawareness_compat
+        other_tz = getattr(other, 'tzinfo', None)
+        if is_datetime64tz_dtype(other):
+            # Get tzinfo from Series dtype
+            other_tz = other.dtype.tz
+        if self.tz is None:
+            if other_tz is not None:
+                raise TypeError('Cannot compare tz-naive and tz-aware '
+                                'datetime-like objects.')
+        elif other_tz is None:
+            raise TypeError('Cannot compare tz-naive and tz-aware '
+                            'datetime-like objects')
 
     @property
     def tzinfo(self):

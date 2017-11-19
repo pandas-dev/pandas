@@ -1,3 +1,5 @@
+import operator
+
 import pytest
 
 import numpy as np
@@ -222,6 +224,36 @@ class TestDatetimeIndex(object):
 
         # it works
         rng.join(idx, how='outer')
+
+    def test_comparison_tzawareness_compat(self):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        ops = [operator.eq, operator.ne,
+               operator.gt, operator.ge,
+               operator.lt, operator.le]
+
+        for left, right in [(dr, dz), (dz, dr)]:
+            for op in ops:
+                with pytest.raises(TypeError):
+                    op(left, right)
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        assert (dr == dr).all()
+        assert (dz == dz).all()
+
+        naive_series = pd.Series(dr)
+        aware_series = pd.Series(dz)
+        for op in ops:
+            with pytest.raises(TypeError):
+                op(dz, naive_series)
+            with pytest.raises(TypeError):
+                op(dr, aware_series)
+
+        # TODO: implement _assert_tzawareness_compat for the reverse
+        # comparison with the Series on the left-hand side
 
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)
