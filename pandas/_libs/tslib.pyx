@@ -976,11 +976,10 @@ cdef class _Timestamp(datetime):
             pass
 
         tz = ", tz='{0}'".format(zone) if zone is not None else ""
-        freq = ", freq='{0}'".format(
-            self.freq.freqstr) if self.freq is not None else ""
+        freq = "" if self.freq is None else ", freq='{0}'".format(self.freqstr)
 
-        return "Timestamp('{stamp}'{tz}{freq})".format(
-            stamp=stamp, tz=tz, freq=freq)
+        return "Timestamp('{stamp}'{tz}{freq})".format(stamp=stamp,
+                                                       tz=tz, freq=freq)
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
@@ -1059,11 +1058,13 @@ cdef class _Timestamp(datetime):
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
+            # delta --> offsets.Tick
             nanos = delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)
             if getattr(other, 'normalize', False):
-                result = Timestamp(normalize_date(result))
+                # DateOffset
+                result = result.normalize()
             return result
 
         # index/series like
@@ -1153,42 +1154,43 @@ cdef class _Timestamp(datetime):
                                   field, freqstr, month_kw)
         return out[0]
 
-    property _repr_base:
-        def __get__(self):
-            return '%s %s' % (self._date_repr, self._time_repr)
+    @property
+    def _repr_base(self):
+        return '{date} {time}'.format(date=self._date_repr,
+                                      time=self._time_repr)
 
-    property _date_repr:
-        def __get__(self):
-            # Ideal here would be self.strftime("%Y-%m-%d"), but
-            # the datetime strftime() methods require year >= 1900
-            return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
+    @property
+    def _date_repr(self):
+        # Ideal here would be self.strftime("%Y-%m-%d"), but
+        # the datetime strftime() methods require year >= 1900
+        return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
 
-    property _time_repr:
-        def __get__(self):
-            result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
+    @property
+    def _time_repr(self):
+        result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
-            if self.nanosecond != 0:
-                result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
-            elif self.microsecond != 0:
-                result += '.%.6d' % self.microsecond
+        if self.nanosecond != 0:
+            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
+        elif self.microsecond != 0:
+            result += '.%.6d' % self.microsecond
 
-            return result
+        return result
 
-    property _short_repr:
-        def __get__(self):
-            # format a Timestamp with only _date_repr if possible
-            # otherwise _repr_base
-            if (self.hour == 0 and
-                    self.minute == 0 and
-                    self.second == 0 and
-                    self.microsecond == 0 and
-                    self.nanosecond == 0):
-                return self._date_repr
-            return self._repr_base
+    @property
+    def _short_repr(self):
+        # format a Timestamp with only _date_repr if possible
+        # otherwise _repr_base
+        if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+            return self._date_repr
+        return self._repr_base
 
-    property asm8:
-        def __get__(self):
-            return np.datetime64(self.value, 'ns')
+    @property
+    def asm8(self):
+        return np.datetime64(self.value, 'ns')
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
