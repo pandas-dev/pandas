@@ -1842,8 +1842,8 @@ class _iLocIndexer(_LocationIndexer):
         elif self._has_valid_type(obj, axis):
             return obj
 
-        raise ValueError("Can only index by location with a [%s]" %
-                         self._valid_types)
+        raise ValueError("Can only index by location with "
+                         "a [{types}]".format(types=self._valid_types))
 
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
