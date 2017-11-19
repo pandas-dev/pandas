@@ -839,13 +839,13 @@ class IndexOpsMixin(object):
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
 
-    def _map_values(self, arg, na_action=None):
+    def _map_values(self, mapper, na_action=None):
         """An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
 
         Parameters
         ----------
-        arg : function, dict, or Series
+        mapper : function, dict, or Series
             The input correspondence object
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
@@ -863,28 +863,28 @@ class IndexOpsMixin(object):
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(arg, dict):
-            if hasattr(arg, '__missing__'):
+        if isinstance(mapper, dict):
+            if hasattr(mapper, '__missing__'):
                 # If a dictionary subclass defines a default value method,
-                # convert arg to a lookup function (GH #15999).
-                dict_with_default = arg
-                arg = lambda x: dict_with_default[x]
+                # convert mapper to a lookup function (GH #15999).
+                dict_with_default = mapper
+                mapper = lambda x: dict_with_default[x]
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
                 from pandas import Series
-                arg = Series(arg, index=arg.keys())
+                mapper = Series(mapper, index=mapper.keys())
 
-        if isinstance(arg, ABCSeries):
+        if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
-            # a dict or a series and arg should be an index
+            # a dict or a series and mapper should be an index
             if is_extension_type(self.dtype):
                 values = self._values
             else:
                 values = self.values
 
-            indexer = arg.index.get_indexer(values)
-            new_values = algorithms.take_1d(arg._values, indexer)
+            indexer = mapper.index.get_indexer(values)
+            new_values = algorithms.take_1d(mapper._values, indexer)
             return new_values
 
         # we must convert to python types
@@ -903,8 +903,8 @@ class IndexOpsMixin(object):
             else:
                 map_f = lib.map_infer
 
-        # arg is a function
-        new_values = map_f(values, arg)
+        # mapper is a function
+        new_values = map_f(values, mapper)
 
         return new_values
 
