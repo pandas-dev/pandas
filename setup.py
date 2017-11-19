@@ -608,9 +608,9 @@ ext_data = {
         'pxdfiles': ['_libs/src/util',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
-                     '_libs/tslibs/np_datetime',
                      '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones']},
+                     '_libs/tslibs/timezones'],
+        'depends': tseries_depends},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
