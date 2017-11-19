@@ -6,12 +6,51 @@ from datetime import datetime
 
 import pytest
 
-import pandas as pd
+from pandas._libs import tslib
+from pandas import Timestamp
 
 import pandas._libs.tslibs.offsets as liboffsets
 
 
+def test_get_lastbday():
+    dt = datetime(2017, 11, 30)
+    assert dt.weekday() == 3  # i.e. this is a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_lastbday(wkday, days_in_month) == 30
+
+    dt = datetime(1993, 10, 31)
+    assert dt.weekday() == 6  # i.e. this is not a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_lastbday(wkday, days_in_month) == 29
+
+
+def test_get_firstbday():
+    dt = datetime(2017, 4, 1)
+    assert dt.weekday() == 5  # i.e. not a weekday
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_firstbday(wkday, days_in_month) == 3
+
+    dt = datetime(1993, 10, 1)
+    assert dt.weekday() == 4  # i.e. a business day
+    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
+    assert liboffsets.get_firstbday(wkday, days_in_month) == 1
+
+
 def test_shift_month():
+    dt = datetime(2017, 11, 30)
+    assert liboffsets.shift_month(dt, 0, 'business_end') == dt
+    assert liboffsets.shift_month(dt, 0,
+                                  'business_start') == datetime(2017, 11, 1)
+
+    ts = Timestamp('1929-05-05')
+    assert liboffsets.shift_month(ts, 1, 'start') == Timestamp('1929-06-01')
+    assert liboffsets.shift_month(ts, -3, 'end') == Timestamp('1929-02-28')
+
+    assert liboffsets.shift_month(ts, 25, None) == Timestamp('1931-06-5')
+
+    # Try to shift to April 31, then shift back to Apr 30 to get a real date
+    assert liboffsets.shift_month(ts, -1, 31) == Timestamp('1929-04-30')
+
     dt = datetime(2017, 11, 15)
 
     assert liboffsets.shift_month(dt, 0, day_opt=None) == dt
@@ -45,7 +84,7 @@ def test_roll_yearday():
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -7
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 0
 
-    other = pd.Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
+    other = Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
     assert liboffsets.roll_yearday(other, 2, month, day_opt) == 2
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -6
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 1
@@ -57,7 +96,7 @@ def test_roll_yearday():
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -7
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 0
 
-    other = pd.Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
+    other = Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
     assert liboffsets.roll_yearday(other, 5, month, day_opt) == 5
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -6
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 1
