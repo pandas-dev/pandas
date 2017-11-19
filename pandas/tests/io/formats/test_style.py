@@ -894,6 +894,120 @@ class TestStyler(object):
         ]
         assert head == expected
 
+    def test_hide_single_index(self):
+        # GH 14194
+        # single unnamed index
+        ctx = self.df.style._translate()
+        assert ctx['body'][0][0]['is_visible']
+        assert ctx['head'][0][0]['is_visible']
+        ctx2 = self.df.style.hide_index()._translate()
+        assert not ctx2['body'][0][0]['is_visible']
+        assert not ctx2['head'][0][0]['is_visible']
+
+        # single named index
+        ctx3 = self.df.set_index('A').style._translate()
+        assert ctx3['body'][0][0]['is_visible']
+        assert len(ctx3['head']) == 2  # 2 header levels
+        assert ctx3['head'][0][0]['is_visible']
+
+        ctx4 = self.df.set_index('A').style.hide_index()._translate()
+        assert not ctx4['body'][0][0]['is_visible']
+        assert len(ctx4['head']) == 1  # only 1 header levels
+        assert not ctx4['head'][0][0]['is_visible']
+
+    def test_hide_multiindex(self):
+        # GH 14194
+        df = pd.DataFrame({'A': [1, 2]}, index=pd.MultiIndex.from_arrays(
+            [['a', 'a'], [0, 1]],
+            names=['idx_level_0', 'idx_level_1'])
+        )
+        ctx1 = df.style._translate()
+        # tests for 'a' and '0'
+        assert ctx1['body'][0][0]['is_visible']
+        assert ctx1['body'][0][1]['is_visible']
+        # check for blank header rows
+        assert ctx1['head'][0][0]['is_visible']
+        assert ctx1['head'][0][1]['is_visible']
+
+        ctx2 = df.style.hide_index()._translate()
+        # tests for 'a' and '0'
+        assert not ctx2['body'][0][0]['is_visible']
+        assert not ctx2['body'][0][1]['is_visible']
+        # check for blank header rows
+        assert not ctx2['head'][0][0]['is_visible']
+        assert not ctx2['head'][0][1]['is_visible']
+
+    def test_hide_columns_single_level(self):
+        # GH 14194
+        # test hiding single column
+        ctx = self.df.style._translate()
+        assert ctx['head'][0][1]['is_visible']
+        assert ctx['head'][0][1]['display_value'] == 'A'
+        assert ctx['head'][0][2]['is_visible']
+        assert ctx['head'][0][2]['display_value'] == 'B'
+        assert ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert ctx['body'][1][2]['is_visible']  # col B, row 1
+
+        ctx = self.df.style.hide_columns('A')._translate()
+        assert not ctx['head'][0][1]['is_visible']
+        assert not ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert ctx['body'][1][2]['is_visible']  # col B, row 1
+
+        # test hiding mulitiple columns
+        ctx = self.df.style.hide_columns(['A', 'B'])._translate()
+        assert not ctx['head'][0][1]['is_visible']
+        assert not ctx['head'][0][2]['is_visible']
+        assert not ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert not ctx['body'][1][2]['is_visible']  # col B, row 1
+
+    def test_hide_columns_mult_levels(self):
+        # GH 14194
+        # setup dataframe with multiple column levels and indices
+        i1 = pd.MultiIndex.from_arrays([['a', 'a'], [0, 1]],
+                                       names=['idx_level_0',
+                                              'idx_level_1'])
+        i2 = pd.MultiIndex.from_arrays([['b', 'b'], [0, 1]],
+                                       names=['col_level_0',
+                                              'col_level_1'])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=i1, columns=i2)
+        ctx = df.style._translate()
+        # column headers
+        assert ctx['head'][0][2]['is_visible']
+        assert ctx['head'][1][2]['is_visible']
+        assert ctx['head'][1][3]['display_value'] == 1
+        # indices
+        assert ctx['body'][0][0]['is_visible']
+        # data
+        assert ctx['body'][1][2]['is_visible']
+        assert ctx['body'][1][2]['display_value'] == 3
+        assert ctx['body'][1][3]['is_visible']
+        assert ctx['body'][1][3]['display_value'] == 4
+
+        # hide top column level, which hides both columns
+        ctx = df.style.hide_columns('b')._translate()
+        assert not ctx['head'][0][2]['is_visible']  # b
+        assert not ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['body'][1][2]['is_visible']  # 3
+        assert ctx['body'][0][0]['is_visible']  # index
+
+        # hide first column only
+        ctx = df.style.hide_columns([('b', 0)])._translate()
+        assert ctx['head'][0][2]['is_visible']  # b
+        assert not ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['body'][1][2]['is_visible']  # 3
+        assert ctx['body'][1][3]['is_visible']
+        assert ctx['body'][1][3]['display_value'] == 4
+
+        # hide second column and index
+        ctx = df.style.hide_columns([('b', 1)]).hide_index()._translate()
+        assert not ctx['body'][0][0]['is_visible']  # index
+        assert ctx['head'][0][2]['is_visible']  # b
+        assert ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['head'][1][3]['is_visible']  # 1
+        assert not ctx['body'][1][3]['is_visible']  # 4
+        assert ctx['body'][1][2]['is_visible']
+        assert ctx['body'][1][2]['display_value'] == 3
+
 
 class TestStylerMatplotlibDep(object):
 
