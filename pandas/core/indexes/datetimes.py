@@ -2025,7 +2025,8 @@ def _generate_regular_range(start, end, periods, offset, values_present=False):
             if values_present:
                 e = (Timestamp(end).value + stride//2 + 1)
             else:
-                e = (b + (Timestamp(end).value - b) // stride * stride + stride // 2 + 1)
+                e = (b + (Timestamp(end).value - b) // stride * stride +
+                     stride // 2 + 1)
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:
