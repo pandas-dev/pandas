@@ -38,46 +38,23 @@ try:
 except ImportError:
     _CYTHON_INSTALLED = False
 
-try:
-    import pkg_resources
-    from setuptools import setup, Command
-    _have_setuptools = True
-except ImportError:
-    # no setuptools installed
-    from distutils.core import setup, Command
-    _have_setuptools = False
 
-setuptools_kwargs = {}
+from setuptools import setup, Command
+import pkg_resources
+
+
 min_numpy_ver = '1.9.0'
+
+setuptools_kwargs = {'zip_safe': False,
+                     'setup_requires': ['numpy >= %s' % min_numpy_ver],
+                     'install_requires': ['pytz >= 2011k',
+                                          'numpy >= %s' % min_numpy_ver]}
+
 if sys.version_info[0] >= 3:
-
-    setuptools_kwargs = {'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2',
-                                              'pytz >= 2011k',
-                                              'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
-    if not _have_setuptools:
-        sys.exit("need setuptools/distribute for Py3k"
-                 "\n$ pip install distribute")
-
+    setuptools_kwargs['install_requires'].append('python-dateutil >= 2')
 else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil',
-                             'pytz >= 2011k',
-                             'numpy >= %s' % min_numpy_ver],
-        'setup_requires': ['numpy >= %s' % min_numpy_ver],
-        'zip_safe': False,
-    }
+    setuptools_kwargs['install_requires'].append('python-dateutil')
 
-    if not _have_setuptools:
-        try:
-            import numpy  # noqa:F401
-            import dateutil  # noqa:F401
-            setuptools_kwargs = {}
-        except ImportError:
-            sys.exit("install requires: 'python-dateutil < 2','numpy'."
-                     "  use pip or easy_install."
-                     "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
@@ -151,7 +128,8 @@ class build_ext(_build_ext):
                 with open(outfile, "w") as f:
                     f.write(pyxcontent)
 
-        numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
+        assert len(numpy_incls) == 1
+        numpy_incl = numpy_incls[0]
 
         for ext in self.extensions:
             if (hasattr(ext, 'include_dirs') and
@@ -363,8 +341,8 @@ class CheckSDist(sdist_class):
         else:
             for pyxfile in self._pyxfiles:
                 cfile = pyxfile[:-3] + 'c'
-                msg = "C-source file '%s' not found." % (cfile) +\
-                    " Run 'setup.py cython' before sdist."
+                msg = ("C-source file '{cfile}' not found. Run "
+                       "'setup.py cython' before sdist.".format(cfile=cfile))
                 assert os.path.isfile(cfile), msg
         sdist_class.run(self)
 
@@ -452,7 +430,6 @@ if suffix == '.pyx':
     lib_depends.append('pandas/_libs/src/util.pxd')
 else:
     lib_depends = []
-    plib_depends = []
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
@@ -461,12 +438,10 @@ def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
 
-if _have_setuptools:
-    # Note: this is a list, whereas `numpy_incl` in build_ext.build_extensions
-    # is a string
-    numpy_incls = [pkg_resources.resource_filename('numpy', 'core/include')]
-else:
-    numpy_incls = []
+# Note: this is a list, whereas `numpy_incl` in build_ext.build_extensions
+# is a string
+numpy_incls = [pkg_resources.resource_filename('numpy', 'core/include')]
+
 
 # args to ignore warnings
 if is_platform_windows():
@@ -719,9 +694,6 @@ _move_ext = Extension('pandas.util._move',
                       sources=['pandas/util/move.c'])
 extensions.append(_move_ext)
 
-
-if _have_setuptools:
-    setuptools_kwargs["test_suite"] = "nose.collector"
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.
