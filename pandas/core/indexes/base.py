@@ -2879,13 +2879,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def map(self, arg, na_action=None):
+    def map(self, mapper, na_action=None):
         """Map values of Series using input correspondence (which can be a
         dict, Series, or function)
 
         Parameters
         ----------
-        arg : function, dict, or Series
+        mapper : function, dict, or Series
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
@@ -2901,7 +2901,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from .multi import MultiIndex
         new_values = super(Index, self)._map_values(
-            arg, na_action=na_action)
+            mapper, na_action=na_action)
         attributes = self._get_attributes_dict()
         if new_values.size and isinstance(new_values[0], tuple):
             if isinstance(self, MultiIndex):
