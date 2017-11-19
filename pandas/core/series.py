@@ -2322,12 +2322,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    0
         dtype: int64
         """
-        if is_extension_type(self.dtype):
-            input_values = self._values
-        else:
-            input_values = self.asobject
         new_values = super(Series, self)._map_values(
-            input_values, arg, na_action=na_action)
+            arg, na_action=na_action)
         return self._constructor(new_values,
                                  index=self.index).__finalize__(self)
 

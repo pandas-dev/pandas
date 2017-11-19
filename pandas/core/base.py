@@ -839,14 +839,12 @@ class IndexOpsMixin(object):
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
 
-    def _map_values(self, values, arg, na_action=None):
+    def _map_values(self, arg, na_action=None):
         """An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
 
         Parameters
         ----------
-        values : np.ndarray
-            The values to be mapped
         arg : function, dict, or Series
             The input correspondence object
         na_action : {None, 'ignore'}
@@ -862,10 +860,13 @@ class IndexOpsMixin(object):
 
         """
         if is_extension_type(self.dtype):
+            values = self._values
             if na_action is not None:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
+            values = self.astype(object)
+            values = getattr(values, 'values', values)
             if na_action == 'ignore':
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f,

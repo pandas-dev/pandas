@@ -2901,7 +2901,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from .multi import MultiIndex
         new_values = super(Index, self)._map_values(
-            self.values, arg, na_action=na_action)
+            arg, na_action=na_action)
         attributes = self._get_attributes_dict()
         if new_values.size and isinstance(new_values[0], tuple):
             if isinstance(self, MultiIndex):
