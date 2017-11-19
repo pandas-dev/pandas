@@ -407,15 +407,14 @@ class TestGetDummies(object):
         expected[['C']] = df[['C']]
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_subset(self, df, sparse, dtype):
+    def test_dataframe_dummies_subset(self, df, sparse):
         result = get_dummies(df, prefix=['from_A'], columns=['A'],
-                             sparse=sparse, dtype=dtype)
+                             sparse=sparse)
         expected = DataFrame({'from_A_a': [1, 0, 1],
                               'from_A_b': [0, 1, 0],
                               'B': ['b', 'b', 'c'],
-                              'C': [1, 2, 3]})
-        columns = ['from_A_a', 'from_A_b']
-        expected[columns] = expected[columns].astype(dtype)
+                              'C': [1, 2, 3]}, dtype=np.uint8)
+        expected[['C']] = df[['C']]
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_sep(self, df, sparse):
