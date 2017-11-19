@@ -167,7 +167,7 @@ class DateOffset(BaseOffset):
     normalize = False
 
     def __init__(self, n=1, normalize=False, **kwds):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.kwds = kwds
 
@@ -474,7 +474,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.kwds = {'offset': offset}
         self._offset = offset
@@ -783,7 +783,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
@@ -820,7 +820,7 @@ class CustomBusinessDay(BusinessDay):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
         self.kwds = {}
@@ -888,7 +888,7 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None,
                  start='09:00', end='17:00', offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         super(CustomBusinessHour, self).__init__(start=start,
                                                  end=end, offset=offset)
@@ -917,7 +917,7 @@ class MonthOffset(SingleConstructorOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = timedelta(1)
         self._use_relativedelta = False
@@ -998,7 +998,7 @@ class SemiMonthOffset(DateOffset):
             raise ValueError(msg.format(min=self._min_day_of_month,
                                         day=self.day_of_month))
 
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.kwds = {'day_of_month': self.day_of_month}
 
@@ -1251,7 +1251,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
         self.kwds = {}
@@ -1322,7 +1322,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
         self.kwds = {}
@@ -1386,7 +1386,7 @@ class Week(EndMixin, DateOffset):
     _prefix = 'W'
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
 
@@ -1465,7 +1465,7 @@ class WeekOfMonth(DateOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, week=None, weekday=None):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
         self.week = week
@@ -1550,7 +1550,7 @@ class LastWeekOfMonth(DateOffset):
     _prefix = 'LWOM'
 
     def __init__(self, n=1, normalize=False, weekday=None):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
 
@@ -1613,7 +1613,7 @@ class QuarterOffset(DateOffset):
     #       point
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         if startingMonth is None:
             startingMonth = self._default_startingMonth
@@ -1957,7 +1957,7 @@ class FY5253(DateOffset):
 
     def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
                  variation="nearest"):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self.startingMonth = startingMonth
         self.weekday = weekday
@@ -2207,7 +2207,7 @@ class FY5253Quarter(DateOffset):
 
     def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
                  qtr_with_extra_week=1, variation="nearest"):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
 
         self.weekday = weekday
@@ -2335,7 +2335,7 @@ class Easter(DateOffset):
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False):
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = timedelta(1)
         self._use_relativedelta = False
@@ -2387,7 +2387,7 @@ class Tick(SingleConstructorOffset):
 
     def __init__(self, n=1, normalize=False):
         # TODO: do Tick classes with normalize=True make sense?
-        self.n = int(n)
+        self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = timedelta(1)
         self._use_relativedelta = False

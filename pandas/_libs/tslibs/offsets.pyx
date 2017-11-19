@@ -255,7 +255,7 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-_rd_kwds = set([
+relativedelta_kwds = set([
     'years', 'months', 'weeks', 'days',
     'year', 'month', 'week', 'day', 'weekday',
     'hour', 'minute', 'second', 'microsecond',
@@ -393,6 +393,15 @@ class _BaseOffset(object):
 
         out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
         return out
+
+    def _validate_n(self, n):
+        try:
+            nint = int(n)
+        except (ValueError, TypeError)
+            raise ValueError('`n` argument must be an integer')
+        if n != nint:
+            raise ValueError('`n` argument must be an integer')
+        return nint
 
 
 class BaseOffset(_BaseOffset):
