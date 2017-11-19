@@ -577,7 +577,9 @@ ext_data = {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
                      '_libs/tslibs/conversion',
-                     '_libs/tslibs/frequencies']},
+                     '_libs/tslibs/frequencies',
+                     '_libs/tslibs/nattype'],
+        'depends': tseries_depends},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util',

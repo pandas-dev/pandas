@@ -431,12 +431,12 @@ cdef inline int get_days_in_month(int year, int month) nogil:
     return days_per_month_table[is_leapyear(year)][month - 1]
 
 
-cdef inline int _year_add_months(pandas_datetimestruct dts, int months) nogil:
+cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
     """new year number after shifting pandas_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
 
-cdef inline int _month_add_months(pandas_datetimestruct dts, int months) nogil:
+cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
     """
     New month number after shifting pandas_datetimestruct
     number of months.
@@ -473,8 +473,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dts.year = _year_add_months(dts, months)
-                dts.month = _month_add_months(dts, months)
+                dts.year = year_add_months(dts, months)
+                dts.month = month_add_months(dts, months)
 
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 out[i] = dtstruct_to_dt64(&dts)
@@ -497,8 +497,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 if roll_check and dts.day == 1:
                     months_to_roll -= 1
 
-                dts.year = _year_add_months(dts, months_to_roll)
-                dts.month = _month_add_months(dts, months_to_roll)
+                dts.year = year_add_months(dts, months_to_roll)
+                dts.month = month_add_months(dts, months_to_roll)
                 dts.day = 1
 
                 out[i] = dtstruct_to_dt64(&dts)
@@ -522,8 +522,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                                                                dts.month):
                     months_to_roll += 1
 
-                dts.year = _year_add_months(dts, months_to_roll)
-                dts.month = _month_add_months(dts, months_to_roll)
+                dts.year = year_add_months(dts, months_to_roll)
+                dts.month = month_add_months(dts, months_to_roll)
 
                 dts.day = get_days_in_month(dts.year, dts.month)
                 out[i] = dtstruct_to_dt64(&dts)
