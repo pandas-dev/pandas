@@ -1842,8 +1842,8 @@ class _iLocIndexer(_LocationIndexer):
         elif self._has_valid_type(obj, axis):
             return obj
 
-        raise ValueError("Can only index by location with a [%s]" %
-                         self._valid_types)
+        raise ValueError("Can only index by location with "
+                         "a [{types}]".format(types=self._valid_types))
 
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
@@ -2055,7 +2055,7 @@ def convert_from_missing_indexer_tuple(indexer, axes):
         return (axes[_i].get_loc(_idx['key']) if isinstance(_idx, dict) else
                 _idx)
 
-    return tuple([get_indexer(_i, _idx) for _i, _idx in enumerate(indexer)])
+    return tuple(get_indexer(_i, _idx) for _i, _idx in enumerate(indexer))
 
 
 def maybe_convert_indices(indices, n):
