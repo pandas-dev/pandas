@@ -1142,10 +1142,8 @@ class TimeGrouper(Grouper):
                                         name=ax.name)
 
         # GH 15549
-        values_present = isinstance(getattr(self, 'obj', None),
-                                    (pd.DataFrame, pd.Series))
-        if values_present and binner[-1] < last:
-            extra_date_range = pd.date_range(binner[-2], last + self.freq,
+        if binner[-1] < last:
+            extra_date_range = pd.date_range(binner[-1], last + self.freq,
                                              freq=self.freq)
             binner = labels = binner.append(extra_date_range[1:])
 
