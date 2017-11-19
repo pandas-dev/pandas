@@ -345,6 +345,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
+                 'pandas/_libs/tslibs/timestamps.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/conversion.pyx',
                  'pandas/_libs/tslibs/fields.pyx',
@@ -601,6 +602,14 @@ ext_data = {
                      '_libs/tslibs/nattype'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
+    '_libs.tslibs.timestamps': {
+        'pyxfile': '_libs/tslibs/timestamps',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/conversion',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/np_datetime',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones']},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
