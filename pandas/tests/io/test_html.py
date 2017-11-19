@@ -973,6 +973,7 @@ def test_importcheck_thread_safety():
 def test_parse_failure_unseekable():
     # Issue #17975
     _skip_if_no('lxml')
+    _skip_if_no('bs4')
 
     class UnseekableStringIO(StringIO):
         def seekable(self):
@@ -996,6 +997,7 @@ def test_parse_failure_unseekable():
 def test_parse_failure_rewinds():
     # Issue #17975
     _skip_if_no('lxml')
+    _skip_if_no('bs4')
 
     class MockFile(object):
         def __init__(self, data):

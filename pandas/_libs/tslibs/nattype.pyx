@@ -26,6 +26,7 @@ from util cimport (get_nat,
 nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 cdef int64_t NPY_NAT = get_nat()
+iNaT = NPY_NAT  # python-visible constant
 
 cdef bint _nat_scalar_rules[6]
 _nat_scalar_rules[Py_EQ] = False
@@ -336,15 +337,38 @@ class NaTType(_NaT):
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
 
-    # Timestamp has empty docstring for some methods.
-    utcfromtimestamp = _make_error_func('utcfromtimestamp', None)
-    fromtimestamp = _make_error_func('fromtimestamp', None)
-    combine = _make_error_func('combine', None)
-    utcnow = _make_error_func('utcnow', None)
-
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
+        """
+        Timestamp.utcfromtimestamp(ts)
+
+        Construct a naive UTC datetime from a POSIX timestamp.
+        """
+    )
+    fromtimestamp = _make_error_func('fromtimestamp',  # noqa:E128
+        """
+        Timestamp.fromtimestamp(ts)
+
+        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        """
+    )
+    combine = _make_error_func('combine',  # noqa:E128
+        """
+        Timsetamp.combine(date, time)
+
+        date, time -> datetime with same date and time fields
+        """
+    )
+    utcnow = _make_error_func('utcnow',  # noqa:E128
+        """
+        Timestamp.utcnow()
+
+        Return a new Timestamp representing UTC day and time.
+        """
+    )
 
     timestamp = _make_error_func('timestamp',  # noqa:E128
         """Return POSIX timestamp as float.""")
@@ -372,6 +396,8 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
+        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
 
@@ -397,8 +423,10 @@ class NaTType(_NaT):
 
     now = _make_nat_func('now',  # noqa:E128
         """
-        Return the current time in the local timezone.  Equivalent
-        to datetime.now([tz])
+        Timestamp.now(tz=None)
+
+        Returns new Timestamp object representing current time local to
+        tz.
 
         Parameters
         ----------
@@ -407,6 +435,8 @@ class NaTType(_NaT):
         """)
     today = _make_nat_func('today',  # noqa:E128
         """
+        Timestamp.today(cls, tz=None)
+
         Return the current time in the local timezone.  This differs
         from datetime.today() in that it can be localized to a
         passed timezone.
@@ -478,11 +508,13 @@ class NaTType(_NaT):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
+
         ambiguous : bool, 'NaT', default 'raise'
             - bool contains flags to determine if time is dst or not (note
-            that this flag is only applicable for ambiguous fall dst dates)
+              that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
         errors : 'raise', 'coerce', default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from

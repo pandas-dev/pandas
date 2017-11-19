@@ -1106,6 +1106,24 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
+def _is_potential_multi_index(columns):
+    """
+    Check whether or not the `columns` parameter
+    could be converted into a MultiIndex.
+
+    Parameters
+    ----------
+    columns : array-like
+        Object which may or may not be convertible into a MultiIndex
+
+    Returns
+    -------
+    boolean : Whether or not columns could become a MultiIndex
+    """
+    return (len(columns) and not isinstance(columns, MultiIndex) and
+            all(isinstance(c, tuple) for c in columns))
+
+
 def _evaluate_usecols(usecols, names):
     """
     Check whether or not the 'usecols' parameter
@@ -1115,8 +1133,8 @@ def _evaluate_usecols(usecols, names):
     If not a callable, returns 'usecols'.
     """
     if callable(usecols):
-        return set([i for i, name in enumerate(names)
-                    if usecols(name)])
+        return set(i for i, name in enumerate(names)
+                   if usecols(name))
     return usecols
 
 
@@ -1231,6 +1249,8 @@ class ParserBase(object):
 
         self.na_values = kwds.get('na_values')
         self.na_fvalues = kwds.get('na_fvalues')
+        self.na_filter = kwds.get('na_filter', False)
+
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
         self.as_recarray = kwds.get('as_recarray', False)
@@ -1336,7 +1356,7 @@ class ParserBase(object):
         field_count = len(header[0])
 
         def extract(r):
-            return tuple([r[i] for i in range(field_count) if i not in sic])
+            return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
@@ -1347,11 +1367,11 @@ class ParserBase(object):
         # if we find 'Unnamed' all of a single level, then our header was too
         # long
         for n in range(len(columns[0])):
-            if all(['Unnamed' in tostr(c[n]) for c in columns]):
+            if all('Unnamed' in tostr(c[n]) for c in columns):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
-                    % ','.join([str(x) for x in self.header])
+                    % ','.join(str(x) for x in self.header)
                 )
 
         # clean the column names (if we have an index_col)
@@ -1374,6 +1394,7 @@ class ParserBase(object):
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts = defaultdict(int)
+            is_potential_mi = _is_potential_multi_index(names)
 
             for i, col in enumerate(names):
                 cur_count = counts[col]
@@ -1381,7 +1402,10 @@ class ParserBase(object):
                 while cur_count > 0:
                     counts[col] = cur_count + 1
 
-                    col = '%s.%d' % (col, cur_count)
+                    if is_potential_mi:
+                        col = col[:-1] + ('%s.%d' % (col[-1], cur_count),)
+                    else:
+                        col = '%s.%d' % (col, cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1391,9 +1415,7 @@ class ParserBase(object):
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if (not self.tupleize_cols and len(columns) and
-                not isinstance(columns, MultiIndex) and
-                all([isinstance(c, tuple) for c in columns])):
+        if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
@@ -1404,7 +1426,6 @@ class ParserBase(object):
         elif not self._has_complex_date_col:
             index = self._get_simple_index(alldata, columns)
             index = self._agg_index(index)
-
         elif self._has_complex_date_col:
             if not self._name_processed:
                 (self.index_names, _,
@@ -1431,7 +1452,6 @@ class ParserBase(object):
             if not isinstance(col, compat.string_types):
                 return col
             raise ValueError('Index %s invalid' % col)
-        index = None
 
         to_remove = []
         index = []
@@ -1462,8 +1482,6 @@ class ParserBase(object):
                 if i == icol:
                     return c
 
-        index = None
-
         to_remove = []
         index = []
         for idx in self.index_col:
@@ -1484,11 +1502,15 @@ class ParserBase(object):
 
         for i, arr in enumerate(index):
 
-            if (try_parse_dates and self._should_parse_dates(i)):
+            if try_parse_dates and self._should_parse_dates(i):
                 arr = self._date_conv(arr)
 
-            col_na_values = self.na_values
-            col_na_fvalues = self.na_fvalues
+            if self.na_filter:
+                col_na_values = self.na_values
+                col_na_fvalues = self.na_fvalues
+            else:
+                col_na_values = set()
+                col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
                 col_name = self.index_names[i]
@@ -1671,7 +1693,9 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if 'utf-16' in (kwds.get('encoding') or ''):
+        if (kwds.get('compression') is None
+           and 'utf-16' in (kwds.get('encoding') or '')):
+            # if source is utf-16 plain text, convert source to utf-8
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
                 self.handles.append(src)
@@ -1993,7 +2017,7 @@ def TextParser(*args, **kwds):
 
 
 def count_empty_vals(vals):
-    return sum([1 for v in vals if v == '' or v is None])
+    return sum(1 for v in vals if v == '' or v is None)
 
 
 class PythonParser(ParserBase):
@@ -2040,8 +2064,6 @@ class PythonParser(ParserBase):
         self.error_bad_lines = kwds['error_bad_lines']
 
         self.names_passed = kwds['names'] or None
-
-        self.na_filter = kwds['na_filter']
 
         self.has_index_names = False
         if 'has_index_names' in kwds:
@@ -2502,7 +2524,7 @@ class PythonParser(ParserBase):
         if self.usecols is not None:
             if callable(self.usecols):
                 col_indices = _evaluate_usecols(self.usecols, usecols_key)
-            elif any([isinstance(u, string_types) for u in self.usecols]):
+            elif any(isinstance(u, string_types) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
@@ -2866,7 +2888,7 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
-        max_len = max([len(row) for row in content])
+        max_len = max(len(row) for row in content)
 
         # Check that there are no rows with too many
         # elements in their row (rows with too few
@@ -3111,7 +3133,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = '_'.join([str(x) for x in colnames])
+    new_name = '_'.join(str(x) for x in colnames)
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
@@ -3134,9 +3156,9 @@ def _clean_na_values(na_values, keep_default_na=True):
                     v = [v]
                 v = set(v) | _NA_VALUES
                 na_values[k] = v
-        na_fvalues = dict([
+        na_fvalues = dict(
             (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
-        ])
+        )
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3288,7 +3310,7 @@ def _concat_date_cols(date_cols):
                 for x in date_cols[0]
             ], dtype=object)
 
-    rs = np.array([' '.join([compat.text_type(y) for y in x])
+    rs = np.array([' '.join(compat.text_type(y) for y in x)
                    for x in zip(*date_cols)], dtype=object)
     return rs
 
@@ -3359,7 +3381,7 @@ class FixedWidthReader(BaseIterator):
 
     def detect_colspecs(self, n=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = ''.join([r'\%s' % x for x in self.delimiter])
+        delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
         rows = self.get_rows(n, skiprows)
         if not rows:

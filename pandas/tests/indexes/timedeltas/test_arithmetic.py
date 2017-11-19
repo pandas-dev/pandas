@@ -12,50 +12,24 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     Timestamp, Timedelta)
 
 
+@pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
+                        np.timedelta64(2, 'h'), Timedelta(hours=2)],
+                ids=str)
+def delta(request):
+    # Several ways of representing two hours
+    return request.param
+
+
+@pytest.fixture(params=['B', 'D'])
+def freq(request):
+    return request.param
+
+
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
-    _multiprocess_can_split_ = True
 
     # TODO: Split by ops, better name
     def test_numeric_compat(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-        result = idx / 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
-
-        result = idx * np.arange(5, dtype='int64')
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
-
-        # invalid
-        pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
-
-    # FIXME: duplicate.  This came from `test_timedelta`, whereas the
-    # version above came from `test_astype`.  Make sure there aren't more
-    # duplicates.
-    def test_numeric_compat__(self):
-
         idx = self._holder(np.arange(5, dtype='int64'))
         didx = self._holder(np.arange(5, dtype='int64') ** 2)
         result = idx * 1
@@ -126,61 +100,90 @@ class TestTimedeltaIndexArithmetic(object):
             tm.assert_index_equal(result, exp)
             assert result.freq is None
 
-    def test_add_iadd(self):
-        # only test adding/sub offsets as + is now numeric
+    # -------------------------------------------------------------
+    # Binary operations TimedeltaIndex and integer
 
-        # offset
-        offsets = [pd.offsets.Hour(2), timedelta(hours=2),
-                   np.timedelta64(2, 'h'), Timedelta(hours=2)]
-
-        for delta in offsets:
-            rng = timedelta_range('1 days', '10 days')
-            result = rng + delta
-            expected = timedelta_range('1 days 02:00:00', '10 days 02:00:00',
-                                       freq='D')
-            tm.assert_index_equal(result, expected)
-            rng += delta
-            tm.assert_index_equal(rng, expected)
-
-        # int
+    def test_tdi_add_int(self):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         result = rng + 1
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
+
+    def test_tdi_iadd_int(self):
+        rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+        expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
         rng += 1
         tm.assert_index_equal(rng, expected)
 
-    def test_sub_isub(self):
-        # only test adding/sub offsets as - is now numeric
-
-        # offset
-        offsets = [pd.offsets.Hour(2), timedelta(hours=2),
-                   np.timedelta64(2, 'h'), Timedelta(hours=2)]
-
-        for delta in offsets:
-            rng = timedelta_range('1 days', '10 days')
-            result = rng - delta
-            expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
-            tm.assert_index_equal(result, expected)
-            rng -= delta
-            tm.assert_index_equal(rng, expected)
-
-        # int
+    def test_tdi_sub_int(self):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         result = rng - 1
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
+
+    def test_tdi_isub_int(self):
+        rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+        expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
         rng -= 1
         tm.assert_index_equal(rng, expected)
 
+    # -------------------------------------------------------------
+    # Binary operations TimedeltaIndex and timedelta-like
+
+    def test_tdi_add_timedeltalike(self, delta):
+        # only test adding/sub offsets as + is now numeric
+        rng = timedelta_range('1 days', '10 days')
+        result = rng + delta
+        expected = timedelta_range('1 days 02:00:00', '10 days 02:00:00',
+                                   freq='D')
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_iadd_timedeltalike(self, delta):
+        # only test adding/sub offsets as + is now numeric
+        rng = timedelta_range('1 days', '10 days')
+        expected = timedelta_range('1 days 02:00:00', '10 days 02:00:00',
+                                   freq='D')
+        rng += delta
+        tm.assert_index_equal(rng, expected)
+
+    def test_tdi_sub_timedeltalike(self, delta):
+        # only test adding/sub offsets as - is now numeric
+        rng = timedelta_range('1 days', '10 days')
+        result = rng - delta
+        expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_isub_timedeltalike(self, delta):
+        # only test adding/sub offsets as - is now numeric
+        rng = timedelta_range('1 days', '10 days')
+        expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
+        rng -= delta
+        tm.assert_index_equal(rng, expected)
+
+    # -------------------------------------------------------------
+    # Binary operations TimedeltaIndex and datetime-like
+
+    def test_tdi_sub_timestamp_raises(self):
         idx = TimedeltaIndex(['1 day', '2 day'])
         msg = "cannot subtract a datelike from a TimedeltaIndex"
         with tm.assert_raises_regex(TypeError, msg):
             idx - Timestamp('2011-01-01')
 
+    def test_tdi_add_timestamp(self):
+        idx = TimedeltaIndex(['1 day', '2 day'])
+
+        result = idx + Timestamp('2011-01-01')
+        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_radd_timestamp(self):
+        idx = TimedeltaIndex(['1 day', '2 day'])
+
         result = Timestamp('2011-01-01') + idx
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
         tm.assert_index_equal(result, expected)
+
+    # -------------------------------------------------------------
 
     # TODO: Split by operation, better name
     def test_ops_compat(self):
@@ -406,47 +409,6 @@ class TestTimedeltaIndexArithmetic(object):
         expected = Timestamp('20130102')
         assert result == expected
 
-    # TODO: Split by op, better name
-    def test_ops(self):
-        td = Timedelta(10, unit='d')
-        assert -td == Timedelta(-10, unit='d')
-        assert +td == Timedelta(10, unit='d')
-        assert td - td == Timedelta(0, unit='ns')
-        assert (td - pd.NaT) is pd.NaT
-        assert td + td == Timedelta(20, unit='d')
-        assert (td + pd.NaT) is pd.NaT
-        assert td * 2 == Timedelta(20, unit='d')
-        assert (td * pd.NaT) is pd.NaT
-        assert td / 2 == Timedelta(5, unit='d')
-        assert td // 2 == Timedelta(5, unit='d')
-        assert abs(td) == td
-        assert abs(-td) == td
-        assert td / td == 1
-        assert (td / pd.NaT) is np.nan
-        assert (td // pd.NaT) is np.nan
-
-        # invert
-        assert -td == Timedelta('-10d')
-        assert td * -1 == Timedelta('-10d')
-        assert -1 * td == Timedelta('-10d')
-        assert abs(-td) == Timedelta('10d')
-
-        # invalid multiply with another timedelta
-        pytest.raises(TypeError, lambda: td * td)
-
-        # can't operate with integers
-        pytest.raises(TypeError, lambda: td + 2)
-        pytest.raises(TypeError, lambda: td - 2)
-
-    def test_ops_offsets(self):
-        td = Timedelta(10, unit='d')
-        assert Timedelta(241, unit='h') == td + pd.offsets.Hour(1)
-        assert Timedelta(241, unit='h') == pd.offsets.Hour(1) + td
-        assert 240 == td / pd.offsets.Hour(1)
-        assert 1 / 240.0 == pd.offsets.Hour(1) / td
-        assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
-        assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
-
     def test_ops_ndarray(self):
         td = Timedelta('1 day')
 
@@ -529,50 +491,6 @@ class TestTimedeltaIndexArithmetic(object):
                         name='xxx')
         tm.assert_series_equal(s + pd.Timedelta('00:30:00'), exp)
         tm.assert_series_equal(pd.Timedelta('00:30:00') + s, exp)
-
-    def test_ops_notimplemented(self):
-        class Other:
-            pass
-
-        other = Other()
-
-        td = Timedelta('1 day')
-        assert td.__add__(other) is NotImplemented
-        assert td.__sub__(other) is NotImplemented
-        assert td.__truediv__(other) is NotImplemented
-        assert td.__mul__(other) is NotImplemented
-        assert td.__floordiv__(other) is NotImplemented
-
-    def test_timedelta_ops_scalar(self):
-        # GH 6808
-        base = pd.to_datetime('20130101 09:01:12.123456')
-        expected_add = pd.to_datetime('20130101 09:01:22.123456')
-        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
-
-        for offset in [pd.to_timedelta(10, unit='s'), timedelta(seconds=10),
-                       np.timedelta64(10, 's'),
-                       np.timedelta64(10000000000, 'ns'),
-                       pd.offsets.Second(10)]:
-            result = base + offset
-            assert result == expected_add
-
-            result = base - offset
-            assert result == expected_sub
-
-        base = pd.to_datetime('20130102 09:01:12.123456')
-        expected_add = pd.to_datetime('20130103 09:01:22.123456')
-        expected_sub = pd.to_datetime('20130101 09:01:02.123456')
-
-        for offset in [pd.to_timedelta('1 day, 00:00:10'),
-                       pd.to_timedelta('1 days, 00:00:10'),
-                       timedelta(days=1, seconds=10),
-                       np.timedelta64(1, 'D') + np.timedelta64(10, 's'),
-                       pd.offsets.Day() + pd.offsets.Second(10)]:
-            result = base + offset
-            assert result == expected_add
-
-            result = base - offset
-            assert result == expected_sub
 
     def test_timedelta_ops_with_missing_values(self):
         # setup
@@ -699,6 +617,26 @@ class TestTimedeltaIndexArithmetic(object):
                   to_timedelta(['7 seconds', pd.NaT, '4 hours']))
         tm.assert_index_equal(result, exp)
 
+    def test_timedeltaindex_add_timestamp_nat_masking(self):
+        # GH17991 checking for overflow-masking with NaT
+        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+
+        tsneg = Timestamp('1950-01-01')
+        ts_neg_variants = [tsneg,
+                           tsneg.to_pydatetime(),
+                           tsneg.to_datetime64().astype('datetime64[ns]'),
+                           tsneg.to_datetime64().astype('datetime64[D]')]
+
+        tspos = Timestamp('1980-01-01')
+        ts_pos_variants = [tspos,
+                           tspos.to_pydatetime(),
+                           tspos.to_datetime64().astype('datetime64[ns]'),
+                           tspos.to_datetime64().astype('datetime64[D]')]
+
+        for variant in ts_neg_variants + ts_pos_variants:
+            res = tdinat + variant
+            assert res[1] is pd.NaT
+
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')
 
@@ -737,7 +675,6 @@ class TestTimedeltaIndexArithmetic(object):
 
     # TODO: Needs more informative name, probably split up into
     # more targeted tests
-    @pytest.mark.parametrize('freq', ['B', 'D'])
     def test_timedelta(self, freq):
         index = date_range('1/1/2000', periods=50, freq=freq)
 

@@ -126,7 +126,7 @@ def _groupby_and_merge(by, on, left, right, _merge_pieces,
             try:
                 if k in merged:
                     merged[k] = key
-            except:
+            except KeyError:
                 pass
 
         pieces.append(merged)
@@ -1253,10 +1253,12 @@ class _AsOfMerge(_OrderedMerge):
          join_names) = super(_AsOfMerge, self)._get_merge_keys()
 
         # validate index types are the same
-        for lk, rk in zip(left_join_keys, right_join_keys):
+        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys, "
-                                 "must be the same type")
+                raise MergeError("incompatible merge keys [{i}] {lkdtype} and "
+                                 "{rkdtype}, must be the same type"
+                                 .format(i=i, lkdtype=lk.dtype,
+                                         rkdtype=rk.dtype))
 
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
@@ -1266,8 +1268,10 @@ class _AsOfMerge(_OrderedMerge):
             else:
                 lt = left_join_keys[-1]
 
-            msg = "incompatible tolerance, must be compat " \
-                  "with type {lt}".format(lt=type(lt))
+            msg = ("incompatible tolerance {tolerance}, must be compat "
+                   "with type {lkdtype}".format(
+                       tolerance=type(self.tolerance),
+                       lkdtype=lt.dtype))
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
@@ -1503,12 +1507,12 @@ def _sort_labels(uniques, left, right):
         # tuplesafe
         uniques = Index(uniques).values
 
-    l = len(left)
+    llength = len(left)
     labels = np.concatenate([left, right])
 
     _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
     new_labels = _ensure_int64(new_labels)
-    new_left, new_right = new_labels[:l], new_labels[l:]
+    new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
 

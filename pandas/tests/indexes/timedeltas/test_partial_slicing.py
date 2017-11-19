@@ -9,6 +9,10 @@ from pandas.util.testing import assert_series_equal
 
 
 class TestSlicing(object):
+    def test_slice_keeps_name(self):
+        # GH4226
+        dr = pd.timedelta_range('1d', '5d', freq='H', name='timebucket')
+        assert dr[1:].name == dr.name
 
     def test_partial_slice(self):
         rng = timedelta_range('1 day 10:11:12', freq='h', periods=500)

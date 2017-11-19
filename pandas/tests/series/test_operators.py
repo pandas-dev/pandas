@@ -122,7 +122,7 @@ class TestSeriesOperators(TestData):
             assert_series_equal(result, p['first'].astype('float64'),
                                 check_names=False)
             assert result.name is None
-            assert not np.array_equal(result, p['second'] / p['first'])
+            assert not result.equals(p['second'] / p['first'])
 
             # inf signing
             s = Series([np.nan, 1., -1.])

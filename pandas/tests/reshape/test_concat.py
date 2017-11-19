@@ -1385,14 +1385,14 @@ class TestConcatenate(ConcatenateBase):
                     return DataFrame(np.random.randn(index, cols),
                                      index=["I%s" % i for i in range(index)],
                                      columns=["C%s" % i for i in range(cols)])
-                return Panel(dict([("Item%s" % x, df())
-                                   for x in ['A', 'B', 'C']]))
+                return Panel(dict(("Item%s" % x, df())
+                                  for x in ['A', 'B', 'C']))
 
             panel1 = make_panel()
             panel2 = make_panel()
 
-            panel2 = panel2.rename_axis(dict([(x, "%s_1" % x)
-                                              for x in panel2.major_axis]),
+            panel2 = panel2.rename_axis(dict((x, "%s_1" % x)
+                                             for x in panel2.major_axis),
                                         axis=1)
 
             panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
@@ -1594,7 +1594,9 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(len(dates)), index=dates, name='value')
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        assert np.array_equal(result.columns, [0, 1])
+        expected = Index([0, 1])
+
+        tm.assert_index_equal(result.columns, expected)
 
     def test_concat_iterables(self):
         from collections import deque, Iterable
@@ -1981,3 +1983,21 @@ def test_concat_will_upcast(dt, pdt):
                pdt(np.array([5], dtype=dt, ndmin=dims))]
         x = pd.concat(dfs)
         assert x.values.dtype == 'float64'
+
+
+def test_concat_empty_and_non_empty_frame_regression():
+    # GH 18178 regression test
+    df1 = pd.DataFrame({'foo': [1]})
+    df2 = pd.DataFrame({'foo': []})
+    expected = pd.DataFrame({'foo': [1.0]})
+    result = pd.concat([df1, df2])
+    assert_frame_equal(result, expected)
+
+
+def test_concat_empty_and_non_empty_series_regression():
+    # GH 18187 regression test
+    s1 = pd.Series([1])
+    s2 = pd.Series([])
+    expected = s1
+    result = pd.concat([s1, s2])
+    tm.assert_series_equal(result, expected)

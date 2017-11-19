@@ -28,6 +28,7 @@ from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
+from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -64,7 +65,7 @@ def time2num(d):
     if isinstance(d, compat.string_types):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
-            raise ValueError('Could not parse time %s' % d)
+            raise ValueError('Could not parse time {d}'.format(d=d))
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
@@ -166,7 +167,7 @@ def get_datevalue(date, freq):
         return date
     elif date is None:
         return None
-    raise ValueError("Unrecognizable date '%s'" % date)
+    raise ValueError("Unrecognizable date '{date}'".format(date=date))
 
 
 def _dt_to_float_ordinal(dt):
@@ -351,10 +352,12 @@ class MilliSecondLocator(dates.DateLocator):
         estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
 
         if estimate > self.MAXTICKS * 2:
-            raise RuntimeError(('MillisecondLocator estimated to generate %d '
-                                'ticks from %s to %s: exceeds Locator.MAXTICKS'
-                                '* 2 (%d) ') %
-                               (estimate, dmin, dmax, self.MAXTICKS * 2))
+            raise RuntimeError(('MillisecondLocator estimated to generate '
+                                '{estimate:d} ticks from {dmin} to {dmax}: '
+                                'exceeds Locator.MAXTICKS'
+                                '* 2 ({arg:d}) ').format(
+                                    estimate=estimate, dmin=dmin, dmax=dmax,
+                                    arg=self.MAXTICKS * 2))
 
         freq = '%dL' % self._get_interval()
         tz = self.tz.tzname(None)
@@ -505,7 +508,7 @@ def _daily_finder(vmin, vmax, freq):
         elif freq == FreqGroup.FR_HR:
             periodsperday = 24
         else:  # pragma: no cover
-            raise ValueError("unexpected frequency: %s" % freq)
+            raise ValueError("unexpected frequency: {freq}".format(freq=freq))
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
 
@@ -515,7 +518,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif frequencies.get_freq_group(freq) == FreqGroup.FR_WK:
+    elif resolution.get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -853,7 +856,7 @@ def _annual_finder(vmin, vmax, freq):
 def get_finder(freq):
     if isinstance(freq, compat.string_types):
         freq = frequencies.get_freq(freq)
-    fgroup = frequencies.get_freq_group(freq)
+    fgroup = resolution.get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
@@ -864,7 +867,7 @@ def get_finder(freq):
     elif ((freq >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK):
         return _daily_finder
     else:  # pragma: no cover
-        errmsg = "Unsupported frequency: %s" % (freq)
+        errmsg = "Unsupported frequency: {freq}".format(freq=freq)
         raise NotImplementedError(errmsg)
 
 
@@ -991,7 +994,7 @@ class TimeSeries_DateFormatter(Formatter):
                                  info)
         else:
             format = np.compress(info['maj'], info)
-        self.formatdict = dict([(x, f) for (x, _, _, f) in format])
+        self.formatdict = dict((x, f) for (x, _, _, f) in format)
         return self.formatdict
 
     def set_locs(self, locs):

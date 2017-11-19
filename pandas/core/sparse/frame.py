@@ -173,7 +173,7 @@ class SparseDataFrame(DataFrame):
         """ Init self from ndarray or list of lists """
         data = _prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
-        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        data = dict((idx, data[:, i]) for i, idx in enumerate(columns))
         return self._init_dict(data, index, columns, dtype)
 
     def _init_spmatrix(self, data, index, columns, dtype=None,
@@ -347,8 +347,8 @@ class SparseDataFrame(DataFrame):
         Ratio of non-sparse points to total (dense) data points
         represented in the frame
         """
-        tot_nonsparse = sum([ser.sp_index.npoints
-                             for _, ser in compat.iteritems(self)])
+        tot_nonsparse = sum(ser.sp_index.npoints
+                            for _, ser in compat.iteritems(self))
         tot = len(self.index) * len(self.columns)
         return tot_nonsparse / float(tot)
 

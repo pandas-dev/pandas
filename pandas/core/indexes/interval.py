@@ -121,6 +121,17 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+    mid
+    values
+    is_non_overlapping_monotonic
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_breaks
+    from_intervals
+    contains
 
     Examples
     ---------
@@ -991,7 +1002,7 @@ class IntervalIndex(IntervalMixin, Index):
         assert that we all have the same .closed
         we allow a 0-len index here as well
         """
-        if not len(set([i.closed for i in to_concat if len(i)])) == 1:
+        if not len(set(i.closed for i in to_concat if len(i))) == 1:
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)

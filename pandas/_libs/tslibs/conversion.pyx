@@ -6,32 +6,72 @@ from cython cimport Py_ssize_t
 
 import numpy as np
 cimport numpy as np
-from numpy cimport int64_t, ndarray
+from numpy cimport int64_t, int32_t, ndarray
 np.import_array()
 
 import pytz
 
-from cpython.datetime cimport datetime
+# stdlib datetime imports
+from datetime import time as datetime_time
+from cpython.datetime cimport (datetime, tzinfo,
+                               PyDateTime_Check, PyDate_Check,
+                               PyDateTime_CheckExact, PyDateTime_IMPORT)
+PyDateTime_IMPORT
 
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
-                          dt64_to_dtstruct, dtstruct_to_dt64)
+                          PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
+                          npy_datetime,
+                          dt64_to_dtstruct, dtstruct_to_dt64,
+                          get_datetime64_unit, get_datetime64_value,
+                          pydatetime_to_dt64)
 
-cimport util
+from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
+from util cimport (is_string_object,
+                   is_datetime64_object,
+                   is_integer_object, is_float_object)
+
+from timedeltas cimport cast_from_unit
 from timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_dateutil, treat_tz_as_pytz,
-    get_utcoffset, get_dst_info, get_timezone)
+    get_utcoffset, get_dst_info, get_timezone, maybe_get_tz)
+from parsing import parse_datetime_string
+
+from nattype import nat_strings, NaT
+from nattype cimport NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
-cdef int64_t NPY_NAT = util.get_nat()
 
 cdef int64_t DAY_NS = 86400000000000LL
 
 UTC = pytz.UTC
 
+# ----------------------------------------------------------------------
+# Misc Helpers
+
+# TODO: How to declare np.datetime64 as the input type?
+cdef inline int64_t get_datetime64_nanos(object val) except? -1:
+    """
+    Extract the value and unit from a np.datetime64 object, then convert the
+    value to nanoseconds if necessary.
+    """
+    cdef:
+        pandas_datetimestruct dts
+        PANDAS_DATETIMEUNIT unit
+        npy_datetime ival
+
+    unit = get_datetime64_unit(val)
+    ival = get_datetime64_value(val)
+
+    if unit != PANDAS_FR_ns:
+        pandas_datetime_to_datetimestruct(ival, unit, &dts)
+        check_dts_bounds(&dts)
+        ival = dtstruct_to_dt64(&dts)
+
+    return ival
 
 # ----------------------------------------------------------------------
 # _TSObject Conversion
@@ -48,6 +88,262 @@ cdef class _TSObject:
             return self.value
 
 
+cpdef int64_t pydt_to_i8(object pydt) except? -1:
+    """
+    Convert to int64 representation compatible with numpy datetime64; converts
+    to UTC
+
+    Parameters
+    ----------
+    pydt : object
+
+    Returns
+    -------
+    i8value : np.int64
+    """
+    cdef:
+        _TSObject ts
+
+    ts = convert_to_tsobject(pydt, None, None, 0, 0)
+
+    return ts.value
+
+
+cdef convert_to_tsobject(object ts, object tz, object unit,
+                         bint dayfirst, bint yearfirst):
+    """
+    Extract datetime and int64 from any of:
+        - np.int64 (with unit providing a possible modifier)
+        - np.datetime64
+        - a float (with unit providing a possible modifier)
+        - python int or long object (with unit providing a possible modifier)
+        - iso8601 string object
+        - python datetime object
+        - another timestamp object
+    """
+    cdef:
+        _TSObject obj
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+
+    obj = _TSObject()
+
+    if is_string_object(ts):
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+
+    if ts is None or ts is NaT:
+        obj.value = NPY_NAT
+    elif is_datetime64_object(ts):
+        if ts.view('i8') == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            obj.value = get_datetime64_nanos(ts)
+            dt64_to_dtstruct(obj.value, &obj.dts)
+    elif is_integer_object(ts):
+        if ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = ts * cast_from_unit(None, unit)
+            obj.value = ts
+            dt64_to_dtstruct(ts, &obj.dts)
+    elif is_float_object(ts):
+        if ts != ts or ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = cast_from_unit(ts, unit)
+            obj.value = ts
+            dt64_to_dtstruct(ts, &obj.dts)
+    elif PyDateTime_Check(ts):
+        return convert_datetime_to_tsobject(ts, tz)
+    elif PyDate_Check(ts):
+        # Keep the converter same as PyDateTime's
+        ts = datetime.combine(ts, datetime_time())
+        return convert_datetime_to_tsobject(ts, tz)
+    elif getattr(ts, '_typ', None) == 'period':
+        raise ValueError("Cannot convert Period to Timestamp "
+                         "unambiguously. Use to_timestamp")
+    else:
+        raise TypeError('Cannot convert input [{}] of type {} to '
+                        'Timestamp'.format(ts, type(ts)))
+
+    if obj.value != NPY_NAT:
+        check_dts_bounds(&obj.dts)
+
+    if tz is not None:
+        _localize_tso(obj, tz)
+
+    return obj
+
+
+cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
+                                            int32_t nanos=0):
+    """
+    Convert a datetime (or Timestamp) input `ts`, along with optional timezone
+    object `tz` to a _TSObject.
+
+    The optional argument `nanos` allows for cases where datetime input
+    needs to be supplemented with higher-precision information.
+
+    Parameters
+    ----------
+    ts : datetime or Timestamp
+        Value to be converted to _TSObject
+    tz : tzinfo or None
+        timezone for the timezone-aware output
+    nanos : int32_t, default is 0
+        nanoseconds supplement the precision of the datetime input ts
+
+    Returns
+    -------
+    obj : _TSObject
+    """
+    cdef:
+        _TSObject obj = _TSObject()
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+
+        # sort of a temporary hack
+        if ts.tzinfo is not None:
+            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
+                ts = tz.normalize(ts)
+                obj.value = pydatetime_to_dt64(ts, &obj.dts)
+                obj.tzinfo = ts.tzinfo
+            else:
+                # tzoffset
+                try:
+                    tz = ts.astimezone(tz).tzinfo
+                except:
+                    pass
+                obj.value = pydatetime_to_dt64(ts, &obj.dts)
+                ts_offset = get_utcoffset(ts.tzinfo, ts)
+                obj.value -= int(ts_offset.total_seconds() * 1e9)
+                tz_offset = get_utcoffset(tz, ts)
+                obj.value += int(tz_offset.total_seconds() * 1e9)
+                dt64_to_dtstruct(obj.value, &obj.dts)
+                obj.tzinfo = tz
+        elif not is_utc(tz):
+            ts = _localize_pydatetime(ts, tz)
+            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            obj.tzinfo = ts.tzinfo
+        else:
+            # UTC
+            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            obj.tzinfo = pytz.utc
+    else:
+        obj.value = pydatetime_to_dt64(ts, &obj.dts)
+        obj.tzinfo = ts.tzinfo
+
+    if obj.tzinfo is not None and not is_utc(obj.tzinfo):
+        offset = get_utcoffset(obj.tzinfo, ts)
+        obj.value -= int(offset.total_seconds() * 1e9)
+
+    if not PyDateTime_CheckExact(ts):
+        # datetime instance but not datetime type --> Timestamp
+        obj.value += ts.nanosecond
+        obj.dts.ps = ts.nanosecond * 1000
+
+    if nanos:
+        obj.value += nanos
+        obj.dts.ps = nanos * 1000
+
+    check_dts_bounds(&obj.dts)
+    return obj
+
+
+cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
+                                       bint dayfirst=False,
+                                       bint yearfirst=False):
+    """
+    Convert a string-like (bytes or unicode) input `ts`, along with optional
+    timezone object `tz` to a _TSObject.
+
+    The optional arguments `dayfirst` and `yearfirst` are passed to the
+    dateutil parser.
+
+    Parameters
+    ----------
+    ts : bytes or unicode
+        Value to be converted to _TSObject
+    tz : tzinfo or None
+        timezone for the timezone-aware output
+    dayfirst : bool, default False
+        When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
+        April 3, as opposed to the standard US interpretation March 4.
+    yearfirst : bool, default False
+        When parsing an ambiguous date string, interpret e.g. "01/05/09"
+        as "May 9, 2001", as opposed to the default "Jan 5, 2009"
+
+    Returns
+    -------
+    obj : _TSObject
+    """
+    cdef:
+        _TSObject obj
+        int out_local = 0, out_tzoffset = 0
+        datetime dt
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+
+    obj = _TSObject()
+
+    assert is_string_object(ts)
+
+    if len(ts) == 0 or ts in nat_strings:
+        ts = NaT
+    elif ts == 'now':
+        # Issue 9000, we short-circuit rather than going
+        # into np_datetime_strings which returns utc
+        ts = datetime.now(tz)
+    elif ts == 'today':
+        # Issue 9000, we short-circuit rather than going
+        # into np_datetime_strings which returns a normalized datetime
+        ts = datetime.now(tz)
+        # equiv: datetime.today().replace(tzinfo=tz)
+    else:
+        try:
+            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
+            obj.value = dtstruct_to_dt64(&obj.dts)
+            check_dts_bounds(&obj.dts)
+            if out_local == 1:
+                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+                if tz is None:
+                    check_dts_bounds(&obj.dts)
+                    return obj
+                else:
+                    # Keep the converter same as PyDateTime's
+                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
+                                              None, 0, 0)
+                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                  obj.dts.us, obj.tzinfo)
+                    obj = convert_datetime_to_tsobject(dt, tz,
+                                                       nanos=obj.dts.ps / 1000)
+                    return obj
+
+            else:
+                ts = obj.value
+                if tz is not None:
+                    # shift for _localize_tso
+                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                            ambiguous='raise',
+                                            errors='raise')[0]
+        except ValueError:
+            try:
+                ts = parse_datetime_string(ts, dayfirst=dayfirst,
+                                           yearfirst=yearfirst)
+            except Exception:
+                raise ValueError("could not convert string to Timestamp")
+
+    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+
+
+# ----------------------------------------------------------------------
+# Localization
+
 cdef inline void _localize_tso(_TSObject obj, object tz):
     """
     Take a TSObject in UTC and localizes to timezone tz.
@@ -55,19 +351,20 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t delta, posn
+        datetime dt
+
+    assert obj.tzinfo is None
 
     if is_utc(tz):
-        obj.tzinfo = tz
+        pass
+    elif obj.value == NPY_NAT:
+        pass
     elif is_tzlocal(tz):
         dt64_to_dtstruct(obj.value, &obj.dts)
         dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
                       obj.dts.min, obj.dts.sec, obj.dts.us, tz)
         delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-        if obj.value != NPY_NAT:
-            dt64_to_dtstruct(obj.value + delta, &obj.dts)
-        else:
-            dt64_to_dtstruct(obj.value, &obj.dts)
-        obj.tzinfo = tz
+        dt64_to_dtstruct(obj.value + delta, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -77,37 +374,44 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
         # static/pytz/dateutil specific code
         if is_fixed_offset(tz):
             # statictzinfo
-            if len(deltas) > 0 and obj.value != NPY_NAT:
-                dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-            else:
-                dt64_to_dtstruct(obj.value, &obj.dts)
-            obj.tzinfo = tz
+            assert len(deltas) == 1, len(deltas)
+            dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
         elif treat_tz_as_pytz(tz):
-            inf = tz._transition_info[pos]
-            if obj.value != NPY_NAT:
-                dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            else:
-                dt64_to_dtstruct(obj.value, &obj.dts)
-            obj.tzinfo = tz._tzinfos[inf]
+            tz = tz._tzinfos[tz._transition_info[pos]]
+            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
         elif treat_tz_as_dateutil(tz):
-            if obj.value != NPY_NAT:
-                dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            else:
-                dt64_to_dtstruct(obj.value, &obj.dts)
-            obj.tzinfo = tz
+            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
         else:
-            obj.tzinfo = tz
+            pass
 
+    obj.tzinfo = tz
+
+
+cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
+    """
+    Take a datetime/Timestamp in UTC and localizes to timezone tz.
+
+    NB: Unlike the version in tslib, this treats datetime and Timestamp objects
+        identically, i.e. discards nanos from Timestamps.
+        It also assumes that the `tz` input is not None.
+    """
+    if tz == 'UTC' or tz is UTC:
+        return UTC.localize(dt)
+    try:
+        # datetime.replace with pytz may be incorrect result
+        return tz.localize(dt)
+    except AttributeError:
+        return dt.replace(tzinfo=tz)
 
 # ----------------------------------------------------------------------
-# Localization / Timezone Conversion
+# Timezone Conversion
 
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
     Convert the val (in i8) from timezone1 to timezone2
 
-    This is a single timezone versoin of tz_convert
+    This is a single timezone version of tz_convert
 
     Parameters
     ----------
@@ -126,6 +430,10 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
+        datetime dt
+
+    # See GH#17734 We should always be converting either from UTC or to UTC
+    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
 
     if val == NPY_NAT:
         return val
@@ -149,8 +457,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     if get_timezone(tz2) == 'UTC':
         return utc_date
-    if is_tzlocal(tz2):
-        dt64_to_dtstruct(val, &dts)
+    elif is_tzlocal(tz2):
+        dt64_to_dtstruct(utc_date, &dts)
         dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                       dts.min, dts.sec, dts.us, tz2)
         delta = int(get_utcoffset(tz2, dt).total_seconds()) * 1000000000
@@ -190,6 +498,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         ndarray[Py_ssize_t] posn
         int64_t v, offset, delta
         pandas_datetimestruct dts
+        datetime dt
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -281,6 +590,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     return result
 
 
+# TODO: cdef scalar version to call from convert_str_to_tsobject
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
@@ -303,6 +613,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         pandas_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
+        datetime dt
 
     # Vectorized version of DstTzInfo.localize
 
@@ -323,7 +634,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             result[i] = v - delta
         return result
 
-    if util.is_string_object(ambiguous):
+    if is_string_object(ambiguous):
         if ambiguous == 'infer':
             infer_dst = True
         elif ambiguous == 'NaT':
@@ -484,3 +795,183 @@ cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
     from pandas._libs.tslib import Timestamp
     return str(Timestamp(val))
+
+
+# ----------------------------------------------------------------------
+# Normalization
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def date_normalize(ndarray[int64_t] stamps, tz=None):
+    """
+    Normalize each of the (nanosecond) timestamps in the given array by
+    rounding down to the beginning of the day (i.e. midnight).  If `tz`
+    is not None, then this is midnight for this timezone.
+
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
+
+    Returns
+    -------
+    result : int64 ndarray of converted of normalized nanosecond timestamps
+    """
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        pandas_datetimestruct dts
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+
+    if tz is not None:
+        tz = maybe_get_tz(tz)
+        result = _normalize_local(stamps, tz)
+    else:
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                dt64_to_dtstruct(stamps[i], &dts)
+                result[i] = _normalized_stamp(&dts)
+
+    return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
+    """
+    Normalize each of the (nanosecond) timestamps in the given array by
+    rounding down to the beginning of the day (i.e. midnight) for the
+    given timezone `tz`.
+
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
+
+    Returns
+    -------
+    result : int64 ndarray of converted of normalized nanosecond timestamps
+    """
+    cdef:
+        Py_ssize_t n = len(stamps)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans, deltas, pos
+        pandas_datetimestruct dts
+        datetime dt
+
+    if is_utc(tz):
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                dt64_to_dtstruct(stamps[i], &dts)
+                result[i] = _normalized_stamp(&dts)
+    elif is_tzlocal(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
+            dt64_to_dtstruct(stamps[i], &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+            dt64_to_dtstruct(stamps[i] + delta, &dts)
+            result[i] = _normalized_stamp(&dts)
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans, deltas, typ = get_dst_info(tz)
+
+        _pos = trans.searchsorted(stamps, side='right') - 1
+        if _pos.dtype != np.int64:
+            _pos = _pos.astype(np.int64)
+        pos = _pos
+
+        # statictzinfo
+        if typ not in ['pytz', 'dateutil']:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
+                result[i] = _normalized_stamp(&dts)
+        else:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
+                result[i] = _normalized_stamp(&dts)
+
+    return result
+
+
+cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts) nogil:
+    """
+    Normalize the given datetimestruct to midnight, then convert to int64_t.
+
+    Parameters
+    ----------
+    *dts : pointer to pandas_datetimestruct
+
+    Returns
+    -------
+    stamp : int64
+    """
+    dts.hour = 0
+    dts.min = 0
+    dts.sec = 0
+    dts.us = 0
+    dts.ps = 0
+    return dtstruct_to_dt64(dts)
+
+
+def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
+    """
+    Check if all of the given (nanosecond) timestamps are normalized to
+    midnight, i.e. hour == minute == second == 0.  If the optional timezone
+    `tz` is not None, then this is midnight for this timezone.
+
+    Parameters
+    ----------
+    stamps : int64 ndarray
+    tz : tzinfo or None
+
+    Returns
+    -------
+    is_normalized : bool True if all stamps are normalized
+    """
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        ndarray[int64_t] trans, deltas
+        pandas_datetimestruct dts
+        datetime dt
+
+    if tz is None or is_utc(tz):
+        for i in range(n):
+            dt64_to_dtstruct(stamps[i], &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
+    elif is_tzlocal(tz):
+        for i in range(n):
+            dt64_to_dtstruct(stamps[i], &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
+                          dts.sec, dts.us, tz)
+            dt = dt + tz.utcoffset(dt)
+            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
+                return False
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+
+        for i in range(n):
+            # Adjust datetime64 timestamp, recompute datetimestruct
+            pos = trans.searchsorted(stamps[i]) - 1
+            inf = tz._transition_info[pos]
+
+            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
+
+    return True

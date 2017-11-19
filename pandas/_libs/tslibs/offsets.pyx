@@ -4,17 +4,21 @@
 cimport cython
 
 import time
-from cpython.datetime cimport time as dt_time
+from cpython.datetime cimport datetime, timedelta, time as dt_time
+
+from dateutil.relativedelta import relativedelta
 
 import numpy as np
 cimport numpy as np
 np.import_array()
 
 
-from util cimport is_string_object
+from util cimport is_string_object, is_integer_object
 
-from conversion cimport tz_convert_single
-from pandas._libs.tslib import pydt_to_i8
+from pandas._libs.tslib import monthrange
+
+from conversion cimport tz_convert_single, pydt_to_i8
+from frequencies cimport get_freq_code
 
 # ---------------------------------------------------------------------
 # Constants
@@ -79,7 +83,6 @@ _offset_to_period_map = {
 
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
-
 for __prefix in need_suffix:
     for _m in _MONTHS:
         key = '%s-%s' % (__prefix, _m)
@@ -105,22 +108,76 @@ def as_datetime(obj):
     return obj
 
 
-def _is_normalized(dt):
+cpdef bint _is_normalized(dt):
     if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
             dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
         return False
     return True
 
 
+def apply_index_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely wtih cython class methods
+    def wrapper(self, other):
+        result = func(self, other)
+        if self.normalize:
+            result = result.to_period('D').to_timestamp()
+        return result
+
+    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    try:
+        wrapper.__module__ = func.__module__
+    except AttributeError:
+        # AttributeError: 'method_descriptor' object has no
+        # attribute '__module__'
+        pass
+    return wrapper
+
+
 # ---------------------------------------------------------------------
 # Business Helpers
 
-def _get_firstbday(wkday):
+cpdef int get_lastbday(int wkday, int days_in_month):
     """
-    wkday is the result of monthrange(year, month)
+    Find the last day of the month that is a business day.
 
-    If it's a saturday or sunday, increment first business day to reflect this
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int
+
+    Returns
+    -------
+    last_bday : int
     """
+    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
+
+
+cpdef int get_firstbday(int wkday, int days_in_month=0):
+    """
+    Find the first day of the month that is a business day.
+
+    (wkday, days_in_month) is the output from monthrange(year, month)
+
+    Parameters
+    ----------
+    wkday : int
+    days_in_month : int, default 0
+
+    Returns
+    -------
+    first_bday : int
+
+    Notes
+    -----
+    `days_in_month` arg is a dummy so that this has the same signature as
+    `get_lastbday`.
+    """
+    cdef int first
     first = 1
     if wkday == 5:  # on Saturday
         first = 3
@@ -194,6 +251,45 @@ def _validate_business_time(t_input):
     else:
         raise ValueError("time data must be string or datetime.time")
 
+
+# ---------------------------------------------------------------------
+# Constructor Helpers
+
+_rd_kwds = set([
+    'years', 'months', 'weeks', 'days',
+    'year', 'month', 'week', 'day', 'weekday',
+    'hour', 'minute', 'second', 'microsecond',
+    'nanosecond', 'nanoseconds',
+    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
+
+
+def _determine_offset(kwds):
+    # timedelta is used for sub-daily plural offsets and all singular
+    # offsets relativedelta is used for plural offsets of daily length or
+    # more nanosecond(s) are handled by apply_wraps
+    kwds_no_nanos = dict(
+        (k, v) for k, v in kwds.items()
+        if k not in ('nanosecond', 'nanoseconds')
+    )
+    # TODO: Are nanosecond and nanoseconds allowed somewhere?
+
+    _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
+                               'year', 'month', 'week', 'day', 'weekday',
+                               'hour', 'minute', 'second', 'microsecond')
+
+    use_relativedelta = False
+    if len(kwds_no_nanos) > 0:
+        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+            offset = relativedelta(**kwds_no_nanos)
+            use_relativedelta = True
+        else:
+            # sub-daily offset - use timedelta (tz-aware)
+            offset = timedelta(**kwds_no_nanos)
+    else:
+        offset = timedelta(1)
+    return offset, use_relativedelta
+
+
 # ---------------------------------------------------------------------
 # Mixins & Singletons
 
@@ -206,3 +302,292 @@ class ApplyTypeError(TypeError):
 # TODO: unused.  remove?
 class CacheableOffset(object):
     _cacheable = True
+
+
+class BeginMixin(object):
+    # helper for vectorized offsets
+
+    def _beg_apply_index(self, i, freq):
+        """Offsets index to beginning of Period frequency"""
+
+        off = i.to_perioddelta('D')
+
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
+        if self.n <= 0:
+            # when subtracting, dates on start roll to prior
+            roll = np.where(base_period.to_timestamp() == i - off,
+                            self.n, self.n + 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp()
+        return base + off
+
+
+class EndMixin(object):
+    # helper for vectorized offsets
+
+    def _end_apply_index(self, i, freq):
+        """Offsets index to end of Period frequency"""
+
+        off = i.to_perioddelta('D')
+
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
+        if self.n > 0:
+            # when adding, dates on end roll to next
+            roll = np.where(base_period.to_timestamp(how='end') == i - off,
+                            self.n, self.n - 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp(how='end')
+        return base + off
+
+
+# ---------------------------------------------------------------------
+# Base Classes
+
+class _BaseOffset(object):
+    """
+    Base class for DateOffset methods that are not overriden by subclasses
+    and will (after pickle errors are resolved) go into a cdef class.
+    """
+    _typ = "dateoffset"
+    _normalize_cache = True
+    _cacheable = False
+    _day_opt = None
+
+    def __call__(self, other):
+        return self.apply(other)
+
+    def __mul__(self, someInt):
+        return self.__class__(n=someInt * self.n, normalize=self.normalize,
+                              **self.kwds)
+
+    def __neg__(self):
+        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # that allows us to use methods that can go in a `cdef class`
+        return self * -1
+
+    def copy(self):
+        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # that allows us to use methods that can go in a `cdef class`
+        return self * 1
+
+    # TODO: this is never true.  fix it or get rid of it
+    def _should_cache(self):
+        return self.isAnchored() and self._cacheable
+
+    def __repr__(self):
+        className = getattr(self, '_outputName', type(self).__name__)
+
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        n_str = ""
+        if self.n != 1:
+            n_str = "%s * " % self.n
+
+        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        return out
+
+    def _get_offset_day(self, datetime other):
+        # subclass must implement `_day_opt`; calling from the base class
+        # will raise NotImplementedError.
+        return get_day_of_month(other, self._day_opt)
+
+
+class BaseOffset(_BaseOffset):
+    # Here we add __rfoo__ methods that don't play well with cdef classes
+    def __rmul__(self, someInt):
+        return self.__mul__(someInt)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __rsub__(self, other):
+        if getattr(other, '_typ', None) in ['datetimeindex', 'series']:
+            # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
+            return other - self
+        return -self + other
+
+
+# ----------------------------------------------------------------------
+# RelativeDelta Arithmetic
+
+cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+    """
+    Given a datetime (or Timestamp) `stamp`, an integer `months` and an
+    option `day_opt`, return a new datetimelike that many months later,
+    with day determined by `day_opt` using relativedelta semantics.
+
+    Scalar analogue of tslib.shift_months
+
+    Parameters
+    ----------
+    stamp : datetime or Timestamp
+    months : int
+    day_opt : None, 'start', 'end', or an integer
+        None: returned datetimelike has the same day as the input, or the
+              last day of the month if the new month is too short
+        'start': returned datetimelike has day=1
+        'end': returned datetimelike has day on the last day of the month
+        int: returned datetimelike has day equal to day_opt
+
+    Returns
+    -------
+    shifted : datetime or Timestamp (same as input `stamp`)
+    """
+    cdef:
+        int year, month, day
+        int wkday, days_in_month, dy
+
+    dy = (stamp.month + months) // 12
+    month = (stamp.month + months) % 12
+
+    if month == 0:
+        month = 12
+        dy -= 1
+    year = stamp.year + dy
+
+    wkday, days_in_month = monthrange(year, month)
+    if day_opt is None:
+        day = min(stamp.day, days_in_month)
+    elif day_opt == 'start':
+        day = 1
+    elif day_opt == 'end':
+        day = days_in_month
+    elif day_opt == 'business_start':
+        # first business day of month
+        day = get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
+        # last business day of month
+        day = get_lastbday(wkday, days_in_month)
+    elif is_integer_object(day_opt):
+        day = min(day_opt, days_in_month)
+    else:
+        raise ValueError(day_opt)
+    return stamp.replace(year=year, month=month, day=day)
+
+
+cpdef int get_day_of_month(datetime other, day_opt) except? -1:
+    """
+    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    policy, as described by the `day_opt` argument.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    day_of_month : int
+
+    Examples
+    -------
+    >>> other = datetime(2017, 11, 14)
+    >>> get_day_of_month(other, 'start')
+    1
+    >>> get_day_of_month(other, 'end')
+    30
+
+    """
+    cdef:
+        int wkday, days_in_month
+
+    if day_opt == 'start':
+        return 1
+
+    wkday, days_in_month = monthrange(other.year, other.month)
+    if day_opt == 'end':
+        return days_in_month
+    elif day_opt == 'business_start':
+        # first business day of month
+        return get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
+        # last business day of month
+        return get_lastbday(wkday, days_in_month)
+    elif is_integer_object(day_opt):
+        day = min(day_opt, days_in_month)
+    elif day_opt is None:
+        # Note: unlike `shift_month`, get_day_of_month does not
+        # allow day_opt = None
+        raise NotImplementedError
+    else:
+        raise ValueError(day_opt)
+
+
+cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    day_opt : 'start', 'end'
+        'start': returns 1
+        'end': returns last day  of the month
+
+    Returns
+    -------
+    n : int number of periods to increment
+
+    Notes
+    -----
+    * Mirrors `roll_check` in tslib.shift_months
+
+    Examples
+    -------
+    >>> month = 3
+    >>> day_opt = 'start'              # `other` will be compared to March 1
+    >>> other = datetime(2017, 2, 10)  # before March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    1
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
+    >>> roll_yearday(other, 2, month, day_opt)
+    2
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    >>> month = 6
+    >>> day_opt = 'end'                # `other` will be compared to June 30
+    >>> other = datetime(1999, 6, 29)  # before June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    4
+    >>> roll_yearday(other, -7, month, day_opt)
+    -7
+    >>>
+    >>> other = Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
+    >>> roll_yearday(other, 5, month, day_opt)
+    5
+    >>> roll_yearday(other, -7, month, day_opt)
+    -6
+
+    """
+    # Note: The other.day < ... condition will never hold when day_opt=='start'
+    # and the other.day > ... condition will never hold when day_opt=='end'.
+    # At some point these extra checks may need to be optimized away.
+    # But that point isn't today.
+    if n > 0:
+        if other.month < month or (other.month == month and
+                                   other.day < get_day_of_month(other,
+                                                                day_opt)):
+            n -= 1
+    elif n <= 0:
+        if other.month > month or (other.month == month and
+                                   other.day > get_day_of_month(other,
+                                                                day_opt)):
+            n += 1
+    return n

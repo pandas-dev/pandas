@@ -439,7 +439,7 @@ class AbstractHolidayCalendar(object):
 
         if not isinstance(base, list):
             base = [base]
-        base_holidays = dict([(holiday.name, holiday) for holiday in base])
+        base_holidays = dict((holiday.name, holiday) for holiday in base)
 
         other_holidays.update(base_holidays)
         return list(other_holidays.values())
