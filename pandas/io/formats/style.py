@@ -133,6 +133,9 @@ class Styler(object):
             precision = get_option('display.precision')
         self.precision = precision
         self.table_attributes = table_attributes
+        self.hidden_index = False
+        self.hidden_columns = []
+
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
@@ -180,6 +183,8 @@ class Styler(object):
         caption = self.caption
         ctx = self.ctx
         precision = self.precision
+        hidden_index = self.hidden_index
+        hidden_columns = self.hidden_columns
         uuid = self.uuid or str(uuid1()).replace("-", "_")
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
@@ -194,7 +199,7 @@ class Styler(object):
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
-        col_lengths = _get_level_lengths(self.columns)
+        col_lengths = _get_level_lengths(self.columns, hidden_columns)
 
         cell_context = dict()
 
@@ -217,7 +222,7 @@ class Styler(object):
             row_es = [{"type": "th",
                        "value": BLANK_VALUE,
                        "display_value": BLANK_VALUE,
-                       "is_visible": True,
+                       "is_visible": not hidden_index,
                        "class": " ".join([BLANK_CLASS])}] * (n_rlvls - 1)
 
             # ... except maybe the last for columns.names
@@ -229,7 +234,7 @@ class Styler(object):
                            "value": name,
                            "display_value": name,
                            "class": " ".join(cs),
-                           "is_visible": True})
+                           "is_visible": not hidden_index})
 
             if clabels:
                 for c, value in enumerate(clabels[r]):
@@ -252,7 +257,8 @@ class Styler(object):
                     row_es.append(es)
                 head.append(row_es)
 
-        if self.data.index.names and _any_not_none(*self.data.index.names):
+        if (self.data.index.names and _any_not_none(*self.data.index.names) and
+                not hidden_index):
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
@@ -266,7 +272,7 @@ class Styler(object):
                 [{"type": "th",
                   "value": BLANK_VALUE,
                   "class": " ".join([BLANK_CLASS])
-                  }] * len(clabels[0]))
+                  }] * (len(clabels[0]) - len(hidden_columns)))
 
             head.append(index_header_row)
 
@@ -278,7 +284,8 @@ class Styler(object):
                        "row{row}".format(row=r)]
                 es = {
                     "type": "th",
-                    "is_visible": _is_visible(r, c, idx_lengths),
+                    "is_visible": (_is_visible(r, c, idx_lengths) and
+                                   not hidden_index),
                     "value": value,
                     "display_value": value,
                     "id": "_".join(rid[1:]),
@@ -302,7 +309,8 @@ class Styler(object):
                     "value": value,
                     "class": " ".join(cs),
                     "id": "_".join(cs[1:]),
-                    "display_value": formatter(value)
+                    "display_value": formatter(value),
+                    "is_visible": (c not in hidden_columns)
                 })
                 props = []
                 for x in ctx[r, c]:
@@ -741,7 +749,7 @@ class Styler(object):
 
     def set_caption(self, caption):
         """
-        Se the caption on a Styler
+        Set the caption on a Styler
 
         Parameters
         ----------
@@ -781,6 +789,40 @@ class Styler(object):
         ... )
         """
         self.table_styles = table_styles
+        return self
+
+    def hide_index(self):
+        """
+        Hide any indices from rendering.
+
+        .. versionadded:: 0.22.0
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.hidden_index = True
+        return self
+
+    def hide_columns(self, subset):
+        """
+        Hide columns from rendering.
+
+        .. versionadded:: 0.22.0
+
+        Parameters
+        ----------
+        subset: IndexSlice
+            An argument to ``DataFrame.loc`` that identifies which columns
+            are hidden.
+
+        Returns
+        -------
+        self : Styler
+        """
+        subset = _non_reducing_slice(subset)
+        hidden_df = self.data.loc[subset]
+        self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
 
     # -----------------------------------------------------------------------
@@ -1157,31 +1199,48 @@ def _is_visible(idx_row, idx_col, lengths):
     return (idx_col, idx_row) in lengths
 
 
-def _get_level_lengths(index):
+def _get_level_lengths(index, hidden_elements=None):
     """
     Given an index, find the level lenght for each element.
+    Optional argument is a list of index positions which
+    should not be visible.
 
     Result is a dictionary of (level, inital_position): span
     """
     sentinel = sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
-    if index.nlevels == 1:
-        return {(0, i): 1 for i, value in enumerate(levels)}
+    if hidden_elements is None:
+        hidden_elements = []
 
     lengths = {}
+    if index.nlevels == 1:
+        for i, value in enumerate(levels):
+            if(i not in hidden_elements):
+                lengths[(0, i)] = 1
+        return lengths
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
             if not get_option('display.multi_sparse'):
                 lengths[(i, j)] = 1
-            elif row != sentinel:
+            elif (row != sentinel) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1
-            else:
+            elif (row != sentinel):
+                # even if its hidden, keep track of it in case
+                # length >1 and later elemens are visible
+                last_label = j
+                lengths[(i, last_label)] = 0
+            elif(j not in hidden_elements):
                 lengths[(i, last_label)] += 1
 
-    return lengths
+    non_zero_lengths = {}
+    for element, length in lengths.items():
+        if(length >= 1):
+            non_zero_lengths[element] = length
+
+    return non_zero_lengths
 
 
 def _maybe_wrap_formatter(formatter):
