@@ -22,7 +22,8 @@ class TestStyler(object):
         self.g = lambda x: x
 
         def h(x, foo='bar'):
-            return pd.Series(['color: %s' % foo], index=x.index, name=x.name)
+            return pd.Series(
+                ['color: {foo}'.format(foo=foo)], index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -214,7 +215,7 @@ class TestStyler(object):
 
     def test_apply_axis(self):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
-        f = lambda x: ['val: %s' % x.max() for v in x]
+        f = lambda x: ['val: {max}'.format(max=x.max()) for v in x]
         result = df.style.apply(f, axis=1)
         assert len(result._todo) == 1
         assert len(result.ctx) == 0
@@ -658,7 +659,8 @@ class TestStyler(object):
 
     def test_export(self):
         f = lambda x: 'color: red' if x > 0 else 'color: blue'
-        g = lambda x, y, z: 'color: %s' if x > 0 else 'color: %s' % z
+        g = lambda x, y, z: 'color: {z}'.format(z=z) \
+            if x > 0 else 'color: {z}'.format(z=z)
         style1 = self.styler
         style1.applymap(f)\
             .applymap(g, y='a', z='b')\

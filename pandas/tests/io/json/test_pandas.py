@@ -531,7 +531,8 @@ class TestPandasContainer(object):
 
         # verify the proper conversion of printable content
         df_printable = DataFrame({'A': [binthing.hexed]})
-        assert df_printable.to_json() == '{"A":{"0":"%s"}}' % hexed
+        assert df_printable.to_json() == \
+            '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
 
         # check if non-printable content throws appropriate Exception
         df_nonprintable = DataFrame({'A': [binthing]})
@@ -546,15 +547,16 @@ class TestPandasContainer(object):
 
         # default_handler should resolve exceptions for non-string types
         assert df_nonprintable.to_json(default_handler=str) == \
-            '{"A":{"0":"%s"}}' % hexed
+            '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
         assert df_mixed.to_json(default_handler=str) == \
-            '{"A":{"0":"%s"},"B":{"0":1}}' % hexed
+            '{{"A":{{"0":"{hex}"}},"B":{{"0":1}}}}'.format(hex=hexed)
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
         df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
         assert df.to_json() == \
-            '{"%s":{"0":1},"foo":{"0":1337}}' % ('bar' * 100000)
+            '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
+                bar=('bar' * 100000))
 
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
