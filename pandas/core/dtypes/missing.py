@@ -22,6 +22,9 @@ from .common import (is_string_dtype, is_datetimelike,
                      _NS_DTYPE)
 from .inference import is_list_like
 
+isposinf_scalar = libmissing.isposinf_scalar
+isneginf_scalar = libmissing.isneginf_scalar
+
 
 def isna(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
