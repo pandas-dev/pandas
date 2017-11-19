@@ -859,21 +859,10 @@ class IndexOpsMixin(object):
             a MultiIndex will be returned.
 
         """
-        if is_extension_type(self.dtype):
-            values = self._values
-            if na_action is not None:
-                raise NotImplementedError
-            map_f = lambda values, f: values.map(f)
-        else:
-            values = self.astype(object)
-            values = getattr(values, 'values', values)
-            if na_action == 'ignore':
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f,
-                                              isna(values).view(np.uint8))
-            else:
-                map_f = lib.map_infer
 
+        # we can fastpath dict/Series to an efficient map
+        # as we know that we are not going to have to yield
+        # python types
         if isinstance(arg, dict):
             if hasattr(arg, '__missing__'):
                 # If a dictionary subclass defines a default value method,
@@ -889,11 +878,33 @@ class IndexOpsMixin(object):
         if isinstance(arg, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and arg should be an index
+            if is_extension_type(self.dtype):
+                values = self._values
+            else:
+                values = self.values
+
             indexer = arg.index.get_indexer(values)
             new_values = algorithms.take_1d(arg._values, indexer)
+            return new_values
+
+        # we must convert to python types
+        if is_extension_type(self.dtype):
+            values = self._values
+            if na_action is not None:
+                raise NotImplementedError
+            map_f = lambda values, f: values.map(f)
         else:
-            # arg is a function
-            new_values = map_f(values, arg)
+            values = self.astype(object)
+            values = getattr(values, 'values', values)
+            if na_action == 'ignore':
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f,
+                                              isna(values).view(np.uint8))
+            else:
+                map_f = lib.map_infer
+
+        # arg is a function
+        new_values = map_f(values, arg)
 
         return new_values
 
