@@ -202,7 +202,7 @@ class read_json_lines(object):
     def setup(self):
         self.N = 100000
         self.C = 5
-        self.df = DataFrame(dict([('float{0}'.format(i), randn(self.N)) for i in range(self.C)]))
+        self.df = DataFrame({('float{0}'.format(i), randn(self.N)) for i in range(self.C)})
         self.df.to_json(self.fname,orient="records",lines=True)
 
     def teardown(self):

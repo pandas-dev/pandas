@@ -1133,8 +1133,8 @@ def _evaluate_usecols(usecols, names):
     If not a callable, returns 'usecols'.
     """
     if callable(usecols):
-        return set([i for i, name in enumerate(names)
-                    if usecols(name)])
+        return set(i for i, name in enumerate(names)
+                   if usecols(name))
     return usecols
 
 
@@ -1356,7 +1356,7 @@ class ParserBase(object):
         field_count = len(header[0])
 
         def extract(r):
-            return tuple([r[i] for i in range(field_count) if i not in sic])
+            return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
@@ -1371,7 +1371,7 @@ class ParserBase(object):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
-                    % ','.join([str(x) for x in self.header])
+                    % ','.join(str(x) for x in self.header)
                 )
 
         # clean the column names (if we have an index_col)
@@ -3133,7 +3133,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = '_'.join([str(x) for x in colnames])
+    new_name = '_'.join(str(x) for x in colnames)
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
@@ -3156,9 +3156,9 @@ def _clean_na_values(na_values, keep_default_na=True):
                     v = [v]
                 v = set(v) | _NA_VALUES
                 na_values[k] = v
-        na_fvalues = dict([
+        na_fvalues = dict(
             (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
-        ])
+        )
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3310,7 +3310,7 @@ def _concat_date_cols(date_cols):
                 for x in date_cols[0]
             ], dtype=object)
 
-    rs = np.array([' '.join([compat.text_type(y) for y in x])
+    rs = np.array([' '.join(compat.text_type(y) for y in x)
                    for x in zip(*date_cols)], dtype=object)
     return rs
 
@@ -3381,7 +3381,7 @@ class FixedWidthReader(BaseIterator):
 
     def detect_colspecs(self, n=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = ''.join([r'\%s' % x for x in self.delimiter])
+        delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
         rows = self.get_rows(n, skiprows)
         if not rows:

@@ -101,7 +101,7 @@ def _union_indexes(indexes):
 
 
 def _sanitize_and_check(indexes):
-    kinds = list(set([type(index) for index in indexes]))
+    kinds = list({type(index) for index in indexes})
 
     if list in kinds:
         if len(kinds) > 1:
@@ -122,8 +122,8 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set([tuple(i.names) for i in indexes
-                           if com._any_not_none(*i.names)])
+    consensus_names = set(tuple(i.names) for i in indexes
+                          if com._any_not_none(*i.names))
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels

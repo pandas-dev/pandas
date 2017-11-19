@@ -84,6 +84,19 @@ if [ "$LINT" ]; then
     fi
     echo "Check for invalid testing DONE"
 
+    echo "Check for use of lists instead of generators in built-in Python functions"
+
+    # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`
+    #
+    # Check the following functions:
+    # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)"
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for use of lists instead of generators in built-in Python functions DONE"
+
 else
     echo "NOT Linting"
 fi

@@ -420,8 +420,8 @@ class TestDataFrameDataTypes(TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            assert (list(set([s.dtype.name for
-                              _, s in compat.iteritems(df)]))[0] == v)
+            assert (list(set(s.dtype.name for
+                             _, s in compat.iteritems(df)))[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')

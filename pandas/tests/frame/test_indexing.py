@@ -269,8 +269,8 @@ class TestDataFrameIndexing(TestData):
 
             data = df._get_numeric_data()
             bif = df[df > 0]
-            bifw = DataFrame(dict([(c, np.where(data[c] > 0, data[c], np.nan))
-                                   for c in data.columns]),
+            bifw = DataFrame(dict((c, np.where(data[c] > 0, data[c], np.nan))
+                                  for c in data.columns),
                              index=data.index, columns=data.columns)
 
             # add back other columns to compare
@@ -2375,8 +2375,8 @@ class TestDataFrameIndexing(TestData):
                 return (issubclass(s.dtype.type, (np.integer, np.floating)) and
                         s.dtype != 'uint8')
 
-            return DataFrame(dict([(c, s + 1) if is_ok(s) else (c, s)
-                                   for c, s in compat.iteritems(df)]))
+            return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s)
+                                  for c, s in compat.iteritems(df)))
 
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -2399,9 +2399,9 @@ class TestDataFrameIndexing(TestData):
             _check_get(df, cond)
 
         # upcasting case (GH # 2794)
-        df = DataFrame(dict([(c, Series([1] * 3, dtype=c))
-                             for c in ['int64', 'int32',
-                                       'float32', 'float64']]))
+        df = DataFrame(dict((c, Series([1] * 3, dtype=c))
+                            for c in ['int64', 'int32',
+                                      'float32', 'float64']))
         df.iloc[1, :] = 0
         result = df.where(df >= 0).get_dtype_counts()
 
@@ -2453,8 +2453,8 @@ class TestDataFrameIndexing(TestData):
 
             # integers are upcast, so don't check the dtypes
             cond = df > 0
-            check_dtypes = all([not issubclass(s.type, np.integer)
-                                for s in df.dtypes])
+            check_dtypes = all(not issubclass(s.type, np.integer)
+                               for s in df.dtypes)
             _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
         # invalid conditions

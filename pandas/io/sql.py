@@ -1322,7 +1322,7 @@ class SQLiteTable(SQLTable):
                 keys = [self.keys]
             else:
                 keys = self.keys
-            cnames_br = ", ".join([escape(c) for c in keys])
+            cnames_br = ", ".join(escape(c) for c in keys)
             create_tbl_stmts.append(
                 "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
                     tbl=self.name, cnames_br=cnames_br))
@@ -1334,7 +1334,7 @@ class SQLiteTable(SQLTable):
                    if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
-            cnames_br = ",".join([escape(c) for c in ix_cols])
+            cnames_br = ",".join(escape(c) for c in ix_cols)
             create_stmts.append(
                 "CREATE INDEX " + escape("ix_" + self.name + "_" + cnames) +
                 "ON " + escape(self.name) + " (" + cnames_br + ")")

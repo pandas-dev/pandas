@@ -120,7 +120,7 @@ class TestDataFrameConstructors(TestData):
                 assert(a.dtype == d)
             if ad is None:
                 ad = dict()
-            ad.update(dict([(d, a) for d, a in zipper]))
+            ad.update(dict((d, a) for d, a in zipper))
             return DataFrame(ad)
 
         def _check_mixed_dtypes(df, dtypes=None):
@@ -696,8 +696,8 @@ class TestDataFrameConstructors(TestData):
             mrecs = mrecords.fromarrays(data, names=names)
 
             # fill the comb
-            comb = dict([(k, v.filled()) if hasattr(
-                v, 'filled') else (k, v) for k, v in comb])
+            comb = dict((k, v.filled()) if hasattr(
+                v, 'filled') else (k, v) for k, v in comb)
 
             expected = DataFrame(comb, columns=names)
             result = DataFrame(mrecs)

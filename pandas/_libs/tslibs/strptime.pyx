@@ -568,7 +568,7 @@ class TimeRE(dict):
                 break
         else:
             return ''
-        regex = '|'.join([re.escape(stuff) for stuff in to_convert])
+        regex = '|'.join(re.escape(stuff) for stuff in to_convert)
         regex = '(?P<%s>%s' % (directive, regex)
         return '%s)' % regex
 

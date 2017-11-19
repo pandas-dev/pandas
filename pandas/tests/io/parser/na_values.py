@@ -88,7 +88,7 @@ NaN,nan
 
             return buf
 
-        data = StringIO('\n'.join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
+        data = StringIO('\n'.join(f(i, v) for i, v in enumerate(_NA_VALUES)))
         expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
         df = self.read_csv(data, header=None)
         tm.assert_frame_equal(df, expected)

@@ -173,7 +173,7 @@ class SparseDataFrame(DataFrame):
         """ Init self from ndarray or list of lists """
         data = _prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
-        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        data = dict((idx, data[:, i]) for i, idx in enumerate(columns))
         return self._init_dict(data, index, columns, dtype)
 
     def _init_spmatrix(self, data, index, columns, dtype=None,

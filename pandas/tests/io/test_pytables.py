@@ -1391,7 +1391,7 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 wp = tm.makePanel()
                 wp2 = wp.rename_axis(
-                    dict([(x, "%s_extra" % x) for x in wp.minor_axis]), axis=2)
+                    dict((x, "%s_extra" % x) for x in wp.minor_axis), axis=2)
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
@@ -2143,9 +2143,9 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict([(c, Series(np.random.randn(5), dtype=c))
-                                  for c in ['float32', 'float64', 'int32',
-                                            'int64', 'int16', 'int8']]))
+            df1 = DataFrame(dict((c, Series(np.random.randn(5), dtype=c))
+                                 for c in ['float32', 'float64', 'int32',
+                                           'int64', 'int16', 'int8']))
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')

@@ -732,7 +732,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_attributes_dict(self):
         """ return an attributes dict for my class """
-        return dict([(k, getattr(self, k, None)) for k in self._attributes])
+        return dict((k, getattr(self, k, None)) for k in self._attributes)
 
     def view(self, cls=None):
 
@@ -838,7 +838,7 @@ class Index(IndexOpsMixin, PandasObject):
         space = self._format_space()
 
         prepr = (u(",%s") %
-                 space).join([u("%s=%s") % (k, v) for k, v in attrs])
+                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
 
         # no data provided, just attributes
         if data is None:
@@ -1781,7 +1781,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isinstance(obj, Index):
                 raise TypeError('all inputs must be Index')
 
-        names = set([obj.name for obj in to_concat])
+        names = set(obj.name for obj in to_concat)
         name = None if len(names) > 1 else self.name
 
         return self._concat(to_concat, name)

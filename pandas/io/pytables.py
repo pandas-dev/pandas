@@ -815,7 +815,7 @@ class HDFStore(StringMixin):
                     "all tables must have exactly the same nrows!")
 
         # axis is the concentation axes
-        axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
+        axis = list(set(t.non_index_axes[0][0] for t in tbls))[0]
 
         def func(_start, _stop, _where):
 
@@ -2238,7 +2238,7 @@ class Fixed(StringMixin):
         version = _ensure_decoded(
             getattr(self.group._v_attrs, 'pandas_version', None))
         try:
-            self.version = tuple([int(x) for x in version.split('.')])
+            self.version = tuple(int(x) for x in version.split('.'))
             if len(self.version) == 2:
                 self.version = self.version + (0,)
         except:
@@ -2259,7 +2259,7 @@ class Fixed(StringMixin):
         s = self.shape
         if s is not None:
             if isinstance(s, (list, tuple)):
-                s = "[%s]" % ','.join([pprint_thing(x) for x in s])
+                s = "[%s]" % ','.join(pprint_thing(x) for x in s)
             return "%-12.12s (shape->%s)" % (self.pandas_type, s)
         return self.pandas_type
 
@@ -2374,8 +2374,8 @@ class GenericFixed(Fixed):
 
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
-    _reverse_index_map = dict([(v, k)
-                               for k, v in compat.iteritems(_index_type_map)])
+    _reverse_index_map = dict((v, k)
+                              for k, v in compat.iteritems(_index_type_map))
     attributes = []
 
     # indexer helpders
@@ -2997,11 +2997,11 @@ class Table(Fixed):
 
         ver = ''
         if self.is_old_version:
-            ver = "[%s]" % '.'.join([str(x) for x in self.version])
+            ver = "[%s]" % '.'.join(str(x) for x in self.version)
 
         return "%-12.12s%s (typ->%s,nrows->%s,ncols->%s,indexers->[%s]%s)" % (
             self.pandas_type, ver, self.table_type_short, self.nrows,
-            self.ncols, ','.join([a.name for a in self.index_axes]), dc
+            self.ncols, ','.join(a.name for a in self.index_axes), dc
         )
 
     def __getitem__(self, c):
@@ -3510,8 +3510,8 @@ class Table(Fixed):
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
-            by_items = dict([(tuple(b_items.tolist()), (b, b_items))
-                             for b, b_items in zip(blocks, blk_items)])
+            by_items = dict((tuple(b_items.tolist()), (b, b_items))
+                            for b, b_items in zip(blocks, blk_items))
             new_blocks = []
             new_blk_items = []
             for ea in existing_table.values_axes:
@@ -3659,7 +3659,7 @@ class Table(Fixed):
         d = dict(name='table', expectedrows=expectedrows)
 
         # description from the axes & values
-        d['description'] = dict([(a.cname, a.typ) for a in self.axes])
+        d['description'] = dict((a.cname, a.typ) for a in self.axes)
 
         if complib:
             if complevel is None:

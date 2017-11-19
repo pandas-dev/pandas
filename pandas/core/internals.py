@@ -241,7 +241,7 @@ class Block(PandasObject):
 
         else:
 
-            shape = ' x '.join([pprint_thing(s) for s in self.shape])
+            shape = ' x '.join(pprint_thing(s) for s in self.shape)
             result = '{name}: {index}, {shape}, dtype: {dtype}'.format(
                 name=name, index=pprint_thing(self.mgr_locs.indexer),
                 shape=shape, dtype=self.dtype)
@@ -3376,7 +3376,7 @@ class BlockManager(PandasObject):
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
-        ndim = set([b.ndim for b in blocks])
+        ndim = set(b.ndim for b in blocks)
 
         if 2 in ndim:
 
@@ -4870,7 +4870,7 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
     if _can_consolidate:
 
         if dtype is None:
-            if len(set([b.dtype for b in blocks])) != 1:
+            if len(set(b.dtype for b in blocks)) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
             dtype = blocks[0].dtype
 

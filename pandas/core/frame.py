@@ -3895,7 +3895,7 @@ class DataFrame(NDFrame):
                     return self._constructor_sliced(r, index=new_index,
                                                     dtype=r.dtype)
 
-                result = dict([(col, f(col)) for col in this])
+                result = dict((col, f(col)) for col in this)
 
             # non-unique
             else:
@@ -3906,9 +3906,7 @@ class DataFrame(NDFrame):
                     return self._constructor_sliced(r, index=new_index,
                                                     dtype=r.dtype)
 
-                result = dict([
-                    (i, f(i)) for i, col in enumerate(this.columns)
-                ])
+                result = dict((i, f(i)) for i, col in enumerate(this.columns))
                 result = self._constructor(result, index=new_index, copy=False)
                 result.columns = new_columns
                 return result
@@ -3986,7 +3984,7 @@ class DataFrame(NDFrame):
         if self.columns.is_unique:
 
             def _compare(a, b):
-                return dict([(col, func(a[col], b[col])) for col in a.columns])
+                return dict((col, func(a[col], b[col])) for col in a.columns)
 
             new_data = expressions.evaluate(_compare, str_rep, self, other)
             return self._constructor(data=new_data, index=self.index,
@@ -3995,8 +3993,8 @@ class DataFrame(NDFrame):
         else:
 
             def _compare(a, b):
-                return dict([(i, func(a.iloc[:, i], b.iloc[:, i]))
-                             for i, col in enumerate(a.columns)])
+                return dict((i, func(a.iloc[:, i], b.iloc[:, i]))
+                            for i, col in enumerate(a.columns))
 
             new_data = expressions.evaluate(_compare, str_rep, self, other)
             result = self._constructor(data=new_data, index=self.index,
