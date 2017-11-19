@@ -564,7 +564,7 @@ class TestDataFrameMissingData(TestData):
         # tuple
         pytest.raises(TypeError, self.frame.fillna, (1, 2))
         # frame with series
-        pytest.raises(ValueError, self.frame.iloc[:, 0].fillna, self.frame)
+        pytest.raises(TypeError, self.frame.iloc[:, 0].fillna, self.frame)
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]

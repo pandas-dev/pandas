@@ -408,6 +408,11 @@ class TestSeriesMissingData(TestData):
                                     'dict, but you passed a "tuple"'):
             s.fillna(('a', 'b'))
 
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a "DataFrame"'):
+            s.fillna(DataFrame({1: ['a'], 3: ['b']}))
+
     def test_fillna_nat(self):
         series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
 

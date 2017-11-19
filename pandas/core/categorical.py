@@ -1680,7 +1680,7 @@ class Categorical(PandasObject):
                 values[indexer] = values_codes[values_codes != -1]
 
             # If value is not a dict or Series it should be a scalar
-            else:
+            elif is_scalar(value):
                 if not isna(value) and value not in self.categories:
                     raise ValueError("fill value must be in categories")
 
@@ -1691,6 +1691,11 @@ class Categorical(PandasObject):
                         values[mask] = -1
                     else:
                         values[mask] = self.categories.get_loc(value)
+
+            else:
+                raise TypeError('"value" parameter must be a scalar, dict '
+                                'or Series, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
 
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
