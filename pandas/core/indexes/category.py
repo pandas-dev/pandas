@@ -378,8 +378,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def is_monotonic_decreasing(self):
         return Index(self.codes).is_monotonic_decreasing
 
-    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
-    def unique(self):
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
         result = base.IndexOpsMixin.unique(self)
         # CategoricalIndex._shallow_copy uses keeps original categories
         # and ordered if not otherwise specified
