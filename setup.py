@@ -611,7 +611,8 @@ ext_data = {
                      '_libs/tslibs/nattype',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones'],
-        'depends': tseries_depends},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
