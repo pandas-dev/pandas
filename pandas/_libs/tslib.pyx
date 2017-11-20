@@ -1701,7 +1701,16 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
 def get_time_micros(ndarray[int64_t] dtindex):
     """
-    Datetime as int64 representation to a structured array of fields
+    Return the number of microseconds in the time component of a
+    nanosecond timestamp.
+
+    Parameters
+    ----------
+    dtindex : ndarray[int64_t]
+
+    Returns
+    -------
+    micros : ndarray[int64_t]
     """
     cdef:
         ndarray[int64_t] micros
