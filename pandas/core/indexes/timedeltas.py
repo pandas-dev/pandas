@@ -93,6 +93,7 @@ def _td_index_cmp(opname, nat_result=False):
             return result
         return Index(result)
 
+    wrapper.__name__ = opname
     return wrapper
 
 

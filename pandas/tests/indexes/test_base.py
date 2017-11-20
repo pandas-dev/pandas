@@ -2174,3 +2174,13 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
+
+
+def test_generated_op_names(indices):
+    index = indices
+    assert index.__eq__.__name__ == '__eq__'
+    assert index.__ne__.__name__ == '__ne__'
+    assert index.__le__.__name__ == '__le__'
+    assert index.__lt__.__name__ == '__lt__'
+    assert index.__ge__.__name__ == '__ge__'
+    assert index.__gt__.__name__ == '__gt__'

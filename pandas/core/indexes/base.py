@@ -3890,6 +3890,7 @@ class Index(IndexOpsMixin, PandasObject):
                 except TypeError:
                     return result
 
+            _evaluate_compare.__name__ = '__{name}__'.format(name=op.__name__)
             return _evaluate_compare
 
         cls.__eq__ = _make_compare(operator.eq)

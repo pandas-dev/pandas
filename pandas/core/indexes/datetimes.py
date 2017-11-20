@@ -135,6 +135,7 @@ def _dt_index_cmp(opname, nat_result=False):
             return result
         return Index(result)
 
+    wrapper.__name__ = opname
     return wrapper
 
 
@@ -1596,14 +1597,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise
 
-    # alias to offset
-    def _get_freq(self):
+    @property
+    def freq(self):
+        """get/set the frequency of the Index"""
         return self.offset
 
-    def _set_freq(self, value):
+    @freq.setter
+    def freq(self, value):
+        """get/set the frequency of the Index"""
         self.offset = value
-    freq = property(fget=_get_freq, fset=_set_freq,
-                    doc="get/set the frequency of the Index")
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',

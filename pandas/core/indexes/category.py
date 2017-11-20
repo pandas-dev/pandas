@@ -747,6 +747,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
                 return getattr(self.values, op)(other)
 
+            _evaluate_compare.__name__ = op
             return _evaluate_compare
 
         cls.__eq__ = _make_compare('__eq__')

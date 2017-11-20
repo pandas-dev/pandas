@@ -115,6 +115,8 @@ def _period_index_cmp(opname, nat_result=False):
             result[self._isnan] = nat_result
 
         return result
+
+    wrapper.__name__ = opname
     return wrapper
 
 
