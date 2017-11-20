@@ -79,7 +79,7 @@ Performance Improvements
 - Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
 - :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
 - Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
--
+- The overriden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
 
 .. _whatsnew_0220.docs:
 
