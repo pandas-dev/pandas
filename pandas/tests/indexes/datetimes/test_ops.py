@@ -8,6 +8,7 @@ from datetime import datetime
 from itertools import product
 import pandas as pd
 import pandas._libs.tslib as tslib
+from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,
@@ -668,8 +669,7 @@ def test_shift_months(years, months):
                        Timestamp('2000-01-01'),
                        Timestamp('2000-02-29'),
                        Timestamp('2000-12-31')])
-    actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 +
-                                              months))
+    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
     expected = DatetimeIndex([x + pd.offsets.DateOffset(
         years=years, months=months) for x in s])
     tm.assert_index_equal(actual, expected)
