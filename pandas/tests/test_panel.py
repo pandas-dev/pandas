@@ -7,7 +7,6 @@ import operator
 import pytest
 
 import numpy as np
-import pandas as pd
 
 from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.missing import remove_na_arraylike
@@ -367,7 +366,7 @@ class SafeForSparse(object):
         with catch_warnings(record=True):
             p = Panel(np.arange(3 * 4 * 5).reshape(3, 4, 5),
                       items=['ItemA', 'ItemB', 'ItemC'],
-                      major_axis=pd.date_range('20130101', periods=4),
+                      major_axis=date_range('20130101', periods=4),
                       minor_axis=list('ABCDE'))
             d = p.sum(axis=1).iloc[0]
             ops = ['add', 'sub', 'mul', 'truediv',
@@ -1351,18 +1350,18 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # make sure that we don't trigger any warnings
             result = self.panel.apply(f, axis=['items', 'major_axis'])
-            expected = Panel(dict([(ax, f(self.panel.loc[:, :, ax]))
-                                   for ax in self.panel.minor_axis]))
+            expected = Panel(dict((ax, f(self.panel.loc[:, :, ax]))
+                                  for ax in self.panel.minor_axis))
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['major_axis', 'minor_axis'])
-            expected = Panel(dict([(ax, f(self.panel.loc[ax]))
-                                   for ax in self.panel.items]))
+            expected = Panel(dict((ax, f(self.panel.loc[ax]))
+                                  for ax in self.panel.items))
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['minor_axis', 'items'])
-            expected = Panel(dict([(ax, f(self.panel.loc[:, ax]))
-                                   for ax in self.panel.major_axis]))
+            expected = Panel(dict((ax, f(self.panel.loc[:, ax]))
+                                  for ax in self.panel.major_axis))
             assert_panel_equal(result, expected)
 
             # with multi-indexes
@@ -2112,10 +2111,10 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             evalues = [[[float(np.around(i)) for i in j] for j in k]
                        for k in values]
             p = Panel(values, items=['Item1', 'Item2'],
-                      major_axis=pd.date_range('1/1/2000', periods=5),
+                      major_axis=date_range('1/1/2000', periods=5),
                       minor_axis=['A', 'B'])
             expected = Panel(evalues, items=['Item1', 'Item2'],
-                             major_axis=pd.date_range('1/1/2000', periods=5),
+                             major_axis=date_range('1/1/2000', periods=5),
                              minor_axis=['A', 'B'])
             result = p.round()
             assert_panel_equal(expected, result)
@@ -2129,10 +2128,10 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             evalues = [[[float(np.around(i)) for i in j] for j in k]
                        for k in values]
             p = Panel(values, items=['Item1', 'Item2'],
-                      major_axis=pd.date_range('1/1/2000', periods=5),
+                      major_axis=date_range('1/1/2000', periods=5),
                       minor_axis=['A', 'B'])
             expected = Panel(evalues, items=['Item1', 'Item2'],
-                             major_axis=pd.date_range('1/1/2000', periods=5),
+                             major_axis=date_range('1/1/2000', periods=5),
                              minor_axis=['A', 'B'])
             result = np.round(p)
             assert_panel_equal(expected, result)

@@ -62,6 +62,8 @@ Bug Fixes
 - Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 - Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
+- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
+- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 
 Conversion
 ^^^^^^^^^^
@@ -73,6 +75,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
+- Bug in a boolean comparison of a ``datetime.datetime`` and a ``datetime64[ns]`` dtype Series (:issue:`17965`)
 - Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
 -
 -
@@ -85,6 +88,7 @@ I/O
 - Bug in :func:`read_csv` for handling null values in index columns when specifying ``na_filter=False`` (:issue:`5239`)
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
 - :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
+- :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 
 Plotting
 ^^^^^^^^
