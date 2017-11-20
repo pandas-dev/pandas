@@ -329,6 +329,27 @@ class Base(object):
         assert not idx.is_unique
         assert idx.has_duplicates
 
+    def test_unique(self, indices):
+        # don't test a MultiIndex here (as its tested separated)
+        # don't test a CategoricalIndex because categories change (GH 18291)
+        if isinstance(indices, (MultiIndex, CategoricalIndex)):
+            return
+
+        # GH 17896
+        expected = indices.drop_duplicates()
+        for level in 0, indices.name, None:
+            result = indices.unique(level=level)
+            tm.assert_index_equal(result, expected)
+
+        for level in 3, 'wrong':
+            pytest.raises((IndexError, KeyError), indices.unique, level=level)
+
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
+
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):

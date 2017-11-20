@@ -666,36 +666,6 @@ cdef class _Timedelta(timedelta):
             return "D"
 
     @property
-    def days(self):
-        """
-        Number of Days
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._d
-
-    @property
-    def seconds(self):
-        """
-        Number of seconds (>= 0 and less than 1 day).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._seconds
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._microseconds
-
-    @property
     def nanoseconds(self):
         """
         Number of nanoseconds (>= 0 and less than 1 microsecond).

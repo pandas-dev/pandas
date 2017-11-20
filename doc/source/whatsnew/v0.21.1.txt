@@ -63,6 +63,8 @@ Bug Fixes
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 - Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
 - Bug in ``DataFrame.resample(...)`` when there is a time change, resampling frequecy is big enough (:issue:`15549`)
+- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
+- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 
 Conversion
 ^^^^^^^^^^
