@@ -2719,11 +2719,29 @@ class TestPeriodIndex(Base):
         # it works!
         df.resample('W-MON', closed='left', label='left').first()
 
-    def test_resample_tz_aware_bug_15549(self):
-        index = pd.DatetimeIndex([1450137600000000000, 1474059600000000000],
+    def test_resample_tz_aware(self):
+        # GH 15549
+
+        index = pd.DatetimeIndex([1457537600000000000, 1458059600000000000],
                                  tz='UTC').tz_convert('America/Chicago')
         df = pd.DataFrame([1, 2], index=index)
-        df.resample('12h', closed='right', label='right').last().ffill()
+        res_df = df.resample('12h', closed='right', label='right').last().ffill()
+
+        index = pd.DatetimeIndex(['2016-03-09 12:00:00-06:00',
+                                  '2016-03-10 00:00:00-06:00',
+                                  '2016-03-10 12:00:00-06:00',
+                                  '2016-03-11 00:00:00-06:00',
+                                  '2016-03-11 12:00:00-06:00',
+                                  '2016-03-12 00:00:00-06:00',
+                                  '2016-03-12 12:00:00-06:00',
+                                  '2016-03-13 00:00:00-06:00',
+                                  '2016-03-13 13:00:00-05:00',
+                                  '2016-03-14 01:00:00-05:00',
+                                  '2016-03-14 13:00:00-05:00',
+                                  '2016-03-15 01:00:00-05:00',
+                                  '2016-03-15 13:00:00-05:00', ], tz='UTC').tz_convert('America/Chicago')
+        expected_df = pd.DataFrame([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0], index=index)
+        assert_frame_equal(res_df, expected_df)
 
     def test_resample_bms_2752(self):
         # GH2753
