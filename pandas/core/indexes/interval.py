@@ -23,7 +23,7 @@ from pandas.core.indexes.base import (
     Index, _ensure_index,
     default_pprint, _index_shared_docs)
 
-from pandas._libs import lib, Timestamp, Timedelta
+from pandas._libs import Timestamp, Timedelta
 from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
@@ -1007,7 +1007,7 @@ class IntervalIndex(IntervalMixin, Index):
                                  'side as the index')
             left_insert = item.left
             right_insert = item.right
-        elif lib.checknull(item):
+        elif is_scalar(item) and isna(item):
             # GH 18295
             left_insert = right_insert = item
         else:

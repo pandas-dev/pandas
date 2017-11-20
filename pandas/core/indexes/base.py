@@ -3734,7 +3734,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        if lib.checknull(item):
+        if is_scalar(item) and isna(item):
             # GH 18295
             item = self._na_value
 

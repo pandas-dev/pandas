@@ -858,12 +858,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 item = Timedelta(item)
             except Exception:
                 pass
-        elif lib.checknull(item):
+        elif is_scalar(item) and isna(item):
             # GH 18295
             item = self._na_value
 
         freq = None
-        if isinstance(item, Timedelta) or (item is self._na_value):
+        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
