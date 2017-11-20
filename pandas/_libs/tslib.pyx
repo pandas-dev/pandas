@@ -6,7 +6,7 @@
 
 cimport numpy as np
 from numpy cimport (int32_t, int64_t, import_array, ndarray,
-                    float64_t, NPY_DATETIME, NPY_TIMEDELTA)
+                    float64_t)
 import numpy as np
 
 import sys
@@ -845,31 +845,6 @@ cdef inline bint _check_all_nulls(object val):
     else:
         res = 0
     return res
-
-
-cpdef object get_value_box(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i, sz
-
-    if is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = np.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-
-    if i >= sz or sz == 0 or i < 0:
-        raise IndexError('index out of bounds')
-
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_1d(arr, i))
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_1d(arr, i))
-    else:
-        return util.get_value_1d(arr, i)
 
 
 # Add the min and max fields at the class level
