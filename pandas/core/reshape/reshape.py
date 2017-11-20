@@ -801,12 +801,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     from pandas.core.reshape.concat import concat
     from itertools import cycle
 
-    if dtype is None:
-        dtype = np.uint8
-
-    if is_object_dtype(dtype):
-        raise ValueError("dtype=object is not a valid dtype for get_dummies")
-
     if isinstance(data, DataFrame):
         # determine columns being encoded
 
@@ -864,9 +858,17 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False, drop_first=False, dtype=np.uint8):
+                    sparse=False, drop_first=False, dtype=None):
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
+
+    if dtype is None:
+        dtype = np.uint8
+    else:
+        dtype = np.dtype(dtype)
+
+    if is_object_dtype(dtype):
+        raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_Frame(data, sparse):
         if isinstance(data, Series):
