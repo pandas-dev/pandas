@@ -591,12 +591,19 @@ class TestIndex(Base):
             # Index.
             pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-    def test_getitem(self):
-        arr = np.array(self.dateIndex)
-        exp = self.dateIndex[5]
-        exp = _to_m8(exp)
+    def test_getitem(self, indices):
 
-        assert exp == arr[5]
+        if indices.size != 100:
+            return
+
+        exp = getattr(indices, '_box_func', lambda x: x)(indices._values[0])
+        assert indices[0] == exp
+
+        with pytest.raises(IndexError):
+            indices[101]
+
+        with pytest.raises(IndexError):
+            indices['no_int']
 
     def test_intersection(self):
         first = self.strIndex[:20]
