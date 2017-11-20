@@ -30,12 +30,10 @@ from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
 from nattype import nat_strings, NaT
-from nattype cimport _checknull_with_nat
+from nattype cimport _checknull_with_nat, NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
-
-cdef int64_t NPY_NAT = util.get_nat()
 
 cdef int64_t DAY_NS = 86400000000000LL
 
@@ -668,36 +666,6 @@ cdef class _Timedelta(timedelta):
             return "D"
 
     @property
-    def days(self):
-        """
-        Number of Days
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._d
-
-    @property
-    def seconds(self):
-        """
-        Number of seconds (>= 0 and less than 1 day).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._seconds
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._microseconds
-
-    @property
     def nanoseconds(self):
         """
         Number of nanoseconds (>= 0 and less than 1 microsecond).
@@ -872,7 +840,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif util.is_string_object(value):
+        elif is_string_object(value):
             value = np.timedelta64(parse_timedelta_string(value))
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
@@ -882,7 +850,7 @@ class Timedelta(_Timedelta):
             value = value.astype('timedelta64[ns]')
         elif hasattr(value, 'delta'):
             value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
-        elif is_integer_object(value) or util.is_float_object(value):
+        elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)
         elif _checknull_with_nat(value):

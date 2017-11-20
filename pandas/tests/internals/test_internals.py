@@ -286,29 +286,6 @@ class TestBlock(object):
         with pytest.raises(Exception):
             newb.delete(3)
 
-    def test_split_block_at(self):
-
-        # with dup column support this method was taken out
-        # GH3679
-        pytest.skip("skipping for now")
-
-        bs = list(self.fblock.split_block_at('a'))
-        assert len(bs) == 1
-        assert np.array_equal(bs[0].items, ['c', 'e'])
-
-        bs = list(self.fblock.split_block_at('c'))
-        assert len(bs) == 2
-        assert np.array_equal(bs[0].items, ['a'])
-        assert np.array_equal(bs[1].items, ['e'])
-
-        bs = list(self.fblock.split_block_at('e'))
-        assert len(bs) == 1
-        assert np.array_equal(bs[0].items, ['a', 'c'])
-
-        # bblock = get_bool_ex(['f'])
-        # bs = list(bblock.split_block_at('f'))
-        # assert len(bs), 0)
-
 
 class TestDatetimeBlock(object):
 

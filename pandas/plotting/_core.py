@@ -381,12 +381,16 @@ class MPLPlot(object):
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-        labels = [pprint_thing(key) for key in data.index]
-        labels = dict(zip(range(len(data.index)), labels))
+
+        def get_label(i):
+            try:
+                return pprint_thing(data.index[i])
+            except Exception:
+                return ''
 
         if self.orientation == 'vertical' or self.orientation is None:
             if self._need_to_set_index:
-                xticklabels = [labels.get(x, '') for x in ax.get_xticks()]
+                xticklabels = [get_label(x) for x in ax.get_xticks()]
                 ax.set_xticklabels(xticklabels)
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
@@ -398,7 +402,7 @@ class MPLPlot(object):
 
         elif self.orientation == 'horizontal':
             if self._need_to_set_index:
-                yticklabels = [labels.get(y, '') for y in ax.get_yticks()]
+                yticklabels = [get_label(y) for y in ax.get_yticks()]
                 ax.set_yticklabels(yticklabels)
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
@@ -606,7 +610,7 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if _any_not_none(*name):
-                name = ','.join([pprint_thing(x) for x in name])
+                name = ','.join(pprint_thing(x) for x in name)
             else:
                 name = None
         else:
@@ -1857,7 +1861,7 @@ _shared_docs['plot'] = """
     mark_right : boolean, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
-    kwds : keywords
+    `**kwds` : keywords
         Options to pass to matplotlib plotting method
 
     Returns
@@ -1953,8 +1957,9 @@ _shared_docs['boxplot'] = """
         array of axes is returned with the same shape as ``layout``.
         See the prose documentation for more.
 
-    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
-           function
+    `**kwds` : Keyword Arguments
+        All other plotting keyword arguments to be passed to
+        matplotlib's boxplot function
 
     Returns
     -------
@@ -2150,7 +2155,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         Tuple of (rows, columns) for the layout of the histograms
     bins : integer, default 10
         Number of histogram bins to be used
-    kwds : other plotting keyword arguments
+    `**kwds` : other plotting keyword arguments
         To be passed to hist function
     """
     _converter._WARN = False
@@ -2213,7 +2218,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         figure size in inches by default
     bins: integer, default 10
         Number of histogram bins to be used
-    kwds : keywords
+    `**kwds` : keywords
         To be passed to the actual plotting function
 
     Notes
@@ -2327,8 +2332,9 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
-    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
-           function
+    `**kwds` : Keyword Arguments
+        All other plotting keyword arguments to be passed to
+        matplotlib's boxplot function
 
     Returns
     -------
@@ -2505,7 +2511,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2520,7 +2526,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2535,7 +2541,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2550,7 +2556,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2567,7 +2573,7 @@ class SeriesPlotMethods(BasePlotMethods):
         ----------
         bins: integer, default 10
             Number of histogram bins to be used
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2582,7 +2588,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2599,7 +2605,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2614,7 +2620,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
@@ -2665,7 +2671,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x, y : label or position, optional
             Coordinates for each point.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2682,7 +2688,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x, y : label or position, optional
             Coordinates for each point.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2699,7 +2705,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x, y : label or position, optional
             Coordinates for each point.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2716,7 +2722,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        \*\*kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2735,7 +2741,7 @@ class FramePlotMethods(BasePlotMethods):
             Column in the DataFrame to group by.
         bins: integer, default 10
             Number of histogram bins to be used
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2750,7 +2756,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2769,7 +2775,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x, y : label or position, optional
             Coordinates for each point.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2786,7 +2792,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         y : label or position, optional
             Column to plot.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2807,7 +2813,7 @@ class FramePlotMethods(BasePlotMethods):
             Size of each point.
         c : label or position, optional
             Color of each point.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2832,7 +2838,7 @@ class FramePlotMethods(BasePlotMethods):
             a single number (e.g. `mean`, `max`, `sum`, `std`).
         gridsize : int, optional
             Number of bins.
-        **kwds : optional
+        `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns

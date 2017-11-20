@@ -132,7 +132,7 @@ class FrameConstructorDTIndexFromOffsets(object):
         offset = getattr(offsets, offset)
         self.idx = get_index_for_offset(offset(n_steps, **kwargs))
         self.df = DataFrame(np.random.randn(len(self.idx), 10), index=self.idx)
-        self.d = dict([(col, self.df[col]) for col in self.df.columns])
+        self.d = dict(self.df.items())
 
     def time_frame_ctor(self, offset, n_steps):
         DataFrame(self.d)

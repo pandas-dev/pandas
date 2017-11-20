@@ -55,9 +55,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc', # used to parse numpy-style docstrings for autodoc
-              'IPython.sphinxext.ipython_directive',
-              'IPython.sphinxext.ipython_console_highlighting',
+              'numpydoc',
+              'ipython_sphinxext.ipython_directive',
+              'ipython_sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_console_highlighting',  # lowercase didn't work
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
@@ -77,7 +78,7 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any([re.match("\s*api\s*", l) for l in index_rst_lines]):
+if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
 files_to_delete = []
@@ -88,7 +89,7 @@ for f in os.listdir(os.path.dirname(__file__)):
 
     _file_basename = os.path.splitext(f)[0]
     _regex_to_match = "\s*{}\s*$".format(_file_basename)
-    if not any([re.match(_regex_to_match, line) for line in index_rst_lines]):
+    if not any(re.match(_regex_to_match, line) for line in index_rst_lines):
         files_to_delete.append(f)
 
 if files_to_delete:
