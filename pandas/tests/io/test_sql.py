@@ -2243,8 +2243,8 @@ class TestXSQLite(SQLiteMixIn):
         sql.to_sql(mono_df, con=self.conn, name='mono_df', index=False)
         # computing the sum via sql
         con_x = self.conn
-        the_sum = sum([my_c0[0]
-                       for my_c0 in con_x.execute("select * from mono_df")])
+        the_sum = sum(my_c0[0]
+                      for my_c0 in con_x.execute("select * from mono_df"))
         # it should not fail, and gives 3 ( Issue #3628 )
         assert the_sum == 3
 

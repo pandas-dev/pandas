@@ -357,6 +357,7 @@ class _BaseOffset(object):
     _typ = "dateoffset"
     _normalize_cache = True
     _cacheable = False
+    _day_opt = None
 
     def __call__(self, other):
         return self.apply(other)
@@ -393,6 +394,11 @@ class _BaseOffset(object):
 
         out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
         return out
+
+    def _get_offset_day(self, datetime other):
+        # subclass must implement `_day_opt`; calling from the base class
+        # will raise NotImplementedError.
+        return get_day_of_month(other, self._day_opt)
 
 
 class BaseOffset(_BaseOffset):
@@ -468,7 +474,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(datetime other, day_opt) except? -1:
+cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's onOffset
     policy, as described by the `day_opt` argument.
@@ -493,10 +499,27 @@ cdef int get_day_of_month(datetime other, day_opt) except? -1:
     30
 
     """
+    cdef:
+        int wkday, days_in_month
+
     if day_opt == 'start':
         return 1
-    elif day_opt == 'end':
-        return monthrange(other.year, other.month)[1]
+
+    wkday, days_in_month = monthrange(other.year, other.month)
+    if day_opt == 'end':
+        return days_in_month
+    elif day_opt == 'business_start':
+        # first business day of month
+        return get_firstbday(wkday, days_in_month)
+    elif day_opt == 'business_end':
+        # last business day of month
+        return get_lastbday(wkday, days_in_month)
+    elif is_integer_object(day_opt):
+        day = min(day_opt, days_in_month)
+    elif day_opt is None:
+        # Note: unlike `shift_month`, get_day_of_month does not
+        # allow day_opt = None
+        raise NotImplementedError
     else:
         raise ValueError(day_opt)
 
