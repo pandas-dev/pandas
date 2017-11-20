@@ -63,7 +63,7 @@ filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
 object with a read() method (such as a file handle or StringIO)
     The string could be a URL. Valid URL schemes include http, ftp, s3, and
     file. For file URLs, a host is expected. For instance, a local file could
-    be file ://localhost/path/to/table.csv
+    be file://localhost/path/to/table.csv
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
