@@ -53,7 +53,8 @@ cdef extern from "headers/stdint.h":
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
-        void* data_ptr
+        int casted
+
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
