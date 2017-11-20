@@ -104,10 +104,12 @@ def _dt_index_cmp(opname, nat_result=False):
     """
 
     def wrapper(self, other):
-        self._assert_tzawareness_compat(other)
         func = getattr(super(DatetimeIndex, self), opname)
-        if (isinstance(other, datetime) or
-                isinstance(other, compat.string_types)):
+        if isinstance(other, (datetime, compat.string_types)):
+            if isinstance(other, compat.string_types):
+                # We need to convert in order to assert tzawareness
+                other = Timestamp(other)
+            self._assert_tzawareness_compat(other)
             other = _to_m8(other, tz=self.tz)
             result = func(other)
             if isna(other):
@@ -117,6 +119,7 @@ def _dt_index_cmp(opname, nat_result=False):
                 other = DatetimeIndex(other)
             elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
                 other = _ensure_datetime64(other)
+            self._assert_tzawareness_compat(other)
             result = func(np.asarray(other))
             result = _values_from_object(result)
 
