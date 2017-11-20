@@ -24,6 +24,13 @@ except (ImportError, AttributeError):
 
 class TestToHTML(object):
 
+    def test_date_range_to_html_timestamp(self):
+        rng = pd.date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        assert '2000-01-01' in result
+
     def test_to_html_with_col_space(self):
         def check_with_width(df, col_space):
             # check that col_space affects HTML generation

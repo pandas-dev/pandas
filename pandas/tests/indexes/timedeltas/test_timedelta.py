@@ -401,3 +401,44 @@ class TestTimeSeries(object):
         s = Series(rng)
         assert isinstance(s[1], Timedelta)
         assert isinstance(s.iat[2], Timedelta)
+
+
+class TestTimedeltaIndexVectorizedTimedelta(object):
+
+    def test_nat_converters(self):
+
+        def testit(unit, transform):
+            # array
+            result = pd.to_timedelta(np.arange(5), unit=unit)
+            expected = TimedeltaIndex([np.timedelta64(i, transform(unit))
+                                       for i in np.arange(5).tolist()])
+            tm.assert_index_equal(result, expected)
+
+            # scalar
+            result = pd.to_timedelta(2, unit=unit)
+            expected = Timedelta(np.timedelta64(2, transform(unit)).astype(
+                'timedelta64[ns]'))
+            assert result == expected
+
+        # validate all units
+        # GH 6855
+        for unit in ['Y', 'M', 'W', 'D', 'y', 'w', 'd']:
+            testit(unit, lambda x: x.upper())
+        for unit in ['days', 'day', 'Day', 'Days']:
+            testit(unit, lambda x: 'D')
+        for unit in ['h', 'm', 's', 'ms', 'us', 'ns', 'H', 'S', 'MS', 'US',
+                     'NS']:
+            testit(unit, lambda x: x.lower())
+
+        # offsets
+
+        # m
+        testit('T', lambda x: 'm')
+
+        # ms
+        testit('L', lambda x: 'ms')
+
+    def test_timedelta_hash_equality(self):
+        # GH 11129
+        tds = timedelta_range('1 second', periods=20)
+        assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)

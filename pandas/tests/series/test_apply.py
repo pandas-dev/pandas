@@ -18,6 +18,16 @@ from .common import TestData
 
 
 class TestSeriesApply(TestData):
+    def test_map_box_timestamps(self):
+        # GH#2689, GH#2627
+        s = Series(pd.date_range('1/1/2000', periods=10))
+
+        def f(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        s.map(f)
+        s.apply(f)
 
     def test_apply(self):
         with np.errstate(all='ignore'):

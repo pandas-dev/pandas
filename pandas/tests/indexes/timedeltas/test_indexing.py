@@ -11,6 +11,17 @@ from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
 class TestTimedeltaIndex(object):
     _multiprocess_can_split_ = True
 
+    def test_contains(self):
+        # Checking for any NaT-like objects
+        # GH 13603
+        td = pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            assert not (v in td)
+
+        td = pd.to_timedelta([pd.NaT])
+        for v in [pd.NaT, None, float('nan'), np.nan]:
+            assert (v in td)
+
     def test_insert(self):
 
         idx = TimedeltaIndex(['4day', '1day', '2day'], name='idx')

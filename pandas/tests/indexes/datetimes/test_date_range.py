@@ -5,6 +5,7 @@ test date_range, bdate_range construction from the convenience range functions
 import pytest
 
 import numpy as np
+import pytz
 from pytz import timezone
 from datetime import datetime, timedelta, time
 
@@ -14,6 +15,7 @@ from pandas import compat
 from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
                                     MonthEnd, prefix_mapping)
+from pandas._libs.tslibs.timezones import maybe_get_tz, dateutil_gettz
 
 from pandas.tests.series.common import TestData
 
@@ -390,7 +392,7 @@ class TestBusinessDateRange(object):
         # see gh-2906
 
         # Use maybe_get_tz to fix filename in tz under dateutil.
-        from pandas._libs.tslibs.timezones import maybe_get_tz
+
         tz = lambda x: maybe_get_tz('dateutil/' + x)
 
         start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
@@ -631,3 +633,58 @@ class TestCustomDateRange(object):
         msg = 'invalid custom frequency string: {freq}'
         with tm.assert_raises_regex(ValueError, msg.format(freq=bad_freq)):
             bdate_range(START, END, freq=bad_freq)
+
+
+class TestTimestampEquivDateRange(object):
+    # Older tests in scalar.test_timestamp.TestTimeSeries constructed
+    # their `stamp` objects using `date_range` instead of the `Timestamp`
+    # constructor.  TestTimestampEquivDateRange checks that these are
+    # equivalent in the pertinent cases.
+
+    def test_date_range_timestamp_equiv(self):
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_dateutil(self):
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_pytz(self):
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+
+        rng = date_range('20090415', '20090519',
+                         tz=dateutil_gettz('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=dateutil_gettz('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_from_datetime_instance(self):
+        datetime_instance = datetime(2014, 3, 4)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
+
+        ts = Timestamp(datetime_instance, freq='D')
+        assert ts == timestamp_instance
+
+    def test_date_range_timestamp_equiv_preserve_frequency(self):
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        ts = Timestamp('2014-03-05', freq='D')
+
+        assert timestamp_instance == ts

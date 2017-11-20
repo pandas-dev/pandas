@@ -8,15 +8,67 @@ from datetime import datetime
 from itertools import product
 import pandas as pd
 import pandas._libs.tslib as tslib
+from pandas._libs import period as libperiod
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,
                     bdate_range)
 from pandas.tseries.offsets import BMonthEnd, CDay, BDay
+from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
+                                        RESO_MS, RESO_SEC)
 from pandas.tests.test_base import Ops
 
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
+
+
+class TestDatetimeIndexVectorizedTimestamp(object):
+    def test_timestamp_date_out_of_range(self):
+        # see gh-1475
+        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
+        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+                  'days_in_month', 'is_month_start', 'is_month_end',
+                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                  'is_year_end', 'weekday_name']
+        for f in fields:
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
+            assert result == expected
+
+        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
+        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
+
+    def test_tz_localize_ambiguous(self):
+        ts = Timestamp('2014-11-02 01:00')
+        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
+        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
+
+        rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
+        assert rng[1] == ts_dst
+        assert rng[2] == ts_no_dst
+        pytest.raises(ValueError, ts.tz_localize, 'US/Eastern',
+                      ambiguous='infer')
+
+    def test_resolution(self):
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
+                                   'S', 'L', 'U'],
+                                  [RESO_DAY, RESO_DAY,
+                                   RESO_DAY, RESO_DAY,
+                                   RESO_HR, RESO_MIN,
+                                   RESO_SEC, RESO_MS,
+                                   RESO_US]):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern',
+                       'dateutil/US/Eastern']:
+                idx = date_range(start='2013-04-01', periods=30, freq=freq,
+                                 tz=tz)
+                result = libperiod.resolution(idx.asi8, idx.tz)
+                assert result == expected
 
 
 class TestDatetimeIndexOps(Ops):
@@ -141,6 +193,28 @@ class TestDatetimeIndexOps(Ops):
                 ValueError, errmsg, np.argmin, dr, out=0)
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
+
+    # TODO: De-dup with version below
+    def test_round2(self):
+        # tz-naive
+        dti = date_range('20130101 09:10:11', periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5)
+        tm.assert_index_equal(result, expected)
+
+        # tz-aware
+        dti = date_range('20130101 09:10:11',
+                         periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101', periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
 
     def test_round(self):
         for tz in self.tz:
