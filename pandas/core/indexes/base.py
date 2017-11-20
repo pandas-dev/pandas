@@ -251,7 +251,7 @@ class Index(IndexOpsMixin, PandasObject):
                             # then coerce to integer.
                             try:
                                 return cls._try_convert_to_int_index(
-                                    data, copy, name)
+                                    data, copy, name, dtype)
                             except ValueError:
                                 pass
 
@@ -307,7 +307,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
-                            subarr, copy, name)
+                            subarr, copy, name, dtype)
                     except ValueError:
                         pass
 
@@ -664,7 +664,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name):
+    def _try_convert_to_int_index(cls, data, copy, name, dtype):
         """
         Attempt to convert an array of data into an integer index.
 
@@ -685,12 +685,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .numeric import Int64Index, UInt64Index
-        try:
-            res = data.astype('i8', copy=False)
-            if (res == data).all():
-                return Int64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
+        if not is_unsigned_integer_dtype(dtype):
+            try:
+                res = data.astype('i8', copy=False)
+                if (res == data).all():
+                    return Int64Index(res, copy=copy, name=name)
+            except (OverflowError, TypeError, ValueError):
+                pass
 
         # Conversion to int64 failed (possibly due to
         # overflow), so let's try now with uint64.

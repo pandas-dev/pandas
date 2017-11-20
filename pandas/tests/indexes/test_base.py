@@ -14,7 +14,7 @@ import operator
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index,
+                    DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
 from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
@@ -199,6 +199,25 @@ class TestIndex(Base):
                       date_range('2000-01-01', periods=3).values]:
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
+            tm.assert_index_equal(result, expected)
+
+    def test_constructor_int_dtype_float(self):
+        # GH 18400
+        data = [0., 1., 2., 3.]
+
+        expected = Int64Index([0, 1, 2, 3])
+        result = Index(data, dtype='int64')
+        tm.assert_index_equal(result, expected)
+
+        expected = UInt64Index([0, 1, 2, 3])
+        result = Index(data, dtype='uint64')
+        tm.assert_index_equal(result, expected)
+
+        # fall back to Float64Index
+        data = [0.0, 1.1, 2.2, 3.3]
+        expected = Float64Index(data)
+        for dtype in ('int64', 'uint64'):
+            result = Index(data, dtype=dtype)
             tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):

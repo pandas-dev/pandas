@@ -127,7 +127,7 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 -
 -
 

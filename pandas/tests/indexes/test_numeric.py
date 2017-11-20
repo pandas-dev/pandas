@@ -658,6 +658,30 @@ class NumericInt(Numeric):
         exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
         tm.assert_index_equal(result, exp)
 
+    def test_where(self):
+        i = self.create_index()
+        result = i.where(notna(i))
+        expected = i
+        tm.assert_index_equal(result, expected)
+
+        _nan = i._na_value
+        cond = [False] + [True] * len(i[1:])
+        expected = Float64Index([_nan] + i[1:].tolist())
+        result = i.where(cond)
+        tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+
+        _nan = i._na_value
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = Float64Index([_nan] + i[1:].tolist())
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
+
 
 class TestInt64Index(NumericInt):
     _dtype = 'int64'
@@ -725,31 +749,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))
