@@ -397,6 +397,7 @@ class TestGetDummies(object):
 
     def test_dataframe_dummies_prefix_str(self, df, sparse):
         # not that you should do this...
+        df[['C']] = df[['C']].astype(np.uint8)
         result = get_dummies(df, prefix='bad', sparse=sparse)
         bad_columns = ['bad_a', 'bad_b', 'bad_b', 'bad_c']
         expected = DataFrame([[1, 1, 0, 1, 0],
@@ -404,7 +405,6 @@ class TestGetDummies(object):
                               [3, 1, 0, 0, 1]],
                              columns=['C'] + bad_columns,
                              dtype=np.uint8)
-        expected[['C']] = df[['C']]
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_subset(self, df, sparse):
