@@ -27,7 +27,7 @@ Other Enhancements
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
-- Improved wording of ValueError raised in :func:`Timestamp.tz_localize` function
+- Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 
 .. _whatsnew_0220.api_breaking:
 
