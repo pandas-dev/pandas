@@ -26,6 +26,7 @@ Other Enhancements
 - :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
+- Improved wording of ValueError raised in :func:`Timestamp.tz_localize` function
 
 .. _whatsnew_0220.api_breaking:
 
