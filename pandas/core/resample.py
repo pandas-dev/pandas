@@ -1144,7 +1144,8 @@ class TimeGrouper(Grouper):
         # GH 15549
         if len(binner) > 1 and binner[-1] < last:
             extra_date_range = pd.date_range(binner[-1], last + self.freq,
-                                             freq=self.freq)
+                                             freq=self.freq, tz=tz,
+                                             name=ax.name)
             binner = labels = binner.append(extra_date_range[1:])
 
         # a little hack
