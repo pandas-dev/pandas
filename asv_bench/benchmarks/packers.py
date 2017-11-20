@@ -18,7 +18,7 @@ class _Packers(object):
         self.N = 100000
         self.C = 5
         self.index = date_range('20000101', periods=self.N, freq='H')
-        self.df = DataFrame(dict(('float{0}'.format(i), randn(self.N)) for i in range(self.C)), index=self.index)
+        self.df = DataFrame({'float{0}'.format(i): randn(self.N) for i in range(self.C)}, index=self.index)
         self.df2 = self.df.copy()
         self.df2['object'] = [('%08x' % randrange((16 ** 8))) for _ in range(self.N)]
         self.remove(self.f)

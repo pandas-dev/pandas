@@ -334,7 +334,7 @@ class TestSeriesPlots(TestPlotBase):
         pcts = ['{0:.2f}'.format(s * 100)
                 for s in series.values / float(series.sum())]
         iters = [iter(series.index), iter(pcts)]
-        expected_texts = list(next(it) for it in itertools.cycle(iters))
+        expected_texts = [next(it) for it in itertools.cycle(iters)]
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7

@@ -97,6 +97,19 @@ if [ "$LINT" ]; then
     fi
     echo "Check for use of lists instead of generators in built-in Python functions DONE"
 
+    echo "Check for use of comprehensions using set(), dict() or list()"
+
+    # Example: Avoid `list(i for i in some_iterator)` in favor of `[i for i in some_iterator]`
+    #
+    # Check the following functions:
+    # list(), set(), dict()
+    grep -R --include="*.py*" -E "(list|dict|[^frozen]set)\([^\{)=]* for .* in [^}]*\)"
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for use of comprehensions using set(), dict() or list() DONE"
+
 else
     echo "NOT Linting"
 fi
