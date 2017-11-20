@@ -29,9 +29,12 @@ Other Enhancements
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
+- :func:`get_dummies` now supports ``dtype`` argument, see :ref:`here <whatsnew_0220.enhancements.get_dummies_dtype>` for more  (:issue: `18330`)
 
-``get_dummies`` now supports ``dtype`` argument (:issue:`18330`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0220.enhancements.get_dummies_dtype
+
+``get_dummies`` now supports ``dtype`` argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a specific dtype for the new columns. When ``dtype`` is not specified or ``None``, the dtype will be ``uint8`` as before. (:issue:`18330`)
 
