@@ -84,7 +84,7 @@ from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature)
-from pandas.util._validators import (validate_bool_kwarg,
+from pandas.util._validators import (validate_keywords_as_bool,
                                      validate_axis_style_args)
 
 from pandas.core.indexes.period import PeriodIndex
@@ -746,6 +746,7 @@ class DataFrame(NDFrame):
             s = klass(v, index=columns, name=k)
             yield k, s
 
+    @validate_keywords_as_bool('index')
     def itertuples(self, index=True, name="Pandas"):
         """
         Iterate over DataFrame rows as namedtuples, with index value as first
@@ -1000,6 +1001,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
+    @validate_keywords_as_bool('verbose', 'reauth')
     def to_gbq(self, destination_table, project_id, chunksize=10000,
                verbose=True, reauth=False, if_exists='fail', private_key=None):
         """Write a DataFrame to a Google BigQuery table.
@@ -1181,6 +1183,7 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
+    @validate_keywords_as_bool('convert_datetime64')
     def to_records(self, index=True, convert_datetime64=True):
         """
         Convert DataFrame to record array. Index will be put in the
@@ -1426,6 +1429,7 @@ class DataFrame(NDFrame):
 
         return self._constructor_expanddim(new_mgr)
 
+    @validate_keywords_as_bool('index')
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression=None, quoting=None,
@@ -1865,6 +1869,7 @@ class DataFrame(NDFrame):
                          _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
+    @validate_keywords_as_bool('index', 'deep')
     def memory_usage(self, index=True, deep=False):
         """Memory usage of DataFrame columns.
 
@@ -2213,6 +2218,7 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
+    @validate_keywords_as_bool('inplace')
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
@@ -2284,7 +2290,6 @@ class DataFrame(NDFrame):
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
             msg = "expr must be a string to be evaluated, {0} given"
             raise ValueError(msg.format(type(expr)))
@@ -2304,6 +2309,7 @@ class DataFrame(NDFrame):
         else:
             return new_data
 
+    @validate_keywords_as_bool('inplace')
     def eval(self, expr, inplace=False, **kwargs):
         """Evaluate an expression in the context of the calling DataFrame
         instance.
@@ -2350,7 +2356,6 @@ class DataFrame(NDFrame):
         """
         from pandas.core.computation.eval import eval as _eval
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
@@ -2587,6 +2592,7 @@ class DataFrame(NDFrame):
         if len(self):
             self._check_setitem_copy()
 
+    @validate_keywords_as_bool('allow_duplicates')
     def insert(self, loc, column, value, allow_duplicates=False):
         """
         Insert column into DataFrame at specified location.
@@ -2903,6 +2909,7 @@ class DataFrame(NDFrame):
                                                copy=copy,
                                                fill_value=fill_value)
 
+    @validate_keywords_as_bool('copy')
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
     def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=None, method=None, limit=None, fill_axis=0,
@@ -3035,6 +3042,7 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
                                             axis=axis)
 
+    @validate_keywords_as_bool('drop', 'append', 'inplace', 'verify_integrity')
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
@@ -3100,7 +3108,6 @@ class DataFrame(NDFrame):
         -------
         dataframe : DataFrame
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -3162,6 +3169,7 @@ class DataFrame(NDFrame):
         if not inplace:
             return frame
 
+    @validate_keywords_as_bool('drop', 'inplace')
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
         """
@@ -3298,7 +3306,6 @@ class DataFrame(NDFrame):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
             new_obj = self
         else:
@@ -3397,6 +3404,7 @@ class DataFrame(NDFrame):
     def notnull(self):
         return super(DataFrame, self).notnull()
 
+    @validate_keywords_as_bool('inplace')
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
         """
@@ -3466,7 +3474,6 @@ class DataFrame(NDFrame):
         1  3.0  4.0 NaN  1
 
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
             result = self
             for ax in axis:
@@ -3506,6 +3513,7 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    @validate_keywords_as_bool('inplace')
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
@@ -3527,7 +3535,6 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
@@ -3583,10 +3590,10 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Sorting
 
+    @validate_keywords_as_bool('ascending', 'inplace')
     @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         other_axis = 0 if axis == 1 else 1
 
@@ -3638,15 +3645,14 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
+    @validate_keywords_as_bool('ascending', 'inplace', 'sort_remaining')
     @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
-
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
             warnings.warn("by argument to sort_index is deprecated, "
@@ -4015,6 +4021,7 @@ class DataFrame(NDFrame):
         return self._compare_frame_evaluate(other, func, str_rep,
                                             try_cast=try_cast)
 
+    @validate_keywords_as_bool('overwrite')
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
         Add two DataFrame objects and do not propagate NaN values, so if for a
@@ -4171,6 +4178,7 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
+    @validate_keywords_as_bool('overwrite', 'raise_conflict')
     def update(self, other, join='left', overwrite=True, filter_func=None,
                raise_conflict=False):
         """
@@ -4761,6 +4769,7 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
+    @validate_keywords_as_bool('broadcast', 'raw')
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
         """
@@ -5060,6 +5069,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
+    @validate_keywords_as_bool('ignore_index', 'verify_integrity')
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
         Append rows of `other` to the end of this frame, returning a new
@@ -5183,6 +5193,7 @@ class DataFrame(NDFrame):
         return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
+    @validate_keywords_as_bool('sort')
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
         """
@@ -5543,6 +5554,7 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
+    @validate_keywords_as_bool('drop')
     def corrwith(self, other, axis=0, drop=False):
         """
         Compute pairwise correlation between rows or columns of two DataFrame
@@ -5596,6 +5608,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
+    @validate_keywords_as_bool('numeric_only')
     def count(self, axis=0, level=None, numeric_only=False):
         """
         Return Series with number of non-NA/null observations over requested
@@ -5759,6 +5772,7 @@ class DataFrame(NDFrame):
 
         return Series(result, index=labels)
 
+    @validate_keywords_as_bool('dropna')
     def nunique(self, axis=0, dropna=True):
         """
         Return Series with number of distinct observations over requested
@@ -5790,6 +5804,7 @@ class DataFrame(NDFrame):
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
+    @validate_keywords_as_bool('dropna')
     def idxmin(self, axis=0, skipna=True):
         """
         Return index of first occurrence of minimum over requested axis.
@@ -5826,6 +5841,7 @@ class DataFrame(NDFrame):
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
+    @validate_keywords_as_bool('dropna')
     def idxmax(self, axis=0, skipna=True):
         """
         Return index of first occurrence of maximum over requested axis.
@@ -5871,6 +5887,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('Axis must be 0 or 1 (got %r)' % axis_num)
 
+    @validate_keywords_as_bool('numeric_only')
     def mode(self, axis=0, numeric_only=False):
         """
         Gets the mode(s) of each element along the axis selected. Adds a row
@@ -5909,6 +5926,7 @@ class DataFrame(NDFrame):
 
         return data.apply(f, axis=axis)
 
+    @validate_keywords_as_bool('numeric_only')
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
@@ -5982,6 +6000,7 @@ class DataFrame(NDFrame):
 
         return result
 
+    @validate_keywords_as_bool('copy')
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period
@@ -6016,6 +6035,7 @@ class DataFrame(NDFrame):
 
         return self._constructor(new_data)
 
+    @validate_keywords_as_bool('copy')
     def to_period(self, freq=None, axis=0, copy=True):
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired

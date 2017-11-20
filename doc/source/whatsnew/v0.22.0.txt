@@ -167,5 +167,5 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
--
+- Added checking of boolean kwargs in DataFrame methods (:issue:`16714`)
 -
