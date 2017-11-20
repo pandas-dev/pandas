@@ -890,6 +890,40 @@ class TestPivotTable(object):
                              index=['X', 'Y'], columns=exp_col)
         tm.assert_frame_equal(result, expected)
 
+    def test_daily(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.dayofyear)
+        annual.columns = annual.columns.droplevel(0)
+
+        doy = np.asarray(ts.index.dayofyear)
+
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = subset.index.year
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
+    def test_monthly(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='M')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(pd.DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.month)
+        annual.columns = annual.columns.droplevel(0)
+
+        month = ts.index.month
+        for i in range(1, 13):
+            subset = ts[month == i]
+            subset.index = subset.index.year
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
     def test_pivot_table_with_iterator_values(self):
         # GH 12017
         aggs = {'D': 'sum', 'E': 'mean'}
