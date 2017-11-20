@@ -579,7 +579,8 @@ ext_data = {
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
-        'depends': tseries_depends},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util',
