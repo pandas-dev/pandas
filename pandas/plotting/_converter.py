@@ -76,8 +76,9 @@ def register(warn=False):
 
     See Also
     --------
-    deregister
+    deregister_matplotlib_converter
     """
+    # Renamed in pandas.plotting.__init__
     global _WARN
 
     if not warn:
@@ -103,8 +104,9 @@ def deregister():
 
     See Also
     --------
-    register
+    deregister_matplotlib_converters
     """
+    # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance
         if type(units.registry.get(type_)) is cls:
@@ -127,8 +129,9 @@ def _check_implicitly_registered():
                "by pandas on import. Future versions of pandas will require "
                "you to explicitly register matplotlib converters.\n\n"
                "To register the converters:\n\t"
-               ">>> from pandas.plotting import register_converters\n\t"
-               ">>> register_converters()")
+               ">>> from pandas.plotting import register_matplotlib_converters"
+               "\n\t"
+               ">>> register_matplotlib_converters()")
         warnings.warn(msg, FutureWarning)
         _WARN = False
 

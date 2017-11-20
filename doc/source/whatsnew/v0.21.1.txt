@@ -20,8 +20,8 @@ the converter.
 
 .. code-block:: python
 
-   >>> from pandas.plotting import register_converters
-   >>> register_converters()
+   >>> from pandas.plotting import register_matplotlib_converters
+   >>> register_matplotlib_converters()
 
 This caused problems for some users, so we're temporarily reverting that change;
 pandas will again register the converters on import. Using the converters
@@ -39,8 +39,8 @@ without explicitly registering them will cause a ``FutureWarning``:
    converters.
  
    To register the converters:
-           >>> from pandas.plotting import register_converters
-           >>> register_converters()
+           >>> from pandas.plotting import register_matplotlib_converters
+           >>> register_matplotlib_converters()
 
 As the error message says, you'll need to register the converters if you intend
 to use them with matplotlib plotting functions. Pandas plotting functions, such
@@ -48,7 +48,7 @@ as ``Series.plot``, will register them for you; calling ``register_converters``
 first is not necessary.
 
 We've added a new option to control the converters,
-``pd.options.plotting.mpl.converters``. By default, they are
+``pd.options.plotting.matplotlib.register_converters``. By default, they are
 registered. Toggling this to ``False`` removes pandas' formatters (:issue:`18301`)
 
 We're working with the matplotlib developers to make this easier. We're trying

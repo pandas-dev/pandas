@@ -494,14 +494,15 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_converters, deregister_converters
+    from pandas.plotting import register_matplotlib_converters
+    from pandas.plotting import deregister_matplotlib_converters
 
     if cf.get_option(key):
-        register_converters()
+        register_matplotlib_converters()
     else:
-        deregister_converters()
+        deregister_matplotlib_converters()
 
 
-with cf.config_prefix("plotting.mpl"):
-    cf.register_option("converters", True, register_converter_doc,
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_converters", True, register_converter_doc,
                        validator=bool, cb=register_converter_cb)
