@@ -2724,7 +2724,8 @@ class TestPeriodIndex(Base):
         index = pd.DatetimeIndex([1457537600000000000, 1458059600000000000],
                                  tz='UTC').tz_convert('America/Chicago')
         df = pd.DataFrame([1, 2], index=index)
-        res_df = df.resample('12h', closed='right', label='right').last().ffill()
+        res_df = df.resample('12h', closed='right',
+                             label='right').last().ffill()
 
         expected_index_values = ['2016-03-09 12:00:00-06:00',
                                  '2016-03-10 00:00:00-06:00',
