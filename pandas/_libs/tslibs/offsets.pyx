@@ -22,7 +22,7 @@ from pandas._libs.tslib import monthrange
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
-from np_datetime cimport (pandas_datetimestruct,
+from np_datetime cimport (npy_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct,
                           is_leapyear, days_per_month_table)
 
@@ -431,14 +431,14 @@ cdef inline int get_days_in_month(int year, int month) nogil:
     return days_per_month_table[is_leapyear(year)][month - 1]
 
 
-cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
-    """new year number after shifting pandas_datetimestruct number of months"""
+cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+    """new year number after shifting npy_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
 
-cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
+cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
-    New month number after shifting pandas_datetimestruct
+    New month number after shifting npy_datetimestruct
     number of months.
     """
     cdef int new_month = (dts.month + months) % 12
@@ -459,7 +459,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     """
     cdef:
         Py_ssize_t i
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll
         bint roll_check

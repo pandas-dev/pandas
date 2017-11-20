@@ -17,7 +17,7 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
+from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct,
                           days_per_month_table, is_leapyear, dayofweek)
 from nattype cimport NPY_NAT
@@ -29,7 +29,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, count = 0
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
@@ -75,7 +75,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
     cdef:
         Py_ssize_t i, count = 0
         ndarray[object] out
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int dow
 
     _dayname = np.array(
@@ -117,7 +117,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         ndarray[int8_t] out
         ndarray[int32_t, ndim=2] _month_offset
         bint isleap
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
@@ -358,7 +358,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         ndarray[int32_t] out
         ndarray[int32_t, ndim=2] _month_offset
         int isleap, isleap_prev
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int mo_off, doy, dow, woy
 
     _month_offset = np.array(
@@ -656,7 +656,7 @@ def get_timedelta_field(ndarray[int64_t] tdindex, object field):
     raise ValueError("Field %s not supported" % field)
 
 
-cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
+cdef inline int days_in_month(npy_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month - 1]
 
 

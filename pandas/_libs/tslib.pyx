@@ -45,7 +45,7 @@ from datetime import time as datetime_time
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  reverse_ops,
                                  cmp_scalar,
-                                 pandas_datetimestruct,
+                                 npy_datetimestruct,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  get_datetime64_value,
@@ -87,7 +87,7 @@ from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
 
 
 cdef inline object create_timestamp_from_ts(
-        int64_t value, pandas_datetimestruct dts,
+        int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -102,7 +102,7 @@ cdef inline object create_timestamp_from_ts(
 
 
 cdef inline object create_datetime_from_ts(
-        int64_t value, pandas_datetimestruct dts,
+        int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -116,11 +116,11 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None, box=False):
     cdef:
         Py_ssize_t i, n = len(arr)
         ndarray[int64_t] trans, deltas
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         object dt
         int64_t value
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, pandas_datetimestruct, object, object)
+        object (*func_create)(int64_t, npy_datetimestruct, object, object)
 
     if box and is_string_object(freq):
         from pandas.tseries.frequencies import to_offset
@@ -707,7 +707,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input
@@ -1239,7 +1239,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
         bint show_ms = 0, show_us = 0, show_ns = 0, basic_format = 0
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     if na_rep is None:
         na_rep = 'NaT'
@@ -1471,7 +1471,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         object val, py_dt
         ndarray[int64_t] iresult
         ndarray[object] oresult
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_integer = 0
         bint seen_string = 0
@@ -1705,7 +1705,7 @@ def get_time_micros(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, n = len(dtindex)
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int64_t] micros
 
     micros = np.empty(n, dtype=np.int64)
