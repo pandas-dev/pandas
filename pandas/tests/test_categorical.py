@@ -1673,9 +1673,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         exp_cat = Categorical(["b", np.nan, "a"], categories=["b", "a"])
         tm.assert_categorical_equal(res, exp_cat)
 
-        # GH 18051 unique()._codes should be writeable
-        cat_nan = Categorical([np.nan])
-        assert cat_nan.unique()._codes.flags.writeable
+        # GH 18051
+        cat = Categorical([np.nan])
+        res = cat.unique()
+        exp_cat = Categorical([np.nan], categories=[])
+        tm.assert_categorical_equal(res, exp_cat)
 
     def test_unique_ordered(self):
         # keep categories order when ordered=True
@@ -2177,6 +2179,10 @@ class TestCategoricalAsBlock(object):
 
         result = x.person_name.loc[0]
         assert result == expected
+
+        # GH 18051
+        s = pd.Series(pd.Categorical([np.nan]))
+        assert s.nunique() == 0
 
     def test_creation_astype(self):
         l = ["a", "b", "c", "a"]
