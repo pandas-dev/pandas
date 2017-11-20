@@ -375,7 +375,7 @@ class TestIntervalIndex(Base):
         IntervalIndex.from_tuples([(1, 2), ('a', 'z'), (3.14, 6.28)])])
     def test_insert(self, data):
         item = data[0]
-        idx_item = IntervalIndex([item], closed=data.closed)
+        idx_item = IntervalIndex([item])
 
         # start
         expected = idx_item.append(data)
