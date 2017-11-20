@@ -963,19 +963,21 @@ class TestMultiIndex(Base):
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
         tm.assert_index_equal(index.get_level_values(1), exp)
 
-    def test_get_level_values_na(self):
+    @pytest.mark.xfail(reason='GH 17924 (returns Int64Index with float data)')
+    def test_get_level_values_int_with_na(self):
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
-        expected = np.array([1, np.nan, 2])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
+        result = index.get_level_values(1)
+        expected = Index([1, np.nan, 2])
+        tm.assert_index_equal(result, expected)
 
         arrays = [['a', 'b', 'b'], [np.nan, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
-        expected = np.array([np.nan, np.nan, 2])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
+        result = index.get_level_values(1)
+        expected = Index([np.nan, np.nan, 2])
+        tm.assert_index_equal(result, expected)
 
+    def test_get_level_values_na(self):
         arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
         index = pd.MultiIndex.from_arrays(arrays)
         result = index.get_level_values(0)
@@ -990,7 +992,7 @@ class TestMultiIndex(Base):
         index = pd.MultiIndex.from_arrays(arrays)
         values = index.get_level_values(1)
         expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        tm.assert_numpy_array_equal(values.values, expected.values)
+        tm.assert_index_equal(values, expected)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
@@ -2276,6 +2278,20 @@ class TestMultiIndex(Base):
         res = mi.unique()
         exp = pd.MultiIndex.from_arrays([['a'], ['a']])
         tm.assert_index_equal(res, exp)
+
+    @pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
+    def test_unique_level(self, level):
+        # GH #17896 - with level= argument
+        result = self.index.unique(level=level)
+        expected = self.index.get_level_values(level).unique()
+        tm.assert_index_equal(result, expected)
+
+        # With already unique level
+        mi = pd.MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]],
+                                       names=['first', 'second'])
+        result = mi.unique(level=level)
+        expected = mi.get_level_values(level)
+        tm.assert_index_equal(result, expected)
 
     def test_unique_datetimelike(self):
         idx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',
