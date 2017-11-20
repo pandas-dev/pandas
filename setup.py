@@ -590,7 +590,8 @@ ext_data = {
                      '_libs/src/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
-        'depends': tseries_depends},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
