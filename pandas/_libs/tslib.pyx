@@ -1445,10 +1445,8 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             else:
 
                 if is_raise:
-                    raise ValueError("non convertible value {0}"
-                                     "with the unit '{1}'".format(
-                                         val,
-                                         unit))
+                    raise ValueError("unit='{0}' not valid with non-numerical "
+                                     "val='{1}'".format(unit, val))
                 if is_ignore:
                     raise AssertionError
 
