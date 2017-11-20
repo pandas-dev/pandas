@@ -1704,17 +1704,9 @@ def get_time_micros(ndarray[int64_t] dtindex):
     Datetime as int64 representation to a structured array of fields
     """
     cdef:
-        Py_ssize_t i, n = len(dtindex)
-        pandas_datetimestruct dts
         ndarray[int64_t] micros
 
-    micros = np.empty(n, dtype=np.int64)
-
-    for i in range(n):
-        dt64_to_dtstruct(dtindex[i], &dts)
-        micros[i] = 1000000LL * (dts.hour * 60 * 60 +
-                                 60 * dts.min + dts.sec) + dts.us
-
+    micros = np.mod(dtindex, 86_400_000_000_000, dtype=np.int64) // 1000LL
     return micros
 
 
