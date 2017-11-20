@@ -1715,7 +1715,7 @@ def get_time_micros(ndarray[int64_t] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, 86_400_000_000_000, dtype=np.int64) // 1000LL
+    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
     return micros
 
 
