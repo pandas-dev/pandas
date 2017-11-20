@@ -54,9 +54,6 @@ Documentation Changes
 
 .. _whatsnew_0211.bug_fixes:
 
-Bug Fixes
-~~~~~~~~~
-
 Conversion
 ^^^^^^^^^^
 

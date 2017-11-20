@@ -179,7 +179,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(data, IntervalIndex):
             left = data.left
             right = data.right
-
+            closed = data.closed
         else:
 
             # don't allow scalars
@@ -187,7 +187,7 @@ class IntervalIndex(IntervalMixin, Index):
                 cls._scalar_data_error(data)
 
             data = IntervalIndex.from_intervals(data, name=name)
-            left, right = data.left, data.right
+            left, right, closed = data.left, data.right, data.closed
 
         return cls._simple_new(left, right, closed, name,
                                copy=copy, verify_integrity=verify_integrity)
@@ -569,7 +569,8 @@ class IntervalIndex(IntervalMixin, Index):
         left = self.left.copy(deep=True) if deep else self.left
         right = self.right.copy(deep=True) if deep else self.right
         name = name if name is not None else self.name
-        return type(self).from_arrays(left, right, name=name)
+        closed = self.closed
+        return type(self).from_arrays(left, right, closed=closed, name=name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
