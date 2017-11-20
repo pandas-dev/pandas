@@ -2226,8 +2226,8 @@ Plotting
 .. autosummary::
    :toctree: generated/
 
-   plotting.register_converters
-   plotting.deregister_converters
+   plotting.register_matplotlib_converters
+   plotting.deregister_matplotlib_converters
 
 .. currentmodule:: pandas
 

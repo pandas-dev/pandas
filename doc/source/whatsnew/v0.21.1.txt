@@ -73,14 +73,14 @@ Other Enhancements
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
 -
--
+e
 
 .. _whatsnew_0211.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
-- 
+-
 -
 -
 
