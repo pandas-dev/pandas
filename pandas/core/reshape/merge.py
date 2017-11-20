@@ -914,15 +914,28 @@ class _MergeOperation(object):
                     continue
 
                 # check whether ints and floats
-                if is_integer_dtype(rk) and is_float_dtype(lk):
+                elif is_integer_dtype(rk) and is_float_dtype(lk):
+                    if not (lk == lk.astype(rk.dtype)).all():
+                        warnings.warn('You are merging on int and float '
+                                      'columns where the float values '
+                                      'are not equal to their int '
+                                      'representation', UserWarning)
                     continue
 
-                if is_float_dtype(rk) and is_integer_dtype(lk):
+                elif is_float_dtype(rk) and is_integer_dtype(lk):
+                    if not (rk == rk.astype(lk.dtype)).all():
+                        warnings.warn('You are merging on int and float '
+                                      'columns where the float values '
+                                      'are not equal to their int '
+                                      'representation', UserWarning)
                     continue
 
                 # let's infer and see if we are ok
-                if lib.infer_dtype(lk) == lib.infer_dtype(rk):
+                elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
                     continue
+
+                else:
+                    pass
 
             # Houston, we have a problem!
             # let's coerce to object if the dtypes aren't
