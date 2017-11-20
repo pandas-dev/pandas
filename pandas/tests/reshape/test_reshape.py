@@ -500,7 +500,7 @@ class TestGetDummies(object):
         expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first(self, sparse, dtype):
+    def test_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list('abc')
@@ -509,22 +509,19 @@ class TestGetDummies(object):
 
         expected = DataFrame({'b': [0, 1, 0],
                               'c': [0, 0, 1]},
-                             dtype=self.effective_dtype(dtype))
+                             dtype=np.uint8)
 
-        result = get_dummies(s_list, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_list, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(s_series, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_series, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
         expected.index = list('ABC')
-        result = get_dummies(s_series_index, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_one_level(self, sparse, dtype):
+    def test_basic_drop_first_one_level(self, sparse):
         # Test the case that categorical variable only has one level.
         s_list = list('aaa')
         s_series = Series(s_list)
@@ -532,78 +529,73 @@ class TestGetDummies(object):
 
         expected = DataFrame(index=np.arange(3))
 
-        result = get_dummies(s_list, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_list, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(s_series, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_series, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
         expected = DataFrame(index=list('ABC'))
-        result = get_dummies(s_series_index, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+        result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_NA(self, sparse, dtype):
+    def test_basic_drop_first_NA(self, sparse):
         # Test NA hadling together with drop_first
         s_NA = ['a', 'b', np.nan]
-        res = get_dummies(s_NA, drop_first=True, sparse=sparse, dtype=dtype)
-        exp = DataFrame({'b': [0, 1, 0]}, dtype=self.effective_dtype(dtype))
+        res = get_dummies(s_NA, drop_first=True, sparse=sparse)
+        exp = DataFrame({'b': [0, 1, 0]}, dtype=np.uint8)
         assert_frame_equal(res, exp)
 
         res_na = get_dummies(s_NA, dummy_na=True, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+                             sparse=sparse)
         exp_na = DataFrame(
             {'b': [0, 1, 0],
              nan: [0, 0, 1]},
-            dtype=self.effective_dtype(dtype)).reindex(['b', nan], axis=1)
+            dtype=np.uint8).reindex(['b', nan], axis=1)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan],
-                                  dummy_na=True,
-                                  drop_first=True,
-                                  sparse=sparse, dtype=dtype)
+        res_just_na = get_dummies([nan], dummy_na=True, drop_first=True,
+                                  sparse=sparse)
         exp_just_na = DataFrame(index=np.arange(1))
         assert_frame_equal(res_just_na, exp_just_na)
 
-    def test_dataframe_dummies_drop_first(self, df, sparse, dtype):
+    def test_dataframe_dummies_drop_first(self, df, sparse):
         df = df[['A', 'B']]
-        result = get_dummies(df, drop_first=True, sparse=sparse, dtype=dtype)
+        result = get_dummies(df, drop_first=True, sparse=sparse)
         expected = DataFrame({'A_b': [0, 1, 0],
                               'B_c': [0, 0, 1]},
-                             dtype=self.effective_dtype(dtype))
+                             dtype=np.uint8)
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_drop_first_with_categorical(
             self, df, sparse, dtype):
         df['cat'] = pd.Categorical(['x', 'y', 'y'])
-        result = get_dummies(df, drop_first=True, sparse=sparse, dtype=dtype)
+        result = get_dummies(df, drop_first=True, sparse=sparse)
         expected = DataFrame({'C': [1, 2, 3],
                               'A_b': [0, 1, 0],
                               'B_c': [0, 0, 1],
                               'cat_y': [0, 1, 1]})
         cols = ['A_b', 'B_c', 'cat_y']
-        expected[cols] = expected[cols].astype(self.effective_dtype(dtype))
+        expected[cols] = expected[cols].astype(np.uint8)
         expected = expected[['C', 'A_b', 'B_c', 'cat_y']]
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_drop_first_with_na(self, df, sparse, dtype):
+    def test_dataframe_dummies_drop_first_with_na(self, df, sparse):
         df.loc[3, :] = [np.nan, np.nan, np.nan]
         result = get_dummies(df, dummy_na=True, drop_first=True,
-                             sparse=sparse, dtype=dtype).sort_index(axis=1)
+                             sparse=sparse).sort_index(axis=1)
         expected = DataFrame({'C': [1, 2, 3, np.nan],
                               'A_b': [0, 1, 0, 0],
                               'A_nan': [0, 0, 0, 1],
                               'B_c': [0, 0, 1, 0],
                               'B_nan': [0, 0, 0, 1]})
         cols = ['A_b', 'A_nan', 'B_c', 'B_nan']
-        expected[cols] = expected[cols].astype(self.effective_dtype(dtype))
+        expected[cols] = expected[cols].astype(np.uint8)
         expected = expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
         result = get_dummies(df, dummy_na=False, drop_first=True,
-                             sparse=sparse, dtype=dtype)
+                             sparse=sparse)
         expected = expected[['C', 'A_b', 'B_c']]
         assert_frame_equal(result, expected)
 
