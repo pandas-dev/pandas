@@ -39,7 +39,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Improved performance of plotting large series/dataframes (:issue:`18236`).
 -
 -
 
