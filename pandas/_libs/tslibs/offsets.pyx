@@ -2,6 +2,7 @@
 # cython: profile=False
 
 cimport cython
+from cython cimport Py_ssize_t
 
 import time
 from cpython.datetime cimport datetime, timedelta, time as dt_time
@@ -10,6 +11,7 @@ from dateutil.relativedelta import relativedelta
 
 import numpy as np
 cimport numpy as np
+from numpy cimport int64_t
 np.import_array()
 
 
@@ -19,6 +21,10 @@ from pandas._libs.tslib import monthrange
 
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
+from nattype cimport NPY_NAT
+from np_datetime cimport (pandas_datetimestruct,
+                          dtstruct_to_dt64, dt64_to_dtstruct,
+                          is_leapyear, days_per_month_table)
 
 # ---------------------------------------------------------------------
 # Constants
@@ -419,13 +425,121 @@ class BaseOffset(_BaseOffset):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline int get_days_in_month(int year, int month) nogil:
+    return days_per_month_table[is_leapyear(year)][month - 1]
+
+
+cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
+    """new year number after shifting pandas_datetimestruct number of months"""
+    return dts.year + (dts.month + months - 1) / 12
+
+
+cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
+    """
+    New month number after shifting pandas_datetimestruct
+    number of months.
+    """
+    cdef int new_month = (dts.month + months) % 12
+    return 12 if new_month == 0 else new_month
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def shift_months(int64_t[:] dtindex, int months, object day=None):
+    """
+    Given an int64-based datetime index, shift all elements
+    specified number of months using DateOffset semantics
+
+    day: {None, 'start', 'end'}
+       * None: day of month
+       * 'start' 1st day of month
+       * 'end' last day of month
+    """
+    cdef:
+        Py_ssize_t i
+        pandas_datetimestruct dts
+        int count = len(dtindex)
+        int months_to_roll
+        bint roll_check
+        int64_t[:] out = np.empty(count, dtype='int64')
+
+    if day is None:
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                dts.year = year_add_months(dts, months)
+                dts.month = month_add_months(dts, months)
+
+                dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
+                out[i] = dtstruct_to_dt64(&dts)
+    elif day == 'start':
+        roll_check = False
+        if months <= 0:
+            months += 1
+            roll_check = True
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                months_to_roll = months
+
+                # offset semantics - if on the anchor point and going backwards
+                # shift to next
+                if roll_check and dts.day == 1:
+                    months_to_roll -= 1
+
+                dts.year = year_add_months(dts, months_to_roll)
+                dts.month = month_add_months(dts, months_to_roll)
+                dts.day = 1
+
+                out[i] = dtstruct_to_dt64(&dts)
+    elif day == 'end':
+        roll_check = False
+        if months > 0:
+            months -= 1
+            roll_check = True
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                months_to_roll = months
+
+                # similar semantics - when adding shift forward by one
+                # month if already at an end of month
+                if roll_check and dts.day == get_days_in_month(dts.year,
+                                                               dts.month):
+                    months_to_roll += 1
+
+                dts.year = year_add_months(dts, months_to_roll)
+                dts.month = month_add_months(dts, months_to_roll)
+
+                dts.day = get_days_in_month(dts.year, dts.month)
+                out[i] = dtstruct_to_dt64(&dts)
+    else:
+        raise ValueError("day must be None, 'start' or 'end'")
+
+    return np.asarray(out)
+
+
 cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
     with day determined by `day_opt` using relativedelta semantics.
 
-    Scalar analogue of tslib.shift_months
+    Scalar analogue of shift_months
 
     Parameters
     ----------
