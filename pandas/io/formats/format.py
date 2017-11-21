@@ -2274,7 +2274,7 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
         consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
 
     if even_days:
-        format = 'even_day'
+        format = None
     elif all_sub_day:
         format = 'sub_day'
     else:
