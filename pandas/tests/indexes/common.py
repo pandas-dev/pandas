@@ -996,3 +996,16 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_putmask_with_wrong_mask(self):
+        # GH18368
+        index = self.create_index()
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask('foo', 1)
