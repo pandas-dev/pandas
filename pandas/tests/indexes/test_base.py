@@ -5,6 +5,7 @@ import pytest
 from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
@@ -201,24 +202,19 @@ class TestIndex(Base):
             result = pd.Index(ArrayLike(array))
             tm.assert_index_equal(result, expected)
 
-    def test_constructor_int_dtype_float(self):
+    @pytest.mark.parametrize('dtype', [
+        int, 'int64', 'int32', 'int16', 'int8', 'uint64', 'uint32',
+        'uint16', 'uint8'])
+    def test_constructor_int_dtype_float(self, dtype):
         # GH 18400
-        data = [0., 1., 2., 3.]
+        if is_unsigned_integer_dtype(dtype):
+            index_type = UInt64Index
+        else:
+            index_type = Int64Index
 
-        expected = Int64Index([0, 1, 2, 3])
-        result = Index(data, dtype='int64')
+        expected = index_type([0, 1, 2, 3])
+        result = Index([0., 1., 2., 3.], dtype=dtype)
         tm.assert_index_equal(result, expected)
-
-        expected = UInt64Index([0, 1, 2, 3])
-        result = Index(data, dtype='uint64')
-        tm.assert_index_equal(result, expected)
-
-        # fall back to Float64Index
-        data = [0.0, 1.1, 2.2, 3.3]
-        expected = Float64Index(data)
-        for dtype in ('int64', 'uint64'):
-            result = Index(data, dtype=dtype)
-            tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
