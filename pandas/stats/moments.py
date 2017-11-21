@@ -219,8 +219,8 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
 
         # give a helpful deprecation message
         # with copy-pastable arguments
-        pargs = ','.join(["{a}={b}".format(a=a, b=b)
-                          for a, b in kwargs.items() if b is not None])
+        pargs = ','.join("{a}={b}".format(a=a, b=b)
+                         for a, b in kwargs.items() if b is not None)
         aargs = ','.join(args)
         if len(aargs):
             aargs += ','
@@ -229,7 +229,7 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
             if is_scalar(b):
                 return "{a}={b}".format(a=a, b=b)
             return "{a}=<{b}>".format(a=a, b=type(b).__name__)
-        aargs = ','.join([f(a, b) for a, b in kwds.items() if b is not None])
+        aargs = ','.join(f(a, b) for a, b in kwds.items() if b is not None)
         warnings.warn("pd.{dispatch}_{name} is deprecated for {klass} "
                       "and will be removed in a future version, replace with "
                       "\n\t{klass}.{dispatch}({pargs}).{name}({aargs})"
@@ -458,7 +458,7 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     if how is None:
         how_arg_str = 'None'
     else:
-        how_arg_str = "'%s" % how
+        how_arg_str = "'{how}".format(how=how)
 
     @Substitution(desc, _unary_arg, _roll_kw % how_arg_str + additional_kw,
                   _type_of_input_retval, _roll_notes)

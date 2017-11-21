@@ -17,16 +17,10 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
-
-from datetime cimport (
-    days_per_month_table,
-    is_leapyear,
-    dayofweek)
-
-cimport util
-
-cdef int64_t NPY_NAT = util.get_nat()
+from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
+                          dt64_to_dtstruct, td64_to_tdstruct,
+                          days_per_month_table, is_leapyear, dayofweek)
+from nattype cimport NPY_NAT
 
 
 def build_field_sarray(ndarray[int64_t] dtindex):
@@ -40,13 +34,13 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
     count = len(dtindex)
 
-    sa_dtype = [('Y', 'i4'), # year
-                ('M', 'i4'), # month
-                ('D', 'i4'), # day
-                ('h', 'i4'), # hour
-                ('m', 'i4'), # min
-                ('s', 'i4'), # second
-                ('u', 'i4')] # microsecond
+    sa_dtype = [('Y', 'i4'),  # year
+                ('M', 'i4'),  # month
+                ('D', 'i4'),  # day
+                ('h', 'i4'),  # hour
+                ('m', 'i4'),  # min
+                ('s', 'i4'),  # second
+                ('u', 'i4')]  # microsecond
 
     out = np.empty(count, dtype=sa_dtype)
 
@@ -541,6 +535,123 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         return out
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
+
+    raise ValueError("Field %s not supported" % field)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_timedelta_field(ndarray[int64_t] tdindex, object field):
+    """
+    Given a int64-based timedelta index, extract the days, hrs, sec.,
+    field and return an array of these values.
+    """
+    cdef:
+        Py_ssize_t i, count = 0
+        ndarray[int32_t] out
+        pandas_timedeltastruct tds
+
+    count = len(tdindex)
+    out = np.empty(count, dtype='i4')
+
+    if field == 'days':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.days
+        return out
+
+    elif field == 'h':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.hrs
+        return out
+
+    elif field == 's':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.sec
+        return out
+
+    elif field == 'seconds':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.seconds
+        return out
+
+    elif field == 'ms':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.ms
+        return out
+
+    elif field == 'microseconds':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.microseconds
+        return out
+
+    elif field == 'us':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.us
+        return out
+
+    elif field == 'ns':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.ns
+        return out
+
+    elif field == 'nanoseconds':
+        with nogil:
+            for i in range(count):
+                if tdindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                td64_to_tdstruct(tdindex[i], &tds)
+                out[i] = tds.nanoseconds
+        return out
 
     raise ValueError("Field %s not supported" % field)
 

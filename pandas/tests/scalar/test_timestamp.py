@@ -16,8 +16,9 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
-from pandas._libs import tslib, period
+from pandas._libs import period
 from pandas._libs.tslibs.timezones import get_timezone
+from pandas._libs.tslibs import conversion
 
 from pandas.compat import lrange, long, PY3
 from pandas.util.testing import assert_series_equal
@@ -26,6 +27,24 @@ from pandas import (Timestamp, date_range, Period, Timedelta, compat,
                     Series, NaT, DataFrame, DatetimeIndex)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
+
+
+class TestTimestampArithmetic(object):
+    def test_overflow_offset(self):
+        # xref https://github.com/statsmodels/statsmodels/issues/3374
+        # ends up multiplying really large numbers which overflow
+
+        stamp = Timestamp('2017-01-13 00:00:00', freq='D')
+        offset = 20169940 * offsets.Day(1)
+
+        with pytest.raises(OverflowError):
+            stamp + offset
+
+        with pytest.raises(OverflowError):
+            offset + stamp
+
+        with pytest.raises(OverflowError):
+            stamp - offset
 
 
 class TestTimestamp(object):
@@ -59,12 +78,12 @@ class TestTimestamp(object):
             for result in [Timestamp(date_str), Timestamp(date)]:
                 # only with timestring
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
@@ -72,18 +91,18 @@ class TestTimestamp(object):
                                                                      tz=tz)]:
                     expected_tz = expected - offset * 3600 * 1000000000
                     assert result.value == expected_tz
-                    assert tslib.pydt_to_i8(result) == expected_tz
+                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should preserve tz
                     result = Timestamp(result)
                     assert result.value == expected_tz
-                    assert tslib.pydt_to_i8(result) == expected_tz
+                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should convert to UTC
                     result = Timestamp(result, tz='UTC')
                     expected_utc = expected - offset * 3600 * 1000000000
                     assert result.value == expected_utc
-                    assert tslib.pydt_to_i8(result) == expected_utc
+                    assert conversion.pydt_to_i8(result) == expected_utc
 
     def test_constructor_with_stringoffset(self):
         # GH 7833
@@ -111,30 +130,30 @@ class TestTimestamp(object):
             for result in [Timestamp(date_str)]:
                 # only with timestring
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert tslib.pydt_to_i8(result) == expected
+                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 result = Timestamp(date_str, tz=tz)
                 expected_tz = expected
                 assert result.value == expected_tz
-                assert tslib.pydt_to_i8(result) == expected_tz
+                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should preserve tz
                 result = Timestamp(result)
                 assert result.value == expected_tz
-                assert tslib.pydt_to_i8(result) == expected_tz
+                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should convert to UTC
                 result = Timestamp(result, tz='UTC')
                 expected_utc = expected
                 assert result.value == expected_utc
-                assert tslib.pydt_to_i8(result) == expected_utc
+                assert conversion.pydt_to_i8(result) == expected_utc
 
         # This should be 2013-11-01 05:00 in UTC
         # converted to Chicago tz
@@ -176,12 +195,18 @@ class TestTimestamp(object):
             Timestamp(Period('1000-01-01'))
 
     def test_constructor_invalid_tz(self):
-        # GH#17690, GH#5168
+        # GH#17690
         with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
             Timestamp('2017-10-22', tzinfo='US/Eastern')
 
         with tm.assert_raises_regex(ValueError, 'at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
+
+        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
+            # GH#5168
+            # case where user tries to pass tz as an arg, not kwarg, gets
+            # interpreted as a `freq`
+            Timestamp('2012-01-01', 'US/Pacific')
 
     def test_constructor_tz_or_tzinfo(self):
         # GH#17943, GH#17690, GH#5168
@@ -1077,13 +1102,18 @@ class TestTimestamp(object):
 
         tsc = Timestamp('2014-10-11 11:00:01.12345678', tz='US/Central')
         utsc = tsc.tz_convert('UTC')
+
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
 
         if PY3:
-            # should agree with datetime.timestamp method
-            dt = ts.to_pydatetime()
-            assert dt.timestamp() == ts.timestamp()
+
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+
+                # should agree with datetime.timestamp method
+                dt = ts.to_pydatetime()
+                assert dt.timestamp() == ts.timestamp()
 
 
 class TestTimestampNsOperations(object):

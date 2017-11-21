@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
+
+from cpython.datetime cimport (datetime, date,
+                               PyDateTime_IMPORT,
+                               PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
+                               PyDateTime_GET_DAY, PyDateTime_DATE_GET_HOUR,
+                               PyDateTime_DATE_GET_MINUTE,
+                               PyDateTime_DATE_GET_SECOND,
+                               PyDateTime_DATE_GET_MICROSECOND)
+PyDateTime_IMPORT
+
 from numpy cimport int64_t
 
-cdef extern from "numpy/ndarrayobject.h":
-    ctypedef int64_t npy_timedelta
-    ctypedef int64_t npy_datetime
-
 cdef extern from "../src/datetime/np_datetime.h":
-    ctypedef enum PANDAS_DATETIMEUNIT:
-        PANDAS_FR_Y
-        PANDAS_FR_M
-        PANDAS_FR_W
-        PANDAS_FR_D
-        PANDAS_FR_B
-        PANDAS_FR_h
-        PANDAS_FR_m
-        PANDAS_FR_s
-        PANDAS_FR_ms
-        PANDAS_FR_us
-        PANDAS_FR_ns
-        PANDAS_FR_ps
-        PANDAS_FR_fs
-        PANDAS_FR_as
-
     int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
                                   pandas_datetimestruct *b)
 
@@ -35,9 +26,69 @@ cdef extern from "../src/datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
 
+    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                             PANDAS_DATETIMEUNIT fr,
+                                             pandas_timedeltastruct *result
+                                            ) nogil
+
     pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 # ----------------------------------------------------------------------
+# numpy object inspection
+
+cdef inline npy_datetime get_datetime64_value(object obj) nogil:
+    """
+    returns the int64 value underlying scalar numpy datetime64 object
+
+    Note that to interpret this as a datetime, the corresponding unit is
+    also needed.  That can be found using `get_datetime64_unit`.
+    """
+    return (<PyDatetimeScalarObject*>obj).obval
+
+
+cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
+    """
+    returns the int64 value underlying scalar numpy timedelta64 object
+    """
+    return (<PyTimedeltaScalarObject*>obj).obval
+
+
+cdef inline PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+    """
+    returns the unit part of the dtype for a numpy datetime64 object.
+    """
+    return <PANDAS_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
+
+# ----------------------------------------------------------------------
+# Comparison
+
+cdef int reverse_ops[6]
+
+reverse_ops[Py_LT] = Py_GT
+reverse_ops[Py_LE] = Py_GE
+reverse_ops[Py_EQ] = Py_EQ
+reverse_ops[Py_NE] = Py_NE
+reverse_ops[Py_GT] = Py_LT
+reverse_ops[Py_GE] = Py_LE
+
+
+cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+    """
+    cmp_scalar is a more performant version of PyObject_RichCompare
+    typed for int64_t arguments.
+    """
+    if op == Py_EQ:
+        return lhs == rhs
+    elif op == Py_NE:
+        return lhs != rhs
+    elif op == Py_LT:
+        return lhs < rhs
+    elif op == Py_LE:
+        return lhs <= rhs
+    elif op == Py_GT:
+        return lhs > rhs
+    elif op == Py_GE:
+        return lhs >= rhs
 
 
 class OutOfBoundsDatetime(ValueError):
@@ -80,3 +131,33 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     with the by-far-most-common frequency PANDAS_FR_ns"""
     pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
     return
+
+cdef inline void td64_to_tdstruct(int64_t td64,
+                                  pandas_timedeltastruct* out) nogil:
+    """Convenience function to call pandas_timedelta_to_timedeltastruct
+    with the by-far-most-common frequency PANDAS_FR_ns"""
+    pandas_timedelta_to_timedeltastruct(td64, PANDAS_FR_ns, out)
+    return
+
+
+cdef inline int64_t pydatetime_to_dt64(datetime val,
+                                       pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = PyDateTime_DATE_GET_HOUR(val)
+    dts.min = PyDateTime_DATE_GET_MINUTE(val)
+    dts.sec = PyDateTime_DATE_GET_SECOND(val)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
+    dts.ps = dts.as = 0
+    return dtstruct_to_dt64(dts)
+
+
+cdef inline int64_t pydate_to_dt64(date val,
+                                   pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = dts.min = dts.sec = dts.us = 0
+    dts.ps = dts.as = 0
+    return dtstruct_to_dt64(dts)

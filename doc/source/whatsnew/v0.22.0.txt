@@ -22,9 +22,12 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
--
--
+- Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
+- :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
+- :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
+- :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
+- :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
+- Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 
 .. _whatsnew_0220.api_breaking:
 
@@ -35,23 +38,34 @@ Backwards incompatible API changes
 -
 -
 
+
+
+
+
+
 .. _whatsnew_0220.api:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
+- ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
 - ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
-- All-NaN levels in ``MultiIndex`` are now assigned float rather than object dtype, coherently with flat indexes (:issue:`17929`).
-- :class:`Timestamp` will no longer silently ignore unused or invalid `tz` or `tzinfo` arguments (:issue:`17690`)
-- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the `tseries.offsets` module (:issue:`17830`)
--
+- All-NaN levels in a ``MultiIndex`` are now assigned ``float`` rather than ``object`` dtype, promoting consistency with ``Index`` (:issue:`17929`).
+- :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
+- :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
+- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
+- `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
+- :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
+
 
 .. _whatsnew_0220.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
--
+- ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
 -
 -
 
@@ -60,8 +74,8 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
+- The ``levels`` and ``labels`` attributes of a ``MultiIndex`` can no longer be set directly (:issue:`4039`).
 -
 
 .. _whatsnew_0220.performance:
@@ -69,9 +83,12 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Indexers on Series or DataFrame no longer create a reference cycle (:issue:`17956`)
--
--
+- Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
+- Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
+- :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
+- Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
+- The overriden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
+- ``Series`` construction will reduce the number of copies made of the input data in certain cases (:issue:`17449`)
 
 .. _whatsnew_0220.docs:
 
@@ -87,7 +104,6 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in ``pd.read_msgpack()`` with a non existent file is passed in Python 2 (:issue:`15296`)
 
 Conversion
 ^^^^^^^^^^
@@ -99,14 +115,18 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
+- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 -
 -
 
 I/O
 ^^^
 
--
+- :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
+- Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
+- Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
+- Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 -
 -
 
@@ -155,6 +175,6 @@ Categorical
 Other
 ^^^^^
 
--
+- Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
 -
 -

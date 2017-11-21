@@ -562,6 +562,17 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
     convert_datetime_to_datetimestruct(&meta, val, result);
 }
 
+void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                         PANDAS_DATETIMEUNIT fr,
+                                          pandas_timedeltastruct *result) {
+  pandas_datetime_metadata meta;
+
+  meta.base = fr;
+  meta.num - 1;
+
+  convert_timedelta_to_timedeltastruct(&meta, val, result);
+}
+
 PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj) {
     return (PANDAS_DATETIMEUNIT)((PyDatetimeScalarObject *)obj)->obmeta.base;
 }
@@ -970,6 +981,110 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                 out->as = dt % 1000000LL;
             }
             break;
+
+        default:
+            PyErr_SetString(PyExc_RuntimeError,
+                            "NumPy datetime metadata is corrupted with invalid "
+                            "base unit");
+            return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * Converts a timedelta from a timedeltastruct to a timedelta based
+ * on some metadata. The timedelta is assumed to be valid.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
+                                         npy_timedelta td,
+                                         pandas_timedeltastruct *out) {
+    npy_int64 perday;
+    npy_int64 frac;
+    npy_int64 sfrac;
+    npy_int64 ifrac;
+    int sign;
+    npy_int64 DAY_NS = 86400000000000LL;
+
+    /* Initialize the output to all zeros */
+    memset(out, 0, sizeof(pandas_timedeltastruct));
+
+    switch (meta->base) {
+        case PANDAS_FR_ns:
+
+        // put frac in seconds
+        if (td < 0 && td % (1000LL * 1000LL * 1000LL) != 0)
+          frac = td / (1000LL * 1000LL * 1000LL) - 1;
+        else
+            frac = td / (1000LL * 1000LL * 1000LL);
+
+          if (frac < 0) {
+            sign = -1;
+
+            // even fraction
+            if ((-frac % 86400LL) != 0) {
+              out->days = -frac / 86400LL + 1;
+              frac += 86400LL * out->days;
+            } else {
+              frac = -frac;
+            }
+          } else {
+            sign = 1;
+            out->days = 0;
+          }
+
+          if (frac >= 86400) {
+            out->days += frac / 86400LL;
+            frac -= out->days * 86400LL;
+          }
+
+          if (frac >= 3600) {
+            out->hrs = frac / 3600LL;
+            frac -= out->hrs * 3600LL;
+          } else {
+            out->hrs = 0;
+          }
+
+          if (frac >= 60) {
+            out->min = frac / 60LL;
+            frac -= out->min * 60LL;
+          } else {
+            out->min = 0;
+          }
+
+          if (frac >= 0) {
+            out->sec = frac;
+            frac -= out->sec;
+          } else {
+            out->sec = 0;
+          }
+
+          sfrac = (out->hrs * 3600LL + out->min * 60LL
+                   + out->sec) * (1000LL * 1000LL * 1000LL);
+
+          if (sign < 0)
+            out->days = -out->days;
+
+          ifrac = td - (out->days * DAY_NS + sfrac);
+
+          if (ifrac != 0) {
+            out->ms = ifrac / (1000LL * 1000LL);
+            ifrac -= out->ms * 1000LL * 1000LL;
+            out->us = ifrac / 1000LL;
+            ifrac -= out->us * 1000LL;
+            out->ns = ifrac;
+          } else {
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+          }
+
+          out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
+          out->microseconds = out->ms * 1000 + out->us;
+          out->nanoseconds = out->ns;
+          break;
 
         default:
             PyErr_SetString(PyExc_RuntimeError,

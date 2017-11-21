@@ -29,7 +29,8 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSparseArray, ABCDataFrame, ABCIndexClass)
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
@@ -184,8 +185,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True)
-                copy = True
+                data = data._to_embed(keep_tz=True, dtype=dtype)
+                copy = False
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -273,6 +274,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @classmethod
     def from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
                    fastpath=False):
+        """
+        DEPRECATED: use the pd.Series(..) constructor instead.
+
+        """
+        warnings.warn("'from_array' is deprecated and will be removed in a "
+                      "future version. Please use the pd.Series(..) "
+                      "constructor instead.", FutureWarning, stacklevel=2)
+        return cls._from_array(arr, index=index, name=name, dtype=dtype,
+                               copy=copy, fastpath=fastpath)
+
+    @classmethod
+    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
+                    fastpath=False):
+        """
+        Internal method used in DataFrame.__setitem__/__getitem__.
+        Difference with Series(..) is that this method checks if a sparse
+        array is passed.
+
+        """
         # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
@@ -597,7 +617,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return values[i]
         except IndexError:
             raise
-        except:
+        except Exception:
             if isinstance(i, slice):
                 indexer = self.index._convert_slice_indexer(i, kind='iloc')
                 return self._get_values(indexer)
@@ -675,7 +695,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple):
                 try:
                     return self._get_values_tuple(key)
-                except:
+                except Exception:
                     if len(key) == 1:
                         key = key[0]
                         if isinstance(key, slice):
@@ -818,7 +838,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if not isinstance(key, (list, Series, np.ndarray, Series)):
                 try:
                     key = list(key)
-                except:
+                except Exception:
                     key = [key]
 
             if isinstance(key, Index):
@@ -1306,7 +1326,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
@@ -1336,7 +1362,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
@@ -1361,13 +1393,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ndarray compat
     argmin = deprecate('argmin', idxmin,
-                       msg="'argmin' is deprecated. Use 'idxmin' instead. "
+                       msg="'argmin' is deprecated, use 'idxmin' instead. "
                            "The behavior of 'argmin' will be corrected to "
                            "return the positional minimum in the future. "
                            "Use 'series.values.argmin' to get the position of "
                            "the minimum now.")
     argmax = deprecate('argmax', idxmax,
-                       msg="'argmax' is deprecated. Use 'idxmax' instead. "
+                       msg="'argmax' is deprecated, use 'idxmax' instead. "
                            "The behavior of 'argmax' will be corrected to "
                            "return the positional maximum in the future. "
                            "Use 'series.values.argmax' to get the position of "
@@ -1731,11 +1763,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         other : Series or scalar value
         func : function
+            Function that takes two scalars as inputs and return a scalar
         fill_value : scalar value
 
         Returns
         -------
         result : Series
+
+        Examples
+        --------
+        >>> s1 = Series([1, 2])
+        >>> s2 = Series([0, 3])
+        >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
+        0    0
+        1    2
+        dtype: int64
+
+        See Also
+        --------
+        Series.combine_first : Combine Series values, choosing the calling
+            Series's values first
         """
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
@@ -1764,7 +1811,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        y : Series
+        combined : Series
+
+        Examples
+        --------
+        >>> s1 = pd.Series([1, np.nan])
+        >>> s2 = pd.Series([3, 4])
+        >>> s1.combine_first(s2)
+        0    1.0
+        1    4.0
+        dtype: float64
+
+        See Also
+        --------
+        Series.combine : Perform elementwise operation on two Series
+            using a given function
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
@@ -3079,7 +3140,9 @@ def _sanitize_index(data, index, copy=False):
     if len(data) != len(index):
         raise ValueError('Length of values does not match length of ' 'index')
 
-    if isinstance(data, PeriodIndex):
+    if isinstance(data, ABCIndexClass) and not copy:
+        pass
+    elif isinstance(data, PeriodIndex):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
@@ -3149,12 +3212,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # e.g. indexes can have different conversions (so don't fast path
             # them)
             # GH 6140
-            subarr = _sanitize_index(data, index, copy=True)
+            subarr = _sanitize_index(data, index, copy=copy)
         else:
-            subarr = _try_cast(data, True)
 
-        if copy:
-            subarr = data.copy()
+            # we will try to copy be-definition here
+            subarr = _try_cast(data, True)
 
     elif isinstance(data, Categorical):
         subarr = data

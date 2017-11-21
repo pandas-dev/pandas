@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
 cimport numpy as cnp
@@ -25,7 +26,7 @@ cdef double nan = NaN
 
 
 # TODO: aggregate multiple columns in single pass
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # first, nth, last
 
 

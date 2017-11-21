@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from pandas._libs import tslib
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import parsing, conversion
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
     DateParseError,
@@ -36,9 +36,77 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
+def _maybe_cache(arg, format, cache, tz, convert_listlike):
+    """
+    Create a cache of unique dates from an array of dates
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    format : string
+        Strftime format to parse time
+    cache : boolean
+        True attempts to create a cache of converted values
+    tz : string
+        Timezone of the dates
+    convert_listlike : function
+        Conversion function to apply on dates
+
+    Returns
+    -------
+    cache_array : Series
+        Cache of converted, unique dates. Can be empty
+    """
+    from pandas import Series
+    cache_array = Series()
+    if cache:
+        # Perform a quicker unique check
+        from pandas import Index
+        if not Index(arg).is_unique:
+            unique_dates = algorithms.unique(arg)
+            cache_dates = convert_listlike(unique_dates, True, format, tz=tz)
+            cache_array = Series(cache_dates, index=unique_dates)
+    return cache_array
+
+
+def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
+    """
+    Convert array of dates with a cache and box the result
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    cache_array : Series
+        Cache of converted, unique dates
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+    errors : string
+        'ignore' plus box=True will convert result to Index
+    name : string, default None
+        Name for a DatetimeIndex
+
+    Returns
+    -------
+    result : datetime of converted dates
+        Returns:
+
+        - Index-like if box=True
+        - ndarray if box=False
+    """
+    from pandas import Series, DatetimeIndex, Index
+    result = Series(arg).map(cache_array)
+    if box:
+        if errors == 'ignore':
+            return Index(result)
+        else:
+            return DatetimeIndex(result, name=name)
+    return result.values
+
+
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='unix'):
+                unit=None, infer_datetime_format=False, origin='unix',
+                cache=False):
     """
     Convert argument to datetime.
 
@@ -111,6 +179,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded: 0.20.0
+    cache : boolean, default False
+        If True, use a cache of unique, converted dates to apply the datetime
+        conversion. May produce sigificant speed-up when parsing duplicate date
+        strings, especially ones with timezone offsets.
+
+        .. versionadded: 0.22.0
 
     Returns
     -------
@@ -127,7 +201,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Examples
     --------
-
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
     common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same
@@ -300,7 +373,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         except ValueError as e:
             try:
-                values, tz = tslib.datetime_to_datetime64(arg)
+                values, tz = conversion.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, name=name, tz=tz)
             except (ValueError, TypeError):
                 raise e
@@ -369,15 +442,28 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, True, format)
-        result = Series(values, index=arg.index, name=arg.name)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = arg.map(cache_array)
+        else:
+            from pandas import Series
+            values = _convert_listlike(arg._values, True, format)
+            result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _convert_listlike(arg, box, format, name=arg.name)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box, errors,
+                                            name=arg.name)
+        else:
+            result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
-        result = _convert_listlike(arg, box, format)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box, errors)
+        else:
+            result = _convert_listlike(arg, box, format)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
 
@@ -535,7 +621,7 @@ def _attempt_YYYYMMDD(arg, errors):
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(tslib._nat_strings))
+        mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
     except:
         pass

@@ -46,6 +46,24 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     name : object
         Name to be stored in the index
 
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
+
+    Methods
+    -------
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    set_categories
+    as_ordered
+    as_unordered
+    map
+
     See Also
     --------
     Categorical, Index
@@ -79,7 +97,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
 
         if copy:
             data = data.copy()
@@ -359,8 +378,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def is_monotonic_decreasing(self):
         return Index(self.codes).is_monotonic_decreasing
 
-    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
-    def unique(self):
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
         result = base.IndexOpsMixin.unique(self)
         # CategoricalIndex._shallow_copy uses keeps original categories
         # and ordered if not otherwise specified

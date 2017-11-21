@@ -195,6 +195,11 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    def test_from_array_deprecated(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.series_klass.from_array([1, 2, 3])
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
@@ -333,6 +338,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert s.dropna().sum('rows') == 3
         assert s._get_axis_number('rows') == 0
         assert s._get_axis_name('rows') == 'index'
+
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        Series.index  # no exception!
 
     def test_numpy_unique(self):
         # it works!

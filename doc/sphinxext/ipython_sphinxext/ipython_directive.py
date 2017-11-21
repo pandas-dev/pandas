@@ -522,7 +522,7 @@ class EmbeddedSphinxShell(object):
                 source = self.directive.state.document.current_source
                 content = self.directive.content
                 # Add tabs and join into a single string.
-                content = '\n'.join([TAB + line for line in content])
+                content = '\n'.join(TAB + line for line in content)
 
             # Make sure the output contains the output prompt.
             ind = found.find(output_prompt)

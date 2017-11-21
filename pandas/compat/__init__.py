@@ -266,7 +266,7 @@ if PY3:
         Calculate display width considering unicode East Asian Width
         """
         if isinstance(data, text_type):
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -318,7 +318,7 @@ else:
                 data = data.decode(encoding)
             except UnicodeError:
                 pass
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -381,17 +381,20 @@ If traceback is not passed, uses sys.exc_info() to get traceback."""
 # http://stackoverflow.com/questions/4126348
 # Thanks to @martineau at SO
 
-from dateutil import parser as _date_parser
 import dateutil
+
+if PY2 and LooseVersion(dateutil.__version__) == '2.0':
+    # dateutil brokenness
+    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
+    'install version 1.5 or 2.1+!')
+
+from dateutil import parser as _date_parser
 if LooseVersion(dateutil.__version__) < '2.0':
+
     @functools.wraps(_date_parser.parse)
     def parse_date(timestr, *args, **kwargs):
         timestr = bytes(timestr)
         return _date_parser.parse(timestr, *args, **kwargs)
-elif PY2 and LooseVersion(dateutil.__version__) == '2.0':
-    # dateutil brokenness
-    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                    'install version 1.5 or 2.1+!')
 else:
     parse_date = _date_parser.parse
 

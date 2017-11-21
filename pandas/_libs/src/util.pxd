@@ -53,7 +53,8 @@ cdef extern from "headers/stdint.h":
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
-        void* data_ptr
+        int casted
+
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
@@ -115,7 +116,8 @@ cdef inline bint _checknull_old(object val):
     cdef double INF = <double> np.inf
     cdef double NEGINF = -INF
     try:
-        return val is None or (cpython.PyFloat_Check(val) and (val != val or val == INF or val == NEGINF))
+        return val is None or (cpython.PyFloat_Check(val) and
+                               (val != val or val == INF or val == NEGINF))
     except ValueError:
         return False
 

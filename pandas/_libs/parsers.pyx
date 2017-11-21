@@ -138,7 +138,7 @@ cdef extern from "parser/tokenizer.h":
 
         # Store words in (potentially ragged) matrix for now, hmm
         char **words
-        int64_t *word_starts # where we are in the stream
+        int64_t *word_starts  # where we are in the stream
         int64_t words_len
         int64_t words_cap
 
@@ -374,6 +374,17 @@ cdef class TextReader:
                   float_precision=None,
                   skip_blank_lines=True):
 
+        # set encoding for native Python and C library
+        if encoding is not None:
+            if not isinstance(encoding, bytes):
+                encoding = encoding.encode('utf-8')
+            encoding = encoding.lower()
+            self.c_encoding = <char*> encoding
+        else:
+            self.c_encoding = NULL
+
+        self.encoding = encoding
+
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
@@ -400,7 +411,7 @@ cdef class TextReader:
                 raise ValueError('only length-1 separators excluded right now')
             self.parser.delimiter = ord(delimiter)
 
-        #----------------------------------------
+        # ----------------------------------------
         # parser options
 
         self.parser.doublequote = doublequote
@@ -495,17 +506,6 @@ cdef class TextReader:
             self.parser.double_converter_nogil = NULL
             self.parser.double_converter_withgil = round_trip
 
-        # encoding
-        if encoding is not None:
-            if not isinstance(encoding, bytes):
-                encoding = encoding.encode('utf-8')
-            encoding = encoding.lower()
-            self.c_encoding = <char*> encoding
-        else:
-            self.c_encoding = NULL
-
-        self.encoding = encoding
-
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
                      for k in dtype}
@@ -519,7 +519,7 @@ cdef class TextReader:
 
         self.index_col = index_col
 
-        #----------------------------------------
+        # ----------------------------------------
         # header stuff
 
         self.allow_leading_cols = allow_leading_cols
@@ -684,6 +684,14 @@ cdef class TextReader:
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
+
+            if b'utf-16' in (self.encoding or b''):
+                # we need to read utf-16 through UTF8Recoder.
+                # if source is utf-16, convert source to utf-8 by UTF8Recoder.
+                source = com.UTF8Recoder(source, self.encoding.decode('utf-8'))
+                self.encoding = b'utf-8'
+                self.c_encoding = <char*> self.encoding
+
             self.handle = source
 
         if isinstance(source, basestring):
@@ -762,7 +770,7 @@ cdef class TextReader:
                     msg = self.orig_header
                     if isinstance(msg, list):
                         msg = "[%s], len of %d," % (
-                            ','.join([ str(m) for m in msg ]), len(msg))
+                            ','.join(str(m) for m in msg), len(msg))
                     raise ParserError(
                         'Passed header=%s but only %d lines in file'
                         % (msg, self.parser.lines))
@@ -810,7 +818,7 @@ cdef class TextReader:
                     if hr == self.header[-1]:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
-                                                     is not None else 0)
+                              is not None else 0)
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -848,7 +856,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header[0])
-        else: # not self.has_usecols:
+        else:  # not self.has_usecols:
 
             field_count = self.parser.line_fields[data_line]
 
@@ -1374,6 +1382,7 @@ def _ensure_encoded(list lst):
         result.append(x)
     return result
 
+
 cdef asbytes(object o):
     if PY3:
         return str(o).encode('utf-8')
@@ -1417,10 +1426,12 @@ def _maybe_upcast(arr):
 
     return arr
 
+
 cdef enum StringPath:
     CSTRING
     UTF8
     ENCODED
+
 
 # factored out logic to pick string converter
 cdef inline StringPath _string_path(char *encoding):
@@ -1430,8 +1441,11 @@ cdef inline StringPath _string_path(char *encoding):
         return UTF8
     else:
         return CSTRING
+
+
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
+
 
 cdef _string_box_factorize(parser_t *parser, int64_t col,
                            int64_t line_start, int64_t line_end,
@@ -1782,7 +1796,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                            parser.sci, parser.thousands, 1)
                 if errno != 0 or p_end[0] or p_end == word:
                     if (strcasecmp(word, cinf) == 0 or
-                                strcasecmp(word, cposinf) == 0):
+                            strcasecmp(word, cposinf) == 0):
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
@@ -1803,7 +1817,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                        parser.sci, parser.thousands, 1)
             if errno != 0 or p_end[0] or p_end == word:
                 if (strcasecmp(word, cinf) == 0 or
-                            strcasecmp(word, cposinf) == 0):
+                        strcasecmp(word, cposinf) == 0):
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
@@ -2213,7 +2227,7 @@ def _concatenate_chunks(list chunks):
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
-        dtypes = set([a.dtype for a in arrs])
+        dtypes = set(a.dtype for a in arrs)
         if len(dtypes) > 1:
             common_type = np.find_common_type(dtypes, [])
             if common_type == np.object:
@@ -2262,6 +2276,7 @@ def _compute_na_values():
         np.object_: np.nan   # oof
     }
     return na_values
+
 
 na_values = _compute_na_values()
 
@@ -2361,6 +2376,7 @@ def _to_structured_array(dict columns, object names, object usecols):
                                 field_type[0] == np.object_)
 
     return recs
+
 
 cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
                              int64_t stride, int64_t length, bint incref):
