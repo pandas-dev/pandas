@@ -56,19 +56,13 @@ Documentation Changes
 
 Bug Fixes
 ~~~~~~~~~
-- Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
-- Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
-- Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
-- Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
-- Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
-- Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
-- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
-- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
-- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 
 Conversion
 ^^^^^^^^^^
 
+- Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
+- Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
+- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 -
 -
 -
@@ -78,6 +72,7 @@ Indexing
 
 - Bug in a boolean comparison of a ``datetime.datetime`` and a ``datetime64[ns]`` dtype Series (:issue:`17965`)
 - Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
+- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
 -
 -
 
@@ -101,6 +96,9 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
+- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
+- Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 -
 -
 -
@@ -116,12 +114,14 @@ Reshaping
 ^^^^^^^^^
 
 - Error message in ``pd.merge_asof()`` for key datatype mismatch now includes datatype of left and right key (:issue:`18068`)
+- Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
 -
 -
 
 Numeric
 ^^^^^^^
 
+- Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
 -
 -
 -
@@ -130,8 +130,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.astype` where casting to 'category' on an empty ``DataFrame`` causes a segmentation fault (:issue:`18004`)
-- Error messages in the testing module have been improved when items have
-  different ``CategoricalDtype`` (:issue:`18069`)
+- Error messages in the testing module have been improved when items have different ``CategoricalDtype`` (:issue:`18069`)
 - ``CategoricalIndex`` can now correctly take a ``pd.api.types.CategoricalDtype`` as its dtype (:issue:`18116`)
 
 Other
