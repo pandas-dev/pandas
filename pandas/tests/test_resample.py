@@ -2740,11 +2740,11 @@ class TestPeriodIndex(Base):
                                  '2016-03-14 13:00:00-05:00',
                                  '2016-03-15 01:00:00-05:00',
                                  '2016-03-15 13:00:00-05:00']
-        expected_index = pd.DatetimeIndex(expected_index_values,
+        index = pd.DatetimeIndex(expected_index_values,
                                  tz='UTC').tz_convert('America/Chicago')
         expected = pd.DataFrame([1.0, 1.0, 1.0, 1.0, 1.0,
-                                    1.0, 1.0, 1.0, 1.0, 1.0,
-                                    1.0, 1.0, 2.0], index=expected_index)
+                                 1.0, 1.0, 1.0, 1.0, 1.0,
+                                 1.0, 1.0, 2.0], index=index)
         assert_frame_equal(result, expected)
 
     def test_resample_bms_2752(self):
