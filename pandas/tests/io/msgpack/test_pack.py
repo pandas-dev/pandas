@@ -7,7 +7,6 @@ import struct
 from pandas import compat
 from pandas.compat import u, OrderedDict
 from pandas.io.msgpack import packb, unpackb, Unpacker, Packer
-from numpy import bool_
 
 
 class TestPack(object):
@@ -26,7 +25,6 @@ class TestPack(object):
             (), ((),), ((), None,),
             {None: 0},
             (1 << 23),
-            bool_(1), bool_(0),
         ]
         for td in test_data:
             self.check(td)

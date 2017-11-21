@@ -180,6 +180,15 @@ class TestNumpy(TestPackers):
         x_rec = self.encode_decode(x)
         tm.assert_almost_equal(x, x_rec)
 
+    def test_scalar_bool(self):
+        x = np.bool_(1)
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
+        x = np.bool_(0)
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
     def test_scalar_complex(self):
         x = np.random.rand() + 1j * np.random.rand()
         x_rec = self.encode_decode(x)
@@ -263,7 +272,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)

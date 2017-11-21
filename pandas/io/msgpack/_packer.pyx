@@ -8,7 +8,7 @@ from libc.limits cimport *
 
 from pandas.io.msgpack.exceptions import PackValueError
 from pandas.io.msgpack import ExtType
-from numpy import bool_
+import numpy as np
 
 
 cdef extern from "../../src/msgpack/pack.h":
@@ -134,7 +134,7 @@ cdef class Packer(object):
         while True:
             if o is None:
                 ret = msgpack_pack_nil(&self.pk)
-            elif isinstance(o, (bool, bool_)):
+            elif isinstance(o, (bool, np.bool_)):
                 if o:
                     ret = msgpack_pack_true(&self.pk)
                 else:
