@@ -1143,8 +1143,8 @@ class TimeGrouper(Grouper):
 
         # GH 15549
         # In edge case of tz-aware resapmling binner last index can be
-        # less than the last variable in data object.
-        # This leads to `Values falls after last bin` error
+        # less than the last variable in data object, this happens because of
+        # DST time change
         if len(binner) > 1 and binner[-1] < last:
             extra_date_range = pd.date_range(binner[-1], last + self.freq,
                                              freq=self.freq, tz=tz,
