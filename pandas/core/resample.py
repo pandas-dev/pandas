@@ -1141,6 +1141,16 @@ class TimeGrouper(Grouper):
                                         tz=tz,
                                         name=ax.name)
 
+        # GH 15549
+        # In edge case of tz-aware resapmling binner last index can be
+        # less than the last variable in data object, this happens because of
+        # DST time change
+        if len(binner) > 1 and binner[-1] < last:
+            extra_date_range = pd.date_range(binner[-1], last + self.freq,
+                                             freq=self.freq, tz=tz,
+                                             name=ax.name)
+            binner = labels = binner.append(extra_date_range[1:])
+
         # a little hack
         trimmed = False
         if (len(binner) > 2 and binner[-2] == last and
