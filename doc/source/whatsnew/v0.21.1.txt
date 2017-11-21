@@ -62,6 +62,7 @@ Bug Fixes
 - Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 - Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
+- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
 - Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
 - Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 
