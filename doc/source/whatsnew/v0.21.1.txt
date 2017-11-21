@@ -56,6 +56,15 @@ Documentation Changes
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
+- Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
+- Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
+- Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
+- Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
+- Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
+- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
+- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
+- Bug in ``pd.read_csv`` when reading numeric category fields with high cardinality (:issue `18186`)
 
 Conversion
 ^^^^^^^^^^
