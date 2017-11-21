@@ -602,7 +602,7 @@ class TestDataFrameIndexing(TestData):
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
         data[ts] = np.nan  # works, mostly a smoke-test
-        assert np.isnan(data[ts])
+        assert np.isnan(data[ts]).all()
 
     def test_setitem_corner(self):
         # corner case
