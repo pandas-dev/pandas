@@ -43,7 +43,7 @@ for seed_nans in [True, False]:
 
         df = seed_df(seed_nans, n, m)
         bins = None, np.arange(0, max(5, df['3rd'].max()) + 1, 2)
-        keys = '1st', '2nd', ('1st', '2nd')
+        keys = '1st', '2nd', ['1st', '2nd']
         for k, b in product(keys, bins):
             binned.append((df, k, b, n, m))
             ids.append("{}-{}-{}".format(k, n, m))

@@ -12,7 +12,7 @@ from pandas import (date_range, bdate_range, Timestamp,
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.compat import (range, long, lrange, StringIO, lmap, lzip, map, zip,
+from pandas.compat import (range, lrange, StringIO, lmap, lzip, map, zip,
                            builtins, OrderedDict)
 from pandas import compat
 from collections import defaultdict
@@ -257,14 +257,14 @@ class TestGroupBy(MixIn):
         assert len(grouped) == len(df)
 
         grouped = df.groupby([lambda x: x.year, lambda x: x.month])
-        expected = len(set([(x.year, x.month) for x in df.index]))
+        expected = len(set((x.year, x.month) for x in df.index))
         assert len(grouped) == expected
 
         # issue 11016
         df = pd.DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
         assert len(df.groupby(('a'))) == 0
         assert len(df.groupby(('b'))) == 3
-        assert len(df.groupby(('a', 'b'))) == 3
+        assert len(df.groupby(['a', 'b'])) == 3
 
     def test_basic_regression(self):
         # regression
@@ -2050,30 +2050,6 @@ class TestGroupBy(MixIn):
         closure_good = grouped.agg({'high': agg_before(11, np.max, True)})
 
         assert_frame_equal(closure_bad, closure_good)
-
-    def test_multiindex_columns_empty_level(self):
-        l = [['count', 'values'], ['to filter', '']]
-        midx = MultiIndex.from_tuples(l)
-
-        df = DataFrame([[long(1), 'A']], columns=midx)
-
-        grouped = df.groupby('to filter').groups
-        assert grouped['A'] == [0]
-
-        grouped = df.groupby([('to filter', '')]).groups
-        assert grouped['A'] == [0]
-
-        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
-
-        expected = df.groupby('to filter').groups
-        result = df.groupby([('to filter', '')]).groups
-        assert result == expected
-
-        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
-
-        expected = df.groupby('to filter').groups
-        result = df.groupby([('to filter', '')]).groups
-        tm.assert_dict_equal(result, expected)
 
     def test_cython_median(self):
         df = DataFrame(np.random.randn(1000))

@@ -237,7 +237,7 @@ class TestDataFrameOperators(TestData):
         s = p[0]
         res = s % p
         res2 = p % s
-        assert not np.array_equal(res.fillna(0), res2.fillna(0))
+        assert not res.fillna(0).equals(res2.fillna(0))
 
     def test_div(self):
 
@@ -271,7 +271,7 @@ class TestDataFrameOperators(TestData):
         s = p[0]
         res = s / p
         res2 = p / s
-        assert not np.array_equal(res.fillna(0), res2.fillna(0))
+        assert not res.fillna(0).equals(res2.fillna(0))
 
     def test_logical_operators(self):
 
@@ -1030,7 +1030,7 @@ class TestDataFrameOperators(TestData):
         assert_numpy_array_equal(result, expected.values)
 
         pytest.raises(ValueError, lambda: df == b_c)
-        assert not np.array_equal(df.values, b_c)
+        assert df.values.shape != b_c.shape
 
         # with alignment
         df = DataFrame(np.arange(6).reshape((3, 2)),

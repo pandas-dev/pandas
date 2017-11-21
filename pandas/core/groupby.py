@@ -471,7 +471,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                     raise ValueError(msg)
 
             converters = [get_converter(s) for s in index_sample]
-            names = [tuple([f(n) for f, n in zip(converters, name)])
+            names = [tuple(f(n) for f, n in zip(converters, name))
                      for name in names]
 
         else:
@@ -1913,7 +1913,10 @@ class BaseGrouper(object):
         """
         ids, _, ngroup = self.group_info
         ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[ids != -1], minlength=ngroup or None)
+        if ngroup:
+            out = np.bincount(ids[ids != -1], minlength=ngroup)
+        else:
+            out = ids
         return Series(out,
                       index=self.result_index,
                       dtype='int64')
@@ -2704,7 +2707,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     """
     group_axis = obj._get_axis(axis)
-    is_axis_multiindex = isinstance(obj._info_axis, MultiIndex)
 
     # validate that the passed single level is compatible with the passed
     # axis of the object
@@ -2765,9 +2767,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 
-    # when MultiIndex, allow tuple to be a key
-    if not isinstance(key, (tuple, list)) or \
-            (isinstance(key, tuple) and is_axis_multiindex):
+    # Everything which is not a list is a key (including tuples):
+    if not isinstance(key, list):
         keys = [key]
         match_axis_length = False
     else:
@@ -3889,8 +3890,7 @@ class NDFrameGroupBy(GroupBy):
             # values are not series or array-like but scalars
             else:
                 # only coerce dates if we find at least 1 datetime
-                coerce = True if any([isinstance(x, Timestamp)
-                                      for x in values]) else False
+                coerce = any(isinstance(x, Timestamp) for x in values)
                 # self._selection_name not passed through to Series as the
                 # result should not take the name of original selection
                 # of columns
@@ -4302,8 +4302,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return result
         elif len(groupings) == 1:
             return result
-        elif not any([isinstance(ping.grouper, (Categorical, CategoricalIndex))
-                      for ping in groupings]):
+        elif not any(isinstance(ping.grouper, (Categorical, CategoricalIndex))
+                     for ping in groupings):
             return result
 
         levels_list = [ping.group_index for ping in groupings]

@@ -35,20 +35,15 @@ from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.fields import get_timedelta_field
 
 
 def _field_accessor(name, alias, docstring=None):
     def f(self):
+        values = self.asi8
+        result = get_timedelta_field(values, alias)
         if self.hasnans:
-            result = np.empty(len(self), dtype='float64')
-            mask = self._isnan
-            imask = ~mask
-            result.flat[imask] = np.array([getattr(Timedelta(val), alias)
-                                           for val in self.asi8[imask]])
-            result[mask] = np.nan
-        else:
-            result = np.array([getattr(Timedelta(val), alias)
-                               for val in self.asi8], dtype='int64')
+            result = self._maybe_mask_results(result, convert='float64')
 
         return Index(result, name=self.name)
 
@@ -142,6 +137,24 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data
     PeriodIndex : Index of Period data
+
+    Attributes
+    ----------
+    days
+    seconds
+    microseconds
+    nanoseconds
+    components
+    inferred_freq
+
+    Methods
+    -------
+    to_pytimedelta
+    to_series
+    round
+    floor
+    ceil
+    to_frame
     """
 
     _typ = 'timedeltaindex'
@@ -482,7 +495,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), dtype='i8',
                          name=self.name)
-        raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
         """

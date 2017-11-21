@@ -36,6 +36,7 @@ from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs import resolution
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs
@@ -159,6 +160,37 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     tz : object, default None
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
+
+    Attributes
+    ----------
+    day
+    dayofweek
+    dayofyear
+    days_in_month
+    daysinmonth
+    end_time
+    freq
+    freqstr
+    hour
+    is_leap_year
+    minute
+    month
+    quarter
+    qyear
+    second
+    start_time
+    week
+    weekday
+    weekofyear
+    year
+
+    Methods
+    -------
+    asfreq
+    strftime
+    to_timestamp
+    tz_convert
+    tz_localize
 
     Examples
     --------
@@ -432,10 +464,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def _to_embed(self, keep_tz=False):
+    def _to_embed(self, keep_tz=False, dtype=None):
         """
         return an array repr of this object, potentially casting to object
         """
+
+        if dtype is not None:
+            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
+
         return self.asobject.values
 
     @property
@@ -478,7 +514,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.to_timestamp(how=how).tz_localize(dtype.tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
-        raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -752,8 +788,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = frequencies.Resolution.get_freq_group(reso)
-                freqn = frequencies.get_freq_group(self.freq)
+                grp = resolution.Resolution.get_freq_group(reso)
+                freqn = resolution.get_freq_group(self.freq)
 
                 vals = self._values
 
@@ -912,8 +948,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                              'ordered time series')
 
         key, parsed, reso = parse_time_string(key, self.freq)
-        grp = frequencies.Resolution.get_freq_group(reso)
-        freqn = frequencies.get_freq_group(self.freq)
+        grp = resolution.Resolution.get_freq_group(reso)
+        freqn = resolution.get_freq_group(self.freq)
         if reso in ['day', 'hour', 'minute', 'second'] and not grp < freqn:
             raise KeyError(key)
 
