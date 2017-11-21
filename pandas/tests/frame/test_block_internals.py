@@ -233,31 +233,12 @@ class TestDataFrameBlockInternals(TestData):
 
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype='timedelta64[s]')
-        s = Series(arr)
-        expected = Series(pd.timedelta_range('00:00:01', periods=3, freq='s'))
-        assert_series_equal(s, expected)
-
         df = DataFrame(index=range(3))
         df['A'] = arr
         expected = DataFrame({'A': pd.timedelta_range('00:00:01', periods=3,
                                                       freq='s')},
                              index=range(3))
         assert_frame_equal(df, expected)
-
-        # convert from a numpy array of non-ns datetime64
-        # note that creating a numpy datetime64 is in LOCAL time!!!!
-        # seems to work for M8[D], but not for M8[s]
-
-        s = Series(np.array(['2013-01-01', '2013-01-02',
-                             '2013-01-03'], dtype='datetime64[D]'))
-        assert_series_equal(s, Series(date_range('20130101', periods=3,
-                                                 freq='D')))
-
-        # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
-        # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
-
-        # assert_series_equal(s,date_range('20130101
-        # 00:00:01',period=3,freq='s'))
 
         expected = DataFrame({
             'dt1': Timestamp('20130101'),
@@ -467,7 +448,7 @@ starting,ending,measure
         self.mixed_frame['I'] = '1'
 
         # add in some items that will be nan
-        l = len(self.mixed_frame)
+        length = len(self.mixed_frame)
         self.mixed_frame['J'] = '1.'
         self.mixed_frame['K'] = '1'
         self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
@@ -476,8 +457,8 @@ starting,ending,measure
         assert converted['I'].dtype == 'int64'
         assert converted['J'].dtype == 'float64'
         assert converted['K'].dtype == 'float64'
-        assert len(converted['J'].dropna()) == l - 5
-        assert len(converted['K'].dropna()) == l - 5
+        assert len(converted['J'].dropna()) == length - 5
+        assert len(converted['K'].dropna()) == length - 5
 
         # via astype
         converted = self.mixed_frame.copy()

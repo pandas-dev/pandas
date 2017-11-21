@@ -17,6 +17,7 @@ from pandas import (
     Categorical, Index
 )
 from pandas.api.types import CategoricalDtype
+import pandas._libs.tslib as tslib
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -69,8 +70,7 @@ class TestSeriesDtypes(TestData):
 
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
-    def test_astype_datetimes(self):
-        import pandas._libs.tslib as tslib
+    def test_astype_datetime(self):
         s = Series(tslib.iNaT, dtype='M8[ns]', index=lrange(5))
 
         s = s.astype('O')
@@ -88,6 +88,33 @@ class TestSeriesDtypes(TestData):
 
         s = s.astype('O')
         assert s.dtype == np.object_
+
+    def test_astype_datetime64tz(self):
+        s = Series(date_range('20130101', periods=3, tz='US/Eastern'))
+
+        # astype
+        result = s.astype(object)
+        expected = Series(s.astype(object), dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(s.values).dt.tz_localize('UTC').dt.tz_convert(s.dt.tz)
+        tm.assert_series_equal(result, s)
+
+        # astype - object, preserves on construction
+        result = Series(s.astype(object))
+        expected = s.astype(object)
+        tm.assert_series_equal(result, expected)
+
+        # astype - datetime64[ns, tz]
+        result = Series(s.values).astype('datetime64[ns, US/Eastern]')
+        tm.assert_series_equal(result, s)
+
+        result = Series(s.values).astype(s.dtype)
+        tm.assert_series_equal(result, s)
+
+        result = s.astype('datetime64[ns, CET]')
+        expected = Series(date_range('20130101 06:00:00', periods=3, tz='CET'))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [compat.text_type, np.str_])
     @pytest.mark.parametrize("series", [Series([string.digits * 10,
