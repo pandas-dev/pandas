@@ -783,3 +783,26 @@ class TestDataFrameReshape(TestData):
                 expected = Series([10, 11, 12], index=midx)
 
                 tm.assert_series_equal(result, expected)
+
+
+def test_unstack_fill_frame_object():
+    # GH12815 Test unstacking with object.
+    data = pd.Series(['a', 'b', 'c', 'a'], dtype='object')
+    data.index = pd.MultiIndex.from_tuples(
+        [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+    # By default missing values will be NaN
+    result = data.unstack()
+    expected = pd.DataFrame(
+        {'a': ['a', np.nan, 'a'], 'b': ['b', 'c', np.nan]},
+        index=list('xyz')
+    )
+    assert_frame_equal(result, expected)
+
+    # Fill with any value replaces missing values as expected
+    result = data.unstack(fill_value='d')
+    expected = pd.DataFrame(
+        {'a': ['a', 'd', 'a'], 'b': ['b', 'c', 'd']},
+        index=list('xyz')
+    )
+    assert_frame_equal(result, expected)

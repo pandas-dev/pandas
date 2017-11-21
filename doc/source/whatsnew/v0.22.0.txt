@@ -57,6 +57,7 @@ Other API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 
 
 .. _whatsnew_0220.deprecations:

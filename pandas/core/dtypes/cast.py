@@ -322,6 +322,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = iNaT
         else:
             dtype = np.object_
+            fill_value = np.nan
     else:
         dtype = np.object_
 
