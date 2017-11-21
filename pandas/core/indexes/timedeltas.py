@@ -495,7 +495,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), dtype='i8',
                          name=self.name)
-        raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
         """
