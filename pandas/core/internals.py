@@ -72,7 +72,7 @@ from pandas._libs.lib import BlockPlacement
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 from pandas import compat
-from pandas.compat import range, map, zip, u
+from pandas.compat import range, map, zip, u, long
 
 
 class Block(PandasObject):
@@ -1846,7 +1846,8 @@ class FloatBlock(FloatOrComplexBlock):
         if tipo is not None:
             return (issubclass(tipo.type, (np.floating, np.integer)) and
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
-        return (isinstance(element, (float, int, np.floating, np.int_)) and
+        return (isinstance(element,
+                           (float, int, long, np.floating, np.int_)) and
                 not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
 
@@ -1896,7 +1897,8 @@ class ComplexBlock(FloatOrComplexBlock):
             return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
-                           (float, int, complex, np.float_, np.int_)) and
+                           (float, int, long,
+                            complex, np.float_, np.int_)) and
                 not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
