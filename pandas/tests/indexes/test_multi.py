@@ -2629,6 +2629,20 @@ class TestMultiIndex(Base):
         tm.assert_index_equal(result2, expected)
         assert result2.is_(result)
 
+    @pytest.mark.parametrize('level0', [['a', 'd', 'b'],
+                                        ['a', 'd', 'b', 'unused']])
+    @pytest.mark.parametrize('level1', [['w', 'x', 'y', 'z'],
+                                        ['w', 'x', 'y', 'z', 'unused']])
+    def test_remove_unused_nan(self, level0, level1):
+        # GH 18417
+        mi = pd.MultiIndex(levels=[level0, level1],
+                           labels=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
+
+        result = mi.remove_unused_levels()
+        tm.assert_index_equal(result, mi)
+        for level in 0, 1:
+            assert('unused' not in result.levels[level])
+
     @pytest.mark.parametrize('first_type,second_type', [
         ('int64', 'int64'),
         ('datetime64[D]', 'str')])
