@@ -686,6 +686,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         from .numeric import Int64Index, UInt64Index
         if not is_unsigned_integer_dtype(dtype):
+            # skip int64 conversion attempt if uint-like dtype is passed, as
+            # this could return Int64Index when UInt64Index is what's desrired
             try:
                 res = data.astype('i8', copy=False)
                 if (res == data).all():
@@ -693,8 +695,8 @@ class Index(IndexOpsMixin, PandasObject):
             except (OverflowError, TypeError, ValueError):
                 pass
 
-        # Conversion to int64 failed (possibly due to
-        # overflow), so let's try now with uint64.
+        # Conversion to int64 failed (possibly due to overflow) or was skipped,
+        # so let's try now with uint64.
         try:
             res = data.astype('u8', copy=False)
             if (res == data).all():
