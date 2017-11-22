@@ -240,7 +240,7 @@ values will be set to ``NaN``.
    df3
    df3.unstack()
 
-.. versionadded: 0.18.0
+.. versionadded:: 0.18.0
 
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
@@ -633,6 +633,17 @@ When a column contains only one level, it will be omitted in the result.
     pd.get_dummies(df)
 
     pd.get_dummies(df, drop_first=True)
+
+By default new columns will have ``np.uint8`` dtype. To choose another dtype use ``dtype`` argument:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
+
+    pd.get_dummies(df, dtype=bool).dtypes
+
+.. versionadded:: 0.22.0
+
 
 .. _reshaping.factorize:
 
