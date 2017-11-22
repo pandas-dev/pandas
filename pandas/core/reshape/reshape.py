@@ -729,7 +729,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         .. versionadded:: 0.18.0
 
     dtype : dtype, default np.uint8
-        Data type to force on a new columns. Only a single dtype is allowed.
+        Data type for new columns. Only a single dtype is allowed.
 
         .. versionadded:: 0.22.0
 
