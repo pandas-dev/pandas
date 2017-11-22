@@ -23,7 +23,7 @@ New features
 ``get_dummies`` now supports ``dtype`` argument
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a specific dtype for the new columns. When ``dtype`` is not specified or ``None``, the dtype will be ``uint8`` as before. (:issue:`18330`)
+The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
 
 .. ipython:: python
 

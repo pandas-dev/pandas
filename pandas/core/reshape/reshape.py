@@ -864,8 +864,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     if dtype is None:
         dtype = np.uint8
-    else:
-        dtype = np.dtype(dtype)
+    dtype = np.dtype(dtype)
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
