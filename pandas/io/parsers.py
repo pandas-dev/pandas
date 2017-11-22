@@ -245,8 +245,8 @@ comment : str, default None
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
-    fully commented lines are ignored by the parameter ``header`` but not by
-    ``skiprows``. For example, if ``comment='#'``, parsing
+    fully commented lines are ignored by the parameter `header` but not by
+    `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
 encoding : str, default None
