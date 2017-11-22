@@ -50,7 +50,7 @@ from pandas.io.formats.format import format_percentiles, DataFrameFormatter
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lzip, lrange, string_types,
+from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
@@ -279,21 +279,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
-        d = dict([(a, self._get_axis(a)) for a in (axes or self._AXIS_ORDERS)])
+        d = dict((a, self._get_axis(a)) for a in (axes or self._AXIS_ORDERS))
         d.update(kwargs)
         return d
 
     @staticmethod
     def _construct_axes_dict_from(self, axes, **kwargs):
         """Return an axes dictionary for the passed axes."""
-        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
+        d = dict((a, ax) for a, ax in zip(self._AXIS_ORDERS, axes))
         d.update(kwargs)
         return d
 
     def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
-        d = dict([(self._AXIS_SLICEMAP[a], self._get_axis(a))
-                  for a in (axes or self._AXIS_ORDERS)])
+        d = dict((self._AXIS_SLICEMAP[a], self._get_axis(a))
+                 for a in (axes or self._AXIS_ORDERS))
         d.update(kwargs)
         return d
 
@@ -329,7 +329,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         raise TypeError("not enough/duplicate arguments "
                                         "specified!")
 
-        axes = dict([(a, kwargs.pop(a, None)) for a in self._AXIS_ORDERS])
+        axes = dict((a, kwargs.pop(a, None)) for a in self._AXIS_ORDERS)
         return axes, kwargs
 
     @classmethod
@@ -586,10 +586,10 @@ class NDFrame(PandasObject, SelectionMixin):
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs,
                                                            require_all=True)
-        axes_names = tuple([self._get_axis_name(axes[a])
-                            for a in self._AXIS_ORDERS])
-        axes_numbers = tuple([self._get_axis_number(axes[a])
-                              for a in self._AXIS_ORDERS])
+        axes_names = tuple(self._get_axis_name(axes[a])
+                           for a in self._AXIS_ORDERS)
+        axes_numbers = tuple(self._get_axis_number(axes[a])
+                             for a in self._AXIS_ORDERS)
 
         # we must have unique axes
         if len(axes) != len(set(axes)):
@@ -699,8 +699,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 (self._get_axis_number(axis),))
         try:
             return self.iloc[
-                tuple([0 if i in axis and len(a) == 1 else slice(None)
-                       for i, a in enumerate(self.axes)])]
+                tuple(0 if i in axis and len(a) == 1 else slice(None)
+                      for i, a in enumerate(self.axes))]
         except Exception:
             return self
 
@@ -1006,8 +1006,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # Comparisons
 
     def _indexed_same(self, other):
-        return all([self._get_axis(a).equals(other._get_axis(a))
-                    for a in self._AXIS_ORDERS])
+        return all(self._get_axis(a).equals(other._get_axis(a))
+                   for a in self._AXIS_ORDERS)
 
     def __neg__(self):
         values = _values_from_object(self)
@@ -2989,8 +2989,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
-        if all([self._get_axis(axis).identical(ax)
-                for axis, ax in axes.items() if ax is not None]):
+        if all(self._get_axis(axis).identical(ax)
+               for axis, ax in axes.items() if ax is not None):
             if copy:
                 return self.copy()
             return self
@@ -3218,14 +3218,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 **{name: [r for r in items if r in labels]})
         elif like:
             def f(x):
-                if not isinstance(x, string_types):
-                    x = str(x)
-                return like in x
+                return like in to_str(x)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
+            def f(x):
+                return matcher.search(to_str(x)) is not None
             matcher = re.compile(regex)
-            values = labels.map(lambda x: matcher.search(str(x)) is not None)
+            values = labels.map(f)
             return self.loc(axis=axis)[values]
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
@@ -4277,8 +4277,8 @@ class NDFrame(PandasObject, SelectionMixin):
             elif self.ndim == 3:
 
                 # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in self.iteritems()])
+                result = dict((col, s.fillna(method=method, value=value))
+                              for col, s in self.iteritems())
                 new_obj = self._constructor.\
                     from_dict(result).__finalize__(self)
                 new_data = new_obj._data
@@ -4304,8 +4304,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 elif not is_list_like(value):
                     pass
                 else:
-                    raise ValueError("invalid fill value with a %s" %
-                                     type(value))
+                    raise TypeError('"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a '
+                                    '"{0}"'.format(type(value).__name__))
 
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
@@ -5886,8 +5887,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if (axis is None and
-                        not all([other._get_axis(i).equals(ax)
-                                 for i, ax in enumerate(self.axes)])):
+                        not all(other._get_axis(i).equals(ax)
+                                for i, ax in enumerate(self.axes))):
                     raise InvalidIndexError
 
             # slice me out of the other
@@ -6337,6 +6338,11 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
+
+        # GH 17935
+        # Check that index is sorted
+        if not ax.is_monotonic_increasing and not ax.is_monotonic_decreasing:
+            raise ValueError("truncate requires a sorted index")
 
         # if we have a date index, convert to dates, otherwise
         # treat like a slice

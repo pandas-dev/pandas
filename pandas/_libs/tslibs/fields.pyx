@@ -18,16 +18,9 @@ np.import_array()
 
 
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
-                          dt64_to_dtstruct, td64_to_tdstruct)
-
-from datetime cimport (
-    days_per_month_table,
-    is_leapyear,
-    dayofweek)
-
-cimport util
-
-cdef int64_t NPY_NAT = util.get_nat()
+                          dt64_to_dtstruct, td64_to_tdstruct,
+                          days_per_month_table, is_leapyear, dayofweek)
+from nattype cimport NPY_NAT
 
 
 def build_field_sarray(ndarray[int64_t] dtindex):

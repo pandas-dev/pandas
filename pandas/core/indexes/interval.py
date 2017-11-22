@@ -121,6 +121,17 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+    mid
+    values
+    is_non_overlapping_monotonic
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_breaks
+    from_intervals
+    contains
 
     Examples
     ---------
@@ -179,7 +190,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(data, IntervalIndex):
             left = data.left
             right = data.right
-
+            closed = data.closed
         else:
 
             # don't allow scalars
@@ -187,7 +198,7 @@ class IntervalIndex(IntervalMixin, Index):
                 cls._scalar_data_error(data)
 
             data = IntervalIndex.from_intervals(data, name=name)
-            left, right = data.left, data.right
+            left, right, closed = data.left, data.right, data.closed
 
         return cls._simple_new(left, right, closed, name,
                                copy=copy, verify_integrity=verify_integrity)
@@ -569,7 +580,8 @@ class IntervalIndex(IntervalMixin, Index):
         left = self.left.copy(deep=True) if deep else self.left
         right = self.right.copy(deep=True) if deep else self.right
         name = name if name is not None else self.name
-        return type(self).from_arrays(left, right, name=name)
+        closed = self.closed
+        return type(self).from_arrays(left, right, closed=closed, name=name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -991,7 +1003,7 @@ class IntervalIndex(IntervalMixin, Index):
         assert that we all have the same .closed
         we allow a 0-len index here as well
         """
-        if not len(set([i.closed for i in to_concat if len(i)])) == 1:
+        if not len(set(i.closed for i in to_concat if len(i))) == 1:
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)

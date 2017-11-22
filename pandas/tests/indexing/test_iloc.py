@@ -173,7 +173,7 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
         # check the length 1 Series case highlighted in GH10547
-        expected = pd.Series(['a'], index=['A'])
+        expected = Series(['a'], index=['A'])
         result = expected.iloc[[-1]]
         tm.assert_series_equal(result, expected)
 
@@ -285,9 +285,7 @@ class TestiLoc(Base):
     def test_iloc_setitem_int_multiindex_series(
             self, data, indexes, values, expected_k):
         # GH17148
-        df = pd.DataFrame(
-            data=data,
-            columns=['i', 'j', 'k'])
+        df = DataFrame(data=data, columns=['i', 'j', 'k'])
         df = df.set_index(['i', 'j'])
 
         series = df.k.copy()
@@ -597,13 +595,13 @@ class TestiLoc(Base):
         idx = np.array(lrange(30)) * 99
         expected = df.iloc[idx]
 
-        df3 = pd.concat([df, 2 * df, 3 * df])
+        df3 = concat([df, 2 * df, 3 * df])
         result = df3.iloc[idx]
 
         tm.assert_frame_equal(result, expected)
 
         df2 = DataFrame({'A': [0.1] * 1000, 'B': [1] * 1000})
-        df2 = pd.concat([df2, 2 * df2, 3 * df2])
+        df2 = concat([df2, 2 * df2, 3 * df2])
 
         sidx = df2.index.to_series()
         expected = df2.iloc[idx[idx <= sidx.max()]]
@@ -615,8 +613,7 @@ class TestiLoc(Base):
             new_list.append(s * 3)
 
         expected = DataFrame(new_list)
-        expected = pd.concat([expected, DataFrame(index=idx[idx > sidx.max()])
-                              ])
+        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)
