@@ -9,7 +9,7 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import parsing
 
-from pandas.compat import range, u
+from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
@@ -3893,7 +3893,8 @@ class Index(IndexOpsMixin, PandasObject):
                 except TypeError:
                     return result
 
-            return _evaluate_compare
+            name = '__{name}__'.format(name=op.__name__)
+            return set_function_name(_evaluate_compare, name, cls)
 
         cls.__eq__ = _make_compare(operator.eq)
         cls.__ne__ = _make_compare(operator.ne)

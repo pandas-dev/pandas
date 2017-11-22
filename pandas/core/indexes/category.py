@@ -722,7 +722,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(op):
+        def _make_compare(opname):
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -745,9 +745,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, op)(other)
+                return getattr(self.values, opname)(other)
 
-            return _evaluate_compare
+            return compat.set_function_name(_evaluate_compare, opname, cls)
 
         cls.__eq__ = _make_compare('__eq__')
         cls.__ne__ = _make_compare('__ne__')
