@@ -15,10 +15,6 @@ cimport util
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt
 
-# from numpy.npy_math cimport npy_signbit as signbit
-cdef extern from "numpy/npy_math.h":
-    int signbit "npy_signbit" (double) nogil
-
 from numpy cimport ndarray, double_t, int64_t, float64_t
 
 cdef np.float32_t MINfloat32 = np.NINF
@@ -34,6 +30,8 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
+cdef extern from "../src/headers/math.h":
+    int signbit(double) nogil
 
 include "skiplist.pyx"
 
