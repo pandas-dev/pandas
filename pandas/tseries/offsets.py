@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import functools
-import operator
-
 from datetime import date, datetime, timedelta
 import functools
 import operator
