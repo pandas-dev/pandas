@@ -594,6 +594,16 @@ class TestDataFrameIndexing(TestData):
 
         assert_frame_equal(self.frame, expected)
 
+    def test_frame_setitem_timestamp(self):
+        # GH#2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012', freq=BDay())
+        index = lrange(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan  # works, mostly a smoke-test
+        assert np.isnan(data[ts]).all()
+
     def test_setitem_corner(self):
         # corner case
         df = DataFrame({'B': [1., 2., 3.],
