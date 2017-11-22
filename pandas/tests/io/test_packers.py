@@ -410,6 +410,7 @@ class TestSeries(TestPackers):
             'G': [Timestamp('20130102', tz='US/Eastern')] * 5,
             'H': Categorical([1, 2, 3, 4, 5]),
             'I': Categorical([1, 2, 3, 4, 5], ordered=True),
+            'J': (np.bool_(1), 2, 3, 4, 5),
         }
 
         self.d['float'] = Series(data['A'])
@@ -419,6 +420,7 @@ class TestSeries(TestPackers):
         self.d['dt_tz'] = Series(data['G'])
         self.d['cat_ordered'] = Series(data['H'])
         self.d['cat_unordered'] = Series(data['I'])
+        self.d['numpy_bool_mixed'] = Series(data['J'])
 
     def test_basic(self):
 
