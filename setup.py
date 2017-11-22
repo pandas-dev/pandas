@@ -611,7 +611,7 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
+        'pxdfiles': ['_libs/src/util'],
         'depends': ['pandas/_libs/src/skiplist.pyx',
                     'pandas/_libs/src/skiplist.h']},
     'io.sas._sas': {
