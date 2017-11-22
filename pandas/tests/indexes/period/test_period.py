@@ -47,10 +47,10 @@ class TestPeriodIndex(DatetimeLike):
         # GH 13149, GH 13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
 
-        pytest.raises(ValueError, idx.astype, str)
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, 'timedelta64')
-        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
+        pytest.raises(TypeError, idx.astype, str)
+        pytest.raises(TypeError, idx.astype, float)
+        pytest.raises(TypeError, idx.astype, 'timedelta64')
+        pytest.raises(TypeError, idx.astype, 'timedelta64[ns]')
 
     def test_pickle_compat_construction(self):
         pass

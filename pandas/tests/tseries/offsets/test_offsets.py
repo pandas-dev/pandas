@@ -18,7 +18,7 @@ from pandas.tseries.frequencies import (_offset_map, get_freq_code,
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset, relativedelta_kwds
+from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -4684,6 +4684,12 @@ class TestDST(object):
 
 
 # ---------------------------------------------------------------------
+def test_get_offset_day_error():
+    # subclass of _BaseOffset must override _day_opt attribute, or we should
+    # get a NotImplementedError
+
+    with pytest.raises(NotImplementedError):
+        DateOffset()._get_offset_day(datetime.now())
 
 
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))

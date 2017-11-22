@@ -68,6 +68,7 @@ from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
+from pandas._libs.tslibs import conversion
 
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -241,7 +242,7 @@ class Block(PandasObject):
 
         else:
 
-            shape = ' x '.join([pprint_thing(s) for s in self.shape])
+            shape = ' x '.join(pprint_thing(s) for s in self.shape)
             result = '{name}: {index}, {shape}, dtype: {dtype}'.format(
                 name=name, index=pprint_thing(self.mgr_locs.indexer),
                 shape=shape, dtype=self.dtype)
@@ -2471,7 +2472,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
         if values.dtype != _NS_DTYPE:
-            values = tslib.cast_to_nanoseconds(values)
+            values = conversion.ensure_datetime64ns(values)
 
         super(DatetimeBlock, self).__init__(values, fastpath=True,
                                             placement=placement, **kwargs)
@@ -2593,7 +2594,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if values.dtype != _NS_DTYPE:
             # Workaround for numpy 1.6 bug
-            values = tslib.cast_to_nanoseconds(values)
+            values = conversion.ensure_datetime64ns(values)
 
         self.values[locs] = values
 
@@ -3376,7 +3377,7 @@ class BlockManager(PandasObject):
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
-        ndim = set([b.ndim for b in blocks])
+        ndim = set(b.ndim for b in blocks)
 
         if 2 in ndim:
 
@@ -4686,7 +4687,7 @@ def form_blocks(arrays, names, axes):
             complex_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
-                v = tslib.cast_to_nanoseconds(v)
+                v = conversion.ensure_datetime64ns(v)
 
             if is_datetimetz(v):
                 datetime_tz_items.append((i, k, v))
@@ -4870,7 +4871,7 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
     if _can_consolidate:
 
         if dtype is None:
-            if len(set([b.dtype for b in blocks])) != 1:
+            if len(set(b.dtype for b in blocks)) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
             dtype = blocks[0].dtype
 

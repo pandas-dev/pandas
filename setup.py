@@ -345,6 +345,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
+                 'pandas/_libs/tslibs/timestamps.pyx',
                  'pandas/_libs/tslibs/timezones.pyx',
                  'pandas/_libs/tslibs/conversion.pyx',
                  'pandas/_libs/tslibs/fields.pyx',
@@ -461,13 +462,6 @@ def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
 
-if _have_setuptools:
-    # Note: this is a list, whereas `numpy_incl` in build_ext.build_extensions
-    # is a string
-    numpy_incls = [pkg_resources.resource_filename('numpy', 'core/include')]
-else:
-    numpy_incls = []
-
 # args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
@@ -510,8 +504,7 @@ ext_data = {
         'depends': _pxi_dep['index'],
         'sources': np_datetime_sources},
     '_libs.indexing': {
-        'pyxfile': '_libs/indexing',
-        'include': []},
+        'pyxfile': '_libs/indexing'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
@@ -544,18 +537,17 @@ ext_data = {
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape'],
-        'include': numpy_incls},
+        'depends': _pxi_dep['reshape']},
     '_libs.sparse': {
         'pyxfile': '_libs/sparse',
-        'depends': _pxi_dep['sparse'],
-        'include': numpy_incls},
+        'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
                      '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends,
@@ -587,17 +579,22 @@ ext_data = {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
                      '_libs/tslibs/conversion',
-                     '_libs/tslibs/frequencies']},
+                     '_libs/tslibs/frequencies',
+                     '_libs/tslibs/nattype'],
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': numpy_incls},
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/src/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
-        'depends': tseries_depends},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
@@ -610,20 +607,27 @@ ext_data = {
                      '_libs/tslibs/nattype'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
+    '_libs.tslibs.timestamps': {
+        'pyxfile': '_libs/tslibs/timestamps',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/conversion',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones'],
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'pxdfiles': ['_libs/src/util']},
     '_libs.testing': {
-        'pyxfile': '_libs/testing',
-        'include': []},
+        'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
         'depends': ['pandas/_libs/src/skiplist.pyx',
                     'pandas/_libs/src/skiplist.h']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas',
-        'include': numpy_incls}}
+        'pyxfile': 'io/sas/sas'}}
 
 extensions = []
 
