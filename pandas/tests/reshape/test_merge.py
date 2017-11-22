@@ -1422,13 +1422,13 @@ class TestMergeDtypes(object):
         # merging on float and int columns
         A = DataFrame({'X': int_vals})
         B = DataFrame({'Y': float_vals})
-        exp_res = DataFrame(exp_vals)
+        expected = DataFrame(exp_vals)
 
-        res = A.merge(B, left_on='X', right_on='Y')
-        assert_frame_equal(res, exp_res)
+        result = A.merge(B, left_on='X', right_on='Y')
+        assert_frame_equal(result, expected)
 
-        res = B.merge(A, left_on='Y', right_on='X')
-        assert_frame_equal(res, exp_res[['Y', 'X']])
+        result = B.merge(A, left_on='Y', right_on='X')
+        assert_frame_equal(result, expected[['Y', 'X']])
 
     def test_merge_on_ints_floats_warning(self):
         # GH 16572
@@ -1437,15 +1437,15 @@ class TestMergeDtypes(object):
         # equal to their int representation
         A = DataFrame({'X': [1, 2, 3]})
         B = DataFrame({'Y': [1.1, 2.5, 3.0]})
-        exp_res = DataFrame({'X': [3], 'Y': [3.0]})
+        expected = DataFrame({'X': [3], 'Y': [3.0]})
 
         with tm.assert_produces_warning(UserWarning):
-            res = A.merge(B, left_on='X', right_on='Y')
-            assert_frame_equal(res, exp_res)
+            result = A.merge(B, left_on='X', right_on='Y')
+            assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(UserWarning):
-            res = B.merge(A, left_on='Y', right_on='X')
-            assert_frame_equal(res, exp_res[['Y', 'X']])
+            result = B.merge(A, left_on='Y', right_on='X')
+            assert_frame_equal(result, expected[['Y', 'X']])
 
 
 @pytest.fixture
