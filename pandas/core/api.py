@@ -24,6 +24,9 @@ from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 
+# TODO: Remove import when statsmodels updates #18264
+from pandas.core.reshape.reshape import get_dummies
+
 from pandas.core.indexing import IndexSlice
 from pandas.core.tools.numeric import to_numeric
 from pandas.tseries.offsets import DateOffset
