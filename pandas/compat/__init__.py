@@ -257,6 +257,16 @@ if PY3:
     def u_safe(s):
         return s
 
+    def to_str(s):
+        """
+        Convert bytes and non-string into Python 3 str
+        """
+        if isinstance(s, binary_type):
+            s = bytes_to_str(s)
+        elif not isinstance(s, string_types):
+            s = str(s)
+        return s
+
     def strlen(data, encoding=None):
         # encoding is for compat with PY2
         return len(data)
@@ -301,6 +311,14 @@ else:
             return unicode(s, "unicode_escape")
         except:
             return s
+
+    def to_str(s):
+        """
+        Convert unicode and non-string into Python 2 str
+        """
+        if not isinstance(s, string_types):
+            s = str(s)
+        return s
 
     def strlen(data, encoding=None):
         try:

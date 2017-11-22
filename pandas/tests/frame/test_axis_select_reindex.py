@@ -884,6 +884,27 @@ class TestDataFrameSelectReindex(TestData):
         exp = df[[x for x in df.columns if 'BB' in x]]
         assert_frame_equal(result, exp)
 
+    @pytest.mark.parametrize('name,expected', [
+        ('a', DataFrame({u'a': [1, 2]})),
+        (u'a', DataFrame({u'a': [1, 2]})),
+        (u'あ', DataFrame({u'あ': [3, 4]}))
+    ])
+    def test_filter_unicode(self, name, expected):
+        # GH13101
+        df = DataFrame({u'a': [1, 2], u'あ': [3, 4]})
+
+        assert_frame_equal(df.filter(like=name), expected)
+        assert_frame_equal(df.filter(regex=name), expected)
+
+    @pytest.mark.parametrize('name', ['a', u'a'])
+    def test_filter_bytestring(self, name):
+        # GH13101
+        df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
+        expected = DataFrame({b'a': [1, 2]})
+
+        assert_frame_equal(df.filter(like=name), expected)
+        assert_frame_equal(df.filter(regex=name), expected)
+
     def test_filter_corner(self):
         empty = DataFrame()
 
