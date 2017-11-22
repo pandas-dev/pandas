@@ -34,7 +34,7 @@ from datetime import date as datetime_date
 from cpython.datetime cimport datetime
 
 from np_datetime cimport (check_dts_bounds,
-                          dtstruct_to_dt64, pandas_datetimestruct)
+                          dtstruct_to_dt64, npy_datetimestruct)
 
 from util cimport is_string_object
 
@@ -57,7 +57,7 @@ def array_strptime(ndarray[object] values, object fmt,
 
     cdef:
         Py_ssize_t i, n = len(values)
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int64_t] iresult
         int year, month, day, minute, hour, second, weekday, julian, tz
         int week_of_year, week_of_year_start

@@ -17,7 +17,7 @@ from pandas.compat import PY2
 
 cimport cython
 
-from tslibs.np_datetime cimport (pandas_datetimestruct,
+from tslibs.np_datetime cimport (npy_datetimestruct,
                                  dtstruct_to_dt64, dt64_to_dtstruct,
                                  is_leapyear)
 
@@ -117,7 +117,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
     cdef:
         ndarray[int64_t] out
         Py_ssize_t i, l
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     l = len(dtarr)
 
@@ -240,7 +240,7 @@ def period_ordinal(int y, int m, int d, int h, int min,
 
 cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     cdef:
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         date_info dinfo
         float subsecond_fraction
 
@@ -487,7 +487,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     if is_utc(tz):
         for i in range(n):

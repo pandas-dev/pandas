@@ -137,7 +137,7 @@ typedef struct __PyObjectEncoder {
     TypeContext basicTypeContext;
 
     int datetimeIso;
-    PANDAS_DATETIMEUNIT datetimeUnit;
+    NPY_DATETIMEUNIT datetimeUnit;
 
     // output format style for pandas data types
     int outputFormat;
@@ -440,10 +440,10 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     return PyString_AS_STRING(newObj);
 }
 
-static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
+static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
                                         JSONTypeContext *tc, void *outValue,
                                         size_t *_outLen) {
-    PANDAS_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+    NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
 
     if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
         PRINTMARK();
@@ -477,18 +477,18 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
 
 static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
                                      void *outValue, size_t *_outLen) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     PyDatetimeScalarObject *obj = (PyDatetimeScalarObject *)_obj;
     PRINTMARK();
 
     pandas_datetime_to_datetimestruct(
-        obj->obval, (PANDAS_DATETIMEUNIT)obj->obmeta.base, &dts);
+        obj->obval, (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
 }
 
 static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                               size_t *_outLen) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     PyObject *obj = (PyObject *)_obj;
 
     PRINTMARK();
@@ -508,11 +508,11 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
                                  void *outValue, size_t *_outLen) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     PRINTMARK();
 
     pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,
-                                      PANDAS_FR_ns, &dts);
+                                      NPY_FR_ns, &dts);
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
 }
 
@@ -1864,15 +1864,15 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
         base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
         switch (base) {
-            case PANDAS_FR_ns:
+            case NPY_FR_ns:
                 break;
-            case PANDAS_FR_us:
+            case NPY_FR_us:
                 value /= 1000LL;
                 break;
-            case PANDAS_FR_ms:
+            case NPY_FR_ms:
                 value /= 1000000LL;
                 break;
-            case PANDAS_FR_s:
+            case NPY_FR_s:
                 value /= 1000000000LL;
                 break;
         }
@@ -2358,7 +2358,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     pyEncoder.npyType = -1;
     pyEncoder.npyValue = NULL;
     pyEncoder.datetimeIso = 0;
-    pyEncoder.datetimeUnit = PANDAS_FR_ms;
+    pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
     pyEncoder.basicTypeContext.newObj = NULL;
@@ -2416,13 +2416,13 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     if (sdateFormat != NULL) {
         if (strcmp(sdateFormat, "s") == 0) {
-            pyEncoder.datetimeUnit = PANDAS_FR_s;
+            pyEncoder.datetimeUnit = NPY_FR_s;
         } else if (strcmp(sdateFormat, "ms") == 0) {
-            pyEncoder.datetimeUnit = PANDAS_FR_ms;
+            pyEncoder.datetimeUnit = NPY_FR_ms;
         } else if (strcmp(sdateFormat, "us") == 0) {
-            pyEncoder.datetimeUnit = PANDAS_FR_us;
+            pyEncoder.datetimeUnit = NPY_FR_us;
         } else if (strcmp(sdateFormat, "ns") == 0) {
-            pyEncoder.datetimeUnit = PANDAS_FR_ns;
+            pyEncoder.datetimeUnit = NPY_FR_ns;
         } else {
             PyErr_Format(PyExc_ValueError,
                          "Invalid value '%s' for option 'date_unit'",
