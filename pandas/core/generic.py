@@ -50,7 +50,7 @@ from pandas.io.formats.format import format_percentiles, DataFrameFormatter
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lzip, lrange, string_types,
+from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
@@ -3218,14 +3218,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 **{name: [r for r in items if r in labels]})
         elif like:
             def f(x):
-                if not isinstance(x, string_types):
-                    x = str(x)
-                return like in x
+                return like in to_str(x)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
+            def f(x):
+                return matcher.search(to_str(x)) is not None
             matcher = re.compile(regex)
-            values = labels.map(lambda x: matcher.search(str(x)) is not None)
+            values = labels.map(f)
             return self.loc(axis=axis)[values]
         else:
             raise TypeError('Must pass either `items`, `like`, or `regex`')
@@ -4304,8 +4304,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 elif not is_list_like(value):
                     pass
                 else:
-                    raise ValueError("invalid fill value with a %s" %
-                                     type(value))
+                    raise TypeError('"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a '
+                                    '"{0}"'.format(type(value).__name__))
 
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
