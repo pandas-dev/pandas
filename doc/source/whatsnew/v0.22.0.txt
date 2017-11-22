@@ -28,13 +28,14 @@ Other Enhancements
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
+- :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 
 .. _whatsnew_0220.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 -
 -
 

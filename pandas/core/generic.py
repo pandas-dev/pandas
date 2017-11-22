@@ -4304,8 +4304,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 elif not is_list_like(value):
                     pass
                 else:
-                    raise ValueError("invalid fill value with a %s" %
-                                     type(value))
+                    raise TypeError('"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a '
+                                    '"{0}"'.format(type(value).__name__))
 
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
