@@ -1641,6 +1641,21 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return is_datetime_array(_ensure_object(self.values))
 
+    @property
+    def dt(self):
+        """
+        For a datetime-like Index object, `self.dt` returns `self` so that
+        datetime-like attributes can be accessed symmetrically for Index
+        and Series objects.
+
+        For Index objects that are not datetime-like, `self.dt` will raise
+        an AttributeError.
+        """
+        # Non-raising versions of the `.dt` attribute are available in
+        # DatetimeIndex, PeriodIndex, and TimedeltaIndex.
+        raise AttributeError("Can only use .dt accessor with datetimelike "
+                             "values")
+
     def __reduce__(self):
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())

@@ -124,6 +124,11 @@ class TimelikeOps(object):
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
 
+    @property
+    @Appender(Index.dt.__doc__)
+    def dt(self):
+        return self
+
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
