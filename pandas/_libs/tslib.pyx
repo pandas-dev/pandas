@@ -15,8 +15,7 @@ cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object, is_timedelta64_object)
-cimport util
+                   is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT,
@@ -32,7 +31,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  get_datetime64_value,
-                                 get_timedelta64_value,
                                  days_per_month_table,
                                  dayofweek, is_leapyear)
 from tslibs.np_datetime import OutOfBoundsDatetime
@@ -55,7 +53,6 @@ from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_pytz,
-    get_timezone,
     get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
