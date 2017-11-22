@@ -14,7 +14,7 @@ np.import_array()
 cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
-from tslibs.nattype import NaT, iNaT
+from tslibs.nattype import NaT
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
@@ -22,19 +22,19 @@ cdef double NEGINF = -INF
 cdef int64_t NPY_NAT = util.get_nat()
 
 
-cdef inline bint is_null_datetimelike(v):
+cdef inline bint is_null_datetimelike(object val):
     # determine if we have a null for a timedelta/datetime (or integer
     # versions)
-    if util._checknull(v):
+    if util._checknull(val):
         return True
-    elif v is NaT:
+    elif val is NaT:
         return True
-    elif util.is_timedelta64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_datetime64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_integer_object(v):
-        return v == iNaT
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
     return False
 
 
@@ -169,7 +169,7 @@ def isnaobj(ndarray arr):
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
-    for i from 0 <= i < n:
+    for i in range(n):
         val = arr[i]
         result[i] = _check_all_nulls(val)
     return result.view(np.bool_)
@@ -204,7 +204,7 @@ def isnaobj_old(ndarray arr):
 
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
-    for i from 0 <= i < n:
+    for i in range(n):
         val = arr[i]
         result[i] = val is NaT or _check_none_nan_inf_neginf(val)
     return result.view(np.bool_)
@@ -244,8 +244,8 @@ def isnaobj2d(ndarray arr):
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
+    for i in range(n):
+        for j in range(m):
             val = arr[i, j]
             if checknull(val):
                 result[i, j] = 1
@@ -288,8 +288,8 @@ def isnaobj2d_old(ndarray arr):
 
     n, m = (<object> arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
+    for i in range(n):
+        for j in range(m):
             val = arr[i, j]
             if checknull_old(val):
                 result[i, j] = 1
