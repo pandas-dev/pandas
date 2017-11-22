@@ -8,6 +8,7 @@ from distutils.version import LooseVersion
 from pandas import Series, DataFrame, MultiIndex
 from pandas.compat import range, lzip
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
@@ -19,8 +20,6 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 """ Test cases for .boxplot method """
 
-tm._skip_if_no_mpl()
-
 
 def _skip_if_mpl_14_or_dev_boxplot():
     # GH 8382
@@ -31,6 +30,7 @@ def _skip_if_mpl_14_or_dev_boxplot():
         pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -174,6 +174,7 @@ class TestDataFramePlots(TestPlotBase):
                                 xlabelsize=16, ylabelsize=16)
 
 
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow

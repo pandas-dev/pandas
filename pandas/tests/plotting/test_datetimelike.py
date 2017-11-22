@@ -16,13 +16,13 @@ from pandas.core.resample import DatetimeIndex
 
 from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestTSPlot(TestPlotBase):
 
     def setup_method(self, method):

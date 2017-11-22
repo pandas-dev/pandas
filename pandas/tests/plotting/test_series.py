@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import Series, DataFrame, date_range
 from pandas.compat import range, lrange
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
@@ -21,9 +22,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
