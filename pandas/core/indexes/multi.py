@@ -1365,25 +1365,31 @@ class MultiIndex(Index):
         new_labels = []
 
         changed = False
-        for lev, lab in zip(self.levels, self.labels):
+        for idx, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+            na_idxs = np.where(lab == -1)[0]
+
+            if len(na_idxs):
+                lab = np.delete(lab, na_idxs)
 
             uniques = algos.unique(lab)
 
             # nothing unused
-            if len(uniques) == len(lev):
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if len(uniques) != len(lev):
+                changed = True
 
-            changed = True
+                # labels get mapped from uniques to 0:len(uniques)
+                label_mapping = np.zeros(len(lev))
+                label_mapping[uniques] = np.arange(len(uniques))
 
-            # labels get mapped from uniques to 0:len(uniques)
-            label_mapping = np.zeros(len(lev))
-            label_mapping[uniques] = np.arange(len(uniques))
-            lab = label_mapping[lab]
+                lab = label_mapping[lab]
 
-            # new levels are simple
-            lev = lev.take(uniques)
+                # new levels are simple
+                lev = lev.take(uniques)
+
+                if len(na_idxs):
+                    lab = np.insert(lab, na_idxs - np.arange(len(na_idxs)), -1)
+            else:
+                lab = self.labels[idx]
 
             new_levels.append(lev)
             new_labels.append(lab)
