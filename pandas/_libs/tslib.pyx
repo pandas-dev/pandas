@@ -9,17 +9,13 @@ from numpy cimport int64_t, import_array, ndarray, float64_t
 import numpy as np
 
 
-from cpython cimport (
-    PyTypeObject,
-    PyFloat_Check,
-    PyComplex_Check)
+from cpython cimport PyTypeObject, PyFloat_Check
 
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object, is_timedelta64_object)
-cimport util
+                   is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT,
@@ -35,7 +31,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  get_datetime64_value,
-                                 get_timedelta64_value,
                                  days_per_month_table,
                                  dayofweek, is_leapyear)
 from tslibs.np_datetime import OutOfBoundsDatetime
@@ -58,7 +53,6 @@ from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset,
     treat_tz_as_pytz,
-    get_timezone,
     get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
@@ -211,24 +205,6 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
                 result[i] = timedelta(microseconds=int(value) / 1000)
 
     return result
-
-
-cdef inline bint _check_all_nulls(object val):
-    """ utility to check if a value is any type of null """
-    cdef bint res
-    if PyFloat_Check(val) or PyComplex_Check(val):
-        res = val != val
-    elif val is NaT:
-        res = 1
-    elif val is None:
-        res = 1
-    elif is_datetime64_object(val):
-        res = get_datetime64_value(val) == NPY_NAT
-    elif is_timedelta64_object(val):
-        res = get_timedelta64_value(val) == NPY_NAT
-    else:
-        res = 0
-    return res
 
 
 cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp

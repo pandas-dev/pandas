@@ -25,7 +25,7 @@ from tslibs.np_datetime cimport (pandas_datetimestruct,
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from lib cimport is_null_datetimelike
+from missing cimport is_null_datetimelike
 from pandas._libs.tslib import Timestamp
 from tslibs.timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, get_dst_info)
