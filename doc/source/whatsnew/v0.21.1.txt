@@ -115,7 +115,7 @@ Reshaping
 
 - Error message in ``pd.merge_asof()`` for key datatype mismatch now includes datatype of left and right key (:issue:`18068`)
 - Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
--
+- Bug in ``DataFrame.filter(...)`` when :class:`unicode` is passed as a condition in Python 2 (:issue:`13101`)
 -
 
 Numeric
