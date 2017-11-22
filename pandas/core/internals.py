@@ -1847,8 +1847,9 @@ class FloatBlock(FloatOrComplexBlock):
         if tipo is not None:
             return (issubclass(tipo.type, (np.floating, np.integer)) and
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
-        return (isinstance(element, (float, int, np.floating, np.int_)) and
-                not isinstance(element, (bool, np.bool_, datetime, timedelta,
+        return (
+            isinstance(element, (float, int, np.floating, np.int_, compat.long))
+            and not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None,
