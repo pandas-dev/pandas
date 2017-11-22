@@ -88,6 +88,7 @@ SQL_STRINGS = {
                     "TextCol" TEXT,
                     "DateCol" TEXT,
                     "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
                     "FloatCol" REAL,
                     "IntCol" INTEGER,
                     "BoolCol" INTEGER,
@@ -98,6 +99,7 @@ SQL_STRINGS = {
                     `TextCol` TEXT,
                     `DateCol` DATETIME,
                     `IntDateCol` INTEGER,
+                    `IntDateOnlyCol` INTEGER,
                     `FloatCol` DOUBLE,
                     `IntCol` INTEGER,
                     `BoolCol` BOOLEAN,
@@ -109,6 +111,7 @@ SQL_STRINGS = {
                     "DateCol" TIMESTAMP,
                     "DateColWithTz" TIMESTAMP WITH TIME ZONE,
                     "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
                     "FloatCol" DOUBLE PRECISION,
                     "IntCol" INTEGER,
                     "BoolCol" BOOLEAN,
@@ -120,31 +123,33 @@ SQL_STRINGS = {
         'sqlite': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             'fields': (
-                'TextCol', 'DateCol', 'IntDateCol', 'FloatCol',
-                'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
+                'TextCol', 'DateCol', 'IntDateCol', 'IntDateOnlyCol',
+                'FloatCol', 'IntCol', 'BoolCol', 'IntColWithNull',
+                'BoolColWithNull'
             )
         },
         'mysql': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES("%s", %s, %s, %s, %s, %s, %s, %s)
+                VALUES("%s", %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             'fields': (
-                'TextCol', 'DateCol', 'IntDateCol', 'FloatCol',
-                'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
+                'TextCol', 'DateCol', 'IntDateCol', 'IntDateOnlyCol',
+                'FloatCol', 'IntCol', 'BoolCol', 'IntColWithNull',
+                'BoolColWithNull'
             )
         },
         'postgresql': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             'fields': (
                 'TextCol', 'DateCol', 'DateColWithTz',
-                'IntDateCol', 'FloatCol',
+                'IntDateCol', 'IntDateOnlyCol', 'FloatCol',
                 'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
             )
         },
@@ -313,13 +318,13 @@ class PandasSQLTest(object):
         self.drop_table('types_test_data')
         self._get_exec().execute(SQL_STRINGS['create_test_types'][self.flavor])
         ins = SQL_STRINGS['insert_test_types'][self.flavor]
-
         data = [
             {
                 'TextCol': 'first',
                 'DateCol': '2000-01-03 00:00:00',
                 'DateColWithTz': '2000-01-01 00:00:00-08:00',
                 'IntDateCol': 535852800,
+                'IntDateOnlyCol': 20101010,
                 'FloatCol': 10.10,
                 'IntCol': 1,
                 'BoolCol': False,
@@ -331,6 +336,7 @@ class PandasSQLTest(object):
                 'DateCol': '2000-01-04 00:00:00',
                 'DateColWithTz': '2000-06-01 00:00:00-07:00',
                 'IntDateCol': 1356998400,
+                'IntDateOnlyCol': 20101212,
                 'FloatCol': 10.10,
                 'IntCol': 1,
                 'BoolCol': False,
@@ -610,20 +616,42 @@ class _TestSQLApi(PandasSQLTest):
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert df.DateCol.tolist() == [
+            pd.Timestamp(2000, 1, 3, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert df.DateCol.tolist() == [
+            pd.Timestamp(2000, 1, 3, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['IntDateCol'])
-
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
+        assert df.IntDateCol.tolist() == [
+            pd.Timestamp(1986, 12, 25, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'IntDateCol': 's'})
-
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
+        assert df.IntDateCol.tolist() == [
+            pd.Timestamp(1986, 12, 25, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
+        ]
+
+        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
+                                parse_dates={'IntDateOnlyCol': '%Y%m%d'})
+        assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
+        assert df.IntDateOnlyCol.tolist() == [
+            pd.Timestamp('2010-10-10'),
+            pd.Timestamp('2010-12-12')
+        ]
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
