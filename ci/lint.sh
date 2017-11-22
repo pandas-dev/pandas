@@ -90,7 +90,7 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)"
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" .
 
     if [ $? = "0" ]; then
         RET=1
@@ -103,7 +103,7 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # list(), set(), dict()
-    grep -R --include="*.py*" -E "(list|dict|[^frozen]set)\([^\{)=]* for .* in [^}]*\)"
+    grep -R --include="*.py*" -E "(list|dict|[^frozen]set)\([^\{)=]* for .* in [^}]*\)" .
 
     if [ $? = "0" ]; then
         RET=1
