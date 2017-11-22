@@ -965,7 +965,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace : bool
             whether to modify `self` directly or return a copy
 
-            .. versionadded: 0.21.0
+            .. versionadded:: 0.21.0
 
         Returns
         -------
