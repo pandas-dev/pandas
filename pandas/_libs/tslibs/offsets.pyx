@@ -409,8 +409,8 @@ class _BaseOffset(object):
     def _validate_n(self, n):
         try:
             nint = int(n)
-        except (ValueError, TypeError):
-            raise ValueError('`n` argument must be an integer')
+        except TypeError:
+            raise TypeError('`n` argument must be an integer')
         if n != nint:
             raise ValueError('`n` argument must be an integer')
         return nint

@@ -4711,5 +4711,5 @@ def test_valid_tick_attributes(kwd, tick_classes):
 
 
 def test_validate_n_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         DateOffset(n='Doh!')
