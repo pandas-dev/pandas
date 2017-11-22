@@ -239,7 +239,7 @@ class TestGetDummies(object):
             return np.uint8
         return dtype
 
-    def test_throws_on_dtype_object(self, df):
+    def test_raises_on_dtype_object(self, df):
         with pytest.raises(ValueError):
             get_dummies(df, dtype='object')
 
