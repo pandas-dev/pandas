@@ -20,11 +20,11 @@ from pandas._libs import period
 from pandas._libs.tslibs.timezones import get_timezone
 from pandas._libs.tslibs import conversion
 
-from pandas.compat import lrange, long, PY3
+from pandas.compat import long, PY3
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, compat,
-                    Series, NaT, DataFrame, DatetimeIndex)
+                    Series, NaT, DataFrame)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
 
@@ -1227,8 +1227,7 @@ class TestTimestampOps(object):
         timedelta_instance = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        timestamp_instance = date_range(datetime_instance, periods=1,
-                                        freq='D')[0]
+        timestamp_instance = Timestamp(datetime_instance, freq='D')
 
         assert type(timestamp_instance + 1) == Timestamp
         assert type(timestamp_instance - 1) == Timestamp
@@ -1246,7 +1245,7 @@ class TestTimestampOps(object):
         assert type(timestamp_instance - timedelta64_instance) == Timestamp
 
     def test_addition_subtraction_preserve_frequency(self):
-        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        timestamp_instance = Timestamp('2014-03-05', freq='D')
         timedelta_instance = timedelta(days=1)
         original_freq = timestamp_instance.freq
 
@@ -1330,29 +1329,9 @@ class TestTimeSeries(object):
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
-    def test_timestamp_fields(self):
-        # extra fields from DatetimeIndex like quarter and week
-        idx = tm.makeDateIndex(100)
-
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
-                  'days_in_month', 'is_month_start', 'is_month_end',
-                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                  'is_year_end', 'weekday_name']
-        for f in fields:
-            expected = getattr(idx, f)[-1]
-            result = getattr(Timestamp(idx[-1]), f)
-            assert result == expected
-
-        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
-        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
-
     def test_timestamp_date_out_of_range(self):
         pytest.raises(ValueError, Timestamp, '1676-01-01')
         pytest.raises(ValueError, Timestamp, '2263-01-01')
-
-        # see gh-1475
-        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
-        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
 
     def test_timestamp_repr(self):
         # pre-1900
@@ -1422,16 +1401,6 @@ class TestTimeSeries(object):
 
         assert isinstance(s.iat[5], Timestamp)
 
-    def test_frame_setitem_timestamp(self):
-        # 2155
-        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
-                                freq=offsets.BDay())
-        index = lrange(10)
-        data = DataFrame(columns=columns, index=index)
-        t = datetime(2012, 11, 1)
-        ts = Timestamp(t)
-        data[ts] = np.nan  # works
-
     def test_to_html_timestamp(self):
         rng = date_range('2000-01-01', periods=10)
         df = DataFrame(np.random.randn(10, 4), index=rng)
@@ -1450,21 +1419,6 @@ class TestTimeSeries(object):
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)
-
-    def test_dti_slicing(self):
-        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
-        dti2 = dti[[1, 3, 5]]
-
-        v1 = dti2[0]
-        v2 = dti2[1]
-        v3 = dti2[2]
-
-        assert v1 == Timestamp('2/28/2005')
-        assert v2 == Timestamp('4/30/2005')
-        assert v3 == Timestamp('6/30/2005')
-
-        # don't carry freq through irregular slicing
-        assert dti2.freq is None
 
     def test_woy_boundary(self):
         # make sure weeks at year boundaries are correct
@@ -1521,58 +1475,3 @@ class TestTsUtil(object):
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
                     Timestamp.min.value / 1000)
-
-
-class TestTimestampEquivDateRange(object):
-    # Older tests in TestTimeSeries constructed their `stamp` objects
-    # using `date_range` instead of the `Timestamp` constructor.
-    # TestTimestampEquivDateRange checks that these are equivalent in the
-    # pertinent cases.
-
-    def test_date_range_timestamp_equiv(self):
-        rng = date_range('20090415', '20090519', tz='US/Eastern')
-        stamp = rng[0]
-
-        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
-        assert ts == stamp
-
-    def test_date_range_timestamp_equiv_dateutil(self):
-        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
-        stamp = rng[0]
-
-        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
-        assert ts == stamp
-
-    def test_date_range_timestamp_equiv_explicit_pytz(self):
-        rng = date_range('20090415', '20090519',
-                         tz=pytz.timezone('US/Eastern'))
-        stamp = rng[0]
-
-        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
-        assert ts == stamp
-
-    def test_date_range_timestamp_equiv_explicit_dateutil(self):
-        tm._skip_if_windows_python_3()
-        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
-
-        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
-        stamp = rng[0]
-
-        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
-        assert ts == stamp
-
-    def test_date_range_timestamp_equiv_from_datetime_instance(self):
-        datetime_instance = datetime(2014, 3, 4)
-        # build a timestamp with a frequency, since then it supports
-        # addition/subtraction of integers
-        timestamp_instance = date_range(datetime_instance, periods=1,
-                                        freq='D')[0]
-
-        ts = Timestamp(datetime_instance, freq='D')
-        assert ts == timestamp_instance
-
-    def test_date_range_timestamp_equiv_preserve_frequency(self):
-        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
-        ts = Timestamp('2014-03-05', freq='D')
-
-        assert timestamp_instance == ts
