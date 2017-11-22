@@ -921,14 +921,12 @@ class _MergeOperation(object):
                                       'are not equal to their int '
                                       'representation', UserWarning)
 
-
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
                     if not (rk == rk.astype(lk.dtype)).all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
-
 
                 # let's infer and see if we are ok
                 elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
