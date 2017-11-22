@@ -911,7 +911,7 @@ class _MergeOperation(object):
             # the same, then proceed
             if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
-                    continue
+                    pass
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
@@ -920,7 +920,7 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
-                    continue
+                    pass
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
                     if not (rk == rk.astype(lk.dtype)).all():
@@ -928,13 +928,10 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
-                    continue
+                    pass
 
                 # let's infer and see if we are ok
                 elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
-                    continue
-
-                else:
                     pass
 
             # Houston, we have a problem!
@@ -944,14 +941,15 @@ class _MergeOperation(object):
             # then we would lose type information on some
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
-            if name in self.left.columns:
-                typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(
-                    **{name: self.left[name].astype(typ)})
-            if name in self.right.columns:
-                typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(
-                    **{name: self.right[name].astype(typ)})
+            else:
+                if name in self.left.columns:
+                    typ = lk.categories.dtype if lk_is_cat else object
+                    self.left = self.left.assign(
+                        **{name: self.left[name].astype(typ)})
+                if name in self.right.columns:
+                    typ = rk.categories.dtype if rk_is_cat else object
+                    self.right = self.right.assign(
+                        **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
