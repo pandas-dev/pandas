@@ -13,7 +13,6 @@ from pandas import (DataFrame, Series, Index, MultiIndex,
 from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
-from pandas.tseries.util import pivot_annual, isleapyear
 from pandas.api.types import CategoricalDtype as CDT
 
 
@@ -891,6 +890,40 @@ class TestPivotTable(object):
                              index=['X', 'Y'], columns=exp_col)
         tm.assert_frame_equal(result, expected)
 
+    def test_daily(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.dayofyear)
+        annual.columns = annual.columns.droplevel(0)
+
+        doy = np.asarray(ts.index.dayofyear)
+
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = subset.index.year
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
+    def test_monthly(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='M')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(pd.DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.month)
+        annual.columns = annual.columns.droplevel(0)
+
+        month = ts.index.month
+        for i in range(1, 13):
+            subset = ts[month == i]
+            subset.index = subset.index.year
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
     def test_pivot_table_with_iterator_values(self):
         # GH 12017
         aggs = {'D': 'sum', 'E': 'mean'}
@@ -1047,6 +1080,16 @@ class TestPivotTable(object):
                              columns=m)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_margins_name_unicode(self):
+        # issue #13292
+        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        frame = pd.DataFrame({'foo': [1, 2, 3]})
+        table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
+                               margins_name=greek)
+        index = pd.Index([1, 2, 3, greek], dtype='object', name='foo')
+        expected = pd.DataFrame(index=index)
+        tm.assert_frame_equal(table, expected)
 
 
 class TestCrosstab(object):
@@ -1525,116 +1568,3 @@ class TestCrosstab(object):
                                 index=expected_index,
                                 columns=expected_index)
         tm.assert_frame_equal(result, expected)
-
-
-class TestPivotAnnual(object):
-    """
-    New pandas of scikits.timeseries pivot_annual
-    """
-
-    def test_daily(self):
-        rng = date_range('1/1/2000', '12/31/2004', freq='D')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts, 'D')
-
-        doy = np.asarray(ts.index.dayofyear)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
-
-        for i in range(1, 367):
-            subset = ts[doy == i]
-            subset.index = [x.year for x in subset.index]
-
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-        # check leap days
-        leaps = ts[(ts.index.month == 2) & (ts.index.day == 29)]
-        day = leaps.index.dayofyear[0]
-        leaps.index = leaps.index.year
-        leaps.name = 60
-        tm.assert_series_equal(annual[day].dropna(), leaps)
-
-    def test_hourly(self):
-        rng_hourly = date_range('1/1/1994', periods=(18 * 8760 + 4 * 24),
-                                freq='H')
-        data_hourly = np.random.randint(100, 350, rng_hourly.size)
-        ts_hourly = Series(data_hourly, index=rng_hourly)
-
-        grouped = ts_hourly.groupby(ts_hourly.index.year)
-        hoy = grouped.apply(lambda x: x.reset_index(drop=True))
-        hoy = hoy.index.droplevel(0).values
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
-        hoy += 1
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts_hourly)
-
-        ts_hourly = ts_hourly.astype(float)
-        for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
-            subset = ts_hourly[hoy == i]
-            subset.index = [x.year for x in subset.index]
-
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-        leaps = ts_hourly[(ts_hourly.index.month == 2) & (
-            ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
-        hour = leaps.index.dayofyear[0] * 24 - 23
-        leaps.index = leaps.index.year
-        leaps.name = 1417
-        tm.assert_series_equal(annual[hour].dropna(), leaps)
-
-    def test_weekly(self):
-        pass
-
-    def test_monthly(self):
-        rng = date_range('1/1/2000', '12/31/2004', freq='M')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts, 'M')
-
-        month = ts.index.month
-        for i in range(1, 13):
-            subset = ts[month == i]
-            subset.index = [x.year for x in subset.index]
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-    def test_period_monthly(self):
-        pass
-
-    def test_period_daily(self):
-        pass
-
-    def test_period_weekly(self):
-        pass
-
-    def test_isleapyear_deprecate(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert isleapyear(2000)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert not isleapyear(2001)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert isleapyear(2004)
-
-    def test_pivot_margins_name_unicode(self):
-        # issue #13292
-        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
-        frame = pd.DataFrame({'foo': [1, 2, 3]})
-        table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
-                               margins_name=greek)
-        index = pd.Index([1, 2, 3, greek], dtype='object', name='foo')
-        expected = pd.DataFrame(index=index)
-        tm.assert_frame_equal(table, expected)
