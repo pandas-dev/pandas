@@ -107,7 +107,7 @@ time conda install -n pandas pytest>=3.1.0
 time pip install pytest-xdist moto
 
 if [ "$LINT" ]; then
-   conda install flake8
+   conda install flake8=3.4.1
    pip install cpplint
 fi
 
