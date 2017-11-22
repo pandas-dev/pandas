@@ -12,7 +12,6 @@ from pandas.core.tools.datetimes import to_datetime, normalize_date
 from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
-from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
@@ -1816,10 +1815,7 @@ class FY5253(DateOffset):
     variation : str
         {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
     """
-
     _prefix = 'RE'
-    _suffix_prefix_last = 'L'
-    _suffix_prefix_nearest = 'N'
     _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, weekday=0, startingMonth=1,
@@ -1842,22 +1838,6 @@ class FY5253(DateOffset):
                              .format(variation=self.variation))
 
     @cache_readonly
-    def _relativedelta_forward(self):
-        if self.variation == "nearest":
-            weekday_offset = weekday(self.weekday)
-            return relativedelta(weekday=weekday_offset)
-        else:
-            return None
-
-    @cache_readonly
-    def _relativedelta_backward(self):
-        if self.variation == "nearest":
-            weekday_offset = weekday(self.weekday)
-            return relativedelta(weekday=weekday_offset(-1))
-        else:
-            return None
-
-    @cache_readonly
     def _offset_lwom(self):
         if self.variation == "nearest":
             return None
@@ -1865,9 +1845,9 @@ class FY5253(DateOffset):
             return LastWeekOfMonth(n=1, weekday=self.weekday)
 
     def isAnchored(self):
-        return self.n == 1 \
-            and self.startingMonth is not None \
-            and self.weekday is not None
+        return (self.n == 1 and
+                self.startingMonth is not None and
+                self.weekday is not None)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1891,63 +1871,45 @@ class FY5253(DateOffset):
             datetime(other.year, self.startingMonth, 1))
         next_year = self.get_year_end(
             datetime(other.year + 1, self.startingMonth, 1))
+
         prev_year = tslib._localize_pydatetime(prev_year, other.tzinfo)
         cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
         next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
 
-        if n > 0:
-            if other == prev_year:
-                year = other.year - 1
-            elif other == cur_year:
-                year = other.year
-            elif other == next_year:
-                year = other.year + 1
-            elif other < prev_year:
-                year = other.year - 1
-                n -= 1
+        if other == prev_year:
+            n -= 1
+        elif other == cur_year:
+            pass
+        elif other == next_year:
+            n += 1
+            # TODO: Not hit in tests
+        elif n > 0:
+            if other < prev_year:
+                n -= 2
+                # TODO: Not hit in tests
             elif other < cur_year:
-                year = other.year
                 n -= 1
             elif other < next_year:
-                year = other.year + 1
-                n -= 1
+                pass
             else:
                 assert False
-
-            result = self.get_year_end(
-                datetime(year + n, self.startingMonth, 1))
-
-            result = datetime(result.year, result.month, result.day,
-                              other.hour, other.minute, other.second,
-                              other.microsecond)
-            return result
         else:
-            n = -n
-            if other == prev_year:
-                year = other.year - 1
-            elif other == cur_year:
-                year = other.year
-            elif other == next_year:
-                year = other.year + 1
-            elif other > next_year:
-                year = other.year + 1
-                n -= 1
+            if other > next_year:
+                n += 2
+                # TODO: Not hit in tests
             elif other > cur_year:
-                year = other.year
-                n -= 1
+                n += 1
             elif other > prev_year:
-                year = other.year - 1
-                n -= 1
+                pass
             else:
                 assert False
 
-            result = self.get_year_end(
-                datetime(year - n, self.startingMonth, 1))
-
-            result = datetime(result.year, result.month, result.day,
-                              other.hour, other.minute, other.second,
-                              other.microsecond)
-            return result
+        shifted = datetime(other.year + n, self.startingMonth, 1)
+        result = self.get_year_end(shifted)
+        result = datetime(result.year, result.month, result.day,
+                          other.hour, other.minute, other.second,
+                          other.microsecond)
+        return result
 
     def get_year_end(self, dt):
         if self.variation == "nearest":
@@ -1956,43 +1918,41 @@ class FY5253(DateOffset):
             return self._get_year_end_last(dt)
 
     def get_target_month_end(self, dt):
-        target_month = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
-        next_month_first_of = shift_month(target_month, 1, None)
-        return next_month_first_of + timedelta(days=-1)
+        target_month = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
+        return shift_month(target_month, 0, 'end')
+        # TODO: is this DST-safe?
 
     def _get_year_end_nearest(self, dt):
         target_date = self.get_target_month_end(dt)
-        if target_date.weekday() == self.weekday:
+        wkday_diff = self.weekday - target_date.weekday()
+        if wkday_diff == 0:
             return target_date
-        else:
-            forward = target_date + self._relativedelta_forward
-            backward = target_date + self._relativedelta_backward
 
-            if forward - target_date < target_date - backward:
-                return forward
-            else:
-                return backward
+        days_forward = wkday_diff % 7
+        if days_forward <= 3:
+            # The upcoming self.weekday is closer than the previous one
+            return target_date + timedelta(days_forward)
+        else:
+            # The previous self.weekday is closer than the upcoming one
+            return target_date + timedelta(days_forward - 7)
 
     def _get_year_end_last(self, dt):
-        current_year = datetime(
-            dt.year, self.startingMonth, 1, tzinfo=dt.tzinfo)
+        current_year = datetime(dt.year, self.startingMonth, 1,
+                                tzinfo=dt.tzinfo)
         return current_year + self._offset_lwom
 
     @property
     def rule_code(self):
-        prefix = self._get_prefix()
+        prefix = self._prefix
         suffix = self.get_rule_code_suffix()
         return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
 
-    def _get_prefix(self):
-        return self._prefix
-
     def _get_suffix_prefix(self):
         if self.variation == "nearest":
-            return self._suffix_prefix_nearest
+            return 'N'
         else:
-            return self._suffix_prefix_last
+            return 'L'
 
     def get_rule_code_suffix(self):
         prefix = self._get_suffix_prefix()
@@ -2008,17 +1968,15 @@ class FY5253(DateOffset):
         elif varion_code == "L":
             variation = "last"
         else:
-            raise ValueError(
-                "Unable to parse varion_code: {code}".format(code=varion_code))
+            raise ValueError("Unable to parse varion_code: "
+                             "{code}".format(code=varion_code))
 
         startingMonth = _month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
 
-        return {
-            "weekday": weekday,
-            "startingMonth": startingMonth,
-            "variation": variation,
-        }
+        return {"weekday": weekday,
+                "startingMonth": startingMonth,
+                "variation": variation}
 
     @classmethod
     def _from_name(cls, *args):
@@ -2091,10 +2049,9 @@ class FY5253Quarter(DateOffset):
 
     @cache_readonly
     def _offset(self):
-        return FY5253(
-            startingMonth=self.startingMonth,
-            weekday=self.weekday,
-            variation=self.variation)
+        return FY5253(startingMonth=self.startingMonth,
+                      weekday=self.weekday,
+                      variation=self.variation)
 
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
@@ -2203,24 +2160,21 @@ class Easter(DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        currentEaster = easter(other.year)
-        currentEaster = datetime(
-            currentEaster.year, currentEaster.month, currentEaster.day)
-        currentEaster = tslib._localize_pydatetime(currentEaster, other.tzinfo)
+        current_easter = easter(other.year)
+        current_easter = datetime(current_easter.year,
+                                  current_easter.month, current_easter.day)
+        current_easter = tslib._localize_pydatetime(current_easter,
+                                                    other.tzinfo)
+
+        n = self.n
+        if n >= 0 and other < current_easter:
+            n -= 1
+        elif n < 0 and other > current_easter:
+            n += 1
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
-        if self.n >= 0:
-            if other >= currentEaster:
-                new = easter(other.year + self.n)
-            else:
-                new = easter(other.year + self.n - 1)
-        else:
-            if other > currentEaster:
-                new = easter(other.year + self.n + 1)
-            else:
-                new = easter(other.year + self.n)
-
+        new = easter(other.year + n)
         new = datetime(new.year, new.month, new.day, other.hour,
                        other.minute, other.second, other.microsecond)
         return new
