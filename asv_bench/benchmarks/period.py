@@ -66,7 +66,7 @@ class PeriodUnaryMethods(object):
         self.per.to_timestamp()
 
     def time_now(self, freq):
-        self.per.now()
+        self.per.now(freq)
 
     def time_asfreq(self, freq):
         self.per.asfreq('A')
@@ -113,7 +113,7 @@ class Algorithms(object):
                 Period('2011-03', freq='M'), Period('2011-04', freq='M')]
 
         if typ == 'index':
-            self.vector = PeriodIndex(data, freq='M')
+            self.vector = PeriodIndex(data * 1000, freq='M')
         elif typ == 'series':
             self.vector = Series(data * 1000)
 
