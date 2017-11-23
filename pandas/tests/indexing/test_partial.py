@@ -648,17 +648,16 @@ class TestPartialSetting(object):
         df = pd.DataFrame(index=first_january, data=np.arange(len(
                           first_january)))
 
-        former_naive_endpoint_df = df[
+        result = df[
             "2016-01-01T00:00-02:00":"2016-01-01T02:03"
         ]
 
-        former_non_naive_endpoint_df = df[
+        expected = df[
             pd.Timestamp("2016-01-01T00:00-02:00"):
             pd.Timestamp("2016-01-01T02:03")
         ]
 
-        tm.assert_frame_equal(former_naive_endpoint_df,
-                              former_non_naive_endpoint_df)
+        tm.assert_frame_equal(result, expected)
 
     def test_access_naive_datetimeindex_with_timezoned_label(self):
 
@@ -672,11 +671,11 @@ class TestPartialSetting(object):
                           first_january)))
 
         with tm.assert_produces_warning(UserWarning):
-            former_naive_endpoint_df = df["2016-01-01T00:00-02:00":
-                                          "2016-01-01T02:03"]
+            result = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
 
-        former_non_naive_endpoint_df = df[pd.Timestamp(
-            "2016-01-01T00:00-02:00"):pd.Timestamp("2016-01-01T02:03")]
+        expected = df[
+            pd.Timestamp("2016-01-01T00:00-02:00"):
+            pd.Timestamp("2016-01-01T02:03")
+        ]
 
-        tm.assert_frame_equal(former_non_naive_endpoint_df,
-                              former_naive_endpoint_df)
+        tm.assert_frame_equal(expected, result)
