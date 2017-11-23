@@ -104,7 +104,7 @@ if [ "$LINT" ]; then
        "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
     for path in './pandas' './doc/source'
     do
-        grep -R --include="*.py" --include="*.rst" -E "\.\. ($SPHINX_DIRECTIVES):[^:]" $path
+        grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. ($SPHINX_DIRECTIVES):[^:]" $path
         if [ $? = "0" ]; then
             RET=1
         fi
