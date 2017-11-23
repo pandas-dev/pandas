@@ -7,7 +7,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as np
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t, ndarray
 np.import_array()
 
 from datetime import time as datetime_time
@@ -172,8 +172,8 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef int _assert_tzawareness_compat(_Timestamp self,
-                                        object other) except -1:
+    cdef void _assert_tzawareness_compat(_Timestamp self,
+                                         object other) except -1:
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
@@ -209,6 +209,7 @@ cdef class _Timestamp(datetime):
         """ Returns a numpy.datetime64 object with 'ns' precision """
         return np.datetime64(self.value, 'ns')
 
+    @cython.final
     def __add__(self, other):
         cdef int64_t other_int, nanos
 
@@ -246,6 +247,7 @@ cdef class _Timestamp(datetime):
             result.nanosecond = self.nanosecond
         return result
 
+    @cython.final
     def __sub__(self, other):
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
@@ -296,7 +298,10 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
 
-    cpdef int _get_field(self, field):
+    cdef int _get_field(_Timestamp self, field):
+        # Note: because _get_field is `cdef`, it is not visible in the python
+        # namespace.  Any methods that need to call `_get_field` must be
+        # defined in _Timestamp, not Timestamp.
         cdef:
             int64_t val
             ndarray[int32_t] out
@@ -304,10 +309,30 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cpdef _get_start_end_field(self, field):
+    @property
+    def dayofyear(self):
+        return self._get_field('doy')
+
+    @property
+    def week(self):
+        return self._get_field('woy')
+
+    @property
+    def quarter(self):
+        return self._get_field('q')
+
+    @property
+    def days_in_month(self):
+        return self._get_field('dim')
+
+    cdef int8_t _get_start_end_field(_Timestamp self, field):
+        # Note: because _get_start_end_field is `cdef`, it is not visible
+        # in the python namespace.  Any methods that need to call
+        # `_get_start_end_field` must be defined in _Timestamp, not Timestamp.
         cdef:
             int64_t val
             dict kwds
+            ndarray[int8_t] out
 
         freq = self.freq
         if freq:
@@ -322,6 +347,30 @@ cdef class _Timestamp(datetime):
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw)
         return out[0]
+
+    @property
+    def is_month_start(self):
+        return self._get_start_end_field('is_month_start')
+
+    @property
+    def is_month_end(self):
+        return self._get_start_end_field('is_month_end')
+
+    @property
+    def is_quarter_start(self):
+        return self._get_start_end_field('is_quarter_start')
+
+    @property
+    def is_quarter_end(self):
+        return self._get_start_end_field('is_quarter_end')
+
+    @property
+    def is_year_start(self):
+        return self._get_start_end_field('is_year_start')
+
+    @property
+    def is_year_end(self):
+        return self._get_start_end_field('is_year_end')
 
     @property
     def _repr_base(self):
@@ -365,6 +414,73 @@ cdef class _Timestamp(datetime):
         """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
+
+    cdef _Timestamp _round(_Timestamp self, freq, rounder):
+        # Note: _round is not visible in the python namespace, so methods that
+        # call it must be defined in _Timestamp, not Timestamp
+        cdef:
+            int64_t unit, rounded, value, buff = 1000000
+            _Timestamp result
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        if self.tz is not None:
+            value = self.tz_localize(None).value
+        else:
+            value = self.value
+        if unit < 1000 and unit % 1000 != 0:
+            # for nano rounding, work with the last 6 digits separately
+            # due to float precision
+            rounded = (buff * (value // buff) + unit *
+                       (rounder((value % buff) / float(unit))).astype('i8'))
+        elif unit >= 1000 and unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+            rounded = (unit * rounder(value / float(unit)).astype('i8'))
+        else:
+            rounded = (unit * rounder(value / float(unit)).astype('i8'))
+        result = Timestamp(rounded, unit='ns')
+        if self.tz is not None:
+            result = result.tz_localize(self.tz)
+        return result
+
+    def round(self, freq):
+        """
+        Round the Timestamp to the specified resolution
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, np.round)
+
+    def floor(self, freq):
+        """
+        return a new Timestamp floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timestamp ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
 
 
 # ----------------------------------------------------------------------
@@ -591,72 +707,6 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, rounder):
-
-        cdef:
-            int64_t unit, r, value, buff = 1000000
-            object result
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
-        if self.tz is not None:
-            value = self.tz_localize(None).value
-        else:
-            value = self.value
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            r = (buff * (value // buff) + unit *
-                 (rounder((value % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            r = (unit * rounder(value / float(unit)).astype('i8'))
-        else:
-            r = (unit * rounder(value / float(unit)).astype('i8'))
-        result = Timestamp(r, unit='ns')
-        if self.tz is not None:
-            result = result.tz_localize(self.tz)
-        return result
-
-    def round(self, freq):
-        """
-        Round the Timestamp to the specified resolution
-
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
-        Parameters
-        ----------
-        freq : a freq string indicating the rounding resolution
-
-        Raises
-        ------
-        ValueError if the freq cannot be converted
-        """
-        return self._round(freq, np.round)
-
-    def floor(self, freq):
-        """
-        return a new Timestamp floored to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
-
-    def ceil(self, freq):
-        """
-        return a new Timestamp ceiled to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the ceiling resolution
-        """
-        return self._round(freq, np.ceil)
-
     @property
     def tz(self):
         """
@@ -702,52 +752,8 @@ class Timestamp(_Timestamp):
         return wdays[self.weekday()]
 
     @property
-    def dayofyear(self):
-        return self._get_field('doy')
-
-    @property
-    def week(self):
-        return self._get_field('woy')
-
-    weekofyear = week
-
-    @property
-    def quarter(self):
-        return self._get_field('q')
-
-    @property
-    def days_in_month(self):
-        return self._get_field('dim')
-
-    daysinmonth = days_in_month
-
-    @property
     def freqstr(self):
         return getattr(self.freq, 'freqstr', self.freq)
-
-    @property
-    def is_month_start(self):
-        return self._get_start_end_field('is_month_start')
-
-    @property
-    def is_month_end(self):
-        return self._get_start_end_field('is_month_end')
-
-    @property
-    def is_quarter_start(self):
-        return self._get_start_end_field('is_quarter_start')
-
-    @property
-    def is_quarter_end(self):
-        return self._get_start_end_field('is_quarter_end')
-
-    @property
-    def is_year_start(self):
-        return self._get_start_end_field('is_year_start')
-
-    @property
-    def is_year_end(self):
-        return self._get_start_end_field('is_year_end')
 
     @property
     def is_leap_year(self):
@@ -981,6 +987,10 @@ class Timestamp(_Timestamp):
         # define it here instead
         return self + other
 
+
+# property aliases
+Timestamp.daysinmonth = Timestamp.days_in_month
+Timestamp.weekofyear = Timestamp.week
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = INT64_MAX

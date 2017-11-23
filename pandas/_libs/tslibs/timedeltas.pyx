@@ -775,6 +775,55 @@ cdef class _Timedelta(timedelta):
             td=components, seconds=seconds)
         return tpl
 
+    cdef _Timedelta _round(_Timedelta self, freq, rounder):
+        # Note: _round is not visible in the python namespace, so methods that
+        # call it must be defined in _Timedelta, not Timedelta
+        cdef:
+            int64_t result, unit
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        result = unit * rounder(self.value / float(unit))
+        return Timedelta(result, unit='ns')
+
+    def round(self, freq):
+        """
+        Round the Timedelta to the specified resolution
+
+        Returns
+        -------
+        a new Timedelta rounded to the given resolution of `freq`
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, np.round)
+
+    def floor(self, freq):
+        """
+        return a new Timedelta floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timedelta ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
+
 
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
@@ -864,53 +913,6 @@ class Timedelta(_Timedelta):
     def __reduce__(self):
         object_state = self.value,
         return (Timedelta, object_state)
-
-    def _round(self, freq, rounder):
-        cdef:
-            int64_t result, unit
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
-
-    def round(self, freq):
-        """
-        Round the Timedelta to the specified resolution
-
-        Returns
-        -------
-        a new Timedelta rounded to the given resolution of `freq`
-
-        Parameters
-        ----------
-        freq : a freq string indicating the rounding resolution
-
-        Raises
-        ------
-        ValueError if the freq cannot be converted
-        """
-        return self._round(freq, np.round)
-
-    def floor(self, freq):
-        """
-        return a new Timedelta floored to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
-
-    def ceil(self, freq):
-        """
-        return a new Timedelta ceiled to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the ceiling resolution
-        """
-        return self._round(freq, np.ceil)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
