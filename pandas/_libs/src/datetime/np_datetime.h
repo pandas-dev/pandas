@@ -148,7 +148,4 @@ convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
                                      pandas_timedeltastruct *out);
 
 
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
-
-
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_

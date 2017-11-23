@@ -564,18 +564,15 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
 
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
-                                          pandas_timedeltastruct *result) {
+                                         pandas_timedeltastruct *result) {
   pandas_datetime_metadata meta;
 
   meta.base = fr;
-  meta.num - 1;
+  meta.num = 1;
 
   convert_timedelta_to_timedeltastruct(&meta, val, result);
 }
 
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj) {
-    return (PANDAS_DATETIMEUNIT)((PyDatetimeScalarObject *)obj)->obmeta.base;
-}
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
@@ -1001,7 +998,6 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
 int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
                                          npy_timedelta td,
                                          pandas_timedeltastruct *out) {
-    npy_int64 perday;
     npy_int64 frac;
     npy_int64 sfrac;
     npy_int64 ifrac;

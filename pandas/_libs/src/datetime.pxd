@@ -54,7 +54,6 @@ cdef extern from "datetime/np_datetime.h":
 
     int dayofweek(int y, int m, int d) nogil
     int is_leapyear(int64_t year) nogil
-    PANDAS_DATETIMEUNIT get_datetime64_unit(object o)
 
 cdef extern from "datetime/np_datetime_strings.h":
 
