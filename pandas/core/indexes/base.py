@@ -907,7 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         def best_len(values):
             if values:
-                return max([adj.len(x) for x in values])
+                return max(adj.len(x) for x in values)
             else:
                 return 0
 
@@ -2032,7 +2032,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             return array_equivalent(_values_from_object(self),
                                     _values_from_object(other))
-        except:
+        except Exception:
             return False
 
     def identical(self, other):
@@ -2315,7 +2315,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             indexer = Index(other._values).get_indexer(self._values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
-        except:
+        except Exception:
             # duplicates
             indexer = algos.unique1d(
                 Index(other._values).get_indexer_non_unique(self._values)[0])
@@ -3022,13 +3022,13 @@ class Index(IndexOpsMixin, PandasObject):
         new_indexer = None
 
         if len(missing):
-            l = np.arange(len(indexer))
+            length = np.arange(len(indexer))
 
             missing = _ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = _ensure_int64(l[~check])
+            missing_indexer = _ensure_int64(length[~check])
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = _ensure_int64(l[check])
+            cur_indexer = _ensure_int64(length[check])
 
             new_labels = np.empty(tuple([len(indexer)]), dtype=object)
             new_labels[cur_indexer] = cur_labels
@@ -4246,7 +4246,7 @@ def _trim_front(strings):
     Trims zeros and decimal points
     """
     trimmed = strings
-    while len(strings) > 0 and all([x[0] == ' ' for x in trimmed]):
+    while len(strings) > 0 and all(x[0] == ' ' for x in trimmed):
         trimmed = [x[1:] for x in trimmed]
     return trimmed
 

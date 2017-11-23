@@ -60,7 +60,7 @@ Bug reports must:
 
 The issue will then show up to the *pandas* community and be open to comments/ideas from others.
 
-.. _contributing.github
+.. _contributing.github:
 
 Working with the code
 =====================
@@ -316,6 +316,27 @@ Some other important things to know about the docs:
   Almost all code examples in the docs are run (and the output saved) during the
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
+
+- Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+  documentation from the docstrings. For classes, there are a few subtleties
+  around controlling which methods and attributes have pages auto-generated.
+
+  We have two autosummary templates for classes.
+
+  1. ``_templates/autosummary/class.rst``. Use this when you want to
+     automatically generate a page for every public method and attribute on the
+     class. The ``Attributes`` and ``Methods`` sections will be automatically
+     added to the class' rendered documentation by numpydoc. See ``DataFrame``
+     for an example.
+
+  2. ``_templates/autosummary/class_without_autosummary``. Use this when you
+     want to pick a subset of methods / attributes to auto-generate pages for.
+     When using this template, you should include an ``Attributes`` and
+     ``Methods`` section in the class docstring. See ``CategoricalIndex`` for an
+     example.
+
+  Every method should be included in a ``toctree`` in ``api.rst``, else Sphinx
+  will emit a warning.
 
 .. note::
 

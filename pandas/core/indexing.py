@@ -217,8 +217,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         return True
 
     def _is_nested_tuple_indexer(self, tup):
-        if any([isinstance(ax, MultiIndex) for ax in self.obj.axes]):
-            return any([is_nested_tuple(tup, ax) for ax in self.obj.axes])
+        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
+            return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
     def _convert_tuple(self, key, is_setter=False):
@@ -342,7 +342,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                             len(_ax) for _i, _ax in enumerate(self.obj.axes)
                             if _i != i
                         ]
-                        if any([not l for l in len_non_info_axes]):
+                        if any(not l for l in len_non_info_axes):
                             if not is_list_like_indexer(value):
                                 raise ValueError("cannot set a frame with no "
                                                  "defined index and a scalar")
@@ -690,7 +690,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if (sum_aligners == self.ndim and
-                    all([is_sequence(_) for _ in indexer])):
+                    all(is_sequence(_) for _ in indexer)):
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer

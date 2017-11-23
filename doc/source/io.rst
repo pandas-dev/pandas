@@ -115,7 +115,7 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
-    a ``UserWarning`` to be issued.
+  a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -4427,8 +4427,10 @@ Several caveats.
 
 - This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
   to the earlier versions.
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index()`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
@@ -4491,8 +4493,10 @@ dtypes, including extension dtypes such as datetime with tz.
 
 Several caveats.
 
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
@@ -4537,6 +4541,16 @@ Read from a parquet file.
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
 
    result.dtypes
+
+Read only certain columns of a parquet file.
+
+.. ipython:: python
+
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow', columns=['a', 'b'])
+   result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
+
+   result.dtypes
+
 
 .. ipython:: python
    :suppress:

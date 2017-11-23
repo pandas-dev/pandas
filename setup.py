@@ -225,8 +225,8 @@ munging and cleaning data, analyzing / modeling it, then organizing the results
 of the analysis into a form suitable for plotting or tabular display. pandas is
 the ideal tool for all of these tasks.
 
-Note
-----
+Notes
+-----
 Windows binaries built against NumPy 1.8.1
 """
 
@@ -350,6 +350,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/fields.pyx',
                  'pandas/_libs/tslibs/offsets.pyx',
                  'pandas/_libs/tslibs/frequencies.pyx',
+                 'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -525,6 +526,7 @@ ext_data = {
         'pyxfile': '_libs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
+                     '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
@@ -573,11 +575,19 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/conversion']},
+                     '_libs/tslibs/conversion',
+                     '_libs/tslibs/frequencies']},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util',
                      '_libs/src/khash']},
+    '_libs.tslibs.resolution': {
+        'pyxfile': '_libs/tslibs/resolution',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/src/khash',
+                     '_libs/tslibs/frequencies',
+                     '_libs/tslibs/timezones'],
+        'depends': tseries_depends},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'pxdfiles': ['_libs/src/util',
@@ -586,7 +596,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
-        'pxdfiles': ['_libs/src/util'],
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/nattype'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
@@ -758,6 +769,7 @@ setup(name=DISTNAME,
                 'pandas.tests.series',
                 'pandas.tests.scalar',
                 'pandas.tests.tseries',
+                'pandas.tests.tseries.offsets',
                 'pandas.tests.plotting',
                 'pandas.tests.tools',
                 'pandas.tests.util',
@@ -793,7 +805,7 @@ setup(name=DISTNAME,
                     'pandas.tests.io.formats': ['data/*.csv'],
                     'pandas.tests.io.msgpack': ['data/*.mp'],
                     'pandas.tests.reshape': ['data/*.csv'],
-                    'pandas.tests.tseries': ['data/*.pickle'],
+                    'pandas.tests.tseries.offsets': ['data/*.pickle'],
                     'pandas.io.formats': ['templates/*.tpl']
                     },
       ext_modules=extensions,

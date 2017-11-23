@@ -36,6 +36,8 @@ from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
@@ -158,6 +160,37 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     tz : object, default None
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
+
+    Attributes
+    ----------
+    day
+    dayofweek
+    dayofyear
+    days_in_month
+    daysinmonth
+    end_time
+    freq
+    freqstr
+    hour
+    is_leap_year
+    minute
+    month
+    quarter
+    qyear
+    second
+    start_time
+    week
+    weekday
+    weekofyear
+    year
+
+    Methods
+    -------
+    asfreq
+    strftime
+    to_timestamp
+    tz_convert
+    tz_localize
 
     Examples
     --------
@@ -623,9 +656,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D' for week or longer, 'S'
-               otherwise
-            Target frequency
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
         how : {'s', 'e', 'start', 'end'}
 
         Returns
@@ -652,10 +685,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 if isinstance(other, np.ndarray):
-                    nanos = np.vectorize(tslib._delta_to_nanoseconds)(other)
+                    nanos = np.vectorize(delta_to_nanoseconds)(other)
                 else:
-                    nanos = tslib._delta_to_nanoseconds(other)
-                offset_nanos = tslib._delta_to_nanoseconds(offset)
+                    nanos = delta_to_nanoseconds(other)
+                offset_nanos = delta_to_nanoseconds(offset)
                 check = np.all(nanos % offset_nanos == 0)
                 if check:
                     return nanos // offset_nanos
@@ -672,8 +705,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             elif is_timedelta64_dtype(other):
                 offset = frequencies.to_offset(self.freq)
                 if isinstance(offset, offsets.Tick):
-                    nanos = tslib._delta_to_nanoseconds(other)
-                    offset_nanos = tslib._delta_to_nanoseconds(offset)
+                    nanos = delta_to_nanoseconds(other)
+                    offset_nanos = delta_to_nanoseconds(offset)
                     if (nanos % offset_nanos).all() == 0:
                         return nanos // offset_nanos
         elif is_integer(other):
@@ -751,8 +784,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = frequencies.Resolution.get_freq_group(reso)
-                freqn = frequencies.get_freq_group(self.freq)
+                grp = resolution.Resolution.get_freq_group(reso)
+                freqn = resolution.get_freq_group(self.freq)
 
                 vals = self._values
 
@@ -911,8 +944,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                              'ordered time series')
 
         key, parsed, reso = parse_time_string(key, self.freq)
-        grp = frequencies.Resolution.get_freq_group(reso)
-        freqn = frequencies.get_freq_group(self.freq)
+        grp = resolution.Resolution.get_freq_group(reso)
+        freqn = resolution.get_freq_group(self.freq)
         if reso in ['day', 'hour', 'minute', 'second'] and not grp < freqn:
             raise KeyError(key)
 
@@ -1038,8 +1071,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         normalized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
@@ -1062,8 +1095,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         localized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")

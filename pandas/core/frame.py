@@ -607,7 +607,7 @@ class DataFrame(NDFrame):
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max([len(l) for l in value.split('\n')])
+        repr_width = max(len(l) for l in value.split('\n'))
 
         return repr_width < width
 
@@ -1698,7 +1698,7 @@ class DataFrame(NDFrame):
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
-            Convert the characters <, >, and & to HTML-safe sequences.=
+            Convert the characters <, >, and & to HTML-safe sequences.
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
@@ -1709,6 +1709,7 @@ class DataFrame(NDFrame):
             Character recognized as decimal separator, e.g. ',' in Europe
 
             .. versionadded:: 0.18.0
+
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -1803,7 +1804,7 @@ class DataFrame(NDFrame):
         def _verbose_repr():
             lines.append('Data columns (total %d columns):' %
                          len(self.columns))
-            space = max([len(pprint_thing(k)) for k in self.columns]) + 4
+            space = max(len(pprint_thing(k)) for k in self.columns) + 4
             counts = None
 
             tmpl = "%s%s"
@@ -2272,7 +2273,8 @@ class DataFrame(NDFrame):
         by default, which allows you to treat both the index and columns of the
         frame as a column in the frame.
         The identifier ``index`` is used for the frame index; you can also
-        use the name of the index to identify it in a query.
+        use the name of the index to identify it in a query. Please note that
+        Python keywords may not be used as identifiers.
 
         For further details and examples see the ``query`` documentation in
         :ref:`indexing <indexing.query>`.
@@ -4033,6 +4035,8 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
         func : function
+            Function that takes two series as inputs and return a Series or a
+            scalar
         fill_value : scalar value
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
@@ -4040,8 +4044,21 @@ class DataFrame(NDFrame):
         Returns
         -------
         result : DataFrame
-        """
 
+        Examples
+        --------
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+           A  B
+        0  0  3
+        1  0  3
+
+        See Also
+        --------
+        DataFrame.combine_first : Combine two DataFrame objects and default to
+            non-null values in frame calling the method
+        """
         other_idxlen = len(other.index)  # save for compare
 
         this, other = self.align(other, copy=False)
@@ -4129,16 +4146,24 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
 
-        Examples
-        --------
-        a's values prioritized, use values from b to fill holes:
-
-        >>> a.combine_first(b)
-
-
         Returns
         -------
         combined : DataFrame
+
+        Examples
+        --------
+        df1's values prioritized, use values from df2 to fill holes:
+
+        >>> df1 = pd.DataFrame([[1, np.nan]])
+        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1.combine_first(df2)
+           0    1
+        0  1  4.0
+
+        See Also
+        --------
+        DataFrame.combine : Perform series-wise operation on two DataFrames
+            using a given function
         """
         import pandas.core.computation.expressions as expressions
 
@@ -4642,7 +4667,7 @@ class DataFrame(NDFrame):
                    other='melt'))
     def melt(self, id_vars=None, value_vars=None, var_name=None,
              value_name='value', col_level=None):
-        from pandas.core.reshape.reshape import melt
+        from pandas.core.reshape.melt import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
                     col_level=col_level)
@@ -5786,7 +5811,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------
@@ -5817,7 +5847,12 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
-            will be first index.
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
 
         Returns
         -------
@@ -6395,7 +6430,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
 
 def _get_names_from_index(data):
-    has_some_name = any([getattr(s, 'name', None) is not None for s in data])
+    has_some_name = any(getattr(s, 'name', None) is not None for s in data)
     if not has_some_name:
         return _default_index(len(data))
 

@@ -2,7 +2,6 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
-from functools import partial
 from sys import getsizeof
 
 import numpy as np
@@ -28,8 +27,7 @@ from pandas.core.common import (_any_not_none,
                                 is_true_slices)
 
 import pandas.core.base as base
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate, deprecate_kwarg)
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -97,6 +95,30 @@ class MultiIndex(Index):
                               of iterables
     MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     Index : The base pandas Index type
+
+    Attributes
+    ----------
+    names
+    levels
+    labels
+    nlevels
+    levshape
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_product
+    set_levels
+    set_labels
+    to_hierarchical
+    to_frame
+    is_lexsorted
+    sortlevel
+    droplevel
+    swaplevel
+    reorder_levels
+    remove_unused_levels
     """
 
     # initialize to zero-length tuples to make everything work
@@ -177,7 +199,8 @@ class MultiIndex(Index):
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
 
-    def _get_levels(self):
+    @property
+    def levels(self):
         return self._levels
 
     def _set_levels(self, levels, level=None, copy=False, validate=True,
@@ -279,14 +302,8 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
-    # remove me in 0.14 and change to read only property
-    __set_levels = deprecate("setting `levels` directly",
-                             partial(set_levels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_levels")
-    levels = property(fget=_get_levels, fset=__set_levels)
-
-    def _get_labels(self):
+    @property
+    def labels(self):
         return self._labels
 
     def _set_labels(self, labels, level=None, copy=False, validate=True,
@@ -379,13 +396,6 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
-    # remove me in 0.14 and change to readonly property
-    __set_labels = deprecate("setting labels directly",
-                             partial(set_labels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_labels")
-    labels = property(fget=_get_labels, fset=__set_labels)
-
     def copy(self, names=None, dtype=None, levels=None, labels=None,
              deep=False, _set_identity=False, **kwargs):
         """
@@ -446,6 +456,17 @@ class MultiIndex(Index):
                               **kwargs)
         return self._shallow_copy(values, **kwargs)
 
+    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    def __contains__(self, key):
+        hash(key)
+        try:
+            self.get_loc(key)
+            return True
+        except (LookupError, TypeError):
+            return False
+
+    contains = __contains__
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
@@ -464,7 +485,7 @@ class MultiIndex(Index):
         """ return a boolean if we need a qualified .info display """
         def f(l):
             return 'mixed' in l or 'string' in l or 'unicode' in l
-        return any([f(l) for l in self._inferred_type_levels])
+        return any(f(l) for l in self._inferred_type_levels)
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
@@ -492,9 +513,9 @@ class MultiIndex(Index):
         # for implementations with no useful getsizeof (PyPy)
         objsize = 24
 
-        level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
-        label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
+        level_nbytes = sum(i.memory_usage(deep=deep) for i in self.levels)
+        label_nbytes = sum(i.nbytes for i in self.labels)
+        names_nbytes = sum(getsizeof(i, objsize) for i in self.names)
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -809,9 +830,10 @@ class MultiIndex(Index):
 
         return duplicated_int64(ids, keep)
 
-    @Appender(ibase._index_shared_docs['fillna'])
     def fillna(self, value=None, downcast=None):
-        # isna is not implemented for MultiIndex
+        """
+        fillna is not implemented for MultiIndex
+        """
         raise NotImplementedError('isna is not defined for MultiIndex')
 
     @Appender(_index_shared_docs['dropna'])
@@ -1364,22 +1386,13 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
+        """Integer number of levels in this MultiIndex."""
         return len(self.levels)
 
     @property
     def levshape(self):
+        """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
-
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
-    def __contains__(self, key):
-        hash(key)
-        try:
-            self.get_loc(key)
-            return True
-        except LookupError:
-            return False
-
-    contains = __contains__
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
@@ -2227,12 +2240,12 @@ class MultiIndex(Index):
                         # here we have a completely specified key, but are
                         # using some partial string matching here
                         # GH4758
-                        all_dates = [(l.is_all_dates and
+                        all_dates = ((l.is_all_dates and
                                       not isinstance(k, compat.string_types))
-                                     for k, l in zip(key, self.levels)]
+                                     for k, l in zip(key, self.levels))
                         can_index_exactly = any(all_dates)
-                        if (any([l.is_all_dates
-                                 for k, l in zip(key, self.levels)]) and
+                        if (any(l.is_all_dates
+                                for k, l in zip(key, self.levels)) and
                                 not can_index_exactly):
                             indexer = self.get_loc(key)
 

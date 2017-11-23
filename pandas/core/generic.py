@@ -1006,8 +1006,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # Comparisons
 
     def _indexed_same(self, other):
-        return all([self._get_axis(a).equals(other._get_axis(a))
-                    for a in self._AXIS_ORDERS])
+        return all(self._get_axis(a).equals(other._get_axis(a))
+                   for a in self._AXIS_ORDERS)
 
     def __neg__(self):
         values = _values_from_object(self)
@@ -3296,8 +3296,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
-        if all([self._get_axis(axis).identical(ax)
-                for axis, ax in axes.items() if ax is not None]):
+        if all(self._get_axis(axis).identical(ax)
+               for axis, ax in axes.items() if ax is not None):
             if copy:
                 return self.copy()
             return self
@@ -5399,14 +5399,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        by : mapping, function, str, or iterable
+        by : mapping, function, label, or list of labels
             Used to determine the groups for the groupby.
             If ``by`` is a function, it's called on each value of the object's
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If an ndarray is passed, the
-            values are used as-is determine the groups. A str or list of strs
-            may be passed to group by the columns in ``self``
+            values are used as-is determine the groups. A label or list of
+            labels may be passed to group by the columns in ``self``. Notice
+            that a tuple is interpreted a (single) key.
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -6192,8 +6193,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if (axis is None and
-                        not all([other._get_axis(i).equals(ax)
-                                 for i, ax in enumerate(self.axes)])):
+                        not all(other._get_axis(i).equals(ax)
+                                for i, ax in enumerate(self.axes))):
                     raise InvalidIndexError
 
             # slice me out of the other
@@ -6585,6 +6586,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * 0 or 'index': apply truncation to rows
             * 1 or 'columns': apply truncation to columns
+
             Default is stat axis for given data type (0 for Series and
             DataFrames, 1 for Panels)
         copy : boolean, default is True,
