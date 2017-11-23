@@ -1,4 +1,5 @@
-from .pandas_vb_common import *
+import numpy as np
+from pandas import DataFrame
 
 try:
     from pandas.util import cache_readonly
@@ -7,9 +8,11 @@ except ImportError:
 
 
 class DataFrameAttributes(object):
+
     goal_time = 0.2
 
     def setup(self):
+        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10, 6))
         self.cur_index = self.df.index
 
@@ -21,6 +24,7 @@ class DataFrameAttributes(object):
 
 
 class CacheReadonly(object):
+
     goal_time = 0.2
 
     def setup(self):
