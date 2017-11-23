@@ -993,7 +993,7 @@ class DataFrame(NDFrame):
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
             return [into_c((k, _maybe_box_datetimelike(v))
-                           for k, v in zip(self.columns, row))
+                           for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
             return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
