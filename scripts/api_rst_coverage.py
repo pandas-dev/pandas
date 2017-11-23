@@ -22,7 +22,7 @@ def main():
     api_rst_members = set()
     file_name = '../doc/source/api.rst'
     with open(file_name, 'r') as f:
-        pattern = re.compile('({})\.(\w+)'.format('|'.join([cls.__name__ for cls in classes])))
+        pattern = re.compile('({})\.(\w+)'.format('|'.join(cls.__name__ for cls in classes)))
         for line in f:
             match = pattern.search(line)
             if match:

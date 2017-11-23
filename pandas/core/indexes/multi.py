@@ -908,7 +908,7 @@ class MultiIndex(Index):
 
             raise InvalidIndexError(key)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level, unique=False):
         """
         Return vector of label values for requested level,
         equal to the length of the index
@@ -918,17 +918,21 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : int level
+        unique : bool, default False
+            if True, drop duplicated values
 
         Returns
         -------
         values : ndarray
         """
 
-        unique = self.levels[level]
+        values = self.levels[level]
         labels = self.labels[level]
-        filled = algos.take_1d(unique._values, labels,
-                               fill_value=unique._na_value)
-        values = unique._shallow_copy(filled)
+        if unique:
+            labels = algos.unique(labels)
+        filled = algos.take_1d(values._values, labels,
+                               fill_value=values._na_value)
+        values = values._shallow_copy(filled)
         return values
 
     def get_level_values(self, level):
@@ -966,6 +970,15 @@ class MultiIndex(Index):
         level = self._get_level_number(level)
         values = self._get_level_values(level)
         return values
+
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+
+        if level is None:
+            return super(MultiIndex, self).unique()
+        else:
+            level = self._get_level_number(level)
+            return self._get_level_values(level=level, unique=True)
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep=None, formatter=None):
@@ -1352,25 +1365,31 @@ class MultiIndex(Index):
         new_labels = []
 
         changed = False
-        for lev, lab in zip(self.levels, self.labels):
+        for idx, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+            na_idxs = np.where(lab == -1)[0]
+
+            if len(na_idxs):
+                lab = np.delete(lab, na_idxs)
 
             uniques = algos.unique(lab)
 
             # nothing unused
-            if len(uniques) == len(lev):
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if len(uniques) != len(lev):
+                changed = True
 
-            changed = True
+                # labels get mapped from uniques to 0:len(uniques)
+                label_mapping = np.zeros(len(lev))
+                label_mapping[uniques] = np.arange(len(uniques))
 
-            # labels get mapped from uniques to 0:len(uniques)
-            label_mapping = np.zeros(len(lev))
-            label_mapping[uniques] = np.arange(len(uniques))
-            lab = label_mapping[lab]
+                lab = label_mapping[lab]
 
-            # new levels are simple
-            lev = lev.take(uniques)
+                # new levels are simple
+                lev = lev.take(uniques)
+
+                if len(na_idxs):
+                    lab = np.insert(lab, na_idxs - np.arange(len(na_idxs)), -1)
+            else:
+                lab = self.labels[idx]
 
             new_levels.append(lev)
             new_labels.append(lab)

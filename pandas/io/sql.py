@@ -103,12 +103,12 @@ def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
         return to_datetime(col, errors='ignore', **format)
     else:
-        if format in ['D', 's', 'ms', 'us', 'ns']:
-            return to_datetime(col, errors='coerce', unit=format, utc=utc)
-        elif (issubclass(col.dtype.type, np.floating) or
-              issubclass(col.dtype.type, np.integer)):
-            # parse dates as timestamp
-            format = 's' if format is None else format
+        # Allow passing of formatting string for integers
+        # GH17855
+        if format is None and (issubclass(col.dtype.type, np.floating) or
+                               issubclass(col.dtype.type, np.integer)):
+            format = 's'
+        if format in ['D', 'd', 'h', 'm', 's', 'ms', 'us', 'ns']:
             return to_datetime(col, errors='coerce', unit=format, utc=utc)
         elif is_datetime64tz_dtype(col):
             # coerce to UTC timezone
@@ -1322,7 +1322,7 @@ class SQLiteTable(SQLTable):
                 keys = [self.keys]
             else:
                 keys = self.keys
-            cnames_br = ", ".join([escape(c) for c in keys])
+            cnames_br = ", ".join(escape(c) for c in keys)
             create_tbl_stmts.append(
                 "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
                     tbl=self.name, cnames_br=cnames_br))
@@ -1334,7 +1334,7 @@ class SQLiteTable(SQLTable):
                    if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
-            cnames_br = ",".join([escape(c) for c in ix_cols])
+            cnames_br = ",".join(escape(c) for c in ix_cols)
             create_stmts.append(
                 "CREATE INDEX " + escape("ix_" + self.name + "_" + cnames) +
                 "ON " + escape(self.name) + " (" + cnames_br + ")")

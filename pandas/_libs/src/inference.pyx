@@ -533,22 +533,6 @@ cpdef object infer_datetimelike_array(object arr):
     return 'mixed'
 
 
-cdef inline bint is_null_datetimelike(v):
-    # determine if we have a null for a timedelta/datetime (or integer
-    # versions)
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_timedelta64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_datetime64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_integer_object(v):
-        return v == iNaT
-    return False
-
-
 cdef inline bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
@@ -1309,7 +1293,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if len(set([getattr(val, 'tzinfo', None) for val in objects])) == 1:
+        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1

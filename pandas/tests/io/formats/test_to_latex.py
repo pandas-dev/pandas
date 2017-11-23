@@ -99,11 +99,11 @@ class TestToLatex(object):
                                        datetime(2016, 2, 5),
                                        datetime(2016, 3, 3)]})
 
-        formatters = {'int': lambda x: '0x%x' % x,
-                      'float': lambda x: '[% 4.1f]' % x,
-                      'object': lambda x: '-%s-' % str(x),
+        formatters = {'int': lambda x: '0x{x:x}'.format(x=x),
+                      'float': lambda x: '[{x: 4.1f}]'.format(x=x),
+                      'object': lambda x: '-{x!s}-'.format(x=x),
                       'datetime64': lambda x: x.strftime('%Y-%m'),
-                      '__index__': lambda x: 'index: %s' % x}
+                      '__index__': lambda x: 'index: {x}'.format(x=x)}
         result = df.to_latex(formatters=dict(formatters))
 
         expected = r"""\begin{tabular}{llrrl}

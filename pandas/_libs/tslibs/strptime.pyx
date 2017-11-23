@@ -36,11 +36,9 @@ from cpython.datetime cimport datetime
 from np_datetime cimport (check_dts_bounds,
                           dtstruct_to_dt64, pandas_datetimestruct)
 
-from util cimport is_string_object, get_nat
+from util cimport is_string_object
 
-cdef int64_t NPY_NAT = get_nat()
-
-from nattype cimport _checknull_with_nat
+from nattype cimport _checknull_with_nat, NPY_NAT
 from nattype import nat_strings
 
 
@@ -570,7 +568,7 @@ class TimeRE(dict):
                 break
         else:
             return ''
-        regex = '|'.join([re.escape(stuff) for stuff in to_convert])
+        regex = '|'.join(re.escape(stuff) for stuff in to_convert)
         regex = '(?P<%s>%s' % (directive, regex)
         return '%s)' % regex
 

@@ -20,7 +20,7 @@ from numpy cimport (ndarray,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t,
+                    uint32_t, uint64_t, float32_t, float64_t,
                     double_t)
 
 
@@ -32,8 +32,7 @@ from libc.math cimport sqrt, fabs
 # this is our util.pxd
 from util cimport numeric, get_nat
 
-cimport lib
-from pandas._libs import lib
+import missing
 
 cdef int64_t iNaT = get_nat()
 

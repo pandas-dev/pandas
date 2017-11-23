@@ -29,7 +29,8 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSparseArray, ABCDataFrame, ABCIndexClass)
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
@@ -184,8 +185,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True)
-                copy = True
+                data = data._to_embed(keep_tz=True, dtype=dtype)
+                copy = False
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -273,6 +274,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @classmethod
     def from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
                    fastpath=False):
+        """
+        DEPRECATED: use the pd.Series(..) constructor instead.
+
+        """
+        warnings.warn("'from_array' is deprecated and will be removed in a "
+                      "future version. Please use the pd.Series(..) "
+                      "constructor instead.", FutureWarning, stacklevel=2)
+        return cls._from_array(arr, index=index, name=name, dtype=dtype,
+                               copy=copy, fastpath=fastpath)
+
+    @classmethod
+    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
+                    fastpath=False):
+        """
+        Internal method used in DataFrame.__setitem__/__getitem__.
+        Difference with Series(..) is that this method checks if a sparse
+        array is passed.
+
+        """
         # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
@@ -3120,7 +3140,9 @@ def _sanitize_index(data, index, copy=False):
     if len(data) != len(index):
         raise ValueError('Length of values does not match length of ' 'index')
 
-    if isinstance(data, PeriodIndex):
+    if isinstance(data, ABCIndexClass) and not copy:
+        pass
+    elif isinstance(data, PeriodIndex):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
@@ -3190,12 +3212,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # e.g. indexes can have different conversions (so don't fast path
             # them)
             # GH 6140
-            subarr = _sanitize_index(data, index, copy=True)
+            subarr = _sanitize_index(data, index, copy=copy)
         else:
-            subarr = _try_cast(data, True)
 
-        if copy:
-            subarr = data.copy()
+            # we will try to copy be-definition here
+            subarr = _try_cast(data, True)
 
     elif isinstance(data, Categorical):
         subarr = data
