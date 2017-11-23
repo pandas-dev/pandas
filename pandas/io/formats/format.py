@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_datetimetz,
     is_integer,
     is_float,
+    is_scalar,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -37,7 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1860,7 +1861,7 @@ class GenericArrayFormatter(object):
             (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
 
         def _format(x):
-            if self.na_rep is not None and lib.checknull(x):
+            if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
                 elif x is pd.NaT:
@@ -2186,7 +2187,7 @@ def _is_dates_only(values):
 
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
@@ -2196,7 +2197,7 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
 
 
 def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if not isinstance(x, Timestamp):
@@ -2281,7 +2282,7 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
         format = 'long'
 
     def _formatter(x):
-        if x is None or lib.checknull(x):
+        if x is None or (is_scalar(x) and isna(x)):
             return nat_rep
 
         if not isinstance(x, Timedelta):

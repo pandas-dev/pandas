@@ -32,8 +32,7 @@ from libc.math cimport sqrt, fabs
 # this is our util.pxd
 from util cimport numeric, get_nat
 
-cimport lib
-from pandas._libs import lib
+import missing
 
 cdef int64_t iNaT = get_nat()
 
