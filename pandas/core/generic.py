@@ -3735,6 +3735,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def as_matrix(self, columns=None):
         """
+        DEPRECATED: This method will be removed in a future version.
+        Use :meth:`NDFrame.values` instead.
+
         Convert the frame to its Numpy-array representation.
 
         Parameters
@@ -3770,6 +3773,8 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.DataFrame.values
         """
+        warnings.warn("This method will be removed in a future version. "
+                      "Use ``.values`` instead.")
         self._consolidate_inplace()
         if self._AXIS_REVERSED:
             return self._data.as_matrix(columns).T
@@ -3791,7 +3796,10 @@ class NDFrame(PandasObject, SelectionMixin):
         int32. By numpy.find_common_type convention, mixing int64 and uint64
         will result in a flot64 dtype.
         """
-        return self.as_matrix()
+        self._consolidate_inplace()
+        if self._AXIS_REVERSED:
+            return self._data.as_matrix().T
+        return self._data.as_matrix()
 
     @property
     def _values(self):
@@ -3801,11 +3809,11 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def _get_values(self):
         # compat
-        return self.as_matrix()
+        return self.values
 
     def get_values(self):
         """same as values (but handles sparseness conversions)"""
-        return self.as_matrix()
+        return self.values
 
     def get_dtype_counts(self):
         """Return the counts of dtypes in this object."""

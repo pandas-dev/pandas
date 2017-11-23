@@ -243,9 +243,9 @@ class SharedWithSparse(object):
     def test_len(self):
         assert len(self.frame) == len(self.frame.index)
 
-    def test_as_matrix(self):
+    def test_values(self):
         frame = self.frame
-        mat = frame.as_matrix()
+        mat = frame.values
 
         frameCols = frame.columns
         for i, row in enumerate(mat):
@@ -261,11 +261,11 @@ class SharedWithSparse(object):
         assert mat[0, 0] == 'bar'
 
         df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
-        mat = df.as_matrix()
+        mat = df.values
         assert mat[0, 0] == 1j
 
         # single block corner case
-        mat = self.frame.as_matrix(['A', 'B'])
+        mat = self.frame[['A', 'B']].values
         expected = self.frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(mat, expected)
 
@@ -311,8 +311,8 @@ class SharedWithSparse(object):
         DataFrame.index  # no exception!
         DataFrame.columns  # no exception!
 
-    def test_more_asMatrix(self):
-        values = self.mixed_frame.as_matrix()
+    def test_more_values(self):
+        values = self.mixed_frame.values
         assert values.shape[1] == len(self.mixed_frame.columns)
 
     def test_repr_with_mi_nat(self):
