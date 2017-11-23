@@ -7,8 +7,9 @@ from datetime import timedelta
 import pandas as pd
 from pandas import offsets
 import pandas.util.testing as tm
-from pandas._libs import tslib, lib
+from pandas._libs import lib
 from pandas._libs.tslib import OutOfBoundsDatetime
+from pandas._libs.tslibs import conversion
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 
@@ -496,7 +497,7 @@ class TestTimeSeries(object):
         arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
         idx = Index(arr)
 
-        assert (idx.values == tslib.cast_to_nanoseconds(arr)).all()
+        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
 
     def test_constructor_int64_nocopy(self):
         # #1624

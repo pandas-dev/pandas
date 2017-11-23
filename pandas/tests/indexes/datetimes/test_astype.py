@@ -130,11 +130,11 @@ class TestDatetimeIndex(object):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
 
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, 'timedelta64')
-        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
-        pytest.raises(ValueError, idx.astype, 'datetime64')
-        pytest.raises(ValueError, idx.astype, 'datetime64[D]')
+        pytest.raises(TypeError, idx.astype, float)
+        pytest.raises(TypeError, idx.astype, 'timedelta64')
+        pytest.raises(TypeError, idx.astype, 'timedelta64[ns]')
+        pytest.raises(TypeError, idx.astype, 'datetime64')
+        pytest.raises(TypeError, idx.astype, 'datetime64[D]')
 
     def test_index_convert_to_datetime_array(self):
         def _check_rng(rng):

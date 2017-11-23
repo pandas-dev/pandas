@@ -218,7 +218,7 @@ class Resolution(object):
         'U': 'N',
         'N': None}
 
-    _str_reso_map = dict([(v, k) for k, v in _reso_str_map.items()])
+    _str_reso_map = {v: k for k, v in _reso_str_map.items()}
 
     _reso_freq_map = {
         'year': 'A',
@@ -232,8 +232,7 @@ class Resolution(object):
         'microsecond': 'U',
         'nanosecond': 'N'}
 
-    _freq_reso_map = dict([(v, k)
-                           for k, v in _reso_freq_map.items()])
+    _freq_reso_map = {v: k for k, v in _reso_freq_map.items()}
 
     @classmethod
     def get_str(cls, reso):
