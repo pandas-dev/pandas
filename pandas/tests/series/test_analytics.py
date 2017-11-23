@@ -848,6 +848,12 @@ class TestSeriesAnalytics(TestData):
         result = series.nunique()
         assert result == 11
 
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        assert s.nunique() == 0
+        s = pd.Series(pd.Categorical([np.nan]))
+        assert s.nunique() == 0
+
     def test_unique(self):
 
         # 714 also, dtype=float
@@ -872,6 +878,14 @@ class TestSeriesAnalytics(TestData):
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([]),
+                                    check_dtype=False)
+        s = pd.Series(pd.Categorical([np.nan]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
+                                    check_dtype=False)
 
     @pytest.mark.parametrize(
         "tc1, tc2",
