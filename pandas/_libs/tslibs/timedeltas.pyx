@@ -30,7 +30,7 @@ from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
 from nattype import nat_strings, NaT
-from nattype cimport _checknull_with_nat, NPY_NAT
+from nattype cimport checknull_with_nat, NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -111,7 +111,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
     """
-    if _checknull_with_nat(ts):
+    if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
         # already in the proper format
@@ -443,7 +443,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
 cdef bint _validate_ops_compat(other):
     # return True if we are compat with operating
-    if _checknull_with_nat(other):
+    if checknull_with_nat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
@@ -837,7 +837,7 @@ class Timedelta(_Timedelta):
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)
-        elif _checknull_with_nat(value):
+        elif checknull_with_nat(value):
             return NaT
         else:
             raise ValueError(

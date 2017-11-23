@@ -60,7 +60,7 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
 from tslibs.conversion import tz_convert_single
 
 from tslibs.nattype import NaT, nat_strings, iNaT
-from tslibs.nattype cimport _checknull_with_nat, NPY_NAT
+from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
@@ -409,7 +409,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         for i in range(n):
             val = values[i]
 
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
 
             elif is_integer_object(val) or is_float_object(val):
@@ -475,7 +475,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     for i in range(n):
         val = values[i]
 
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             oresult[i] = NaT
         elif is_integer_object(val) or is_float_object(val):
 
@@ -526,7 +526,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         for i in range(n):
             val = values[i]
 
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
 
             elif PyDateTime_Check(val):
@@ -686,7 +686,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             val = values[i]
 
             # set as nan except if its a NaT
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 if PyFloat_Check(val):
                     oresult[i] = np.nan
                 else:
@@ -704,7 +704,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         for i in range(n):
             val = values[i]
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 oresult[i] = val
             elif is_string_object(val):
 
