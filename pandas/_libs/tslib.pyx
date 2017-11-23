@@ -731,30 +731,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
 
 # ----------------------------------------------------------------------
-# Accessors
-
-
-def get_time_micros(ndarray[int64_t] dtindex):
-    """
-    Return the number of microseconds in the time component of a
-    nanosecond timestamp.
-
-    Parameters
-    ----------
-    dtindex : ndarray[int64_t]
-
-    Returns
-    -------
-    micros : ndarray[int64_t]
-    """
-    cdef:
-        ndarray[int64_t] micros
-
-    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
-    return micros
-
-
-# ----------------------------------------------------------------------
 # Some general helper functions
 
 
