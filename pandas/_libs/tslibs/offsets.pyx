@@ -407,6 +407,22 @@ class _BaseOffset(object):
         return get_day_of_month(other, self._day_opt)
 
     def _validate_n(self, n):
+        """
+        Require that `n` be a nonzero integer.
+
+        Parameters
+        ----------
+        n : int
+
+        Returns
+        -------
+        nint : int
+
+        Raises
+        ------
+        TypeError if `int(n)` raises
+        ValueError if n != int(n)
+        """
         try:
             nint = int(n)
         except (ValueError, TypeError):
