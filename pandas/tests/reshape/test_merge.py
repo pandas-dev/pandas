@@ -13,7 +13,10 @@ from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge, MergeError
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
@@ -1407,6 +1410,42 @@ class TestMergeDtypes(object):
         result = left.join(right, on=['k1', 'k2'], sort=True)
         expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('int_vals, float_vals, exp_vals', [
+        ([1, 2, 3], [1.0, 2.0, 3.0], {'X': [1, 2, 3], 'Y': [1.0, 2.0, 3.0]}),
+        ([1, 2, 3], [1.0, 3.0], {'X': [1, 3], 'Y': [1.0, 3.0]}),
+        ([1, 2], [1.0, 2.0, 3.0], {'X': [1, 2], 'Y': [1.0, 2.0]}),
+    ])
+    def test_merge_on_ints_floats(self, int_vals, float_vals, exp_vals):
+        # GH 16572
+        # Check that float column is not cast to object if
+        # merging on float and int columns
+        A = DataFrame({'X': int_vals})
+        B = DataFrame({'Y': float_vals})
+        expected = DataFrame(exp_vals)
+
+        result = A.merge(B, left_on='X', right_on='Y')
+        assert_frame_equal(result, expected)
+
+        result = B.merge(A, left_on='Y', right_on='X')
+        assert_frame_equal(result, expected[['Y', 'X']])
+
+    def test_merge_on_ints_floats_warning(self):
+        # GH 16572
+        # merge will produce a warning when merging on int and
+        # float columns where the float values are not exactly
+        # equal to their int representation
+        A = DataFrame({'X': [1, 2, 3]})
+        B = DataFrame({'Y': [1.1, 2.5, 3.0]})
+        expected = DataFrame({'X': [3], 'Y': [3.0]})
+
+        with tm.assert_produces_warning(UserWarning):
+            result = A.merge(B, left_on='X', right_on='Y')
+            assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(UserWarning):
+            result = B.merge(A, left_on='Y', right_on='X')
+            assert_frame_equal(result, expected[['Y', 'X']])
 
 
 @pytest.fixture
