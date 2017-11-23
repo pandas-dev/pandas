@@ -7,8 +7,11 @@ import datetime
 class TimestampProperties(object):
     goal_time = 0.2
 
-    def setup(self):
-        self.ts = Timestamp('2017-08-25 08:16:14')
+    params = [None, pytz.timezone('Europe/Amsterdam')]
+    param_names = ['tz']
+
+    def setup(self, tz):
+        self.ts = Timestamp('2017-08-25 08:16:14', tzinfo=tz)
 
     def time_tz(self):
         self.ts.tz
@@ -65,25 +68,29 @@ class TimestampProperties(object):
 class TimestampOps(object):
     goal_time = 0.2
 
-    def setup(self):
-        self.ts = Timestamp('2017-08-25 08:16:14')
-        self.ts_tz = Timestamp('2017-08-25 08:16:14', tz='US/Eastern')
+    params = [None, 'US/Eastern']
+    param_names = ['tz']
 
-        dt = datetime.datetime(2016, 3, 27, 1)
-        self.tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
-        self.ts2 = Timestamp(dt)
+    def setup(self, tz):
+        self.ts = Timestamp('2017-08-25 08:16:14', tz=tz)
 
     def time_replace_tz(self):
         self.ts.replace(tzinfo=pytz.timezone('US/Eastern'))
 
-    def time_replace_across_dst(self):
-        self.ts2.replace(tzinfo=self.tzinfo)
-
     def time_replace_None(self):
-        self.ts_tz.replace(tzinfo=None)
+        self.ts.replace(tzinfo=None)
 
     def time_to_pydatetime(self):
         self.ts.to_pydatetime()
 
-    def time_to_pydatetime_tz(self):
-        self.ts_tz.to_pydatetime()
+
+class TimestampAcrossDst(object):
+    goal_time = 0.2
+
+    def setup(self):
+        dt = datetime.datetime(2016, 3, 27, 1)
+        self.tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
+        self.ts2 = Timestamp(dt)
+
+    def time_replace_across_dst(self):
+        self.ts2.replace(tzinfo=self.tzinfo)

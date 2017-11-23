@@ -3,141 +3,128 @@ from pandas import Series, Period, PeriodIndex, date_range
 
 
 class PeriodProperties(object):
-    def setup(self):
-        self.per = Period('2012-06-01', freq='M')
+    params = ['M', 'min']
+    param_names = ['freq']
 
-    def time_year(self):
+    def setup(self, freq):
+        self.per = Period('2012-06-01', freq=freq)
+
+    def time_year(self, freq):
         self.per.year
 
-    def time_month(self):
+    def time_month(self, freq):
         self.per.month
 
-    def time_quarter(self):
-        self.per.quarter
-
-    def time_day(self):
+    def time_day(self, freq):
         self.per.day
 
-    def time_hour(self):
+    def time_hour(self, freq):
         self.per.hour
 
-    def time_minute(self):
+    def time_minute(self, freq):
+        self.per.minute
+
+    def time_second(self, freq):
         self.per.second
 
-    def time_second(self):
-        self.per.second
+    def time_is_leap_year(self, freq):
+        self.per.is_leap_year
 
-    def time_leap_year(self):
-        self.per.is_leapyear
+    def time_quarter(self, freq):
+        self.per.quarter
+
+    def time_qyear(self, freq):
+        self.per.qyear
+
+    def time_week(self, freq):
+        self.per.week
+
+    def time_daysinmonth(self, freq):
+        self.per.daysinmonth
+
+    def time_dayofweek(self, freq):
+        self.per.dayofweek
+
+    def time_dayofyear(self, freq):
+        self.per.dayofyear
+
+    def time_start_time(self, freq):
+        self.per.start_time
+
+    def time_end_time(self, freq):
+        self.per.end_time
 
 
-class Constructor(object):
+class PeriodUnaryMethods(object):
+    params = ['M', 'min']
+    param_names = ['freq']
+
+    def setup(self, freq):
+        self.per = Period('2012-06-01', freq=freq)
+
+    def time_to_timestamp(self, freq):
+        self.per.to_timestamp()
+
+    def time_now(self, freq):
+        self.per.now(freq)
+
+    def time_asfreq(self, freq):
+        self.per.asfreq('A')
+
+
+class PeriodIndexConstructor(object):
     goal_time = 0.2
 
-    def setup(self):
+    params = ['D']
+    param_names = ['freq']
+
+    def setup(self, freq):
         self.rng = date_range('1985', periods=1000)
         self.rng2 = date_range('1985', periods=1000).to_pydatetime()
 
-    def time_from_date_range(self):
-        PeriodIndex(self.rng, freq='D')
+    def time_from_date_range(self, freq):
+        PeriodIndex(self.rng, freq=freq)
 
-    def time_from_pydatetime(self):
-        PeriodIndex(self.rng2, freq='D')
+    def time_from_pydatetime(self, freq):
+        PeriodIndex(self.rng2, freq=freq)
 
 
-class DataFrame(object):
+class DataFramePeriodColumn(object):
     goal_time = 0.2
 
-    def setup(self):
-        self.rng = pd.period_range(start='1/1/1990', freq='S', periods=20000)
-        self.df = pd.DataFrame(index=range(len(self.rng)))
+    def setup_cache(self):
+        rng = pd.period_range(start='1/1/1990', freq='S', periods=20000)
+        df = pd.DataFrame(index=range(len(rng)))
+        return rng, df
 
-    def time_setitem_period_column(self):
-        self.df['col'] = self.rng
+    def time_setitem_period_column(self, tup):
+        rng, df = tup
+        df['col'] = rng
 
 
 class Algorithms(object):
     goal_time = 0.2
 
-    def setup(self):
+    params = ['index', 'series']
+    param_names = ['typ']
+
+    def setup(self, typ):
         data = [Period('2011-01', freq='M'), Period('2011-02', freq='M'),
                 Period('2011-03', freq='M'), Period('2011-04', freq='M')]
-        self.s = Series(data * 1000)
-        self.i = PeriodIndex(data, freq='M')
 
-    def time_drop_duplicates_pseries(self):
-        self.s.drop_duplicates()
+        if typ == 'index':
+            self.vector = PeriodIndex(data * 1000, freq='M')
+        elif typ == 'series':
+            self.vector = Series(data * 1000)
 
-    def time_drop_duplicates_pindex(self):
-        self.i.drop_duplicates()
+    def time_drop_duplicates(self, typ):
+        self.vector.drop_duplicates()
 
-    def time_value_counts_pseries(self):
-        self.s.value_counts()
-
-    def time_value_counts_pindex(self):
-        self.i.value_counts()
+    def time_value_counts(self, typ):
+        self.vector.value_counts()
 
 
-class Properties(object):
-    def setup(self):
-        self.per = Period('2017-09-06 08:28', freq='min')
-
-    def time_year(self):
-        self.per.year
-
-    def time_month(self):
-        self.per.month
-
-    def time_day(self):
-        self.per.day
-
-    def time_hour(self):
-        self.per.hour
-
-    def time_minute(self):
-        self.per.minute
-
-    def time_second(self):
-        self.per.second
-
-    def time_is_leap_year(self):
-        self.per.is_leap_year
-
-    def time_quarter(self):
-        self.per.quarter
-
-    def time_qyear(self):
-        self.per.qyear
-
-    def time_week(self):
-        self.per.week
-
-    def time_daysinmonth(self):
-        self.per.daysinmonth
-
-    def time_dayofweek(self):
-        self.per.dayofweek
-
-    def time_dayofyear(self):
-        self.per.dayofyear
-
-    def time_start_time(self):
-        self.per.start_time
-
-    def time_end_time(self):
-        self.per.end_time
-
-    def time_to_timestamp():
-        self.per.to_timestamp()
-
-    def time_now():
-        self.per.now()
-
-    def time_asfreq():
-        self.per.asfreq('A')
-
-
-class period_standard_indexing(object):
+class Indexing(object):
     goal_time = 0.2
 
     def setup(self):
