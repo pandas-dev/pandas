@@ -5,6 +5,8 @@ import warnings
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                       Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
+cimport cython
+
 import numpy as np
 cimport numpy as np
 from numpy cimport int64_t, int32_t, int8_t, ndarray
