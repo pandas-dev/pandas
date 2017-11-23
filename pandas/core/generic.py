@@ -1107,7 +1107,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         return (isinstance(key, compat.string_types) and
-                any([key in self.axes[ax] for ax in other_axes]))
+                any(key in self.axes[ax] for ax in other_axes))
 
     def _is_label_or_level_reference(self, key, axis=0):
         """
@@ -1198,7 +1198,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if (isinstance(key, compat.string_types) and
                 key in self.axes[axis].names and
-                any([key in self.axes[ax] for ax in other_axes])):
+                any(key in self.axes[ax] for ax in other_axes)):
 
             raise_warning()
             return True
