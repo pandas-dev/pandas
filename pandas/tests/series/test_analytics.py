@@ -848,6 +848,12 @@ class TestSeriesAnalytics(TestData):
         result = series.nunique()
         assert result == 11
 
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        assert s.nunique() == 0
+        s = pd.Series(pd.Categorical([np.nan]))
+        assert s.nunique() == 0
+
     def test_unique(self):
 
         # 714 also, dtype=float
@@ -919,6 +925,14 @@ class TestSeriesAnalytics(TestData):
             sc = s.copy()
             sc.drop_duplicates(keep=False, inplace=True)
             assert_series_equal(sc, s[~expected])
+
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([]),
+                                    check_dtype=False)
+        s = pd.Series(pd.Categorical([np.nan]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
+                                    check_dtype=False)
 
     def test_clip(self):
         val = self.ts.median()
