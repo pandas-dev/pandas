@@ -405,7 +405,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
             else:
                 shape = x.shape
                 x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
-                                             box=True)
+                                             box="timestamp")
                 x = x.reshape(shape)
 
         elif x.dtype == _TD_DTYPE:

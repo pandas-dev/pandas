@@ -15,7 +15,7 @@ import pytz
 import pytest
 
 import pandas as pd
-from pandas._libs import tslib, lib
+from pandas._libs import tslib, lib, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna)
@@ -260,17 +260,17 @@ class TestInference(object):
 
     def test_isinf_scalar(self):
         # GH 11352
-        assert lib.isposinf_scalar(float('inf'))
-        assert lib.isposinf_scalar(np.inf)
-        assert not lib.isposinf_scalar(-np.inf)
-        assert not lib.isposinf_scalar(1)
-        assert not lib.isposinf_scalar('a')
+        assert libmissing.isposinf_scalar(float('inf'))
+        assert libmissing.isposinf_scalar(np.inf)
+        assert not libmissing.isposinf_scalar(-np.inf)
+        assert not libmissing.isposinf_scalar(1)
+        assert not libmissing.isposinf_scalar('a')
 
-        assert lib.isneginf_scalar(float('-inf'))
-        assert lib.isneginf_scalar(-np.inf)
-        assert not lib.isneginf_scalar(np.inf)
-        assert not lib.isneginf_scalar(1)
-        assert not lib.isneginf_scalar('a')
+        assert libmissing.isneginf_scalar(float('-inf'))
+        assert libmissing.isneginf_scalar(-np.inf)
+        assert not libmissing.isneginf_scalar(np.inf)
+        assert not libmissing.isneginf_scalar(1)
+        assert not libmissing.isneginf_scalar('a')
 
     def test_maybe_convert_numeric_infinities(self):
         # see gh-13274

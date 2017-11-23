@@ -47,6 +47,31 @@ def get_value_at(ndarray arr, object loc):
     return util.get_value_at(arr, loc)
 
 
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+
+    if i >= sz or sz == 0 or i < 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        return Timedelta(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
+
+
 def set_value_at(ndarray arr, object loc, object val):
     return util.set_value_at(arr, loc, val)
 

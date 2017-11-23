@@ -9,7 +9,7 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import parsing
 
-from pandas.compat import range, u
+from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
@@ -1027,13 +1027,16 @@ class Index(IndexOpsMixin, PandasObject):
             result.index = self
         return result
 
-    def _to_embed(self, keep_tz=False):
+    def _to_embed(self, keep_tz=False, dtype=None):
         """
         *this is an internal non-public method*
 
         return an array repr of this object, potentially casting to object
 
         """
+        if dtype is not None:
+            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
+
         return self.values.copy()
 
     _index_shared_docs['astype'] = """
@@ -2559,7 +2562,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
             try:
-                return libts.get_value_box(s, key)
+                return libindex.get_value_box(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -3757,8 +3760,32 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
-    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
-    def unique(self):
+    _index_shared_docs['index_unique'] = (
+        """
+        Return unique values in the index. Uniques are returned in order
+        of appearance, this does NOT sort.
+
+        Parameters
+        ----------
+        level : int or str, optional, default None
+            Only return values from specified level (for MultiIndex)
+
+            .. versionadded:: 0.22.0
+
+        Returns
+        -------
+        Index without duplicates
+
+        See Also
+        --------
+        unique
+        Series.unique
+        """)
+
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
@@ -3866,7 +3893,8 @@ class Index(IndexOpsMixin, PandasObject):
                 except TypeError:
                     return result
 
-            return _evaluate_compare
+            name = '__{name}__'.format(name=op.__name__)
+            return set_function_name(_evaluate_compare, name, cls)
 
         cls.__eq__ = _make_compare(operator.eq)
         cls.__ne__ = _make_compare(operator.ne)

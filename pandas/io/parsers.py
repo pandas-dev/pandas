@@ -63,7 +63,7 @@ filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
 object with a read() method (such as a file handle or StringIO)
     The string could be a URL. Valid URL schemes include http, ftp, s3, and
     file. For file URLs, a host is expected. For instance, a local file could
-    be file ://localhost/path/to/table.csv
+    be file://localhost/path/to/table.csv
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -246,8 +246,8 @@ comment : str, default None
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
     fully commented lines are ignored by the parameter `header` but not by
-    `skiprows`. For example, if comment='#', parsing '#empty\\na,b,c\\n1,2,3'
-    with `header=0` will result in 'a,b,c' being
+    `skiprows`. For example, if ``comment='#'``, parsing
+    ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
 encoding : str, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
