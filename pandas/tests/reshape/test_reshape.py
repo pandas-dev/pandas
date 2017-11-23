@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas import melt, lreshape, wide_to_long, get_dummies
+from pandas import get_dummies
 import pandas.util.testing as tm
 from pandas.compat import u
 

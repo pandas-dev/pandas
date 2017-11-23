@@ -9,7 +9,7 @@ import pandas as pd
 from numpy import nan
 import numpy as np
 
-from pandas.core.reshape.melt import melt, lreshape, wide_to_long
+from pandas import melt, lreshape, wide_to_long
 import pandas.util.testing as tm
 from pandas.compat import range
 
