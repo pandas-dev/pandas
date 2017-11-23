@@ -419,6 +419,10 @@ class TestInference(object):
 
 class TestTypeInference(object):
 
+    # Dummy class used for testing with Python objects
+    class Dummy():
+        pass
+
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
         assert result == 'integer'
@@ -691,6 +695,9 @@ class TestTypeInference(object):
         "data",
         [
             ["2017-06-12", "2017-03-11"],
+            [20170612, 20170311],
+            [20170612.5, 20170311.8],
+            [Dummy(), Dummy()],
             [Timestamp("20170612"), Timestamp("20170311", tz='US/Eastern')],
             [Timestamp("20170612"), 20170311],
             [timedelta(2017, 6, 12), Timestamp("20170311", tz='US/Eastern')]

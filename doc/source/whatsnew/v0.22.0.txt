@@ -195,5 +195,5 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
-- Bug in :func:`inference.pyx.infer_to_datetimelike_array` that coerces tz-naive and tz-aware values in the same array to datetime64[ns] (:issue:`16406`)
+- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
 -
