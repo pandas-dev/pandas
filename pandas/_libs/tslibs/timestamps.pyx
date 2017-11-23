@@ -174,8 +174,8 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef void _assert_tzawareness_compat(_Timestamp self,
-                                         object other) except -1:
+    cdef int _assert_tzawareness_compat(_Timestamp self,
+                                        object other) except -1:
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
