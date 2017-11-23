@@ -1017,3 +1017,12 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_dt_accessor(self):
+        # GH#17134
+        index = self.create_index()
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+            assert index.dt is index
+        else:
+            with pytest.raises(AttributeError):
+                index.dt
