@@ -4713,3 +4713,15 @@ def test_valid_tick_attributes(kwd, tick_classes):
 def test_validate_n_error():
     with pytest.raises(TypeError):
         DateOffset(n='Doh!')
+
+    with pytest.raises(TypeError):
+        MonthBegin(n=timedelta(1))
+
+    with pytest.raises(TypeError):
+        BDay(n=np.array([1, 2], dtype=np.int64))
+
+
+def test_require_integers(offset_types):
+    cls = offset_types
+    with pytest.raises(ValueError):
+        cls(n=1.5)

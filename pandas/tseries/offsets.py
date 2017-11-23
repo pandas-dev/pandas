@@ -923,8 +923,6 @@ class MonthOffset(SingleConstructorOffset):
     def __init__(self, n=1, normalize=False):
         self.n = self._validate_n(n)
         self.normalize = normalize
-        self._offset = timedelta(1)
-        self._use_relativedelta = False
         self.kwds = {}
 
     @property
@@ -1591,8 +1589,6 @@ class QuarterOffset(DateOffset):
         self.startingMonth = startingMonth
 
         self.kwds = {'startingMonth': startingMonth}
-        self._offset = timedelta(1)
-        self._use_relativedelta = False
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
@@ -2214,8 +2210,6 @@ class Easter(DateOffset):
     def __init__(self, n=1, normalize=False):
         self.n = self._validate_n(n)
         self.normalize = normalize
-        self._offset = timedelta(1)
-        self._use_relativedelta = False
         self.kwds = {}
 
     @apply_wraps
@@ -2266,8 +2260,6 @@ class Tick(SingleConstructorOffset):
         # TODO: do Tick classes with normalize=True make sense?
         self.n = self._validate_n(n)
         self.normalize = normalize
-        self._offset = timedelta(1)
-        self._use_relativedelta = False
         self.kwds = {}
 
     __gt__ = _tick_comp(operator.gt)

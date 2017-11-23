@@ -410,9 +410,11 @@ class _BaseOffset(object):
         try:
             nint = int(n)
         except (ValueError, TypeError):
-            raise TypeError('`n` argument must be an integer')
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(type(n)))
         if n != nint:
-            raise ValueError('`n` argument must be an integer')
+            raise ValueError('`n` argument must be an integer, '
+                             'got {n}'.format(n=n))
         return nint
 
 
