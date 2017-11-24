@@ -4513,7 +4513,7 @@ class DataFrame(NDFrame):
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
-            .. versionadded: 0.18.0
+            .. versionadded:: 0.18.0
 
         See also
         --------
@@ -4676,7 +4676,7 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Take difference over rows (0) or columns (1).
 
-            .. versionadded: 0.16.1
+            .. versionadded:: 0.16.1
 
         Returns
         -------
