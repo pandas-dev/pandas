@@ -23,6 +23,26 @@ from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
 from nattype cimport NPY_NAT
 
 
+def get_time_micros(ndarray[int64_t] dtindex):
+    """
+    Return the number of microseconds in the time component of a
+    nanosecond timestamp.
+
+    Parameters
+    ----------
+    dtindex : ndarray[int64_t]
+
+    Returns
+    -------
+    micros : ndarray[int64_t]
+    """
+    cdef:
+        ndarray[int64_t] micros
+
+    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
+    return micros
+
+
 def build_field_sarray(ndarray[int64_t] dtindex):
     """
     Datetime as int64 representation to a structured array of fields
