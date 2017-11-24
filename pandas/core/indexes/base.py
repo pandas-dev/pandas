@@ -251,7 +251,7 @@ class Index(IndexOpsMixin, PandasObject):
                             # then coerce to integer.
                             try:
                                 return cls._try_convert_to_int_index(
-                                    data, copy, name)
+                                    data, copy, name, dtype)
                             except ValueError:
                                 pass
 
@@ -307,7 +307,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
-                            subarr, copy, name)
+                            subarr, copy, name, dtype)
                     except ValueError:
                         pass
 
@@ -664,7 +664,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name):
+    def _try_convert_to_int_index(cls, data, copy, name, dtype):
         """
         Attempt to convert an array of data into an integer index.
 
@@ -685,15 +685,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .numeric import Int64Index, UInt64Index
-        try:
-            res = data.astype('i8', copy=False)
-            if (res == data).all():
-                return Int64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
+        if not is_unsigned_integer_dtype(dtype):
+            # skip int64 conversion attempt if uint-like dtype is passed, as
+            # this could return Int64Index when UInt64Index is what's desrired
+            try:
+                res = data.astype('i8', copy=False)
+                if (res == data).all():
+                    return Int64Index(res, copy=copy, name=name)
+            except (OverflowError, TypeError, ValueError):
+                pass
 
-        # Conversion to int64 failed (possibly due to
-        # overflow), so let's try now with uint64.
+        # Conversion to int64 failed (possibly due to overflow) or was skipped,
+        # so let's try now with uint64.
         try:
             res = data.astype('u8', copy=False)
             if (res == data).all():
@@ -732,7 +735,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_attributes_dict(self):
         """ return an attributes dict for my class """
-        return dict((k, getattr(self, k, None)) for k in self._attributes)
+        return {k: getattr(self, k, None) for k in self._attributes}
 
     def view(self, cls=None):
 
@@ -1784,7 +1787,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isinstance(obj, Index):
                 raise TypeError('all inputs must be Index')
 
-        names = set(obj.name for obj in to_concat)
+        names = {obj.name for obj in to_concat}
         name = None if len(names) > 1 else self.name
 
         return self._concat(to_concat, name)

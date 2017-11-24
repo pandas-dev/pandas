@@ -104,13 +104,16 @@ def ensure_datetime64ns(ndarray arr):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
+    if unit == PANDAS_FR_ns:
+        result = arr
+    else:
+        for i in range(n):
+            if ivalues[i] != NPY_NAT:
+                pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+                iresult[i] = dtstruct_to_dt64(&dts)
+                check_dts_bounds(&dts)
+            else:
+                iresult[i] = NPY_NAT
 
     return result
 

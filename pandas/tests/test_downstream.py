@@ -92,7 +92,6 @@ def test_pandas_datareader():
     pandas_datareader.get_data_google('AAPL')
 
 
-@pytest.mark.skip(reason="import issue with fiona GH18456")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
