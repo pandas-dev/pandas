@@ -85,6 +85,7 @@ class Timeseries(object):
     goal_time = 0.2
 
     params = [None, 'US/Eastern']
+    param_names = ['timezone']
 
     def setup(self, tz):
         self.N = 10**6
