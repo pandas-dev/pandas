@@ -777,6 +777,15 @@ class TestSeriesConstructors(TestData):
         s = Series([pd.NaT, np.nan, '1 Day'])
         assert s.dtype == 'timedelta64[ns]'
 
+    # GH 16406
+    def test_constructor_mixed_tz(self):
+        s = Series([Timestamp('20130101'),
+                    Timestamp('20130101', tz='US/Eastern')])
+        expected = Series([Timestamp('20130101'),
+                           Timestamp('20130101', tz='US/Eastern')],
+                          dtype='object')
+        assert_series_equal(s, expected)
+
     def test_NaT_scalar(self):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 

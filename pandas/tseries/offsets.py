@@ -774,7 +774,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business days
 
-    .. versionadded: 0.16.1
+    .. versionadded:: 0.16.1
 
     """
     _prefix = 'BH'
@@ -878,7 +878,7 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days
 
-    .. versionadded: 0.18.1
+    .. versionadded:: 0.18.1
 
     """
     _prefix = 'CBH'
