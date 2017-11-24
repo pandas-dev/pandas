@@ -237,9 +237,9 @@ class DateOffset(BaseOffset):
                 i = (i.to_period('W') + weeks).to_timestamp() + \
                     i.to_perioddelta('W')
 
-            timedelta_kwds = dict((k, v) for k, v in self.kwds.items()
-                                  if k in ['days', 'hours', 'minutes',
-                                           'seconds', 'microseconds'])
+            timedelta_kwds = {k: v for k, v in self.kwds.items()
+                              if k in ['days', 'hours', 'minutes',
+                                       'seconds', 'microseconds']}
             if timedelta_kwds:
                 delta = Timedelta(**timedelta_kwds)
                 i = i + (self.n * delta)
@@ -774,7 +774,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business days
 
-    .. versionadded: 0.16.1
+    .. versionadded:: 0.16.1
 
     """
     _prefix = 'BH'
@@ -878,7 +878,7 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days
 
-    .. versionadded: 0.18.1
+    .. versionadded:: 0.18.1
 
     """
     _prefix = 'CBH'
@@ -1639,7 +1639,7 @@ class BQuarterEnd(QuarterOffset):
 
 
 _int_to_month = tslib._MONTH_ALIASES
-_month_to_int = dict((v, k) for k, v in _int_to_month.items())
+_month_to_int = {v: k for k, v in _int_to_month.items()}
 
 
 # TODO: This is basically the same as BQuarterEnd

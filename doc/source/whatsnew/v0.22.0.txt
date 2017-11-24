@@ -52,6 +52,7 @@ Backwards incompatible API changes
 
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
+- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 -
 
 
@@ -74,6 +75,7 @@ Other API Changes
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
+- :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
 
 
 .. _whatsnew_0220.deprecations:
@@ -94,6 +96,7 @@ Removal of prior version deprecations/changes
 - The ``levels`` and ``labels`` attributes of a ``MultiIndex`` can no longer be set directly (:issue:`4039`).
 - ``pd.tseries.util.pivot_annual`` has been  removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
 - ``pd.tseries.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
+- ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd..merge_ordered`` instead (:issue:`18459`)
 
 .. _whatsnew_0220.performance:
 
@@ -127,7 +130,7 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 -
 -
 
@@ -137,6 +140,7 @@ Indexing
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 - Bug in :func:`MultiIndex.remove_unused_levels`` which would fill nan values (:issue:`18417`)
+- Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 -
 
 I/O

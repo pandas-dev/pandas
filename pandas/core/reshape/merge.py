@@ -139,19 +139,6 @@ def _groupby_and_merge(by, on, left, right, _merge_pieces,
     return result, lby
 
 
-def ordered_merge(left, right, on=None,
-                  left_on=None, right_on=None,
-                  left_by=None, right_by=None,
-                  fill_method=None, suffixes=('_x', '_y')):
-
-    warnings.warn("ordered_merge is deprecated and replaced by merge_ordered",
-                  FutureWarning, stacklevel=2)
-    return merge_ordered(left, right, on=on,
-                         left_on=left_on, right_on=right_on,
-                         left_by=left_by, right_by=right_by,
-                         fill_method=fill_method, suffixes=suffixes)
-
-
 def merge_ordered(left, right, on=None,
                   left_on=None, right_on=None,
                   left_by=None, right_by=None,
@@ -204,7 +191,7 @@ def merge_ordered(left, right, on=None,
     4   c       2     b
     5   e       3     b
 
-    >>> ordered_merge(A, B, fill_method='ffill', left_by='group')
+    >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
        key  lvalue group  rvalue
     0    a       1     a     NaN
     1    b       1     a       1
@@ -251,9 +238,6 @@ def merge_ordered(left, right, on=None,
     else:
         result = _merger(left, right)
     return result
-
-
-ordered_merge.__doc__ = merge_ordered.__doc__
 
 
 def merge_asof(left, right, on=None,
