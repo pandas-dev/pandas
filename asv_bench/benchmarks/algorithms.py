@@ -83,6 +83,7 @@ class AddOverflowScalar(object):
     goal_time = 0.2
 
     params = [1, -1, 0]
+    param_names = ['scalar']
 
     def setup(self, scalar):
         N = 10**6
