@@ -11,7 +11,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notna
+from pandas import Categorical, IntervalIndex, compat
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -269,28 +269,19 @@ class TestCategoricalIndex(Base):
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
-    def test_where(self):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+        cond = [True] * len(i)
         expected = i
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
-                                 categories=i.categories)
-        result = i.where(notna(i2))
-        expected = i2
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
         cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
-                                       categories=i.categories)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
+        expected = CategoricalIndex([np.nan] + i[1:].tolist(),
+                                    categories=i.categories)
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
     def test_append(self):
 

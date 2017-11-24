@@ -5,6 +5,7 @@ import pytest
 from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
@@ -14,7 +15,7 @@ import operator
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index,
+                    DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
 from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
@@ -200,6 +201,20 @@ class TestIndex(Base):
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [
+        int, 'int64', 'int32', 'int16', 'int8', 'uint64', 'uint32',
+        'uint16', 'uint8'])
+    def test_constructor_int_dtype_float(self, dtype):
+        # GH 18400
+        if is_unsigned_integer_dtype(dtype):
+            index_type = UInt64Index
+        else:
+            index_type = Int64Index
+
+        expected = index_type([0, 1, 2, 3])
+        result = Index([0., 1., 2., 3.], dtype=dtype)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187

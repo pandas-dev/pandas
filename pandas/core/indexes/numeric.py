@@ -216,7 +216,6 @@ class UInt64Index(NumericIndex):
     _inner_indexer = libjoin.inner_join_indexer_uint64
     _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
-    _na_value = 0
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
 

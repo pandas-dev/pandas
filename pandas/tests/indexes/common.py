@@ -9,8 +9,7 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notna, isna)
+                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
@@ -529,30 +528,19 @@ class Base(object):
         tm.assert_raises_regex(ValueError, msg, np.repeat,
                                i, rep, axis=0)
 
-    def test_where(self):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+
+        cond = [True] * len(i)
+        result = i.where(klass(cond))
         expected = i
         tm.assert_index_equal(result, expected)
 
-        _nan = i._na_value
         cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        result = i.where(cond)
+        expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
