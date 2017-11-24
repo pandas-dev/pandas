@@ -18,14 +18,6 @@ The full license is in the LICENSE file, distributed with this software.
 
 PANDAS_INLINE npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-PANDAS_INLINE npy_datetime get_datetime64_value(PyObject* obj) {
-    return ((PyDatetimeScalarObject*)obj)->obval;
-}
-
-PANDAS_INLINE npy_timedelta get_timedelta64_value(PyObject* obj) {
-    return ((PyTimedeltaScalarObject*)obj)->obval;
-}
-
 PANDAS_INLINE int is_integer_object(PyObject* obj) {
     return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
 }
