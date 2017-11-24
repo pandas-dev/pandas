@@ -464,7 +464,8 @@ cpdef object infer_datetimelike_array(object arr):
     - timedelta: we have *only* timedeltas and maybe strings, nulls
     - nat: we do not have *any* date, datetimes or timedeltas, but do have
       at least a NaT
-    - mixed: other objects (strings or actual objects)
+    - mixed: other objects (strings, a mix of tz-aware and tz-naive, or
+                            actual objects)
 
     Parameters
     ----------
@@ -479,6 +480,7 @@ cpdef object infer_datetimelike_array(object arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
+        bint seen_tz_aware = 0, seen_tz_naive = 0
         bint seen_nat = 0
         list objs = []
         object v
@@ -496,8 +498,20 @@ cpdef object infer_datetimelike_array(object arr):
             pass
         elif v is NaT:
             seen_nat = 1
-        elif is_datetime(v) or util.is_datetime64_object(v):
-            # datetime, or np.datetime64
+        elif is_datetime(v):
+            # datetime
+            seen_datetime = 1
+
+            # disambiguate between tz-naive and tz-aware
+            if v.tzinfo is None:
+                seen_tz_naive = 1
+            else:
+                seen_tz_aware = 1
+
+            if seen_tz_naive and seen_tz_aware:
+                return 'mixed'
+        elif util.is_datetime64_object(v):
+            # np.datetime64
             seen_datetime = 1
         elif is_date(v):
             seen_date = 1
