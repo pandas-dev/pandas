@@ -53,7 +53,7 @@ def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
     # 0  1  2
     # 1  3  4
 
-    counts = set(x.lstrip().count('\t') for x in lines)
+    counts = {x.lstrip().count('\t') for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         sep = '\t'
 

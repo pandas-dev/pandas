@@ -788,7 +788,7 @@ def _assert_same_contents(join_chunk, source):
     jvalues = join_chunk.fillna(NA_SENTINEL).drop_duplicates().values
     svalues = source.fillna(NA_SENTINEL).drop_duplicates().values
 
-    rows = set(tuple(row) for row in jvalues)
+    rows = {tuple(row) for row in jvalues}
     assert(len(rows) == len(source))
     assert(all(tuple(row) in rows for row in svalues))
 

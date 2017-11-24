@@ -1505,11 +1505,11 @@ c  10  11  12  13  14\
         max_rows = get_option('display.max_rows')
 
         h, w = max_rows - 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' not in df._repr_html_()
 
         h, w = max_rows + 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' in df._repr_html_()
 
     def test_info_repr(self):
@@ -1517,14 +1517,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_vertically_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
@@ -1550,14 +1550,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert r'&lt;class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert r'&lt;class' in df._repr_html_()
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '<class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert '&lt;class' in df._repr_html_()
@@ -2058,7 +2058,7 @@ class TestSeriesFormatting(object):
         lines = res.split('\n')
         lines = [line for line in repr(s).split('\n')
                  if not re.match(r'[^\.]*\.+', line)][:-1]
-        ncolsizes = len(set(len(line.strip()) for line in lines))
+        ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
     def test_format_explicit(self):

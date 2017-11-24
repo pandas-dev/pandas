@@ -347,7 +347,7 @@ class DataFrame(NDFrame):
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 data_columns = list(data.dtype.names)
-                data = dict((k, data[k]) for k in data_columns)
+                data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
@@ -417,8 +417,7 @@ class DataFrame(NDFrame):
                 extract_index(list(data.values()))
 
             # prefilter if columns passed
-            data = dict((k, v) for k, v in compat.iteritems(data)
-                        if k in columns)
+            data = {k: v for k, v in compat.iteritems(data) if k in columns}
 
             if index is None:
                 index = extract_index(list(data.values()))
@@ -3895,7 +3894,7 @@ class DataFrame(NDFrame):
                     return self._constructor_sliced(r, index=new_index,
                                                     dtype=r.dtype)
 
-                result = dict((col, f(col)) for col in this)
+                result = {col: f(col) for col in this}
 
             # non-unique
             else:
@@ -3906,7 +3905,7 @@ class DataFrame(NDFrame):
                     return self._constructor_sliced(r, index=new_index,
                                                     dtype=r.dtype)
 
-                result = dict((i, f(i)) for i, col in enumerate(this.columns))
+                result = {i: f(i) for i, col in enumerate(this.columns)}
                 result = self._constructor(result, index=new_index, copy=False)
                 result.columns = new_columns
                 return result
@@ -3984,7 +3983,7 @@ class DataFrame(NDFrame):
         if self.columns.is_unique:
 
             def _compare(a, b):
-                return dict((col, func(a[col], b[col])) for col in a.columns)
+                return {col: func(a[col], b[col]) for col in a.columns}
 
             new_data = expressions.evaluate(_compare, str_rep, self, other)
             return self._constructor(data=new_data, index=self.index,
@@ -3993,8 +3992,8 @@ class DataFrame(NDFrame):
         else:
 
             def _compare(a, b):
-                return dict((i, func(a.iloc[:, i], b.iloc[:, i]))
-                            for i, col in enumerate(a.columns))
+                return {i: func(a.iloc[:, i], b.iloc[:, i])
+                        for i, col in enumerate(a.columns)}
 
             new_data = expressions.evaluate(_compare, str_rep, self, other)
             result = self._constructor(data=new_data, index=self.index,

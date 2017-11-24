@@ -459,7 +459,7 @@ def _concat_datetimetz(to_concat, name=None):
     it is used in DatetimeIndex.append also
     """
     # do not pass tz to set because tzlocal cannot be hashed
-    if len(set(str(x.dtype) for x in to_concat)) != 1:
+    if len({str(x.dtype) for x in to_concat}) != 1:
         raise ValueError('to_concat must have the same tz')
     tz = to_concat[0].tz
     # no need to localize because internal repr will not be changed
@@ -525,7 +525,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     if len(typs) == 1:
         # concat input as it is if all inputs are sparse
         # and have the same fill_value
-        fill_values = set(c.fill_value for c in to_concat)
+        fill_values = {c.fill_value for c in to_concat}
         if len(fill_values) == 1:
             sp_values = [c.sp_values for c in to_concat]
             indexes = [c.sp_index.to_int_index() for c in to_concat]

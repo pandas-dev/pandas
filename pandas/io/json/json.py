@@ -715,10 +715,8 @@ class SeriesParser(Parser):
         json = self.json
         orient = self.orient
         if orient == "split":
-            decoded = dict((str(k), v)
-                           for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+            decoded = {str(k): v for k, v in compat.iteritems(
+                loads(json, precise_float=self.precise_float))}
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
@@ -732,7 +730,7 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
             self.check_keys_split(decoded)
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
@@ -770,7 +768,7 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
             self.check_keys_split(decoded)
             self.obj = DataFrame(**decoded)
         elif orient == "values":
@@ -790,10 +788,8 @@ class FrameParser(Parser):
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)
         elif orient == "split":
-            decoded = dict((str(k), v)
-                           for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+            decoded = {str(k): v for k, v in compat.iteritems(
+                loads(json, precise_float=self.precise_float))}
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":

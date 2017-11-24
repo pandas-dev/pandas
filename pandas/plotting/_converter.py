@@ -994,7 +994,7 @@ class TimeSeries_DateFormatter(Formatter):
                                  info)
         else:
             format = np.compress(info['maj'], info)
-        self.formatdict = dict((x, f) for (x, _, _, f) in format)
+        self.formatdict = {x: f for (x, _, _, f) in format}
         return self.formatdict
 
     def set_locs(self, locs):

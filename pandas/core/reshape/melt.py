@@ -149,7 +149,7 @@ def lreshape(data, groups, dropna=True, label=None):
         for c in pivot_cols:
             mask &= notna(mdata[c])
         if not mask.all():
-            mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
+            mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
 
     from pandas import DataFrame
     return DataFrame(mdata, columns=id_cols + pivot_cols)

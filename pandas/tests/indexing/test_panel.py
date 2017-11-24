@@ -119,7 +119,7 @@ class TestPanel(object):
             df = DataFrame(
                 np.random.randn(
                     len(ind), 5), index=ind, columns=list('ABCDE'))
-            panel = Panel(dict(('frame_' + c, df) for c in list('ABC')))
+            panel = Panel({'frame_' + c: df for c in list('ABC')})
 
             test2 = panel.loc[:, "2002":"2002-12-31"]
             test1 = panel.loc[:, "2002"]

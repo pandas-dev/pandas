@@ -53,7 +53,7 @@ _ONE_HOUR = 60 * _ONE_MINUTE
 _ONE_DAY = 24 * _ONE_HOUR
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-_weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
+_weekday_rule_aliases = {k: v for k, v in enumerate(DAYS)}
 
 _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']

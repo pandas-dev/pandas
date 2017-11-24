@@ -2178,7 +2178,7 @@ class TestMultiIndex(Base):
 
             if with_nulls:  # inject some null values
                 labels[500] = -1  # common nan value
-                labels = list(labels.copy() for i in range(nlevels))
+                labels = [labels.copy() for i in range(nlevels)]
                 for i in range(nlevels):
                     labels[i][500 + i - nlevels // 2] = -1
 
@@ -2773,7 +2773,7 @@ class TestMultiIndex(Base):
 
         # GH5620
         groups = self.index.groupby(self.index)
-        exp = dict((key, [key]) for key in self.index)
+        exp = {key: [key] for key in self.index}
         tm.assert_dict_equal(groups, exp)
 
     def test_index_name_retained(self):

@@ -815,7 +815,7 @@ class HDFStore(StringMixin):
                     "all tables must have exactly the same nrows!")
 
         # axis is the concentation axes
-        axis = list(set(t.non_index_axes[0][0] for t in tbls))[0]
+        axis = list({t.non_index_axes[0][0] for t in tbls})[0]
 
         def func(_start, _stop, _where):
 
@@ -2374,8 +2374,7 @@ class GenericFixed(Fixed):
 
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
-    _reverse_index_map = dict((v, k)
-                              for k, v in compat.iteritems(_index_type_map))
+    _reverse_index_map = {v: k for k, v in compat.iteritems(_index_type_map)}
     attributes = []
 
     # indexer helpders
@@ -3510,8 +3509,8 @@ class Table(Fixed):
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
-            by_items = dict((tuple(b_items.tolist()), (b, b_items))
-                            for b, b_items in zip(blocks, blk_items))
+            by_items = {tuple(b_items.tolist()): (b, b_items)
+                        for b, b_items in zip(blocks, blk_items)}
             new_blocks = []
             new_blk_items = []
             for ea in existing_table.values_axes:
@@ -3659,7 +3658,7 @@ class Table(Fixed):
         d = dict(name='table', expectedrows=expectedrows)
 
         # description from the axes & values
-        d['description'] = dict((a.cname, a.typ) for a in self.axes)
+        d['description'] = {a.cname: a.typ for a in self.axes}
 
         if complib:
             if complevel is None:

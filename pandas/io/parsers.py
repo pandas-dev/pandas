@@ -1133,8 +1133,7 @@ def _evaluate_usecols(usecols, names):
     If not a callable, returns 'usecols'.
     """
     if callable(usecols):
-        return set(i for i, name in enumerate(names)
-                   if usecols(name))
+        return {i for i, name in enumerate(names) if usecols(name)}
     return usecols
 
 
@@ -1906,7 +1905,7 @@ class CParserWrapper(ParserBase):
 
             # rename dict keys
             data = sorted(data.items())
-            data = dict((k, v) for k, (i, v) in zip(names, data))
+            data = {k: v for k, (i, v) in zip(names, data)}
 
             names, data = self._do_date_conversions(names, data)
 
@@ -1924,7 +1923,7 @@ class CParserWrapper(ParserBase):
             # columns as list
             alldata = [x[1] for x in data]
 
-            data = dict((k, v) for k, (i, v) in zip(names, data))
+            data = {k: v for k, (i, v) in zip(names, data)}
 
             names, data = self._do_date_conversions(names, data)
             index, names = self._make_index(data, alldata, names)
@@ -2300,7 +2299,7 @@ class PythonParser(ParserBase):
                     offset += 1
                 data[col] = alldata[i + offset]
         else:
-            data = dict((k, v) for k, v in zip(names, alldata))
+            data = {k: v for k, v in zip(names, alldata)}
 
         return data
 
@@ -3233,9 +3232,8 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 
-    col_dict = dict((col_name,
-                     Series([], dtype=dtype[col_name]))
-                    for col_name in columns)
+    col_dict = {col_name: Series([], dtype=dtype[col_name])
+                for col_name in columns}
 
     return index, columns, col_dict
 

@@ -33,7 +33,7 @@ from np_datetime cimport (pandas_datetimestruct,
 _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 _int_to_month = {(k + 1): v for k, v in enumerate(_MONTHS)}
-_month_to_int = dict((v, k) for k, v in _int_to_month.items())
+_month_to_int = {v: k for k, v in _int_to_month.items()}
 
 
 class WeekDay(object):

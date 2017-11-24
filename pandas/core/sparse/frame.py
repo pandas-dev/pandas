@@ -131,8 +131,7 @@ class SparseDataFrame(DataFrame):
         # pre-filter out columns if we passed it
         if columns is not None:
             columns = _ensure_index(columns)
-            data = dict((k, v) for k, v in compat.iteritems(data)
-                        if k in columns)
+            data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
             columns = Index(_try_sort(list(data.keys())))
 
@@ -173,7 +172,7 @@ class SparseDataFrame(DataFrame):
         """ Init self from ndarray or list of lists """
         data = _prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
-        data = dict((idx, data[:, i]) for i, idx in enumerate(columns))
+        data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
 
     def _init_spmatrix(self, data, index, columns, dtype=None,
@@ -307,7 +306,7 @@ class SparseDataFrame(DataFrame):
         -------
         df : DataFrame
         """
-        data = dict((k, v.to_dense()) for k, v in compat.iteritems(self))
+        data = {k: v.to_dense() for k, v in compat.iteritems(self)}
         return DataFrame(data, index=self.index, columns=self.columns)
 
     def _apply_columns(self, func):
@@ -697,7 +696,7 @@ class SparseDataFrame(DataFrame):
             raise NotImplementedError("'method' argument is not supported")
 
         # TODO: fill value handling
-        sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)
+        sdict = {k: v for k, v in compat.iteritems(self) if k in columns}
         return self._constructor(
             sdict, index=self.index, columns=columns,
             default_fill_value=self._default_fill_value).__finalize__(self)

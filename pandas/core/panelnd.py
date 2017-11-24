@@ -105,7 +105,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
             new_axes.append(getattr(self, a).union(getattr(other, a)))
 
         # reindex: could check that everything's the same size, but forget it
-        d = dict((a, ax) for a, ax in zip(self._AXIS_ORDERS, new_axes))
+        d = {a: ax for a, ax in zip(self._AXIS_ORDERS, new_axes)}
         d['copy'] = False
         this = self.reindex(**d)
         other = other.reindex(**d)

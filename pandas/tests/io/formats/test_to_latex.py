@@ -146,11 +146,11 @@ x & y &  a \\
         assert result == expected
 
         df = DataFrame.from_dict({
-            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c1', 0): pd.Series({x: x for x in range(4)}),
+            ('c1', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c2', 0): pd.Series({x: x for x in range(4)}),
+            ('c2', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c3', 0): pd.Series({x: x for x in range(4)}),
         }).T
         result = df.to_latex()
         expected = r"""\begin{tabular}{llrrrr}
@@ -223,11 +223,11 @@ a &       &      &           &      &       &      &       &      \\
 
     def test_to_latex_multicolumnrow(self):
         df = pd.DataFrame({
-            ('c1', 0): dict((x, x) for x in range(5)),
-            ('c1', 1): dict((x, x + 5) for x in range(5)),
-            ('c2', 0): dict((x, x) for x in range(5)),
-            ('c2', 1): dict((x, x + 5) for x in range(5)),
-            ('c3', 0): dict((x, x) for x in range(5))
+            ('c1', 0): {x: x for x in range(5)},
+            ('c1', 1): {x: x + 5 for x in range(5)},
+            ('c2', 0): {x: x for x in range(5)},
+            ('c2', 1): {x: x + 5 for x in range(5)},
+            ('c3', 0): {x: x for x in range(5)}
         })
         result = df.to_latex()
         expected = r"""\begin{tabular}{lrrrrr}

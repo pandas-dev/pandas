@@ -132,7 +132,7 @@ class TestPack(object):
         bio.seek(0)
         unpacker = Unpacker(bio)
         for size in sizes:
-            assert unpacker.unpack() == dict((i, i * 2) for i in range(size))
+            assert unpacker.unpack() == {i: i * 2 for i in range(size)}
 
     def test_odict(self):
         seq = [(b'one', 1), (b'two', 2), (b'three', 3), (b'four', 4)]

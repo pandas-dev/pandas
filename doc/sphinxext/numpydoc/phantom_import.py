@@ -60,8 +60,8 @@ def import_phantom_module(xml_file):
     # Sort items so that
     # - Base classes come before classes inherited from them
     # - Modules come before their contents
-    all_nodes = dict((n.attrib['id'], n) for n in root)
-    
+    all_nodes = {n.attrib['id']: n for n in root}
+
     def _get_bases(node, recurse=False):
         bases = [x.attrib['ref'] for x in node.findall('base')]
         if recurse:

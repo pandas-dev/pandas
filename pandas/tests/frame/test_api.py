@@ -234,7 +234,7 @@ class SharedWithSparse(object):
         if sys.version >= LooseVersion('2.7'):
             assert tup2._fields == ('Index', '_1', '_2')
 
-        df3 = DataFrame(dict(('f' + str(i), [i]) for i in range(1024)))
+        df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert not hasattr(tup3, '_fields')
