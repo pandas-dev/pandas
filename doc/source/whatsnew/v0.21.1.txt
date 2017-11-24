@@ -40,7 +40,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of plotting large series/dataframes (:issue:`18236`).
--
+- Improved performance of ``IntervalIndex.symmetric_difference()`` (:issue:`18475`)
 -
 
 .. _whatsnew_0211.docs:
@@ -74,7 +74,7 @@ Indexing
 - Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
 - Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
 - Bug in ``Index.putmask`` when an invalid mask passed (:issue:`18368`)
--
+- Bug in ``IntervalIndex.symmetric_difference()`` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 
 I/O
 ^^^
