@@ -141,6 +141,6 @@ Categorical
 Other
 ^^^^^
 
--
+- :meth:`Series.str.split()` will now propogate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
 -
 -
