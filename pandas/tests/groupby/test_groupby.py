@@ -257,7 +257,7 @@ class TestGroupBy(MixIn):
         assert len(grouped) == len(df)
 
         grouped = df.groupby([lambda x: x.year, lambda x: x.month])
-        expected = len(set((x.year, x.month) for x in df.index))
+        expected = len({(x.year, x.month) for x in df.index})
         assert len(grouped) == expected
 
         # issue 11016
