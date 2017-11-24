@@ -437,7 +437,7 @@ class TestIndexOps(Ops):
                 for r in result:
                     assert isinstance(r, Timestamp)
                 tm.assert_numpy_array_equal(result,
-                                            orig._values.asobject.values)
+                                            orig._values._asobject.values)
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
@@ -526,7 +526,7 @@ class TestIndexOps(Ops):
                 elif is_datetimetz(o):
                     # unable to compare NaT / nan
                     tm.assert_numpy_array_equal(result[1:],
-                                                values[2:].asobject.values)
+                                                values[2:]._asobject.values)
                     assert result[0] is pd.NaT
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])

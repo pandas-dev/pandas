@@ -2190,7 +2190,7 @@ class ObjectBlock(Block):
 
         if isinstance(other, ABCDatetimeIndex):
             # to store DatetimeTZBlock as object
-            other = other.asobject.values
+            other = other._asobject.values
 
         return values, False, other, False
 

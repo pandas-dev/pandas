@@ -906,7 +906,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
-            return self.asobject
+            return self._asobject
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
@@ -1678,7 +1678,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
         return self._maybe_mask_results(libalgos.arrmap_object(
-            self.asobject.values,
+            self._asobject.values,
             lambda x: np.nan if x is libts.NaT else x.time()))
 
     @property
@@ -1785,7 +1785,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             # fall back to object index
             if isinstance(item, compat.string_types):
-                return self.asobject.insert(loc, item)
+                return self._asobject.insert(loc, item)
             raise TypeError(
                 "cannot insert DatetimeIndex with incompatible label")
 

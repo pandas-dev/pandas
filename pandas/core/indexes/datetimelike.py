@@ -358,7 +358,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.asobject.map(f)
+            return self._asobject.map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -421,14 +421,22 @@ class DatetimeIndexOpsMixin(object):
         return (self.asi8 == iNaT)
 
     @property
-    def asobject(self):
+    def _asobject(self):
         """
-        return object Index which contains boxed values
-
-        *this is an internal non-public method*
+        Return object Index which contains boxed values
         """
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
+    @property
+    def asobject(self):
+        """DEPRECATED: Use 'astype(object).values' instead.
+
+        Return object Index which contains boxed values
+        """
+        warnings.warn("'.asobject' is deprecated. Use 'astype(object).values'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self._asobject
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance, box=False))
@@ -466,7 +474,7 @@ class DatetimeIndexOpsMixin(object):
         """
         return a list of the underlying data
         """
-        return list(self.asobject)
+        return list(self._asobject)
 
     def min(self, axis=None, *args, **kwargs):
         """
@@ -744,7 +752,7 @@ class DatetimeIndexOpsMixin(object):
             try:
                 values = type(self)(values)
             except ValueError:
-                return self.asobject.isin(values)
+                return self._asobject.isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
 

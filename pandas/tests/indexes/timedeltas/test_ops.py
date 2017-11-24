@@ -30,7 +30,7 @@ class TestTimedeltaIndexOps(Ops):
         expected_list = [Timedelta('1 days'), Timedelta('2 days'),
                          Timedelta('3 days'), Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx._asobject
         assert isinstance(result, Index)
 
         assert result.dtype == object
@@ -43,7 +43,7 @@ class TestTimedeltaIndexOps(Ops):
         expected_list = [Timedelta('1 days'), Timedelta('2 days'), pd.NaT,
                          Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx._asobject
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -217,7 +217,7 @@ dtype: timedelta64[ns]"""
                                   pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
-        for l, r in [(left, right), (left.asobject, right.asobject)]:
+        for l, r in [(left, right), (left._asobject, right._asobject)]:
             result = l == r
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)
@@ -473,18 +473,18 @@ dtype: timedelta64[ns]"""
         idx = pd.TimedeltaIndex(['1 days', '2 days', 'NaT'])
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
-        assert idx.equals(idx.asobject)
-        assert idx.asobject.equals(idx)
-        assert idx.asobject.equals(idx.asobject)
+        assert idx.equals(idx._asobject)
+        assert idx._asobject.equals(idx)
+        assert idx._asobject.equals(idx._asobject)
         assert not idx.equals(list(idx))
         assert not idx.equals(pd.Series(idx))
 
         idx2 = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'])
         assert not idx.equals(idx2)
         assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.asobject)
-        assert not idx.asobject.equals(idx2)
-        assert not idx.asobject.equals(idx2.asobject)
+        assert not idx.equals(idx2._asobject)
+        assert not idx._asobject.equals(idx2)
+        assert not idx._asobject.equals(idx2._asobject)
         assert not idx.equals(list(idx2))
         assert not idx.equals(pd.Series(idx2))
 

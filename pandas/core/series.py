@@ -209,7 +209,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                             # coerce back to datetime objects for lookup
                             data = _dict_compat(data)
                             data = lib.fast_multiget(data,
-                                                     index.asobject.values,
+                                                     index._asobject.values,
                                                      default=np.nan)
                         else:
                             data = np.nan
@@ -433,13 +433,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.get_values()
 
     @property
-    def asobject(self):
+    def _asobject(self):
         """
-        return object Series which contains boxed values
-
-        *this is an internal non-public method*
+        Return object Series which contains boxed values
         """
         return self._data.asobject
+
+    @property
+    def asobject(self):
+        """DEPRECATED: '.asobject' is deprecated. Use 'astype(object).values'
+        instead.
+
+        Return object Series which contains boxed values
+        """
+        warnings.warn("asobject is deprecated. Use 'astype(object).values'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self._asobject
 
     # ops
     def ravel(self, order='C'):
@@ -1307,7 +1316,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # to return an object array of tz-aware Timestamps
 
             # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.asobject.values
+            result = result._asobject.values
 
         return result
 
@@ -2345,7 +2354,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.asobject
+            values = self._asobject
 
             if na_action == 'ignore':
                 def map_f(values, f):
@@ -2567,7 +2576,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if is_extension_type(self.dtype):
                 mapped = self._values.map(f)
             else:
-                values = self.asobject
+                values = self._asobject
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
@@ -3143,7 +3152,7 @@ def _sanitize_index(data, index, copy=False):
     if isinstance(data, ABCIndexClass) and not copy:
         pass
     elif isinstance(data, PeriodIndex):
-        data = data.asobject
+        data = data._asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
     elif isinstance(data, np.ndarray):
