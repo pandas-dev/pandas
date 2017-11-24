@@ -211,7 +211,6 @@ cdef class _Timestamp(datetime):
         """ Returns a numpy.datetime64 object with 'ns' precision """
         return np.datetime64(self.value, 'ns')
 
-    @cython.final
     def __add__(self, other):
         cdef int64_t other_int, nanos
 
@@ -249,7 +248,6 @@ cdef class _Timestamp(datetime):
             result.nanosecond = self.nanosecond
         return result
 
-    @cython.final
     def __sub__(self, other):
         if (is_timedelta64_object(other) or is_integer_object(other) or
                 PyDelta_Check(other) or hasattr(other, 'delta')):
@@ -327,14 +325,16 @@ cdef class _Timestamp(datetime):
     def days_in_month(self):
         return self._get_field('dim')
 
-    cdef int8_t _get_start_end_field(_Timestamp self, field):
+    cdef bint _get_start_end_field(_Timestamp self, field):
         # Note: because _get_start_end_field is `cdef`, it is not visible
         # in the python namespace.  Any methods that need to call
         # `_get_start_end_field` must be defined in _Timestamp, not Timestamp.
         cdef:
             int64_t val
             dict kwds
-            ndarray[int8_t] out
+            # Note: As of 2017-11-23, adding a type declaration for `out`
+            # results in a ValueError when any of these properties are accessed
+            # "Does not understand character buffer dtype format string ('?')"
 
         freq = self.freq
         if freq:
@@ -348,7 +348,7 @@ cdef class _Timestamp(datetime):
         val = self._maybe_convert_value_to_local()
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw)
-        return out[0]
+        return bool(out[0])
 
     @property
     def is_month_start(self):
@@ -446,7 +446,7 @@ cdef class _Timestamp(datetime):
             result = result.tz_localize(self.tz)
         return result
 
-    def round(self, freq):
+    def round(self, freq='D'):
         """
         Round the Timestamp to the specified resolution
 
@@ -464,7 +464,7 @@ cdef class _Timestamp(datetime):
         """
         return self._round(freq, np.round)
 
-    def floor(self, freq):
+    def floor(self, freq='D'):
         """
         return a new Timestamp floored to this resolution
 
@@ -474,7 +474,7 @@ cdef class _Timestamp(datetime):
         """
         return self._round(freq, np.floor)
 
-    def ceil(self, freq):
+    def ceil(self, freq='D'):
         """
         return a new Timestamp ceiled to this resolution
 
