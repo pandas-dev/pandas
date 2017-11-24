@@ -643,7 +643,7 @@ class Timestamp(_Timestamp):
     def _round(self, freq, rounder):
 
         cdef:
-            int64_t unit, rounded, value, buff = 1000000
+            int64_t unit, r, value, buff = 1000000
             object result
 
         from pandas.tseries.frequencies import to_offset
@@ -655,15 +655,15 @@ class Timestamp(_Timestamp):
         if unit < 1000 and unit % 1000 != 0:
             # for nano rounding, work with the last 6 digits separately
             # due to float precision
-            rounded = (buff * (value // buff) + unit *
-                       (rounder((value % buff) / float(unit))).astype('i8'))
+            r = (buff * (value // buff) + unit *
+                 (rounder((value % buff) / float(unit))).astype('i8'))
         elif unit >= 1000 and unit % 1000 != 0:
             msg = 'Precision will be lost using frequency: {}'
             warnings.warn(msg.format(freq))
-            rounded = (unit * rounder(value / float(unit)).astype('i8'))
+            r = (unit * rounder(value / float(unit)).astype('i8'))
         else:
-            rounded = (unit * rounder(value / float(unit)).astype('i8'))
-        result = Timestamp(rounded, unit='ns')
+            r = (unit * rounder(value / float(unit)).astype('i8'))
+        result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
         return result
