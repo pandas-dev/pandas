@@ -17,6 +17,21 @@ New features
 -
 -
 
+
+.. _whatsnew_0210.enhancements.get_dummies_dtype:
+
+``get_dummies`` now supports ``dtype`` argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+   pd.get_dummies(df, columns=['c']).dtypes
+   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
+
+
 .. _whatsnew_0220.enhancements.other:
 
 Other Enhancements
@@ -36,7 +51,7 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
--
+- :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
 -
 
 
@@ -59,6 +74,7 @@ Other API Changes
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
+- :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 
 .. _whatsnew_0220.deprecations:
@@ -121,7 +137,8 @@ Indexing
 
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
--
+- Bug in :func:`MultiIndex.remove_unused_levels`` which would fill nan values (:issue:`18417`)
+- Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 -
 
 I/O
@@ -180,5 +197,5 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
--
+- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
 -

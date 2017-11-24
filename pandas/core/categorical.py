@@ -2276,7 +2276,7 @@ def _recode_for_categories(codes, old_categories, new_categories):
 
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
-        return codes
+        return codes.copy()
     indexer = coerce_indexer_dtype(new_categories.get_indexer(old_categories),
                                    new_categories)
     new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
