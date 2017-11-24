@@ -3840,7 +3840,7 @@ class NDFrameGroupBy(GroupBy):
                             # if all series have a consistent name.  If the
                             # series do not have a consistent name, do
                             # nothing.
-                            names = set(v.name for v in values)
+                            names = {v.name for v in values}
                             if len(names) == 1:
                                 index.name = list(names)[0]
 

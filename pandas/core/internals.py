@@ -3377,7 +3377,7 @@ class BlockManager(PandasObject):
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
-        ndim = set(b.ndim for b in blocks)
+        ndim = {b.ndim for b in blocks}
 
         if 2 in ndim:
 
@@ -3891,7 +3891,7 @@ class BlockManager(PandasObject):
         """
         Retrieve single item
         """
-        full_loc = list(ax.get_loc(x) for ax, x in zip(self.axes, tup))
+        full_loc = [ax.get_loc(x) for ax, x in zip(self.axes, tup)]
         blk = self.blocks[self._blknos[full_loc[0]]]
         values = blk.values
 
@@ -4871,7 +4871,7 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
     if _can_consolidate:
 
         if dtype is None:
-            if len(set(b.dtype for b in blocks)) != 1:
+            if len({b.dtype for b in blocks}) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
             dtype = blocks[0].dtype
 

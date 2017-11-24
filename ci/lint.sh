@@ -90,13 +90,26 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)"
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" *
 
     if [ $? = "0" ]; then
         RET=1
     fi
     echo "Check for use of lists instead of generators in built-in Python functions DONE"
 
+    echo "Check for incorrect sphinx directives"
+    SPHINX_DIRECTIVES=$(echo \
+       "autosummary|contents|currentmodule|deprecated|function|image|"\
+       "important|include|ipython|literalinclude|math|module|note|raw|"\
+       "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
+    for path in './pandas' './doc/source'
+    do
+        grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. ($SPHINX_DIRECTIVES):[^:]" $path
+        if [ $? = "0" ]; then
+            RET=1
+        fi
+    done
+    echo "Check for incorrect sphinx directives DONE"
 else
     echo "NOT Linting"
 fi

@@ -53,14 +53,14 @@ PyDateTime_IMPORT
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 
-from tslib cimport _check_all_nulls
 from tslib import NaT, Timestamp, Timedelta, array_to_datetime
 from interval import Interval
+from missing cimport checknull
 
 cdef int64_t NPY_NAT = util.get_nat()
 
 cimport util
-from util cimport is_array, _checknull, _checknan
+from util cimport is_array, _checknull
 
 from libc.math cimport sqrt, fabs
 
@@ -112,54 +112,6 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
 
 
 # ----------------------------------------------------------------------
-# isnull / notnull related
-
-cdef double INF = <double> np.inf
-cdef double NEGINF = -INF
-
-
-cpdef bint checknull(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val  # and val != INF and val != NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return _checknull(val)
-
-
-cpdef bint checknull_old(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val or val == INF or val == NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return _checknull(val)
-
-
-cpdef bint isposinf_scalar(object val):
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
-
-
-cpdef bint isneginf_scalar(object val):
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
 
 
 cpdef bint isscalar(object val):
@@ -210,78 +162,6 @@ def item_from_zerodim(object val):
 
     """
     return util.unbox_if_zerodim(val)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = _check_all_nulls(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj_old(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = val is NaT or util._checknull_old(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d_old(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull_old(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
 
 
 @cython.wraparound(False)

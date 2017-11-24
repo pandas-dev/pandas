@@ -98,7 +98,7 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_index_cmp(opname, nat_result=False):
+def _dt_index_cmp(opname, cls, nat_result=False):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
@@ -135,7 +135,7 @@ def _dt_index_cmp(opname, nat_result=False):
             return result
         return Index(result)
 
-    return wrapper
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 def _ensure_datetime64(other):
@@ -277,12 +277,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
 
-    __eq__ = _dt_index_cmp('__eq__')
-    __ne__ = _dt_index_cmp('__ne__', nat_result=True)
-    __lt__ = _dt_index_cmp('__lt__')
-    __gt__ = _dt_index_cmp('__gt__')
-    __le__ = _dt_index_cmp('__le__')
-    __ge__ = _dt_index_cmp('__ge__')
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _dt_index_cmp('__eq__', cls)
+        cls.__ne__ = _dt_index_cmp('__ne__', cls, nat_result=True)
+        cls.__lt__ = _dt_index_cmp('__lt__', cls)
+        cls.__gt__ = _dt_index_cmp('__gt__', cls)
+        cls.__le__ = _dt_index_cmp('__le__', cls)
+        cls.__ge__ = _dt_index_cmp('__ge__', cls)
 
     _engine_type = libindex.DatetimeEngine
 
@@ -923,7 +926,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
-        return libts.get_time_micros(values)
+        return fields.get_time_micros(values)
 
     def to_series(self, keep_tz=False):
         """
@@ -1234,7 +1237,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             end_i = min((i + 1) * chunksize, length)
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
-                                                 box=True)
+                                                 box="timestamp")
             for v in converted:
                 yield v
 
@@ -1599,14 +1602,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise
 
-    # alias to offset
-    def _get_freq(self):
+    @property
+    def freq(self):
+        """get/set the frequency of the Index"""
         return self.offset
 
-    def _set_freq(self, value):
+    @freq.setter
+    def freq(self, value):
+        """get/set the frequency of the Index"""
         self.offset = value
-    freq = property(fget=_get_freq, fset=_set_freq,
-                    doc="get/set the frequency of the Index")
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',
@@ -1683,8 +1687,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        return self._maybe_mask_results(libalgos.arrmap_object(
-            self.asobject.values, lambda x: x.date()))
+        return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
 
     def normalize(self):
         """
@@ -2014,6 +2017,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                              ) / 24.0)
 
 
+DatetimeIndex._add_comparison_methods()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
