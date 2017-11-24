@@ -5,8 +5,6 @@ import warnings
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                       Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-cimport cython
-
 import numpy as np
 cimport numpy as np
 from numpy cimport int64_t, int32_t, int8_t, ndarray
@@ -417,73 +415,6 @@ cdef class _Timestamp(datetime):
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
 
-    cdef _Timestamp _round(_Timestamp self, freq, rounder):
-        # Note: _round is not visible in the python namespace, so methods that
-        # call it must be defined in _Timestamp, not Timestamp
-        cdef:
-            int64_t unit, rounded, value, buff = 1000000
-            _Timestamp result
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
-        if self.tz is not None:
-            value = self.tz_localize(None).value
-        else:
-            value = self.value
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            rounded = (buff * (value // buff) + unit *
-                       (rounder((value % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            rounded = (unit * rounder(value / float(unit)).astype('i8'))
-        else:
-            rounded = (unit * rounder(value / float(unit)).astype('i8'))
-        result = Timestamp(rounded, unit='ns')
-        if self.tz is not None:
-            result = result.tz_localize(self.tz)
-        return result
-
-    def round(self, freq='D'):
-        """
-        Round the Timestamp to the specified resolution
-
-        Returns
-        -------
-        a new Timestamp rounded to the given resolution of `freq`
-
-        Parameters
-        ----------
-        freq : a freq string indicating the rounding resolution
-
-        Raises
-        ------
-        ValueError if the freq cannot be converted
-        """
-        return self._round(freq, np.round)
-
-    def floor(self, freq='D'):
-        """
-        return a new Timestamp floored to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
-
-    def ceil(self, freq='D'):
-        """
-        return a new Timestamp ceiled to this resolution
-
-        Parameters
-        ----------
-        freq : a freq string indicating the ceiling resolution
-        """
-        return self._round(freq, np.ceil)
-
 
 # ----------------------------------------------------------------------
 
@@ -708,6 +639,72 @@ class Timestamp(_Timestamp):
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
+
+    def _round(self, freq, rounder):
+
+        cdef:
+            int64_t unit, rounded, value, buff = 1000000
+            object result
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        if self.tz is not None:
+            value = self.tz_localize(None).value
+        else:
+            value = self.value
+        if unit < 1000 and unit % 1000 != 0:
+            # for nano rounding, work with the last 6 digits separately
+            # due to float precision
+            rounded = (buff * (value // buff) + unit *
+                       (rounder((value % buff) / float(unit))).astype('i8'))
+        elif unit >= 1000 and unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+            rounded = (unit * rounder(value / float(unit)).astype('i8'))
+        else:
+            rounded = (unit * rounder(value / float(unit)).astype('i8'))
+        result = Timestamp(rounded, unit='ns')
+        if self.tz is not None:
+            result = result.tz_localize(self.tz)
+        return result
+
+    def round(self, freq):
+        """
+        Round the Timestamp to the specified resolution
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, np.round)
+
+    def floor(self, freq):
+        """
+        return a new Timestamp floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timestamp ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
 
     @property
     def tz(self):
