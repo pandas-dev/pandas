@@ -1008,6 +1008,7 @@ class Base(object):
 
     def test_map(self):
         index = self.create_index()
+
         # From output of UInt64Index mapping can't infer that we
         #   shouldn't default to Int64
         if isinstance(index, UInt64Index):

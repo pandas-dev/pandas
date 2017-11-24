@@ -864,17 +864,19 @@ class TestIndex(Base):
             cur_index = self.indices[name]
             expected = Index(np.arange(len(cur_index), 0, -1))
             mapper = pd.Series(expected, index=cur_index)
-            tm.assert_index_equal(expected, cur_index.map(mapper))
+            result = cur_index.map(mapper)
 
-            mapper = {o: n for o, n in
-                      zip(cur_index, expected)}
+            tm.assert_index_equal(result, expected)
+
             # If the mapper is empty the expected index type is Int64Index
             # but the output defaults to Float64 so I treat it independently
-            if mapper:
-                tm.assert_index_equal(expected, cur_index.map(mapper))
-            else:
-                tm.assert_index_equal(Float64Index([]),
-                                      cur_index.map(mapper))
+            mapper = {o: n for o, n in
+                      zip(cur_index, expected)}
+
+            result = cur_index.map(mapper)
+            if not mapper:
+                expected = Float64Index([])
+            tm.assert_index_equal(result, expected)
 
     def test_map_with_non_function_missing_values(self):
         # GH 12756

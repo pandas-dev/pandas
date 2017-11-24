@@ -683,7 +683,7 @@ class TestPeriodIndex(DatetimeLike):
         assert new_prng.freqstr == 'M'
 
     def test_map(self):
-        super(TestPeriodIndex, self).test_map()
+        # test_map_dictlike generally tests
 
         index = PeriodIndex([2005, 2007, 2009], freq='A')
         result = index.map(lambda x: x.ordinal)

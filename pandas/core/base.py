@@ -887,6 +887,7 @@ class IndexOpsMixin(object):
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
+
             return new_values
 
         # we must convert to python types

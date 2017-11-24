@@ -369,13 +369,14 @@ def _maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype):
+def na_value_for_dtype(dtype, compat=True):
     """
     Return a dtype compat na value
 
     Parameters
     ----------
     dtype : string / dtype
+    compat : boolean, default True
 
     Returns
     -------
@@ -389,7 +390,9 @@ def na_value_for_dtype(dtype):
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
-        return 0
+        if compat:
+            return 0
+        return np.nan
     elif is_bool_dtype(dtype):
         return False
     return np.nan

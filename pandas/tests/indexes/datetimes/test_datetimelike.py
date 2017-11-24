@@ -76,6 +76,3 @@ class TestDatetimeIndex(DatetimeLike):
         for case in cases:
             result = first.union(case)
             assert tm.equalContents(result, everything)
-
-    def test_map(self):
-        super(TestDatetimeIndex, self).test_map()
