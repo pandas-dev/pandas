@@ -146,7 +146,7 @@ def _create_methods(arith_method, comp_method, bool_method,
             construct_result=_construct_divmod_result,
         )
 
-    new_methods = dict((names(k), v) for k, v in new_methods.items())
+    new_methods = {names(k): v for k, v in new_methods.items()}
     return new_methods
 
 

@@ -114,6 +114,17 @@ one,two
         actual = self.read_csv(StringIO(data), dtype='category')
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.slow
+    def test_categorical_dtype_high_cardinality_numeric(self):
+        # GH 18186
+        data = np.sort([str(i) for i in range(524289)])
+        expected = DataFrame({'a': Categorical(data, ordered=True)})
+        actual = self.read_csv(StringIO('a\n' + '\n'.join(data)),
+                               dtype='category')
+        actual["a"] = actual["a"].cat.reorder_categories(
+            np.sort(actual.a.cat.categories), ordered=True)
+        tm.assert_frame_equal(actual, expected)
+
     def test_categorical_dtype_encoding(self):
         # GH 10153
         pth = tm.get_data_path('unicode_series.csv')

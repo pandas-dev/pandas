@@ -689,7 +689,7 @@ class TestPanel4d(CheckIndexing, SafeForSparse,
 
     def test_constructor_dict_mixed(self):
         with catch_warnings(record=True):
-            data = dict((k, v.values) for k, v in self.panel4d.iteritems())
+            data = {k: v.values for k, v in self.panel4d.iteritems()}
             result = Panel4D(data)
 
             exp_major = Index(np.arange(len(self.panel4d.major_axis)))

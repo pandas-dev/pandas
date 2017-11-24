@@ -6,14 +6,12 @@ from pandas.core.dtypes.common import is_list_like
 from pandas import compat
 from pandas.core.categorical import Categorical
 
-from pandas.core.frame import DataFrame
-from pandas.core.index import MultiIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
 
 import re
-import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import notna
 
 
@@ -27,7 +25,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif (isinstance(frame.columns, MultiIndex) and
+        elif (isinstance(frame.columns, ABCMultiIndex) and
               not isinstance(id_vars, list)):
             raise ValueError('id_vars must be a list of tuples when columns'
                              ' are a MultiIndex')
@@ -39,7 +37,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif (isinstance(frame.columns, MultiIndex) and
+        elif (isinstance(frame.columns, ABCMultiIndex) and
               not isinstance(value_vars, list)):
             raise ValueError('value_vars must be a list of tuples when'
                              ' columns are a MultiIndex')
@@ -54,7 +52,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
-        if isinstance(frame.columns, MultiIndex):
+        if isinstance(frame.columns, ABCMultiIndex):
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
@@ -81,6 +79,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
+    from pandas import DataFrame
     return DataFrame(mdata, columns=mcolumns)
 
 
@@ -137,6 +136,8 @@ def lreshape(data, groups, dropna=True, label=None):
 
     for target, names in zip(keys, values):
         to_concat = [data[col].values for col in names]
+
+        import pandas.core.dtypes.concat as _concat
         mdata[target] = _concat._concat_compat(to_concat)
         pivot_cols.append(target)
 
@@ -148,8 +149,9 @@ def lreshape(data, groups, dropna=True, label=None):
         for c in pivot_cols:
             mask &= notna(mdata[c])
         if not mask.all():
-            mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
+            mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
 
+    from pandas import DataFrame
     return DataFrame(mdata, columns=id_cols + pivot_cols)
 
 

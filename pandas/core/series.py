@@ -29,7 +29,8 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSparseArray, ABCDataFrame, ABCIndexClass)
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
@@ -183,8 +184,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True)
-                copy = True
+                data = data._to_embed(keep_tz=True, dtype=dtype)
+                copy = False
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -1610,7 +1611,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ignore_index : boolean, default False
             If True, do not use the index labels.
 
-            .. versionadded: 0.19.0
+            .. versionadded:: 0.19.0
 
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
@@ -2197,7 +2198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
-            .. versionadded: 0.18.0
+            .. versionadded:: 0.18.0
 
         Examples
         --------
@@ -3091,7 +3092,9 @@ def _sanitize_index(data, index, copy=False):
     if len(data) != len(index):
         raise ValueError('Length of values does not match length of ' 'index')
 
-    if isinstance(data, PeriodIndex):
+    if isinstance(data, ABCIndexClass) and not copy:
+        pass
+    elif isinstance(data, PeriodIndex):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
@@ -3161,12 +3164,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # e.g. indexes can have different conversions (so don't fast path
             # them)
             # GH 6140
-            subarr = _sanitize_index(data, index, copy=True)
+            subarr = _sanitize_index(data, index, copy=copy)
         else:
-            subarr = _try_cast(data, True)
 
-        if copy:
-            subarr = data.copy()
+            # we will try to copy be-definition here
+            subarr = _try_cast(data, True)
 
     elif isinstance(data, Categorical):
         subarr = data

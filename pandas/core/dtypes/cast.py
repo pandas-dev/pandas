@@ -13,7 +13,9 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetimelike,
                      is_extension_type, is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
-                     is_timedelta64_dtype, is_dtype_equal,
+                     is_datetime64_ns_dtype,
+                     is_timedelta64_dtype, is_timedelta64_ns_dtype,
+                     is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
                      is_datetime_or_timedelta_dtype,
@@ -320,6 +322,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = iNaT
         else:
             dtype = np.object_
+            fill_value = np.nan
     else:
         dtype = np.object_
 
@@ -829,8 +832,10 @@ def maybe_castable(arr):
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
     kind = arr.dtype.kind
-    if kind == 'M' or kind == 'm':
-        return is_datetime64_dtype(arr.dtype)
+    if kind == 'M':
+        return is_datetime64_ns_dtype(arr.dtype)
+    elif kind == 'm':
+        return is_timedelta64_ns_dtype(arr.dtype)
 
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
