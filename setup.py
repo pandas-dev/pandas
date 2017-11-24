@@ -335,6 +335,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
+                 'pandas/_libs/khash.pyx',
                  'pandas/_libs/indexing.pyx',
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
@@ -514,6 +515,9 @@ ext_data = {
         'pyxfile': '_libs/join',
         'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
         'depends': _pxi_dep['join']},
+    '_libs.khash': {
+        'pyxfile': '_libs/khash',
+        'depends': ['pandas/_libs/src/klib/khash_python.h']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'pxdfiles': ['_libs/src/util', '_libs/missing'],
@@ -550,7 +554,6 @@ ext_data = {
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
@@ -591,12 +594,11 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash']},
+        'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
+                     '_libs/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,

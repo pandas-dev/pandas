@@ -10,7 +10,7 @@ np.import_array()
 
 from util cimport is_string_object, get_nat
 
-from khash cimport (
+from pandas._libs.khash cimport (
     khiter_t,
     kh_destroy_int64, kh_put_int64,
     kh_init_int64, kh_int64_t,
