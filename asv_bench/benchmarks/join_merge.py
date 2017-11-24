@@ -1,6 +1,10 @@
 from .pandas_vb_common import *
 
-from pandas import merge_ordered
+try:
+    from pandas import merge_ordered
+except ImportError:
+    from pandas import ordered_merge as merge_ordered
+
 
 # ----------------------------------------------------------------------
 # Append

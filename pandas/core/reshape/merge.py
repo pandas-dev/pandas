@@ -1067,7 +1067,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
 
 
 class _OrderedMerge(_MergeOperation):
-    _merge_type = 'merge_ordered'
+    _merge_type = 'ordered_merge'
 
     def __init__(self, left, right, on=None, left_on=None, right_on=None,
                  left_index=False, right_index=False, axis=1,
