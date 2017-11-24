@@ -348,19 +348,18 @@ class TestIntervalIndex(Base):
         expected = pd.Categorical(idx, ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-    def test_where(self, closed):
-        expected = self.create_index(closed=closed)
-        result = expected.where(expected.notna())
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
+    def test_where(self, closed, klass):
+        idx = self.create_index(closed=closed)
+        cond = [True] * len(idx)
+        expected = idx
+        result = expected.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        idx = IntervalIndex.from_breaks([1, 2], closed=closed)
-        result = idx.where([True, False])
-        expected = IntervalIndex.from_intervals(
-            [Interval(1.0, 2.0, closed=closed), np.nan])
+        cond = [False] + [True] * len(idx[1:])
+        expected = IntervalIndex([np.nan] + idx[1:].tolist())
+        result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        pass
 
     def test_delete(self, closed):
         expected = IntervalIndex.from_breaks([1, 2], closed=closed)

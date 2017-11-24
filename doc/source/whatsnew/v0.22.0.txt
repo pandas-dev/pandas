@@ -52,6 +52,7 @@ Backwards incompatible API changes
 
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
+- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 -
 
 
@@ -129,7 +130,7 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 -
 -
 
