@@ -211,8 +211,8 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         int64_t n = len(intervals)
         ndarray left, right
 
-    left = np.empty(n, dtype=object)
-    right = np.empty(n, dtype=object)
+    left = np.empty(n, dtype=intervals.dtype)
+    right = np.empty(n, dtype=intervals.dtype)
 
     for i in range(len(intervals)):
         interval = intervals[i]
