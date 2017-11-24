@@ -6,29 +6,6 @@
 
 # Cython version: Wes McKinney
 
-cdef extern from "skiplist.h":
-    ctypedef struct node_t:
-        node_t **next
-        int *width
-        double value
-        int is_nil
-        int levels
-        int ref_count
-
-    ctypedef struct skiplist_t:
-        node_t *head
-        node_t **tmp_chain
-        int *tmp_steps
-        int size
-        int maxlevels
-
-    skiplist_t* skiplist_init(int) nogil
-    void skiplist_destroy(skiplist_t*) nogil
-    double skiplist_get(skiplist_t*, int, int*) nogil
-    int skiplist_insert(skiplist_t*, double) nogil
-    int skiplist_remove(skiplist_t*, double) nogil
-
-
 from libc.math cimport log
 
 # MSVC does not have log2!
@@ -38,6 +15,7 @@ cdef double Log2(double x):
 
 cimport numpy as np
 import numpy as np
+from numpy cimport double_t
 
 from random import random
 
@@ -47,10 +25,10 @@ np.import_array()
 # TODO: optimize this, make less messy
 
 cdef class Node:
-    cdef public:
-        double_t value
-        list next
-        list width
+    # cdef public:
+    #    double_t value
+    #    list next
+    #    list width
 
     def __init__(self, double_t value, list next, list width):
         self.value = value
@@ -65,9 +43,9 @@ cdef class IndexableSkiplist:
     Sorted collection supporting O(lg n) insertion, removal, and
     lookup by rank.
     """
-    cdef:
-        Py_ssize_t size, maxlevels
-        Node head
+    # cdef:
+    #    Py_ssize_t size, maxlevels
+    #    Node head
 
     def __init__(self, expected_size=100):
         self.size = 0

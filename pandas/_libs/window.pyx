@@ -17,6 +17,11 @@ from libc.math cimport sqrt
 
 from numpy cimport ndarray, double_t, int64_t, float64_t
 
+from skiplist cimport (IndexableSkiplist,
+                       node_t, skiplist_t,
+                       skiplist_init, skiplist_destroy,
+                       skiplist_get, skiplist_insert, skiplist_remove)
+
 cdef np.float32_t MINfloat32 = np.NINF
 cdef np.float64_t MINfloat64 = np.NINF
 
@@ -30,10 +35,9 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-cdef extern from "../src/headers/math.h":
+cdef extern from "src/headers/math.h":
     int signbit(double) nogil
 
-include "skiplist.pyx"
 
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
