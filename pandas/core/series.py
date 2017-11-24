@@ -1626,7 +1626,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ignore_index : boolean, default False
             If True, do not use the index labels.
 
-            .. versionadded: 0.19.0
+            .. versionadded:: 0.19.0
 
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
@@ -2213,7 +2213,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
-            .. versionadded: 0.18.0
+            .. versionadded:: 0.18.0
 
         Examples
         --------
