@@ -1368,22 +1368,26 @@ class MultiIndex(Index):
         for lev, lab in zip(self.levels, self.labels):
 
             uniques = algos.unique(lab)
+            na_idx = np.where(uniques == -1)[0]
 
             # nothing unused
-            if len(uniques) == len(lev):
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if len(uniques) != len(lev) + len(na_idx):
+                changed = True
 
-            changed = True
+                if len(na_idx):
+                    # Just ensure that -1 is in first position:
+                    uniques[[0, na_idx[0]]] = uniques[[na_idx[0], 0]]
 
-            # labels get mapped from uniques to 0:len(uniques)
-            label_mapping = np.zeros(len(lev))
-            label_mapping[uniques] = np.arange(len(uniques))
-            lab = label_mapping[lab]
+                # labels get mapped from uniques to 0:len(uniques)
+                # -1 (if present) is mapped to last position
+                label_mapping = np.zeros(len(lev) + len(na_idx))
+                # ... and reassigned value -1:
+                label_mapping[uniques] = np.arange(len(uniques)) - len(na_idx)
 
-            # new levels are simple
-            lev = lev.take(uniques)
+                lab = label_mapping[lab]
+
+                # new levels are simple
+                lev = lev.take(uniques[len(na_idx):])
 
             new_levels.append(lev)
             new_labels.append(lab)

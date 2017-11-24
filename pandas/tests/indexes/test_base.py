@@ -2174,3 +2174,11 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt'])
+def test_generated_op_names(opname, indices):
+    index = indices
+    opname = '__{name}__'.format(name=opname)
+    method = getattr(index, opname)
+    assert method.__name__ == opname

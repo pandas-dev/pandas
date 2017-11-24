@@ -77,7 +77,7 @@ def dt64arr_to_periodarr(data, freq, tz):
 _DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 
-def _period_index_cmp(opname, nat_result=False):
+def _period_index_cmp(opname, cls, nat_result=False):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
@@ -115,7 +115,8 @@ def _period_index_cmp(opname, nat_result=False):
             result[self._isnan] = nat_result
 
         return result
-    return wrapper
+
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 def _new_PeriodIndex(cls, **d):
@@ -227,12 +228,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     _engine_type = libindex.PeriodEngine
 
-    __eq__ = _period_index_cmp('__eq__')
-    __ne__ = _period_index_cmp('__ne__', nat_result=True)
-    __lt__ = _period_index_cmp('__lt__')
-    __gt__ = _period_index_cmp('__gt__')
-    __le__ = _period_index_cmp('__le__')
-    __ge__ = _period_index_cmp('__ge__')
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _period_index_cmp('__eq__', cls)
+        cls.__ne__ = _period_index_cmp('__ne__', cls, nat_result=True)
+        cls.__lt__ = _period_index_cmp('__lt__', cls)
+        cls.__gt__ = _period_index_cmp('__gt__', cls)
+        cls.__le__ = _period_index_cmp('__le__', cls)
+        cls.__ge__ = _period_index_cmp('__ge__', cls)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
                 periods=None, copy=False, name=None, tz=None, dtype=None,
@@ -1106,6 +1110,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         raise NotImplementedError("Not yet implemented for PeriodIndex")
 
 
+PeriodIndex._add_comparison_methods()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
