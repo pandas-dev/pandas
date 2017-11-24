@@ -3488,7 +3488,6 @@ class BlockManager(PandasObject):
 
         if is_datetime64tz_dtype(self):
             # need to be careful not to compare tznaive to tzaware
-            tz = values.dtype.tz
             def comp(s):
                 if isna(s):
                     return isna(values)
