@@ -2231,14 +2231,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # function application
 
-    def map(self, mapper, na_action=None):
+    def map(self, arg, na_action=None):
         """
         Map values of Series using input correspondence (which can be
         a dict, Series, or function)
 
         Parameters
         ----------
-        mapper : function, dict, or Series
+        arg : function, dict, or Series
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
@@ -2271,7 +2271,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         two   bar
         three baz
 
-        If `mapper` is a dictionary, return a new Series with values converted
+        If `arg` is a dictionary, return a new Series with values converted
         according to the dictionary's mapping:
 
         >>> z = {1: 'A', 2: 'B', 3: 'C'}
@@ -2308,7 +2308,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        When `mapper` is a dictionary, values in Series that are not in the
+        When `arg` is a dictionary, values in Series that are not in the
         dictionary (as keys) are converted to ``NaN``. However, if the
         dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
         provides a method for default values), then this default is used
@@ -2324,7 +2324,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
         """
         new_values = super(Series, self)._map_values(
-            mapper, na_action=na_action)
+            arg, na_action=na_action)
         return self._constructor(new_values,
                                  index=self.index).__finalize__(self)
 

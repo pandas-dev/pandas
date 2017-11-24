@@ -269,7 +269,6 @@ class TestCategoricalIndex(Base):
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
-<<<<<<< HEAD
         result = ci.map(pd.Series([10, 20, 30], index=['A', 'B', 'C']))
         tm.assert_index_equal(result, exp)
 

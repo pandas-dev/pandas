@@ -872,6 +872,8 @@ class IndexOpsMixin(object):
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
+                # we specify the keys here to handle the
+                # possibility that they are tuples
                 from pandas import Series
                 mapper = Series(mapper, index=mapper.keys())
 

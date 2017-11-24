@@ -2886,8 +2886,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def map(self, mapper, na_action=None):
-        """Map values of Series using input correspondence (which can be a
-        dict, Series, or function)
+        """Map values of Series using input correspondence
 
         Parameters
         ----------
@@ -2920,6 +2919,9 @@ class Index(IndexOpsMixin, PandasObject):
                                           names=names)
 
         attributes['copy'] = False
+
+        # we infer the result types based on the
+        # returned values
         return Index(new_values, **attributes)
 
     def isin(self, values, level=None):
