@@ -878,7 +878,7 @@ class TestIndex(Base):
             if name == 'uintIndex':
                 expected = expected.astype('uint64')
             elif name == 'empty':
-                expected = Float64Index([])
+                expected = Index([])
 
             result = index.map(mapper(expected, index))
             tm.assert_index_equal(result, expected)
