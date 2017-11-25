@@ -19,6 +19,7 @@ import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
+import itertools
 import pandas._libs.lib as lib
 import warnings
 import textwrap
@@ -837,23 +838,11 @@ def str_get_dummies(arr, sep='|'):
     --------
     pandas.get_dummies
     """
-    arr = arr.fillna('')
-    try:
-        arr = sep + arr + sep
-    except TypeError:
-        arr = sep + arr.astype(str) + sep
 
-    tags = set()
-    for ts in arr.str.split(sep):
-        tags.update(ts)
-    tags = sorted(tags - set([""]))
-
-    dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
-
-    for i, t in enumerate(tags):
-        pat = sep + t + sep
-        dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
-    return dummies, tags
+    arr = [list() if el is np.nan else str(el).split(sep) for el in arr]
+    tags = sorted(set(itertools.chain.from_iterable(arr)))
+    result = np.array([[t in x for t in tags] for x in arr], dtype=np.int64)
+    return result, tags
 
 
 def str_join(arr, sep):
