@@ -1007,16 +1007,11 @@ class Base(object):
                 indices._searchsorted_monotonic(value, side='left')
 
     def test_map(self):
+        # callable
         index = self.create_index()
-
-        # From output of UInt64Index mapping can't infer that we
-        #   shouldn't default to Int64
-        if isinstance(index, UInt64Index):
-            expected = Index(index.values.tolist())
-        else:
-            expected = index
-
-        tm.assert_index_equal(index.map(lambda x: x), expected)
+        expected = index
+        result = index.map(lambda x: x)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -1028,13 +1023,7 @@ class Base(object):
         index = self.create_index()
         if isinstance(index, pd.CategoricalIndex):
             pytest.skip("tested in test_categorical")
-
-        # From output of UInt64Index mapping can't infer that we
-        #   shouldn't default to Int64
-        if isinstance(index, UInt64Index):
-            expected = Index(index.values.tolist())
-        else:
-            expected = index
+        expected = index
 
         identity = mapper({x: x for x in index}, index)
         result = index.map(identity)
