@@ -1734,7 +1734,7 @@ class TestSeriesIndexing(TestData):
     def test_underlying_data_conversion(self):
 
         # GH 4080
-        df = DataFrame(dict((c, [1, 2, 3]) for c in ['a', 'b', 'c']))
+        df = DataFrame({c: [1, 2, 3] for c in ['a', 'b', 'c']})
         df.set_index(['a', 'b', 'c'], inplace=True)
         s = Series([1], index=[(2, 2, 2)])
         df['val'] = 0

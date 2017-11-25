@@ -54,7 +54,7 @@ class TestIntervalIndex(object):
     def test_nonoverlapping_monotonic(self, direction, closed):
         tpls = [(0, 1), (2, 3), (4, 5)]
         if direction == 'decreasing':
-            tpls = reversed(tpls)
+            tpls = tpls[::-1]
 
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         s = Series(list('abc'), idx)

@@ -13,7 +13,7 @@ cimport util
 
 import numpy as np
 
-from tslib cimport _to_i8
+from tslibs.conversion cimport maybe_datetimelike_to_i8
 
 from hashtable cimport HashTable
 
@@ -45,6 +45,31 @@ def get_value_at(ndarray arr, object loc):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
+
+
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+
+    if i >= sz or sz == 0 or i < 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        return Timedelta(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
 
 
 def set_value_at(ndarray arr, object loc, object val):
@@ -405,12 +430,12 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = _to_i8(val)
+            conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return util.get_value_at(values, loc) == conv
 
         self._ensure_mapping_populated()
-        return _to_i8(val) in self.mapping
+        return maybe_datetimelike_to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -425,12 +450,12 @@ cdef class DatetimeEngine(Int64Engine):
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = _to_i8(val)
+                val = maybe_datetimelike_to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
 
             try:
-                conv = _to_i8(val)
+                conv = maybe_datetimelike_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
                 self._date_check_type(val)
@@ -442,7 +467,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -453,7 +478,7 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self.mapping.get_item(val)
         except (TypeError, ValueError):
             self._date_check_type(val)

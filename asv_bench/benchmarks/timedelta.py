@@ -31,14 +31,14 @@ class ToTimedelta(object):
         to_timedelta(self.arr4, errors='ignore')
 
 
-class Ops(object):
+class TimedeltaOps(object):
     goal_time = 0.2
 
     def setup(self):
         self.td = to_timedelta(np.arange(1000000))
         self.ts = Timestamp('2000')
 
-    def test_add_td_ts(self):
+    def time_add_td_ts(self):
         self.td + self.ts
 
 

@@ -13,7 +13,9 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetimelike,
                      is_extension_type, is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
-                     is_timedelta64_dtype, is_dtype_equal,
+                     is_datetime64_ns_dtype,
+                     is_timedelta64_dtype, is_timedelta64_ns_dtype,
+                     is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
                      is_datetime_or_timedelta_dtype,
@@ -320,6 +322,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = iNaT
         else:
             dtype = np.object_
+            fill_value = np.nan
     else:
         dtype = np.object_
 
@@ -829,8 +832,10 @@ def maybe_castable(arr):
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
     kind = arr.dtype.kind
-    if kind == 'M' or kind == 'm':
-        return is_datetime64_dtype(arr.dtype)
+    if kind == 'M':
+        return is_datetime64_ns_dtype(arr.dtype)
+    elif kind == 'm':
+        return is_timedelta64_ns_dtype(arr.dtype)
 
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
@@ -1122,3 +1127,38 @@ def cast_scalar_to_array(shape, value, dtype=None):
     values.fill(fill_value)
 
     return values
+
+
+def construct_1d_arraylike_from_scalar(value, length, dtype):
+    """
+    create a np.ndarray / pandas type of specified shape and dtype
+    filled with values
+
+    Parameters
+    ----------
+    value : scalar value
+    length : int
+    dtype : pandas_dtype / np.dtype
+
+    Returns
+    -------
+    np.ndarray / pandas type of length, filled with value
+
+    """
+    if is_datetimetz(dtype):
+        from pandas import DatetimeIndex
+        subarr = DatetimeIndex([value] * length, dtype=dtype)
+    elif is_categorical_dtype(dtype):
+        from pandas import Categorical
+        subarr = Categorical([value] * length)
+    else:
+        if not isinstance(dtype, (np.dtype, type(np.dtype))):
+            dtype = dtype.dtype
+
+        # coerce if we have nan for an integer dtype
+        if is_integer_dtype(dtype) and isna(value):
+            dtype = np.float64
+        subarr = np.empty(length, dtype=dtype)
+        subarr.fill(value)
+
+    return subarr
