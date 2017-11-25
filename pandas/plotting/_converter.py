@@ -190,19 +190,20 @@ class TimeFormatter(Formatter):
         self.locs = locs
 
     def __call__(self, x, pos=0):
-        fmt = '%H:%M:%S'
+        fmt = '%H:%M:%S.%f'
         s = int(x)
         ms = int((x - s) * 1e3)
-        us = int((x - s) * 1e6 - ms)
+        us = int((x - s) * 1e6 - ms * 1e3)
+        msus = int((x - s) * 1e6)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         _, h = divmod(h, 24)
         if us != 0:
-            fmt += '.%6f'
+            return pydt.time(h, m, s, msus).strftime(fmt)
         elif ms != 0:
-            fmt += '.%3f'
+            return pydt.time(h, m, s, msus).strftime(fmt)[:-3]
 
-        return pydt.time(h, m, s, us).strftime(fmt)
+        return pydt.time(h, m, s).strftime('%H:%M:%S')
 
 
 # Period Conversion
