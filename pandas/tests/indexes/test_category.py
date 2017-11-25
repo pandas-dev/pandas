@@ -269,6 +269,24 @@ class TestCategoricalIndex(Base):
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
+        result = ci.map(pd.Series([10, 20, 30], index=['A', 'B', 'C']))
+        tm.assert_index_equal(result, exp)
+
+        result = ci.map({'A': 10, 'B': 20, 'C': 30})
+        tm.assert_index_equal(result, exp)
+
+    def test_map_with_categorical_series(self):
+        # GH 12756
+        a = pd.Index([1, 2, 3, 4])
+        b = pd.Series(["even", "odd", "even", "odd"],
+                      dtype="category")
+        c = pd.Series(["even", "odd", "even", "odd"])
+
+        exp = CategoricalIndex(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(b), exp)
+        exp = pd.Index(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(c), exp)
+
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, klass):
         i = self.create_index()
