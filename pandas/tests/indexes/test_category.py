@@ -362,6 +362,12 @@ class TestCategoricalIndex(Base):
         # invalid
         pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
 
+        # GH 18295 (test missing)
+        expected = CategoricalIndex(['a', np.nan, 'a', 'b', 'c', 'b'])
+        for na in (np.nan, pd.NaT, None):
+            result = CategoricalIndex(list('aabcb')).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
 
         ci = self.create_index()

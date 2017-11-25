@@ -78,6 +78,7 @@ Other API Changes
 - :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`).
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 - :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
+- Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
 
 
 .. _whatsnew_0220.deprecations:
