@@ -138,9 +138,13 @@ Categorical
 - ``CategoricalIndex`` can now correctly take a ``pd.api.types.CategoricalDtype`` as its dtype (:issue:`18116`)
 - Bug in ``Categorical.unique()`` returning read-only ``codes``  array when all categories were ``NaN`` (:issue:`18051`)
 
+String
+^^^^^^
+
+- :meth:`Series.str.split()` will now propogate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
+
 Other
 ^^^^^
 
--
 -
 -
