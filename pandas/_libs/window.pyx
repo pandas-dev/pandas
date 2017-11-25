@@ -661,6 +661,8 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] + 1
 
+        # a part of Welford's method for the online variance-calculation
+        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
         delta = val - mean_x[0]
         mean_x[0] = mean_x[0] + delta / nobs[0]
         ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
@@ -750,6 +752,9 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
             for i from 0 <= i < win:
                 add_var(input[i], &nobs, &mean_x, &ssqdm_x)
                 output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
 
             # After the first window, observations can both be added and
             # removed
