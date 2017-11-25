@@ -424,6 +424,7 @@ class TestSeriesMap(TestData):
         """
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
+
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now

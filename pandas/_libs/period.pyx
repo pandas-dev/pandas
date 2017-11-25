@@ -559,7 +559,6 @@ cdef class _Period(object):
         int64_t ordinal
         object freq
 
-    _comparables = ['name', 'freqstr']
     _typ = 'period'
 
     def __cinit__(self, ordinal, freq):

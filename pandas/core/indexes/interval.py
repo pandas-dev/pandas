@@ -1001,14 +1001,21 @@ class IntervalIndex(IntervalMixin, Index):
         return self._shallow_copy(new_left, new_right)
 
     def insert(self, loc, item):
-        if not isinstance(item, Interval):
-            raise ValueError('can only insert Interval objects into an '
-                             'IntervalIndex')
-        if not item.closed == self.closed:
-            raise ValueError('inserted item must be closed on the same side '
-                             'as the index')
-        new_left = self.left.insert(loc, item.left)
-        new_right = self.right.insert(loc, item.right)
+        if isinstance(item, Interval):
+            if item.closed != self.closed:
+                raise ValueError('inserted item must be closed on the same '
+                                 'side as the index')
+            left_insert = item.left
+            right_insert = item.right
+        elif is_scalar(item) and isna(item):
+            # GH 18295
+            left_insert = right_insert = item
+        else:
+            raise ValueError('can only insert Interval objects and NA into '
+                             'an IntervalIndex')
+
+        new_left = self.left.insert(loc, left_insert)
+        new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
     def _as_like_interval_index(self, other, error_msg):

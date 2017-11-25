@@ -187,6 +187,13 @@ class Numeric(Base):
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
+
 
 class TestFloat64Index(Numeric):
     _holder = Float64Index

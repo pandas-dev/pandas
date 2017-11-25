@@ -145,6 +145,13 @@ class TestDatetimeIndex(object):
                 assert result.tz == expected.tz
                 assert result.freq is None
 
+        # GH 18295 (test missing)
+        expected = DatetimeIndex(
+            ['20170101', pd.NaT, '20170102', '20170103', '20170104'])
+        for na in (np.nan, pd.NaT, None):
+            result = date_range('20170101', periods=4).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
         idx = date_range(start='2000-01-01', periods=5, freq='M', name='idx')
 

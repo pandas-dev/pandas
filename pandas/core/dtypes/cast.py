@@ -1127,3 +1127,38 @@ def cast_scalar_to_array(shape, value, dtype=None):
     values.fill(fill_value)
 
     return values
+
+
+def construct_1d_arraylike_from_scalar(value, length, dtype):
+    """
+    create a np.ndarray / pandas type of specified shape and dtype
+    filled with values
+
+    Parameters
+    ----------
+    value : scalar value
+    length : int
+    dtype : pandas_dtype / np.dtype
+
+    Returns
+    -------
+    np.ndarray / pandas type of length, filled with value
+
+    """
+    if is_datetimetz(dtype):
+        from pandas import DatetimeIndex
+        subarr = DatetimeIndex([value] * length, dtype=dtype)
+    elif is_categorical_dtype(dtype):
+        from pandas import Categorical
+        subarr = Categorical([value] * length)
+    else:
+        if not isinstance(dtype, (np.dtype, type(np.dtype))):
+            dtype = dtype.dtype
+
+        # coerce if we have nan for an integer dtype
+        if is_integer_dtype(dtype) and isna(value):
+            dtype = np.float64
+        subarr = np.empty(length, dtype=dtype)
+        subarr.fill(value)
+
+    return subarr
