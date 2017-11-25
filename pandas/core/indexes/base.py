@@ -1939,7 +1939,10 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             np.putmask(values, mask, self._convert_for_op(value))
             return self._shallow_copy(values)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as err:
+            if is_object_dtype(self):
+                raise err
+
             # coerces to object
             return self.astype(object).putmask(mask, value)
 

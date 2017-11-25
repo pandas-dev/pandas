@@ -1032,3 +1032,16 @@ class Base(object):
 
         dict_map = {}
         tm.assert_index_equal(index.map(dict_map), nan_index)
+
+    def test_putmask_with_wrong_mask(self):
+        # GH18368
+        index = self.create_index()
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask('foo', 1)
