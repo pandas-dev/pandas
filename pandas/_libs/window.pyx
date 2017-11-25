@@ -661,9 +661,11 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] + 1
 
-        delta = (val - mean_x[0])
+        # a part of Welford's method for the online variance-calculation
+        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        delta = val - mean_x[0]
         mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + delta * (val - mean_x[0])
+        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -675,9 +677,11 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
-            delta = (val - mean_x[0])
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+            delta = val - mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
-            ssqdm_x[0] = ssqdm_x[0] - delta * (val - mean_x[0])
+            ssqdm_x[0] = ssqdm_x[0] - ((nobs[0] + 1) * delta ** 2) / nobs[0]
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
@@ -689,7 +693,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
+        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta, mean_x_old
         int64_t s, e
         bint is_variable
         Py_ssize_t i, j, N
@@ -749,6 +753,9 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
                 add_var(input[i], &nobs, &mean_x, &ssqdm_x)
                 output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
             # After the first window, observations can both be added and
             # removed
             for i from win <= i < N:
@@ -760,10 +767,12 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
 
                         # Adding one observation and removing another one
                         delta = val - prev
-                        prev -= mean_x
+                        mean_x_old = mean_x
+
                         mean_x += delta / nobs
-                        val -= mean_x
-                        ssqdm_x += (val + prev) * delta
+                        ssqdm_x += ((nobs - 1) * val
+                                    + (nobs + 1) * prev
+                                    - 2 * nobs * mean_x_old) * delta / nobs
 
                     else:
                         add_var(val, &nobs, &mean_x, &ssqdm_x)
