@@ -17,38 +17,48 @@ class Factorize(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    params = [True, False]
+    param_names = ['sort']
+
+    def setup(self, sort):
         N = 10**5
         np.random.seed(1234)
         self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
         self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
         self.string_idx = tm.makeStringIndex(N)
 
-    def time_factorize_int(self):
-        self.int_idx.factorize()
+    def time_factorize_int(self, sort):
+        self.int_idx.factorize(sort=sort)
 
-    def time_factorize_float(self):
-        self.float_idx.factorize()
+    def time_factorize_float(self, sort):
+        self.float_idx.factorize(sort=sort)
 
-    def time_factorize_string(self):
-        self.string_idx.factorize()
+    def time_factorize_string(self, sort):
+        self.string_idx.factorize(sort=sort)
 
 
 class Duplicated(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    params = ['first', 'last', False]
+    param_names = ['keep']
+
+    def setup(self, keep):
         N = 10**5
         np.random.seed(1234)
         self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
         self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
+        self.string_idx = tm.makeStringIndex(N)
 
-    def time_duplicated_int(self):
-        self.int_idx.duplicated()
+    def time_duplicated_int(self, keep):
+        self.int_idx.duplicated(keep=keep)
 
-    def time_duplicated_float(self):
-        self.float_idx.duplicated()
+    def time_duplicated_float(self, keep):
+        self.float_idx.duplicated(keep=keep)
+
+    def time_duplicated_string(self, keep):
+        self.string_idx.duplicated(keep=keep)
 
 
 class DuplicatedUniqueIndex(object):
