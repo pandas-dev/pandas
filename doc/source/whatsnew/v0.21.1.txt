@@ -103,7 +103,7 @@ Groupby/Resample/Rolling
 - Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
 - Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
--
+- Bug in ``rolling.var`` where calculation is inaccurate with a zero-valued array (:issue:`18430`)
 -
 -
 

@@ -2482,6 +2482,14 @@ class TestMomentsConsistency(Base):
         self._check_pairwise_moment('rolling', 'corr', window=10,
                                     min_periods=5)
 
+    @pytest.mark.parametrize('window', range(7))
+    def test_rolling_corr_with_zero_variance(self, window):
+        # GH 18430
+        s = pd.Series(np.zeros(20))
+        other = pd.Series(np.arange(20))
+
+        assert s.rolling(window=window).corr(other=other).isna().all()
+
     def _check_pairwise_moment(self, dispatch, name, **kwargs):
         def get_result(obj, obj2=None):
             return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
