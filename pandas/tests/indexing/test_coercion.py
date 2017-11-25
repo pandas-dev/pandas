@@ -1311,6 +1311,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         for to_key in self.rep:
             self._assert_replace_conversion(from_key, to_key, how='series')
 
+    @pytest.mark.xfail
     def test_replace_series_datetime64tz(self):
         from_key = 'datetime64[ns, US/Eastern]'
         for to_key in self.rep:

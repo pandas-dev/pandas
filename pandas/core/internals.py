@@ -3486,22 +3486,17 @@ class BlockManager(PandasObject):
         # figure out our mask a-priori to avoid repeated replacements
         values = self.as_matrix()
 
-        if is_datetime64tz_dtype(self):
-            # need to be careful not to compare tznaive to tzaware
-            def comp(s):
-                if isna(s):
-                    return isna(values)
-                return _maybe_compare(values, s, operator.eq)
-                # TODO: Is just not-converting `s` the right thing to do here?
-        else:
-            def comp(s):
-                if isna(s):
-                    return isna(values)
-                return _maybe_compare(values, getattr(s, 'asm8', s),
-                                      operator.eq)
+        def comp(s):
+            if isna(s):
+                return isna(values)
+            return _maybe_compare(values, getattr(s, 'asm8', s), operator.eq)
 
-        masks = [comp(s) for i, s in enumerate(src_list)]
-
+        try:
+            masks = [comp(s) for i, s in enumerate(src_list)]
+        except:
+            print(src_list)
+            print(dest_list)
+            raise
         result_blocks = []
         src_len = len(src_list) - 1
         for blk in self.blocks:
