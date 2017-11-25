@@ -641,7 +641,7 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def _execute_insert(self, conn, keys, data_iter):
-        data = [dict((k, v) for k, v in zip(keys, row)) for row in data_iter]
+        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
         conn.execute(self.insert_statement(), data)
 
     def insert(self, chunksize=None):

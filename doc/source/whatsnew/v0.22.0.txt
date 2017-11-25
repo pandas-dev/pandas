@@ -44,6 +44,7 @@ Other Enhancements
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
+- :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
 
 .. _whatsnew_0220.api_breaking:
 
@@ -52,6 +53,7 @@ Backwards incompatible API changes
 
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
+- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 -
 
 
@@ -73,8 +75,10 @@ Other API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`).
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 - :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
+- Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
 
 
 .. _whatsnew_0220.deprecations:
@@ -95,6 +99,7 @@ Removal of prior version deprecations/changes
 - The ``levels`` and ``labels`` attributes of a ``MultiIndex`` can no longer be set directly (:issue:`4039`).
 - ``pd.tseries.util.pivot_annual`` has been  removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
 - ``pd.tseries.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
+- ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd..merge_ordered`` instead (:issue:`18459`)
 
 .. _whatsnew_0220.performance:
 
@@ -105,6 +110,7 @@ Performance Improvements
 - Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
 - :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
 - Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
+- Improved performance of ``.map()`` with a ``Series/dict`` input (:issue:`15081`)
 - The overriden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
 - ``Series`` construction will reduce the number of copies made of the input data in certain cases (:issue:`17449`)
 - Improved performance of :func:`Series.dt.date` and :func:`DatetimeIndex.date` (:issue:`18058`)
@@ -128,7 +134,7 @@ Bug Fixes
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 -
 -
 
