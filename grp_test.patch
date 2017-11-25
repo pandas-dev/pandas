@@ -1,0 +1,15 @@
+--- a/pandas/tests/groupby/test_groupby.py
++++ b/pandas/tests/groupby/test_groupby.py
+@@ -2725,3 +2725,12 @@ def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
+     expected = f(df.groupby(tups)[field])
+     for k, v in compat.iteritems(expected):
+         assert (result[k] == v)
++
++
++def test_tuple():
++    df = pd.DataFrame({'A': [1, 1, 1, 3, 3, 3],
++                       'B': [1, 1, 1, 4, 4, 4], 'C': [1, 1, 1, 3, 4, 4]})
++
++    result = df.groupby(['A', 'B']).aggregate(tuple)
++    result2 = df.groupby('A').aggregate(tuple)
++    result2 = df.groupby('A').aggregate([tuple])

@@ -1,0 +1,13 @@
+--- a/pandas/core/groupby.py
++++ b/pandas/core/groupby.py
+@@ -3022,7 +3022,9 @@ class SeriesGroupBy(GroupBy):
+         if isinstance(func_or_funcs, compat.string_types):
+             return getattr(self, func_or_funcs)(*args, **kwargs)
+ 
+-        if hasattr(func_or_funcs, '__iter__'):
++        if isinstance(func_or_funcs, collections.Iterable):
++            # Catch instances of lists / tuples
++            # but not the class list / tuple itself.
+             ret = self._aggregate_multiple_funcs(func_or_funcs,
+                                                  (_level or 0) + 1)
+         else:
