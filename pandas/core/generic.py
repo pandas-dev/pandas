@@ -7341,7 +7341,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
 
-        cond = cond.astype(bool, copy=False)
         cond = -cond if inplace else cond
 
         # try to align with other
