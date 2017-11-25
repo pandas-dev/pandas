@@ -2086,6 +2086,18 @@ class TestStringMethods(object):
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 2
 
+    def test_split_nan_expand(self):
+        # gh-18450
+        s = Series(["foo,bar,baz", NA])
+        result = s.str.split(",", expand=True)
+        exp = DataFrame([["foo", "bar", "baz"], [NA, NA, NA]])
+        tm.assert_frame_equal(result, exp)
+
+        # check that these are actually np.nan and not None
+        # TODO see GH 18463
+        # tm.assert_frame_equal does not differentiate
+        assert all(np.isnan(x) for x in result.iloc[1])
+
     def test_split_with_name(self):
         # GH 12617
 
