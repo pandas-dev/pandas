@@ -17,14 +17,12 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
-from pandas._libs.tslib import monthrange
-
+from ccalendar cimport get_days_in_month, monthrange
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct,
-                          is_leapyear, days_per_month_table)
+                          dtstruct_to_dt64, dt64_to_dtstruct)
 
 # ---------------------------------------------------------------------
 # Constants
@@ -452,11 +450,6 @@ class BaseOffset(_BaseOffset):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline int get_days_in_month(int year, int month) nogil:
-    return days_per_month_table[is_leapyear(year)][month - 1]
-
 
 cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
     """new year number after shifting pandas_datetimestruct number of months"""
@@ -554,8 +547,58 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
 
                 dts.day = get_days_in_month(dts.year, dts.month)
                 out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_start':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = NPY_NAT
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            months_to_roll = months
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            compare_day = get_firstbday(wkday, days_in_month)
+
+            if months_to_roll > 0 and dts.day < compare_day:
+                months_to_roll -= 1
+            elif months_to_roll <= 0 and dts.day > compare_day:
+                # as if rolled forward already
+                months_to_roll += 1
+
+            dts.year = year_add_months(dts, months_to_roll)
+            dts.month = month_add_months(dts, months_to_roll)
+
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            dts.day = get_firstbday(wkday, days_in_month)
+            out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_end':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = NPY_NAT
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            months_to_roll = months
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            compare_day = get_lastbday(wkday, days_in_month)
+
+            if months_to_roll > 0 and dts.day < compare_day:
+                months_to_roll -= 1
+            elif months_to_roll <= 0 and dts.day > compare_day:
+                # as if rolled forward already
+                months_to_roll += 1
+
+            dts.year = year_add_months(dts, months_to_roll)
+            dts.month = month_add_months(dts, months_to_roll)
+
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            dts.day = get_lastbday(wkday, days_in_month)
+            out[i] = dtstruct_to_dt64(&dts)
+
     else:
-        raise ValueError("day must be None, 'start' or 'end'")
+        raise ValueError("day must be None, 'start', 'end', "
+                         "'business_start', or 'business_end'")
 
     return np.asarray(out)
 
