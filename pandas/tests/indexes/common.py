@@ -1018,20 +1018,32 @@ class Base(object):
 
         tm.assert_index_equal(index.map(lambda x: x), expected)
 
-        identity_dict = {x: x for x in index}
-        tm.assert_index_equal(index.map(identity_dict), expected)
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
 
-        # Use values to work around MultiIndex instantiation of series
-        identity_series = Series(expected.values, index=index)
-        tm.assert_index_equal(index.map(identity_series), expected)
+        index = self.create_index()
+        if isinstance(index, pd.CategoricalIndex):
+            pytest.skip("tested in test_categorical")
+
+        # From output of UInt64Index mapping can't infer that we
+        #   shouldn't default to Int64
+        if isinstance(index, UInt64Index):
+            expected = Index(index.values.tolist())
+        else:
+            expected = index
+
+        identity = mapper({x: x for x in index}, index)
+        result = index.map(identity)
+        tm.assert_index_equal(result, expected)
 
         # empty mappable
-        nan_index = pd.Index([np.nan] * len(index))
-        series_map = pd.Series()
-        tm.assert_index_equal(index.map(series_map), nan_index)
-
-        dict_map = {}
-        tm.assert_index_equal(index.map(dict_map), nan_index)
+        expected = pd.Index([np.nan] * len(index))
+        result = index.map(mapper(expected, index))
+        tm.assert_index_equal(result, expected)
 
     def test_putmask_with_wrong_mask(self):
         # GH18368
