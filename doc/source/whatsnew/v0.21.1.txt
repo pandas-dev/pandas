@@ -98,7 +98,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in ``rolling.var`` which calculation is inaccurate with a zero-value array (:issue:`18430`)
 -
 -
 
