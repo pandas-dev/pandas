@@ -200,6 +200,11 @@ class SharedWithSparse(object):
         with tm.assert_produces_warning(FutureWarning):
             self.series_klass.from_array([1, 2, 3])
 
+    def test_asobject_deprecated(self):
+        # GH18477
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series().asobject
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 

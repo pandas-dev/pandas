@@ -606,7 +606,7 @@ class TestSeriesConstructors(TestData):
 
         pi = period_range('20130101', periods=5, freq='D')
         s = Series(pi)
-        expected = Series(pi.asobject)
+        expected = Series(pi._asobject)
         assert_series_equal(s, expected)
 
         assert s.dtype == 'object'

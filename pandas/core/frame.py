@@ -3305,7 +3305,7 @@ class DataFrame(NDFrame):
 
         def _maybe_casted_values(index, labels=None):
             if isinstance(index, PeriodIndex):
-                values = index.asobject.values
+                values = index._asobject.values
             elif isinstance(index, DatetimeIndex) and index.tz is not None:
                 values = index
             else:
@@ -5052,7 +5052,7 @@ class DataFrame(NDFrame):
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.asobject, func)
+            return lib.map_infer(x._asobject, func)
 
         return self.apply(infer)
 
