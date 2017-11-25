@@ -73,7 +73,7 @@ Indexing
 - Bug in a boolean comparison of a ``datetime.datetime`` and a ``datetime64[ns]`` dtype Series (:issue:`17965`)
 - Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
 - Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
--
+- Bug in ``Index.putmask`` when an invalid mask passed (:issue:`18368`)
 -
 
 I/O
