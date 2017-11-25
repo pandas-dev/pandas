@@ -79,7 +79,7 @@ Other API Changes
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 - :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
 - Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
-
+- Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 
 .. _whatsnew_0220.deprecations:
 
