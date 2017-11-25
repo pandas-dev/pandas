@@ -61,27 +61,18 @@ class TestPeriodIndex(DatetimeLike):
             result = tm.round_trip_pickle(idx)
             tm.assert_index_equal(result, idx)
 
-    def test_where(self):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+        cond = [True] * len(i)
         expected = i
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2))
-        expected = i2
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
         cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, Series]
-        expected = pd.PeriodIndex([pd.NaT] + i[1:].tolist(), freq='D')
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
+        expected = PeriodIndex([NaT] + i[1:].tolist(), freq='D')
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
 
@@ -692,11 +683,9 @@ class TestPeriodIndex(DatetimeLike):
         assert new_prng.freqstr == 'M'
 
     def test_map(self):
-        index = PeriodIndex([2005, 2007, 2009], freq='A')
-        result = index.map(lambda x: x + 1)
-        expected = index + 1
-        tm.assert_index_equal(result, expected)
+        # test_map_dictlike generally tests
 
+        index = PeriodIndex([2005, 2007, 2009], freq='A')
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
@@ -706,3 +695,11 @@ class TestPeriodIndex(DatetimeLike):
         index = period_range('1/1/2000', periods=10)
         joined = index.join(index, how=how)
         assert index is joined
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = PeriodIndex(
+            ['2017Q1', pd.NaT, '2017Q2', '2017Q3', '2017Q4'], freq='Q')
+        for na in (np.nan, pd.NaT, None):
+            result = period_range('2017Q1', periods=4, freq='Q').insert(1, na)
+            tm.assert_index_equal(result, expected)

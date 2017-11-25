@@ -1094,21 +1094,21 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(Panel(d4), Panel(items=['A', 'B']))
 
             # cast
-            dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
-                           for k, v in compat.iteritems(d))
+            dcasted = {k: v.reindex(wp.major_axis).fillna(0)
+                       for k, v in compat.iteritems(d)}
             result = Panel(dcasted, dtype=int)
-            expected = Panel(dict((k, v.astype(int))
-                                  for k, v in compat.iteritems(dcasted)))
+            expected = Panel({k: v.astype(int)
+                              for k, v in compat.iteritems(dcasted)})
             assert_panel_equal(result, expected)
 
             result = Panel(dcasted, dtype=np.int32)
-            expected = Panel(dict((k, v.astype(np.int32))
-                                  for k, v in compat.iteritems(dcasted)))
+            expected = Panel({k: v.astype(np.int32)
+                              for k, v in compat.iteritems(dcasted)})
             assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
         with catch_warnings(record=True):
-            data = dict((k, v.values) for k, v in self.panel.iteritems())
+            data = {k: v.values for k, v in self.panel.iteritems()}
             result = Panel(data)
             exp_major = Index(np.arange(len(self.panel.major_axis)))
             tm.assert_index_equal(result.major_axis, exp_major)
@@ -1350,18 +1350,18 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # make sure that we don't trigger any warnings
             result = self.panel.apply(f, axis=['items', 'major_axis'])
-            expected = Panel(dict((ax, f(self.panel.loc[:, :, ax]))
-                                  for ax in self.panel.minor_axis))
+            expected = Panel({ax: f(self.panel.loc[:, :, ax])
+                              for ax in self.panel.minor_axis})
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['major_axis', 'minor_axis'])
-            expected = Panel(dict((ax, f(self.panel.loc[ax]))
-                                  for ax in self.panel.items))
+            expected = Panel({ax: f(self.panel.loc[ax])
+                              for ax in self.panel.items})
             assert_panel_equal(result, expected)
 
             result = self.panel.apply(f, axis=['minor_axis', 'items'])
-            expected = Panel(dict((ax, f(self.panel.loc[:, ax]))
-                                  for ax in self.panel.major_axis))
+            expected = Panel({ax: f(self.panel.loc[:, ax])
+                              for ax in self.panel.major_axis})
             assert_panel_equal(result, expected)
 
             # with multi-indexes
@@ -1994,8 +1994,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # negative numbers, #2164
             result = self.panel.shift(-1)
-            expected = Panel(dict((i, f.shift(-1)[:-1])
-                                  for i, f in self.panel.iteritems()))
+            expected = Panel({i: f.shift(-1)[:-1]
+                              for i, f in self.panel.iteritems()})
             assert_panel_equal(result, expected)
 
             # mixed dtypes #6959
