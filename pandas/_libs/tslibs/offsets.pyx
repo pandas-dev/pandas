@@ -261,7 +261,7 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-_rd_kwds = set([
+relativedelta_kwds = set([
     'years', 'months', 'weeks', 'days',
     'year', 'month', 'week', 'day', 'weekday',
     'hour', 'minute', 'second', 'microsecond',
@@ -405,6 +405,33 @@ class _BaseOffset(object):
         # subclass must implement `_day_opt`; calling from the base class
         # will raise NotImplementedError.
         return get_day_of_month(other, self._day_opt)
+
+    def _validate_n(self, n):
+        """
+        Require that `n` be a nonzero integer.
+
+        Parameters
+        ----------
+        n : int
+
+        Returns
+        -------
+        nint : int
+
+        Raises
+        ------
+        TypeError if `int(n)` raises
+        ValueError if n != int(n)
+        """
+        try:
+            nint = int(n)
+        except (ValueError, TypeError):
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(ntype=type(n)))
+        if n != nint:
+            raise ValueError('`n` argument must be an integer, '
+                             'got {n}'.format(n=n))
+        return nint
 
 
 class BaseOffset(_BaseOffset):
