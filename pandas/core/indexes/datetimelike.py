@@ -136,7 +136,7 @@ class DatetimeIndexOpsMixin(object):
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
-            except:
+            except Exception:
                 return False
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -352,7 +352,7 @@ class DatetimeIndexOpsMixin(object):
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
-                self._shallow_copy(result)
+                result = Index(result)
 
             if not isinstance(result, Index):
                 raise TypeError('The map function must return an Index object')
@@ -697,6 +697,14 @@ class DatetimeIndexOpsMixin(object):
 
     def _add_delta(self, other):
         return NotImplemented
+
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        if len(data):
+            return np.array([data.get(i, np.nan)
+                             for i in self.asobject.values])
+
+        return np.array([np.nan])
 
     def _add_delta_td(self, other):
         # add a delta of a timedeltalike

@@ -123,6 +123,30 @@ class series_dropna_datetime(object):
         self.s.dropna()
 
 
+class series_map_dict(object):
+    goal_time = 0.2
+
+    def setup(self):
+        map_size = 1000
+        self.s = Series(np.random.randint(0, map_size, 10000))
+        self.map_dict = {i: map_size - i for i in range(map_size)}
+
+    def time_series_map_dict(self):
+        self.s.map(self.map_dict)
+
+
+class series_map_series(object):
+    goal_time = 0.2
+
+    def setup(self):
+        map_size = 1000
+        self.s = Series(np.random.randint(0, map_size, 10000))
+        self.map_series = Series(map_size - np.arange(map_size))
+
+    def time_series_map_series(self):
+        self.s.map(self.map_series)
+
+
 class series_clip(object):
     goal_time = 0.2
 

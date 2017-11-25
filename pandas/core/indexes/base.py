@@ -13,7 +13,6 @@ from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
-
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCMultiIndex,
@@ -2827,6 +2826,27 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
+    _index_shared_docs['_get_values_from_dict'] = """
+        Return the values of the input dictionary in the order the keys are
+        in the index. np.nan is returned for index values not in the
+        dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            The dictionary from which to extract the values
+
+        Returns
+        -------
+        np.array
+
+        """
+
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        return lib.fast_multiget(data, self.values,
+                                 default=np.nan)
+
     def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2865,13 +2885,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def map(self, mapper):
-        """Apply mapper function to an index.
+    def map(self, mapper, na_action=None):
+        """Map values of Series using input correspondence
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied.
+        mapper : function, dict, or Series
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
 
         Returns
         -------
@@ -2881,15 +2903,26 @@ class Index(IndexOpsMixin, PandasObject):
             a MultiIndex will be returned.
 
         """
+
         from .multi import MultiIndex
-        mapped_values = self._arrmap(self.values, mapper)
+        new_values = super(Index, self)._map_values(
+            mapper, na_action=na_action)
         attributes = self._get_attributes_dict()
-        if mapped_values.size and isinstance(mapped_values[0], tuple):
-            return MultiIndex.from_tuples(mapped_values,
-                                          names=attributes.get('name'))
+        if new_values.size and isinstance(new_values[0], tuple):
+            if isinstance(self, MultiIndex):
+                names = self.names
+            elif attributes.get('name'):
+                names = [attributes.get('name')] * len(new_values[0])
+            else:
+                names = None
+            return MultiIndex.from_tuples(new_values,
+                                          names=names)
 
         attributes['copy'] = False
-        return Index(mapped_values, **attributes)
+
+        # we infer the result types based on the
+        # returned values
+        return Index(new_values, **attributes)
 
     def isin(self, values, level=None):
         """

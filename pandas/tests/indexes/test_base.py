@@ -4,6 +4,8 @@ import pytest
 
 from datetime import datetime, timedelta
 
+from collections import defaultdict
+
 import pandas.util.testing as tm
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
@@ -843,6 +845,64 @@ class TestIndex(Base):
         date_index = tm.makeDateIndex(24, freq='h', name='hourly')
         exp = Index(range(24), name='hourly')
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
+
+    def test_map_with_dict_and_series(self):
+        # GH 12756
+        expected = Index(['foo', 'bar', 'baz'])
+        mapper = Series(expected.values, index=[0, 1, 2])
+        result = tm.makeIntIndex(3).map(mapper)
+        tm.assert_index_equal(result, expected)
+
+        for name in self.indices.keys():
+            if name == 'catIndex':
+                # Tested in test_categorical
+                continue
+            elif name == 'repeats':
+                # Cannot map duplicated index
+                continue
+
+            cur_index = self.indices[name]
+            expected = Index(np.arange(len(cur_index), 0, -1))
+            mapper = pd.Series(expected, index=cur_index)
+            result = cur_index.map(mapper)
+
+            tm.assert_index_equal(result, expected)
+
+            # If the mapper is empty the expected index type is Int64Index
+            # but the output defaults to Float64 so I treat it independently
+            mapper = {o: n for o, n in
+                      zip(cur_index, expected)}
+
+            result = cur_index.map(mapper)
+            if not mapper:
+                expected = Float64Index([])
+            tm.assert_index_equal(result, expected)
+
+    def test_map_with_non_function_missing_values(self):
+        # GH 12756
+        expected = Index([2., np.nan, 'foo'])
+        input = Index([2, 1, 0])
+
+        mapper = Series(['foo', 2., 'baz'], index=[0, 2, -1])
+        tm.assert_index_equal(expected, input.map(mapper))
+
+        mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
+        tm.assert_index_equal(expected, input.map(mapper))
+
+    def test_map_na_exclusion(self):
+        idx = Index([1.5, np.nan, 3, np.nan, 5])
+
+        result = idx.map(lambda x: x * 2, na_action='ignore')
+        exp = idx * 2
+        tm.assert_index_equal(result, exp)
+
+    def test_map_defaultdict(self):
+        idx = Index([1, 2, 3])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = idx.map(default_dict)
+        expected = Index(['stuff', 'blank', 'blank'])
+        tm.assert_index_equal(result, expected)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])

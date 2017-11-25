@@ -187,6 +187,7 @@ class TestTimedeltaIndex(DatetimeLike):
         assert not idx.equals(list(non_td))
 
     def test_map(self):
+        # test_map_dictlike generally tests
 
         rng = timedelta_range('1 day', periods=10)
 
