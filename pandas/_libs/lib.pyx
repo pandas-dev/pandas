@@ -929,19 +929,6 @@ def write_csv_rows(list data, ndarray data_index,
 # ------------------------------------------------------------------------------
 # Groupby-related functions
 
-@cython.boundscheck(False)
-def arrmap(ndarray[object] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):

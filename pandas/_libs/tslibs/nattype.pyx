@@ -572,7 +572,7 @@ NaT = NaTType()
 
 # ----------------------------------------------------------------------
 
-cdef inline bint _checknull_with_nat(object val):
+cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
         PyFloat_Check(val) and val != val) or val is NaT
