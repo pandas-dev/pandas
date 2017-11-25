@@ -202,8 +202,10 @@ class TimeFormatter(Formatter):
             return pydt.time(h, m, s, msus).strftime(fmt)
         elif ms != 0:
             return pydt.time(h, m, s, msus).strftime(fmt)[:-3]
+        elif s != 0:
+            return pydt.time(h, m, s).strftime('%H:%M:%S')
 
-        return pydt.time(h, m, s).strftime('%H:%M:%S')
+        return pydt.time(h, m).strftime('%H:%M')
 
 
 # Period Conversion
