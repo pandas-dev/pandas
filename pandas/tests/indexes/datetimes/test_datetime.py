@@ -269,16 +269,29 @@ class TestDatetimeIndex(object):
         assert (dr == dr).all()
         assert (dz == dz).all()
 
-        naive_series = pd.Series(dr)
-        aware_series = pd.Series(dz)
-        for op in ops:
-            with pytest.raises(TypeError):
-                op(dz, naive_series)
-            with pytest.raises(TypeError):
-                op(dr, aware_series)
+        # Check comparisons against datetime-like strings
+        str_ts = '2000-03-14 01:59'
+        str_ts_tz = '2000-03-14 01:59-0500'
 
-        # TODO: implement _assert_tzawareness_compat for the reverse
-        # comparison with the Series on the left-hand side
+        assert (dr > str_ts).all()
+        with pytest.raises(TypeError):
+            dr == str_ts_tz
+
+        assert (dz > str_ts_tz).all()
+        with pytest.raises(TypeError):
+            dz != str_ts
+
+        # Check comparisons against scalar Timestamps
+        ts = pd.Timestamp('2000-03-14 01:59')
+        ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
+
+        assert (dr > ts).all()
+        with pytest.raises(TypeError):
+            dr == ts_tz
+
+        assert (dz > ts_tz).all()
+        with pytest.raises(TypeError):
+            dz != ts
 
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)
