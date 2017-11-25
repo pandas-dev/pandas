@@ -673,8 +673,8 @@ class TestMultiIndex(Base):
             arrays.append(np.asarray(lev).take(lab))
 
         # list of arrays as input
-        result = MultiIndex.from_arrays(arrays)
-        assert list(result) == list(self.index)
+        result = MultiIndex.from_arrays(arrays, names=self.index.names)
+        tm.assert_index_equal(result, self.index)
 
         # infer correctly
         result = MultiIndex.from_arrays([[pd.NaT, Timestamp('20130101')],
@@ -689,8 +689,8 @@ class TestMultiIndex(Base):
             arrays.append(np.asarray(lev).take(lab))
 
         # iterator as input
-        result = MultiIndex.from_arrays(iter(arrays))
-        assert list(result) == list(self.index)
+        result = MultiIndex.from_arrays(iter(arrays), names=self.index.names)
+        tm.assert_index_equal(result, self.index)
 
         # invalid iterator input
         with tm.assert_raises_regex(
@@ -841,7 +841,6 @@ class TestMultiIndex(Base):
         expected = MultiIndex.from_tuples(tuples, names=names)
 
         tm.assert_index_equal(result, expected)
-        assert result.names == names
 
     def test_from_product_iterator(self):
         # GH 18434
@@ -855,8 +854,7 @@ class TestMultiIndex(Base):
 
         # iterator as input
         result = MultiIndex.from_product(iter([first, second]), names=names)
-        assert result.equals(expected)
-        assert result.names == names
+        tm.assert_index_equal(result, expected)
 
         # Invalid non-iterable input
         with tm.assert_raises_regex(
@@ -1767,8 +1765,7 @@ class TestMultiIndex(Base):
 
         # input tuples
         result = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
-        assert expected.names == result.names
-        assert result.equals(expected)
+        tm.assert_index_equal(result, expected)
 
     def test_from_tuples_iterator(self):
         # GH 18434
@@ -1778,8 +1775,7 @@ class TestMultiIndex(Base):
                               names=['a', 'b'])
 
         result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=['a', 'b'])
-        assert expected.names == result.names
-        assert result.equals(expected)
+        tm.assert_index_equal(result, expected)
 
         # input non-iterables
         with tm.assert_raises_regex(
