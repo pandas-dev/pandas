@@ -257,7 +257,7 @@ class SharedWithSparse(object):
                     assert value == frame[col][i]
 
         # mixed type
-        mat = self.mixed_frame.as_matrix(['foo', 'A'])
+        mat = self.mixed_frame[['foo', 'A']].values
         assert mat[0, 0] == 'bar'
 
         df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
@@ -368,6 +368,13 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
     def test_values(self):
         self.frame.values[:, 0] = 5.
         assert (self.frame.values[:, 0] == 5).all()
+
+    def test_as_matrix_deprecated(self):
+        # GH18458
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.frame.as_matrix()
+        expected = self.frame.values
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_deepcopy(self):
         cp = deepcopy(self.frame)

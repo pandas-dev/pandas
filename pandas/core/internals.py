@@ -3670,9 +3670,10 @@ class BlockManager(PandasObject):
         return self.apply('copy', axes=new_axes, deep=deep,
                           do_integrity_check=False)
 
-    def as_matrix(self, items=None):
+    def as_matrix(self, transpose=False, items=None):
         if len(self.blocks) == 0:
-            return np.empty(self.shape, dtype=float)
+            arr = np.empty(self.shape, dtype=float)
+            return arr.transpose() if transpose else arr
 
         if items is not None:
             mgr = self.reindex_axis(items, axis=0)
@@ -3680,9 +3681,11 @@ class BlockManager(PandasObject):
             mgr = self
 
         if self._is_single_block or not self.is_mixed_type:
-            return mgr.blocks[0].get_values()
+            arr = mgr.blocks[0].get_values()
         else:
-            return mgr._interleave()
+            arr = mgr._interleave()
+
+        return arr.transpose() if transpose else arr
 
     def _interleave(self):
         """

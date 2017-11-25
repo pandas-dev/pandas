@@ -3735,8 +3735,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def as_matrix(self, columns=None):
         """
-        DEPRECATED: This method will be removed in a future version.
-        Use :meth:`NDFrame.values` instead.
+        DEPRECATED: as_matrix will be removed in a future version.
+        Use :meth:`DataFrame.values` instead.
 
         Convert the frame to its Numpy-array representation.
 
@@ -3773,8 +3773,8 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.DataFrame.values
         """
-        warnings.warn("This method will be removed in a future version. "
-                      "Use ``.values`` instead.")
+        warnings.warn("method ``as_matrix`` will be removed in a future version. "
+                      "Use ``values`` instead.", FutureWarning, stacklevel=2)
         self._consolidate_inplace()
         if self._AXIS_REVERSED:
             return self._data.as_matrix(columns).T
@@ -3797,9 +3797,7 @@ class NDFrame(PandasObject, SelectionMixin):
         will result in a flot64 dtype.
         """
         self._consolidate_inplace()
-        if self._AXIS_REVERSED:
-            return self._data.as_matrix().T
-        return self._data.as_matrix()
+        return self._data.as_matrix(transpose=self._AXIS_REVERSED)
 
     @property
     def _values(self):
