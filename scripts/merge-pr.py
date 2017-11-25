@@ -160,7 +160,7 @@ def merge_pr(pr_num, target_ref):
     if body is not None:
         merge_message_flags += ["-m", '\n'.join(textwrap.wrap(body))]
 
-    authors = "\n".join("Author: %s" % a for a in distinct_authorsS)
+    authors = "\n".join("Author: %s" % a for a in distinct_authors)
 
     merge_message_flags += ["-m", authors]
 
