@@ -10,7 +10,7 @@ from pandas.compat import range, u, PY3
 
 import numpy as np
 
-from pandas import (isna, notna, Series, Index, Float64Index,
+from pandas import (isna, Series, Index, Float64Index,
                     Int64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -933,31 +933,6 @@ class TestRangeIndex(Numeric):
 
             i = RangeIndex(0, 5, step)
             assert len(i) == 0
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_append(self):
         # GH16212

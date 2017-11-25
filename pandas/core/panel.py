@@ -1080,7 +1080,7 @@ class Panel(NDFrame):
         for i in range(np.prod(shape)):
 
             # construct the object
-            pts = tuple([p[i] for p in points])
+            pts = tuple(p[i] for p in points)
             indexer.put(indlist, slice_indexer)
 
             obj = Series(values[tuple(indexer)], index=slice_axis, name=pts)
@@ -1417,10 +1417,10 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict([(self._AXIS_SLICEMAP[i], a)
-                     for i, a in zip(
-                         self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
-                         axes)])
+        return dict((self._AXIS_SLICEMAP[i], a)
+                    for i, a in zip(
+                        self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
+                        axes))
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1468,8 +1468,8 @@ class Panel(NDFrame):
                 adj_frames[k] = v
 
         axes = self._AXIS_ORDERS[1:]
-        axes_dict = dict([(a, ax) for a, ax in zip(axes, self._extract_axes(
-            self, adj_frames, axes, intersect=intersect))])
+        axes_dict = dict((a, ax) for a, ax in zip(axes, self._extract_axes(
+            self, adj_frames, axes, intersect=intersect)))
 
         reindex_dict = dict(
             [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])

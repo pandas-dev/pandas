@@ -1158,7 +1158,7 @@ class TestDataFrameFormatting(object):
                                   float_format='%.5f'.__mod__)
         lines = result.split('\n')
         header = lines[0].strip().split()
-        joined = '\n'.join([re.sub(r'\s+', ' ', x).strip() for x in lines[1:]])
+        joined = '\n'.join(re.sub(r'\s+', ' ', x).strip() for x in lines[1:])
         recons = read_table(StringIO(joined), names=header,
                             header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
@@ -1505,11 +1505,11 @@ c  10  11  12  13  14\
         max_rows = get_option('display.max_rows')
 
         h, w = max_rows - 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' not in df._repr_html_()
 
         h, w = max_rows + 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' in df._repr_html_()
 
     def test_info_repr(self):
@@ -1517,14 +1517,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_vertically_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
@@ -1550,14 +1550,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert r'&lt;class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert r'&lt;class' in df._repr_html_()
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '<class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert '&lt;class' in df._repr_html_()
@@ -2058,7 +2058,7 @@ class TestSeriesFormatting(object):
         lines = res.split('\n')
         lines = [line for line in repr(s).split('\n')
                  if not re.match(r'[^\.]*\.+', line)][:-1]
-        ncolsizes = len(set(len(line.strip()) for line in lines))
+        ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
     def test_format_explicit(self):
@@ -2281,22 +2281,9 @@ class TestRepr_timedelta64(object):
         assert drepr(delta_1s) == "0 days 00:00:01"
         assert drepr(delta_500ms) == "0 days 00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-
-    def test_even_day(self):
-        delta_1d = pd.to_timedelta(1, unit='D')
-        delta_0d = pd.to_timedelta(0, unit='D')
-        delta_1s = pd.to_timedelta(1, unit='s')
-        delta_500ms = pd.to_timedelta(500, unit='ms')
-
-        drepr = lambda x: x._repr_base(format='even_day')
-        assert drepr(delta_1d) == "1 days"
-        assert drepr(-delta_1d) == "-1 days"
-        assert drepr(delta_0d) == "0 days"
-        assert drepr(delta_1s) == "0 days 00:00:01"
-        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_sub_day(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2311,7 +2298,9 @@ class TestRepr_timedelta64(object):
         assert drepr(delta_1s) == "00:00:01"
         assert drepr(delta_500ms) == "00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_long(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2326,7 +2315,9 @@ class TestRepr_timedelta64(object):
         assert drepr(delta_1s) == "0 days 00:00:01"
         assert drepr(delta_500ms) == "0 days 00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_all(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2335,8 +2326,10 @@ class TestRepr_timedelta64(object):
 
         drepr = lambda x: x._repr_base(format='all')
         assert drepr(delta_1d) == "1 days 00:00:00.000000000"
+        assert drepr(-delta_1d) == "-1 days +00:00:00.000000000"
         assert drepr(delta_0d) == "0 days 00:00:00.000000000"
         assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
+        assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
 
 
 class TestTimedelta64Formatter(object):

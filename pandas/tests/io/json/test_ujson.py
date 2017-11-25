@@ -1643,4 +1643,4 @@ class TestPandasJSONTests(object):
 
 
 def _clean_dict(d):
-    return dict((str(k), v) for k, v in compat.iteritems(d))
+    return {str(k): v for k, v in compat.iteritems(d)}
