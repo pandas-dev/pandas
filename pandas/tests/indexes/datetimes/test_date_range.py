@@ -290,6 +290,24 @@ class TestGenRangeGeneration(object):
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    def test_mismatching_tz_raises_err(self):
+        dt1_tz = pd.Timestamp('2017-01-01', tz='US/Eastern')
+        dt1_no_tz = pd.Timestamp('2017-01-01')
+        dt2_tz = pd.Timestamp('2017-01-04', tz='US/Eastern')
+        dt2_no_tz = pd.Timestamp('2017-01-04')
+
+        with pytest.raises(TypeError):
+            pd.date_range(start=dt1_no_tz, end=dt2_tz)
+
+        with pytest.raises(TypeError):
+            pd.date_range(start=dt1_tz, end=dt2_no_tz)
+
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start=dt1_no_tz, end=dt2_tz, freq='D')
+
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start=dt1_tz, end=dt2_no_tz, freq='D')
+
 
 class TestBusinessDateRange(object):
 
