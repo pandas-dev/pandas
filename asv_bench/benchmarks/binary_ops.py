@@ -1,5 +1,6 @@
 import numpy as np
 from pandas import DataFrame, Series, date_range
+from pandas.core.algorithms import checked_add_with_arr
 try:
     import pandas.core.computation.expressions as expr
 except ImportError:
@@ -108,3 +109,46 @@ class Timeseries(object):
 
     def time_timestamp_ops_diff_with_shift(self, tz):
         self.s - self.s.shift()
+
+
+class AddOverflowScalar(object):
+
+    goal_time = 0.2
+
+    params = [1, -1, 0]
+    param_names = ['scalar']
+
+    def setup(self, scalar):
+        N = 10**6
+        self.arr = np.arange(N)
+
+    def time_add_overflow_scalar(self, scalar):
+        checked_add_with_arr(self.arr, scalar)
+
+
+class AddOverflowArray(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        N = 10**6
+        self.arr = np.arange(N)
+        self.arr_rev = np.arange(-N, 0)
+        self.arr_mixed = np.array([1, -1]).repeat(N / 2)
+        self.arr_nan_1 = np.random.choice([True, False], size=N)
+        self.arr_nan_2 = np.random.choice([True, False], size=N)
+
+    def time_add_overflow_arr_rev(self):
+        checked_add_with_arr(self.arr, self.arr_rev)
+
+    def time_add_overflow_arr_mask_nan(self):
+        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1)
+
+    def time_add_overflow_b_mask_nan(self):
+        checked_add_with_arr(self.arr, self.arr_mixed,
+                             b_mask=self.arr_nan_1)
+
+    def time_add_overflow_both_arg_nan(self):
+        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1,
+                             b_mask=self.arr_nan_2)
