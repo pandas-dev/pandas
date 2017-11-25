@@ -1,6 +1,7 @@
 import numpy as np
 from pandas import DataFrame, Series, Index, DatetimeIndex, Timestamp
 
+
 class Constructors(object):
 
     goal_time = 0.2
