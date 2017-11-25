@@ -291,23 +291,24 @@ class TestGenRangeGeneration(object):
         tm.assert_index_equal(result2, expected2)
 
     def test_mismatching_tz_raises_err(self):
+        #issue 18488
         dt1_tz = pd.Timestamp('2017-01-01', tz='US/Eastern')
         dt1_no_tz = pd.Timestamp('2017-01-01')
         dt2_tz = pd.Timestamp('2017-01-04', tz='US/Eastern')
         dt2_no_tz = pd.Timestamp('2017-01-04')
+        dt1_diff_tz = pd.Timestamp('2017-01-01', tz='Europe/London')
+        dt2_diff_tz = pd.Timestamp('2017-01-04', tz='Europe/London')
 
-        with pytest.raises(TypeError):
-            pd.date_range(start=dt1_no_tz, end=dt2_tz)
+        def assert_tz_raises_exception(start, end):
+            with pytest.raises(TypeError):
+                pd.date_range(start, end)
+            with pytest.raises(TypeError):
+                pd.DatetimeIndexstart(start, end)
 
-        with pytest.raises(TypeError):
-            pd.date_range(start=dt1_tz, end=dt2_no_tz)
-
-        with pytest.raises(TypeError):
-            pd.DatetimeIndex(start=dt1_no_tz, end=dt2_tz, freq='D')
-
-        with pytest.raises(TypeError):
-            pd.DatetimeIndex(start=dt1_tz, end=dt2_no_tz, freq='D')
-
+        assert_tz_raises_exception(dt1_no_tz, dt2_tz)
+        assert_tz_raises_exception(dt1_tz, dt2_no_tz)
+        assert_tz_raises_exception(dt1_tz, dt2_diff_tz)
+        assert_tz_raises_exception(dt1_diff_tz, dt2_tz)
 
 class TestBusinessDateRange(object):
 
