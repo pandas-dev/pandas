@@ -1,7 +1,13 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.dtypes.concat import union_categoricals
+try:
+    from pandas.api.types import union_categoricals
+except ImportError:
+    try:
+        from pandas.types.concat import union_categoricals
+    except ImportError:
+        pass
 
 
 class Concat(object):
@@ -42,22 +48,22 @@ class Constructor(object):
         self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
         self.values_all_nan = [np.nan] * len(self.values)
 
-    def time_constructor_regular(self):
+    def time_regular(self):
         pd.Categorical(self.values, self.categories)
 
-    def time_constructor_fastpath(self):
+    def time_fastpath(self):
         pd.Categorical(self.codes, self.cat_idx, fastpath=True)
 
-    def time_constructor_datetimes(self):
+    def time_datetimes(self):
         pd.Categorical(self.datetimes)
 
-    def time_constructor_datetimes_with_nat(self):
+    def time_datetimes_with_nat(self):
         pd.Categorical(self.datetimes_with_nat)
 
-    def time_constructor_with_nan(self):
+    def time_with_nan(self):
         pd.Categorical(self.values_some_nan)
 
-    def time_constructor_all_nan(self):
+    def time_all_nan(self):
         pd.Categorical(self.values_all_nan)
 
 
@@ -73,10 +79,9 @@ class ValueCounts(object):
         np.random.seed(2718281)
         arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype('category')
-        self.dropna = dropna
 
     def time_value_counts(self, dropna):
-        self.ts.value_counts(dropna=self.dropna)
+        self.ts.value_counts(dropna=dropna)
 
 
 class Repr(object):
