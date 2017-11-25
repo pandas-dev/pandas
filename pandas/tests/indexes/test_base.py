@@ -459,6 +459,12 @@ class TestIndex(Base):
         null_index = Index([])
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
+        # GH 18295 (test missing)
+        expected = Index(['a', np.nan, 'b', 'c'])
+        for na in (np.nan, pd.NaT, None):
+            result = Index(list('abc')).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
 

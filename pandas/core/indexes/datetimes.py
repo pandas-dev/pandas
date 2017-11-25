@@ -1768,6 +1768,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         new_index : Index
         """
+        if is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
 
         freq = None
 
@@ -1784,6 +1787,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
             item = _to_m8(item, tz=self.tz)
+
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
@@ -1791,7 +1795,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq,
                                  tz=self.tz)
-
         except (AttributeError, TypeError):
 
             # fall back to object index

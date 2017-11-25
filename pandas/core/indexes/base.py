@@ -3767,6 +3767,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
+        if is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
+
         _self = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))

@@ -852,16 +852,18 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         new_index : Index
         """
-
         # try to convert if possible
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
             except Exception:
                 pass
+        elif is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
 
         freq = None
-        if isinstance(item, Timedelta) or item is NaT:
+        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
