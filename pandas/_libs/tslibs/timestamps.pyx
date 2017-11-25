@@ -7,7 +7,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as np
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t, ndarray
 np.import_array()
 
 from datetime import time as datetime_time
@@ -296,7 +296,10 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
 
-    cpdef int _get_field(self, field):
+    cdef int _get_field(_Timestamp self, field):
+        # Note: because _get_field is `cdef`, it is not visible in the python
+        # namespace.  Any methods that need to call `_get_field` must be
+        # defined in _Timestamp, not Timestamp.
         cdef:
             int64_t val
             ndarray[int32_t] out
@@ -304,10 +307,32 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cpdef _get_start_end_field(self, field):
+    @property
+    def dayofyear(self):
+        return self._get_field('doy')
+
+    @property
+    def week(self):
+        return self._get_field('woy')
+
+    @property
+    def quarter(self):
+        return self._get_field('q')
+
+    @property
+    def days_in_month(self):
+        return self._get_field('dim')
+
+    cdef bint _get_start_end_field(_Timestamp self, field):
+        # Note: because _get_start_end_field is `cdef`, it is not visible
+        # in the python namespace.  Any methods that need to call
+        # `_get_start_end_field` must be defined in _Timestamp, not Timestamp.
         cdef:
             int64_t val
             dict kwds
+            # Note: As of 2017-11-23, adding a type declaration for `out`
+            # results in a ValueError when any of these properties are accessed
+            # "Does not understand character buffer dtype format string ('?')"
 
         freq = self.freq
         if freq:
@@ -321,7 +346,31 @@ cdef class _Timestamp(datetime):
         val = self._maybe_convert_value_to_local()
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw)
-        return out[0]
+        return bool(out[0])
+
+    @property
+    def is_month_start(self):
+        return self._get_start_end_field('is_month_start')
+
+    @property
+    def is_month_end(self):
+        return self._get_start_end_field('is_month_end')
+
+    @property
+    def is_quarter_start(self):
+        return self._get_start_end_field('is_quarter_start')
+
+    @property
+    def is_quarter_end(self):
+        return self._get_start_end_field('is_quarter_end')
+
+    @property
+    def is_year_start(self):
+        return self._get_start_end_field('is_year_start')
+
+    @property
+    def is_year_end(self):
+        return self._get_start_end_field('is_year_end')
 
     @property
     def _repr_base(self):
@@ -702,52 +751,8 @@ class Timestamp(_Timestamp):
         return wdays[self.weekday()]
 
     @property
-    def dayofyear(self):
-        return self._get_field('doy')
-
-    @property
-    def week(self):
-        return self._get_field('woy')
-
-    weekofyear = week
-
-    @property
-    def quarter(self):
-        return self._get_field('q')
-
-    @property
-    def days_in_month(self):
-        return self._get_field('dim')
-
-    daysinmonth = days_in_month
-
-    @property
     def freqstr(self):
         return getattr(self.freq, 'freqstr', self.freq)
-
-    @property
-    def is_month_start(self):
-        return self._get_start_end_field('is_month_start')
-
-    @property
-    def is_month_end(self):
-        return self._get_start_end_field('is_month_end')
-
-    @property
-    def is_quarter_start(self):
-        return self._get_start_end_field('is_quarter_start')
-
-    @property
-    def is_quarter_end(self):
-        return self._get_start_end_field('is_quarter_end')
-
-    @property
-    def is_year_start(self):
-        return self._get_start_end_field('is_year_start')
-
-    @property
-    def is_year_end(self):
-        return self._get_start_end_field('is_year_end')
 
     @property
     def is_leap_year(self):
@@ -981,6 +986,10 @@ class Timestamp(_Timestamp):
         # define it here instead
         return self + other
 
+
+# property aliases
+Timestamp.daysinmonth = Timestamp.days_in_month
+Timestamp.weekofyear = Timestamp.week
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = INT64_MAX
