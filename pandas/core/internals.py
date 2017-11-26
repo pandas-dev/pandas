@@ -3484,7 +3484,7 @@ class BlockManager(PandasObject):
             mgr = self
 
         # figure out our mask a-priori to avoid repeated replacements
-        values = self.as_matrix()
+        values = self.as_array()
 
         def comp(s):
             if isna(s):
@@ -3670,9 +3670,24 @@ class BlockManager(PandasObject):
         return self.apply('copy', axes=new_axes, deep=deep,
                           do_integrity_check=False)
 
-    def as_matrix(self, items=None):
+    def as_array(self, transpose=False, items=None):
+        """Convert the blockmanager data into an numpy array.
+
+        Parameters
+        ----------
+        transpose : boolean, default False
+            If True, transpose the return array
+        items : list of strings or None
+            Names of block items that will be included in the returned
+            array. ``None`` means that all block items will be used
+
+        Returns
+        -------
+        arr : ndarray
+        """
         if len(self.blocks) == 0:
-            return np.empty(self.shape, dtype=float)
+            arr = np.empty(self.shape, dtype=float)
+            return arr.transpose() if transpose else arr
 
         if items is not None:
             mgr = self.reindex_axis(items, axis=0)
@@ -3680,9 +3695,11 @@ class BlockManager(PandasObject):
             mgr = self
 
         if self._is_single_block or not self.is_mixed_type:
-            return mgr.blocks[0].get_values()
+            arr = mgr.blocks[0].get_values()
         else:
-            return mgr._interleave()
+            arr = mgr._interleave()
+
+        return arr.transpose() if transpose else arr
 
     def _interleave(self):
         """

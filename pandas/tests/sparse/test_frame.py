@@ -78,16 +78,16 @@ class TestSparseDataFrame(SharedWithSparse):
         res = df.add(2, fill_value=0)
         tm.assert_sp_frame_equal(res, exp)
 
-    def test_as_matrix(self):
-        empty = self.empty.as_matrix()
+    def test_values(self):
+        empty = self.empty.values
         assert empty.shape == (0, 0)
 
         no_cols = SparseDataFrame(index=np.arange(10))
-        mat = no_cols.as_matrix()
+        mat = no_cols.values
         assert mat.shape == (10, 0)
 
         no_index = SparseDataFrame(columns=np.arange(10))
-        mat = no_index.as_matrix()
+        mat = no_index.values
         assert mat.shape == (0, 10)
 
     def test_copy(self):

@@ -464,7 +464,7 @@ class Panel(NDFrame):
 
     def as_matrix(self):
         self._consolidate_inplace()
-        return self._data.as_matrix()
+        return self._data.as_array()
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
