@@ -292,9 +292,10 @@ class TestGenRangeGeneration(object):
 
     dt1, dt2 = '2017-01-01', '2017-01-01'
     tz1, tz2 = 'US/Eastern', 'Europe/London'
+
     @pytest.mark.parametrize("start,end", [
         (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
-        (pd.Timestamp(dt1),  pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
         (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
         (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1))
     ])
