@@ -76,9 +76,10 @@ class PyArrowImpl(object):
                 table, path, compression=compression,
                 coerce_timestamps=coerce_timestamps, **kwargs)
 
-    def read(self, path):
+    def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.parquet.read_table(path).to_pandas()
+        return self.api.parquet.read_table(path, columns=columns,
+                                           **kwargs).to_pandas()
 
 
 class FastParquetImpl(object):
@@ -115,9 +116,9 @@ class FastParquetImpl(object):
             self.api.write(path, df,
                            compression=compression, **kwargs)
 
-    def read(self, path):
+    def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.ParquetFile(path).to_pandas()
+        return self.api.ParquetFile(path).to_pandas(columns=columns, **kwargs)
 
 
 def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
@@ -175,10 +176,10 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     if df.columns.inferred_type not in valid_types:
         raise ValueError("parquet must have string column names")
 
-    return impl.write(df, path, compression=compression)
+    return impl.write(df, path, compression=compression, **kwargs)
 
 
-def read_parquet(path, engine='auto', **kwargs):
+def read_parquet(path, engine='auto', columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
@@ -188,6 +189,10 @@ def read_parquet(path, engine='auto', **kwargs):
     ----------
     path : string
         File path
+    columns: list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet reader library to use. If 'auto', then the option
         'io.parquet.engine' is used. If 'auto', then the first
@@ -201,4 +206,4 @@ def read_parquet(path, engine='auto', **kwargs):
     """
 
     impl = get_engine(engine)
-    return impl.read(path)
+    return impl.read(path, columns=columns, **kwargs)

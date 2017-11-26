@@ -13,6 +13,7 @@ from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
 import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
+
 cdef class IntervalMixin:
     property closed_left:
         def __get__(self):
@@ -210,8 +211,8 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         int64_t n = len(intervals)
         ndarray left, right
 
-    left = np.empty(n, dtype=object)
-    right = np.empty(n, dtype=object)
+    left = np.empty(n, dtype=intervals.dtype)
+    right = np.empty(n, dtype=intervals.dtype)
 
     for i in range(len(intervals)):
         interval = intervals[i]

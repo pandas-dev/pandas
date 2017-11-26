@@ -269,8 +269,8 @@ class TestDataFrameIndexing(TestData):
 
             data = df._get_numeric_data()
             bif = df[df > 0]
-            bifw = DataFrame(dict([(c, np.where(data[c] > 0, data[c], np.nan))
-                                   for c in data.columns]),
+            bifw = DataFrame(dict((c, np.where(data[c] > 0, data[c], np.nan))
+                                  for c in data.columns),
                              index=data.index, columns=data.columns)
 
             # add back other columns to compare
@@ -594,6 +594,16 @@ class TestDataFrameIndexing(TestData):
 
         assert_frame_equal(self.frame, expected)
 
+    def test_frame_setitem_timestamp(self):
+        # GH#2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012', freq=BDay())
+        index = lrange(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan  # works, mostly a smoke-test
+        assert np.isnan(data[ts]).all()
+
     def test_setitem_corner(self):
         # corner case
         df = DataFrame({'B': [1., 2., 3.],
@@ -722,9 +732,11 @@ class TestDataFrameIndexing(TestData):
                 assert_frame_equal(df, df2)
 
     def test_setitem_scalars_no_index(self):
-        # GH16823
+        # GH16823 / 17894
         df = DataFrame()
-        pytest.raises(ValueError, df.__setitem__, 'foo', 1)
+        df['foo'] = 1
+        expected = DataFrame(columns=['foo']).astype(np.int64)
+        assert_frame_equal(df, expected)
 
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue #11859
@@ -2373,8 +2385,8 @@ class TestDataFrameIndexing(TestData):
                 return (issubclass(s.dtype.type, (np.integer, np.floating)) and
                         s.dtype != 'uint8')
 
-            return DataFrame(dict([(c, s + 1) if is_ok(s) else (c, s)
-                                   for c, s in compat.iteritems(df)]))
+            return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s)
+                                  for c, s in compat.iteritems(df)))
 
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -2397,9 +2409,9 @@ class TestDataFrameIndexing(TestData):
             _check_get(df, cond)
 
         # upcasting case (GH # 2794)
-        df = DataFrame(dict([(c, Series([1] * 3, dtype=c))
-                             for c in ['int64', 'int32',
-                                       'float32', 'float64']]))
+        df = DataFrame(dict((c, Series([1] * 3, dtype=c))
+                            for c in ['int64', 'int32',
+                                      'float32', 'float64']))
         df.iloc[1, :] = 0
         result = df.where(df >= 0).get_dtype_counts()
 
@@ -2451,8 +2463,8 @@ class TestDataFrameIndexing(TestData):
 
             # integers are upcast, so don't check the dtypes
             cond = df > 0
-            check_dtypes = all([not issubclass(s.type, np.integer)
-                                for s in df.dtypes])
+            check_dtypes = all(not issubclass(s.type, np.integer)
+                               for s in df.dtypes)
             _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
         # invalid conditions

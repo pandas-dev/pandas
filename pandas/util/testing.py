@@ -526,7 +526,7 @@ def get_locales(prefix=None, normalize=True,
     """
     try:
         raw_locales = locale_getter()
-    except:
+    except Exception:
         return None
 
     try:
@@ -757,7 +757,7 @@ def set_trace():
     from IPython.core.debugger import Pdb
     try:
         Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except:
+    except Exception:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
 
@@ -1074,8 +1074,12 @@ def assert_categorical_equal(left, right, check_dtype=True,
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
+    elif is_categorical_dtype(left):
+        left = repr(left)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
+    elif is_categorical_dtype(right):
+        right = repr(right)
 
     msg = """{obj} are different
 
@@ -1261,9 +1265,9 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         # TODO: big hack here
-        l = pd.IntervalIndex(left)
-        r = pd.IntervalIndex(right)
-        assert_index_equal(l, r, obj='{obj}.index'.format(obj=obj))
+        left = pd.IntervalIndex(left)
+        right = pd.IntervalIndex(right)
+        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1435,8 +1439,8 @@ def assert_panelnd_equal(left, right,
         assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     if by_blocks:
-        rblocks = right.blocks
-        lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
@@ -1737,7 +1741,7 @@ def makeObjectSeries(name=None):
 
 def getSeriesData():
     index = makeStringIndex(N)
-    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+    return {c: Series(randn(N), index=index) for c in getCols(K)}
 
 
 def makeTimeSeries(nper=None, freq='B', name=None):
@@ -1753,11 +1757,11 @@ def makePeriodSeries(nper=None, name=None):
 
 
 def getTimeSeriesData(nper=None, freq='B'):
-    return dict((c, makeTimeSeries(nper, freq)) for c in getCols(K))
+    return {c: makeTimeSeries(nper, freq) for c in getCols(K)}
 
 
 def getPeriodData(nper=None):
-    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
+    return {c: makePeriodSeries(nper) for c in getCols(K)}
 
 
 # make frame
@@ -1796,14 +1800,14 @@ def makePeriodFrame(nper=None):
 def makePanel(nper=None):
     with warnings.catch_warnings(record=True):
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = dict((c, makeTimeDataFrame(nper)) for c in cols)
+        data = {c: makeTimeDataFrame(nper) for c in cols}
         return Panel.fromDict(data)
 
 
 def makePeriodPanel(nper=None):
     with warnings.catch_warnings(record=True):
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = dict((c, makePeriodFrame(nper)) for c in cols)
+        data = {c: makePeriodFrame(nper) for c in cols}
         return Panel.fromDict(data)
 
 
@@ -1877,7 +1881,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
     assert len(ndupe_l) == nlevels
 
-    assert all([x > 0 for x in ndupe_l])
+    assert all(x > 0 for x in ndupe_l)
 
     tuples = []
     for i in range(nlevels):
@@ -2341,10 +2345,10 @@ def network(t, url="http://www.google.com",
 
             try:
                 e_str = traceback.format_exc(e)
-            except:
+            except Exception:
                 e_str = str(e)
 
-            if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
+            if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip("Skipping test because exception "
                      "message is known and error {error}".format(error=e))
 
@@ -2578,7 +2582,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except:
+                except Exception:
                     pass
 
         saw_warning = False
@@ -2845,7 +2849,7 @@ def set_timezone(tz):
         if tz is None:
             try:
                 del os.environ['TZ']
-            except:
+            except KeyError:
                 pass
         else:
             os.environ['TZ'] = tz

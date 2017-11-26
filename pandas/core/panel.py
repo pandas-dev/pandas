@@ -35,15 +35,16 @@ from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
 from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
     klass="Panel",
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
     optional_mapper='', optional_axis='', optional_labels='')
-_shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
-                                        "of\n%s" %
-                                        _shared_doc_kwargs['axes_single_arg'])
+_shared_doc_kwargs['args_transpose'] = (
+    "three positional arguments: each one of\n{ax_single}".format(
+        ax_single=_shared_doc_kwargs['axes_single_arg']))
 
 
 def _ensure_like_indices(time, panels):
@@ -310,7 +311,8 @@ class Panel(NDFrame):
             try:
                 values = values.astype(dtype)
             except Exception:
-                raise ValueError('failed to cast to %s' % dtype)
+                raise ValueError('failed to cast to '
+                                 '{datatype}'.format(datatype=dtype))
 
         shape = values.shape
         fixed_axes = []
@@ -351,18 +353,18 @@ class Panel(NDFrame):
 
         class_name = str(self.__class__)
 
-        shape = self.shape
-        dims = u('Dimensions: %s') % ' x '.join(
-            ["%d (%s)" % (s, a) for a, s in zip(self._AXIS_ORDERS, shape)])
+        dims = u('Dimensions: {dimensions}'.format(dimensions=' x '.join(
+            ["{shape} ({axis})".format(shape=shape, axis=axis) for axis, shape
+             in zip(self._AXIS_ORDERS, self.shape)])))
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u('%s axis: %s to %s') % (a.capitalize(),
-                                                 pprint_thing(v[0]),
-                                                 pprint_thing(v[-1]))
+                return u('{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
+                                                        x=pprint_thing(v[0]),
+                                                        y=pprint_thing(v[-1])))
             else:
-                return u('%s axis: None') % a.capitalize()
+                return u('{ax} axis: None'.format(ax=a.capitalize()))
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -462,7 +464,7 @@ class Panel(NDFrame):
 
     def as_matrix(self):
         self._consolidate_inplace()
-        return self._data.as_matrix()
+        return self._data.as_array()
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
@@ -609,7 +611,8 @@ class Panel(NDFrame):
         elif is_scalar(value):
             mat = cast_scalar_to_array(shape[1:], value)
         else:
-            raise TypeError('Cannot set item of type: %s' % str(type(value)))
+            raise TypeError('Cannot set item of '
+                            'type: {dtype!s}'.format(dtype=type(value)))
 
         mat = mat.reshape(tuple([1]) + shape[1:])
         NDFrame._set_item(self, key, mat)
@@ -738,9 +741,9 @@ class Panel(NDFrame):
         elif is_scalar(other):
             return self._combine_const(other, func)
         else:
-            raise NotImplementedError("%s is not supported in combine "
-                                      "operation with %s" %
-                                      (str(type(other)), str(type(self))))
+            raise NotImplementedError(
+                "{otype!s} is not supported in combine operation with "
+                "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
     def _combine_const(self, other, func, try_cast=True):
         with np.errstate(all='ignore'):
@@ -1077,7 +1080,7 @@ class Panel(NDFrame):
         for i in range(np.prod(shape)):
 
             # construct the object
-            pts = tuple([p[i] for p in points])
+            pts = tuple(p[i] for p in points)
             indexer.put(indlist, slice_indexer)
 
             obj = Series(values[tuple(indexer)], index=slice_axis, name=pts)
@@ -1187,8 +1190,8 @@ class Panel(NDFrame):
             return self._constructor_sliced(
                 result, **self._extract_axes_for_slice(self, axes))
 
-        raise ValueError('invalid _construct_return_type [self->%s] '
-                         '[result->%s]' % (self, result))
+        raise ValueError('invalid _construct_return_type [self->{self}] '
+                         '[result->{result}]'.format(self=self, result=result))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
@@ -1199,20 +1202,27 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, labels=None,
-                items=None, major_axis=None, minor_axis=None,
-                axis=None, **kwargs):
-        major_axis = (major_axis if major_axis is not None else
-                      kwargs.pop('major', None))
-        minor_axis = (minor_axis if minor_axis is not None else
-                      kwargs.pop('minor', None))
-        axes = self._validate_axis_style_args(
-            labels, 'labels', axes=[items, major_axis, minor_axis],
-            axis=axis, method_name='reindex')
+    def reindex(self, *args, **kwargs):
+        major = kwargs.pop("major", None)
+        minor = kwargs.pop('minor', None)
+
+        if major is not None:
+            if kwargs.get("major_axis"):
+                raise TypeError("Cannot specify both 'major' and 'major_axis'")
+            kwargs['major_axis'] = major
+        if minor is not None:
+            if kwargs.get("minor_axis"):
+                raise TypeError("Cannot specify both 'minor' and 'minor_axis'")
+
+            kwargs['minor_axis'] = minor
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
         if self.ndim >= 4:
             # Hack for PanelND
             axes = {}
         kwargs.update(axes)
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
         return super(Panel, self).reindex(**kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
@@ -1407,10 +1417,10 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict([(self._AXIS_SLICEMAP[i], a)
-                     for i, a in zip(
-                         self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
-                         axes)])
+        return dict((self._AXIS_SLICEMAP[i], a)
+                    for i, a in zip(
+                        self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
+                        axes))
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1458,8 +1468,8 @@ class Panel(NDFrame):
                 adj_frames[k] = v
 
         axes = self._AXIS_ORDERS[1:]
-        axes_dict = dict([(a, ax) for a, ax in zip(axes, self._extract_axes(
-            self, adj_frames, axes, intersect=intersect))])
+        axes_dict = dict((a, ax) for a, ax in zip(axes, self._extract_axes(
+            self, adj_frames, axes, intersect=intersect)))
 
         reindex_dict = dict(
             [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])
@@ -1500,7 +1510,8 @@ class Panel(NDFrame):
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
             if len(lengths) > 1:
-                raise ValueError('ndarrays must match shape on axis %d' % axis)
+                raise ValueError('ndarrays must match shape on '
+                                 'axis {ax}'.format(ax=axis))
 
             if have_frames:
                 if lengths[0] != len(index):
@@ -1516,20 +1527,6 @@ class Panel(NDFrame):
     @classmethod
     def _add_aggregate_operations(cls, use_numexpr=True):
         """ add the operations to the cls; evaluate the doc strings again """
-
-        # doc strings substitors
-        _agg_doc = """
-Wrapper method for %%s
-
-Parameters
-----------
-other : %s or %s""" % (cls._constructor_sliced.__name__, cls.__name__) + """
-axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
-    Axis to broadcast over
-
-Returns
--------
-""" + cls.__name__ + "\n"
 
         def _panel_arith_method(op, name, str_rep=None, default_axis=None,
                                 fill_zeros=None, **eval_kwargs):
@@ -1558,27 +1555,45 @@ Returns
                     equiv = 'panel ' + op_desc['op'] + ' other'
 
                 _op_doc = """
-                %%s of series and other, element-wise (binary operator `%%s`).
-                Equivalent to ``%%s``.
+{desc} of series and other, element-wise (binary operator `{op_name}`).
+Equivalent to ``{equiv}``.
+
+Parameters
+----------
+other : {construct} or {cls_name}
+axis : {{{axis_order}}}
+    Axis to broadcast over
+
+Returns
+-------
+{cls_name}
+
+See also
+--------
+{cls_name}.{reverse}\n"""
+                doc = _op_doc.format(
+                    desc=op_desc['desc'], op_name=op_name, equiv=equiv,
+                    construct=cls._constructor_sliced.__name__,
+                    cls_name=cls.__name__, reverse=op_desc['reverse'],
+                    axis_order=', '.join(cls._AXIS_ORDERS))
+            else:
+                # doc strings substitors
+                _agg_doc = """
+                Wrapper method for {wrp_method}
 
                 Parameters
                 ----------
-                other : %s or %s""" % (cls._constructor_sliced.__name__,
-                                       cls.__name__) + """
-                axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
+                other : {construct} or {cls_name}
+                axis : {{{axis_order}}}
                     Axis to broadcast over
 
                 Returns
                 -------
-                """ + cls.__name__ + """
-
-                See also
-                --------
-                """ + cls.__name__ + ".%s\n"
-                doc = _op_doc % (op_desc['desc'], op_name, equiv,
-                                 op_desc['reverse'])
-            else:
-                doc = _agg_doc % name
+                {cls_name}\n"""
+                doc = _agg_doc.format(
+                    construct=cls._constructor_sliced.__name__,
+                    cls_name=cls.__name__, wrp_method=name,
+                    axis_order=', '.join(cls._AXIS_ORDERS))
 
             @Appender(doc)
             def f(self, other, axis=0):

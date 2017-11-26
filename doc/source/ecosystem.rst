@@ -53,6 +53,18 @@ the latest web technologies. Its goal is to provide elegant, concise constructio
 graphics in the style of Protovis/D3, while delivering high-performance interactivity over
 large data to thin clients.
 
+`seaborn <https://seaborn.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Seaborn is a Python visualization library based on `matplotlib
+<http://matplotlib.org>`__.  It provides a high-level, dataset-oriented
+interface for creating attractive statistical graphics. The plotting functions
+in seaborn understand pandas objects and leverage pandas grouping operations
+internally to support concise specification of complex visualizations. Seaborn
+also goes beyond matplotlib and pandas with the option to perform statistical
+estimation while plotting, aggregating across observations and visualizing the
+fit of statistical models to emphasize patterns in a dataset.
+
 `yhat/ggplot <https://github.com/yhat/ggplot>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -63,15 +75,6 @@ It's really quite incredible. Various implementations to other languages are ava
 but a faithful implementation for python users has long been missing. Although still young
 (as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
 progressing quickly in that direction.
-
-`Seaborn <https://github.com/mwaskom/seaborn>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Although pandas has quite a bit of "just plot it" functionality built-in, visualization and
-in particular statistical graphics is a vast field with a long tradition and lots of ground
-to cover. The `Seaborn <https://github.com/mwaskom/seaborn>`__ project builds on top of pandas
-and `matplotlib <http://matplotlib.org>`__ to provide easy plotting of data which extends to
-more advanced types of plots then those offered by pandas.
 
 `Vincent <https://github.com/wrobstory/vincent>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,7 +149,10 @@ API
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
+``pandas-datareader`` is a remote data access library for pandas (PyPI:``pandas-datareader``).
+It is based on functionality that was located in ``pandas.io.data`` and ``pandas.io.wb`` but was
+split off in v0.19.
+See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
 
 The following data feeds are available:
 
@@ -222,7 +228,13 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask is a flexible parallel computing library for analytics. Dask
-allow a familiar ``DataFrame`` interface to out-of-core, parallel and distributed computing.
+provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
+
+`Dask-ML <https://dask-ml.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
+
 
 `Blaze <http://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

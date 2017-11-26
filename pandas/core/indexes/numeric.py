@@ -17,6 +17,7 @@ from pandas.core import algorithms
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly
+import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
 
 
@@ -96,6 +97,9 @@ class NumericIndex(Index):
         """
         pass
 
+    def _concat_same_dtype(self, indexes, name):
+        return _concat._concat_index_same_dtype(indexes).rename(name)
+
     @property
     def is_all_dates(self):
         """
@@ -117,6 +121,14 @@ _num_index_shared_docs['class_descr'] = """
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+
+    Attributes
+    ----------
+    inferred_type
+
+    Methods
+    -------
+    None
 
     Notes
     -----
@@ -150,6 +162,7 @@ class Int64Index(NumericIndex):
 
     @property
     def inferred_type(self):
+        """Always 'integer' for ``Int64Index``"""
         return 'integer'
 
     @property
@@ -203,12 +216,12 @@ class UInt64Index(NumericIndex):
     _inner_indexer = libjoin.inner_join_indexer_uint64
     _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
-    _na_value = 0
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
 
     @property
     def inferred_type(self):
+        """Always 'integer' for ``UInt64Index``"""
         return 'integer'
 
     @property
@@ -286,6 +299,7 @@ class Float64Index(NumericIndex):
 
     @property
     def inferred_type(self):
+        """Always 'floating' for ``Float64Index``"""
         return 'floating'
 
     @Appender(_index_shared_docs['astype'])

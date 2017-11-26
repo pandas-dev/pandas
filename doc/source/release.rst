@@ -37,10 +37,10 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.21.0RC1
-----------------
+pandas 0.21.0
+-------------
 
-**Release date:** October 13, 2017
+**Release date:** October 27, 2017
 
 This is a major release from 0.20.3 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -49,11 +49,14 @@ version.
 
 Highlights include:
 
-- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` and :func:`DataFrame.to_parquet` method, see :ref:`here <io.parquet>`.
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
-- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+- Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
+- Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
+- Indexing with a list of labels, where one or more of the labels is missing, is deprecated and will raise a KeyError in a future version, see :ref:`here <whatsnew_0210.api_breaking.loc>`.
 
 See the :ref:`v0.21.0 Whatsnew <whatsnew_0210>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.21.0
@@ -61,13 +64,17 @@ of all enhancements and bugs that have been fixed in 0.21.0
 Thanks
 ~~~~~~
 
-A total of 196 people contributed to this release.  People with a "+" by their
+A total of 206 people contributed to this release.  People with a "+" by their
 names contributed a patch for the first time.
+
+Contributors
+============
 
 * 3553x +
 * Aaron Barber
 * Adam Gleave +
 * Adam Smith +
+* AdamShamlian +
 * Adrian Liaw +
 * Alan Velasco +
 * Alan Yee +
@@ -84,6 +91,7 @@ names contributed a patch for the first time.
 * Berkay +
 * Bob Haffner +
 * Bran Yang
+* Brian Tu +
 * Brock Mendel +
 * Carol Willing +
 * Carter Green +
@@ -125,6 +133,7 @@ names contributed a patch for the first time.
 * Hussain Tamboli +
 * Iva Miholic +
 * Jan Novotný +
+* Jan Rudolph
 * Jean Helie +
 * Jean-Baptiste Schiratti +
 * Jean-Mathieu Deschenes
@@ -136,6 +145,8 @@ names contributed a patch for the first time.
 * Joel Nothman
 * John W. O'Brien
 * Jon Crall +
+* Jon Mease
+* Jonathan J. Helmus +
 * Joris Van den Bossche
 * JosephWagner
 * Juarez Bochi
@@ -172,6 +183,7 @@ names contributed a patch for the first time.
 * Pankaj Pandey
 * Patrick Luo
 * Patrick O'Melveny
+* Paul Reidy +
 * Paula +
 * Peter Quackenbush
 * Peter Yanovich +
@@ -205,6 +217,7 @@ names contributed a patch for the first time.
 * XF +
 * Yi Liu +
 * Yosuke Nakabayashi +
+* aaron315 +
 * abarber4gh +
 * aernlund +
 * agustín méndez +
@@ -241,6 +254,7 @@ names contributed a patch for the first time.
 * louispotok +
 * majiang +
 * manikbhandari +
+* matthiashuschle +
 * mattip
 * maxwasserman +
 * mjlove12 +
@@ -254,12 +268,15 @@ names contributed a patch for the first time.
 * ruiann +
 * rvernica +
 * s-weigand +
+* scotthavard92 +
 * skwbc +
 * step4me +
+* tobycheese +
 * topper-123 +
 * tsdlovell
 * ysau +
 * zzgao +
+
 
 pandas 0.20.0 / 0.20.1
 ----------------------

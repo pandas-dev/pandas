@@ -2,7 +2,9 @@ import sys
 from decimal import Decimal
 cimport util
 cimport cython
-from tslib import NaT
+from tslibs.nattype import NaT
+from tslib cimport convert_to_tsobject
+from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
@@ -349,12 +351,12 @@ def infer_dtype(object value, bint skipna=False):
     if values.dtype != np.object_:
         values = values.astype('O')
 
+    # make contiguous
+    values = values.ravel()
+
     n = len(values)
     if n == 0:
         return 'empty'
-
-    # make contiguous
-    values = values.ravel()
 
     # try to use a valid value
     for i in range(n):
@@ -447,8 +449,8 @@ def infer_dtype(object value, bint skipna=False):
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
-            not util.is_timedelta64_object(val) and
-            not util.is_datetime64_object(val)):
+                not util.is_timedelta64_object(val) and
+                not util.is_datetime64_object(val)):
             return 'mixed-integer'
 
     return 'mixed'
@@ -462,7 +464,8 @@ cpdef object infer_datetimelike_array(object arr):
     - timedelta: we have *only* timedeltas and maybe strings, nulls
     - nat: we do not have *any* date, datetimes or timedeltas, but do have
       at least a NaT
-    - mixed: other objects (strings or actual objects)
+    - mixed: other objects (strings, a mix of tz-aware and tz-naive, or
+                            actual objects)
 
     Parameters
     ----------
@@ -477,6 +480,7 @@ cpdef object infer_datetimelike_array(object arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
+        bint seen_tz_aware = 0, seen_tz_naive = 0
         bint seen_nat = 0
         list objs = []
         object v
@@ -494,8 +498,20 @@ cpdef object infer_datetimelike_array(object arr):
             pass
         elif v is NaT:
             seen_nat = 1
-        elif is_datetime(v) or util.is_datetime64_object(v):
-            # datetime, or np.datetime64
+        elif is_datetime(v):
+            # datetime
+            seen_datetime = 1
+
+            # disambiguate between tz-naive and tz-aware
+            if v.tzinfo is None:
+                seen_tz_naive = 1
+            else:
+                seen_tz_aware = 1
+
+            if seen_tz_naive and seen_tz_aware:
+                return 'mixed'
+        elif util.is_datetime64_object(v):
+            # np.datetime64
             seen_datetime = 1
         elif is_date(v):
             seen_date = 1
@@ -520,7 +536,7 @@ cpdef object infer_datetimelike_array(object arr):
     # convert *every* string array
     if len(objs):
         try:
-            tslib.array_to_datetime(objs, errors='raise')
+            array_to_datetime(objs, errors='raise')
             return 'datetime'
         except:
             pass
@@ -529,22 +545,6 @@ cpdef object infer_datetimelike_array(object arr):
         # for timedelta as too much ambiguity
 
     return 'mixed'
-
-
-cdef inline bint is_null_datetimelike(v):
-    # determine if we have a null for a timedelta/datetime (or integer
-    # versions)
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_timedelta64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_datetime64_object(v):
-        return v.view('int64') == iNaT
-    elif util.is_integer_object(v):
-        return v == iNaT
-    return False
 
 
 cdef inline bint is_null_datetime64(v):
@@ -611,7 +611,7 @@ cdef class Validator:
         self.dtype = dtype
         self.skipna = skipna
 
-    cdef bint validate(self, object[:] values) except -1:
+    cdef bint validate(self, ndarray values) except -1:
         if not self.n:
             return False
 
@@ -627,7 +627,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate(self, object[:] values) except -1:
+    cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -640,7 +640,7 @@ cdef class Validator:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef bint _validate_skipna(self, object[:] values) except -1:
+    cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
             Py_ssize_t n = self.n
@@ -850,7 +850,7 @@ cdef class DatetimeValidator(TemporalValidator):
         return is_null_datetime64(value)
 
 
-cpdef bint is_datetime_array(ndarray[object] values):
+cpdef bint is_datetime_array(ndarray values):
     cdef:
         DatetimeValidator validator = DatetimeValidator(
             len(values),
@@ -874,7 +874,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-cpdef bint is_datetime_with_singletz_array(ndarray[object] values):
+cpdef bint is_datetime_with_singletz_array(ndarray values):
     """
     Check values have the same tzinfo attribute.
     Doesn't check values are datetime-like types.
@@ -957,7 +957,7 @@ cdef class DateValidator(Validator):
         return is_date(value)
 
 
-cpdef bint is_date_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef DateValidator validator = DateValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -968,7 +968,7 @@ cdef class TimeValidator(Validator):
         return is_time(value)
 
 
-cpdef bint is_time_array(ndarray[object] values, bint skipna=False):
+cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef TimeValidator validator = TimeValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
@@ -982,7 +982,7 @@ cdef class PeriodValidator(TemporalValidator):
         return is_null_period(value)
 
 
-cpdef bint is_period_array(ndarray[object] values):
+cpdef bint is_period_array(ndarray values):
     cdef PeriodValidator validator = PeriodValidator(len(values), skipna=True)
     return validator.validate(values)
 
@@ -993,7 +993,7 @@ cdef class IntervalValidator(Validator):
         return is_interval(value)
 
 
-cpdef bint is_interval_array(ndarray[object] values):
+cpdef bint is_interval_array(ndarray values):
     cdef:
         IntervalValidator validator = IntervalValidator(
             len(values),
@@ -1307,7 +1307,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if len(set([getattr(val, 'tzinfo', None) for val in objects])) == 1:
+        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1

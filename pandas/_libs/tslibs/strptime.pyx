@@ -31,28 +31,15 @@ cimport numpy as np
 from numpy cimport ndarray, int64_t
 
 from datetime import date as datetime_date
-from datetime cimport datetime
+from cpython.datetime cimport datetime
 
-# This is src/datetime.pxd
-from datetime cimport (
-    PANDAS_FR_ns,
-    check_dts_bounds,
-    pandas_datetimestruct,
-    pandas_datetimestruct_to_datetime)
+from np_datetime cimport (check_dts_bounds,
+                          dtstruct_to_dt64, pandas_datetimestruct)
 
-from util cimport is_string_object, get_nat
+from util cimport is_string_object
 
-cdef int64_t NPY_NAT = get_nat()
-
-cdef set _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
-
-
-# TODO: Consolidate with other implementations
-cdef inline bint _checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return (val is None or
-            (PyFloat_Check(val) and val != val) or
-            (isinstance(val, datetime) and not val == val))
+from nattype cimport checknull_with_nat, NPY_NAT
+from nattype import nat_strings
 
 
 def array_strptime(ndarray[object] values, object fmt,
@@ -80,6 +67,7 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
+        int ordinal
 
     assert is_raise or is_ignore or is_coerce
 
@@ -113,7 +101,7 @@ def array_strptime(ndarray[object] values, object fmt,
                     bad_directive = "%"
                 del err
                 raise ValueError("'%s' is a bad directive in format '%s'" %
-                                    (bad_directive, fmt))
+                                 (bad_directive, fmt))
             # IndexError only occurs when the format string is "%"
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % fmt)
@@ -150,11 +138,11 @@ def array_strptime(ndarray[object] values, object fmt,
     for i in range(n):
         val = values[i]
         if is_string_object(val):
-            if val in _nat_strings:
+            if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
         else:
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
                 continue
             else:
@@ -174,7 +162,7 @@ def array_strptime(ndarray[object] values, object fmt,
                     iresult[i] = NPY_NAT
                     continue
                 raise ValueError("unconverted data remains: %s" %
-                                  values[i][found.end():])
+                                 values[i][found.end():])
 
         # search
         else:
@@ -209,8 +197,8 @@ def array_strptime(ndarray[object] values, object fmt,
             if parse_code == 0:
                 year = int(found_dict['y'])
                 # Open Group specification for strptime() states that a %y
-                #value in the range of [00, 68] is in the century 2000, while
-                #[69,99] is in the century 1900
+                # value in the range of [00, 68] is in the century 2000, while
+                # [69,99] is in the century 1900
                 if year <= 68:
                     year += 2000
                 else:
@@ -307,9 +295,10 @@ def array_strptime(ndarray[object] values, object fmt,
             if julian == -1:
                 # Need to add 1 to result since first day of the year is 1, not
                 # 0.
-                julian = datetime_date(year, month, day).toordinal() - \
-                    datetime_date(year, 1, 1).toordinal() + 1
-            else: # Assume that if they bothered to include Julian day it will
+                ordinal = datetime_date(year, month, day).toordinal()
+                julian = ordinal - datetime_date(year, 1, 1).toordinal() + 1
+            else:
+                # Assume that if they bothered to include Julian day it will
                 # be accurate.
                 datetime_result = datetime_date.fromordinal(
                     (julian - 1) + datetime_date(year, 1, 1).toordinal())
@@ -333,18 +322,14 @@ def array_strptime(ndarray[object] values, object fmt,
         dts.us = us
         dts.ps = ns * 1000
 
-        iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        if check_dts_bounds(&dts):
+        iresult[i] = dtstruct_to_dt64(&dts)
+        try:
+            check_dts_bounds(&dts)
+        except ValueError:
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            else:
-                from pandas._libs.tslib import OutOfBoundsDatetime
-                fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                                       dts.day, dts.hour,
-                                                       dts.min, dts.sec)
-                raise OutOfBoundsDatetime(
-                    'Out of bounds nanosecond timestamp: %s' % fmt)
+            raise
 
     return result
 
@@ -469,8 +454,8 @@ class LocaleTime(object):
         date_time[1] = time.strftime("%x", time_tuple).lower()
         date_time[2] = time.strftime("%X", time_tuple).lower()
         replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'),
-                             (self.f_month[3],
-                              '%B'), (self.a_weekday[2], '%a'),
+                             (self.f_month[3], '%B'),
+                             (self.a_weekday[2], '%a'),
                              (self.a_month[3], '%b'), (self.am_pm[1], '%p'),
                              ('1999', '%Y'), ('99', '%y'), ('22', '%H'),
                              ('44', '%M'), ('55', '%S'), ('76', '%j'),
@@ -478,7 +463,7 @@ class LocaleTime(object):
                              # '3' needed for when no leading zero.
                              ('2', '%w'), ('10', '%I')]
         replacement_pairs.extend([(tz, "%Z") for tz_values in self.timezone
-                                                for tz in tz_values])
+                                  for tz in tz_values])
         for offset, directive in ((0, '%c'), (1, '%x'), (2, '%X')):
             current_format = date_time[offset]
             for old, new in replacement_pairs:
@@ -551,7 +536,7 @@ class TimeRE(dict):
             'w': r"(?P<w>[0-6])",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
-            #XXX: Does 'Y' need to worry about having less or more than
+            # XXX: Does 'Y' need to worry about having less or more than
             #     4 digits?
             'Y': r"(?P<Y>\d\d\d\d)",
             'A': self.__seqToRE(self.locale_time.f_weekday, 'A'),
@@ -583,7 +568,7 @@ class TimeRE(dict):
                 break
         else:
             return ''
-        regex = '|'.join([re.escape(stuff) for stuff in to_convert])
+        regex = '|'.join(re.escape(stuff) for stuff in to_convert)
         regex = '(?P<%s>%s' % (directive, regex)
         return '%s)' % regex
 
@@ -619,7 +604,7 @@ _cache_lock = _thread_allocate_lock()
 # DO NOT modify _TimeRE_cache or _regex_cache without acquiring the cache lock
 # first!
 _TimeRE_cache = TimeRE()
-_CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
+_CACHE_MAX_SIZE = 5  # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
 
@@ -630,7 +615,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     assumes the week starts on Sunday or Monday (6 or 0)."""
 
     cdef:
-        int first_weekday,  week_0_length, days_to_week
+        int first_weekday, week_0_length, days_to_week
 
     first_weekday = datetime_date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's

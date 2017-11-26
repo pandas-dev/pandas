@@ -13,7 +13,7 @@ from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
+from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
 import pandas.core.common as com
 import pandas.core.algorithms as algos
@@ -395,7 +395,11 @@ class Resampler(_GroupBy):
             grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
 
         try:
-            result = grouped.aggregate(how, *args, **kwargs)
+            if isinstance(obj, ABCDataFrame) and compat.callable(how):
+                # Check if the function is reducing or not.
+                result = grouped._aggregate_item_by_item(how, *args, **kwargs)
+            else:
+                result = grouped.aggregate(how, *args, **kwargs)
         except Exception:
 
             # we have a non-reducing function
@@ -1137,6 +1141,16 @@ class TimeGrouper(Grouper):
                                         tz=tz,
                                         name=ax.name)
 
+        # GH 15549
+        # In edge case of tz-aware resapmling binner last index can be
+        # less than the last variable in data object, this happens because of
+        # DST time change
+        if len(binner) > 1 and binner[-1] < last:
+            extra_date_range = pd.date_range(binner[-1], last + self.freq,
+                                             freq=self.freq, tz=tz,
+                                             name=ax.name)
+            binner = labels = binner.append(extra_date_range[1:])
+
         # a little hack
         trimmed = False
         if (len(binner) > 2 and binner[-2] == last and
@@ -1182,7 +1196,7 @@ class TimeGrouper(Grouper):
         bin_edges = binner.asi8
 
         if self.freq != 'D' and is_superperiod(self.freq, 'D'):
-            day_nanos = _delta_to_nanoseconds(timedelta(1))
+            day_nanos = delta_to_nanoseconds(timedelta(1))
             if self.closed == 'right':
                 bin_edges = bin_edges + day_nanos - 1
 
@@ -1308,7 +1322,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
-        day_nanos = _delta_to_nanoseconds(timedelta(1))
+        day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:

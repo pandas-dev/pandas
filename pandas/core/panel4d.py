@@ -1,8 +1,11 @@
 """ Panel4D: a 4-d dict like collection of panels """
 
 import warnings
+from pandas.core.generic import NDFrame
 from pandas.core.panelnd import create_nd_panel_factory
 from pandas.core.panel import Panel
+from pandas.util._validators import validate_axis_style_args
+
 
 Panel4D = create_nd_panel_factory(klass_name='Panel4D',
                                   orders=['labels', 'items', 'major_axis',
@@ -62,12 +65,34 @@ def panel4d_reindex(self, labs=None, labels=None, items=None, major_axis=None,
     # Hack for reindex_axis deprecation
     # Ha, we used labels for two different things
     # I think this will work still.
-    axes = self._validate_axis_style_args(
-        labs, 'labels',
-        axes=[labels, items, major_axis, minor_axis],
-        axis=axis, method_name='reindex')
+    if labs is None:
+        args = ()
+    else:
+        args = (labs,)
+    kwargs_ = dict(labels=labels,
+                   items=items,
+                   major_axis=major_axis,
+                   minor_axis=minor_axis,
+                   axis=axis)
+    kwargs_ = {k: v for k, v in kwargs_.items() if v is not None}
+    # major = kwargs.pop("major", None)
+    # minor = kwargs.pop('minor', None)
+
+    # if major is not None:
+    #     if kwargs.get("major_axis"):
+    #         raise TypeError("Cannot specify both 'major' and 'major_axis'")
+    #     kwargs_['major_axis'] = major
+    # if minor is not None:
+    #     if kwargs.get("minor_axis"):
+    #         raise TypeError("Cannot specify both 'minor' and 'minor_axis'")
+    #     kwargs_['minor_axis'] = minor
+
+    if axis is not None:
+        kwargs_['axis'] = axis
+
+    axes = validate_axis_style_args(self, args, kwargs_, 'labs', 'reindex')
     kwargs.update(axes)
-    return super(Panel, self).reindex(**kwargs)
+    return NDFrame.reindex(self, **kwargs)
 
 
 Panel4D.__init__ = panel4d_init

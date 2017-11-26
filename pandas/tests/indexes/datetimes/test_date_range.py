@@ -5,6 +5,7 @@ test date_range, bdate_range construction from the convenience range functions
 import pytest
 
 import numpy as np
+import pytz
 from pytz import timezone
 from datetime import datetime, timedelta, time
 
@@ -20,9 +21,59 @@ from pandas.tests.series.common import TestData
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-def eq_gen_range(kwargs, expected):
-    rng = generate_range(**kwargs)
-    assert (np.array_equal(list(rng), expected))
+class TestTimestampEquivDateRange(object):
+    # Older tests in TestTimeSeries constructed their `stamp` objects
+    # using `date_range` instead of the `Timestamp` constructor.
+    # TestTimestampEquivDateRange checks that these are equivalent in the
+    # pertinent cases.
+
+    def test_date_range_timestamp_equiv(self):
+        rng = date_range('20090415', '20090519', tz='US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_dateutil(self):
+        rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz='dateutil/US/Eastern', freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_pytz(self):
+        rng = date_range('20090415', '20090519',
+                         tz=pytz.timezone('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_explicit_dateutil(self):
+        tm._skip_if_windows_python_3()
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+
+        rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
+        stamp = rng[0]
+
+        ts = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
+        assert ts == stamp
+
+    def test_date_range_timestamp_equiv_from_datetime_instance(self):
+        datetime_instance = datetime(2014, 3, 4)
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
+
+        ts = Timestamp(datetime_instance, freq='D')
+        assert ts == timestamp_instance
+
+    def test_date_range_timestamp_equiv_preserve_frequency(self):
+        timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
+        ts = Timestamp('2014-03-05', freq='D')
+
+        assert timestamp_instance == ts
 
 
 class TestDateRanges(TestData):
@@ -201,20 +252,23 @@ class TestGenRangeGeneration(object):
         assert rng1 == rng2
 
     def test_1(self):
-        eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
-                     [datetime(2009, 3, 25), datetime(2009, 3, 26)])
+        rng = list(generate_range(start=datetime(2009, 3, 25), periods=2))
+        expected = [datetime(2009, 3, 25), datetime(2009, 3, 26)]
+        assert rng == expected
 
     def test_2(self):
-        eq_gen_range(dict(start=datetime(2008, 1, 1),
-                          end=datetime(2008, 1, 3)),
-                     [datetime(2008, 1, 1),
-                      datetime(2008, 1, 2),
-                      datetime(2008, 1, 3)])
+        rng = list(generate_range(start=datetime(2008, 1, 1),
+                                  end=datetime(2008, 1, 3)))
+        expected = [datetime(2008, 1, 1),
+                    datetime(2008, 1, 2),
+                    datetime(2008, 1, 3)]
+        assert rng == expected
 
     def test_3(self):
-        eq_gen_range(dict(start=datetime(2008, 1, 5),
-                          end=datetime(2008, 1, 6)),
-                     [])
+        rng = list(generate_range(start=datetime(2008, 1, 5),
+                                  end=datetime(2008, 1, 6)))
+        expected = []
+        assert rng == expected
 
     def test_precision_finer_than_offset(self):
         # GH 9907
@@ -235,6 +289,22 @@ class TestGenRangeGeneration(object):
                                   freq='W-SUN', tz=None)
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
+
+    dt1, dt2 = '2017-01-01', '2017-01-01'
+    tz1, tz2 = 'US/Eastern', 'Europe/London'
+
+    @pytest.mark.parametrize("start,end", [
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
+        (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1))
+    ])
+    def test_mismatching_tz_raises_err(self, start, end):
+        # issue 18488
+        with pytest.raises(TypeError):
+            pd.date_range(start, end)
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start, end, freq=BDay())
 
 
 class TestBusinessDateRange(object):

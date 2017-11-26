@@ -8,7 +8,9 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from numpy cimport *
 
+# initialize numpy
 np.import_array()
+np.import_ufunc()
 
 from libc.stdlib cimport malloc, free
 
@@ -43,37 +45,24 @@ cimport cpython
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
-cdef double NAN = nan
 
-# this is our tseries.pxd
-from datetime cimport (
-    get_timedelta64_value, get_datetime64_value,
-    PyDateTime_Check, PyDate_Check, PyTime_Check, PyDelta_Check,
-    PyDateTime_IMPORT)
+from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
+                               PyTime_Check, PyDelta_Check,
+                               PyDateTime_IMPORT)
+PyDateTime_IMPORT
 
+from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 
-from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
-                    _check_all_nulls)
-import tslib
-from tslib import NaT, Timestamp, Timedelta
-import interval
+from tslib import NaT, Timestamp, Timedelta, array_to_datetime
 from interval import Interval
+from missing cimport checknull
 
 cdef int64_t NPY_NAT = util.get_nat()
 
 cimport util
-from util cimport is_array, _checknull, _checknan
+from util cimport is_array, _checknull
 
-cdef extern from "math.h":
-    double sqrt(double x)
-    double fabs(double)
-
-# import datetime C API
-PyDateTime_IMPORT
-
-# initialize numpy
-import_array()
-import_ufunc()
+from libc.math cimport sqrt, fabs
 
 
 def values_from_object(object o):
@@ -85,6 +74,7 @@ def values_from_object(object o):
         o = f()
 
     return o
+
 
 cpdef map_indices_list(list index):
     """
@@ -120,55 +110,8 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
         s += arr[i].__sizeof__()
     return s
 
-#----------------------------------------------------------------------
-# isnull / notnull related
 
-cdef double INF = <double> np.inf
-cdef double NEGINF = -INF
-
-
-cpdef bint checknull(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val # and val != INF and val != NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return _checknull(val)
-
-
-cpdef bint checknull_old(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val or val == INF or val == NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return util._checknull(val)
-
-
-cpdef bint isposinf_scalar(object val):
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
-
-
-cpdef bint isneginf_scalar(object val):
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
+# ----------------------------------------------------------------------
 
 
 cpdef bint isscalar(object val):
@@ -219,78 +162,6 @@ def item_from_zerodim(object val):
 
     """
     return util.unbox_if_zerodim(val)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = _check_all_nulls(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj_old(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = val is NaT or util._checknull_old(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d_old(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull_old(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
 
 
 @cython.wraparound(False)
@@ -790,13 +661,13 @@ def scalar_binop(ndarray[object] values, object val, object op):
         object x
 
     result = np.empty(n, dtype=object)
-    if util._checknull(val):
+    if _checknull(val):
         result.fill(val)
         return result
 
     for i in range(n):
         x = values[i]
-        if util._checknull(x):
+        if _checknull(x):
             result[i] = x
         else:
             result[i] = op(x, val)
@@ -823,9 +694,9 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = op(x, y)
         except TypeError:
-            if util._checknull(x):
+            if _checknull(x):
                 result[i] = x
-            elif util._checknull(y):
+            elif _checknull(y):
                 result[i] = y
             else:
                 raise
@@ -994,7 +865,7 @@ def convert_json_to_lines(object arr):
             in_quotes = ~in_quotes
         if v == backslash or is_escaping:
             is_escaping = ~is_escaping
-        if v == comma: # commas that should be \n
+        if v == comma:  # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
                 narr[i] = newline
         elif v == left_bracket:
@@ -1019,7 +890,7 @@ def write_csv_rows(list data, ndarray data_index,
     # In crude testing, N>100 yields little marginal improvement
     N=100
 
-    # pre-allocate  rows
+    # pre-allocate rows
     ncols = len(cols)
     rows = [[None] * (nlevels + ncols) for x in range(N)]
 
@@ -1051,24 +922,12 @@ def write_csv_rows(list data, ndarray data_index,
             if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
 
-    if  j >= 0 and (j < N - 1 or (j % N) != N - 1):
+    if j >= 0 and (j < N - 1 or (j % N) != N - 1):
         writer.writerows(rows[:((j + 1) % N)])
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Groupby-related functions
-@cython.boundscheck(False)
-def arrmap(ndarray[object] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1140,7 +999,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     bins = np.empty(lenbin - 1, dtype=np.int64)
 
     j = 0  # index into values
-    bc = 0 # bin count
+    bc = 0  # bin count
 
     # linear scan
     if right_closed:
@@ -1289,9 +1148,9 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 cdef class _PandasNull:
 
     def __richcmp__(_PandasNull self, object other, int op):
-        if op == 2: # ==
+        if op == 2:    # ==
             return isinstance(other, _PandasNull)
-        elif op == 3: # !=
+        elif op == 3:  # !=
             return not isinstance(other, _PandasNull)
         else:
             return False
@@ -1492,7 +1351,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
             if len(slices) == 1:
                 yield blkno, slice(slices[0][0], slices[0][1])
             else:
-                tot_len = sum([stop - start for start, stop in slices])
+                tot_len = sum(stop - start for start, stop in slices)
                 result = np.empty(tot_len, dtype=np.int64)
                 res_view = result
 
@@ -1797,7 +1656,7 @@ cdef class BlockPlacement:
             stop += other_int
 
             if ((step > 0 and start < 0) or
-                (step < 0 and stop < step)):
+                    (step < 0 and stop < step)):
                 raise ValueError("iadd causes length change")
 
             if stop < 0:

@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_datetimetz,
     is_integer,
     is_float,
+    is_scalar,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -37,7 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -84,12 +85,23 @@ _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "match-parent", "initial", "unset")
 
 justify_docstring = """
-    justify : {'left', 'right', 'center', 'justify',
-               'justify-all', 'start', 'end', 'inherit',
-               'match-parent', 'initial', 'unset'}, default None
+    justify : str, default None
         How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
-        of the box."""
+        of the box. Valid values are
+
+        * left
+        * right
+        * center
+        * justify
+        * justify-all
+        * start
+        * end
+        * inherit
+        * match-parent
+        * initial
+        * unset
+"""
 
 return_docstring = """
 
@@ -535,7 +547,7 @@ class DataFrameFormatter(TableFormatter):
                                                minimum=header_colwidth,
                                                adj=self.adj)
 
-                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
+                max_len = max(max(self.adj.len(x) for x in fmt_values),
                               header_colwidth)
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
@@ -750,7 +762,7 @@ class DataFrameFormatter(TableFormatter):
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any([l.is_floating for l in columns.levels])
+            restrict_formatting = any(l.is_floating for l in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -1695,7 +1707,7 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
-        if not has_mi_columns:
+        if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
             writer.writerow(encoded_labels)
         else:
@@ -1849,7 +1861,7 @@ class GenericArrayFormatter(object):
             (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
 
         def _format(x):
-            if self.na_rep is not None and lib.checknull(x):
+            if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
                 elif x is pd.NaT:
@@ -2175,7 +2187,7 @@ def _is_dates_only(values):
 
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
@@ -2185,7 +2197,7 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
 
 
 def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if not isinstance(x, Timestamp):
@@ -2263,14 +2275,14 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
         consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
 
     if even_days:
-        format = 'even_day'
+        format = None
     elif all_sub_day:
         format = 'sub_day'
     else:
         format = 'long'
 
     def _formatter(x):
-        if x is None or lib.checknull(x):
+        if x is None or (is_scalar(x) and isna(x)):
             return nat_rep
 
         if not isinstance(x, Timedelta):
@@ -2291,7 +2303,7 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     if adj is None:
         adj = _get_adjustment()
 
-    max_len = np.max([adj.len(x) for x in strings])
+    max_len = max(adj.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -2319,8 +2331,8 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 
     def _cond(values):
         non_na = [x for x in values if x != na_rep]
-        return (len(non_na) > 0 and all([x.endswith('0') for x in non_na]) and
-                not (any([('e' in x) or ('E' in x) for x in non_na])))
+        return (len(non_na) > 0 and all(x.endswith('0') for x in non_na) and
+                not (any(('e' in x) or ('E' in x) for x in non_na)))
 
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]

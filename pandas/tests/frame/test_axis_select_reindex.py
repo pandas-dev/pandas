@@ -468,7 +468,7 @@ class TestDataFrameSelectReindex(TestData):
         df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         expected = pd.DataFrame({"A": [1., 2], 'B': [4., 5],
                                  "C": [np.nan, np.nan]})
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = df.reindex([0, 1], ['A', 'B', 'C'])
 
         assert_frame_equal(result, expected)
@@ -476,33 +476,37 @@ class TestDataFrameSelectReindex(TestData):
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = pd.DataFrame({"A": [1, 2, 3], 'B': [4, 5, 6]})
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis=1)
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(columns=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], columns=[0, 1], axis='columns')
 
         with tm.assert_raises_regex(TypeError, 'Cannot specify all'):
             df.reindex([0, 1], [0], ['A'])
 
         # Mixing styles
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, 'reindex'):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
+
+        # Duplicates
+        with tm.assert_raises_regex(TypeError, "multiple values"):
+            df.reindex([0, 1], labels=[0, 1])
 
     def test_reindex_single_named_indexer(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -532,7 +536,7 @@ class TestDataFrameSelectReindex(TestData):
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-        with tm.assert_produces_warning(UserWarning) as m:
+        with tm.assert_produces_warning(FutureWarning) as m:
             res1 = df.reindex(['b', 'a'], ['e', 'd'])
         assert 'reindex' in str(m[0].message)
         res2 = df.reindex(columns=['e', 'd'], index=['b', 'a'])
@@ -879,6 +883,27 @@ class TestDataFrameSelectReindex(TestData):
         result = df.filter(regex='BB')
         exp = df[[x for x in df.columns if 'BB' in x]]
         assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('name,expected', [
+        ('a', DataFrame({u'a': [1, 2]})),
+        (u'a', DataFrame({u'a': [1, 2]})),
+        (u'あ', DataFrame({u'あ': [3, 4]}))
+    ])
+    def test_filter_unicode(self, name, expected):
+        # GH13101
+        df = DataFrame({u'a': [1, 2], u'あ': [3, 4]})
+
+        assert_frame_equal(df.filter(like=name), expected)
+        assert_frame_equal(df.filter(regex=name), expected)
+
+    @pytest.mark.parametrize('name', ['a', u'a'])
+    def test_filter_bytestring(self, name):
+        # GH13101
+        df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
+        expected = DataFrame({b'a': [1, 2]})
+
+        assert_frame_equal(df.filter(like=name), expected)
+        assert_frame_equal(df.filter(regex=name), expected)
 
     def test_filter_corner(self):
         empty = DataFrame()

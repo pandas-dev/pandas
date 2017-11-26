@@ -1394,6 +1394,21 @@ class TestDataFrameAnalytics(TestData):
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
 
+    def test_drop_duplicates_with_duplicate_column_names(self):
+        # GH17836
+        df = DataFrame([
+            [1, 2, 5],
+            [3, 4, 6],
+            [3, 4, 7]
+        ], columns=['a', 'a', 'b'])
+
+        result0 = df.drop_duplicates()
+        tm.assert_frame_equal(result0, df)
+
+        result1 = df.drop_duplicates('a')
+        expected1 = df[:2]
+        tm.assert_frame_equal(result1, expected1)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
@@ -1806,6 +1821,24 @@ class TestDataFrameAnalytics(TestData):
         expected_rounded = DataFrame(
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
         tm.assert_frame_equal(round(df), expected_rounded)
+
+    def test_pct_change(self):
+        # GH 11150
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(
+            0, 40, 10)]).astype(np.float64)
+        pnl.iat[1, 0] = np.nan
+        pnl.iat[1, 1] = np.nan
+        pnl.iat[2, 3] = 60
+
+        mask = pnl.isnull()
+
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
+                axis=axis) - 1
+            expected[mask] = np.nan
+            result = pnl.pct_change(axis=axis, fill_method='pad')
+
+            tm.assert_frame_equal(result, expected)
 
     # Clip
 

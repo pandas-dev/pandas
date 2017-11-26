@@ -115,7 +115,7 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
-    a ``UserWarning`` to be issued.
+  a ``UserWarning`` to be issued.
 index_col :  int or sequence or ``False``, default ``None``
   Column to use as the row labels of the DataFrame. If a sequence is given, a
   MultiIndex is used. If you have a malformed file with delimiters at the end of
@@ -2689,11 +2689,6 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # equivalent using the read_excel function
     data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
 
-.. versionadded:: 0.17
-
-``read_excel`` can take an ``ExcelFile`` object as input
-
-
 .. _io.excel.specifying_sheets:
 
 Specifying Sheets
@@ -2753,8 +2748,6 @@ respectively.
 
 Reading a ``MultiIndex``
 ++++++++++++++++++++++++
-
-.. versionadded:: 0.17
 
 ``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
 and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
@@ -2928,14 +2921,8 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 Writing Excel Files to Memory
 +++++++++++++++++++++++++++++
 
-.. versionadded:: 0.17
-
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
-
-.. versionadded:: 0.17
-
-Added support for Openpyxl >= 2.2
+``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`. Pandas also supports Openpyxl >= 2.2.
 
 .. code-block:: python
 
@@ -3066,7 +3053,7 @@ We can see that we got the same content back, which we had earlier written to th
 
 .. note::
 
-   You may need to install xclip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
+   You may need to install xclip or xsel (with gtk, PyQt5, PyQt4 or qtpy) on Linux to use these methods.
 
 .. _io.pickle:
 
@@ -3191,25 +3178,6 @@ both on the writing (serialization), and reading (deserialization).
    optimizations in the io of the ``msgpack`` data. Since this is marked
    as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
-   As a result of writing format changes and other issues:
-
-   +----------------------+------------------------+
-   | Packed with          | Can be unpacked with   |
-   +======================+========================+
-   | pre-0.17 / Python 2  | any                    |
-   +----------------------+------------------------+
-   | pre-0.17 / Python 3  | any                    |
-   +----------------------+------------------------+
-   | 0.17 / Python 2      | - 0.17 / Python 2      |
-   |                      | - >=0.18 / any Python  |
-   +----------------------+------------------------+
-   | 0.17 / Python 3      | >=0.18 / any Python    |
-   +----------------------+------------------------+
-   | 0.18                 | >= 0.18                |
-   +----------------------+------------------------+
-
-   Reading (files packed by older versions) is backward-compatibile, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
-
 .. ipython:: python
 
    df = pd.DataFrame(np.random.rand(5,2),columns=list('AB'))
@@ -3286,10 +3254,6 @@ for some advanced strategies
    There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
    If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
    Stores created previously will need to be rewritten using the updated version.
-
-.. warning::
-
-   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk.
 
 .. ipython:: python
    :suppress:
@@ -3388,7 +3352,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove('store_tl.h5')
 
 
-As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.
+HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
 
 .. ipython:: python
    :suppress:
@@ -3631,12 +3595,6 @@ Querying
 
 Querying a Table
 ++++++++++++++++
-
-.. warning::
-
-   This query capabilities have changed substantially starting in ``0.13.0``.
-   Queries from prior version are accepted (with a ``DeprecationWarning``) printed
-   if its not string-like.
 
 ``select`` and ``delete`` operations have an optional criterion that can
 be specified to select/delete only a subset of the data. This allows one
@@ -4469,8 +4427,10 @@ Several caveats.
 
 - This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
   to the earlier versions.
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index()`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
@@ -4533,8 +4493,10 @@ dtypes, including extension dtypes such as datetime with tz.
 
 Several caveats.
 
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the ``DataFrame`` and will raise an
-  error if a non-default one is provided. You can simply ``.reset_index(drop=True)`` in order to store the index.
+- The format will NOT write an ``Index``, or ``MultiIndex`` for the
+  ``DataFrame`` and will raise an error if a non-default one is provided. You
+  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
+  ignore it.
 - Duplicate column names and non-string columns names are not supported
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
@@ -4579,6 +4541,16 @@ Read from a parquet file.
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
 
    result.dtypes
+
+Read only certain columns of a parquet file.
+
+.. ipython:: python
+
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow', columns=['a', 'b'])
+   result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
+
+   result.dtypes
+
 
 .. ipython:: python
    :suppress:
@@ -5098,10 +5070,8 @@ whether imported ``Categorical`` variables are ordered.
 SAS Formats
 -----------
 
-.. versionadded:: 0.17.0
-
 The top-level function :func:`read_sas` can read (but not write) SAS
-`xport` (.XPT) and `SAS7BDAT` (.sas7bdat) format files were added in *v0.18.0*.
+`xport` (.XPT) and (since *v0.18.0*) `SAS7BDAT` (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,
@@ -5159,85 +5129,112 @@ easy conversion to and from pandas.
 Performance Considerations
 --------------------------
 
-This is an informal comparison of various IO methods, using pandas 0.13.1.
+This is an informal comparison of various IO methods, using pandas
+0.20.3. Timings are machine dependent and small differences should be
+ignored.
 
 .. code-block:: ipython
 
-   In [1]: df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: sz = 1000000
+   In [2]: df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
-   In [2]: df.info()
+   In [3]: df.info()
    <class 'pandas.core.frame.DataFrame'>
-   Int64Index: 1000000 entries, 0 to 999999
+   RangeIndex: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
    A    1000000 non-null float64
-   B    1000000 non-null float64
-   dtypes: float64(2)
-   memory usage: 22.9 MB
+   B    1000000 non-null int64
+   dtypes: float64(1), int64(1)
+   memory usage: 15.3 MB
 
 Writing
 
 .. code-block:: ipython
 
    In [14]: %timeit test_sql_write(df)
-   1 loops, best of 3: 6.24 s per loop
+   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [15]: %timeit test_hdf_fixed_write(df)
-   1 loops, best of 3: 237 ms per loop
+   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [26]: %timeit test_hdf_fixed_write_compress(df)
-   1 loops, best of 3: 245 ms per loop
+   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [16]: %timeit test_hdf_table_write(df)
-   1 loops, best of 3: 901 ms per loop
+   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [27]: %timeit test_hdf_table_write_compress(df)
-   1 loops, best of 3: 952 ms per loop
+   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [17]: %timeit test_csv_write(df)
-   1 loops, best of 3: 3.44 s per loop
+   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [30]: %timeit test_feather_write(df)
+   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [31]: %timeit test_pickle_write(df)
+   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [32]: %timeit test_pickle_write_compress(df)
+   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Reading
 
 .. code-block:: ipython
 
    In [18]: %timeit test_sql_read()
-   1 loops, best of 3: 766 ms per loop
+   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
    In [19]: %timeit test_hdf_fixed_read()
-   10 loops, best of 3: 19.1 ms per loop
+   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
    In [28]: %timeit test_hdf_fixed_read_compress()
-   10 loops, best of 3: 36.3 ms per loop
+   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [20]: %timeit test_hdf_table_read()
-   10 loops, best of 3: 39 ms per loop
+   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [29]: %timeit test_hdf_table_read_compress()
-   10 loops, best of 3: 60.6 ms per loop
+   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
    In [22]: %timeit test_csv_read()
-   1 loops, best of 3: 620 ms per loop
+   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [33]: %timeit test_feather_read()
+   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [34]: %timeit test_pickle_read()
+   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [35]: %timeit test_pickle_read_compress()
+   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 Space on disk (in bytes)
 
 .. code-block:: none
 
-    25843712 Apr  8 14:11 test.sql
-    24007368 Apr  8 14:11 test_fixed.hdf
-    15580682 Apr  8 14:11 test_fixed_compress.hdf
-    24458444 Apr  8 14:11 test_table.hdf
-    16797283 Apr  8 14:11 test_table_compress.hdf
-    46152810 Apr  8 14:11 test.csv
+    34816000 Aug 21 18:00 test.sql
+    24009240 Aug 21 18:00 test_fixed.hdf
+     7919610 Aug 21 18:00 test_fixed_compress.hdf
+    24458892 Aug 21 18:00 test_table.hdf
+     8657116 Aug 21 18:00 test_table_compress.hdf
+    28520770 Aug 21 18:00 test.csv
+    16000248 Aug 21 18:00 test.feather
+    16000848 Aug 21 18:00 test.pkl
+     7554108 Aug 21 18:00 test.pkl.compress
 
 And here's the code
 
 .. code-block:: python
 
-   import sqlite3
    import os
+   import pandas as pd
+   import sqlite3
+   from numpy.random import randn
    from pandas.io import sql
 
-   df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
+   sz = 1000000
+   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -5280,3 +5277,21 @@ And here's the code
 
    def test_csv_read():
        pd.read_csv('test.csv',index_col=0)
+
+   def test_feather_write(df):
+       df.to_feather('test.feather')
+
+   def test_feather_read():
+       pd.read_feather('test.feather')
+
+   def test_pickle_write(df):
+       df.to_pickle('test.pkl')
+
+   def test_pickle_read():
+       pd.read_pickle('test.pkl')
+
+   def test_pickle_write_compress(df):
+       df.to_pickle('test.pkl.compress', compression='xz')
+
+   def test_pickle_read_compress():
+       pd.read_pickle('test.pkl.compress', compression='xz')

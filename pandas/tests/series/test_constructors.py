@@ -14,9 +14,9 @@ from pandas.api.types import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
-from pandas import (Index, Series, isna, date_range,
-                    NaT, period_range, MultiIndex, IntervalIndex)
-from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
+from pandas import (Index, Series, isna, date_range, Timestamp,
+                    NaT, period_range, timedelta_range, MultiIndex,
+                    IntervalIndex)
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
@@ -251,7 +251,7 @@ class TestSeriesConstructors(TestData):
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
-        data = dict((k, 1) for k in rng)
+        data = {k: 1 for k in rng}
 
         result = Series(data, index=rng)
         assert result.index is rng
@@ -288,6 +288,25 @@ class TestSeriesConstructors(TestData):
             assert not x.equals(y)
             assert x[0] == 2.
             assert y[0] == 1.
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.date_range('20170101', periods=3, tz='US/Eastern'),
+            pd.date_range('20170101', periods=3),
+            pd.timedelta_range('1 day', periods=3),
+            pd.period_range('2012Q1', periods=3, freq='Q'),
+            pd.Index(list('abc')),
+            pd.Int64Index([1, 2, 3]),
+            pd.RangeIndex(0, 3)],
+        ids=lambda x: type(x).__name__)
+    def test_constructor_limit_copies(self, index):
+        # GH 17449
+        # limit copies of input
+        s = pd.Series(index)
+
+        # we make 1 copy; this is just a smoke test here
+        assert s._data.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
         s = Series(None, index=lrange(5))
@@ -524,25 +543,6 @@ class TestSeriesConstructors(TestData):
         result = pd.concat([s.iloc[0:1], s.iloc[1:]])
         assert_series_equal(result, s)
 
-        # astype
-        result = s.astype(object)
-        expected = Series(DatetimeIndex(s._values).asobject)
-        assert_series_equal(result, expected)
-
-        result = Series(s.values).dt.tz_localize('UTC').dt.tz_convert(s.dt.tz)
-        assert_series_equal(result, s)
-
-        # astype - datetime64[ns, tz]
-        result = Series(s.values).astype('datetime64[ns, US/Eastern]')
-        assert_series_equal(result, s)
-
-        result = Series(s.values).astype(s.dtype)
-        assert_series_equal(result, s)
-
-        result = s.astype('datetime64[ns, CET]')
-        expected = Series(date_range('20130101 06:00:00', periods=3, tz='CET'))
-        assert_series_equal(result, expected)
-
         # short str
         assert 'datetime64[ns, US/Eastern]' in str(s)
 
@@ -777,6 +777,15 @@ class TestSeriesConstructors(TestData):
         s = Series([pd.NaT, np.nan, '1 Day'])
         assert s.dtype == 'timedelta64[ns]'
 
+    # GH 16406
+    def test_constructor_mixed_tz(self):
+        s = Series([Timestamp('20130101'),
+                    Timestamp('20130101', tz='US/Eastern')])
+        expected = Series([Timestamp('20130101'),
+                           Timestamp('20130101', tz='US/Eastern')],
+                          dtype='object')
+        assert_series_equal(s, expected)
+
     def test_NaT_scalar(self):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
@@ -807,17 +816,67 @@ class TestSeriesConstructors(TestData):
         series = Series(list(date_range('1/1/2000', periods=10)))
         assert series.dtype == 'M8[ns]'
 
-    def test_constructor_cant_cast_datetime64(self):
-        msg = "Cannot cast datetime64 to "
-        with tm.assert_raises_regex(TypeError, msg):
-            Series(date_range('1/1/2000', periods=10), dtype=float)
+    def test_convert_non_ns(self):
+        # convert from a numpy array of non-ns timedelta64
+        arr = np.array([1, 2, 3], dtype='timedelta64[s]')
+        s = Series(arr)
+        expected = Series(pd.timedelta_range('00:00:01', periods=3, freq='s'))
+        assert_series_equal(s, expected)
 
-        with tm.assert_raises_regex(TypeError, msg):
-            Series(date_range('1/1/2000', periods=10), dtype=int)
+        # convert from a numpy array of non-ns datetime64
+        # note that creating a numpy datetime64 is in LOCAL time!!!!
+        # seems to work for M8[D], but not for M8[s]
 
-    def test_constructor_cast_object(self):
-        s = Series(date_range('1/1/2000', periods=10), dtype=object)
-        exp = Series(date_range('1/1/2000', periods=10))
+        s = Series(np.array(['2013-01-01', '2013-01-02',
+                             '2013-01-03'], dtype='datetime64[D]'))
+        assert_series_equal(s, Series(date_range('20130101', periods=3,
+                                                 freq='D')))
+
+        # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
+        # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
+
+        # assert_series_equal(s,date_range('20130101
+        # 00:00:01',period=3,freq='s'))
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range('1/1/2000', periods=10),
+            timedelta_range('1 day', periods=10),
+            period_range('2000-Q1', periods=10, freq='Q')],
+        ids=lambda x: type(x).__name__)
+    def test_constructor_cant_cast_datetimelike(self, index):
+
+        # floats are not ok
+        msg = "Cannot cast {} to ".format(type(index).__name__)
+        with tm.assert_raises_regex(TypeError, msg):
+            Series(index, dtype=float)
+
+        # ints are ok
+        # we test with np.int64 to get similar results on
+        # windows / 32-bit platforms
+        result = Series(index, dtype=np.int64)
+        expected = Series(index.astype(np.int64))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range('1/1/2000', periods=10),
+            timedelta_range('1 day', periods=10),
+            period_range('2000-Q1', periods=10, freq='Q')],
+        ids=lambda x: type(x).__name__)
+    def test_constructor_cast_object(self, index):
+        s = Series(index, dtype=object)
+        exp = Series(index).astype(object)
+        tm.assert_series_equal(s, exp)
+
+        s = Series(pd.Index(index, dtype=object), dtype=object)
+        exp = Series(index).astype(object)
+        tm.assert_series_equal(s, exp)
+
+        s = Series(index.astype(object), dtype=object)
+        exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
 
     def test_constructor_generic_timestamp_deprecated(self):
@@ -846,3 +905,10 @@ class TestSeriesConstructors(TestData):
         msg = "cannot convert datetimelike"
         with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')
+
+    @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
+    def test_constructor_range_dtype(self, dtype):
+        # GH 16804
+        expected = Series([0, 1, 2, 3, 4], dtype=dtype or 'int64')
+        result = Series(range(5), dtype=dtype)
+        tm.assert_series_equal(result, expected)

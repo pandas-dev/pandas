@@ -577,7 +577,8 @@ class TestDataFrameToCSV(TestData):
 
             # tupleize_cols=True and index=False
             df = _make_frame(True)
-            df.to_csv(path, tupleize_cols=True, index=False)
+            with tm.assert_produces_warning(FutureWarning):
+                df.to_csv(path, tupleize_cols=True, index=False)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -602,7 +603,8 @@ class TestDataFrameToCSV(TestData):
 
             # column & index are multi-index (compatibility)
             df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-            df.to_csv(path, tupleize_cols=True)
+            with tm.assert_produces_warning(FutureWarning):
+                df.to_csv(path, tupleize_cols=True)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -1200,4 +1202,17 @@ class TestDataFrameToCSV(TestData):
         result = df.to_csv()
 
         expected = ',0\n1990-01-01,4\n,5\n3005-01-01,6\n'
+        assert result == expected
+
+    def test_multi_index_header(self):
+        # see gh-5539
+        columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2),
+                                             ("b", 1), ("b", 2)])
+        df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        df.columns = columns
+
+        header = ["a", "b", "c", "d"]
+        result = df.to_csv(header=header)
+
+        expected = ",a,b,c,d\n0,1,2,3,4\n1,5,6,7,8\n"
         assert result == expected

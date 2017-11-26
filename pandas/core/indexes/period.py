@@ -31,11 +31,13 @@ from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, period
+from pandas._libs import tslib, period, index as libindex
 from pandas._libs.period import (Period, IncompatibleFrequency,
                                  get_period_field_arr, _validate_end_alias,
                                  _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
@@ -75,7 +77,7 @@ def dt64arr_to_periodarr(data, freq, tz):
 _DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 
-def _period_index_cmp(opname, nat_result=False):
+def _period_index_cmp(opname, cls, nat_result=False):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
@@ -113,7 +115,8 @@ def _period_index_cmp(opname, nat_result=False):
             result[self._isnan] = nat_result
 
         return result
-    return wrapper
+
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 def _new_PeriodIndex(cls, **d):
@@ -159,6 +162,37 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
 
+    Attributes
+    ----------
+    day
+    dayofweek
+    dayofyear
+    days_in_month
+    daysinmonth
+    end_time
+    freq
+    freqstr
+    hour
+    is_leap_year
+    minute
+    month
+    quarter
+    qyear
+    second
+    start_time
+    week
+    weekday
+    weekofyear
+    year
+
+    Methods
+    -------
+    asfreq
+    strftime
+    to_timestamp
+    tz_convert
+    tz_localize
+
     Examples
     --------
     >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
@@ -192,12 +226,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     freq = None
 
-    __eq__ = _period_index_cmp('__eq__')
-    __ne__ = _period_index_cmp('__ne__', nat_result=True)
-    __lt__ = _period_index_cmp('__lt__')
-    __gt__ = _period_index_cmp('__gt__')
-    __le__ = _period_index_cmp('__le__')
-    __ge__ = _period_index_cmp('__ge__')
+    _engine_type = libindex.PeriodEngine
+
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _period_index_cmp('__eq__', cls)
+        cls.__ne__ = _period_index_cmp('__ne__', cls, nat_result=True)
+        cls.__lt__ = _period_index_cmp('__lt__', cls)
+        cls.__gt__ = _period_index_cmp('__gt__', cls)
+        cls.__le__ = _period_index_cmp('__le__', cls)
+        cls.__ge__ = _period_index_cmp('__ge__', cls)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
                 periods=None, copy=False, name=None, tz=None, dtype=None,
@@ -274,6 +313,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
         return cls._from_ordinals(data, name=name, freq=freq)
+
+    @cache_readonly
+    def _engine(self):
+        return self._engine_type(lambda: self, len(self))
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -425,10 +468,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def _to_embed(self, keep_tz=False):
+    def _to_embed(self, keep_tz=False, dtype=None):
         """
         return an array repr of this object, potentially casting to object
         """
+
+        if dtype is not None:
+            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
+
         return self.asobject.values
 
     @property
@@ -471,7 +518,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.to_timestamp(how=how).tz_localize(dtype.tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
-        raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -617,9 +664,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D' for week or longer, 'S'
-               otherwise
-            Target frequency
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
         how : {'s', 'e', 'start', 'end'}
 
         Returns
@@ -646,10 +693,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 if isinstance(other, np.ndarray):
-                    nanos = np.vectorize(tslib._delta_to_nanoseconds)(other)
+                    nanos = np.vectorize(delta_to_nanoseconds)(other)
                 else:
-                    nanos = tslib._delta_to_nanoseconds(other)
-                offset_nanos = tslib._delta_to_nanoseconds(offset)
+                    nanos = delta_to_nanoseconds(other)
+                offset_nanos = delta_to_nanoseconds(offset)
                 check = np.all(nanos % offset_nanos == 0)
                 if check:
                     return nanos // offset_nanos
@@ -666,8 +713,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             elif is_timedelta64_dtype(other):
                 offset = frequencies.to_offset(self.freq)
                 if isinstance(offset, offsets.Tick):
-                    nanos = tslib._delta_to_nanoseconds(other)
-                    offset_nanos = tslib._delta_to_nanoseconds(offset)
+                    nanos = delta_to_nanoseconds(other)
+                    offset_nanos = delta_to_nanoseconds(offset)
                     if (nanos % offset_nanos).all() == 0:
                         return nanos // offset_nanos
         elif is_integer(other):
@@ -745,8 +792,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = frequencies.Resolution.get_freq_group(reso)
-                freqn = frequencies.get_freq_group(self.freq)
+                grp = resolution.Resolution.get_freq_group(reso)
+                freqn = resolution.get_freq_group(self.freq)
 
                 vals = self._values
 
@@ -905,8 +952,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                              'ordered time series')
 
         key, parsed, reso = parse_time_string(key, self.freq)
-        grp = frequencies.Resolution.get_freq_group(reso)
-        freqn = frequencies.get_freq_group(self.freq)
+        grp = resolution.Resolution.get_freq_group(reso)
+        freqn = resolution.get_freq_group(self.freq)
         if reso in ['day', 'hour', 'minute', 'second'] and not grp < freqn:
             raise KeyError(key)
 
@@ -1032,8 +1079,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         normalized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
@@ -1056,13 +1103,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         localized : DatetimeIndex
 
-        Note
-        ----
+        Notes
+        -----
         Not currently implemented for PeriodIndex
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
 
 
+PeriodIndex._add_comparison_methods()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()

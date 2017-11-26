@@ -99,11 +99,11 @@ class TestToLatex(object):
                                        datetime(2016, 2, 5),
                                        datetime(2016, 3, 3)]})
 
-        formatters = {'int': lambda x: '0x%x' % x,
-                      'float': lambda x: '[% 4.1f]' % x,
-                      'object': lambda x: '-%s-' % str(x),
+        formatters = {'int': lambda x: '0x{x:x}'.format(x=x),
+                      'float': lambda x: '[{x: 4.1f}]'.format(x=x),
+                      'object': lambda x: '-{x!s}-'.format(x=x),
                       'datetime64': lambda x: x.strftime('%Y-%m'),
-                      '__index__': lambda x: 'index: %s' % x}
+                      '__index__': lambda x: 'index: {x}'.format(x=x)}
         result = df.to_latex(formatters=dict(formatters))
 
         expected = r"""\begin{tabular}{llrrl}
@@ -146,11 +146,11 @@ x & y &  a \\
         assert result == expected
 
         df = DataFrame.from_dict({
-            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c1', 0): pd.Series({x: x for x in range(4)}),
+            ('c1', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c2', 0): pd.Series({x: x for x in range(4)}),
+            ('c2', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c3', 0): pd.Series({x: x for x in range(4)}),
         }).T
         result = df.to_latex()
         expected = r"""\begin{tabular}{llrrrr}
@@ -223,11 +223,11 @@ a &       &      &           &      &       &      &       &      \\
 
     def test_to_latex_multicolumnrow(self):
         df = pd.DataFrame({
-            ('c1', 0): dict((x, x) for x in range(5)),
-            ('c1', 1): dict((x, x + 5) for x in range(5)),
-            ('c2', 0): dict((x, x) for x in range(5)),
-            ('c2', 1): dict((x, x + 5) for x in range(5)),
-            ('c3', 0): dict((x, x) for x in range(5))
+            ('c1', 0): {x: x for x in range(5)},
+            ('c1', 1): {x: x + 5 for x in range(5)},
+            ('c2', 0): {x: x for x in range(5)},
+            ('c2', 1): {x: x + 5 for x in range(5)},
+            ('c3', 0): {x: x for x in range(5)}
         })
         result = df.to_latex()
         expected = r"""\begin{tabular}{lrrrrr}

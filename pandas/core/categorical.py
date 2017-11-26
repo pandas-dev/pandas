@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
-    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
@@ -195,6 +194,11 @@ class Categorical(PandasObject):
 
         .. versionadded:: 0.21.0
 
+    Methods
+    -------
+    from_codes
+    __array__
+
     Raises
     ------
     ValueError
@@ -261,6 +265,7 @@ class Categorical(PandasObject):
         #    c.) infer from values
 
         if dtype is not None:
+            # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, compat.string_types):
                 if dtype == 'category':
                     dtype = CategoricalDtype(categories, ordered)
@@ -275,9 +280,12 @@ class Categorical(PandasObject):
             ordered = dtype.ordered
 
         elif is_categorical(values):
+            # If no "dtype" was passed, use the one from "values", but honor
+            # the "ordered" and "categories" arguments
             dtype = values.dtype._from_categorical_dtype(values.dtype,
                                                          categories, ordered)
         else:
+            # If dtype=None and values is not categorical, create a new dtype
             dtype = CategoricalDtype(categories, ordered)
 
         # At this point, dtype is always a CategoricalDtype
@@ -288,41 +296,30 @@ class Categorical(PandasObject):
             self._dtype = dtype
             return
 
+        # null_mask indicates missing values we want to exclude from inference.
+        # This means: only missing values in list-likes (not arrays/ndframes).
+        null_mask = np.array(False)
+
         # sanitize input
         if is_categorical_dtype(values):
+            if dtype.categories is None:
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
 
-            # we are either a Series or a CategoricalIndex
-            if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
-                values = values._values
-
-            if ordered is None:
-                ordered = values.ordered
-            if categories is None:
-                categories = values.categories
-            values = values.get_values()
-
-        elif isinstance(values, (ABCIndexClass, ABCSeries)):
-            # we'll do inference later
-            pass
-
-        else:
-
-            # on numpy < 1.6 datetimelike get inferred to all i8 by
-            # _sanitize_array which is fine, but since factorize does this
-            # correctly no need here this is an issue because _sanitize_array
-            # also coerces np.nan to a string under certain versions of numpy
-            # as well
+        elif not isinstance(values, (ABCIndexClass, ABCSeries)):
+            # _sanitize_array coerces np.nan to a string under certain versions
+            # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
-                # On list with NaNs, int values will be converted to float. Use
-                # "object" dtype to prevent this. In the end objects will be
-                # casted to int/... in the category assignment step.
-                if len(values) == 0 or isna(values).any():
+                # By convention, empty lists result in object dtype:
+                if len(values) == 0:
                     sanitize_dtype = 'object'
                 else:
                     sanitize_dtype = None
+                null_mask = isna(values)
+                if null_mask.any():
+                    values = [values[idx] for idx in np.where(~null_mask)[0]]
                 values = _sanitize_array(values, None, dtype=sanitize_dtype)
 
         if dtype.categories is None:
@@ -330,7 +327,7 @@ class Categorical(PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError("'values' is not ordered, please "
@@ -342,33 +339,23 @@ class Categorical(PandasObject):
                 raise NotImplementedError("> 1 ndim Categorical are not "
                                           "supported at this time")
 
-            if dtype.categories is None:
-                # we're inferring from values
-                dtype = CategoricalDtype(categories, ordered)
+            # we're inferring from values
+            dtype = CategoricalDtype(categories, dtype.ordered)
+
+        elif is_categorical_dtype(values):
+            old_codes = (values.cat.codes if isinstance(values, ABCSeries)
+                         else values.codes)
+            codes = _recode_for_categories(old_codes, values.dtype.categories,
+                                           dtype.categories)
 
         else:
-            # there were two ways if categories are present
-            # - the old one, where each value is a int pointer to the levels
-            #   array -> not anymore possible, but code outside of pandas could
-            #   call us like that, so make some checks
-            # - the new one, where each value is also in the categories array
-            #   (or np.nan)
-
             codes = _get_codes_for_values(values, dtype.categories)
 
-            # TODO: check for old style usage. These warnings should be removes
-            # after 0.18/ in 2016
-            if (is_integer_dtype(values) and
-                    not is_integer_dtype(dtype.categories)):
-                warn("Values and categories have different dtypes. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
-
-            if (len(values) and is_integer_dtype(values) and
-                    (codes == -1).all()):
-                warn("None of the categories were found in values. Did you "
-                     "mean to use\n'Categorical.from_codes(codes, "
-                     "categories)'?", RuntimeWarning, stacklevel=2)
+        if null_mask.any():
+            # Reinsert -1 placeholders for previously removed missing values
+            full_codes = - np.ones(null_mask.shape, dtype=codes.dtype)
+            full_codes[~null_mask] = codes
+            codes = full_codes
 
         self._dtype = dtype
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
@@ -419,7 +406,7 @@ class Categorical(PandasObject):
 
     @property
     def dtype(self):
-        """The :ref:`~pandas.api.types.CategoricalDtype` for this instance"""
+        """The :class:`~pandas.api.types.CategoricalDtype` for this instance"""
         return self._dtype
 
     @property
@@ -866,11 +853,6 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
-        The new categories can be either a list-like dict-like object.
-        If it is list-like, all items must be unique and the number of items
-        in the new categories must be the same as the number of items in the
-        old categories.
-
         Raises
         ------
         ValueError
@@ -879,15 +861,30 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : Index-like or dict-like (>=0.21.0)
-           The renamed categories.
+        new_categories : list-like or dict-like
+
+           * list-like: all items must be unique and the number of items in
+             the new categories must match the existing number of categories.
+
+           * dict-like: specifies a mapping from
+             old categories to new. Categories not contained in the mapping
+             are passed through and extra categories in the mapping are
+             ignored. *New in version 0.21.0*.
+
+           .. warning::
+
+              Currently, Series are considered list like. In a future version
+              of pandas they'll be considered dict-like.
+
         inplace : boolean (default: False)
            Whether or not to rename the categories inplace or return a copy of
            this categorical with renamed categories.
 
         Returns
         -------
-        cat : Categorical with renamed categories added or None if inplace.
+        cat : Categorical or None
+           With ``inplace=False``, the new categorical is returned.
+           With ``inplace=True``, there is no return value.
 
         See also
         --------
@@ -896,9 +893,32 @@ class Categorical(PandasObject):
         remove_categories
         remove_unused_categories
         set_categories
+
+        Examples
+        --------
+        >>> c = Categorical(['a', 'a', 'b'])
+        >>> c.rename_categories([0, 1])
+        [0, 0, 1]
+        Categories (2, int64): [0, 1]
+
+        For dict-like ``new_categories``, extra keys are ignored and
+        categories not in the dictionary are passed through
+
+        >>> c.rename_categories({'a': 'A', 'c': 'C'})
+        [A, A, b]
+        Categories (2, object): [A, b]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
+
+        if isinstance(new_categories, ABCSeries):
+            msg = ("Treating Series 'new_categories' as a list-like and using "
+                   "the values. In a future version, 'rename_categories' will "
+                   "treat Series like a dictionary.\n"
+                   "For dict-like, use 'new_categories.to_dict()'\n"
+                   "For list-like, use 'new_categories.values'.")
+            warn(msg, FutureWarning, stacklevel=2)
+            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
@@ -1555,7 +1575,7 @@ class Categorical(PandasObject):
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank())
+                self.rename_categories(Series(self.categories).rank().values)
             )
         return values
 
@@ -1603,8 +1623,12 @@ class Categorical(PandasObject):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar
-            Value to use to fill holes (e.g. 0)
+        value : scalar, dict, Series
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, a Series or dict can be used to fill in different
+            values for each index. The value should not be a list. The
+            value(s) passed should either be in the categories or should be
+            NaN.
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive
@@ -1645,16 +1669,33 @@ class Categorical(PandasObject):
 
         else:
 
-            if not isna(value) and value not in self.categories:
-                raise ValueError("fill value must be in categories")
+            # If value is a dict or a Series (a dict value has already
+            # been converted to a Series)
+            if isinstance(value, ABCSeries):
+                if not value[~value.isin(self.categories)].isna().all():
+                    raise ValueError("fill value must be in categories")
 
-            mask = values == -1
-            if mask.any():
-                values = values.copy()
-                if isna(value):
-                    values[mask] = -1
-                else:
-                    values[mask] = self.categories.get_loc(value)
+                values_codes = _get_codes_for_values(value, self.categories)
+                indexer = np.where(values_codes != -1)
+                values[indexer] = values_codes[values_codes != -1]
+
+            # If value is not a dict or Series it should be a scalar
+            elif is_scalar(value):
+                if not isna(value) and value not in self.categories:
+                    raise ValueError("fill value must be in categories")
+
+                mask = values == -1
+                if mask.any():
+                    values = values.copy()
+                    if isna(value):
+                        values[mask] = -1
+                    else:
+                        values[mask] = self.categories.get_loc(value)
+
+            else:
+                raise TypeError('"value" parameter must be a scalar, dict '
+                                'or Series, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
 
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
@@ -2235,7 +2276,7 @@ def _recode_for_categories(codes, old_categories, new_categories):
 
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
-        return codes
+        return codes.copy()
     indexer = coerce_indexer_dtype(new_categories.get_indexer(old_categories),
                                    new_categories)
     new_codes = take_1d(indexer, codes.copy(), fill_value=-1)

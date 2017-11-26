@@ -24,9 +24,9 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
-from pandas._libs import (tslib as libts, lib,
-                          Timedelta, Timestamp, iNaT, NaT)
+from pandas._libs import lib, iNaT, NaT
 from pandas._libs.period import Period
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -47,8 +47,6 @@ class DatelikeOps(object):
     Return an array of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
-
-    .. versionadded:: 0.17.0
 
     Parameters
     ----------
@@ -138,7 +136,7 @@ class DatetimeIndexOpsMixin(object):
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
-            except:
+            except Exception:
                 return False
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -354,7 +352,7 @@ class DatetimeIndexOpsMixin(object):
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
-                self._shallow_copy(result)
+                result = Index(result)
 
             if not isinstance(result, Index):
                 raise TypeError('The map function must return an Index object')
@@ -649,13 +647,11 @@ class DatetimeIndexOpsMixin(object):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}"
                                 .format(typ=type(other)))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
-                                    Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (Index, Timestamp, datetime,
-                                    np.datetime64)):
+            elif isinstance(other, (Index, datetime, np.datetime64)):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
@@ -680,12 +676,11 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
-                                    Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
-            elif isinstance(other, (Timestamp, datetime)):
+            elif isinstance(other, (datetime, np.datetime64)):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
@@ -703,11 +698,19 @@ class DatetimeIndexOpsMixin(object):
     def _add_delta(self, other):
         return NotImplemented
 
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        if len(data):
+            return np.array([data.get(i, np.nan)
+                             for i in self.asobject.values])
+
+        return np.array([np.nan])
+
     def _add_delta_td(self, other):
         # add a delta of a timedeltalike
         # return the i8 result view
 
-        inc = libts._delta_to_nanoseconds(other)
+        inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
         if self.hasnans:

@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isna, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex)
+                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
+                    Categorical)
 from pandas.compat import range
 from pandas._libs.tslib import iNaT
 from pandas.core.series import remove_na
@@ -363,6 +364,55 @@ class TestSeriesMissingData(TestData):
                 with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
 
+    @pytest.mark.parametrize('fill_value, expected_output', [
+        ('a', ['a', 'a', 'b', 'a', 'a']),
+        ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),
+        ({1: 'a'}, ['a', 'a', 'b', np.nan, np.nan]),
+        ({1: 'a', 3: 'b'}, ['a', 'a', 'b', 'b', np.nan]),
+        (Series('a'), ['a', np.nan, 'b', np.nan, np.nan]),
+        (Series('a', index=[1]), ['a', 'a', 'b', np.nan, np.nan]),
+        (Series({1: 'a', 3: 'b'}), ['a', 'a', 'b', 'b', np.nan]),
+        (Series(['a', 'b'], index=[3, 4]), ['a', np.nan, 'b', 'a', 'b'])
+    ])
+    def test_fillna_categorical(self, fill_value, expected_output):
+        # GH 17033
+        # Test fillna for a Categorical series
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+        exp = Series(Categorical(expected_output, categories=['a', 'b']))
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
+    def test_fillna_categorical_raise(self):
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna('d')
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna(Series('d'))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna({1: 'd', 3: 'a'})
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "list"'):
+            s.fillna(['a', 'b'])
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "tuple"'):
+            s.fillna(('a', 'b'))
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a "DataFrame"'):
+            s.fillna(DataFrame({1: ['a'], 3: ['b']}))
+
     def test_fillna_nat(self):
         series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
 
@@ -636,17 +686,21 @@ class TestSeriesMissingData(TestData):
 
     def test_isna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.isna(),
-                       Series([False, False, False, True, False]).values)
+        expected = Series([False, False, False, True, False])
+        tm.assert_series_equal(ser.isna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.isna(), Series([False, False, True]).values)
+        expected = Series([False, False, True])
+        tm.assert_series_equal(ser.isna(), expected)
 
     def test_notna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.notna(),
-                       Series([True, True, True, False, True]).values)
+        expected = Series([True, True, True, False, True])
+        tm.assert_series_equal(ser.notna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.notna(), Series([True, True, False]).values)
+        expected = Series([True, True, False])
+        tm.assert_series_equal(ser.notna(), expected)
 
     def test_pad_nan(self):
         x = Series([np.nan, 1., np.nan, 3., np.nan], ['z', 'a', 'b', 'c', 'd'],
