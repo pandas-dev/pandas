@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
     is_list_like,
+    is_nested_list_like,
     is_iterator,
     is_sequence,
     is_named_tuple)
@@ -1271,16 +1272,34 @@ class DataFrame(NDFrame):
                 columns = _ensure_index(keys)
                 arrays = values
 
-            return cls._from_arrays(arrays, columns, None)
+            # GH 17312
+            # Provide more informative error msg when scalar values passed
+            try:
+                return cls._from_arrays(arrays, columns, None)
+
+            except ValueError:
+                if not is_nested_list_like(values):
+                    raise ValueError('The value in each (key, value) pair '
+                                     'must be an array, Series, or dict')
+
         elif orient == 'index':
             if columns is None:
                 raise TypeError("Must pass columns with orient='index'")
 
             keys = _ensure_index(keys)
 
-            arr = np.array(values, dtype=object).T
-            data = [lib.maybe_convert_objects(v) for v in arr]
-            return cls._from_arrays(data, columns, keys)
+            # GH 17312
+            # Provide more informative error msg when scalar values passed
+            try:
+                arr = np.array(values, dtype=object).T
+                data = [lib.maybe_convert_objects(v) for v in arr]
+                return cls._from_arrays(data, columns, keys)
+
+            except TypeError:
+                if not is_nested_list_like(values):
+                    raise ValueError('The value in each (key, value) pair '
+                                     'must be an array, Series, or dict')
+
         else:  # pragma: no cover
             raise ValueError("'orient' must be either 'columns' or 'index'")
 

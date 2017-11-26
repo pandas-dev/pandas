@@ -268,13 +268,14 @@ class TestDataFrameConstructors(TestData):
 
         # GH10856
         # dict with scalar values should raise error, even if columns passed
-        with pytest.raises(ValueError):
+        msg = 'If using all scalar values, you must pass an index'
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7})
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['a'])
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['b'])
 
     def test_constructor_multi_index(self):
@@ -1203,6 +1204,19 @@ class TestDataFrameConstructors(TestData):
         xp = DataFrame([[1, 2, 3], [4, 5, 6]], index=['A', 'B'],
                        columns=['one', 'two', 'three'])
         tm.assert_frame_equal(rs, xp)
+
+    def test_constructor_from_items_scalars(self):
+        # GH 17312
+        with tm.assert_raises_regex(ValueError,
+                                    'The value in each \(key, value\) '
+                                    'pair must be an array, Series, or dict'):
+            DataFrame.from_items([('A', 1), ('B', 4)])
+
+        with tm.assert_raises_regex(ValueError,
+                                    'The value in each \(key, value\) '
+                                    'pair must be an array, Series, or dict'):
+            DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
+                                 orient='index')
 
     def test_constructor_mix_series_nonseries(self):
         df = DataFrame({'A': self.frame['A'],
