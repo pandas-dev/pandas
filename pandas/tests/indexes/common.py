@@ -1025,7 +1025,7 @@ class Base(object):
             pytest.skip("tested in test_categorical")
         expected = index
 
-        identity = mapper({x: x for x in index}, index)
+        identity = mapper(index.values, index)
         result = index.map(identity)
         tm.assert_index_equal(result, expected)
 
