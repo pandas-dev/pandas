@@ -1005,3 +1005,45 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_map(self):
+        # callable
+        index = self.create_index()
+        expected = index
+        result = index.map(lambda x: x)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
+
+        index = self.create_index()
+        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+            pytest.skip("skipping tests for {}".format(type(index)))
+
+        expected = index
+
+        identity = mapper(index.values, index)
+        result = index.map(identity)
+        tm.assert_index_equal(result, expected)
+
+        # empty mappable
+        expected = pd.Index([np.nan] * len(index))
+        result = index.map(mapper(expected, index))
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_with_wrong_mask(self):
+        # GH18368
+        index = self.create_index()
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask('foo', 1)

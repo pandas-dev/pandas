@@ -67,10 +67,10 @@ class TestDataFrameBlockInternals(TestData):
         for letter in range(ord('A'), ord('Z')):
             self.frame[chr(letter)] = chr(letter)
 
-    def test_as_matrix_consolidate(self):
+    def test_values_consolidate(self):
         self.frame['E'] = 7.
         assert not self.frame._data.is_consolidated()
-        _ = self.frame.as_matrix()  # noqa
+        _ = self.frame.values  # noqa
         assert self.frame._data.is_consolidated()
 
     def test_modify_values(self):
@@ -91,50 +91,50 @@ class TestDataFrameBlockInternals(TestData):
         self.frame[self.frame > 1] = 2
         assert_almost_equal(expected, self.frame.values)
 
-    def test_as_matrix_numeric_cols(self):
+    def test_values_numeric_cols(self):
         self.frame['foo'] = 'bar'
 
-        values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-    def test_as_matrix_lcd(self):
+    def test_values_lcd(self):
 
         # mixed lcd
-        values = self.mixed_float.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.mixed_float[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_float.as_matrix(['A', 'B', 'C'])
+        values = self.mixed_float[['A', 'B', 'C']].values
         assert values.dtype == np.float32
 
-        values = self.mixed_float.as_matrix(['C'])
+        values = self.mixed_float[['C']].values
         assert values.dtype == np.float16
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.mixed_int[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_int.as_matrix(['A', 'D'])
+        values = self.mixed_int[['A', 'D']].values
         assert values.dtype == np.int64
 
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int.as_matrix(['A', 'B', 'C'])
+        values = self.mixed_int[['A', 'B', 'C']].values
         assert values.dtype == np.float64
 
         # as B and C are both unsigned, no forcing to float is needed
-        values = self.mixed_int.as_matrix(['B', 'C'])
+        values = self.mixed_int[['B', 'C']].values
         assert values.dtype == np.uint64
 
-        values = self.mixed_int.as_matrix(['A', 'C'])
+        values = self.mixed_int[['A', 'C']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int.as_matrix(['C', 'D'])
+        values = self.mixed_int[['C', 'D']].values
         assert values.dtype == np.int64
 
-        values = self.mixed_int.as_matrix(['A'])
+        values = self.mixed_int[['A']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int.as_matrix(['C'])
+        values = self.mixed_int[['C']].values
         assert values.dtype == np.uint8
 
     def test_constructor_with_convert(self):

@@ -40,7 +40,7 @@ from timezones cimport (
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, _checknull_with_nat
+from nattype cimport NPY_NAT, checknull_with_nat
 
 # ----------------------------------------------------------------------
 # Constants
@@ -143,7 +143,7 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
