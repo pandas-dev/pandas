@@ -193,12 +193,27 @@ def get_writer(engine_name):
 
 @Appender(_read_excel_doc)
 @deprecate_kwarg("parse_cols", "usecols")
-def read_excel(io, sheet_name=0, header=0, skiprows=None, nrows=None, 
-               skip_footer=0, index_col=None, names=None, usecols=None, 
-               parse_dates=False, date_parser=None, na_values=None,
-               thousands=None, convert_float=True, converters=None,
-               dtype=None, true_values=None, false_values=None, engine=None,
-               squeeze=False, **kwds):
+def read_excel(io,
+               sheet_name=0,
+               header=0,
+               skiprows=None,
+               nrows=None, 
+               skip_footer=0,
+               index_col=None,
+               names=None,
+               usecols=None, 
+               parse_dates=False,
+               date_parser=None,
+               na_values=None,
+               thousands=None,
+               convert_float=True,
+               converters=None,
+               dtype=None,
+               true_values=None,
+               false_values=None,
+               engine=None,
+               squeeze=False,
+               **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
@@ -213,12 +228,24 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, nrows=None,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name, header=header, skiprows=skiprows, nrows=nrows,
-        names=names, index_col=index_col, usecols=usecols,
-        parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
-        thousands=thousands, convert_float=convert_float,
-        skip_footer=skip_footer, converters=converters, dtype=dtype,
-        true_values=true_values, false_values=false_values, squeeze=squeeze,
+        sheetname=sheet_name,
+        header=header,
+        skiprows=skiprows,
+        nrows=nrows,
+        names=names,
+        index_col=index_col,
+        usecols=usecols,
+        parse_dates=parse_dates,
+        date_parser=date_parser,
+        na_values=na_values,
+        thousands=thousands,
+        convert_float=convert_float,
+        skip_footer=skip_footer,
+        converters=converters,
+        dtype=dtype,
+        true_values=true_values,
+        false_values=false_values,
+        squeeze=squeeze,
         **kwds)
 
 
@@ -283,11 +310,25 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheet_name=0, header=0, skiprows=None, nrows=None,
-              skip_footer=0, names=None, index_col=None, usecols=None,
-              parse_dates=False, date_parser=None, na_values=None,
-              thousands=None, convert_float=True, converters=None,
-              true_values=None, false_values=None, squeeze=False, **kwds):
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              skiprows=None,
+              nrows=None,
+              skip_footer=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              parse_dates=False,
+              date_parser=None,
+              na_values=None,
+              thousands=None,
+              convert_float=True,
+              converters=None,
+              true_values=None,
+              false_values=None,
+              squeeze=False,
+              **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -295,14 +336,16 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name, header=header,
+        return self._parse_excel(sheetname=sheet_name,
+                                 header=header,
                                  skiprows=skiprows,
                                  nrows=nrows,
                                  names=names,
                                  index_col=index_col,
                                  usecols=usecols,
                                  parse_dates=parse_dates,
-                                 date_parser=date_parser, na_values=na_values,
+                                 date_parser=date_parser,
+                                 na_values=na_values,
                                  thousands=thousands,
                                  skip_footer=skip_footer,
                                  convert_float=convert_float,
@@ -345,12 +388,26 @@ class ExcelFile(object):
         else:
             return i in usecols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, nrows=None,
-                     names=None, skip_footer=0, index_col=None, usecols=None,
-                     parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, convert_float=True, true_values=None,
-                     false_values=None, verbose=False, dtype=None,
-                     squeeze=False, **kwds):
+    def _parse_excel(self,
+                     sheetname=0,
+                     header=0,
+                     skiprows=None,
+                     nrows=None,
+                     names=None,
+                     skip_footer=0,
+                     index_col=None,
+                     usecols=None,
+                     parse_dates=False,
+                     date_parser=None,
+                     na_values=None,
+                     thousands=None,
+                     convert_float=True,
+                     true_values=None,
+                     false_values=None,
+                     verbose=False,
+                     dtype=None,
+                     squeeze=False,
+                     **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -512,7 +569,9 @@ class ExcelFile(object):
 
             # GH 12292 : error when read one empty column from excel file
             try:
-                parser = TextParser(data, header=header, index_col=index_col,
+                parser = TextParser(data,
+                                    header=header,
+                                    index_col=index_col,
                                     has_index_names=has_index_names,
                                     na_values=na_values,
                                     thousands=thousands,
