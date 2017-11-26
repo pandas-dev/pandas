@@ -1191,22 +1191,17 @@ class NDFrame(PandasObject, SelectionMixin):
                                          if axis == 0 else
                                          ('an', 'index'))
 
-            warnings.warn(
-                ("'{key}' is both {level_article} {level_type} level and "
-                 "{label_article} {label_type} label.\n"
-                 "Defaulting to {label_type}, but this will raise an "
-                 "ambiguity error in a future version"
-                 ).format(key=key,
-                          level_article=level_article,
-                          level_type=level_type,
-                          label_article=label_article,
-                          label_type=label_type), FutureWarning)
+            msg = ("'{key}' is both {level_article} {level_type} level and "
+                   "{label_article} {label_type} label.\n"
+                   "Defaulting to {label_type}, but this will raise an "
+                   "ambiguity error in a future version"
+                   ).format(key=key,
+                            level_article=level_article,
+                            level_type=level_type,
+                            label_article=label_article,
+                            label_type=label_type)
 
-        if (isinstance(key, compat.string_types) and
-                key in self.axes[axis].names and
-                any(key in self.axes[ax] for ax in other_axes)):
-
-            raise_warning()
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             return True
         else:
             return False
