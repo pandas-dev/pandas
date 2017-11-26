@@ -1021,8 +1021,9 @@ class Base(object):
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, pd.CategoricalIndex):
-            pytest.skip("tested in test_categorical")
+        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+            pytest.skip("skipping tests for {}".format(type(index)))
+
         expected = index
 
         identity = mapper(index.values, index)
