@@ -404,6 +404,11 @@ if LooseVersion(dateutil.__version__) < '2.5':
 from dateutil import parser as _date_parser
 parse_date = _date_parser.parse
 
+# pytz minimum version
+import pytz
+
+if LooseVersion(pytz.__version__) < '2016.1':
+    raise ImportError('pytz 2016.1 is the minimum required version')
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
