@@ -13,7 +13,6 @@ np.import_array()
 cimport util
 
 from libc.stdlib cimport malloc, free
-from libc.math cimport sqrt
 
 from numpy cimport ndarray, double_t, int64_t, float64_t
 
@@ -35,8 +34,9 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-cdef extern from "src/headers/math.h":
+cdef extern from "../src/headers/math.h":
     int signbit(double) nogil
+    double sqrt(double x) nogil
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,
