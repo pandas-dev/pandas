@@ -79,6 +79,23 @@ class TestMonthBegin(Base):
 class TestMonthEnd(Base):
     _offset = MonthEnd
 
+    def test_day_of_month(self):
+        dt = datetime(2007, 1, 1)
+        offset = MonthEnd()
+
+        result = dt + offset
+        assert result == Timestamp(2007, 1, 31)
+
+        result = result + offset
+        assert result == Timestamp(2007, 2, 28)
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + MonthEnd(normalize=True)
+        expected = dt.replace(hour=0) + MonthEnd()
+        assert result == expected
+
     offset_cases = []
     offset_cases.append((MonthEnd(), {
         datetime(2008, 1, 1): datetime(2008, 1, 31),
@@ -117,23 +134,6 @@ class TestMonthEnd(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_day_of_month(self):
-        dt = datetime(2007, 1, 1)
-        offset = MonthEnd()
-
-        result = dt + offset
-        assert result == Timestamp(2007, 1, 31)
-
-        result = result + offset
-        assert result == Timestamp(2007, 2, 28)
-
-    def test_normalize(self):
-        dt = datetime(2007, 1, 1, 3)
-
-        result = dt + MonthEnd(normalize=True)
-        expected = dt.replace(hour=0) + MonthEnd()
-        assert result == expected
-
     on_offset_cases = [(MonthEnd(), datetime(2007, 12, 31), True),
                        (MonthEnd(), datetime(2008, 1, 1), False)]
 
@@ -145,6 +145,12 @@ class TestMonthEnd(Base):
 
 class TestBMonthBegin(Base):
     _offset = BMonthBegin
+
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = BMonthBegin()
+        offset2 = BMonthBegin()
+        assert not offset1 != offset2
 
     offset_cases = []
     offset_cases.append((BMonthBegin(), {
@@ -198,15 +204,22 @@ class TestBMonthBegin(Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BMonthBegin()
-        offset2 = BMonthBegin()
-        assert not offset1 != offset2
-
 
 class TestBMonthEnd(Base):
     _offset = BMonthEnd
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + BMonthEnd(normalize=True)
+        expected = dt.replace(hour=0) + BMonthEnd()
+        assert result == expected
+
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = BMonthEnd()
+        offset2 = BMonthEnd()
+        assert not offset1 != offset2
 
     offset_cases = []
     offset_cases.append((BMonthEnd(), {
@@ -246,13 +259,6 @@ class TestBMonthEnd(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_normalize(self):
-        dt = datetime(2007, 1, 1, 3)
-
-        result = dt + BMonthEnd(normalize=True)
-        expected = dt.replace(hour=0) + BMonthEnd()
-        assert result == expected
-
     on_offset_cases = [(BMonthEnd(), datetime(2007, 12, 31), True),
                        (BMonthEnd(), datetime(2008, 1, 1), False)]
 
@@ -261,12 +267,6 @@ class TestBMonthEnd(Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BMonthEnd()
-        offset2 = BMonthEnd()
-        assert not offset1 != offset2
-
 # --------------------------------------------------------------------
 # Quarters
 
@@ -274,17 +274,22 @@ class TestBMonthEnd(Base):
 class TestQuarterBegin(Base):
 
     def test_repr(self):
-        assert (repr(QuarterBegin()) ==
-                "<QuarterBegin: startingMonth=3>")
-        assert (repr(QuarterBegin(startingMonth=3)) ==
-                "<QuarterBegin: startingMonth=3>")
-        assert (repr(QuarterBegin(startingMonth=1)) ==
-                "<QuarterBegin: startingMonth=1>")
+        expected = "<QuarterBegin: startingMonth=3>"
+        assert repr(QuarterBegin()) == expected
+        expected = "<QuarterBegin: startingMonth=3>"
+        assert repr(QuarterBegin(startingMonth=3)) == expected
+        expected = "<QuarterBegin: startingMonth=1>"
+        assert repr(QuarterBegin(startingMonth=1)) == expected
 
     def test_isAnchored(self):
         assert QuarterBegin(startingMonth=1).isAnchored()
         assert QuarterBegin().isAnchored()
         assert not QuarterBegin(2, startingMonth=1).isAnchored()
+
+    def test_offset_corner_case(self):
+        # corner
+        offset = QuarterBegin(n=-1, startingMonth=1)
+        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
 
     offset_cases = []
     offset_cases.append((QuarterBegin(startingMonth=1), {
@@ -344,11 +349,6 @@ class TestQuarterBegin(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_offset_corner_case(self):
-        # corner
-        offset = QuarterBegin(n=-1, startingMonth=1)
-        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
-
 
 class TestQuarterEnd(Base):
     _offset = QuarterEnd
@@ -365,6 +365,11 @@ class TestQuarterEnd(Base):
         assert QuarterEnd(startingMonth=1).isAnchored()
         assert QuarterEnd().isAnchored()
         assert not QuarterEnd(2, startingMonth=1).isAnchored()
+
+    def test_offset_corner_case(self):
+        # corner
+        offset = QuarterEnd(n=-1, startingMonth=1)
+        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 31)
 
     offset_cases = []
     offset_cases.append((QuarterEnd(startingMonth=1), {
@@ -423,11 +428,6 @@ class TestQuarterEnd(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_offset_corner_case(self):
-        # corner
-        offset = QuarterEnd(n=-1, startingMonth=1)
-        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 31)
-
     on_offset_cases = [
         (QuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
         (QuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
@@ -481,6 +481,11 @@ class TestBQuarterBegin(Base):
         assert BQuarterBegin(startingMonth=1).isAnchored()
         assert BQuarterBegin().isAnchored()
         assert not BQuarterBegin(2, startingMonth=1).isAnchored()
+
+    def test_offset_corner_case(self):
+        # corner
+        offset = BQuarterBegin(n=-1, startingMonth=1)
+        assert datetime(2007, 4, 3) + offset == datetime(2007, 4, 2)
 
     offset_cases = []
     offset_cases.append((BQuarterBegin(startingMonth=1), {
@@ -555,11 +560,6 @@ class TestBQuarterBegin(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_offset_corner_case(self):
-        # corner
-        offset = BQuarterBegin(n=-1, startingMonth=1)
-        assert datetime(2007, 4, 3) + offset == datetime(2007, 4, 2)
-
 
 class TestBQuarterEnd(Base):
     _offset = BQuarterEnd
@@ -576,6 +576,11 @@ class TestBQuarterEnd(Base):
         assert BQuarterEnd(startingMonth=1).isAnchored()
         assert BQuarterEnd().isAnchored()
         assert not BQuarterEnd(2, startingMonth=1).isAnchored()
+
+    def test_offset_corner_case(self):
+        # corner
+        offset = BQuarterEnd(n=-1, startingMonth=1)
+        assert datetime(2010, 1, 31) + offset == datetime(2010, 1, 29)
 
     offset_cases = []
     offset_cases.append((BQuarterEnd(startingMonth=1), {
@@ -632,11 +637,6 @@ class TestBQuarterEnd(Base):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
-
-    def test_offset_corner_case(self):
-        # corner
-        offset = BQuarterEnd(n=-1, startingMonth=1)
-        assert datetime(2010, 1, 31) + offset == datetime(2010, 1, 29)
 
     on_offset_cases = [
         (BQuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
@@ -957,6 +957,7 @@ class TestBYearEnd(Base):
 
 
 class TestBYearEndLagged(Base):
+    _offset = BYearEnd
 
     def test_bad_month_fail(self):
         pytest.raises(Exception, BYearEnd, month=13)
@@ -975,7 +976,7 @@ class TestBYearEndLagged(Base):
     def test_offset(self, case):
         offset, cases = case
         for base, expected in compat.iteritems(cases):
-            assert base + offset == expected
+            assert_offset_equal(offset, base, expected)
 
     def test_roll(self):
         offset = BYearEnd(month=6)
