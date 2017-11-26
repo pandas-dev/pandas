@@ -60,6 +60,7 @@ from pandas.util._decorators import (cache_readonly, Substitution,
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_kwargs
 
+from pandas.core.sorting import safe_sort
 import pandas.core.algorithms as algorithms
 from pandas.core.config import option_context
 
@@ -3038,7 +3039,7 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.grouper.names[0])
+            index = Index(safe_sort(result), name=self.grouper.names[0])
             ret = Series(result, index=index)
 
         if not self.as_index:  # pragma: no cover
