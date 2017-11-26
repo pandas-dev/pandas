@@ -637,7 +637,7 @@ class TestGroupByAggregate(object):
         def P1(a):
             try:
                 return np.percentile(a.dropna(), q=1)
-            except:
+            except Exception:
                 return np.nan
 
         import datetime as dt
@@ -892,3 +892,36 @@ class TestGroupByAggregate(object):
         expected.index.name = 0
         result = df.groupby(0).sum()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("structure, expected", [
+        (tuple, pd.DataFrame({'C': {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}})),
+        (list, pd.DataFrame({'C': {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}})),
+        (lambda x: tuple(x), pd.DataFrame({'C': {(1, 1): (1, 1, 1),
+                                                 (3, 4): (3, 4, 4)}})),
+        (lambda x: list(x), pd.DataFrame({'C': {(1, 1): [1, 1, 1],
+                                                (3, 4): [3, 4, 4]}}))
+    ])
+    def test_agg_structs_dataframe(self, structure, expected):
+        df = pd.DataFrame({'A': [1, 1, 1, 3, 3, 3],
+                           'B': [1, 1, 1, 4, 4, 4], 'C': [1, 1, 1, 3, 4, 4]})
+
+        result = df.groupby(['A', 'B']).aggregate(structure)
+        expected.index.names = ['A', 'B']
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("structure, expected", [
+        (tuple, pd.Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name='C')),
+        (list, pd.Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name='C')),
+        (lambda x: tuple(x), pd.Series([(1, 1, 1), (3, 4, 4)],
+                                       index=[1, 3], name='C')),
+        (lambda x: list(x), pd.Series([[1, 1, 1], [3, 4, 4]],
+                                      index=[1, 3], name='C'))
+    ])
+    def test_agg_structs_series(self, structure, expected):
+        # Issue #18079
+        df = pd.DataFrame({'A': [1, 1, 1, 3, 3, 3],
+                           'B': [1, 1, 1, 4, 4, 4], 'C': [1, 1, 1, 3, 4, 4]})
+
+        result = df.groupby('A')['C'].aggregate(structure)
+        expected.index.name = 'A'
+        assert_series_equal(result, expected)
