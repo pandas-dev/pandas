@@ -671,8 +671,9 @@ class _MergeOperation(object):
         for name, left_key, right_key in zip(self.join_names,
                                              self.left_on,
                                              self.right_on):
-            if self.orig_left._is_level_reference(left_key) and \
-                    self.orig_right._is_level_reference(right_key):
+            if (self.orig_left._is_level_reference(left_key) and
+                    self.orig_right._is_level_reference(right_key) and
+                    name not in result.index.names):
 
                 names_to_restore.append(name)
 
@@ -748,8 +749,17 @@ class _MergeOperation(object):
                 else:
                     key_col = Index(lvals).where(~mask, rvals)
 
-                if name in result:
+                if result._is_label_reference(name):
                     result[name] = key_col
+                elif result._is_level_reference(name):
+                    if isinstance(result.index, MultiIndex):
+                        idx_list = [result.index.get_level_values(level_name)
+                                    if level_name != name else key_col
+                                    for level_name in result.index.names]
+
+                        result.set_index(idx_list, inplace=True)
+                    else:
+                        result.index = Index(key_col, name=name)
                 else:
                     result.insert(i, name or 'key_{i}'.format(i=i), key_col)
 
