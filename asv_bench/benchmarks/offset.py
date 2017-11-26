@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 from pandas import date_range
 
+try:
+    import pandas.tseries.holiday
+except ImportError:
+    pass
 
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
 
