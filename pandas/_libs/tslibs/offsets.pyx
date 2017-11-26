@@ -17,12 +17,14 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
-from ccalendar cimport get_days_in_month, monthrange
+from pandas._libs.tslib import monthrange
+
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
+                          dtstruct_to_dt64, dt64_to_dtstruct,
+                          is_leapyear, days_per_month_table)
 
 # ---------------------------------------------------------------------
 # Constants
@@ -449,6 +451,11 @@ class BaseOffset(_BaseOffset):
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline int get_days_in_month(int year, int month) nogil:
+    return days_per_month_table[is_leapyear(year)][month - 1]
 
 
 cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:

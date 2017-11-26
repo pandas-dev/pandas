@@ -343,7 +343,6 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
-                 'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
@@ -559,8 +558,6 @@ ext_data = {
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
-    '_libs.tslibs.ccalendar': {
-        'pyxfile': '_libs/tslibs/ccalendar'},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
         'pxdfiles': ['_libs/src/util',
@@ -587,7 +584,6 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
