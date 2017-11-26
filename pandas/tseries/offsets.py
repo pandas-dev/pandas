@@ -1039,8 +1039,10 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     @apply_wraps
     def apply(self, other):
         n = self.n
+
         # First move to month offset
         cur_mend = self.m_offset.rollforward(other)
+
         # Find this custom month offset
         cur_cmend = self.cbday.rollback(cur_mend)
 
@@ -1115,8 +1117,10 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     def apply(self, other):
         n = self.n
         dt_in = other
+
         # First move to month offset
         cur_mbegin = self.m_offset.rollback(dt_in)
+
         # Find this custom month offset
         cur_cmbegin = self.cbday.rollforward(cur_mbegin)
 
