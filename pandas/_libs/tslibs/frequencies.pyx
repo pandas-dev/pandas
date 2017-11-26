@@ -210,7 +210,7 @@ cpdef _period_str_to_code(freqstr):
         raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
 
 
-cpdef _get_freq_str(base, mult=1):
+cpdef str get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
     if mult == 1:
         return code
@@ -239,7 +239,7 @@ class FreqGroup(object):
     FR_NS = 12000
 
 
-cpdef get_to_timestamp_base(base):
+cpdef int get_to_timestamp_base(int base):
     """
     Return frequency code group used for base of to_timestamp against
     frequency code.
@@ -267,7 +267,7 @@ cpdef get_to_timestamp_base(base):
     return base
 
 
-cpdef get_freq(freq):
+cpdef object get_freq(object freq):
     """
     Return frequency code of given frequency str.
     If input is not string, return input as it is.

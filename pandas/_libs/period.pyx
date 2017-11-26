@@ -32,7 +32,7 @@ from tslibs.timezones cimport (
 from tslibs.timedeltas cimport delta_to_nanoseconds
 
 from tslibs.frequencies cimport (get_freq_code, get_base_alias,
-                                 get_to_timestamp_base, _get_freq_str,
+                                 get_to_timestamp_base, get_freq_str,
                                  _get_rule_month)
 from tslibs.frequencies import _MONTH_NUMBERS
 from tslibs.parsing import parse_time_string, NAT_SENTINEL
@@ -573,7 +573,7 @@ cdef class _Period(object):
 
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
-            freq = _get_freq_str(code, stride)
+            freq = get_freq_str(code, stride)
 
         freq = frequencies.to_offset(freq)
 
