@@ -7,7 +7,7 @@ except:
     from pandas.core.datetools import *
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Creation from nested dict
 
 class FromDicts(object):
@@ -115,7 +115,7 @@ class FromDictwithTimestampOffsets(object):
         if extra:
             extras = self.offset_extra_cases[offset]
             for extra_arg in extras:
-                kwargs[extra_arg] = extras[extra_arg][extra -1]
+                kwargs[extra_arg] = extras[extra_arg][extra - 1]
 
         offset = getattr(offsets, offset)
         self.idx = get_index_for_offset(offset(n_steps, **kwargs))
