@@ -245,29 +245,29 @@ class SharedWithSparse(object):
 
     def test_values(self):
         frame = self.frame
-        mat = frame.values
+        arr = frame.values
 
-        frameCols = frame.columns
-        for i, row in enumerate(mat):
+        frame_cols = frame.columns
+        for i, row in enumerate(arr):
             for j, value in enumerate(row):
-                col = frameCols[j]
+                col = frame_cols[j]
                 if np.isnan(value):
                     assert np.isnan(frame[col][i])
                 else:
                     assert value == frame[col][i]
 
         # mixed type
-        mat = self.mixed_frame[['foo', 'A']].values
-        assert mat[0, 0] == 'bar'
+        arr = self.mixed_frame[['foo', 'A']].values
+        assert arr[0, 0] == 'bar'
 
         df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
-        mat = df.values
-        assert mat[0, 0] == 1j
+        arr = df.values
+        assert arr[0, 0] == 1j
 
         # single block corner case
-        mat = self.frame[['A', 'B']].values
+        arr = self.frame[['A', 'B']].values
         expected = self.frame.reindex(columns=['A', 'B']).values
-        assert_almost_equal(mat, expected)
+        assert_almost_equal(arr, expected)
 
     def test_transpose(self):
         frame = self.frame
@@ -372,7 +372,7 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
     def test_as_matrix_deprecated(self):
         # GH18458
         with tm.assert_produces_warning(FutureWarning):
-            result = self.frame.as_matrix()
+            result = self.frame.as_matrix(columns=self.frame.columns.tolist())
         expected = self.frame.values
         tm.assert_numpy_array_equal(result, expected)
 

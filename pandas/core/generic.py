@@ -3773,12 +3773,11 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.DataFrame.values
         """
-        warnings.warn("method ``as_matrix`` will be removed in a future version. "
-                      "Use ``values`` instead.", FutureWarning, stacklevel=2)
+        warnings.warn("Method .as_matrix will be removed in a future version. "
+                      "Use .values instead.", FutureWarning, stacklevel=2)
         self._consolidate_inplace()
-        if self._AXIS_REVERSED:
-            return self._data.as_matrix(columns).T
-        return self._data.as_matrix(columns)
+        return self._data.as_array(transpose=self._AXIS_REVERSED,
+                                   items=columns)
 
     @property
     def values(self):
@@ -3797,7 +3796,7 @@ class NDFrame(PandasObject, SelectionMixin):
         will result in a flot64 dtype.
         """
         self._consolidate_inplace()
-        return self._data.as_matrix(transpose=self._AXIS_REVERSED)
+        return self._data.as_array(transpose=self._AXIS_REVERSED)
 
     @property
     def _values(self):
