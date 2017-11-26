@@ -45,11 +45,6 @@ def right_df(request, df2):
     return df2
 
 
-@pytest.fixture(params=['inner', 'left', 'right', 'outer'])
-def how(request):
-    return request.param
-
-
 def compute_expected(df_left, df_right,
                      on=None, left_on=None, right_on=None, how=None):
     """
@@ -125,10 +120,11 @@ def compute_expected(df_left, df_right,
     return expected
 
 
-@pytest.mark.parametrize('on',
-                         [['outer'], ['inner'],
-                          ['outer', 'inner'],
-                          ['inner', 'outer']])
+@pytest.mark.parametrize('on,how',
+                         [(['outer'], 'inner'),
+                          (['inner'], 'left'),
+                          (['outer', 'inner'], 'right'),
+                          (['inner', 'outer'], 'outer')])
 def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
 
     # Construct expected result
@@ -139,10 +135,11 @@ def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
     assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.parametrize('left_on,right_on',
-                         [(['outer'], ['outer']), (['inner'], ['inner']),
-                          (['outer', 'inner'], ['outer', 'inner']),
-                          (['inner', 'outer'], ['inner', 'outer'])])
+@pytest.mark.parametrize('left_on,right_on,how',
+                         [(['outer'], ['outer'], 'inner'),
+                          (['inner'], ['inner'], 'right'),
+                          (['outer', 'inner'], ['outer', 'inner'], 'left'),
+                          (['inner', 'outer'], ['inner', 'outer'], 'outer')])
 def test_merge_indexes_and_columns_lefton_righton(
         left_df, right_df, left_on, right_on, how):
 
