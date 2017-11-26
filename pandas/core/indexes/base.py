@@ -2910,7 +2910,10 @@ class Index(IndexOpsMixin, PandasObject):
         from .multi import MultiIndex
         new_values = super(Index, self)._map_values(
             mapper, na_action=na_action)
+
         attributes = self._get_attributes_dict()
+
+        # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
             if isinstance(self, MultiIndex):
                 names = self.names
@@ -2923,8 +2926,25 @@ class Index(IndexOpsMixin, PandasObject):
 
         attributes['copy'] = False
 
-        # we infer the result types based on the
-        # returned values
+        # we want to try to return our original dtype
+        # ints infer to integer, but if we have
+        # uints, would prefer to return these
+        if is_unsigned_integer_dtype(self.dtype):
+            inferred = lib.infer_dtype(new_values)
+            if inferred == 'integer':
+                attributes['dtype'] = self.dtype
+
+        elif not new_values.size:
+            # empty
+            attributes['dtype'] = self.dtype
+        elif isna(new_values).all():
+            # all nan
+            inferred = lib.infer_dtype(self)
+            if inferred in ['datetime', 'datetime64',
+                            'timedelta', 'timedelta64',
+                            'period']:
+                new_values = [libts.NaT] * len(new_values)
+
         return Index(new_values, **attributes)
 
     def isin(self, values, level=None):

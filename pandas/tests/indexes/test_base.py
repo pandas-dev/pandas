@@ -852,11 +852,15 @@ class TestIndex(Base):
         exp = Index(range(24), name='hourly')
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
 
-    def test_map_with_dict_and_series(self):
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
         # GH 12756
         expected = Index(['foo', 'bar', 'baz'])
-        mapper = Series(expected.values, index=[0, 1, 2])
-        result = tm.makeIntIndex(3).map(mapper)
+        result = tm.makeIntIndex(3).map(mapper(expected.values, [0, 1, 2]))
         tm.assert_index_equal(result, expected)
 
         for name in self.indices.keys():
@@ -867,21 +871,16 @@ class TestIndex(Base):
                 # Cannot map duplicated index
                 continue
 
-            cur_index = self.indices[name]
-            expected = Index(np.arange(len(cur_index), 0, -1))
-            mapper = pd.Series(expected, index=cur_index)
-            result = cur_index.map(mapper)
+            index = self.indices[name]
+            expected = Index(np.arange(len(index), 0, -1))
 
-            tm.assert_index_equal(result, expected)
+            # to match proper result coercion for uints
+            if name == 'uintIndex':
+                expected = expected.astype('uint64')
+            elif name == 'empty':
+                expected = Index([])
 
-            # If the mapper is empty the expected index type is Int64Index
-            # but the output defaults to Float64 so I treat it independently
-            mapper = {o: n for o, n in
-                      zip(cur_index, expected)}
-
-            result = cur_index.map(mapper)
-            if not mapper:
-                expected = Float64Index([])
+            result = index.map(mapper(expected, index))
             tm.assert_index_equal(result, expected)
 
     def test_map_with_non_function_missing_values(self):
