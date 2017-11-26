@@ -329,7 +329,7 @@ Deprecations
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
-
+- :func:``DataFrame.from_items`` is deprecated. Use ``DataFrame.from_dict(OrderedDict())`` instead (:issue:`17320`)
 
 .. _whatsnew_0230.prior_deprecations:
 

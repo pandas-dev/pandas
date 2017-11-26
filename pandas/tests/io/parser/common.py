@@ -924,8 +924,8 @@ A,B,C
 
     def test_scientific_no_exponent(self):
         # see gh-12215
-        df = DataFrame.from_items([('w', ['2e']), ('x', ['3E']),
-                                   ('y', ['42e']), ('z', ['632E'])])
+        df = DataFrame({'w': ['2e'], 'x': ['3E'],
+                        'y': ['42e'], 'z': ['632E']})
         data = df.to_csv(index=False)
         for prec in self.float_precision_choices:
             df_roundtrip = self.read_csv(

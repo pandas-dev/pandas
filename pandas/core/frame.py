@@ -313,7 +313,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
+        ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
 
     @property
     def _constructor_expanddim(self):
@@ -1246,6 +1246,9 @@ class DataFrame(NDFrame):
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
         """
+        DEPRECATED: from_items is deprecated and will be removed in a
+        future version. Use :meth:`DataFrame(dict())` instead.
+
         Convert (key, value) pairs to DataFrame. The keys will be the axis
         index (usually the columns, but depends on the specified
         orientation). The values should be arrays or Series.
@@ -1266,6 +1269,11 @@ class DataFrame(NDFrame):
         -------
         frame : DataFrame
         """
+
+        warnings.warn("from_items is deprecated. Please use "
+                      "DataFrame(dict()) instead.",
+                      FutureWarning, stacklevel=2)
+
         keys, values = lzip(*items)
 
         if orient == 'columns':
