@@ -114,7 +114,7 @@ Performance Improvements
 - The overriden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
 - ``Series`` construction will reduce the number of copies made of the input data in certain cases (:issue:`17449`)
 - Improved performance of :func:`Series.dt.date` and :func:`DatetimeIndex.date` (:issue:`18058`)
--
+- Improved performance of ``IntervalIndex.symmetric_difference()`` (:issue:`18475`)
 
 .. _whatsnew_0220.docs:
 
@@ -146,7 +146,7 @@ Indexing
 - Bug in :func:`MultiIndex.remove_unused_levels`` which would fill nan values (:issue:`18417`)
 - Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
--
+- Bug in ``IntervalIndex.symmetric_difference()`` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 
 I/O
 ^^^
