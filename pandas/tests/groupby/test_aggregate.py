@@ -637,7 +637,7 @@ class TestGroupByAggregate(object):
         def P1(a):
             try:
                 return np.percentile(a.dropna(), q=1)
-            except:
+            except Exception:
                 return np.nan
 
         import datetime as dt
