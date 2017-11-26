@@ -290,25 +290,20 @@ class TestGenRangeGeneration(object):
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
-    def test_mismatching_tz_raises_err(self):
+    dt1, dt2, tz1, tz2 = '2017-01-01', '2017-01-01', 'US/Eastern', 'Europe/London'
+    @pytest.mark.parametrize("start,end", [
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
+        (pd.Timestamp(dt1),  pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1))
+    ])
+    def test_mismatching_tz_raises_err(self, start, end):
         #issue 18488
-        dt1_tz = pd.Timestamp('2017-01-01', tz='US/Eastern')
-        dt1_no_tz = pd.Timestamp('2017-01-01')
-        dt2_tz = pd.Timestamp('2017-01-04', tz='US/Eastern')
-        dt2_no_tz = pd.Timestamp('2017-01-04')
-        dt1_diff_tz = pd.Timestamp('2017-01-01', tz='Europe/London')
-        dt2_diff_tz = pd.Timestamp('2017-01-04', tz='Europe/London')
+        with pytest.raises(TypeError):
+            pd.date_range(start, end)
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start, end, freq=BDay())
 
-        def assert_tz_raises_exception(start, end):
-            with pytest.raises(TypeError):
-                pd.date_range(start, end)
-            with pytest.raises(TypeError):
-                pd.DatetimeIndexstart(start, end)
-
-        assert_tz_raises_exception(dt1_no_tz, dt2_tz)
-        assert_tz_raises_exception(dt1_tz, dt2_no_tz)
-        assert_tz_raises_exception(dt1_tz, dt2_diff_tz)
-        assert_tz_raises_exception(dt1_diff_tz, dt2_tz)
 
 class TestBusinessDateRange(object):
 
