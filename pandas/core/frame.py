@@ -148,16 +148,16 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
       join; preserve the order of the left keys
 on : label or list
     Column or index level names to join on. These must be found in both
-    DataFrames. If on is None and not merging on indexes then this defaults to
-    the intersection of the columns in both DataFrames.
+    DataFrames. If `on` is None and not merging on indexes then this defaults 
+    to the intersection of the columns in both DataFrames.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
-    be a vector or list of vectors of the length of the left DataFrame.
-    These vectors are treated as though they are columns.
+    be an array or list of arrays of the length of the left DataFrame.
+    These arrays are treated as if they are columns.
 right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
-    be a vector or list of vectors of the length of the right DataFrame.
-    These vectors are treated as though they are columns.
+    be an array or list of arrays of the length of the right DataFrame.
+    These arrays are treated as if they are columns.
 left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
@@ -198,8 +198,8 @@ validate : string, default None
 
 Note
 ----
-Support for specifying index levels as the ``on``, ``left_on``, and
-``right_on`` parameters was added in version 0.22.0.
+Support for specifying index levels as the `on`, `left_on`, and
+`right_on` parameters was added in version 0.22.0
 
 Examples
 --------
