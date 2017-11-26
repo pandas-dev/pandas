@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 from pandas.core.common import (_count_not_none,
@@ -1074,7 +1075,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 "_is_level_reference is not implemented for {type}"
                 .format(type=type(self)))
 
-        return (isinstance(key, compat.string_types) and
+        return (key is not None and
+                is_hashable(key) and
                 key in self.axes[axis].names and
                 not self._is_label_reference(key, axis=axis))
 
@@ -1106,7 +1108,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 "_is_label_reference is not implemented for {type}"
                 .format(type=type(self)))
 
-        return (isinstance(key, compat.string_types) and
+        return (key is not None and
+                is_hashable(key) and
                 any(key in self.axes[ax] for ax in other_axes))
 
     def _is_label_or_level_reference(self, key, axis=0):
@@ -1174,7 +1177,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 "_check_label_or_level_ambiguity is not implemented for {type}"
                 .format(type=type(self)))
 
-        def raise_warning():
+        if (key is not None and
+                is_hashable(key) and
+                key in self.axes[axis].names and
+                any(key in self.axes[ax] for ax in other_axes)):
 
             # Build an informative and grammatical warning
             level_article, level_type = (('an', 'index')
