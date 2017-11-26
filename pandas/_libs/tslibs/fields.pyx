@@ -17,10 +17,11 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from ccalendar cimport dayofweek
+from ccalendar cimport is_leapyear
+# from ccalendar cimport dayofweek
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct,
-                          days_per_month_table, is_leapyear)
+                          days_per_month_table, dayofweek)
 from nattype cimport NPY_NAT
 
 
