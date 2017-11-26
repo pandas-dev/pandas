@@ -1435,7 +1435,7 @@ class TestToHTML(object):
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
-                       formatters={'A': lambda x: '%.1f' % x})
+                       formatters={'A': lambda x: '{x:.1f}'.format(x=x)})
 
         biggie.to_html(columns=['B', 'A'], float_format=str)
         biggie.to_html(columns=['B', 'A'], col_space=12, float_format=str)

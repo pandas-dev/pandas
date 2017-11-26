@@ -234,7 +234,7 @@ class SharedWithSparse(object):
         if sys.version >= LooseVersion('2.7'):
             assert tup2._fields == ('Index', '_1', '_2')
 
-        df3 = DataFrame(dict(('f' + str(i), [i]) for i in range(1024)))
+        df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert not hasattr(tup3, '_fields')
@@ -243,31 +243,31 @@ class SharedWithSparse(object):
     def test_len(self):
         assert len(self.frame) == len(self.frame.index)
 
-    def test_as_matrix(self):
+    def test_values(self):
         frame = self.frame
-        mat = frame.as_matrix()
+        arr = frame.values
 
-        frameCols = frame.columns
-        for i, row in enumerate(mat):
+        frame_cols = frame.columns
+        for i, row in enumerate(arr):
             for j, value in enumerate(row):
-                col = frameCols[j]
+                col = frame_cols[j]
                 if np.isnan(value):
                     assert np.isnan(frame[col][i])
                 else:
                     assert value == frame[col][i]
 
         # mixed type
-        mat = self.mixed_frame.as_matrix(['foo', 'A'])
-        assert mat[0, 0] == 'bar'
+        arr = self.mixed_frame[['foo', 'A']].values
+        assert arr[0, 0] == 'bar'
 
         df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
-        mat = df.as_matrix()
-        assert mat[0, 0] == 1j
+        arr = df.values
+        assert arr[0, 0] == 1j
 
         # single block corner case
-        mat = self.frame.as_matrix(['A', 'B'])
+        arr = self.frame[['A', 'B']].values
         expected = self.frame.reindex(columns=['A', 'B']).values
-        assert_almost_equal(mat, expected)
+        assert_almost_equal(arr, expected)
 
     def test_transpose(self):
         frame = self.frame
@@ -311,8 +311,8 @@ class SharedWithSparse(object):
         DataFrame.index  # no exception!
         DataFrame.columns  # no exception!
 
-    def test_more_asMatrix(self):
-        values = self.mixed_frame.as_matrix()
+    def test_more_values(self):
+        values = self.mixed_frame.values
         assert values.shape[1] == len(self.mixed_frame.columns)
 
     def test_repr_with_mi_nat(self):
@@ -368,6 +368,13 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
     def test_values(self):
         self.frame.values[:, 0] = 5.
         assert (self.frame.values[:, 0] == 5).all()
+
+    def test_as_matrix_deprecated(self):
+        # GH18458
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.frame.as_matrix(columns=self.frame.columns.tolist())
+        expected = self.frame.values
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_deepcopy(self):
         cp = deepcopy(self.frame)

@@ -257,6 +257,16 @@ if PY3:
     def u_safe(s):
         return s
 
+    def to_str(s):
+        """
+        Convert bytes and non-string into Python 3 str
+        """
+        if isinstance(s, binary_type):
+            s = bytes_to_str(s)
+        elif not isinstance(s, string_types):
+            s = str(s)
+        return s
+
     def strlen(data, encoding=None):
         # encoding is for compat with PY2
         return len(data)
@@ -266,7 +276,7 @@ if PY3:
         Calculate display width considering unicode East Asian Width
         """
         if isinstance(data, text_type):
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -302,6 +312,14 @@ else:
         except:
             return s
 
+    def to_str(s):
+        """
+        Convert unicode and non-string into Python 2 str
+        """
+        if not isinstance(s, string_types):
+            s = str(s)
+        return s
+
     def strlen(data, encoding=None):
         try:
             data = data.decode(encoding)
@@ -318,7 +336,7 @@ else:
                 data = data.decode(encoding)
             except UnicodeError:
                 pass
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 

@@ -251,12 +251,13 @@ Optional Dependencies
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
 * `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
-* One of `PyQt4
-  <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
-  <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
-  <http://www.pygtk.org/>`__, `xsel
-  <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-  <https://github.com/astrand/xclip/>`__: necessary to use
+* One of
+  `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
+  `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
+  `PyQt4 <http://www.riverbankcomputing.com/software/pyqt/download>`__,
+  `pygtk <http://www.pygtk.org/>`__,
+  `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
+  `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
 * For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
 

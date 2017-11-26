@@ -2,7 +2,6 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
-from functools import partial
 from sys import getsizeof
 
 import numpy as np
@@ -28,8 +27,7 @@ from pandas.core.common import (_any_not_none,
                                 is_true_slices)
 
 import pandas.core.base as base
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate, deprecate_kwarg)
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -97,6 +95,30 @@ class MultiIndex(Index):
                               of iterables
     MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
     Index : The base pandas Index type
+
+    Attributes
+    ----------
+    names
+    levels
+    labels
+    nlevels
+    levshape
+
+    Methods
+    -------
+    from_arrays
+    from_tuples
+    from_product
+    set_levels
+    set_labels
+    to_hierarchical
+    to_frame
+    is_lexsorted
+    sortlevel
+    droplevel
+    swaplevel
+    reorder_levels
+    remove_unused_levels
     """
 
     # initialize to zero-length tuples to make everything work
@@ -177,7 +199,8 @@ class MultiIndex(Index):
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
 
-    def _get_levels(self):
+    @property
+    def levels(self):
         return self._levels
 
     def _set_levels(self, levels, level=None, copy=False, validate=True,
@@ -279,14 +302,8 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
-    # remove me in 0.14 and change to read only property
-    __set_levels = deprecate("setting `levels` directly",
-                             partial(set_levels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_levels")
-    levels = property(fget=_get_levels, fset=__set_levels)
-
-    def _get_labels(self):
+    @property
+    def labels(self):
         return self._labels
 
     def _set_labels(self, labels, level=None, copy=False, validate=True,
@@ -379,13 +396,6 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
-    # remove me in 0.14 and change to readonly property
-    __set_labels = deprecate("setting labels directly",
-                             partial(set_labels, inplace=True,
-                                     verify_integrity=True),
-                             alt_name="set_labels")
-    labels = property(fget=_get_labels, fset=__set_labels)
-
     def copy(self, names=None, dtype=None, levels=None, labels=None,
              deep=False, _set_identity=False, **kwargs):
         """
@@ -475,7 +485,7 @@ class MultiIndex(Index):
         """ return a boolean if we need a qualified .info display """
         def f(l):
             return 'mixed' in l or 'string' in l or 'unicode' in l
-        return any([f(l) for l in self._inferred_type_levels])
+        return any(f(l) for l in self._inferred_type_levels)
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
@@ -503,9 +513,9 @@ class MultiIndex(Index):
         # for implementations with no useful getsizeof (PyPy)
         objsize = 24
 
-        level_nbytes = sum((i.memory_usage(deep=deep) for i in self.levels))
-        label_nbytes = sum((i.nbytes for i in self.labels))
-        names_nbytes = sum((getsizeof(i, objsize) for i in self.names))
+        level_nbytes = sum(i.memory_usage(deep=deep) for i in self.levels)
+        label_nbytes = sum(i.nbytes for i in self.labels)
+        names_nbytes = sum(getsizeof(i, objsize) for i in self.names)
         result = level_nbytes + label_nbytes + names_nbytes
 
         # include our engine hashtable
@@ -898,7 +908,7 @@ class MultiIndex(Index):
 
             raise InvalidIndexError(key)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level, unique=False):
         """
         Return vector of label values for requested level,
         equal to the length of the index
@@ -908,17 +918,21 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : int level
+        unique : bool, default False
+            if True, drop duplicated values
 
         Returns
         -------
         values : ndarray
         """
 
-        unique = self.levels[level]
+        values = self.levels[level]
         labels = self.labels[level]
-        filled = algos.take_1d(unique._values, labels,
-                               fill_value=unique._na_value)
-        values = unique._shallow_copy(filled)
+        if unique:
+            labels = algos.unique(labels)
+        filled = algos.take_1d(values._values, labels,
+                               fill_value=values._na_value)
+        values = values._shallow_copy(filled)
         return values
 
     def get_level_values(self, level):
@@ -956,6 +970,15 @@ class MultiIndex(Index):
         level = self._get_level_number(level)
         values = self._get_level_values(level)
         return values
+
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+
+        if level is None:
+            return super(MultiIndex, self).unique()
+        else:
+            level = self._get_level_number(level)
+            return self._get_level_values(level=level, unique=True)
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep=None, formatter=None):
@@ -1139,6 +1162,11 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
+        if not is_list_like(arrays):
+            raise TypeError("Input must be a list / sequence of array-likes.")
+        elif is_iterator(arrays):
+            arrays = list(arrays)
+
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
@@ -1183,6 +1211,11 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
+        if not is_list_like(tuples):
+            raise TypeError('Input must be a list / sequence of tuple-likes.')
+        elif is_iterator(tuples):
+            tuples = list(tuples)
+
         if len(tuples) == 0:
             if names is None:
                 msg = 'Cannot infer number of levels from empty list'
@@ -1236,6 +1269,11 @@ class MultiIndex(Index):
         """
         from pandas.core.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
+
+        if not is_list_like(iterables):
+            raise TypeError("Input must be a list / sequence of iterables.")
+        elif is_iterator(iterables):
+            iterables = list(iterables)
 
         labels, levels = _factorize_from_iterables(iterables)
         labels = cartesian_product(labels)
@@ -1345,22 +1383,26 @@ class MultiIndex(Index):
         for lev, lab in zip(self.levels, self.labels):
 
             uniques = algos.unique(lab)
+            na_idx = np.where(uniques == -1)[0]
 
             # nothing unused
-            if len(uniques) == len(lev):
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if len(uniques) != len(lev) + len(na_idx):
+                changed = True
 
-            changed = True
+                if len(na_idx):
+                    # Just ensure that -1 is in first position:
+                    uniques[[0, na_idx[0]]] = uniques[[na_idx[0], 0]]
 
-            # labels get mapped from uniques to 0:len(uniques)
-            label_mapping = np.zeros(len(lev))
-            label_mapping[uniques] = np.arange(len(uniques))
-            lab = label_mapping[lab]
+                # labels get mapped from uniques to 0:len(uniques)
+                # -1 (if present) is mapped to last position
+                label_mapping = np.zeros(len(lev) + len(na_idx))
+                # ... and reassigned value -1:
+                label_mapping[uniques] = np.arange(len(uniques)) - len(na_idx)
 
-            # new levels are simple
-            lev = lev.take(uniques)
+                lab = label_mapping[lab]
+
+                # new levels are simple
+                lev = lev.take(uniques[len(na_idx):])
 
             new_levels.append(lev)
             new_labels.append(lab)
@@ -1376,10 +1418,12 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
+        """Integer number of levels in this MultiIndex."""
         return len(self.levels)
 
     @property
     def levshape(self):
+        """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
 
     def __reduce__(self):
@@ -2228,12 +2272,12 @@ class MultiIndex(Index):
                         # here we have a completely specified key, but are
                         # using some partial string matching here
                         # GH4758
-                        all_dates = [(l.is_all_dates and
+                        all_dates = ((l.is_all_dates and
                                       not isinstance(k, compat.string_types))
-                                     for k, l in zip(key, self.levels)]
+                                     for k, l in zip(key, self.levels))
                         can_index_exactly = any(all_dates)
-                        if (any([l.is_all_dates
-                                 for k, l in zip(key, self.levels)]) and
+                        if (any(l.is_all_dates
+                                for k, l in zip(key, self.levels)) and
                                 not can_index_exactly):
                             indexer = self.get_loc(key)
 

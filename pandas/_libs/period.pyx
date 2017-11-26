@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 from datetime import datetime, date, timedelta
-import operator
 
 from cpython cimport (
     PyUnicode_Check,
@@ -19,18 +18,17 @@ from pandas.compat import PY2
 cimport cython
 
 from tslibs.np_datetime cimport (pandas_datetimestruct,
-                                 dtstruct_to_dt64, dt64_to_dtstruct)
-from datetime cimport is_leapyear
+                                 dtstruct_to_dt64, dt64_to_dtstruct,
+                                 is_leapyear)
 
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from lib cimport is_null_datetimelike
-from pandas._libs import tslib
-from pandas._libs.tslib import Timestamp, iNaT
+from missing cimport is_null_datetimelike
+from pandas._libs.tslib import Timestamp
 from tslibs.timezones cimport (
-    is_utc, is_tzlocal, get_utcoffset, get_dst_info, maybe_get_tz)
+    is_utc, is_tzlocal, get_utcoffset, get_dst_info)
 from tslibs.timedeltas cimport delta_to_nanoseconds
 
 from tslibs.frequencies cimport (get_freq_code, get_base_alias,
@@ -40,13 +38,12 @@ from tslibs.frequencies import _MONTH_NUMBERS
 from tslibs.parsing import parse_time_string, NAT_SENTINEL
 
 from tslibs.resolution import resolution, Resolution
-from tslibs.nattype import nat_strings, NaT
-from tslibs.nattype cimport _nat_scalar_rules
+from tslibs.nattype import nat_strings, NaT, iNaT
+from tslibs.nattype cimport _nat_scalar_rules, NPY_NAT
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
 
-cdef int64_t NPY_NAT = util.get_nat()
 
 cdef extern from "period_helper.h":
     ctypedef struct date_info:
@@ -206,7 +203,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         Py_ssize_t i, n
         freq_conv_func func
         asfreq_info finfo
-        int64_t val, ordinal
+        int64_t val
         char relation
 
     n = len(arr)
@@ -241,9 +238,6 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
 def period_ordinal(int y, int m, int d, int h, int min,
                    int s, int us, int ps, int freq):
-    cdef:
-        int64_t ordinal
-
     return get_period_ordinal(y, m, d, h, min, s, us, ps, freq)
 
 
@@ -568,7 +562,6 @@ cdef class _Period(object):
         int64_t ordinal
         object freq
 
-    _comparables = ['name', 'freqstr']
     _typ = 'period'
 
     def __cinit__(self, ordinal, freq):

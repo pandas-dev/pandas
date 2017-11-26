@@ -770,7 +770,7 @@ cdef class TextReader:
                     msg = self.orig_header
                     if isinstance(msg, list):
                         msg = "[%s], len of %d," % (
-                            ','.join([ str(m) for m in msg ]), len(msg))
+                            ','.join(str(m) for m in msg), len(msg))
                     raise ParserError(
                         'Passed header=%s but only %d lines in file'
                         % (msg, self.parser.lines))
@@ -2227,9 +2227,10 @@ def _concatenate_chunks(list chunks):
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
-        dtypes = set([a.dtype for a in arrs])
-        if len(dtypes) > 1:
-            common_type = np.find_common_type(dtypes, [])
+        dtypes = {a.dtype for a in arrs}
+        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        if len(numpy_dtypes) > 1:
+            common_type = np.find_common_type(numpy_dtypes, [])
             if common_type == np.object:
                 warning_columns.append(str(name))
 
