@@ -1,31 +1,32 @@
-from .pandas_vb_common import *
+import numpy as np
+import pandas.util.testing as tm
+from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
-    from pandas.tseries.offsets import *
+    from pandas.tseries import offsets
 except:
     from pandas.core.datetools import *
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Creation from nested dict
 
 class FromDicts(object):
+
     goal_time = 0.2
 
     def setup(self):
-        (N, K) = (5000, 50)
+        np.random.seed(1234)
+        N, K = 5000, 50
         self.index = tm.makeStringIndex(N)
         self.columns = tm.makeStringIndex(K)
-        self.frame = DataFrame(np.random.randn(N, K), index=self.index, columns=self.columns)
-        try:
-            self.data = self.frame.to_dict()
-        except:
-            self.data = self.frame.toDict()
+        self.frame = DataFrame(np.random.randn(N, K),
+                               index=self.index,
+                               columns=self.columns)
+        self.data = self.frame.to_dict()
         self.some_dict = list(self.data.values())[0]
-        self.dict_list = [dict(zip(self.columns, row)) for row in self.frame.values]
-
+        self.dict_list = self.frame.to_dict(orient='records')
         self.data2 = {i: {j: float(j) for j in range(100)}
                       for i in range(2000)}
-
 
     def time_frame_ctor_list_of_dict(self):
         DataFrame(self.dict_list)
@@ -38,37 +39,20 @@ class FromDicts(object):
 
     def time_frame_ctor_nested_dict_int64(self):
         # nested dict, integer indexes, regression described in #621
-        DataFrame(self.data)
+        DataFrame(self.data2)
 
 
 # from a mi-series
 
-class frame_from_series(object):
+class FromSeries(object):
     goal_time = 0.2
 
     def setup(self):
-        self.mi = MultiIndex.from_tuples([(x, y) for x in range(100) for y in range(100)])
-        self.s = Series(randn(10000), index=self.mi)
+        self.mi = MultiIndex.from_product([range(100), range(100)])
+        self.s = Series(np.random.randn(10000), index=self.mi)
 
     def time_frame_from_mi_series(self):
         DataFrame(self.s)
-
-
-#----------------------------------------------------------------------
-# get_numeric_data
-
-class frame_get_numeric_data(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 25))
-        self.df['foo'] = 'bar'
-        self.df['bar'] = 'baz'
-        self.df = self.df.consolidate()
-
-    def time_frame_get_numeric_data(self):
-        self.df._get_numeric_data()
-
 
 # ----------------------------------------------------------------------
 # From dict with DatetimeIndex with all offsets
@@ -84,13 +68,15 @@ def get_period_count(start_date, off):
     if (ten_offsets_in_days == 0):
         return 1000
     else:
-        return min((9 * ((Timestamp.max - start_date).days // ten_offsets_in_days)), 1000)
+        periods = 9 * (Timestamp.max - start_date).days // ten_offsets_in_days
+        return min(periods, 1000)
 
 
 def get_index_for_offset(off):
     start_date = Timestamp('1/1/1900')
-    return date_range(start_date, periods=min(1000, get_period_count(
-        start_date, off)), freq=off)
+    return date_range(start_date,
+                      periods=get_period_count(start_date, off),
+                      freq=off)
 
 
 all_offsets = offsets.__all__
@@ -100,7 +86,7 @@ for off in ['FY5253', 'FY5253Quarter']:
     all_offsets.extend([off + '_1', off + '_2'])
 
 
-class FrameConstructorDTIndexFromOffsets(object):
+class FromDictwithTimestampOffsets(object):
 
     params = [all_offsets, [1, 2]]
     param_names = ['offset', 'n_steps']
@@ -108,13 +94,15 @@ class FrameConstructorDTIndexFromOffsets(object):
     offset_kwargs = {'WeekOfMonth': {'weekday': 1, 'week': 1},
                      'LastWeekOfMonth': {'weekday': 1, 'week': 1},
                      'FY5253': {'startingMonth': 1, 'weekday': 1},
-                     'FY5253Quarter': {'qtr_with_extra_week': 1, 'startingMonth': 1, 'weekday': 1}}
+                     'FY5253Quarter': {'qtr_with_extra_week': 1,
+                                       'startingMonth': 1,
+                                       'weekday': 1}}
 
     offset_extra_cases = {'FY5253': {'variation': ['nearest', 'last']},
                           'FY5253Quarter': {'variation': ['nearest', 'last']}}
 
     def setup(self, offset, n_steps):
-
+        np.random.seed(1234)
         extra = False
         if offset.endswith("_", None, -1):
             extra = int(offset[-1])
@@ -127,12 +115,12 @@ class FrameConstructorDTIndexFromOffsets(object):
         if extra:
             extras = self.offset_extra_cases[offset]
             for extra_arg in extras:
-                kwargs[extra_arg] = extras[extra_arg][extra -1]
+                kwargs[extra_arg] = extras[extra_arg][extra - 1]
 
         offset = getattr(offsets, offset)
         self.idx = get_index_for_offset(offset(n_steps, **kwargs))
         self.df = DataFrame(np.random.randn(len(self.idx), 10), index=self.idx)
-        self.d = dict(self.df.items())
+        self.d = self.df.to_dict()
 
     def time_frame_ctor(self, offset, n_steps):
         DataFrame(self.d)
