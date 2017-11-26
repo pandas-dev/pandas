@@ -250,19 +250,18 @@ class TestDatetimeIndex(object):
         # it works
         rng.join(idx, how='outer')
 
-    def test_comparison_tzawareness_compat(self):
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
         # GH#18162
         dr = pd.date_range('2016-01-01', periods=6)
         dz = dr.tz_localize('US/Pacific')
 
-        ops = [operator.eq, operator.ne,
-               operator.gt, operator.ge,
-               operator.lt, operator.le]
-
-        for left, right in [(dr, dz), (dz, dr)]:
-            for op in ops:
-                with pytest.raises(TypeError):
-                    op(left, right)
+        with pytest.raises(TypeError):
+            op(dr, dz)
+        with pytest.raises(TypeError):
+            op(dz, dr)
 
         # Check that there isn't a problem aware-aware and naive-naive do not
         # raise
@@ -275,11 +274,11 @@ class TestDatetimeIndex(object):
 
         assert (dr > str_ts).all()
         with pytest.raises(TypeError):
-            dr == str_ts_tz
+            op(dr, str_ts_tz)
 
         assert (dz > str_ts_tz).all()
         with pytest.raises(TypeError):
-            dz != str_ts
+            op(dz, str_ts)
 
         # Check comparisons against scalar Timestamps
         ts = pd.Timestamp('2000-03-14 01:59')
@@ -287,11 +286,11 @@ class TestDatetimeIndex(object):
 
         assert (dr > ts).all()
         with pytest.raises(TypeError):
-            dr == ts_tz
+            op(dr, ts_tz)
 
         assert (dz > ts_tz).all()
         with pytest.raises(TypeError):
-            dz != ts
+            op(dz, ts)
 
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)

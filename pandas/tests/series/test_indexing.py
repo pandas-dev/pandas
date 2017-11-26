@@ -486,8 +486,8 @@ class TestSeriesIndexing(TestData):
             # see GH#18376, GH#18162
             ts[(ts.index >= lb) & (ts.index <= rb)]
 
-        lb = rng.tzinfo.localize(datetime(1990, 1, 1, 4))
-        rb = rng.tzinfo.localize(datetime(1990, 1, 1, 7))
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
