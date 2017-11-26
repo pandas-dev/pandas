@@ -290,6 +290,22 @@ class TestGenRangeGeneration(object):
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    dt1, dt2 = '2017-01-01', '2017-01-01'
+    tz1, tz2 = 'US/Eastern', 'Europe/London'
+
+    @pytest.mark.parametrize("start,end", [
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
+        (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1))
+    ])
+    def test_mismatching_tz_raises_err(self, start, end):
+        # issue 18488
+        with pytest.raises(TypeError):
+            pd.date_range(start, end)
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start, end, freq=BDay())
+
 
 class TestBusinessDateRange(object):
 

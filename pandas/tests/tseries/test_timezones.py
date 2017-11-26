@@ -424,7 +424,7 @@ class TestTimeZoneSupportPytz(object):
 
         # datetimes with tzinfo set
         dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
-                         '1/1/2009', tz=pytz.utc)
+                         datetime(2009, 1, 1, tzinfo=pytz.utc))
 
         pytest.raises(Exception, bdate_range,
                       datetime(2005, 1, 1, tzinfo=pytz.utc), '1/1/2009',
