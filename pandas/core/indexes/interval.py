@@ -1171,7 +1171,7 @@ class IntervalIndex(IntervalMixin, Index):
     union = _setop('union')
     intersection = _setop('intersection')
     difference = _setop('difference')
-    symmetric_differnce = _setop('symmetric_difference')
+    symmetric_difference = _setop('symmetric_difference')
 
     # TODO: arithmetic operations
 
